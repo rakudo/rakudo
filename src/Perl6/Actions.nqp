@@ -16,27 +16,38 @@ sub block_closure($code) {
     $closure
 }
 
+sub wantall($ast) {
+    my int $i := 0;
+    my int $e := $ast ?? +@($ast) !! 0;
+    while $i < $e { $ast[$i] := wanted($ast[$i]); $i := $i + 1 }
+    Nil;
+}
+
+# Note that these wanted/unwanted routines can return a different ast
+# from the one passed, so always store the result back from where
+# got it.  (Like how wantall does it above.)
+
 sub wanted($ast) {
     return $ast unless nqp::can($ast,'ann');
     return $ast if $ast.ann('WANTED');  # already marked from here down
+    my $e := +@($ast) - 1;
     $*W.throw($/, 'X::Comp::AdHoc',
         payload => "Oops, already sunk node is now wanted!?!")
             if $ast.ann('context');
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
-        wanted($ast[+@($ast) - 1]) if +@($ast) > 0;
+        $ast[$e] := wanted($ast[$e]) if +@($ast) > 0;
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Block) {
         if +@($ast) > 1 {
-            my $last := $ast[+@($ast) - 1];
-            WANTED($last);
+            $ast[$e] := WANTED($ast[$e]);
         }
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
-        wanted($ast.ann('past_block'));
+        $ast.annotate('past_block', wanted($ast.ann('past_block')));
         $ast.annotate('WANTED',1);
     }
     $ast;
@@ -44,7 +55,7 @@ sub wanted($ast) {
 
 sub WANTED($ast) {
     if nqp::isconcrete($ast) {
-        wanted($ast);
+        $ast := wanted($ast);
         $ast.annotate('WANTED',1);  # force in case it's just a thunk
     }
     $ast;
@@ -54,21 +65,21 @@ sub unwanted($ast) {
     return $ast unless nqp::can($ast,'ann');
     return $ast if $ast.ann('WANTED');  # already marked from here down
     return $ast if $ast.ann('context');
+    my $e := +@($ast) - 1;
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
-        unwanted($ast[+@($ast) - 1]) if +@($ast) > 0;
+        $ast[$e] := unwanted($ast[$e]) if +@($ast) > 0;
         $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Block) {
         if +@($ast) > 1 {
-            my $last := $ast[+@($ast) - 1];
-            WANTED($last);
+            $ast[$e] := WANTED($ast[$e]);
         }
         $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
-        unwanted($ast.ann('past_block'));
+        $ast.annotate('past_block', unwanted($ast.ann('past_block')));
         $ast.annotate('context','sink');
     }
     $ast;
@@ -424,7 +435,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $*NEED_RESULT {
             # Evaluate last statement in sink context, by pushing another
             # statement after it, unless we need the result.
-            unwanted($mainline).push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            $mainline := unwanted($mainline);
+            $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         fatalize($mainline) if %*PRAGMAS<fatal>;
 
@@ -904,7 +916,7 @@ Compilation unit '$file' contained the following violations:
         else {
             my $e := +@($past) - 1;
             my $i := 0;
-            while $i < $e { unwanted($past[$i]); ++$i; }
+            while $i < $e { $past[$i] := unwanted($past[$i]); ++$i; }
             my $pl := $past[$e];
             $pl.annotate('final', 1);
             $past.returns($pl.returns);
@@ -4199,7 +4211,7 @@ Compilation unit '$file' contained the following violations:
         my $past := $<termish>
             ?? QAST::Op.new( $<termish>.ast )
             !! $<semiarglist>.ast;
-        for @($past) { wanted($_) }
+        wantall($past);
         $past.unshift(QAST::WVal.new( :value($*W.find_symbol(['Capture']) ) ));
         $past.op('callmethod');
         $past.name('from-args');
@@ -4289,7 +4301,7 @@ Compilation unit '$file' contained the following violations:
             else {
                 my $maybe_code_obj := $val.ann('code_object');
                 if nqp::isconcrete($maybe_code_obj) {
-                    WANTED($val.ann('past_block'));
+                    $val.annotate('past_block', WANTED($val.ann('past_block')));
                     check_param_default_type($/, $maybe_code_obj);
                 }
                 %*PARAM_INFO<default_value> :=
@@ -4884,7 +4896,7 @@ Compilation unit '$file' contained the following violations:
             # macro-ish cases.
             my @parts := $*W.dissect_longname($<longname>).components();
             $name := @parts.pop;
-            for @($past) { wanted($_) }
+            wantall($past);
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
                 $past.unshift($*W.add_string_constant($name));
@@ -4941,7 +4953,9 @@ Compilation unit '$file' contained the following violations:
             $past.unshift($<variable>.ast);
             $past.name('dispatch:<var>');
         }
-        unless $name eq 'sink' { for @($past) { wanted($_) } }
+        unless $name eq 'sink' {
+            wantall($past);
+        }
 
         make $past;
     }
@@ -5210,8 +5224,9 @@ Compilation unit '$file' contained the following violations:
 
                 # Do we know all the arguments at compile time?
                 my int $all_compile_time := 1;
-                for @($<arglist>.ast) {
-                    wanted($_);
+                my $ast := $<arglist>.ast;
+                wantall($past);
+                for @($ast) {
                     unless $_.has_compile_time_value {
                         $all_compile_time := 0;
                     }
@@ -5575,7 +5590,7 @@ Compilation unit '$file' contained the following violations:
         }
         else {
             my $last := $past[ $size - 1 ];
-            wanted($last);
+            $past[ $size - 1 ] := wanted($last);
             $past.returns($last.returns);
             if nqp::istype($last, QAST::Block) {
                 $past.arity($last.arity);
@@ -5858,12 +5873,19 @@ Compilation unit '$file' contained the following violations:
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
                 $target.push(wanted($cpast[2]));
-                wanted($target);
+
+                if nqp::istype($past, QAST::Op) && $past.op eq 'hllize' {
+                    $past[0] := wanted($target);
+                }
+                else {
+                    $past := wanted($target);
+                }
+
                 make $past;
                 return 1;
             }
 
-            for @($past) { wanted($_) }
+            wantall($past);
 
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
@@ -6144,7 +6166,7 @@ Compilation unit '$file' contained the following violations:
     sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
-        wanted($rhs_ast);
+        $rhs_ast := wanted($rhs_ast);
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
             if $var_sigil eq '%' {
@@ -8089,7 +8111,7 @@ Compilation unit '$file' contained the following violations:
     sub make_where_block($/, $expr, $operand = QAST::Var.new( :name('$_'), :scope('lexical') ) ) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
-            wanted($expr.ann('past_block'));
+            $expr.annotate('past_block', wanted($expr.ann('past_block')));
             return $expr.ann('code_object');
         }
 
@@ -8314,7 +8336,7 @@ Compilation unit '$file' contained the following violations:
             $args
         }
         else {
-            for @($args) { wanted($_) }
+            wantall($args);
             $args;
         }
     }

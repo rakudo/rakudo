@@ -119,11 +119,11 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         Nil
     }
 
-    multi method AT-POS(Seq:D: Int $idx) {
+    multi method AT-POS(Seq:D: Int $idx) is raw {
         self.cache.AT-POS($idx)
     }
 
-    multi method AT-POS(Seq:D: int $idx) {
+    multi method AT-POS(Seq:D: int $idx) is raw {
         self.cache.AT-POS($idx)
     }
 

@@ -393,14 +393,6 @@ my class Rakudo::Internals {
             X::IllegalOnFixedDimensionArray.new(operation => 'plan').throw
         }
 
-        method reverse(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
-        }
-
-        method rotate(::?CLASS:D: Cool) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
-        }
-
         multi method keys(::?CLASS:D:) {
             my @shape := self.shape;
             @shape.elems == 1
@@ -509,6 +501,10 @@ my class Rakudo::Internals {
                     $cur-pos = $cur-pos + 1;
                 }
             }
+        }
+
+        multi method Slip() {
+            Slip.from-iterator(self.iterator)
         }
     }
 
@@ -621,6 +617,9 @@ my class Rakudo::Internals {
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
           !! ("", "", "", "", "<HERE>");
     }
+
+    my num $init-time-num = nqp::time_n;
+    method INITTIME() { $init-time-num }
 }
 
 # vim: ft=perl6 expandtab sw=4

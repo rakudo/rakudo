@@ -45,13 +45,16 @@ my class Pair does Associative {
 
     multi method perl(Pair:D: :$arglist) {
         self.perlseen('Pair', -> :$arglist {
-            nqp::istype($!key, Pair)
-              ?? '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
-              !! nqp::istype($!key, Str) && !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
+            nqp::istype($!key, Str)
+              ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
                 ?? nqp::istype($!value,Bool)
                    ?? ':' ~ '!' x !$!value ~ $!key
                    !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
                 !! $!key.perl ~ ' => ' ~ $!value.perl
+              !! nqp::istype($!key, Numeric)
+                   && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
+                ?? $!key.perl ~ ' => ' ~ $!value.perl
+                !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
         }, :$arglist)
     }
 

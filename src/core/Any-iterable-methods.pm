@@ -1492,7 +1492,10 @@ proto sub repeated(|) { * }
 multi sub repeated(+values, |c) { my $laze = values.is-lazy; values.repeated(|c).lazy-if($laze) }
 
 proto sub sort(|) {*}
-multi sub sort($cmp, +values)      {
+multi sub sort(@values) {
+    @values.sort
+}
+multi sub sort($cmp, +values) {
     nqp::istype($cmp, Callable)
         ?? values.sort($cmp)
         !! (|$cmp,|values).sort;

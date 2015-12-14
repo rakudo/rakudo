@@ -988,7 +988,7 @@ my class Supply {
                     emit val;
                     $todo = $todo - 1;
                 }
-                last if $todo <= 0;  # nothing left to do
+                done if $todo <= 0;  # nothing left to do
             }
         }
     }
@@ -1354,6 +1354,15 @@ my class Supply {
                 LAST { $done = 1 }
             }
         }
+    }
+
+    method share(Supply:D:) {
+        my $sup = Supplier.new;
+        self.tap:
+            -> \msg { $sup.emit(msg) },
+            done => -> { $sup.done() },
+            quit => -> \ex { $sup.quit(ex) }
+        $sup.Supply
     }
 }
 

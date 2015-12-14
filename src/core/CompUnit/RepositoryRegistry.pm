@@ -197,7 +197,8 @@ RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
                         ),
                     )
                 );
-                GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+                GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO)
+                    if GLOBALish !=== Any;
                 $compunit
             }
         } )

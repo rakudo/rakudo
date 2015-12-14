@@ -1413,7 +1413,7 @@ Compilation unit '$file' contained the following violations:
         }
         # Handle phasers.
         my $code := $loop[1].ann('code_object');
-        my $block_type := $*W.find_symbol(['Block']);
+        my $block_type := $*W.find_symbol(['Block'], :setting-only);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
         if nqp::isnull($phasers) {
             $loop[1] := pblock_immediate($loop[1]);
@@ -2219,7 +2219,7 @@ Compilation unit '$file' contained the following violations:
                   scope  => $*SCOPE,
                 );
             }
-            my $Routine := $*W.find_symbol(['Routine']);
+            my $Routine := $*W.find_symbol(['Routine'], :setting-only);
             if $name eq '&?BLOCK' || nqp::istype($*CODE_OBJECT, $Routine) {
                 # Just need current code object.
                 $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
@@ -3095,7 +3095,7 @@ Compilation unit '$file' contained the following violations:
                 # Install.
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
-                    unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine']), '$!yada') {
+                    unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine'], :setting-only), '$!yada') {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
                                 what   => 'routine',
@@ -3155,11 +3155,11 @@ Compilation unit '$file' contained the following violations:
         # appropriate pragma is in effect.
         if $<deflongname> {
             if %*PRAGMAS<soft> {
-                $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
+                $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine'], :setting-only));
             }
             elsif !nqp::can($code, 'CALL-ME') {
                 my $phasers :=
-                  nqp::getattr($code,$*W.find_symbol(['Block']),'$!phasers');
+                  nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
                 if nqp::isnull($phasers) || !nqp::p6bool($phasers) {
                     self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
                 }
@@ -3189,7 +3189,7 @@ Compilation unit '$file' contained the following violations:
                     QAST::Var.new(
                         :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
                     ),
                     QAST::Op.new( :op('usecapture') )
                 ),
@@ -3221,8 +3221,8 @@ Compilation unit '$file' contained the following violations:
 
         # Ensure all parameters are simple and build placeholders for
         # them.
-        my $Param  := $*W.find_symbol(['Parameter']);
-        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature']), '$!params');
+        my $Param  := $*W.find_symbol(['Parameter'], :setting-only);
+        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '$!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         my %arg_placeholders;
@@ -3728,7 +3728,7 @@ Compilation unit '$file' contained the following violations:
                     QAST::Var.new(
                         :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
                     ),
                     QAST::Op.new( :op('usecapture') )
                 ),
@@ -3849,7 +3849,7 @@ Compilation unit '$file' contained the following violations:
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
         # Bind original source to $!source
-        my $Regex  := $*W.find_symbol(['Regex']);
+        my $Regex  := $*W.find_symbol(['Regex'], :setting-only);
         my $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
         my $match  := $source ~~ /\s+$/;
 
@@ -3997,7 +3997,7 @@ Compilation unit '$file' contained the following violations:
                 nqp::push(@redecl, $cur_key);
                 $*W.install_lexical_symbol($block, $cur_key,
                     $*W.find_symbol(['Failure']).new(
-                        $*W.find_symbol(['X', 'PoisonedAlias']).new(
+                        $*W.find_symbol(['X', 'PoisonedAlias'], :setting-only).new(
                             :alias($cur_key), :package-type<enum>, :package-name($name)
                         )
                     )
@@ -4469,7 +4469,7 @@ Compilation unit '$file' contained the following violations:
         # Attach the dummy param we set up in Grammar::param_var to PARAM_INFO,
         # so we can access it later on.  The dummy param may have goodies like
         # trailing docs!
-        my $par_type := $*W.find_symbol(['Parameter']);
+        my $par_type := $*W.find_symbol(['Parameter'], :setting-only);
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
         }
@@ -4988,7 +4988,7 @@ Compilation unit '$file' contained the following violations:
         # we don't always have X::StubCode available.  If that
         # is the case, fall back to using the string variant
         try {
-            my $X_StubCode := $*W.find_symbol(['X', 'StubCode']);
+            my $X_StubCode := $*W.find_symbol(['X', 'StubCode'], :setting-only);
             $past[0].named('message');
             $past[0] := QAST::Op.new(
                 :op('callmethod'), :name('new'),
@@ -5360,7 +5360,7 @@ Compilation unit '$file' contained the following violations:
                         QAST::Var.new(
                             :name('$!dispatch_cache'), :scope('attribute'),
                             QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                            QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                            QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
                         ),
                         QAST::Var.new( :name($dc_name), :scope('local') )
                     ),
@@ -5627,7 +5627,7 @@ Compilation unit '$file' contained the following violations:
                 my $subelem := $elem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
-                    if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'])) {
+                    if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'], :setting-only)) {
                         $/.CURSOR.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
                     }
                 }
@@ -6113,7 +6113,7 @@ Compilation unit '$file' contained the following violations:
             $target.annotate('nosink', 1);
             make $target;
         }
-        elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'])) {
+        elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'], :setting-only)) {
             make QAST::Op.new(
                 :op('p6bindcaptosig'),
                 $target,
@@ -7474,8 +7474,8 @@ Compilation unit '$file' contained the following violations:
         my @result;
         my $clear_topic_bind;
         my $saw_slurpy;
-        my $Sig      := $*W.find_symbol(['Signature']);
-        my $Param    := $*W.find_symbol(['Parameter']);
+        my $Sig      := $*W.find_symbol(['Signature'], :setting-only);
+        my $Param    := $*W.find_symbol(['Parameter'], :setting-only);
         my $Iterable := $*W.find_symbol(['Iterable']);
         my @p_objs := nqp::getattr($sig, $Sig, '$!params');
         my int $i  := 0;
@@ -7884,7 +7884,7 @@ Compilation unit '$file' contained the following violations:
                         :op('istrue'),
                         QAST::Op.new(
                             :op('callmethod'), :name('ACCEPTS'),
-                            nqp::istype($_, $*W.find_symbol(['Code']))
+                            nqp::istype($_, $*W.find_symbol(['Code'], :setting-only))
                                 ?? QAST::Op.new( :op('p6capturelex'),
                                       QAST::Op.new( :op('callmethod'), :name('clone'), $wval ) )
                                 !! $wval,
@@ -8383,8 +8383,8 @@ Compilation unit '$file' contained the following violations:
         my int $whatevers := 0;
         my int $hyperwhatever := 0;
 
-        my $Whatever := $*W.find_symbol(['Whatever']);
-        my $WhateverCode := $*W.find_symbol(['WhateverCode']);
+        my $Whatever := $*W.find_symbol(['Whatever'], :setting-only);
+        my $WhateverCode := $*W.find_symbol(['WhateverCode'], :setting-only);
         my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
 
         while $i < $e {

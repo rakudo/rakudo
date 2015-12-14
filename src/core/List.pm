@@ -1025,7 +1025,10 @@ multi sub infix:<xx>(Mu \x, Int() $n) is pure {
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
 
-sub reverse(+@a)            { @a.reverse }
+proto sub reverse(|)   { * }
+multi sub reverse(@a)  { @a.reverse }
+multi sub reverse(+@a) { @a.reverse }
+
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 
 sub prefix:<|>(\x) { x.Slip }

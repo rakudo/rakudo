@@ -472,6 +472,14 @@ my class array does Iterable is repr('VMArray') {
         multi method STORE(::?CLASS:D: Mu \item) {
             self.STORE((item,))
         }
+
+        method reverse(::?CLASS:D:) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
+        }
+
+        method rotate(::?CLASS:D: Cool) {
+            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+        }
     }
 
     role shapedintarray[::T] does shapedarray {
@@ -743,7 +751,8 @@ sub permutations(int $n where $n > 0) {
                 # @!a[$k+1 .. @!a.end].=reverse;
                 $l = $!n;
                 (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
-                @!a.List;            }
+                @!a.List;
+            }
             method count-only { [*] 1 .. $!n }
         }.new(:$n)
     );

@@ -1414,7 +1414,7 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            elsif $!level >= 3 &&
+            elsif $!level >= 2 &&
                     ($op.name eq '&prefix:<++>' ||
                      $op.name eq '&postfix:<++>' && $!void_context)
             {

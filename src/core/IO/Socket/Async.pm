@@ -4,8 +4,9 @@ my class IO::Socket::Async {
     has $!VMIO;
 
     method new() {
-        die "Cannot create an asynchronous socket directly; please use " ~
-            "IO::Socket::Async.connect or IO::Socket::Async.listen";
+        die "Cannot create an asynchronous socket directly; please use\n" ~
+            "IO::Socket::Async.connect, IO::Socket::Async.listen,\n" ~
+            "IO::Socket::Async.udp, or IO::Socket::Async.udp-bind";
     }
 
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
@@ -130,4 +131,83 @@ my class IO::Socket::Async {
             $cancellation && nqp::cancel($cancellation)
         });
     }
+
+#?if moar
+    method udp(IO::Socket::Async:U: :$broadcast, :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new;
+        nqp::asyncudp(
+            $scheduler.queue,
+            -> Mu \socket, Mu \err {
+                if err {
+                    $p.break(err);
+                }
+                else {
+                    my $client_socket := nqp::create(self);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    $p.keep($client_socket);
+                }
+            },
+            nqp::null_s(), 0, $broadcast ?? 1 !! 0,
+            SocketCancellation);
+        await $p
+    }
+
+    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port, :$broadcast,
+                    :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new;
+        nqp::asyncudp(
+            $scheduler.queue,
+            -> Mu \socket, Mu \err {
+                if err {
+                    $p.break(err);
+                }
+                else {
+                    my $client_socket := nqp::create(self);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    $p.keep($client_socket);
+                }
+            },
+            nqp::unbox_s($host), nqp::unbox_i($port), $broadcast ?? 1 !! 0,
+            SocketCancellation);
+        await $p
+    }
+
+    method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str, :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+        nqp::asyncwritestrto(
+            $!VMIO,
+            $scheduler.queue,
+            -> Mu \bytes, Mu \err {
+                if err {
+                    $v.break(err);
+                }
+                else {
+                    $v.keep(bytes);
+                }
+            },
+            nqp::unbox_s($str), SocketCancellation,
+            nqp::unbox_s($host), nqp::unbox_i($port));
+        $p
+    }
+
+    method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b, :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+        nqp::asyncwritebytesto(
+            $!VMIO,
+            $scheduler.queue,
+            -> Mu \bytes, Mu \err {
+                if err {
+                    $v.break(err);
+                }
+                else {
+                    $v.keep(bytes);
+                }
+            },
+            nqp::decont($b), SocketCancellation,
+            nqp::unbox_s($host), nqp::unbox_i($port));
+        $p
+    }
+#?endif
 }

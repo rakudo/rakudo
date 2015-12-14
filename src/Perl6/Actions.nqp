@@ -85,6 +85,14 @@ sub unwanted($ast) {
     $ast;
 }
 
+sub UNWANTED($ast) {
+    if nqp::isconcrete($ast) {
+        $ast := unwanted($ast);
+        $ast.annotate('context','sink');  # force in case it's just a thunk
+    }
+    $ast;
+}
+
 register_op_desugar('p6callmethodhow', -> $qast {
     $qast   := $qast.shallow_clone();
     my $inv := $qast.shift;
@@ -1410,11 +1418,11 @@ Compilation unit '$file' contained the following violations:
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($<block>.ast);
         if $<e3> {
-            $loop.push(unwanted($<e3>.ast));
+            $loop.push(UNWANTED($<e3>.ast));
         }
         $loop := tweak_loop($loop);
         if $<e1> {
-            $loop := QAST::Stmts.new( unwanted($<e1>.ast), $loop, :node($/) );
+            $loop := QAST::Stmts.new( UNWANTED($<e1>.ast), $loop, :node($/) );
         }
         make $loop;
     }

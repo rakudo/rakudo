@@ -849,6 +849,10 @@ my class IO::Handle does IO {
         IO::Notification.watch-path($!path);
     }
 #?endif
+
+    method native-descriptor(IO::Handle:D:) {
+        nqp::filenofh($!PIO)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

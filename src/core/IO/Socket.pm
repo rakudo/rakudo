@@ -87,6 +87,10 @@ my role IO::Socket does IO {
         nqp::closefh($!PIO);
         $!PIO := Mu;
     }
+
+    method native-descriptor(::?CLASS:D:) {
+        nqp::filenofh($!PIO)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

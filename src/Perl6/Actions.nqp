@@ -37,6 +37,11 @@ sub wanted($ast) {
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
+        my int $i := 0;
+        while $i < $e {
+            $ast[$i] := unwanted($ast[$i]);
+            ++$i;
+        }
         $ast[$e] := wanted($ast[$e]) if +@($ast) > 0;
         $ast.annotate('WANTED',1);
     }
@@ -48,6 +53,9 @@ sub wanted($ast) {
     }
     elsif nqp::istype($ast,QAST::Op) && $ast.op eq 'p6capturelex' {
         $ast.annotate('past_block', wanted($ast.ann('past_block')));
+        $ast.annotate('WANTED',1);
+    }
+    elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('WANTED',1);
     }
     $ast;
@@ -69,7 +77,13 @@ sub unwanted($ast) {
     if nqp::istype($ast,QAST::Stmt) ||
        nqp::istype($ast,QAST::Stmts)
     {
-        $ast[$e] := unwanted($ast[$e]) if +@($ast) > 0;
+        # Unwant all kids, not just last one, so we recurse into blocks and such,
+        # don't just rely on the optimizer to default to void.
+        my int $i := 0;
+        while $i <= $e {
+            $ast[$i] := unwanted($ast[$i]);
+            ++$i;
+        }
         $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Block) {
@@ -86,6 +100,9 @@ sub unwanted($ast) {
         elsif $ast.op eq 'while' {
             $ast[1] := UNWANTED($ast[1]);
         }
+    }
+    elsif nqp::istype($ast,QAST::Want) {
+        $ast.annotate('context','sink');
     }
     $ast;
 }

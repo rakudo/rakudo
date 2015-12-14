@@ -1085,7 +1085,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     method xblock($/) {
-        make QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op('if'), :node($/) );
+        make QAST::Op.new( WANTED($<EXPR>.ast), $<pblock>.ast, :op('if'), :node($/) );
     }
 
     method pblock($/) {

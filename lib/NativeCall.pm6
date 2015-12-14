@@ -88,6 +88,7 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
 # Gets the NCI type code to use based on a given Perl 6 type.
 my %type_map =
     'int8'     => 'char',
+    'bool'     => 'char',
     'Bool'     => 'char',
     'int16'    => 'short',
     'int32'    => 'int',
@@ -103,6 +104,7 @@ my %type_map =
     'ulonglong' => 'ulonglong',
     'ulong'    => 'ulong',
     'uint'     => 'ulong',
+    'size_t'   => 'size_t',
     'num32'    => 'float',
     'num64'    => 'double',
     'longdouble' => 'longdouble',

@@ -25,11 +25,12 @@ my $builddate = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime);
 
 print <<"END_VERSION";
 sub hll-config(\$config) {
-    \$config<name>           := 'rakudo';
-    \$config<version>        := '$version';
-    \$config<release-number> := '$release';
-    \$config<codename>       := '$codename';
-    \$config<build-date>     := '$builddate';
+    \$config<implementation>   := 'Rakudo';
+    \$config<version>          := '$version';
+    \$config<release-number>   := '$release';
+    \$config<codename>         := '$codename';
+    \$config<build-date>       := '$builddate';
+    \$config<language_version> := '6.b';
 }
 END_VERSION
 

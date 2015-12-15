@@ -51,9 +51,9 @@ class Perl6::Compiler is HLL::Compiler {
         $IDHolder::ID
     }
 
-    method implementation()   { 'Rakudo' }
+    method implementation()   { self.config<implementation> }
     method language_name()    { 'Perl' }
-    method language_version() { '6.b' }
+    method language_version() { self.config<language_version> }
 
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {

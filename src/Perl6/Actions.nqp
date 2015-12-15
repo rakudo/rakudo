@@ -100,6 +100,9 @@ sub wanted($ast,$by) {
                 $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
             }
         }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'while' {
+            $node[1] := WANTED($node[1], $byby);
+        }
     }
     # note('after ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if nqp::getenvhash<RAKUDO_WANTING>;
     $ast;
@@ -154,6 +157,15 @@ sub unwanted($ast, $by) {
             if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                 $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
             }
+        }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
+            $node := $node[1];
+            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+            }
+        }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'while' {
+            $node[1] := UNWANTED($node[1], $byby);
         }
     }
     $ast;

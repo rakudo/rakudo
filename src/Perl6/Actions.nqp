@@ -1402,6 +1402,7 @@ Compilation unit '$file' contained the following violations:
         if ~$<sym>[$count] ~~ /with/ {
             $past := xblock_immediate_with( $<xblock>[$count].ast );
             $past.op('with');
+            $past.node($<xblock>[$count]);
             $past.push( $<else>
                         ?? pblock_immediate_with( $<else>.ast )
                         !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
@@ -1410,6 +1411,7 @@ Compilation unit '$file' contained the following violations:
         else {
             $past := xblock_immediate( $<xblock>[$count].ast );
             $past.op('if');
+            $past.node($<xblock>[$count]);
             $past.push( $<else>
                         ?? pblock_immediate( $<else>.ast )
                         !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
@@ -1422,10 +1424,13 @@ Compilation unit '$file' contained the following violations:
             if ~$<sym>[$count] ~~ /with/ {
                 $past := xblock_immediate_with( $<xblock>[$count].ast );
                 $past.op('with');
+                $past.node($<xblock>[$count]);
             }
             else {
                 $past := xblock_immediate( $<xblock>[$count].ast );
+                $past.node($<xblock>[$count]);
                 $past.op('if');
+                $past.node($<xblock>[$count]);
             }
             $past.push($else);
         }
@@ -1438,12 +1443,14 @@ Compilation unit '$file' contained the following violations:
             !! xblock_immediate( $<xblock>.ast );
         $past.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
         $past.op(~$<sym>);
+        $past.node($/);
         make $past;
     }
 
     method statement_control:sym<while>($/) {
         my $past := $<xblock>.ast;
         $past.op(~$<sym>);
+        $past.node($/);
         make tweak_loop($past);
     }
 
@@ -1457,6 +1464,7 @@ Compilation unit '$file' contained the following violations:
         else {
             $past := QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op($op), :node($/) );
         }
+        $past.node($/);
         make tweak_loop($past);
     }
 
@@ -1770,25 +1778,25 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_prefix:sym<do>($/) {
-        make QAST::Op.new( :op('call'), $<blorst>.ast );
+        make QAST::Op.new( :op('call'), $<blorst>.ast, :node($/) );
     }
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-        make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
+        make QAST::Op.new( :op('call'), :name('&GATHER'), $past, :node($/) );
     }
 
     method statement_prefix:sym<supply>($/) {
         my $past := block_closure($<blorst>.ast);
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-        make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
+        make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past, :node($/) );
     }
 
     method statement_prefix:sym<react>($/) {
         my $past := block_closure($<blorst>.ast);
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-        make QAST::Op.new( :op('call'), :name('&REACT'), $past );
+        make QAST::Op.new( :op('call'), :name('&REACT'), $past, :node($/) );
     }
 
     method statement_prefix:sym<once>($/) {
@@ -1812,7 +1820,7 @@ Compilation unit '$file' contained the following violations:
 
         # generate code that runs the block only once
         make QAST::Op.new(
-            :op('if'),
+            :op('if'), :node($/),
             QAST::Op.new( :op('p6stateinit') ),
             QAST::Op.new(
                 :op('p6store'),
@@ -1825,7 +1833,7 @@ Compilation unit '$file' contained the following violations:
 
     method statement_prefix:sym<start>($/) {
         make QAST::Op.new(
-            :op('callmethod'),
+            :op('callmethod'), :node($/),
             :name('start'),
             :returns($*W.find_symbol(['Promise'])),
             QAST::WVal.new( :value($*W.find_symbol(['Promise'])) ),
@@ -1835,28 +1843,28 @@ Compilation unit '$file' contained the following violations:
 
     method statement_prefix:sym<lazy>($/) {
         make QAST::Op.new(
-            :op('callmethod'), :name('lazy'),
+            :op('callmethod'), :name('lazy'), :node($/),
             QAST::Op.new( :op('call'), $<blorst>.ast )
         );
     }
 
     method statement_prefix:sym<eager>($/) {
         make QAST::Op.new(
-            :op('callmethod'), :name('eager'),
+            :op('callmethod'), :name('eager'), :node($/),
             QAST::Op.new( :op('call'), $<blorst>.ast )
         );
     }
 
     method statement_prefix:sym<hyper>($/) {
         make QAST::Op.new(
-            :op('callmethod'), :name('hyper'),
+            :op('callmethod'), :name('hyper'), :node($/),
             QAST::Op.new( :op('call'), $<blorst>.ast )
         );
     }
 
     method statement_prefix:sym<race>($/) {
         make QAST::Op.new(
-            :op('callmethod'), :name('race'),
+            :op('callmethod'), :name('race'), :node($/),
             QAST::Op.new( :op('call'), $<blorst>.ast )
         );
     }
@@ -1877,9 +1885,9 @@ Compilation unit '$file' contained the following violations:
         my $past;
         if $block.ann('past_block').ann('handlers') && $block.ann('past_block').ann('handlers')<CATCH> {
             # we already have a CATCH block, nothing to do here
-            $past := QAST::Op.new( :op('call'), $block );
+            $past := QAST::Op.new( :op('call'), :node($/), $block );
         } else {
-            $block := QAST::Op.new(:op<call>, $block);
+            $block := QAST::Op.new(:op<call>, :node($/), $block);
             $past := QAST::Op.new(
                 :op('handle'),
 
@@ -2001,7 +2009,7 @@ Compilation unit '$file' contained the following violations:
     method name($/) { }
 
     method fatarrow($/) {
-        make make_pair($<key>.Str, wanted($<val>.ast, 'fatarrow'));
+        make make_pair($<key>.Str, wanted($<val>.ast, 'fatarrow'), $/);
     }
 
     method coloncircumfix($/) {
@@ -2013,23 +2021,23 @@ Compilation unit '$file' contained the following violations:
     method colonpair($/) {
         if $*key {
             if $<var> {
-                make make_pair($*key, $<var>.ast);
+                make make_pair($*key, $<var>.ast, $/);
             }
             elsif $<num> {
-                make make_pair($*key, $*W.add_numeric_constant($/, 'Int', $*value));
+                make make_pair($*key, $*W.add_numeric_constant($/, 'Int', $*value), $/);
             }
             elsif $*value ~~ NQPMatch {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];
                 }
-                make make_pair($*key, $val_ast);
+                make make_pair($*key, $val_ast, $/);
             }
             else {
                 make make_pair($*key, QAST::Op.new(
                     :op('p6bool'),
                     QAST::IVal.new( :value($*value) )
-                ));
+                ), $/);
             }
         }
         elsif $<fakesignature> {
@@ -2054,7 +2062,7 @@ Compilation unit '$file' contained the following violations:
         }
     }
 
-    sub make_pair($key_str, $value) {
+    sub make_pair($key_str, $value, $/) {
         my $key := $*W.add_string_constant($key_str);
         QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
@@ -2065,7 +2073,7 @@ Compilation unit '$file' contained the following violations:
 
     method desigilname($/) {
         if $<variable> {
-            make QAST::Op.new( :op('callmethod'), wanted($<variable>.ast, 'desigilname') );
+            make QAST::Op.new( :op('callmethod'), :node($/), wanted($<variable>.ast, 'desigilname') );
         }
     }
 
@@ -2073,7 +2081,7 @@ Compilation unit '$file' contained the following violations:
         my $past;
         if $<index> {
             $past := QAST::Op.new(
-                :op('call'),
+                :op('call'), :node($/),
                 :name('&postcircumfix:<[ ]>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_constant('Int', 'int', +$<index>),
@@ -2085,7 +2093,7 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $<postcircumfix> {
             $past := $<postcircumfix>.ast;
-            $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
+            $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical'), :node($/) ) );
             if $<sigil> eq '@' || $<sigil> eq '%' {
                 my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
                 $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
@@ -2097,7 +2105,7 @@ Compilation unit '$file' contained the following violations:
         elsif $<infixish> {
             my $name := '&infix' ~ $*W.canonicalize_pair('', $<infixish>.Str);
             $past := QAST::Op.new(
-                :op('ifnull'),
+                :op('ifnull'), :node($/),
                 QAST::Var.new( :name($name), :scope('lexical') ),
                 QAST::Op.new(
                     :op('die_s'),
@@ -2119,11 +2127,13 @@ Compilation unit '$file' contained the following violations:
                         $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
                     }
                     $past := self.make_indirect_lookup($longname.components(), ~$<sigil>);
+                    $past.node($/);
                     $indirect := 1;
                 }
                 else {
                     $past := make_variable($/, $longname.attach_adverbs.variable_components(
                         ~$<sigil>, $<twigil> ?? ~$<twigil> !! ''));
+                    $past.node($/);
                 }
             }
             else {
@@ -2155,7 +2165,7 @@ Compilation unit '$file' contained the following violations:
             $past := QAST::Stmt.new(
                 # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
                 # return value to a result variable.
-                QAST::Op.new( :op('bind'),
+                QAST::Op.new( :op('bind'), :node($/),
                     QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
                     QAST::Op.new(
                         :op('if'),
@@ -2391,7 +2401,7 @@ Compilation unit '$file' contained the following violations:
         $past.returns($type) if $attr;
         $past.scope(nqp::objprimspec($type) ?? 'attributeref' !! 'attribute');
         $past.unshift(instantiated_type(['$?CLASS'], $/));
-        $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
+        $past.unshift(QAST::Var.new( :name('self'), :scope('lexical'), :node($/) ));
     }
 
     method package_declarator:sym<package>($/) { make $<package_def>.ast; }
@@ -2607,7 +2617,7 @@ Compilation unit '$file' contained the following violations:
                         $<initializer><sym> eq '::=');
                 }
                 if $*SCOPE eq 'state' {
-                    $past := QAST::Op.new( :op('if'),
+                    $past := QAST::Op.new( :op('if'), :node($/),
                         QAST::Op.new( :op('p6stateinit') ),
                         $past,
                         $orig_past);
@@ -2939,6 +2949,7 @@ Compilation unit '$file' contained the following violations:
                 my $bind_type := %cont_info<bind_constraint>;
                 $past.name($name);
                 $past.returns($bind_type);
+                $past.node($/);
                 $past.scope(nqp::objprimspec($bind_type) ?? 'lexicalref' !! 'lexical');
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := QAST::Op.new(
@@ -2960,7 +2971,7 @@ Compilation unit '$file' contained the following violations:
 
                 if $*SCOPE eq 'our' {
                     $BLOCK[0].push(QAST::Op.new(
-                        :op('bind'),
+                        :op('bind'), :node($/),
                         $past,
                         $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
                     ));

@@ -5878,11 +5878,12 @@ Compilation unit '$file' contained the following violations:
         'fff^', -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 1, 1) },
         '^fff^',-> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 1, 1) }
     );
-    method EXPR($/, $key?) {
-        unless $key { return 0; }
+    method EXPR($/, $KEY?) {
+        unless $KEY { return 0; }
         my $past := $/.ast // $<OPER>.ast;
-        my $sym := ~$<infix><sym>;
-        my $O := $<infix><O>;
+        my $key := nqp::lc($KEY // 'infix');
+        my $sym := ~$/{$key}<sym>;
+        my $O := $/{$key}<O>;
         my $thunky := $O<thunky>;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
@@ -5928,8 +5929,8 @@ Compilation unit '$file' contained the following violations:
                 my $name;
                 if $past.isa(QAST::Op) && !$past.name {
                     my $k := $key;
-                    if $k eq 'LIST' { $k := 'infix'; }
-                    $name := nqp::lc($k) ~ $*W.canonicalize_pair('', $<OPER><sym>);
+                    if $k eq 'list' { $k := 'infix'; }
+                    $name := $k ~ $*W.canonicalize_pair('', $<OPER><sym>);
                     $past.name('&' ~ $name);
                 }
                 my $macro := find_macro_routine(['&' ~ $name]);
@@ -5946,7 +5947,7 @@ Compilation unit '$file' contained the following violations:
             }
         }
         my $arity := 0;
-        if $key eq 'POSTFIX' {
+        if $key eq 'postfix' {
             # If may be an adverb.
             if $<colonpair> {
                 my $target := $past := $/[0].ast;
@@ -5976,11 +5977,9 @@ Compilation unit '$file' contained the following violations:
                 return 1;
             }
 
-            wantall($past, 'EXPR/POSTFIX');
-
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
-            $past.unshift($/[0].ast);
+            $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
                 $return_map := 1;
             }
@@ -5999,8 +5998,8 @@ Compilation unit '$file' contained the following violations:
 #            note("$key $sym");
 #            note($past.dump) if $past;
 #        }
-        if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' || ($key eq 'LIST' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
-            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'LIST' ?? $arity !! $key eq 'INFIX' ?? 2 !! 1);
+        if $key eq 'prefix' || $key eq 'infix' || $key eq 'postfix' || ($key eq 'list' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
+            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'list' ?? $arity !! $key eq 'infix' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,
                     :op('hllize'), :returns($past.returns()));

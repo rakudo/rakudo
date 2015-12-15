@@ -4343,6 +4343,7 @@ Compilation unit '$file' contained the following violations:
                 }
                 %info<is_invocant> := 1;
             }
+            %info<node> := $_;
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;
         }
@@ -7549,7 +7550,8 @@ Compilation unit '$file' contained the following violations:
         # handling.
         if $need_full_binder {
             $block.custom_args(1);
-            $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+            $block[0].push(my $bindsigop := QAST::Op.new( :op('p6bindsig') ));
+            $bindsigop.node($block.node) if $block.node();
         }
 
         $block;
@@ -7625,7 +7627,7 @@ Compilation unit '$file' contained the following violations:
                 if nqp::existskey(%info, 'variable_name') {
                     # Build a capture object.
                     my $Capture := QAST::WVal.new( :value($*W.find_symbol(['Capture'])) );
-                    $var.push(QAST::Op.new(
+                    $var.push(my $bindop := QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($name), :scope('local') ),
                         QAST::Op.new(
@@ -7641,6 +7643,7 @@ Compilation unit '$file' contained the following violations:
                             QAST::SVal.new( :value('$!hash') ),
                             QAST::Var.new( :name($hash_name), :scope('local') )
                         )));
+                    $bindop.node(%info<node>) if nqp::existskey(%info, "node");
                 }
             }
             elsif nqp::existskey(%info, 'named_names') {
@@ -7659,7 +7662,7 @@ Compilation unit '$file' contained the following violations:
                 $var.slurpy(1);
                 my $type := $*W.find_symbol(
                     [$flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
-                $var.push(QAST::Op.new(
+                $var.push(my $bindop := QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),
                     QAST::Op.new(
@@ -7668,6 +7671,7 @@ Compilation unit '$file' contained the following violations:
                         QAST::WVal.new( :value($type) ),
                         QAST::Var.new( :name($name), :scope('local') )
                     )));
+                $bindop.node(%info<node>) if nqp::existskey(%info, "node");
                 $saw_slurpy := 1;
             }
             elsif %info<named_slurpy> {
@@ -7689,6 +7693,7 @@ Compilation unit '$file' contained the following violations:
                 if nqp::existskey(%info, 'variable_name') && %info<variable_name> eq '%_' {
                     $slurpy_setup.annotate('autoslurpy', 1);
                 }
+                $slurpy_setup.node(%info<node>) if nqp::existskey(%info, "node");
                 $var.push($slurpy_setup);
                 $saw_slurpy := 1;
             }
@@ -7711,13 +7716,17 @@ Compilation unit '$file' contained the following violations:
             }
             elsif !$saw_slurpy {
                 # Must hll-ize before we go on.
-                $var.push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($name), :scope('local') ),
-                    QAST::Op.new(
-                        :op('hllize'),
-                        QAST::Var.new( :name($name), :scope('local') )
-                    )));
+                {
+                    $var.push(my $bindop := QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::Op.new(
+                            :op('hllize'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+
+                    $bindop.node(%info<node>) if nqp::existskey(%info, "node");
+                }
 
                 # Type-check, unless it's Mu, in which case skip it.
                 if $is_generic {

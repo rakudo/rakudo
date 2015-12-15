@@ -3,7 +3,16 @@
 #else
 #define DLLEXPORT extern
 #endif
-#include <stdbool.h>
+
+#if defined(_MSC_VER) && _MSC_VER < 1800
+#  define bool unsigned char
+#  define true  1
+#  define false 0
+#  define __bool_true_false_are_defined 1
+#else
+#  include <stdbool.h>
+#endif
+
 #include <stddef.h>
 
 typedef struct {

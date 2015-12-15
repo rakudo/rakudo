@@ -24,8 +24,14 @@ sub METAOP_CROSS(\op, &reduce) {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $laze = False;
         my @loi = eager for lol -> \elem {
-            $laze = True if elem.is-lazy;
-            nqp::iscont(elem) ?? (elem,).iterator !! elem.iterator;
+            if nqp::iscont(elem) {
+                $laze = False;
+                (elem,).iterator
+            }
+            else {
+                $laze = True if elem.is-lazy;
+                elem.iterator
+            }
         }
         my Mu $cache := nqp::list();
         my int $i = 0;
@@ -74,8 +80,14 @@ sub METAOP_ZIP(\op, &reduce) {
         my $rop = $arity == 2 ?? op !! &reduce(op);
         my $laze = True;
         my @loi = eager for lol -> \elem {
-            $laze = False unless elem.is-lazy;
-            Rakudo::Internals::WhateverIterator.new(elem.iterator)
+            if nqp::iscont(elem) {
+                $laze = False;
+                Rakudo::Internals::WhateverIterator.new((elem,).iterator)
+            }
+            else {
+                $laze = False unless elem.is-lazy;
+                Rakudo::Internals::WhateverIterator.new(elem.iterator)
+            }
         }
         gather {
             loop {

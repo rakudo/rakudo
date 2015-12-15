@@ -1046,8 +1046,13 @@ multi sub infix:<X>(+lol) {
     my $laze = False;
     my @l = do for 0..$n -> $i {
         my \elem = lol[$i];
-        $laze = True if $i and elem.is-lazy;
-        elem.list
+        if nqp::iscont(elem) {
+            (elem,)
+        }
+        else {
+            $laze = True if $i and elem.is-lazy;
+            elem.list
+        }
     }
 
     my Mu $v := nqp::list();
@@ -1164,8 +1169,14 @@ multi sub infix:<Z>(+lol) {
     return () if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
         my \elem = lol[$i];
-        $laze = False unless elem.is-lazy;
-        Rakudo::Internals::WhateverIterator.new(elem.iterator)
+        if nqp::iscont(elem) {
+            $laze = False;
+            Rakudo::Internals::WhateverIterator.new((elem,).iterator)
+        }
+        else {
+            $laze = False unless elem.is-lazy;
+            Rakudo::Internals::WhateverIterator.new(elem.iterator)
+        }
     };
 
     gather {
@@ -1184,9 +1195,17 @@ multi sub infix:<Z>(+lol) {
 
 my &zip := &infix:<Z>;
 
-sub roundrobin(**@lol) {
-    my @iters = @lol.map: *.iterator;
-    my $laze = so any(@lol).is-lazy;
+sub roundrobin(**@lol is raw) {
+    my $laze = False;
+    my @iters = do for @lol -> \elem {
+        if nqp::iscont(elem) {
+            (elem,).iterator
+        }
+        else {
+            $laze = True if elem.is-lazy;
+            elem.iterator
+        }
+    }
     gather {
         while @iters {
             my @new-iters;
@@ -1198,7 +1217,7 @@ sub roundrobin(**@lol) {
                     @new-iters.push: $i;
                 }
             }
-            take @values if @values;
+            take @values.List if @values;
             @iters = @new-iters;
         }
     }.lazy-if($laze);

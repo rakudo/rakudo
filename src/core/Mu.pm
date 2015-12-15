@@ -215,6 +215,9 @@ Please refactor this code using the new Iterator / Seq interface.
                 nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
                     nqp::atpos($task, 3)());
             }
+            elsif nqp::iseq_i($code, 13) {
+                # no-op in BUILDALL
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }
@@ -292,6 +295,9 @@ Please refactor this code using the new Iterator / Seq interface.
                     nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
                         nqp::decont(%attrinit{$key_name}));
                 }
+            }
+            elsif nqp::iseq_i($code, 13) {
+                nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
             }
             else {
                 die "Invalid BUILDALLPLAN";

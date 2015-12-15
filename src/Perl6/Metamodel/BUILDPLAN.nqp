@@ -20,18 +20,26 @@ role Perl6::Metamodel::BUILDPLAN {
     #   10 class attr_name code = call default value closure if needed, str attr
     #   11 die if a required attribute is not present
     #   12 class attr_name code = run attribute container initializer
+    #   13 class attr_name = touch/vivify attribute if part of mixin
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
         my @attrs := $obj.HOW.attributes($obj, :local(1));
 
-        # Emit any container initializers.
+        # Emit any container initializers. Also build hash of attrs we
+        # do not touch in any of the BUILDPLAN so we can spit out vivify
+        # ops at the end.
+        my %attrs_untouched;
         for @attrs {
             if nqp::can($_, 'container_initializer') {
                 my $ci := $_.container_initializer;
                 if nqp::isconcrete($ci) {
                     @plan[+@plan] := [12, $obj, $_.name, $ci];
+                    next;
                 }
+            }
+            if nqp::objprimspec($_.type) == 0 {
+                %attrs_untouched{$_.name} := NQPMu;
             }
         }
         
@@ -64,6 +72,7 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
                 @plan[+@plan] := [11, $obj, $_.name, 1];
+                nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
 
@@ -79,8 +88,14 @@ role Perl6::Metamodel::BUILDPLAN {
                     else {
                         @plan[+@plan] := [4, $obj, $_.name, $default];
                     }
+                    nqp::deletekey(%attrs_untouched, $_.name);
                 }
             }
+        }
+
+        # Add vivify instructions.
+        for %attrs_untouched {
+            @plan[+@plan] := [13, $obj, $_.key];
         }
 
         # Install plan for this class.

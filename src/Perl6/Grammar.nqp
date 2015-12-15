@@ -1208,6 +1208,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ACTIONS := %*LANG<MAIN-actions>;
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
         :my $*IN_STMT_MOD := 0;
+        :my $*ESCAPEBLOCK := 0;
         <!before <[\])}]> | $ >
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
@@ -4687,7 +4688,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role c1 {
-        token escape:sym<{ }> { <?[{]> <block=.LANG('MAIN','block')> }
+        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <block=.LANG('MAIN','block')> }
     }
 
     role c0 {
@@ -5088,6 +5089,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 
     token codeblock {
+        :my $*ESCAPEBLOCK := 1;
         <block=.LANG('MAIN','block')>
     }
 
@@ -5128,6 +5130,7 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does CursorPa
     }
 
     token codeblock {
+        :my $*ESCAPEBLOCK := 1;
         <block=.LANG('MAIN','block')>
     }
 }

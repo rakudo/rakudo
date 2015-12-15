@@ -16,10 +16,24 @@ sub block_closure($code) {
     $closure
 }
 
-sub wantall($ast) {
+sub wantall($ast, $by) {
     my int $i := 0;
     my int $e := $ast ?? +@($ast) !! 0;
-    while $i < $e { $ast[$i] := wanted($ast[$i]); $i := $i + 1 }
+    while $i < $e { $ast[$i] := wanted($ast[$i], $by ~ ' wantall'); $i := $i + 1 }
+    Nil;
+}
+
+sub WANTALL($ast, $by) {
+    my int $i := 0;
+    my int $e := $ast ?? +@($ast) !! 0;
+    while $i < $e { $ast[$i] := WANTED($ast[$i], $by ~ ' WANTALL'); $i := $i + 1 }
+    Nil;
+}
+
+sub unwantall($ast, $by) {
+    my int $i := 0;
+    my int $e := $ast ?? +@($ast) !! 0;
+    while $i < $e { $ast[$i] := unwanted($ast[$i], $by ~ ' unwantall'); $i := $i + 1 }
     Nil;
 }
 
@@ -27,102 +41,114 @@ sub wantall($ast) {
 # from the one passed, so always store the result back from where
 # got it.  (Like how wantall does it above.)
 
-sub wanted($ast) {
+sub wanted($ast,$by) {
+    my $byby := $by ~ ' unwanted';
     return $ast unless nqp::can($ast,'ann');
+    my $addr := nqp::where($ast);
     return $ast if $ast.ann('WANTED');  # already marked from here down
+    return $ast if $ast.ann('context'); # already marked from here down
+#    if $ast.ann('context') {
+#        note('wanted ' ~ $addr ~ ' by ' ~ $by ~ ' ' ~ $ast.dump_annotations);
+#        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
+#        $ast.annotate('context','');
+#    }
     my $e := +@($ast) - 1;
-    if $ast.ann('context') {
-        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
-        $ast.annotate('context','');
-    }
+    $ast.annotate('BY',$byby);
 
     if nqp::istype($ast,QAST::Stmt) ||
-       nqp::istype($ast,QAST::Stmts)
+       nqp::istype($ast,QAST::Stmts) ||
+       nqp::istype($ast,QAST::Block)
     {
         my int $i := 0;
         while $i < $e {
-            $ast[$i] := unwanted($ast[$i]);
+            $ast[$i] := unwanted($ast[$i], $byby);
             ++$i;
         }
-        $ast[$e] := wanted($ast[$e]) if +@($ast) > 0;
-        $ast.annotate('WANTED',1);
-    }
-    elsif nqp::istype($ast,QAST::Block) {
-        if +@($ast) > 1 {
-            $ast[$e] := WANTED($ast[$e]);
-        }
+        $ast[$e] := wanted($ast[$e], $byby) if +@($ast) > 0;
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
         if $ast.op eq 'p6capturelex' {
-            $ast.annotate('past_block', wanted($ast.ann('past_block')));
+            $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
         elsif $ast.op eq 'call' {
-            $ast[0] := WANTED($ast[0]) if +@($ast);
+            $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
-            $ast[1] := WANTED($ast[1]) if +@($ast);
+            $ast[1] := WANTED($ast[1], $byby) if +@($ast);
         }
     }
     elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('WANTED',1);
+        my $node := $ast[0];
+        if nqp::istype($node,QAST::Op) && $node.op eq 'call' && !$node.name {
+            $node := $node[0];
+            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
+            }
+        }
     }
     $ast;
 }
 
-sub WANTED($ast) {
+sub WANTED($ast, $by) {
     if nqp::isconcrete($ast) {
-        $ast := wanted($ast);
+        $ast := wanted($ast, $by ~ ' WANTED');
         $ast.annotate('WANTED',1);  # force in case it's just a thunk
     }
     $ast;
 }
 
-sub unwanted($ast) {
+sub unwanted($ast, $by) {
+    my $byby := $by ~ ' unwanted';
     return $ast unless nqp::can($ast,'ann');
-    return $ast if $ast.ann('WANTED');  # already marked from here down
+    my $addr := nqp::where($ast);
     return $ast if $ast.ann('context');
+    return $ast if $ast.ann('WANTED');  # probably a loose thunk just stashed somewhere random
+    $ast.annotate('BY',$byby);
     my $e := +@($ast) - 1;
     if nqp::istype($ast,QAST::Stmt) ||
-       nqp::istype($ast,QAST::Stmts)
+       nqp::istype($ast,QAST::Stmts) ||
+       nqp::istype($ast,QAST::Block)
     {
         # Unwant all kids, not just last one, so we recurse into blocks and such,
         # don't just rely on the optimizer to default to void.
         my int $i := 0;
         while $i <= $e {
-            $ast[$i] := unwanted($ast[$i]);
+            $ast[$i] := unwanted($ast[$i], $byby);
             ++$i;
-        }
-        $ast.annotate('context','sink');
-    }
-    elsif nqp::istype($ast,QAST::Block) {
-        if +@($ast) > 1 {
-            $ast[$e] := UNWANTED($ast[$e]);
         }
         $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Op) {
         if $ast.op eq 'p6capturelex' {
-            $ast.annotate('past_block', unwanted($ast.ann('past_block')));
+            $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'call' {
-            $ast[0] := UNWANTED($ast[0]) if +@($ast);
+            $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
-            $ast[1] := UNWANTED($ast[1]) if +@($ast);
+            $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
         }
     }
     elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('context','sink');
+        my $node := $ast[0];
+        if nqp::istype($node,QAST::Op) && $node.op eq 'call' && !$node.name {
+            $node := $node[0];
+            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+            }
+        }
     }
     $ast;
 }
 
-sub UNWANTED($ast) {
+sub UNWANTED($ast, $by) {
     if nqp::isconcrete($ast) {
-        $ast := unwanted($ast);
+        $ast := unwanted($ast, $by ~ ' UNWANTED');
         $ast.annotate('context','sink');  # force in case it's just a thunk
     }
     $ast;
@@ -298,17 +324,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'call',         1,
             'callmethod',   1,
             'if',           1,
-            'while',        2,
+            'while',        1,
             'unless',       1,
-            'until',        2,
-            'repeat_until', 2,
-            'repeat_while', 2,
+            'until',        1,
+            'repeat_until', 1,
+            'repeat_while', 1,
             'handle',       1,
             'hllize',       1,
     );
     sub autosink($past) {
-        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past.ann('nosink')
-            ?? (%sinkable{$past.op} == 2 && $*statement_level ?? sink(UNWANTED($past)) !! sink($past))
+        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && $*statement_level && !$past.ann('nosink')
+            ?? sink($past)
             !! $past;
     }
 
@@ -478,7 +504,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $*NEED_RESULT {
             # Evaluate last statement in sink context, by pushing another
             # statement after it, unless we need the result.
-            $mainline := unwanted($mainline);
+            unwantall($mainline, 'comp_unit');
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         fatalize($mainline) if %*PRAGMAS<fatal>;
@@ -933,34 +959,48 @@ Compilation unit '$file' contained the following violations:
     method statementlist($/) {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
-            for $<statement> {
-                my $ast := $_.ast;
+            my int $i := 0;
+            my int $e := nqp::elems($<statement>) - 1;
+            while $i <= $e {
+                my $ast := $<statement>[$i].ast;
                 if $ast {
                     if $ast.ann('statement_level') && $*statement_level {
                         $ast.ann('statement_level')();
                     }
                     if $ast.ann('sink_ast') {
                         $ast := QAST::Want.new($ast, 'v', $ast.ann('sink_ast'));
+                        $ast := UNWANTED($ast, 'statementlist/sink_ast') if $i < $e;
                     }
                     elsif $ast.ann('bare_block') {
-                        $ast := autosink($ast.ann('bare_block'));
+                        if $i < $e {
+                            $ast := UNWANTED(autosink($ast.ann('bare_block')), "statementlist/bare_block");
+                        }
+                        elsif $*ESCAPEBLOCK {
+                            $ast := WANTED($ast.ann('bare_block'),'statementlist/escape');
+                        }
+                        else {
+                            $ast := autosink($ast.ann('bare_block'));
+                        }
                     }
                     else {
-                        $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns));
+                        if $i == $e && $*ESCAPEBLOCK {
+                            $ast := QAST::Stmt.new(autosink(WANTED($ast,'statementlist/else')), :returns($ast.returns));
+                        }
+                        else {
+                            $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns));
+                        }
                     }
                     $ast.node($_);
                     $past.push( $ast );
                 }
+                ++$i;
             }
         }
         if +$past.list < 1 {
             $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         else {
-            my $e := +@($past) - 1;
-            my $i := 0;
-            while $i < $e { $past[$i] := unwanted($past[$i]); ++$i; }
-            my $pl := $past[$e];
+            my $pl := $past[+@($past) - 1];
             $pl.annotate('final', 1);
             $past.returns($pl.returns);
         }
@@ -974,7 +1014,7 @@ Compilation unit '$file' contained the following violations:
             if $<statement> > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $<statement> {
-                    $l.push(wanted($_.ast));
+                    $l.push(wanted($_.ast,'semilist'));
                 }
                 $past.push($l);
                 $past.annotate('multislice', 1);
@@ -1098,7 +1138,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     method xblock($/) {
-        make QAST::Op.new( WANTED($<EXPR>.ast), $<pblock>.ast, :op('if'), :node($/) );
+        make QAST::Op.new( WANTED($<EXPR>.ast, 'xblock'), $<pblock>.ast, :op('if'), :node($/) );
     }
 
     method pblock($/) {
@@ -1449,15 +1489,15 @@ Compilation unit '$file' contained the following violations:
     }
 
     method statement_control:sym<loop>($/) {
-        my $cond := $<e2> ?? WANTED($<e2>.ast) !! QAST::IVal.new( :value(1) );
+        my $cond := $<e2> ?? WANTED($<e2>.ast, 'statement_control/e2') !! QAST::IVal.new( :value(1) );
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($<block>.ast);
         if $<e3> {
-            $loop.push(UNWANTED($<e3>.ast));
+            $loop.push(UNWANTED($<e3>.ast, 'statement_control/e3'));
         }
         $loop := tweak_loop($loop);
         if $<e1> {
-            $loop := QAST::Stmts.new( UNWANTED($<e1>.ast), $loop, :node($/) );
+            $loop := QAST::Stmts.new( UNWANTED($<e1>.ast, 'statement_control/e1'), $loop, :node($/) );
         }
         make $loop;
     }
@@ -1551,7 +1591,7 @@ Compilation unit '$file' contained the following violations:
             $name_past := $longname.name_past();
         }
         else {
-            $name_past := WANTED($<file>.ast);
+            $name_past := WANTED($<file>.ast, 'require/name');
         }
         my $op := QAST::Op.new(
             :op('callmethod'), :name('load_module'),
@@ -1570,7 +1610,7 @@ Compilation unit '$file' contained the following violations:
             }
         }
         else {
-            $op.push( QAST::Op.new( :named<file>, :op<callmethod>, :name<Stringy>, $<file>.ast ) );
+            $op.push( QAST::Op.new( :named<file>, :op<callmethod>, :name<Stringy>, WANTED($<file>.ast, 'require/stringy') ) );
         }
         $past.push($op);
 
@@ -1694,29 +1734,29 @@ Compilation unit '$file' contained the following violations:
 
     method statement_prefix:sym<BEGIN>($/) {
         begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
-        make $*W.add_phaser($/, 'BEGIN', $<blorst>.ast.ann('code_object'));
+        make $*W.add_phaser($/, 'BEGIN', wanted($<blorst>.ast,'BEGIN').ann('code_object'));
     }
     method statement_prefix:sym<CHECK>($/) {
         begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
-        make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast).ann('code_object'));
+        make $*W.add_phaser($/, 'CHECK', wanted($<blorst>.ast,'CHECK').ann('code_object'));
     }
-    method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
-    method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', ($<blorst>.ast).ann('code_object')); }
+    method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', unwanted($<blorst>.ast,'COMPOSE').ann('code_object')); }
+    method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', $<blorst>.ast.ann('code_object'), ($<blorst>.ast).ann('past_block')); }
+    method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', $<blorst>.ast.ann('code_object')); }
+    method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', $<blorst>.ast.ann('code_object')); }
 
-    method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<LEAVE>($/) { make $*W.add_phaser($/, 'LEAVE', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<KEEP>($/)  { make $*W.add_phaser($/, 'KEEP', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<UNDO>($/)  { make $*W.add_phaser($/, 'UNDO', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<NEXT>($/)  { make $*W.add_phaser($/, 'NEXT', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', ($<blorst>.ast).ann('code_object')); }
-    method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
-    method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block')); }
+    method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', unwanted($<blorst>.ast,'END').ann('code_object')); }
+    method statement_prefix:sym<LEAVE>($/) { make $*W.add_phaser($/, 'LEAVE', unwanted($<blorst>.ast,'LEAVE').ann('code_object')); }
+    method statement_prefix:sym<KEEP>($/)  { make $*W.add_phaser($/, 'KEEP', unwanted($<blorst>.ast,'KEEP').ann('code_object')); }
+    method statement_prefix:sym<UNDO>($/)  { make $*W.add_phaser($/, 'UNDO', unwanted($<blorst>.ast,'UNDO').ann('code_object')); }
+    method statement_prefix:sym<NEXT>($/)  { make $*W.add_phaser($/, 'NEXT', unwanted($<blorst>.ast,'NEXT').ann('code_object')); }
+    method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', unwanted($<blorst>.ast,'LAST').ann('code_object')); }
+    method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', wanted($<blorst>.ast,'PRE').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
+    method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', wanted($<blorst>.ast,'POST').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
 
     method statement_prefix:sym<DOC>($/)   {
         if %*COMPILING<%?OPTIONS><doc> {
-            make $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), ($<blorst>.ast).ann('past_block'));
+            make $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), wanted($<blorst>.ast,'DOC').ann('past_block'));
         }
         else {
             make QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
@@ -1771,7 +1811,7 @@ Compilation unit '$file' contained the following violations:
             QAST::Op.new(
                 :op('p6store'),
                 QAST::Var.new( :name($sym), :scope('lexical') ),
-                QAST::Op.new( :op('call'), $<blorst>.ast )
+                QAST::Op.new( :op('call'), wanted($<blorst>.ast,'once') )
             ),
             QAST::Var.new( :name($sym), :scope('lexical') )
         );
@@ -1882,17 +1922,17 @@ Compilation unit '$file' contained the following violations:
             $block := $<block>.ast;
         }
         else {
-            my $stmt := WANTED($<statement>.ast);
+            my $stmt := $<statement>.ast;
             $block := make_thunk_ref($stmt, $/);
             migrate_blocks($*W.cur_lexpad, $block.ann('past_block'),
                 -> $b { ($b.ann('statement_id') // -1) == $stmt.ann('statement_id') });
         }
-        make WANTED(block_closure($block));
+        make block_closure($block);
     }
 
     # Statement modifiers
 
-    method modifier_expr($/) { make WANTED($<EXPR>.ast); }
+    method modifier_expr($/) { make WANTED($<EXPR>.ast, 'modifier_expr'); }
 
     method statement_mod_cond:sym<if>($/)     {
         make QAST::Op.new( :op<if>, $<modifier_expr>.ast, :node($/) );
@@ -1916,7 +1956,7 @@ Compilation unit '$file' contained the following violations:
     method statement_mod_cond:sym<with>($/)    { make $<modifier_expr>.ast; }
     method statement_mod_cond:sym<without>($/) { make $<modifier_expr>.ast; }
 
-    method smexpr($/) { make WANTED($<EXPR>.ast); }
+    method smexpr($/) { make WANTED($<EXPR>.ast, 'smexpr'); }
 
     method statement_mod_loop:sym<while>($/)  { make $<smexpr>.ast; }
     method statement_mod_loop:sym<until>($/)  { make $<smexpr>.ast; }
@@ -1955,7 +1995,7 @@ Compilation unit '$file' contained the following violations:
     method name($/) { }
 
     method fatarrow($/) {
-        make make_pair($<key>.Str, wanted($<val>.ast));
+        make make_pair($<key>.Str, wanted($<val>.ast, 'fatarrow'));
     }
 
     method coloncircumfix($/) {
@@ -2013,13 +2053,13 @@ Compilation unit '$file' contained the following violations:
         QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
             QAST::Var.new( :name('Pair'), :scope('lexical') ),
-            $key, WANTED($value)
+            $key, WANTED($value, 'make_pair')
         )
     }
 
     method desigilname($/) {
         if $<variable> {
-            make QAST::Op.new( :op('callmethod'), wanted($<variable>.ast) );
+            make QAST::Op.new( :op('callmethod'), wanted($<variable>.ast, 'desigilname') );
         }
     }
 
@@ -2144,7 +2184,7 @@ Compilation unit '$file' contained the following violations:
 
             $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
         }
-        make WANTED($past);
+        make WANTED($past, 'contextualizer');
     }
 
     sub make_variable($/, @name) {
@@ -2519,9 +2559,9 @@ Compilation unit '$file' contained the following violations:
     method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
 
     method declarator($/) {
-        if    $<routine_declarator>  { make WANTED($<routine_declarator>.ast)  }
-        elsif $<regex_declarator>    { make WANTED($<regex_declarator>.ast)    }
-        elsif $<type_declarator>     { make WANTED($<type_declarator>.ast)     }
+        if    $<routine_declarator>  { make $<routine_declarator>.ast  }
+        elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+        elsif $<type_declarator>     { make $<type_declarator>.ast     }
         elsif $<variable_declarator> {
             my $past := $<variable_declarator>.ast;
             if $<initializer> {
@@ -2581,7 +2621,7 @@ Compilation unit '$file' contained the following violations:
                     }
                 }
             }
-            make WANTED($past);
+            make $past;
         }
         elsif $<signature> {
             # Go over the params and declare the variable defined in them.
@@ -2648,31 +2688,31 @@ Compilation unit '$file' contained the following violations:
                 }
             }
 
-            make WANTED($list);
+            make $list;
         }
         elsif $<deftermnow> {
             # 'my \foo' style declaration
             my $name       :=  $<deftermnow>.ast;
             if $*OFTYPE {
                 my $type := $*OFTYPE.ast;
-                make WANTED(QAST::Op.new(
+                make QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
                     $type =:= $*W.find_symbol(['Mu'])
-                        ?? WANTED($<term_init>.ast)
+                        ?? WANTED($<term_init>.ast, 'declarator/deftermnow1')
                         !! QAST::Op.new(
                             :op('p6bindassert'),
-                            WANTED($<term_init>.ast),
+                            WANTED($<term_init>.ast, 'declarator/deftermnow2'),
                             QAST::WVal.new( :value($type) ),
                         )
-                ));
+                );
             }
             else {
-                make WANTED(QAST::Op.new(
+                make QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
-                        WANTED($<term_init>.ast)
-                ));
+                        WANTED($<term_init>.ast, 'declarator/bind')
+                );
             }
         }
         else {
@@ -3969,7 +4009,7 @@ Compilation unit '$file' contained the following violations:
             $term_ast := $term_ast[0];
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
-            wantall($term_ast);
+            wantall($term_ast, 'enum');
             for @($term_ast) {
                 my $item_ast := $_;
                 if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
@@ -4237,27 +4277,27 @@ Compilation unit '$file' contained the following violations:
     }
 
     method initializer:sym<=>($/) {
-        make wanted($<EXPR>.ast);
+        make wanted($<EXPR>.ast, 'init=');
     }
     method initializer:sym<:=>($/) {
-        make wanted($<EXPR>.ast);
+        make wanted($<EXPR>.ast, 'init:=');
     }
     method initializer:sym<::=>($/) {
-        make wanted($<EXPR>.ast);
+        make wanted($<EXPR>.ast, 'init::=');
     }
     method initializer:sym<.=>($/) {
-        make wanted($<dottyopish><term>.ast);
+        make wanted($<dottyopish><term>.ast, 'init.=');
     }
 
     method initializer:sym<.>($/) {
-        make wanted($<dottyopish><term>.ast);
+        make wanted($<dottyopish><term>.ast, 'init.');
     }
 
     method capterm($/) {
         my $past := $<termish>
             ?? QAST::Op.new( $<termish>.ast )
             !! $<semiarglist>.ast;
-        wantall($past);
+        wantall($past, 'capterm');
         $past.unshift(QAST::WVal.new( :value($*W.find_symbol(['Capture']) ) ));
         $past.op('callmethod');
         $past.name('from-args');
@@ -4337,7 +4377,7 @@ Compilation unit '$file' contained the following violations:
                 $/.CURSOR.typed_sorry('X::Parameter::Default', how => 'required',
                             parameter => $name);
             }
-            my $val := $<default_value>[0].ast;
+            my $val := WANTED($<default_value>[0].ast, 'parameter/def');
             if $val.has_compile_time_value {
                 my $value := $val.compile_time_value;
                 check_param_default_type($/, $value);
@@ -4347,7 +4387,7 @@ Compilation unit '$file' contained the following violations:
             else {
                 my $maybe_code_obj := $val.ann('code_object');
                 if nqp::isconcrete($maybe_code_obj) {
-                    $val.annotate('past_block', WANTED($val.ann('past_block')));
+                    $val.annotate('past_block', WANTED($val.ann('past_block'), 'parameters'));
                     check_param_default_type($/, $maybe_code_obj);
                 }
                 %*PARAM_INFO<default_value> :=
@@ -4597,7 +4637,7 @@ Compilation unit '$file' contained the following violations:
     }
 
     method default_value($/) {
-        make WANTED($<EXPR>.ast);
+        make WANTED($<EXPR>.ast, 'default_value');
     }
 
     method type_constraint($/) {
@@ -4669,7 +4709,7 @@ Compilation unit '$file' contained the following violations:
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                 );
             }
-            my $ast := wanted($<value>.ast);
+            my $ast := wanted($<value>.ast, 'type_constraint');
             my $val;
             if nqp::can($ast,'has_compile_time_value') && $ast.has_compile_time_value {
                 $val := $ast.compile_time_value;
@@ -4765,7 +4805,7 @@ Compilation unit '$file' contained the following violations:
             # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
-                my $arg := WANTED($<circumfix>[0].ast);
+                my $arg := WANTED($<circumfix>[0].ast, 'is');
                 if nqp::istype($arg, QAST::Want) {
                     $arg := $arg[0];
                 }
@@ -4821,7 +4861,7 @@ Compilation unit '$file' contained the following violations:
         # The term may be fairly complex. Thus we make it into a thunk
         # which the trait handler can use to get the term and work with
         # it.
-        my $thunk := $*W.create_thunk($/, WANTED($<term>.ast));
+        my $thunk := $*W.create_thunk($/, WANTED($<term>.ast, 'handles'));
         make Trait.new($/, '&trait_mod:<handles>', $thunk);
     }
 
@@ -4942,7 +4982,7 @@ Compilation unit '$file' contained the following violations:
             # macro-ish cases.
             my @parts := $*W.dissect_longname($<longname>).components();
             $name := @parts.pop;
-            wantall($past);
+            wantall($past, 'methodop/longname');
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
                 $past.unshift($*W.add_string_constant($name));
@@ -4996,11 +5036,11 @@ Compilation unit '$file' contained the following violations:
             );
         }
         elsif $<variable> {
-            $past.unshift(WANTED($<variable>.ast));
+            $past.unshift(WANTED($<variable>.ast, 'methodop/var'));
             $past.name('dispatch:<var>');
         }
         unless $name eq 'sink' {
-            wantall($past);
+            wantall($past, 'methodop');
         }
 
         make $past;
@@ -5129,7 +5169,7 @@ Compilation unit '$file' contained the following violations:
                 if $<args><semiarglist> {
                     for $<args><semiarglist><arglist> {
                         if $_<EXPR> {
-                            add_macro_arguments(wanted($_<EXPR>.ast), @argument_asts, ~$<args>);
+                            add_macro_arguments(wanted($_<EXPR>.ast, 'identifier'), @argument_asts, ~$<args>);
                         }
                     }
                 }
@@ -5227,13 +5267,13 @@ Compilation unit '$file' contained the following violations:
                     if $<args><semiarglist> {
                         for $<args><semiarglist><arglist> {
                             if $_<EXPR> {
-                                add_macro_arguments(wanted($_<EXPR>.ast), @argument_asts, ~$<args>);
+                                add_macro_arguments(wanted($_<EXPR>.ast, 'name/macro1'), @argument_asts, ~$<args>);
                             }
                         }
                     }
                     elsif $<args><arglist> {
                         if $<args><arglist><EXPR> {
-                            add_macro_arguments(wanted($<args><arglist><EXPR>.ast), @argument_asts, ~$<args>);
+                            add_macro_arguments(wanted($<args><arglist><EXPR>.ast, 'name/macro2'), @argument_asts, ~$<args>);
                         }
                     }
                     return @argument_asts;
@@ -5271,7 +5311,7 @@ Compilation unit '$file' contained the following violations:
                 # Do we know all the arguments at compile time?
                 my int $all_compile_time := 1;
                 my $ast := $<arglist>.ast;
-                wantall($past);
+                wantall($past, 'name');
                 for @($ast) {
                     unless $_.has_compile_time_value {
                         $all_compile_time := 0;
@@ -5456,7 +5496,7 @@ Compilation unit '$file' contained the following violations:
             for $<arglist> {
                 my $ast := $_.ast;
                 $ast.name('&infix:<,>');
-                $past.push(wanted($ast));
+                $past.push(wanted($ast, 'semiarglist'));
             }
             make $past;
         }
@@ -5617,11 +5657,11 @@ Compilation unit '$file' contained the following violations:
                         ),
                         |@args
                     )
-                ));
+                ), 'circumfix()/pair');
             }
             else {
                 for @args {
-                    $past.push(wanted($_));
+                    $past.push(wanted($_, 'circumfix()/args'));
                 }
             }
         }
@@ -5849,7 +5889,7 @@ Compilation unit '$file' contained the following violations:
         }
         elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
             $past.push($/[0].ast);
-            $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast), $/)));
+            $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
             make $past;
             return 1;
         }
@@ -5917,20 +5957,20 @@ Compilation unit '$file' contained the following violations:
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
-                $target.push(wanted($cpast[2]));
+                $target.push(WANTED($cpast[2],'EXPR/POSTFIX'));
 
                 if nqp::istype($past, QAST::Op) && $past.op eq 'hllize' {
-                    $past[0] := wanted($target);
+                    $past[0] := WANTED($target,'EXPR/POSTFIX');
                 }
                 else {
-                    $past := wanted($target);
+                    $past := WANTED($target,'EXPR/POSTFIX');
                 }
 
                 make $past;
                 return 1;
             }
 
-            wantall($past);
+            wantall($past, 'EXPR/POSTFIX');
 
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
@@ -5944,7 +5984,7 @@ Compilation unit '$file' contained the following violations:
             $past := thunkity_thunk($/, $past.ann('thunky'), $past, $/.list);
         }
         else {
-            for $/.list { if $_.ast { $past.push(wanted($_.ast)); ++$arity; } }
+            for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
         }
         if $past.op eq 'xor' {
             $past.push(QAST::WVal.new( :named<false>, :value($*W.find_symbol(['Nil'])) ));
@@ -6045,8 +6085,8 @@ Compilation unit '$file' contained the following violations:
     }
 
     sub make_smartmatch($/, $negated) {
-        my $lhs := wanted($/[0].ast);
-        my $rhs := wanted($/[1].ast);
+        my $lhs := wanted($/[0].ast,'smarmatch/lhs');
+        my $rhs := wanted($/[1].ast,'smarmatch/rhs');
         # autoprime only on Whatever with explicit *
         return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
         return 0 if $rhs ~~ QAST::WVal && istype($rhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($rhs.value);
@@ -6112,7 +6152,7 @@ Compilation unit '$file' contained the following violations:
 
     sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
-        $target := WANTED($target);
+        $target := wanted($target,'bind_op');
         if $target.isa(QAST::Var) {
             # Check it's not a native type; we can't bind to those.
             if nqp::objprimspec($target.returns) {
@@ -6212,8 +6252,8 @@ Compilation unit '$file' contained the following violations:
     sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
-        $lhs_ast := wanted($lhs_ast);
-        $rhs_ast := wanted($rhs_ast);
+        $lhs_ast := wanted($lhs_ast,'assign_op/lhs');
+        $rhs_ast := wanted($rhs_ast,'assign_op/rhs');
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
             if $var_sigil eq '%' {
@@ -6320,7 +6360,7 @@ Compilation unit '$file' contained the following violations:
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i];
-            $ast := WANTED($ast.ast) if nqp::can($ast,'ast');  # reduce already passes ast...
+            $ast := WANTED($ast.ast, 'thunkity') if nqp::can($ast,'ast');  # reduce already passes ast...
 
             if $type eq 'T' || $type eq 'B' || $type eq 'A' {
                 my $argast := $ast;
@@ -6415,9 +6455,9 @@ Compilation unit '$file' contained the following violations:
                         :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
                         $false,
-                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($lhs) )
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($lhs,'flipflop1') )
                     ) !!
-                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($lhs) ))
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($lhs,'flipflop2') ))
             ),
             QAST::Op.new(
                 :op('bind'),
@@ -6426,10 +6466,10 @@ Compilation unit '$file' contained the following violations:
                     QAST::Op.new(
                         :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
-                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($rhs) ),
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($rhs,'flipflop3') ),
                         $false
                     ) !!
-                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($rhs) ))
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, wanted($rhs,'flipflop4') ))
             )
         );
 
@@ -6595,7 +6635,7 @@ Compilation unit '$file' contained the following violations:
             }
         }
 
-        make wanted($ast);
+        make $ast;
     }
 
     method term:sym<reduce>($/) {
@@ -6694,7 +6734,7 @@ Compilation unit '$file' contained the following violations:
                     $past.name('&METAOP_HYPER_POSTFIX_ARGS');
                 }
             }
-            make wanted($past);
+            make $past;
         }
     }
 
@@ -6714,7 +6754,7 @@ Compilation unit '$file' contained the following violations:
                 }
             }
         }
-        make WANTED($past);
+        make WANTED($past, '.[]');
     }
 
     method postcircumfix:sym<{ }>($/) {
@@ -6726,7 +6766,7 @@ Compilation unit '$file' contained the following violations:
                 $past.name('&postcircumfix:<{; }>');
             }
         }
-        make WANTED($past);
+        make WANTED($past, '.{}');
     }
 
     method postcircumfix:sym<ang>($/) {
@@ -6735,7 +6775,7 @@ Compilation unit '$file' contained the following violations:
         $past.push($nib)
             unless nqp::istype($nib, QAST::Stmts) &&
                    nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
-        make WANTED($past);
+        make $past;
     }
 
     method postcircumfix:sym«<< >>»($/) {
@@ -6744,7 +6784,7 @@ Compilation unit '$file' contained the following violations:
         $past.push($nib)
             unless nqp::istype($nib, QAST::Stmts) &&
                    nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
-        make WANTED($past);
+        make $past;
     }
 
     method postcircumfix:sym<« »>($/) {
@@ -6753,7 +6793,7 @@ Compilation unit '$file' contained the following violations:
         $past.push($nib)
             unless nqp::istype($nib, QAST::Stmts) &&
                    nqp::istype($nib[0], QAST::Op) && $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
-        make WANTED($past);
+        make $past;
     }
 
     method postcircumfix:sym<( )>($/) {
@@ -7264,7 +7304,7 @@ Compilation unit '$file' contained the following violations:
         my $infixish := $<sibble><infixish>;
         my $right;
         if !$infixish || $infixish.Str eq '=' {
-            $right := wanted($<sibble><right>.ast);
+            $right := wanted($<sibble><right>.ast,'quote:s///');
         }
         else {
             $right := $infixish.ast;
@@ -7273,7 +7313,7 @@ Compilation unit '$file' contained the following violations:
                 QAST::Op.new( :op('p6scalarfromdesc'), QAST::Op.new( :op('null') ) ),
                 QAST::Var.new( :name('$/'), :scope('lexical') )
             ));
-            $right.push(wanted($<sibble><right>.ast));
+            $right.push(wanted($<sibble><right>.ast,'quote:s'));
         }
         my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
 
@@ -8158,7 +8198,7 @@ Compilation unit '$file' contained the following violations:
     sub make_where_block($/, $expr, $operand = QAST::Var.new( :name('$_'), :scope('lexical') ) ) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
-            $expr.annotate('past_block', wanted($expr.ann('past_block')));
+            $expr.annotate('past_block', wanted($expr.ann('past_block'),'make_where_block'));
             return $expr.ann('code_object');
         }
 
@@ -8230,7 +8270,7 @@ Compilation unit '$file' contained the following violations:
         $call.unshift($target);
         $call.name('dispatch:<.=>');
         $call.op('callmethod');
-        wantall($call);
+        wantall($call, 'make_dot_equals');
         $call;
     }
 
@@ -8238,7 +8278,7 @@ Compilation unit '$file' contained the following violations:
         $*W.add_string_constant($call.name);
         $call.unshift($target);
         $call.op('callmethod');
-        wantall($call);
+        wantall($call, 'make_dot');
         $call;
     }
 
@@ -8346,7 +8386,7 @@ Compilation unit '$file' contained the following violations:
         ]));
         $block[0].push(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
         $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
-        $block.push(QAST::Stmts.new( WANTED($initializer), :node($/) ));
+        $block.push(QAST::Stmts.new( WANTED($initializer, 'install_attr_init'), :node($/) ));
         $block.symbol('self', :scope('lexical'));
         add_signature_binding_code($block, $sig, @params);
         $block.blocktype('declaration_static');
@@ -8377,15 +8417,16 @@ Compilation unit '$file' contained the following violations:
             # Need to demote pairs again.
             my $raw := QAST::Op.new( :op('call') );
             for @($args) {
-                $raw.push(wanted($_.ann('before_promotion') || $_));
+                $raw.push($_.ann('before_promotion') || $_);
             }
+            WANTALL($args, 'capture_or_raw/return');
             $raw
         }
         elsif $name eq 'sink' {
             $args
         }
         else {
-            wantall($args);
+            WANTALL($args, 'capture_or_raw');
             $args;
         }
     }
@@ -8660,8 +8701,8 @@ class Perl6::QActions is HLL::Actions does STDActions {
                         $lastlit := '';
                     }
                     @asts.push($_.ast.ann('ww_atom')
-                        ?? $_.ast
-                        !! QAST::Op.new( :op('callmethod'), :name('Stringy'),  $_.ast ));
+                        ?? WANTED($_.ast, 'nibbler1')
+                        !! QAST::Op.new( :op('callmethod'), :name('Stringy'),  WANTED($_.ast, 'nibbler2') ));
                 }
                 else {
                     $lastlit := $lastlit ~ $_.ast;
@@ -8833,12 +8874,14 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:sym<0>($/) { make "\c[0]" }
 
     method escape:sym<{ }>($/) {
+        my $blast := $<block>.ast;
+        $blast.annotate('past_block', WANTALL($blast.ann('past_block'),'escape{}'));
         make QAST::Op.new(
             :op('callmethod'), :name('Stringy'),
-            QAST::Op.new(
+            WANTED(QAST::Op.new(
                 :op('call'),
-                QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
-                :node($/)));
+                QAST::Op.new( :op('p6capturelex'), $blast ),
+                :node($/)), 'escape{}'));
     }
 
     # The next three are currently only used for tr///.
@@ -9038,13 +9081,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $<var>.ast ),
                 :rxtype<subrule>, :subtype<method>, :node($/));
             for @($<arglist>.ast) {
-                $ast[0].push(wanted($_));
+                $ast[0].push(wanted($_, 'assertvar1'));
             }
         } else {
             make QAST::Regex.new(
                 QAST::NodeList.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
-                    wanted($<var>.ast),
+                    wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
@@ -9116,7 +9159,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                              :name($name) );
                 }
                 if $<arglist> {
-                    for $<arglist>.ast.list { $qast[0].push(wanted($_)) }
+                    for $<arglist>.ast.list { $qast[0].push(wanted($_, 'assertname')) }
                 }
                 elsif $<nibbler> {
                     my $nibbled := $name eq 'after'
@@ -9206,7 +9249,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method p5metachar:sym<var>($/) {
         make QAST::Regex.new( QAST::NodeList.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
-                                    wanted($<var>.ast),
+                                    wanted($<var>.ast, 'p5var'),
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(0) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),

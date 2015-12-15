@@ -1753,7 +1753,7 @@ class Perl6::Optimizer {
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
-            if $name ne "Nil" {
+            if $name ne "Nil" && $name ne '&infix:<~>' {   # dunno why that one is special...
                 $!problems.add_worry(
                   $var,
                   nqp::index(' $@%&', $sigil) < 1

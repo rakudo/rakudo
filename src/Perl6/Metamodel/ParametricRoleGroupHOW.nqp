@@ -182,6 +182,16 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.roles($c, |%named)
     }
 
+    method ver($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.ver($c)
+    }
+
+    method auth($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.auth($c)
+    }
+
     method !get_default_candidate($obj) {
         @!candidates[0]
     }

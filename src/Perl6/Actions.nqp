@@ -47,24 +47,30 @@ sub wanted($ast,$by) {
     my $addr := nqp::where($ast);
     return $ast if $ast.ann('WANTED');  # already marked from here down
     return $ast if $ast.ann('context'); # already marked from here down
+    # note('wanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if nqp::getenvhash<RAKUDO_WANTING>;
 #    if $ast.ann('context') {
-#        note('wanted ' ~ $addr ~ ' by ' ~ $by ~ ' ' ~ $ast.dump_annotations);
 #        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
 #        $ast.annotate('context','');
 #    }
     my $e := +@($ast) - 1;
     $ast.annotate('BY',$byby);
 
-    if nqp::istype($ast,QAST::Stmt) ||
-       nqp::istype($ast,QAST::Stmts) ||
-       nqp::istype($ast,QAST::Block)
-    {
+    if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
+        my $resultchild := $ast.resultchild // $e;
+        my int $i := 0;
+        while $i <= $e {
+            $ast[$i] := $i == $resultchild ?? wanted($ast[$i], $byby) !! unwanted($ast[$i], $byby);
+            ++$i;
+        }
+        $ast.annotate('WANTED',1);
+    }
+    elsif nqp::istype($ast,QAST::Block) {
         my int $i := 0;
         while $i < $e {
             $ast[$i] := unwanted($ast[$i], $byby);
             ++$i;
         }
-        $ast[$e] := wanted($ast[$e], $byby) if +@($ast) > 0;
+        $ast[$e] := wanted($ast[$e], $byby);
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
@@ -72,7 +78,7 @@ sub wanted($ast,$by) {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
-        elsif $ast.op eq 'call' {
+        elsif $ast.op eq 'call' || $ast.op eq 'handle' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
@@ -95,6 +101,7 @@ sub wanted($ast,$by) {
             }
         }
     }
+    # note('after ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if nqp::getenvhash<RAKUDO_WANTING>;
     $ast;
 }
 

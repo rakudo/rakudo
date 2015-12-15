@@ -3341,8 +3341,8 @@ class Perl6::World is HLL::World {
     method symbol_has_compile_time_value(@name) {
         my $has_ctv := 0;
         try {
-            self.find_symbol(@name);
-            $has_ctv := 1;
+            my $sym := self.find_symbol(@name);
+            $has_ctv := !nqp::iscont($sym);
         }
         $has_ctv;
     }

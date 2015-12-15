@@ -1,6 +1,3 @@
-my $v = run("git", "describe", :out).out.lines[0];
-$v //= $*PERL.version;
-
 my %provides = 
     "Test"                       => "lib/Test.pm6",
     "NativeCall"                 => "lib/NativeCall.pm6",
@@ -16,7 +13,7 @@ CompUnit::RepositoryRegistry.repository-for-name('perl').install(
     Distribution.new(
         name     => "CORE",
         auth     => "perl",
-        ver      => $v.Str,
+        ver      => $*PERL.version.Str,
         provides => %provides,
     ),
     %provides,

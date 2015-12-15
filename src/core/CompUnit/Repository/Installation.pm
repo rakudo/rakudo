@@ -232,53 +232,54 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
                 my $dist-dir = self!dist-dir;
-                for $lookup.lines -> $dist-id {
-                    my $dist = from-json($dist-dir.child($dist-id).slurp);
+                my @dists = $lookup.lines.unique.map({
+                    $_ => from-json($dist-dir.child($_).slurp)
+                }).grep({
+                    $_.value<auth> ~~ $spec.auth-matcher
+                    and Version.new(~$_.value<ver> || '0') ~~ $spec.version-matcher
+                    and $_.value<provides>{$spec.short-name}:exists
+                });
+                for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
+                    return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
                     my $dver = $dist<ver>
                             ?? nqp::istype($dist<ver>,Version)
                                 ?? $dist<ver>
                                 !! Version.new( ~$dist<ver> )
                             !! Version.new('0');
 
-                    if $dist<auth> ~~ $spec.auth-matcher
-                        && $dver ~~ $spec.version-matcher
-                        && $dist<provides>{$spec.short-name}
-                    {
-                        return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
-                        my $loader = $.prefix.child('sources').child(
-                            $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                    my $loader = $.prefix.child('sources').child(
+                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                    );
+                    my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+                    my $handle;
+                    my $id = self!precomp-id($loader.Str);
+                    if $precomp.may-precomp {
+                        $handle = (
+                            $precomp.load($id, :since($loader.modified)) # already precompiled?
+                            or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
                         );
-                        my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-                        my $handle;
-                        my $id = self!precomp-id($loader.Str);
-                        if $precomp.may-precomp {
-                            $handle = (
-                                $precomp.load($id, :since($loader.modified)) # already precompiled?
-                                or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
-                            );
-                            if $*W and $*W.is_precompilation_mode {
-                                if $handle {
-                                    say "$id $loader";
-                                }
-                                else {
-                                    nqp::exit(0);
-                                }
+                        if $*W and $*W.is_precompilation_mode {
+                            if $handle {
+                                say "$id $loader";
+                            }
+                            else {
+                                nqp::exit(0);
                             }
                         }
-                        my $precompiled = defined $handle;
-                        $handle //= CompUnit::Loader.load-source-file($loader);
-                        my $compunit = CompUnit.new(
-                            :$handle,
-                            :short-name($spec.short-name),
-                            :version($dver),
-                            :auth($dist<auth> // Str),
-                            :repo(self),
-                            :repo-id($id),
-                            :$precompiled,
-                            :distribution(Distribution.new(|$dist)),
-                        );
-                        return %!loaded{$compunit.short-name} = $compunit;
                     }
+                    my $precompiled = defined $handle;
+                    $handle //= CompUnit::Loader.load-source-file($loader);
+                    my $compunit = CompUnit.new(
+                        :$handle,
+                        :short-name($spec.short-name),
+                        :version($dver),
+                        :auth($dist<auth> // Str),
+                        :repo(self),
+                        :repo-id($id),
+                        :$precompiled,
+                        :distribution(Distribution.new(|$dist)),
+                    );
+                    return %!loaded{$compunit.short-name} = $compunit;
                 }
             }
         }

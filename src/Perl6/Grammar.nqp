@@ -2101,6 +2101,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*PACKAGE;
         :my %*ATTR_USAGES;
         :my $*REPR;
+        :my $*VER;
+        :my $*AUTH;
 
         # Default to our scoped.
         { unless $*SCOPE { $*SCOPE := 'our'; } }
@@ -2124,7 +2126,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 if $*SCOPE ne 'augment' {
                     if $longname {
                         for $longname.colonpairs_hash('class') -> $adverb {
-                            if $adverb.key ne 'auth' && $adverb.key ne 'ver' {
+                            my str $key := $adverb.key;
+                            if $key eq 'ver' {
+                                $*VER := $*W.handle-begin-time-exceptions($/,
+                                    'parsing package version',
+                                    -> { $*W.find_symbol(['Version']).new($adverb.value) });
+                            }
+                            elsif $key eq 'auth' {
+                                $*AUTH := $adverb.value;
+                            }
+                            else {
                                 $/.CURSOR.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
                             }
                         }
@@ -2171,6 +2182,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         my %args;
                         if @name {
                             %args<name> := $fullname;
+                            %args<ver> := $*VER;
+                            %args<auth> := $*AUTH;
                         }
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
@@ -2206,7 +2219,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
                         $*PACKAGE := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL),
-                            :name($fullname), :repr($*REPR),
+                            :name($fullname), :ver($*VER), :auth($*AUTH), :repr($*REPR),
                             :group($group), :signatured(needs_args($<signature>)));
                     }
                 }

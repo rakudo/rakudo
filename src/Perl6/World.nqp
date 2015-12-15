@@ -2576,11 +2576,13 @@ class Perl6::World is HLL::World {
 
     # Creates a meta-object for a package, adds it to the root objects and
     # returns the created object.
-    method pkg_create_mo($/, $how, :$name, :$repr, *%extra) {
+    method pkg_create_mo($/, $how, :$name, :$repr, :$auth, :$ver, *%extra) {
         # Create the meta-object and add to root objects.
         my %args;
         if nqp::defined($name) { %args<name> := ~$name; }
         if nqp::defined($repr) { %args<repr> := ~$repr; }
+        if nqp::defined($ver) { %args<ver> := $ver; }
+        if nqp::defined($auth) { %args<auth> := $auth; }
         if nqp::existskey(%extra, 'base_type') {
             %args<base_type> := %extra<base_type>;
         }

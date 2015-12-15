@@ -977,6 +977,9 @@ multi sub infix:<xx>(&x, Whatever) {
                     @!slipped = $pulled;
                     @!slipped.shift
                 }
+                elsif nqp::istype($pulled, Seq) {
+                    $pulled.cache
+                }
                 else {
                     $pulled
                 }
@@ -994,7 +997,7 @@ multi sub infix:<xx>(&x, Int() $n) {
             nqp::push($list, $_) for $pulled;
         }
         elsif nqp::istype($pulled,Seq) {
-            nqp::push($list, $_) for $pulled.cache;
+            nqp::push($list, $pulled.cache);
         }
         else {
             nqp::push($list, $pulled);

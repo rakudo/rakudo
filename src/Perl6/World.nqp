@@ -792,16 +792,9 @@ class Perl6::World is HLL::World {
             elsif $*PKGDECL {
                 self.throw($/, 'X::Package::UseLib', :what($*PKGDECL) );
             }
-            my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+            my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
             for $arglist -> $arg {
-                my $REPO := $PROCESS.WHO<$REPO>;
-                if nqp::istype($REPO, NQPMu) {
-                    my &DYNAMIC := self.find_symbol(['&DYNAMIC']);
-                    $REPO := &DYNAMIC('$*REPO');
-                }
-                $PROCESS.WHO<$REPO> := self.find_symbol(
-                        ['CompUnit', 'RepositoryRegistry']
-                    ).repository-for-spec($arg, :next-repo($REPO));
+                $registry.use-repository($registry.repository-for-spec($arg));
             }
         }
         else {

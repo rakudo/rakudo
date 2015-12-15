@@ -136,6 +136,20 @@ class CompUnit::RepositoryRegistry {
         $next-repo
     }
 
+    method use-repository(CompUnit::Repository $repo) {
+        my $current = $*REPO;
+        return if $current === $repo;
+        while $current {
+            if $current.next-repo === $repo {
+                $current.next-repo = $repo.next-repo;
+                last;
+            }
+            $current = $current.next-repo;
+        }
+        $repo.next-repo = $*REPO;
+        PROCESS::<$REPO> := $repo;
+    }
+
     method repository-for-name(Str:D $name) {
         $*REPO; # initialize if not yet done
         %custom-lib{$name}

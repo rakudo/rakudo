@@ -1,5 +1,5 @@
 role CompUnit::Repository {
-    has CompUnit::Repository $.next-repo;
+    has CompUnit::Repository $.next-repo is rw;
 
     # Resolves a dependency specification to a concrete dependency. If the
     # dependency was not already loaded, loads it. Returns a CompUnit

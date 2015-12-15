@@ -4290,20 +4290,20 @@ Compilation unit '$file' contained the following violations:
     }
 
     method initializer:sym<=>($/) {
-        make wanted($<EXPR>.ast, 'init=');
+        make WANTED($<EXPR>.ast, 'init=');
     }
     method initializer:sym<:=>($/) {
-        make wanted($<EXPR>.ast, 'init:=');
+        make WANTED($<EXPR>.ast, 'init:=');
     }
     method initializer:sym<::=>($/) {
-        make wanted($<EXPR>.ast, 'init::=');
+        make WANTED($<EXPR>.ast, 'init::=');
     }
     method initializer:sym<.=>($/) {
-        make wanted($<dottyopish><term>.ast, 'init.=');
+        make WANTED($<dottyopish><term>.ast, 'init.=');
     }
 
     method initializer:sym<.>($/) {
-        make wanted($<dottyopish><term>.ast, 'init.');
+        make WANTED($<dottyopish><term>.ast, 'init.');
     }
 
     method capterm($/) {

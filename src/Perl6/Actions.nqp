@@ -6193,7 +6193,7 @@ Compilation unit '$file' contained the following violations:
 
     sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
-        $target := wanted($target,'bind_op');
+        $target := WANTED($target,'bind_op');
         if $target.isa(QAST::Var) {
             # Check it's not a native type; we can't bind to those.
             if nqp::objprimspec($target.returns) {
@@ -6293,7 +6293,7 @@ Compilation unit '$file' contained the following violations:
     sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
-        $lhs_ast := wanted($lhs_ast,'assign_op/lhs');
+        $lhs_ast := WANTED($lhs_ast,'assign_op/lhs');
         $rhs_ast := wanted($rhs_ast,'assign_op/rhs');
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);

@@ -78,7 +78,7 @@ sub wanted($ast,$by) {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
-        elsif $ast.op eq 'call' || $ast.op eq 'handle' {
+        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'handle' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
@@ -93,6 +93,9 @@ sub wanted($ast,$by) {
             if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                 $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
             }
+        }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callstatic' {
+            $node[0] := WANTED($node[0], $byby);
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
             $node := $node[1];

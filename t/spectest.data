@@ -540,6 +540,7 @@ S10-packages/precompilation.t
 S10-packages/use-with-class.t
 S11-compunit/compunit-dependencyspecification.t
 S11-compunit/compunit-repository.t
+S11-compunit/rt126904.t
 S11-modules/export.t
 S11-modules/importing.t
 S11-modules/import-multi.t

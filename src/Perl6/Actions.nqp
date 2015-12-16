@@ -5211,7 +5211,7 @@ Compilation unit '$file' contained the following violations:
                 if $<args><semiarglist> {
                     for $<args><semiarglist><arglist> {
                         if $_<EXPR> {
-                            add_macro_arguments(wanted($_<EXPR>.ast, 'identifier'), @argument_asts, ~$<args>);
+                            add_macro_arguments(WANTED($_<EXPR>.ast, 'identifier'), @argument_asts, ~$<args>);
                         }
                     }
                 }
@@ -5309,7 +5309,7 @@ Compilation unit '$file' contained the following violations:
                     if $<args><semiarglist> {
                         for $<args><semiarglist><arglist> {
                             if $_<EXPR> {
-                                add_macro_arguments(wanted($_<EXPR>.ast, 'name/macro1'), @argument_asts, ~$<args>);
+                                add_macro_arguments(WANTED($_<EXPR>.ast, 'name/macro1'), @argument_asts, ~$<args>);
                             }
                         }
                     }

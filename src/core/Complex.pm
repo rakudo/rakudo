@@ -437,9 +437,9 @@ multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
     a.WHAT =:= b.WHAT && a == b
 }
 
-multi sub infix:<≅>(Complex:D \a, Complex:D \b) returns Bool:D { .not with a <=> b }
-multi sub infix:<≅>(Complex:D \a, Num(Real) \b) returns Bool:D { .not with a <=> b }
-multi sub infix:<≅>(Num(Real) \a, Complex:D \b) returns Bool:D { .not with a <=> b }
+multi sub infix:<≅>(Complex:D \a, Complex:D \b) returns Bool:D { a.re ≅ b.re && a.im ≅ b.im || a <=> b =:= Same }
+multi sub infix:<≅>(Complex:D \a, Num(Real) \b) returns Bool:D { a ≅ b.Complex }
+multi sub infix:<≅>(Num(Real) \a, Complex:D \b) returns Bool:D { a.Complex ≅ b }
 
 # Meaningful only for sorting purposes, of course.
 # We delegate to Real::cmp rather than <=> because parts might be NaN.

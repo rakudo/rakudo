@@ -1414,17 +1414,26 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            elsif $!level >= 2 &&
-                    ($op.name eq '&prefix:<++>' ||
-                     $op.name eq '&postfix:<++>' && $!void_context)
-            {
+            elsif $!level >= 2 && ($op.name eq '&prefix:<++>' || $op.name eq '&postfix:<++>' ||
+                                   $op.name eq '&prefix:<-->' || $op.name eq '&postfix:<-->') {
                 my $var := $op[0];
                 if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref' && nqp::objprimspec($var.returns) == 1 {
-                    my $want := QAST::Want.new(
+                    my $add := nqp::eqat($op.name,'++', -3) ?? 'add_i' !! 'sub_i';
+                    my $sub := nqp::eqat($op.name,'++', -3) ?? 'sub_i' !! 'add_i';
+                    my $one := QAST::Want.new(
                                 QAST::WVal.new( :value($!symbols.find_lexical('Int')) ),
                                 'Ii',
                                 QAST::IVal.new( :value(1) ));
-                    return QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op('add_i'), $var, $want));
+                    if $!void_context || nqp::eqat($op.name,'&pre',0) {  # can use simple add?
+                        # $i = $i + 1  (or $i = $i - 1)
+                        return QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one));
+                    }
+                    else {             # can't, but still much faster to subtract 1 back out than to allocate temp
+                        # ($i = $i + 1) - 1  (or ($i = $i - 1) + 1)
+                        return QAST::Op.new( :op($sub), :returns($var.returns),
+                            QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one)),
+                            $one);
+                    }
                 }
             }
             # If it's an onlystar proto, we have a couple of options.

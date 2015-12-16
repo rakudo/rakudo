@@ -2670,6 +2670,7 @@ Compilation unit '$file' contained the following violations:
             my $list      := QAST::Op.new( :op('call'), :name('&infix:<,>') );
             my @params    := $<signature>.ast<parameters>;
             my $common_of := $*OFTYPE;
+            my @nosigil;
             for @params {
                 my $*OFTYPE := $common_of;
                 if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
@@ -2687,6 +2688,9 @@ Compilation unit '$file' contained the following violations:
                         $_<desigilname>, $<trait>);
                     unless $past.isa(QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
+                        if $_<sigil> eq '' {
+                            nqp::push(@nosigil, ~$_<desigilname>);
+                        }
                     }
                 }
                 else {
@@ -2707,6 +2711,18 @@ Compilation unit '$file' contained the following violations:
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
                     $list := assign_op($/, $list, $initast);
+                    if @nosigil {
+                        $list := QAST::Stmts.new( :resultchild(0), $list );
+                        for @nosigil {
+                            $list.push(QAST::Op.new(
+                                :op('bind'),
+                                QAST::Var.new( :name($_), :scope('lexical') ),
+                                QAST::Op.new(
+                                    :op('p6recont_ro'),
+                                    QAST::Var.new( :name($_), :scope('lexical') )
+                                )));
+                        }
+                    }
                 }
                 elsif $<initializer><sym> eq '.=' {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
@@ -2728,6 +2744,9 @@ Compilation unit '$file' contained the following violations:
                         QAST::Op.new( :op('p6stateinit') ),
                         $list, $orig_list);
                 }
+            }
+            elsif @nosigil {
+                $/.CURSOR.typed_panic('X::Syntax::Term::MissingInitializer');
             }
 
             make $list;

@@ -5,6 +5,8 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
+my $wantwant := NQPMu;
+
 sub block_closure($code) {
     my $closure := QAST::Op.new(
         :op('callmethod'), :name('clone'),
@@ -42,12 +44,13 @@ sub unwantall($ast, $by) {
 # got it.  (Like how wantall does it above.)
 
 sub wanted($ast,$by) {
-    my $byby := $by ~ ' u';
+#    $wantwant := nqp::getenvhash<RAKUDO_WANT> unless nqp::isconcrete($wantwant);
+    my $byby := $wantwant ?? $by ~ ' u' !! $by;
     return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
     return $ast if $ast.ann('WANTED');  # already marked from here down
     return $ast if $ast.ann('context'); # already marked from here down
-    # note('wanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if nqp::getenvhash<RAKUDO_WANTING>;
+    note('wanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
 #    if $ast.ann('context') {
 #        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
 #        $ast.annotate('context','');
@@ -65,12 +68,11 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Block) {
-        my int $i := 0;
-        while $i < $e {
-            $ast[$i] := unwanted($ast[$i], $byby);
+        my int $i := 1;
+        while $i <= $e {
+            $ast[$i] := WANTED($ast[$i], $byby);
             ++$i;
         }
-        $ast[$e] := wanted($ast[$e], $byby);
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
@@ -127,10 +129,8 @@ sub unwanted($ast, $by) {
     return $ast if $ast.ann('WANTED');  # probably a loose thunk just stashed somewhere random
     $ast.annotate('BY',$byby);
     my $e := +@($ast) - 1;
-    if nqp::istype($ast,QAST::Stmt) ||
-       nqp::istype($ast,QAST::Stmts) ||
-       nqp::istype($ast,QAST::Block)
-    {
+    note('unwanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
+    if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
         # Unwant all kids, not just last one, so we recurse into blocks and such,
         # don't just rely on the optimizer to default to void.
         my int $i := 0;
@@ -139,6 +139,14 @@ sub unwanted($ast, $by) {
             ++$i;
         }
         $ast.annotate('context','sink');
+    }
+    elsif nqp::istype($ast,QAST::Block) {
+        my int $i := 1;
+        while $i <= $e {
+            $ast[$i] := UNWANTED($ast[$i], $byby);
+            ++$i;
+        }
+        $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
         if $ast.op eq 'p6capturelex' {

@@ -1460,7 +1460,7 @@ my class Supplier {
         $!taplist.quit($ex);
     }
     multi method quit(Supplier:D: Str() $message) {
-        $!taplist.quit(X::AdHoc.new(:$message));
+        $!taplist.quit(X::AdHoc.new(payload => $message));
     }
 
     method Supply(Supplier:D:) {

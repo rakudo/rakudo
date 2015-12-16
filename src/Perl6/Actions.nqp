@@ -19,21 +19,21 @@ sub block_closure($code) {
 sub wantall($ast, $by) {
     my int $i := 0;
     my int $e := $ast ?? +@($ast) !! 0;
-    while $i < $e { $ast[$i] := wanted($ast[$i], $by ~ ' wantall'); $i := $i + 1 }
+    while $i < $e { $ast[$i] := wanted($ast[$i], $by ~ ' wa'); $i := $i + 1 }
     Nil;
 }
 
 sub WANTALL($ast, $by) {
     my int $i := 0;
     my int $e := $ast ?? +@($ast) !! 0;
-    while $i < $e { $ast[$i] := WANTED($ast[$i], $by ~ ' WANTALL'); $i := $i + 1 }
+    while $i < $e { $ast[$i] := WANTED($ast[$i], $by ~ ' WA'); $i := $i + 1 }
     Nil;
 }
 
 sub unwantall($ast, $by) {
     my int $i := 0;
     my int $e := $ast ?? +@($ast) !! 0;
-    while $i < $e { $ast[$i] := unwanted($ast[$i], $by ~ ' unwantall'); $i := $i + 1 }
+    while $i < $e { $ast[$i] := unwanted($ast[$i], $by ~ ' ua'); $i := $i + 1 }
     Nil;
 }
 
@@ -42,7 +42,7 @@ sub unwantall($ast, $by) {
 # got it.  (Like how wantall does it above.)
 
 sub wanted($ast,$by) {
-    my $byby := $by ~ ' unwanted';
+    my $byby := $by ~ ' u';
     return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
     return $ast if $ast.ann('WANTED');  # already marked from here down
@@ -113,14 +113,14 @@ sub wanted($ast,$by) {
 
 sub WANTED($ast, $by) {
     if nqp::isconcrete($ast) {
-        $ast := wanted($ast, $by ~ ' WANTED');
+        $ast := wanted($ast, $by ~ ' W');
         $ast.annotate('WANTED',1);  # force in case it's just a thunk
     }
     $ast;
 }
 
 sub unwanted($ast, $by) {
-    my $byby := $by ~ ' unwanted';
+    my $byby := $by ~ ' u';
     return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
     return $ast if $ast.ann('context');
@@ -176,7 +176,7 @@ sub unwanted($ast, $by) {
 
 sub UNWANTED($ast, $by) {
     if nqp::isconcrete($ast) {
-        $ast := unwanted($ast, $by ~ ' UNWANTED');
+        $ast := unwanted($ast, $by ~ ' U');
         $ast.annotate('context','sink');  # force in case it's just a thunk
     }
     $ast;

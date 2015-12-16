@@ -80,10 +80,19 @@ sub wanted($ast,$by) {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
-        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'callmethod' || $ast.op eq 'handle' || $ast.op eq 'locallifetime' {
+        elsif $ast.op eq 'call' ||
+              $ast.op eq 'callstatic' ||
+              $ast.op eq 'callmethod' ||
+              $ast.op eq 'handle' ||
+              $ast.op eq 'locallifetime' ||
+              $ast.op eq 'p6typecheckrv' ||
+              $ast.op eq 'lexotic' ||
+              False {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
-        elsif $ast.op eq 'while' {
+        elsif $ast.op eq 'while' ||
+              $ast.op eq 'p6decontrv' ||
+              False {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
         }
     }
@@ -156,10 +165,19 @@ sub unwanted($ast, $by) {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.annotate('context','sink');
         }
-        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'callmethod' || $ast.op eq 'handle' || $ast.op eq 'locallifetime' {
+        elsif $ast.op eq 'call' ||
+              $ast.op eq 'callstatic' ||
+              $ast.op eq 'callmethod' ||
+              $ast.op eq 'handle' ||
+              $ast.op eq 'locallifetime' ||
+              $ast.op eq 'p6typecheckrv' ||
+              $ast.op eq 'lexotic' ||
+              False {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }
-        elsif $ast.op eq 'while' {
+        elsif $ast.op eq 'while' ||
+              $ast.op eq 'p6decontrv' ||
+              False {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
         }
     }
@@ -3091,11 +3109,11 @@ Compilation unit '$file' contained the following violations:
         }
         else {
             if $<blockoid> {
-                $block := $<blockoid>.ast;
+                $block := WANTED($<blockoid>.ast,'&defoid');
             } else {
                 $block := $*CURPAD;
                 $block.blocktype('declaration_static');
-                $block.push($<statementlist>.ast);
+                $block.push(WANTED($<statementlist>.ast,'&def'));
                 $block.node($/);
             }
             if is_clearly_returnless($block) {
@@ -6203,7 +6221,7 @@ Compilation unit '$file' contained the following violations:
                 ),
 
                 # And finally evaluate to the smart-match result.
-                QAST::Var.new( :name($result_var), :scope('local') )
+                WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_sm')
             ),
             $old_topic_var,
             $result_var,

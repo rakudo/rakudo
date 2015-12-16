@@ -5901,6 +5901,7 @@ Compilation unit '$file' contained the following violations:
         unless $KEY { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $key := nqp::lc($KEY // 'infix');
+        $key := 'infix' if $key eq 'list';
         my $sym := ~$/{$key}<sym>;
         my $O := $/{$key}<O>;
         my $thunky := $O<thunky>;
@@ -5947,9 +5948,7 @@ Compilation unit '$file' contained the following violations:
             if $<OPER><sym> {
                 my $name;
                 if $past.isa(QAST::Op) && !$past.name {
-                    my $k := $key;
-                    if $k eq 'list' { $k := 'infix'; }
-                    $name := $k ~ $*W.canonicalize_pair('', $<OPER><sym>);
+                    $name := $key ~ $*W.canonicalize_pair('', $<OPER><sym>);
                     $past.name('&' ~ $name);
                 }
                 my $macro := find_macro_routine(['&' ~ $name]);
@@ -6017,8 +6016,8 @@ Compilation unit '$file' contained the following violations:
 #            note("$key $sym");
 #            note($past.dump) if $past;
 #        }
-        if $key eq 'prefix' || $key eq 'infix' || $key eq 'postfix' || ($key eq 'list' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
-            $past := self.whatever_curry($/, (my $orig := $past), $key eq 'list' ?? $arity !! $key eq 'infix' ?? 2 !! 1);
+        if $key eq 'prefix' || $key eq 'postfix' || ($key eq 'infix' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
+            $past := self.whatever_curry($/, (my $orig := $past), $KEY eq 'LIST' ?? $arity !! $key eq 'infix' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,
                     :op('hllize'), :returns($past.returns()));

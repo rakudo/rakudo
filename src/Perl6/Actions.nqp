@@ -2213,7 +2213,7 @@ Compilation unit '$file' contained the following violations:
                     )
                 ),
                 # And finally evaluate to the smart-match result.
-                QAST::Var.new( :name($result_var), :scope('local') )
+                WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_smartmatch')
             );
             $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
         }
@@ -7501,7 +7501,7 @@ Compilation unit '$file' contained the following violations:
             ),
         );
         $past.annotate('is_S', $<sym> eq 'S');
-        make $past;
+        make WANTED($past, 's///');  # never carp about s/// in sink context
     }
 
     method quote:sym<quasi>($/) {

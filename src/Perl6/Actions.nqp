@@ -5,7 +5,7 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
-my $wantwant := NQPMu;
+my $wantwant := Mu;
 
 sub block_closure($code) {
     my $closure := QAST::Op.new(
@@ -80,7 +80,7 @@ sub wanted($ast,$by) {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
-        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'handle' {
+        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'callmethod' || $ast.op eq 'handle' || $ast.op eq 'locallifetime' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
@@ -114,9 +114,12 @@ sub wanted($ast,$by) {
 }
 
 sub WANTED($ast, $by) {
-    if nqp::isconcrete($ast) {
+    if nqp::istype($ast, QAST::Node) {
         $ast := wanted($ast, $by ~ ' W');
         $ast.annotate('WANTED',1);  # force in case it's just a thunk
+    }
+    else {
+        note("Non ast passed to WANTED: " ~ $ast.HOW.name($ast));
     }
     $ast;
 }
@@ -153,7 +156,7 @@ sub unwanted($ast, $by) {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.annotate('context','sink');
         }
-        elsif $ast.op eq 'call' {
+        elsif $ast.op eq 'call' || $ast.op eq 'callstatic' || $ast.op eq 'callmethod' || $ast.op eq 'handle' || $ast.op eq 'locallifetime' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' {
@@ -183,9 +186,12 @@ sub unwanted($ast, $by) {
 }
 
 sub UNWANTED($ast, $by) {
-    if nqp::isconcrete($ast) {
+    if nqp::istype($ast, QAST::Node) {
         $ast := unwanted($ast, $by ~ ' U');
         $ast.annotate('context','sink');  # force in case it's just a thunk
+    }
+    else {
+        note("Non ast passed to UNWANTED: " ~ $ast.HOW.name($ast));
     }
     $ast;
 }
@@ -6041,10 +6047,10 @@ Compilation unit '$file' contained the following violations:
         # Assemble into list of AST of each step in the pipeline.
         my @stages;
         if $/<infix><sym> eq '==>' {
-            for @($/) { @stages.push($_.ast); }
+            for @($/) { @stages.push(WANTED($_.ast,'==>')); }
         }
         elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift($_.ast); }
+            for @($/) { @stages.unshift(WANTED($_.ast,'<==')); }
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
@@ -6099,6 +6105,7 @@ Compilation unit '$file' contained the following violations:
             $result := $_;
         }
 
+        WANTED($result,'make_feed');
         $result
     }
 

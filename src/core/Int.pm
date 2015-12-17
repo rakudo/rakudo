@@ -1,5 +1,6 @@
 my class Rat { ... }
 my class X::Numeric::DivideByZero { ... }
+my class X::NYI::BigInt { ... }
 
 my class Int { ... }
 my subset UInt of Int where * >= 0;
@@ -351,14 +352,18 @@ multi sub infix:<+^>(int $a, int $b) {
 }
 
 multi sub infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
-    nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
+    nqp::isbig_I(nqp::decont(b))
+      ?? fail X::NYI::BigInt.new(:op('+<'),:big(b))
+      !! nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 multi sub infix:«+<»(int $a, int $b) {
     nqp::bitshiftl_i($a, $b);
 }
 
 multi sub infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
-    nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
+    nqp::isbig_I(nqp::decont(b))
+      ?? fail X::NYI::BigInt.new(:op('+>'),:big(b))
+      !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 multi sub infix:«+>»(int $a, int $b) {
     nqp::bitshiftr_i($a, $b)

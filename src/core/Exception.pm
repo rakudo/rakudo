@@ -629,6 +629,14 @@ my class X::NYI::Available is X::NYI {
         "Please install { self.available-str } for $.feature support. "
     }
 }
+my class X::NYI::BigInt is Exception {
+    has $.op;
+    has $.big;
+    has $.side = 'right';
+    method message() {
+        "Big integer $!big not yet supported on {$!side}hand side of '$!op' operator"
+    }
+}
 my class X::Experimental does X::Comp {
     has $.feature;
     method message() { "Use of $.feature is experimental; please 'use experimental :$.feature'" }

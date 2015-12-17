@@ -622,6 +622,7 @@ my class Rakudo::Internals {
     method INITTIME() { $init-time-num }
 
     my $escapes := nqp::hash(
+     "\0",   '\0',
      '$',    '\$',
      '@',    '\@',
      '%',    '\%',
@@ -638,7 +639,7 @@ my class Rakudo::Internals {
     method PERLIFY-STR(Str \string) {
         sub char-to-escapes(Str $char) {
 #?if moar
-            $char.NFC.list.map({ .fmt('\x[%x]') }).join
+            '\x[' ~ $char.NFC.list.map({ .fmt('%0x') }).join(',') ~ ']'
 #?endif
 #?if !moar
             $char.ord.fmt('\x[%x]')

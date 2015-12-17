@@ -538,19 +538,8 @@ my class Date does Dateish {
             ).throw;
         self.new(|$date.split('-').map({.Int}));
     }
-
     multi method new() {
-        DEPRECATED(
-            :what('Date.new() without arguments to get the Christmas date'),
-            'Date.new(self.today.year, 12, 24)',
-            '2015.11',
-        );
-        my $n = self.today;
-        if $n.month == 12 && $n.day >= 24 {
-            self.new($n.year + 1, 12, 24);
-        } else {
-            self.new($n.year, 12, 24);
-        }
+        fail X::Cannot::New.new(class => self);
     }
 
     multi method new(Dateish $d) {

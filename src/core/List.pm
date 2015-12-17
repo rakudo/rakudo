@@ -41,6 +41,10 @@ my sub combinations(\n, \k) {
             }
             IterationEnd
         }
+
+        method count-only {
+            (  ([*] 1..$!n) / (([*] 1..$!k) * ([*] 1..$!n-$!k))  ).Int
+        }
     }.new(n, k))
 }
 

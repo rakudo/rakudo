@@ -110,6 +110,12 @@ my class X::AdHoc is Exception {
     }
 }
 
+my class X::NQP::NotFound is Exception {
+    has $.op;
+    method message() {
+        "Could not find nqp::$.op, did you forget 'use nqp;' ?"
+    }
+}
 my class X::Dynamic::NotFound is Exception {
     has $.name;
     method message() {

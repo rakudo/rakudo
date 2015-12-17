@@ -660,40 +660,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $compunit.annotate('UNIT', $unit);
         $compunit.annotate('GLOBALish', $*GLOBALish);
         $compunit.annotate('W', $*W);
-
-        my @violations := @*NQP_VIOLATIONS;
-        if @violations &&
-          !+nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_NO_DEPRECATIONS'),0) {
-
-            my $file := nqp::getlexdyn('$?FILES');
-            my $bar  := nqp::gethostname() eq 'ns1'
-              ?? ""
-              !! '===============================================================================
-';
-            my $text := $bar ~ "The use of nqp::operations has been deprecated for non-CORE code.  Please
-change your code to not use these non-portable functions.  If you really want
-to keep using nqp::operations in your Perl6 code, you must add a:
-
-  use nqp;
-
-to the outer scope of any code that uses nqp::operations.
-
-Compilation unit '$file' contained the following violations:
-";
-
-            my $line  := -1;
-            my $lines := nqp::elems(@violations);
-            while ++$line < $lines {
-                my @ops := @violations[$line];
-                next unless nqp::isconcrete(@ops);
-
-                my $oplist := nqp::join(' nqp::',@ops);
-                $text := $text
-                  ~ " Line $line:\n"
-                  ~ "  nqp::$oplist\n";
-            }
-            nqp::printfh(nqp::getstderr(),$text ~ $bar);
-        }
         make $compunit;
     }
 
@@ -5494,9 +5460,7 @@ Compilation unit '$file' contained the following violations:
 
         # using nqp::op outside of setting
         unless %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
-            my $line := $*W.current_line($/);
-            @*NQP_VIOLATIONS[$line] := @*NQP_VIOLATIONS[$line] // [];
-            @*NQP_VIOLATIONS[$line].push($op);
+            $/.CURSOR.typed_panic('X::NQP::NotFound', op => $op);
         }
 
         my $past := QAST::Op.new( :$op, |@args );

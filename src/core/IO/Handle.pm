@@ -22,12 +22,7 @@ my class IO::Handle does IO {
       :$enc   = 'utf8',
       :$nl-in is copy = ["\x0A", "\r\n"],
       Str:D :$nl-out is copy = "\n",
-      :$nl
     ) {
-        if $nl.defined {
-            DEPRECATED(what => ':nl parameter to open', ':nl-in and :nl-out');
-            $nl-in = $nl-out = $nl;
-        }
 
         $mode //= do {
             when so ($r && $w) || $rw { $create              = True; 'rw' }
@@ -108,24 +103,6 @@ my class IO::Handle does IO {
         nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
           unless $bin;
         self;
-    }
-
-    method ins() {
-        DEPRECATED('.lines.kv');
-        0
-    }
-
-    method nl is rw {
-        DEPRECATED('nl-in and nl-out');
-        Proxy.new(
-          FETCH => {
-              $!nl-out
-          },
-          STORE => -> $, $nl {
-            $!nl-out = $nl;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl);
-          }
-        );
     }
 
     method nl-in is rw {

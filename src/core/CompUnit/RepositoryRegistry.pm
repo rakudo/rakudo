@@ -150,7 +150,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     method use-repository(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
-        return if $current === $repo;
+        return $repo if $current === $repo;
         self!remove-from-chain($repo, :$current);
         $repo.next-repo = $current;
         PROCESS::<$REPO> := $repo;

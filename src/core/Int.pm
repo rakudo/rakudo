@@ -367,7 +367,6 @@ multi sub infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
       !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 multi sub infix:«+>»(int $a, int $b) {
-    $a < 0 && $b > 31 ?? -1 !! # temp fix for #126942, remove if fixed otherwise
     nqp::bitshiftr_i($a, $b)
 }
 

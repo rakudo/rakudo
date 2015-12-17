@@ -1274,6 +1274,10 @@ class Perl6::Optimizer {
                     $update[0] := $target[0];
                 }
             }
+            elsif nqp::istype($target,QAST::Var) && $target.scope eq 'lexicalref' && nqp::objprimspec($target.returns) == 1 {
+                # turn $i into $i != 0
+                $update[0] := QAST::Op.new( :op('isne_i'), :returns($target.returns), $target, QAST::IVal.new( :value(0) ));
+            }
         }
 
         # May be able to simplify takedispatcher ops.

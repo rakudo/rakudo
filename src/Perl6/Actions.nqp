@@ -6678,8 +6678,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $ast := QAST::Op.new( :node($/), :op<call>,
                     QAST::Op.new( :op<call>, :name<&METAOP_ASSIGN>,
-                        ($ast[0] // QAST::Var.new(
-                            :name("&infix" ~ $*W.canonicalize_pair('', $basesym)), :scope('lexical') ))));
+                        WANTED($ast[0] // QAST::Var.new(
+                            :name("&infix" ~ $*W.canonicalize_pair('', $basesym)), :scope('lexical')) ,'infixish')));
             }
         }
 

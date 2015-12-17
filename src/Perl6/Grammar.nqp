@@ -4101,9 +4101,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!{ $*IN_REDUCE }>
         [<!alpha>
             {
+                my $pre := nqp::substr(self.orig, self.from - 1, 1);
                 $<ws> ne ''
                 ?? $¢.obs('. to concatenate strings', '~')
-                !! $¢.malformed('postfix call (only alphabetic methods may be detached)')
+                !! $pre ~~ /^\s$/
+                    ?? $¢.malformed('postfix call (only alphabetic methods may be detached)')
+                    !! $¢.malformed('postfix call')
             }
         ]?
         <O('%dottyinfix')>

@@ -687,16 +687,8 @@ my class IO::Handle does IO {
     }
 
     proto method seek(|) { * }
-    multi method seek(IO::Handle:D: Int:D $offset, Int:D $whence --> True) {
-        DEPRECATED(
-          SeekType.^enum_value_list[$whence],
-          :what("numerical seektype $whence"),
-        );
-        nqp::seekfh($!PIO, $offset, $whence);
-    }
     multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence) {
         nqp::seekfh($!PIO, $offset, +$whence);
-        True;
     }
 
     method tell(IO::Handle:D:) returns Int {

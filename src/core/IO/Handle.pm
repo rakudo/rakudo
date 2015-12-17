@@ -687,7 +687,7 @@ my class IO::Handle does IO {
     }
 
     proto method seek(|) { * }
-    multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence) {
+    multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
         nqp::seekfh($!PIO, $offset, +$whence);
     }
 

@@ -128,25 +128,31 @@ class CompUnit::RepositoryRegistry {
             my @parts = $repo.split('#');
             join '#', @parts[0], $SPEC.canonpath(@parts[1]);
         };
-        %repos{$_} = $next-repo := self.repository-for-spec($_, :$next-repo)
-            for @INC>>.&canon.unique.reverse;
+        %repos{$_} = $next-repo := self.use-repository(
+                self.repository-for-spec($_),
+                :current($next-repo),
+            ) for @INC>>.&canon.unique.reverse;
 
         $_ = %repos{$_.&canon} for %custom-lib.values;
 
         $next-repo
     }
 
-    method use-repository(CompUnit::Repository $repo) {
-        my $current = $*REPO;
-        return if $current === $repo;
-        while $current {
-            if $current.next-repo === $repo {
-                $current.next-repo = $repo.next-repo;
+    method !remove-from-chain(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
+        my $item = $current;
+        while $item {
+            if $item.next-repo === $repo {
+                $item.next-repo = $repo.next-repo;
                 last;
             }
-            $current = $current.next-repo;
+            $item = $item.next-repo;
         }
-        $repo.next-repo = $*REPO;
+    }
+
+    method use-repository(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
+        return if $current === $repo;
+        self!remove-from-chain($repo, :$current);
+        $repo.next-repo = $current;
         PROCESS::<$REPO> := $repo;
     }
 

@@ -77,13 +77,12 @@ my class IO::Path is Cool {
     }
     multi method perl(IO::Path:D:) {
         my $path = Rakudo::Internals.TRANSPOSE(
-          Rakudo::Internals.TRANSPOSE( ($.is-absolute ?? $.abspath !! $.path),
-            "\\", "\\\\"),
+          Rakudo::Internals.PERLIFY-STR($.is-absolute ?? $.abspath !! $.path),
           "|", "\\|");
 
         $!is-absolute  # attribute now set
-          ?? "q|{$path}|.IO(:SPEC({$!SPEC.perl}))"
-          !! "q|{$path}|.IO(:SPEC({$!SPEC.perl}),:CWD({$!CWD.perl}))"
+          ?? "q|$path|.IO(:SPEC({$!SPEC.perl}))"
+          !! "q|$path|.IO(:SPEC({$!SPEC.perl}),:CWD({$!CWD.perl}))"
     }
 
     method succ(IO::Path:D:) {

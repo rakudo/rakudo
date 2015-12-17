@@ -136,6 +136,8 @@ Linenoise is via [panda](https://github.com/tadzik/panda):
 
     panda install Linenoise
 
+An alternative is to use a third-party program such as [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap).
+
 ## How the compiler works
 
 See `docs/compiler_overview.pod`.

@@ -190,6 +190,9 @@ sub unwanted($ast, $by) {
                 $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
             }
         }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
+            $node.annotate('context','sink');
+        }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
             $node := $node[1];
             if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {

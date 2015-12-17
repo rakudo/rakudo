@@ -1705,6 +1705,21 @@ class Perl6::Optimizer {
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
         note("method visit_want $!void_context\n" ~ $want.dump) if $!debug;
+
+        # If it's the sink context void node, then only visit the first
+        # child. Otherwise, see all.
+        if +@($want) == 3 && $want[1] eq 'v' {
+            self.visit_children($want, :first);
+            if $want[0].ann('range_optimized') {
+                $want[2] := $want[0];
+            }
+        }
+        else {
+            self.visit_children($want, :skip_selectors);
+        }
+
+        # (Check the following after we've checked children, since they may have useless bits too.)
+
         # Any literal in void context deserves a warning.
         if $!void_context && !$!in_declaration
                 && +@($want) == 3 && $want.node {
@@ -1731,17 +1746,6 @@ class Perl6::Optimizer {
             }
         }
 
-        # If it's the sink context void node, then only visit the first
-        # child. Otherwise, see all.
-        if +@($want) == 3 && $want[1] eq 'v' {
-            self.visit_children($want, :first);
-            if $want[0].ann('range_optimized') {
-                $want[2] := $want[0];
-            }
-        }
-        else {
-            self.visit_children($want, :skip_selectors);
-        }
         $want;
     }
     

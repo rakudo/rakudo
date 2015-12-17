@@ -75,16 +75,6 @@ my class IO::Socket::Async {
           }
     }
 
-    method chars-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER) {
-        DEPRECATED('Supply');
-        self.Supply
-    }
-
-    method bytes-supply(IO::Socket::Async:D: :$scheduler = $*SCHEDULER, :$buf = buf8.new) {
-        DEPRECATED('Supply(:bin)');
-        self.Supply(:bin, :$buf)
-    }
-
     method close(IO::Socket::Async:D: --> True) {
         nqp::closefh($!VMIO);
     }

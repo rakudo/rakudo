@@ -76,10 +76,14 @@ my class IO::Path is Cool {
         qq|"$.abspath".IO|;
     }
     multi method perl(IO::Path:D:) {
-        ($.is-absolute
-          ?? "q|$.abspath|.IO(:SPEC({$!SPEC.^name}))"
-          !! "q|$.path|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD>)"
-        ).subst(:global, '\\', '\\\\');
+        my $path = Rakudo::Internals.TRANSPOSE(
+          Rakudo::Internals.TRANSPOSE( ($.is-absolute ?? $.abspath !! $.path),
+            "\\", "\\\\"),
+          "|", "\\|");
+
+        $!is-absolute  # attribute now set
+          ?? "q|{$path}|.IO(:SPEC({$!SPEC.^name}))"
+          !! "q|{$path}|.IO(:SPEC({$!SPEC.^name}),:CWD<$!CWD>)"
     }
 
     method succ(IO::Path:D:) {

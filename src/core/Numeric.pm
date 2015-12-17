@@ -193,7 +193,7 @@ multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
 sub infix:<×>(|c) is pure { infix:<*>(|c) }
 
-proto sub infix:</>(Mu $?, Mu $?) { * }
+proto sub infix:</>(Mu $?, Mu $?) is pure { * }
 multi sub infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }

@@ -180,50 +180,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         val(self, :val-or-fail);
     }
 
-    my %esc = (
-        '$' => '\$',  '@' => '\@',  '%' => '\%',  '&' => '\&',  '{' => '\{',
-        "\b" => '\b', "\x0A" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
-        '\\' => '\\\\' );
-
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
-        sub char-to-escapes($ch) {
-#?if moar
-            $ch.NFC.list.map(*.fmt('\x[%x]')).join
-#?endif
-#?if !moar
-            $ch.ord.fmt('\x[%x]')
-#?endif
-        }
-
-        # Under NFG-supporting implementations, must be sure that any leading
-        # combiners are escaped, otherwise they will be combined onto the "
-        # under concatenation closure, which ruins round-tripping. Also handle
-        # the \r\n grapheme correctly.
-        my $result = '"';
-        my $to-encode = self;
-
-        for ^$to-encode.chars -> $i {
-            my $ch = nqp::substr($to-encode, $i, 1);
-            my int $ord = nqp::ord($ch);
-#?if moar
-            if $ord >= 256 && +uniprop($ord, 'Canonical_Combining_Class') {
-                $result ~= char-to-escapes($ch);
-                next;
-            }
-            elsif $ch eq "\r\n" {
-                $result ~= '\r\n';
-                next;
-            }
-#?endif
-            $result ~= %esc{$ch}
-                       //  (nqp::iscclass( nqp::const::CCLASS_PRINTING,
-                                                  nqp::unbox_s($ch), 0)
-                           ?? $ch
-                           !! char-to-escapes($ch)
-                           );
-        }
-        $result ~ '"'
+        '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
     role ProcessStr does Iterator {

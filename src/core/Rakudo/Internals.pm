@@ -620,6 +620,61 @@ my class Rakudo::Internals {
 
     my num $init-time-num = nqp::time_n;
     method INITTIME() { $init-time-num }
+
+    my $escapes := nqp::hash(
+     '$',    '\$',
+     '@',    '\@',
+     '%',    '\%',
+     '&',    '\&',
+     '{',    '\{',
+     "\b",   '\b',
+     "\x0A", '\n',
+     "\r",   '\r',
+     "\t",   '\t',
+     '"',    '\"',
+     '\\',   '\\\\',
+    );
+
+    method PERLIFY-STR(Str \string) {
+        sub char-to-escapes(Str $char) {
+#?if moar
+            $char.NFC.list.map({ .fmt('\x[%x]') }).join
+#?endif
+#?if !moar
+            $char.ord.fmt('\x[%x]')
+#?endif
+        }
+
+        # Under NFG-supporting implementations, must be sure that any leading
+        # combiners are escaped, otherwise they will be combined onto the "
+        # under concatenation closure, which ruins round-tripping. Also handle
+        # the \r\n grapheme correctly.
+        my str $to-escape = nqp::unbox_s(string);
+        my str $escaped = '';
+
+        my int $chars = nqp::chars($to-escape);
+        my int $i = -1;
+        while ($i = $i + 1) < $chars {
+            my str $char = nqp::substr($to-escape, $i, 1);
+#?if moar
+            my int $ord = nqp::ord($char);
+            $escaped ~= nqp::isge_i($ord,256)
+              && +uniprop($ord,'Canonical_Combining_Class')
+              ?? char-to-escapes($char)
+              !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
+#?endif
+#?if !moar
+            $escaped ~=
+#?endif
+
+              nqp::existskey($escapes,$char)
+                ?? nqp::atkey($escapes,$char)
+                !! nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
+                  ?? $char
+                  !! char-to-escapes($char);
+        }
+        $escaped
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

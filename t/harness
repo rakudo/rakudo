@@ -45,7 +45,7 @@ $ENV{'PERL6LIB'} = join ',', qw/ lib . /;
 
 my @slow;
 if ($list_file) {
-    my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5 }"';
+    my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5; 1 }"';
     print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
       if !$perl5;
 

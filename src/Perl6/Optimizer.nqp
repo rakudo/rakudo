@@ -1353,7 +1353,7 @@ class Perl6::Optimizer {
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
                     my str $expr   := nqp::escape(widen($op.node));
-                    note( qq[Useless use of "$op_txt" in expression "$expr" in sink context\n] ~ $op.dump );
+#                    note( qq[Useless use of "$op_txt" in expression "$expr" in sink context\n] ~ $op.dump );
                     $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
                 }
                 # check if all arguments are known at compile time

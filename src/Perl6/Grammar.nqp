@@ -4059,7 +4059,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<*>    { <sym>  <O('%multiplicative')> }
+    token infix:sym<×>    { <sym>  <O('%multiplicative')> }
     token infix:sym</>    { <sym>  <O('%multiplicative')> }
+    token infix:sym<÷>    { <sym>  <O('%multiplicative')> }
     token infix:sym<div>  { <sym> >> <O('%multiplicative')> }
     token infix:sym<gcd>  { <sym> >> <O('%multiplicative')> }
     token infix:sym<lcm>  { <sym> >> <O('%multiplicative')> }

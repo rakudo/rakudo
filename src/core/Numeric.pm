@@ -191,10 +191,14 @@ proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
+sub infix:<×>(|c) is pure { infix:<*>(|c) }
+
 proto sub infix:</>(Mu $?, Mu $?) { * }
 multi sub infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
+
+sub infix:<÷>(|c) is pure { infix:</>(|c) }
 
 proto sub infix:<div>(Mu $?, Mu $?) is pure  { * }
 # rest of infix:<div> is in Int.pm

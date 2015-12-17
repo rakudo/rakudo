@@ -86,13 +86,11 @@ sub wanted($ast,$by) {
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' ||
-              False {
+              $ast.op eq 'lexotic' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' ||
-              $ast.op eq 'p6decontrv' ||
-              False {
+              $ast.op eq 'p6decontrv' {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
         }
     }
@@ -171,13 +169,11 @@ sub unwanted($ast, $by) {
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'lexotic' ||
-              $ast.op eq 'ifnull' ||
-              False {
+              $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' ||
-              $ast.op eq 'p6decontrv' ||
-              False {
+              $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
         }
     }

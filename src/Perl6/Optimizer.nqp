@@ -869,6 +869,8 @@ class Perl6::Optimizer {
     # one shared QAST tree we'll put into every block we've eliminated
     has $!eliminated_block_contents;
 
+    has $!debug;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -879,6 +881,7 @@ class Perl6::Optimizer {
         $!chain_depth             := 0;
         $!in_declaration          := 0;
         $!void_context            := 0;
+        $!debug                   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
         my $*DYNAMICALLY_COMPILED := 0;
         my $*W                    := $past.ann('W');
 
@@ -887,7 +890,7 @@ class Perl6::Optimizer {
             +%adverbs<optimize> !! 2;
         %!adverbs := %adverbs;
 
-        note("method optimize before\n" ~ $past.dump) if $!level >= 4;
+        note("method optimize before\n" ~ $past.dump) if $!debug;
 
         $!eliminated_block_contents := QAST::Op.new( :op('die_s'),
             QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
@@ -898,7 +901,7 @@ class Perl6::Optimizer {
         # Report any discovered problems.
         $!problems.report();
 
-        note("method optimize after\n" ~ $past.dump) if $!level >= 4;
+        note("method optimize after\n" ~ $past.dump) if $!debug;
 
         $past
     }
@@ -1041,7 +1044,7 @@ class Perl6::Optimizer {
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
-        note("method visit_op $!void_context\n" ~ $op.dump) if $!level >= 4;
+        note("method visit_op $!void_context\n" ~ $op.dump) if $!debug;
         # If it's a QAST::Op of type handle, needs some special attention.
         my str $optype := $op.op;
         if $optype eq 'handle' {
@@ -1332,7 +1335,7 @@ class Perl6::Optimizer {
         # See if we can find the thing we're going to call.
         my $obj;
         my int $found := 0;
-        note("method optimize_call $!void_context\n" ~ $op.dump) if $!level >= 4;
+        note("method optimize_call $!void_context\n" ~ $op.dump) if $!debug;
         try {
             $obj := $!symbols.find_lexical($op.name);
             $found := 1;
@@ -1692,7 +1695,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
-        note("method visit_want $!void_context\n" ~ $want.dump) if $!level >= 4;
+        note("method visit_want $!void_context\n" ~ $want.dump) if $!debug;
         # Any literal in void context deserves a warning.
         if $!void_context && !$!in_declaration
                 && +@($want) == 3 && $want.node {
@@ -1908,7 +1911,7 @@ class Perl6::Optimizer {
                     if $visit.ann('WANTED') { $!void_context := 0 }
                     elsif $visit.ann('context') eq 'sink' { $!void_context := 1 }
                     elsif $visit.ann('final') {
-                        note("Undecided final " ~ $node.HOW.name($node)) if $!level >= 4;
+                        note("Undecided final " ~ $node.HOW.name($node)) if $!debug;
                         $!void_context := 0;  # assume wanted
                     }
                 }

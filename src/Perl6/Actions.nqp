@@ -118,7 +118,6 @@ sub wanted($ast,$by) {
             $node[1] := WANTED($node[1], $byby);
         }
     }
-    # note('after ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if nqp::getenvhash<RAKUDO_WANTING>;
     $ast;
 }
 

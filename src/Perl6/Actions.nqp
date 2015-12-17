@@ -171,6 +171,7 @@ sub unwanted($ast, $by) {
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'lexotic' ||
+              $ast.op eq 'ifnull' ||
               False {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }

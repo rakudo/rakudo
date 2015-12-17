@@ -3305,6 +3305,7 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
+                $_.ast.annotate('WANTED',1);
                 @pairs.push($_);
             }
         }

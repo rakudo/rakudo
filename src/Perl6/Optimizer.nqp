@@ -1081,6 +1081,16 @@ class Perl6::Optimizer {
             self.visit_op_children($op);
             return $op;
         }
+        elsif $optype eq 'callmethod' && $op.name eq 'new' && $!void_context {
+            if $op.node {
+                my str $op_txt := nqp::escape($op.node.Str);
+                $!problems.add_worry($op, qq[Useless use of "$op_txt" in sink context]);
+            }
+            elsif nqp::istype($op[0],QAST::Var) && $op[0].scope eq 'lexical' {
+                my str $op_txt := $op[0].name;
+                $!problems.add_worry($op, qq[Useless use of "$op_txt" in sink context]);
+            }
+        }
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
@@ -1360,7 +1370,6 @@ class Perl6::Optimizer {
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
                     my str $expr   := nqp::escape(widen($op.node));
-#                    note( qq[Useless use of "$op_txt" in expression "$expr" in sink context\n] ~ $op.dump );
                     $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
                 }
                 # check if all arguments are known at compile time

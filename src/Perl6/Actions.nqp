@@ -199,6 +199,9 @@ sub unwanted($ast, $by) {
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'while' {
             $node[1] := UNWANTED($node[1], $byby);
         }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
+            $node.annotate('context','sink');
+        }
     }
     $ast;
 }
@@ -1664,7 +1667,7 @@ Compilation unit '$file' contained the following violations:
             for $<module_name><longname><colonpair> -> $colonpair {
                 $op.push(
                     QAST::Op.new( :named(~$colonpair<identifier>), :op<callmethod>, :name<value>,
-                        $colonpair.ast
+                        WANTED($colonpair.ast,'require/pair')
                     )
                 );
             }
@@ -2055,7 +2058,7 @@ Compilation unit '$file' contained the following violations:
     method name($/) { }
 
     method fatarrow($/) {
-        make make_pair($<key>.Str, wanted($<val>.ast, 'fatarrow'));
+        make make_pair($/,$<key>.Str, wanted($<val>.ast, 'fatarrow'));
     }
 
     method coloncircumfix($/) {
@@ -2067,20 +2070,20 @@ Compilation unit '$file' contained the following violations:
     method colonpair($/) {
         if $*key {
             if $<var> {
-                make make_pair($*key, $<var>.ast);
+                make make_pair($/,$*key, $<var>.ast);
             }
             elsif $<num> {
-                make make_pair($*key, $*W.add_numeric_constant($/, 'Int', $*value));
+                make make_pair($/,$*key, $*W.add_numeric_constant($/, 'Int', $*value));
             }
             elsif $*value ~~ NQPMatch {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];
                 }
-                make make_pair($*key, $val_ast);
+                make make_pair($/,$*key, $val_ast);
             }
             else {
-                make make_pair($*key, QAST::Op.new(
+                make make_pair($/,$*key, QAST::Op.new(
                     :op('p6bool'),
                     QAST::IVal.new( :value($*value) )
                 ));
@@ -2108,10 +2111,10 @@ Compilation unit '$file' contained the following violations:
         }
     }
 
-    sub make_pair($key_str, $value) {
+    sub make_pair($/,$key_str, $value) {
         my $key := $*W.add_string_constant($key_str);
         QAST::Op.new(
-            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
+            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
             QAST::Var.new( :name('Pair'), :scope('lexical') ),
             $key, WANTED($value, 'make_pair')
         )

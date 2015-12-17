@@ -639,7 +639,8 @@ my class X::NYI::BigInt is Exception {
 }
 my class X::Experimental does X::Comp {
     has $.feature;
-    method message() { "Use of $.feature is experimental; please 'use experimental :$.feature'" }
+    has $.use = $!feature;
+    method message() { "Use of $.feature is experimental; please 'use experimental :$.use'" }
 }
 
 my class X::Worry is Exception { }

@@ -4097,9 +4097,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<xx>    { <sym> >> <O('%replication_xx')> }
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
-    token infix:sym<.>    { <sym> <.ws>
+    token infix:sym<.>    { <sym> <ws>
         <!{ $*IN_REDUCE }>
-        [<-alpha>  <.obs('. to concatenate strings', '~')>]?
+        [<!alpha>
+            {
+                $<ws> ne ''
+                ?? $¢.obs('. to concatenate strings', '~')
+                !! $¢.malformed('postfix call (only alphabetic methods may be detached)')
+            }
+        ]?
         <O('%dottyinfix')>
     }
     token infix:sym<∘>   { <sym>  <O('%concatenation')> }

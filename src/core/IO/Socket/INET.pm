@@ -94,11 +94,6 @@ my class IO::Socket::INET does IO::Socket {
         self.new(:$localhost, :$localport, :listen)
     }
 
-    method input-line-separator is rw {
-        DEPRECATED('nl-in');
-        self.nl-in
-    }
-
     method get() {
         my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
         nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));

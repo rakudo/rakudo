@@ -41,6 +41,7 @@ my sub combinations(\n, \k) {
             }
             IterationEnd
         }
+        method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
     }.new(n, k))
 }
 

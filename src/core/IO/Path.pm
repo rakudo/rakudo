@@ -81,8 +81,8 @@ my class IO::Path is Cool {
           "|", "\\|");
 
         $!is-absolute  # attribute now set
-          ?? "q|$path|.IO(:SPEC({$!SPEC.perl}))"
-          !! "q|$path|.IO(:SPEC({$!SPEC.perl}),:CWD({$!CWD.perl}))"
+          ?? qq/"$path".IO(:SPEC({$!SPEC.perl}))/
+          !! qq/"$path".IO(:SPEC({$!SPEC.perl}),:CWD({$!CWD.perl}))/
     }
 
     method succ(IO::Path:D:) {

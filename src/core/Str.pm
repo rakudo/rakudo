@@ -548,18 +548,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method subst(Str:D: Str \from, Str \to, :$global!, *%adverbs) {
-        if $global && !%adverbs {
-            Rakudo::Internals.TRANSPOSE(self,from,to);
-        }
-        else {
-            $/ := nqp::getlexdyn('$/');
-            self.subst(from, to, |%adverbs);
-        }
-    }
-    multi method subst(Str:D: $matcher, $replacement,
+    multi method subst(Str:D: $matcher, $replacement, :$global, :$g,
                        :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
                        *%options) {
+
+        # take the fast lane if we can
+        return Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
+          if nqp::istype($matcher,Str) && nqp::istype($replacement,Str)
+          && ($g || $global)
+          && !$samecase && !$samespace && !$samemark && !%options;
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
@@ -567,7 +564,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches = self.match($matcher, |%options);
+        my @matches = self.match($matcher, :g($g || $global), |%options);
 
         !@matches || (@matches == 1 && !@matches[0])
           ?? self

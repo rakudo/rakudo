@@ -1741,6 +1741,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
+                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.ann('okifnil');
                 $!problems.add_worry($want, $warning);
             }
         }

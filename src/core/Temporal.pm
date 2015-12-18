@@ -256,7 +256,7 @@ my class DateTime does Dateish {
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
+        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d[<[\.,]>\d ** 1..6]?) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
@@ -468,7 +468,11 @@ my class DateTime does Dateish {
     }
 
     method Str() {
-        &!formatter(self)
+        if $!second.floor == $!second {
+          &!formatter(self)
+        } else {
+           &!formatter === &default-formatter ?? &!formatter(self, :subseconds) !! &!formatter(self);
+        }
     }
 
     multi method perl(DateTime:D:) {

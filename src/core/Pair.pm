@@ -16,11 +16,13 @@ my class Pair does Associative {
     }
 
     multi method ACCEPTS(Pair:D: %h) {
-        $.value.ACCEPTS(%h{$.key});
+        $!value.ACCEPTS(%h.AT-KEY($!key));
     }
-
+    multi method ACCEPTS(Pair:D: Pair:D $p) {
+        $!value.ACCEPTS(nqp::getattr($p,Pair,'$!value'));
+    }
     multi method ACCEPTS(Pair:D: Mu $other) {
-        $other."$.key"().Bool === $.value.Bool
+        $other."$!key"().Bool === $!value.Bool
     }
 
     method antipair(Pair:D:) { self.new(key => $!value, value => $!key) }

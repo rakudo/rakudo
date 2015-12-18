@@ -1118,7 +1118,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $ml {
                 $past.annotate("okifnil",1);
-                $past[0].annotate("okifnil",1) if +@($past) && nqp::istype($past[0],QAST::Stmt);
+                $past[0].annotate("okifnil",1) if +@($past);
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
                     unless $past.ann('bare_block') {

@@ -159,7 +159,7 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($lib) {
+sub guess_library_name($lib) is export(:TEST) {
     my $libname;
     if ($lib ~~ Callable) {
         $libname = $lib();
@@ -167,27 +167,27 @@ sub guess_library_name($lib) {
     else {
         $libname = $lib;
     }
+    #Already a full name
+    return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
 
-    if !$libname.DEFINITE { '' }
-    elsif $libname ~~ /\.<.alpha>+$/ { $libname }
-    elsif $libname ~~ /\.so(\.<.digit>+)+$/ { $libname }
-    elsif $*VM.config<load_ext> :exists { $libname ~ $*VM.config<load_ext> }
-    elsif $*VM.config<nativecall.so> :exists {
-        if $*KERNEL.name eq 'darwin' {
-            ($libname ~ '.' ~ $*VM.config<nativecall.so>).IO.absolute
-        }
-        else {
-            $libname ~ '.' ~ $*VM.config<nativecall.so>
-        }
+    my $apiversion = '';
+    my $ext;
+    if $libname.index(':') {
+        ($libname, $apiversion) = $libname.split(':');
+    } else {
+        note "NativeCall: Consider adding the api version of the library you want to use, eg: $libname:1" if $libname ~~ /^<-[\.\/\\]>+$/;
     }
-    elsif $*VM.config<dll> :exists {
-        my $ext = $*VM.config<dll>;
-        $ext ~~ s/^.*\%s//;
-        "$libname$ext";
-    }
-    elsif $*DISTRO.is-win { "{$libname}.dll"; }
-    # TODO: more extension guessing
-    else { "{$libname}.so"; }
+    #Err, this is a mess, why so many way to get the extension?
+    $ext = "dynlib" if $*KERNEL.name eq 'darwin'; #Os X?
+    $ext = "dll" if $*DISTRO.is-win;
+    $ext = $*VM.config<load_ext>.substr(1) if $*VM.config<load_ext> :exists;
+    $ext = $*VM.config<nativecall.so>  if $*VM.config<nativecall.so> :exists;
+    {$ext = $*VM.config<dll>; $ext ~~ s/^.*\%s\.//;} if $*VM.config<dll> :exists;
+    $apiversion = '.' ~ $apiversion if $apiversion ne '';
+    return ("$libname$apiversion.$ext").IO.absolute if $*KERNEL.name eq 'darwin';
+    return "$libname.$ext$apiversion" if !$*DISTRO.is-win;
+    return "$libname.$ext" if $*DISTRO.is-win;
+    return "$libname.so";
 }
 
 my %lib;

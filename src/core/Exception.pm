@@ -2154,50 +2154,61 @@ my class X::PhaserExceptions is Exception {
     }
 }
 
-{
-    my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) {
-            X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
-        };
-    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, Mu $expected) {
-            X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
-        };
-    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) {
-            X::TypeCheck::Return.new(:$got, :$expected).throw;
-        };
-    %c_ex<X::Assignment::RO> := sub ($typename = "value") {
-            X::Assignment::RO.new(:$typename).throw;
-        };
-    %c_ex{'X::ControlFlow::Return'} := sub () {
-            X::ControlFlow::Return.new().throw;
-        };
-    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) {
-            X::NoDispatcher.new(:$redispatcher).throw;
-        };
-    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous, $capture) {
-            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
-        };
-    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher, $capture) {
-            X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
-        };
-    %c_ex{'X::Role::Initialization'} := sub ($role) {
-            X::Role::Initialization.new(:$role).throw
-        }
-    %c_ex{'X::Role::Parametric::NoSuchCandidate'} := sub (Mu $role) {
-        X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
-        }
-    %c_ex{'X::Inheritance::NotComposed'} = sub ($child-name, $parent-name) {
-        X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
-    }
-    %c_ex{'X::Parameter::RW'} := sub (Mu $got, $symbol) {
-            X::Parameter::RW.new(:$got, :$symbol).throw;
-        };
-    %c_ex{'X::PhaserExceptions'} := sub (@exceptions) {
-            X::PhaserExceptions.new(exceptions =>
-                @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
-        };
-    nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, Map, '$!storage'));
-}
+nqp::bindcurhllsym('P6EX', nqp::hash(
+  'X::TypeCheck::Binding', 
+  sub (Mu $got, Mu $expected, $symbol?) {
+      X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
+  },
+  'X::TypeCheck::Assignment',
+  sub (Mu $symbol, Mu $got, Mu $expected) {
+      X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
+  },
+  'X::TypeCheck::Return',
+  sub (Mu $got, Mu $expected) {
+      X::TypeCheck::Return.new(:$got, :$expected).throw;
+  },
+  'X::Assignment::RO',
+  sub ($typename = "value") {
+      X::Assignment::RO.new(:$typename).throw;
+  },
+  'X::ControlFlow::Return',
+  sub () {
+      X::ControlFlow::Return.new().throw;
+  },
+  'X::NoDispatcher',
+  sub ($redispatcher) {
+      X::NoDispatcher.new(:$redispatcher).throw;
+  },
+  'X::Multi::Ambiguous',
+  sub ($dispatcher, @ambiguous, $capture) {
+      X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
+  },
+  'X::Multi::NoMatch',
+  sub ($dispatcher, $capture) {
+      X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
+  },
+  'X::Role::Initialization',
+  sub ($role) {
+      X::Role::Initialization.new(:$role).throw
+  },
+  'X::Role::Parametric::NoSuchCandidate',
+  sub (Mu $role) {
+      X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
+  },
+  'X::Inheritance::NotComposed',
+  sub ($child-name, $parent-name) {
+      X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
+  },
+  'X::Parameter::RW',
+  sub (Mu $got, $symbol) {
+      X::Parameter::RW.new(:$got, :$symbol).throw;
+  },
+  'X::PhaserExceptions',
+  sub (@exceptions) {
+      X::PhaserExceptions.new(exceptions =>
+        @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
+  },
+));
 
 my class X::HyperWhatever::Multiple is Exception {
     method message() {

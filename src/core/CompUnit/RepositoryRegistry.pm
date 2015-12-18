@@ -1,5 +1,6 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
+class CompUnit::Repository::AbsolutePath { ... }
 class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
 
@@ -119,8 +120,12 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
-        my CompUnit::Repository $next-repo := CompUnit::Repository::NQP.new(
-            :next-repo(CompUnit::Repository::Perl5.new)
+        my CompUnit::Repository $next-repo := CompUnit::Repository::AbsolutePath.new(
+            :next-repo(
+                CompUnit::Repository::NQP.new(
+                    :next-repo(CompUnit::Repository::Perl5.new)
+                )
+            )
         );
         my %repos;
         my $SPEC := $*SPEC;

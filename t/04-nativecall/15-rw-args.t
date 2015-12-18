@@ -38,7 +38,6 @@ is_approx $f, 6.66, 'Perl\'s rw variable was set by C (float)';
 my num64 $d; SetDouble($d);
 is_approx $d, 12.12, 'Perl\'s rw variable was set by C (double)';
 
-todo 'unsigned char comes back as signed', 1;
 my uint8 $uc; SetUChar($uc);
 is $uc, 153, 'Perl\'s rw variable was set by C (unsigned char)';
 

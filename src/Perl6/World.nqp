@@ -304,7 +304,7 @@ class Perl6::World is HLL::World {
         else {
             $*GLOBALish :=
               self.pkg_create_mo($/,%*HOW<package>,:name('GLOBAL'));
-            self.pkg_compose($*GLOBALish);
+            self.pkg_compose($/, $*GLOBALish);
         }
 
         # Create or pull in existing EXPORT.
@@ -314,7 +314,7 @@ class Perl6::World is HLL::World {
         }
         else {
             $*EXPORT := self.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
-            self.pkg_compose($*EXPORT);
+            self.pkg_compose($/, $*EXPORT);
         }
 
         # If there's a self in scope, set $*HAS_SELF.
@@ -1137,7 +1137,7 @@ class Perl6::World is HLL::World {
             else {
                 my $new_pkg := self.pkg_create_mo($/, self.resolve_mo($/, 'package'),
                     :name($longname));
-                self.pkg_compose($new_pkg);
+                self.pkg_compose($/, $new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
                 }
@@ -2669,8 +2669,8 @@ class Perl6::World is HLL::World {
     }
 
     # Composes the package, and stores an event for this action.
-    method pkg_compose($obj) {
-        $obj.HOW.compose($obj);
+    method pkg_compose($/, $obj) {
+        self.ex-handle($/, { $obj.HOW.compose($obj) })
     }
 
     # Builds a curried role based on a parsed argument list.

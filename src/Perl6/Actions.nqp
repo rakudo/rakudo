@@ -2526,7 +2526,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Compose before we add the role to the group, so the group sees
             # it composed.
-            $*W.pkg_compose($*PACKAGE);
+            $*W.pkg_compose($/, $*PACKAGE);
 
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
@@ -2536,7 +2536,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             # Compose.
-            $*W.pkg_compose($*PACKAGE);
+            $*W.pkg_compose($/, $*PACKAGE);
 
             # Finish code object for the block.
             my $code := $*CODE_OBJECT;
@@ -4049,7 +4049,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             # Apply traits, compose and install package.
             $*W.apply_traits($<trait>, $type_obj);
-            $*W.pkg_compose($type_obj);
+            $*W.pkg_compose($/, $type_obj);
         }
         my $base_type;
         my int $has_base_type := 0;

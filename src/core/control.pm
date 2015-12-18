@@ -263,7 +263,7 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
     my $e;
     while $iter {
         $e := nqp::shift($iter);
-        nqp::bindkey($clone,nqp::iterkey_s($e),nqp::decont(~nqp::iterval($e)));
+        nqp::bindkey($clone,nqp::iterkey_s($e),~(nqp::decont(nqp::iterval($e)) // ''));
     }
     $clone;
 }

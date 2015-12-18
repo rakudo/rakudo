@@ -2197,8 +2197,6 @@ my class X::PhaserExceptions is Exception {
                 @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
         };
     nqp::bindcurhllsym('P6EX', nqp::getattr(%c_ex, Map, '$!storage'));
-
-    0;
 }
 
 my class X::HyperWhatever::Multiple is Exception {

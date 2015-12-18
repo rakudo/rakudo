@@ -3174,18 +3174,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*longname;
         :my $pos;
         :my $*IN_RETURN;
-        { $*longname := $*W.dissect_longname($<longname>); $pos := $/.CURSOR.pos }
-        { $*IN_RETURN := $<longname>.Str eq 'return'; }
+        :my $is_type := 0;
+        {
+            $*longname := $*W.dissect_longname($<longname>);
+            $pos := $/.CURSOR.pos;
+            $*IN_RETURN := $<longname>.Str eq 'return';
+            $is_type := !$*longname.get_who && $*W.is_type($*longname.components());
+        }
         [
         ||  <?{ nqp::eqat($<longname>.Str, '::', 0) || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
-                <?[[]> <?{ $*W.is_type($*longname.components()) }>
+                <?[[]> <?{ $is_type }>
                 :dba('type parameter') '[' ~ ']' <arglist>
             ]?
             <.unsp>?
             [
-                <?[(]> <?{ $*W.is_type($*longname.components()) }>
+                <?[{]> <?{ $is_type }>
+                <whence=.postcircumfix> <.NYI('Autovivifying object closures')>
+            ]?
+            <.unsp>?
+            [
+                <?[(]> <?{ $is_type }>
                 '(' <.ws> [
                     || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
                     || $<accept_any>=<?>
@@ -3390,6 +3400,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         # parametric/coercion type?
         <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
         {

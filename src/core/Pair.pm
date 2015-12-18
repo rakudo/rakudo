@@ -15,6 +15,12 @@ my class Pair does Associative {
         p
     }
 
+    multi method WHICH(Pair:D:) {
+        nqp::iscont($!value)
+          ?? nextsame()
+          !! "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH
+    }
+
     multi method ACCEPTS(Pair:D: %h) {
         $!value.ACCEPTS(%h.AT-KEY($!key));
     }

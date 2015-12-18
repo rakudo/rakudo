@@ -1722,8 +1722,7 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && !$!in_declaration
-                && +@($want) == 3 && $want.node {
+        if $!void_context && +@($want) == 3 && $want.node {
 
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
@@ -1743,7 +1742,6 @@ class Perl6::Optimizer {
             }
             if $warning {
                 $!problems.add_worry($want, $warning);
-                return $NULL;
             }
         }
 
@@ -1969,6 +1967,12 @@ class Perl6::Optimizer {
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
                 }
                 elsif nqp::istype($visit, QAST::WVal) {
+                    if $!void_context && $visit.has_compile_time_value && $visit.node {
+                        my $value := ~$visit.node;
+                        $value := '""' if $value eq '';
+                        $!problems.add_worry($visit, qq[Useless use of constant value {~$visit.node} in sink context])
+                            unless $value eq 'Nil';
+                    }
                     if $visit.value =:= $!symbols.PseudoStash {
                         self.poison_var_lowering();
                     }

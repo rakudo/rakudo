@@ -39,6 +39,13 @@ sub unwantall($ast, $by) {
     Nil;
 }
 
+sub UNWANTALL($ast, $by) {
+    my int $i := 0;
+    my int $e := $ast ?? +@($ast) !! 0;
+    while $i < $e { $ast[$i] := UNWANTED($ast[$i], $by ~ ' ua'); $i := $i + 1 }
+    Nil;
+}
+
 # Note that these wanted/unwanted routines can return a different ast
 # from the one passed, so always store the result back from where
 # got it.  (Like how wantall does it above.)
@@ -158,11 +165,12 @@ sub unwanted($ast, $by) {
             $ast[$i] := UNWANTED($ast[$i], $byby);
             ++$i;
         }
-        $ast.annotate('WANTED',1);
+        $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Op) {
         if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
-            unwantall($ast,$byby);
+            UNWANTALL($ast,$byby);
+            $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
@@ -208,6 +216,11 @@ sub unwanted($ast, $by) {
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
             $node.annotate('context','sink');
         }
+        elsif nqp::istype($node,QAST::WVal) {
+            $node.annotate('context','sink');
+            $ast[2].annotate('context','sink');
+        }
+
     }
     $ast;
 }
@@ -1599,6 +1612,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         if $<statementlist> {
             $past := $<statementlist>.ast;
+        }
+        elsif $<arglist> {
+            WANTED($<arglist><EXPR>.ast, 'use');
         }
         elsif $<version> {
             # TODO: replace this by code that doesn't always die with
@@ -6426,7 +6442,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my int $ae := nqp::elems($argast);
                     my int $a := 0;
                     while $a < $ae {
-                        my $elem := $argast[$a];
+                        my $elem := WANTED($argast[$a],'thunkity/comma');
                         if $type eq 'T' {  # thunk maybe (for xx)
                             unless $elem.has_compile_time_value {
                                 $elem := block_closure(make_thunk_ref($elem, $/));
@@ -6716,6 +6732,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # note("$metaop $t bingo\n" ~ $args.dump);
                 if $metaop eq '&METAOP_REDUCE_LEFT' || $metaop eq '&METAOP_REDUCE_LIST' || $metaop eq '&METAOP_REDUCE_LISTINFIX' {
                     $args := thunkity_thunk($/,$t,QAST::Op.new( :op('call'), :name('&infix:<,>')),$args.list);
+                    WANTALL($args,'reduce/args');
                 }
                 else {
                     $*W.throw($/, 'X::Comp::NYI',
@@ -6726,7 +6743,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $args.name('&infix:<,>');
             }
-            make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
+            make QAST::Op.new(:node($/), :op<call>, WANTED($metapast,'reduce/meta'), WANTED($args,'reduce/args'));
         }
     }
 
@@ -6908,9 +6925,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $code := nqp::ord($/.Str);
             my int $nu := +nqp::getuniprop_str($code, $nuprop);
             my int $de := +nqp::getuniprop_str($code, $deprop);
-            !$de || $de == '1'
-                ?? make $*W.add_numeric_constant($/, 'Int', +$nu)
-                !! make $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
+            if !$de || $de == '1' {
+                make $*W.add_numeric_constant($/, 'Int', +$nu)
+            }
+            else {
+                my $ast := $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
+                $ast.node($/);
+                make $ast;
+            }
         }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
@@ -6956,7 +6978,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
         } else { # wants a Rat
-            make $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
+            my $ast := $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
+            $ast.node($/);
+            make $ast;
         }
     }
 
@@ -7008,7 +7032,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
 
             if $fpart != 1 { # non-unit fractional part, wants Rat
-                make $*W.add_constant('Rat', 'type_new', $ipart, $fpart, :nocache(1));
+                my $ast := $*W.add_constant('Rat', 'type_new', $ipart, $fpart, :nocache(1));
+                $ast.node($/);
+                make $ast;
             } else { # wants Int
                 make $*W.add_numeric_constant($/, 'Int', $ipart);
             }
@@ -7027,7 +7053,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method bare_rat_number($/) {
         my $nu := @($<nu>.ast)[0].compile_time_value;
         my $de := $<de>.ast;
-        make $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
+        my $ast := $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
+        $ast.node($/);
+        make $ast;
     }
 
     method bare_complex_number($/) {
@@ -7035,7 +7063,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $im := $*W.add_constant('Num', 'num', +$<im>.Str);
         my $rv := $re.compile_time_value;
         my $iv := $im.compile_time_value;
-        make $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
+        my $ast := $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
+        $ast.node($/);
+        make $ast;
     }
 
     method typename($/) {
@@ -8800,7 +8830,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
                     try {
                         my $result := $*W.find_symbol(['&val'])($thisq.compile_time_value);
                         $*W.add_object($result);
-                        nqp::push(@results, QAST::WVal.new(:value($result)));
+                        nqp::push(@results, QAST::WVal.new(:value($result), :node($/)));
 
                         CATCH { nqp::push(@results, $thisq) }
                     }
@@ -8811,6 +8841,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
             # replace the existing children with what we processed
             $qast[0].set_children(@results);
+            $qast[0].annotate("qw",1);
         } elsif $qast.has_compile_time_value { # a single string that we can handle
             try {
                 my $result := $*W.find_symbol(['&val'])($qast.compile_time_value);

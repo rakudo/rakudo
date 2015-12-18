@@ -12,12 +12,14 @@ my $MVM_reg_int64           := 4;
 my $MVM_reg_num64           := 6;
 my $MVM_reg_str             := 7;
 my $MVM_reg_obj             := 8;
+my $MVM_reg_uint64          := 20;
 
 # Operand data types.
 my $MVM_operand_int64       := nqp::bitshiftl_i($MVM_reg_int64, 3);
 my $MVM_operand_num64       := nqp::bitshiftl_i($MVM_reg_num64, 3);
 my $MVM_operand_str         := nqp::bitshiftl_i($MVM_reg_str, 3);
 my $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
+my $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
 
 # Register MoarVM extops.
 use MASTNodes;
@@ -33,6 +35,9 @@ MAST::ExtOpRegistry.register_extop('p6box_n',
 MAST::ExtOpRegistry.register_extop('p6box_s',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_str   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6box_u',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_uint64 +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -112,6 +117,7 @@ my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
+$ops.add_hll_moarop_mapping('perl6', 'p6box_u', 'p6box_u');
 $ops.add_hll_moarop_mapping('perl6', 'p6recont_ro', 'p6recont_ro');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
@@ -489,6 +495,7 @@ sub boxer($kind, $op) {
 $ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'p6box_i'));
 $ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'p6box_n'));
 $ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
+$ops.add_hll_box('perl6', $MVM_reg_uint64, boxer($MVM_reg_uint64, 'p6box_u'));
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);
@@ -509,6 +516,13 @@ QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_str, -> $qastcomp, $reg {
     nqp::push($il, MAST::Op.new( :op('decont_s'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
     MAST::InstructionList.new($il, $res_reg, $MVM_reg_str)
+});
+QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_uint64, -> $qastcomp, $reg {
+    my $il := nqp::list();
+    my $res_reg := $*REGALLOC.fresh_register($MVM_reg_uint64);
+    nqp::push($il, MAST::Op.new( :op('decont_u'), $res_reg, $reg ));
+    $*REGALLOC.release_register($reg, $MVM_reg_obj);
+    MAST::InstructionList.new($il, $res_reg, $MVM_reg_uint64)
 });
 
 # Signature binding related bits.

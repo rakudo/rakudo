@@ -180,6 +180,12 @@ static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns
     MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
 #endif
 }
+static void p6box_u_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, Int);
+#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
+    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
+#endif
+}
 
 static MVMuint8 s_p6box_i[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -201,6 +207,13 @@ static MVMuint8 s_p6box_s[] = {
 };
 static void p6box_s(MVMThreadContext *tc, MVMuint8 *cur_op) {
      GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
+}
+static MVMuint8 s_p6box_u[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_uint64 | MVM_operand_read_reg,
+};
+static void p6box_u(MVMThreadContext *tc, MVMuint8 *cur_op) {
+     GET_REG(tc, 0).o = MVM_repr_box_uint(tc, Int, GET_REG(tc, 2).u64);
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -726,6 +739,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, p6box_i_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, p6box_n_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, p6box_s_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
+    MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

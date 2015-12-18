@@ -1118,6 +1118,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $ml {
                 $past.annotate("okifnil",1);
+                $past[0].annotate("okifnil",1) if +@($past) && nqp::istype($past[0],QAST::Stmt);
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
                     unless $past.ann('bare_block') {
@@ -5713,7 +5714,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $size := +$past.list;
         if $size == 0 {
             $past := QAST::Stmts.new( :node($/) );
-            $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>')));
+            $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
         }
         elsif +@args {
             if $size == 1

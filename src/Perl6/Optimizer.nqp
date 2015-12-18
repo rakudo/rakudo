@@ -1364,8 +1364,14 @@ class Perl6::Optimizer {
                     nqp::substr($m.orig, $from, $to - $from);
                 }
                 if $op.name eq '&infix:<,>' {
-                    # keep void setting to distribute sink warnings
-                    try self.visit_children($op);
+                    if +@($op) {
+                        # keep void setting to distribute sink warnings
+                        try self.visit_children($op);
+                    }
+                    elsif $!void_context {
+                        my $suggest := ($op.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        $!problems.add_worry($op, qq[Useless use of () in sink context$suggest])
+                    }
                 }
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);

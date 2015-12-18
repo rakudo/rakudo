@@ -41,6 +41,8 @@ multi sub prefix:<+>(\a) { a.Numeric }
 proto sub prefix:<->($?) is pure { * }
 multi sub prefix:<->(\a) { -a.Numeric }
 
+sub prefix:<−>(|c) is pure { prefix:<->(|c) }
+
 proto sub abs($) is pure { * }
 multi sub abs(\a) { abs a.Numeric }
 

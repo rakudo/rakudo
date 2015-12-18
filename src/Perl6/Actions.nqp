@@ -100,6 +100,7 @@ sub wanted($ast,$by) {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' ||
+              $ast.op eq 'until' ||
               $ast.op eq 'p6decontrv' {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
         }
@@ -122,7 +123,7 @@ sub wanted($ast,$by) {
                 $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
             }
         }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'while' {
+        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := WANTED($node[1], $byby);
         }
     }
@@ -187,6 +188,7 @@ sub unwanted($ast, $by) {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
         }
         elsif $ast.op eq 'while' ||
+              $ast.op eq 'until' ||
               $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
         }
@@ -210,7 +212,7 @@ sub unwanted($ast, $by) {
                 $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
             }
         }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'while' {
+        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := UNWANTED($node[1], $byby);
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
@@ -1115,7 +1117,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := $mc_ast;
             }
             if $ml {
-                $past.annotate("okifnil",1) if nqp::istype($past,QAST::Want);
+                $past.annotate("okifnil",1);
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
                     unless $past.ann('bare_block') {

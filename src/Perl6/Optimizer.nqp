@@ -1783,13 +1783,14 @@ class Perl6::Optimizer {
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
             if $name ne "Nil" && $name ne '&infix:<~>' {   # dunno why that one is special...
+                my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
                 $!problems.add_worry(
                   $var,
                   nqp::index(' $@%&', $sigil) < 1
-                    ?? "Useless use of $name symbol in sink context"
+                    ?? "Useless use of $name symbol in sink context$suggest"
                     !! $sigil eq $name
-                        ?? "Useless use of unnamed $sigil variable in sink context"
-                        !! "Useless use of $name in sink context"
+                        ?? "Useless use of unnamed $sigil variable in sink context$suggest"
+                        !! "Useless use of $name in sink context$suggest"
                 );
             }
         }
@@ -1971,8 +1972,9 @@ class Perl6::Optimizer {
                     if $!void_context && $visit.has_compile_time_value && $visit.node {
                         my $value := ~$visit.node;
                         $value := '""' if $value eq '';
-                        $!problems.add_worry($visit, qq[Useless use of constant value {~$visit.node} in sink context])
-                            unless $value eq 'Nil';
+                        my $suggest := ($visit.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        $!problems.add_worry($visit, qq[Useless use of constant value {~$visit.node} in sink context$suggest])
+                                unless $value eq 'Nil';
                     }
                     if $visit.value =:= $!symbols.PseudoStash {
                         self.poison_var_lowering();

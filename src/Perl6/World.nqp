@@ -3739,23 +3739,26 @@ class Perl6::World is HLL::World {
     # time information (such as about location). Returns it provided it is able
     # to construct it. If that fails, dies right away.
     method typed_exception($/, $ex_type, *%opts) {
-        my int $type_found := 1;
+        my int $type_found := 0;
         my $ex;
         my $x_comp;
-        try {
-            CATCH {
-                $type_found := 0;
-                nqp::print("Error while constructing error object:");
-                nqp::say($_);
-            };
-            $ex := self.find_symbol(
-                nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type),
-                :setting-only);
-            my $x_comp := self.find_symbol(['X', 'Comp'], :setting-only);
-            unless nqp::istype($ex, $x_comp) {
-                $ex := $ex.HOW.mixin($ex, $x_comp);
+        unless $*COMPILING_CORE_SETTING {
+            try {
+                CATCH {
+                    $type_found := 0;
+                    nqp::print("Error while constructing error object:");
+                    nqp::say($_);
+                };
+                $type_found := 1;
+                $ex := self.find_symbol(
+                    nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type),
+                    :setting-only);
+                my $x_comp := self.find_symbol(['X', 'Comp'], :setting-only);
+                unless nqp::istype($ex, $x_comp) {
+                    $ex := $ex.HOW.mixin($ex, $x_comp);
+                }
             }
-        };
+        }
 
         if $type_found {
             # If the highwater is beyond the current position, force the cursor to

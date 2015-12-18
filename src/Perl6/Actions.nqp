@@ -1038,7 +1038,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns));
                         }
                     }
-                    $ast.node($_);
+                    $ast.node($<statement>[$i]);
                     $past.push( $ast );
                 }
                 ++$i;

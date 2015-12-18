@@ -76,7 +76,10 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'p6capturelex' {
+        if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
+            WANTALL($ast,$byby);
+        }
+        elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.annotate('WANTED',1);
         }
@@ -158,7 +161,10 @@ sub unwanted($ast, $by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'p6capturelex' {
+        if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
+            unwantall($ast,$byby);
+        }
+        elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.annotate('context','sink');
         }
@@ -188,6 +194,7 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
             $node.annotate('context','sink');
+            unwantall($node, $byby) if $node.name eq '&infix:<,>';
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
             $node := $node[1];
@@ -6026,6 +6033,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $arity := $arity + +$/.list;
             $past := thunkity_thunk($/, $past.ann('thunky'), $past, $/.list);
         }
+        elsif $past.name eq '&infix:<,>' || $past.name eq '&infix:<:>' {
+            for $/.list { if $_.ast { $past.push($_.ast); ++$arity; } }
+            make $past;
+            return 1;
+        }
         else {
             for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
         }
@@ -6036,7 +6048,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 #            note("$key $sym");
 #            note($past.dump) if $past;
 #        }
-        if $key eq 'prefix' || $key eq 'postfix' || ($key eq 'infix' && $past.name ne '&infix:<,>' && $past.name ne '&infix:<:>') {
+        if $key eq 'prefix' || $key eq 'postfix' || $key eq 'infix' {
             $past := self.whatever_curry($/, (my $orig := $past), $KEY eq 'LIST' ?? $arity !! $key eq 'infix' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,

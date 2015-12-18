@@ -7085,7 +7085,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
                     $type := $*W.handle-begin-time-exceptions($/, "parameterizing $str_longname",
-                        { $*W.parameterize_type($type, $<arglist>.ast, $/) });
+                        { $*W.parameterize_type($type, WANTED($<arglist>.ast,'typename'), $/) });
                 }
 
                 if $<colonpairs><D> {
@@ -8041,7 +8041,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if $wrap {
                         $var.push(QAST::Op.new(
                             :op('bind'),
-                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
                             QAST::Op.new(
                                 :op('assignunchecked'),
                                 QAST::Op.new(
@@ -8054,7 +8054,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     else {
                         $var.push(QAST::Op.new(
                             :op('bind'),
-                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature'),
                             QAST::Op.new(
                                 :op('decont'),
                                 QAST::Var.new( :name($name), :scope('local') )

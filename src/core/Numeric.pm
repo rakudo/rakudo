@@ -187,6 +187,8 @@ proto sub infix:<->(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<->($x = 0)      { $x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
+sub infix:<−>(|c) is pure { infix:<->(|c) }
+
 proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }

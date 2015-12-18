@@ -4046,6 +4046,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O('%symbolic_unary')> }
     token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
+    token prefix:sym<−>   { <sym> <![>]> <O('%symbolic_unary')> }
     token prefix:sym<??>  { <sym> <.dupprefix('??')> <O('%symbolic_unary')> }
     token prefix:sym<?>   { <sym> <!before '??'> <O('%symbolic_unary')> }
     token prefix:sym<!>   { <sym> <!before '!!'> <O('%symbolic_unary')> }

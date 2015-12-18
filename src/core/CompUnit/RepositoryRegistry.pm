@@ -166,21 +166,6 @@ class CompUnit::RepositoryRegistry {
         %custom-lib{$name}
     }
 
-    method candidates($name, :$file, :$auth, :$ver) {
-        for @*INC -> $spec {
-
-RAKUDO_MODULE_DEBUG("Looking in $spec for $name")
-  if $*RAKUDO_MODULE_DEBUG;
-
-            if self.repository-for-spec($spec) -> $cur {
-                if $cur.candidates($name, :$file,:$auth,:$ver).list -> @candi {
-                    return @candi;
-                }
-            }
-        }
-        ();
-    }
-
     method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {

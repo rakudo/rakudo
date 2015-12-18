@@ -722,7 +722,7 @@ sub sleep-until(Instant() $until --> Bool) {
     my $seconds = $until - now;
     return False if $seconds < 0;
 
-    1 while $seconds = sleep-timer($seconds);
+    while $seconds = sleep-timer($seconds) {  }
     True;
 }
 

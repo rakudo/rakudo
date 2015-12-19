@@ -215,9 +215,8 @@ my class Parameter { # declared in BOOTSTRAP
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl ~= $/ ~ $modifier if $/;
         }
-        elsif $modifier or !($!nominal_type.HOW.archetypes.nominal &&
-                             $elide-type.HOW.archetypes.nominal &&
-                             $!nominal_type.WHICH === $elide-type.WHICH) {
+        elsif $modifier or
+                !nqp::eqaddr(nqp::decont($!nominal_type), nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
         my $name = $.name;

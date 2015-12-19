@@ -13,5 +13,5 @@ if $*KERNEL ~~ 'linux' {
 	ok guess_library_name("./libfoo.so") eq "./libfoo.so", "./libfoo.so is ./libfoo.so";
 	ok guess_library_name("/libfoo.so") eq "/libfoo.so", "/libfoo.so is /libfoo.so";
 } else {
-	skip 7;
+	skip-rest;
 }

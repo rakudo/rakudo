@@ -40,11 +40,11 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
     }
 
     method id() {
-        '/'
+        'ap'
     }
 
     method path-spec() {
-        'file#'
+        'ap#'
     }
 }
 

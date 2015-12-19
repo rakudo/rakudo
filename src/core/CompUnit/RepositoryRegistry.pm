@@ -253,8 +253,11 @@ class CompUnit::RepositoryRegistry {
     }
 
 # prime the short-id -> class lookup
-    short-id2class('file') = 'CompUnit::Repository::FileSystem';
-    short-id2class('inst') = 'CompUnit::Repository::Installation';
+    short-id2class('file')  = 'CompUnit::Repository::FileSystem';
+    short-id2class('inst')  = 'CompUnit::Repository::Installation';
+    short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
+    short-id2class('nqp')   = 'CompUnit::Repository::NQP';
+    short-id2class('perl5') = 'CompUnit::Repository::Perl5';
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
         my %options;
@@ -269,7 +272,7 @@ class CompUnit::RepositoryRegistry {
             ]*
             '#'
           ]?
-          $<path>=.+
+          $<path>=.*
         $/ {
             ( $<type> ?? ~$<type> !! $default-short-id, %options, ~$<path> );
         }

@@ -509,37 +509,37 @@ my class IO::Path is Cool {
 
     proto method lines(|) { * }
     multi method lines(IO::Path:D: |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.lines(:close);
+        CATCH { .fail }
+        self.open(|c).lines(:close);
     }
 
     proto method comb(|) { * }
     multi method comb(IO::Path:D: Cool:D $comber = "", |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.comb($comber, :close);
+        CATCH { .fail }
+        self.open(|c).comb($comber, :close);
     }
     multi method comb(IO::Path:D: Int:D $size, |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.comb($size, :close);
+        CATCH { .fail }
+        self.open(|c).comb($size, :close);
     }
     multi method comb(IO::Path:D: Regex:D $comber, |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.comb($comber, :close);
+        CATCH { .fail }
+        self.open(|c).comb($comber, :close);
     }
 
     multi method split(IO::Path:D: Str:D $splitter = "", |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.split($splitter, :close);
+        CATCH { .fail }
+        self.open(|c).split($splitter, :close);
     }
     multi method split(IO::Path:D: Regex:D $splitter, |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.split($splitter, :close);
+        CATCH { .fail }
+        self.open(|c).split($splitter, :close);
     }
 
     proto method words(|) { * }
     multi method words(IO::Path:D: |c) {
-        my $handle = self.open(|c);
-        $handle && $handle.words(:close);
+        CATCH { .fail }
+        self.open(|c).words(:close);
     }
 
     my %t =

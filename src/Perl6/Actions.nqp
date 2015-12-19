@@ -106,6 +106,14 @@ sub wanted($ast,$by) {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
             $ast.annotate('WANTED',1);
         }
+        elsif $ast.op eq 'if' ||
+              $ast.op eq 'unless' ||
+              $ast.op eq 'with' ||
+              $ast.op eq 'without' {
+            $ast[1] := WANTED($ast[1], $byby);
+            $ast[2] := WANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
+            $ast.annotate('WANTED',1);
+        }
     }
     elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('WANTED',1);
@@ -127,6 +135,11 @@ sub wanted($ast,$by) {
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := WANTED($node[1], $byby);
+            $node.annotate('WANTED',1);
+        }
+        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without') {
+            $node[1] := WANTED($node[1], $byby);
+            $node[2] := WANTED($node[2], $byby) if +@($node) > 2 && nqp::istype($node[2],QAST::Node);
             $node.annotate('WANTED',1);
         }
     }
@@ -199,6 +212,14 @@ sub unwanted($ast, $by) {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
             $ast.annotate('context','sink');
         }
+        elsif $ast.op eq 'if' ||
+              $ast.op eq 'unless' ||
+              $ast.op eq 'with' ||
+              $ast.op eq 'without' {
+            $ast[1] := UNWANTED($ast[1], $byby);
+            $ast[2] := UNWANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
+            $ast.annotate('context','sink');
+        }
         elsif $ast.op eq 'bind' {
             $ast.annotate('context','sink');
         }
@@ -224,6 +245,19 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := UNWANTED($node[1], $byby);
+            $node.annotate('context','sink');
+        }
+        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without') {
+            for 1,2 {
+                if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
+                    if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
+                        $node[$_] := QAST::Stmts.new(
+                                        $node[$_],
+                                        QAST::WVal.new( :value($*W.find_symbol(['True']))));
+                    }
+                    $node[$_] := UNWANTED($node[$_], $byby);
+                }
+            }
             $node.annotate('context','sink');
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
@@ -1225,8 +1259,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $*IMPLICIT {
                     $block[0].push(QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') ),
-                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'pblock/place'),
+                        WANTED(QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) ),'pblock/place')
                     ));
                 }
             }
@@ -1243,8 +1277,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     unless $declares_topic {
                         $block[0].push(QAST::Op.new(
                             :op('bind'),
-                            QAST::Var.new( :name('$_'), :scope('lexical') ),
-                            QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'pblock/sig'),
+                            WANTED(QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) ),'pblock/sig')
                         ));
                     }
                 }
@@ -1261,8 +1295,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 elsif !$block.symbol('$_') {
                     $block[0].push(QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
-                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),'pblock/sawone'),
+                        WANTED(QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) ),'pblock/sawone')
                     ));
                     $block.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
                 }
@@ -1441,8 +1475,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless $*IMPLICIT {
                     $BLOCK[0].push(QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') ),
-                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'finishpad'),
+                        WANTED(QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) ),'finishpad')
                     ));
                 }
                 $BLOCK.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
@@ -1726,7 +1760,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Handle the smart-match.
         my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
             $sm_exp,
-            QAST::Var.new( :name('$_'), :scope('lexical') )
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when')
         );
 
         # Use the smartmatch result as the condition for running the block,
@@ -1769,8 +1803,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := $block.ann('past_block');
         $past[0].push(QAST::Op.new(
             :op('bind'),
-            QAST::Var.new( :name('$_'), :scope('lexical') ),
-            QAST::Var.new( :name('__param'), :scope('local'), :decl('param') )
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'QUIT'),
+            WANTED(QAST::Var.new( :name('__param'), :scope('local'), :decl('param') ),'QUIT')
         ));
 
         # If the handler has a succeed handler, then make sure we sink
@@ -1788,10 +1822,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we don't handle the exception by succeeding, we'll return it.
         if $past.ann('handlers') {
-            $past[1][0].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+            $past[1][0].push(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'QUIT/handlers'));
         }
         else {
-            $past[1].push(QAST::Var.new( :name('$_'), :scope('lexical') ));
+            $past[1].push(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'QUIT/handlers'));
         }
 
         # Add as a QUIT phaser, which evaluates to Nil.
@@ -1877,10 +1911,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('p6stateinit') ),
             QAST::Op.new(
                 :op('p6store'),
-                QAST::Var.new( :name($sym), :scope('lexical') ),
+                WANTED(QAST::Var.new( :name($sym), :scope('lexical') ),'once'),
                 QAST::Op.new( :op('call'), wanted($<blorst>.ast,'once') )
             ),
-            QAST::Var.new( :name($sym), :scope('lexical') )
+            WANTED(QAST::Var.new( :name($sym), :scope('lexical') ),'once')
         );
     }
 
@@ -2015,7 +2049,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::Op.new( :op<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
                           $pat,
-                          QAST::Var.new( :name('$_'), :scope('lexical') ) ),
+                          WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when') ),
             :node($/)
         );
     }
@@ -2602,7 +2636,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $throwaway_block_past := QAST::Block.new(
             :blocktype('declaration'), :name('!LEXICAL_FIXUP'),
-            QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),'btlf')
         );
         $throwaway_block_past.annotate('outer', $block);
         $block[0].push($throwaway_block_past);
@@ -4666,7 +4700,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $get_signature_past := QAST::Op.new(
                 :op('callmethod'),
                 :name('signature'),
-                QAST::Var.new( :name('$_'), :scope('lexical') )
+                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var')
             );
             my $fakesig := $<name><sigterm><fakesignature>;
             my $closure_signature := $fakesig.ast;
@@ -4687,12 +4721,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('if'),
                     QAST::Op.new(
                         :op('can'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') ),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var'),
                         QAST::SVal.new( :value('shape') )
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('shape'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') )
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var')
                     )));
             %*PARAM_INFO<post_constraints>.push($where);
         }
@@ -5200,7 +5234,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
-        $past.unshift(QAST::Var.new( :name('$_'), :scope('lexical') ) );
+        $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
         make QAST::Op.new( :op('hllize'), $past);
     }
 
@@ -6196,7 +6230,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $sm_call := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
             $rhs,
-            QAST::Var.new( :name('$_'), :scope('lexical') )
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm')
         );
 
         if $negated {
@@ -6208,13 +6242,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Stmt.new(
                 # Stash original $_.
                 QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name($old_topic_var), :scope('local'), :decl('var') ),
-                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                    WANTED(QAST::Var.new( :name($old_topic_var), :scope('local'), :decl('var') ),'sm/ot'),
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/ot')
                 ),
 
                 # Evaluate LHS and bind it to $_.
                 QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/eval'),
                     $lhs
                 ),
 
@@ -6227,7 +6261,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # Re-instate original $_.
                 QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/reinstate'),
                     QAST::Var.new( :name($old_topic_var), :scope('local') )
                 ),
 
@@ -6513,7 +6547,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $nil   := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         my $false := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'False'])) );
         my $true  := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'True'])) );
-        my $topic := QAST::Var.new( :name('$_'), :scope<lexical> );
+        my $topic := WANTED(QAST::Var.new( :name('$_'), :scope<lexical> ),'ff');
 
         # Need a state variable to track the state.
         my %cont;
@@ -7301,7 +7335,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := QAST::Op.new(
             :node($/),
             :op('callmethod'), :name('match'),
-            QAST::Var.new( :name('$_'), :scope('lexical') ),
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'m'),
             block_closure($coderef)
         );
         if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
@@ -7356,7 +7390,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $store := QAST::Op.new( :op<bind>,
             QAST::Var.new( :name($orig_lhs), :scope<lexical>, :decl<var> ),
             QAST::Op.new( :op<decont>,
-                QAST::Var.new( :name('$_'), :scope<lexical> )
+                WANTED(QAST::Var.new( :name('$_'), :scope<lexical> ),'tr')
             )
         );
 
@@ -7364,7 +7398,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $trans := QAST::Op.new(
             :node($/),
             :op<callmethod>, :name<trans>,
-            QAST::Var.new(:name('$_'), :scope<lexical>),
+            WANTED(QAST::Var.new(:name('$_'), :scope<lexical>),'tr/call'),
             $pair
         );
 
@@ -7378,7 +7412,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $store,
             QAST::Op.new(
                 :op<call>, :name('&infix:<=>'),
-                QAST::Var.new(:name('$_'), :scope<lexical>),
+                WANTED(QAST::Var.new(:name('$_'), :scope<lexical>),'tr/assign'),
                 $trans,
             ),
             # We build a StrDistance here, which lazily gets us the distance.
@@ -7422,7 +7456,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # self.match($rx_coderef, |%options);
         my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),
-            QAST::Var.new( :name('$_'), :scope('lexical') ),
+            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s'),
             $rx_coderef
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
@@ -7460,7 +7494,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $apply_matches := QAST::Op.new( :op('callmethod'), :name('dispatch:<!>'),
             QAST::Op.new( :op('callmethod'),  :name('Str'),
-                QAST::Var.new( :name('$_'), :scope('lexical') ) ),
+                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s/apply') ),
             QAST::SVal.new( :value('APPLY-MATCHES') ),
             QAST::WVal.new( :value($*W.find_symbol(['Str'])) ),
             QAST::Var.new( :name($result), :scope('local') ),
@@ -7512,14 +7546,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ),
 
                     QAST::Op.new( :op('call'), :name('&infix:<=>'),
-                        QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),
+                        WANTED(QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),'s/assign'),
                         $apply_matches
                     ),
                     ( $<sym> eq 'S'
                         ?? QAST::Op.new( :op('p6store'),
                                 QAST::Op.new( :op('call'), :name('&infix:<,>'),
                                     QAST::Var.new( :name('$/'), :scope('lexical') ) ),
-                                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
                            )
                         !! QAST::Stmt.new()
                     ),
@@ -8298,7 +8332,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block)
     }
 
-    sub make_where_block($/, $expr, $operand = QAST::Var.new( :name('$_'), :scope('lexical') ) ) {
+    sub make_where_block($/, $expr, $operand = WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'where') ) {
         # If it's already a block, nothing to do at all.
         if $expr.ann('past_block') {
             $expr.annotate('past_block', wanted($expr.ann('past_block'),'make_where_block'));
@@ -8349,11 +8383,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # call succeed with the block return value, succeed will throw
         # a BREAK exception to be caught by the above handler
-        my $result := QAST::Op.new(
+        my $result := WANTED(QAST::Op.new(
             :op('call'),
             :name('&succeed'),
             $when_block,
-        );
+        ), 'when_handler_helper');
 
         # wrap it in a handle op so that we can use a PROCEED exception
         # to skip the succeed call
@@ -8399,7 +8433,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $handler.ann('past_block')[0].push(QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),
-                QAST::Var.new( :scope('lexical'), :name('$_') ),
+                WANTED(QAST::Var.new( :scope('lexical'), :name('$_') ),'set_block_handler'),
                 QAST::Op.new(
                     :op('call'), :name('&EXCEPTION'),
                     QAST::Var.new( :scope('local'), :name($exceptionreg) )
@@ -8407,7 +8441,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Op.new( :op('p6store'),
                 QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$!') ) ),
-                QAST::Var.new( :scope('lexical'), :name('$_') ),
+                WANTED(QAST::Var.new( :scope('lexical'), :name('$_') ),'set_block_handler'),
             )
         ));
 

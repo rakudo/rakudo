@@ -1788,7 +1788,7 @@ class Perl6::Optimizer {
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
-            if $name ne "Nil" && $name ne '&infix:<~>' {   # dunno why that one is special...
+            if $name ne "Nil" && $name ne 'ctxsave' {  # (comes from nqp, which doesn't know about wanted)
                 my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
                 $!problems.add_worry(
                   $var,

@@ -161,22 +161,23 @@ my role NativeCallSymbol[Str $name] {
 
 sub guess_library_name($lib) is export(:TEST) {
     my $libname;
-    if ($lib ~~ Callable) {
-        $libname = $lib();
+    my Str $apiversion = '';
+    my Str $ext = '';
+    given $lib {
+        when Callable {
+           return $lib();
+        }
+        when List {
+           $libname = $lib[0];
+           $apiversion = $lib[1].Str;
+        }
+        when Str {
+           $libname = $lib;
+        }
     }
-    else {
-        $libname = $lib;
-    }
-    #Already a full name
+    #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-
-    my $apiversion = '';
-    my $ext;
-    if $libname.index(':') {
-        ($libname, $apiversion) = $libname.split(':');
-    } else {
-        note "NativeCall: Consider adding the api version of the library you want to use, eg: $libname:1" if $libname ~~ /^<-[\.\/\\]>+$/;
-    }
+    note "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '';
     #Err, this is a mess, why so many way to get the extension?
     $ext = "dynlib" if $*KERNEL.name eq 'darwin'; #Os X?
     $ext = "dll" if $*DISTRO.is-win;
@@ -215,7 +216,7 @@ sub guess-name-mangler(Routine $r, Str $libname) {
 
 # This role is mixed in to any routine that is marked as being a
 # native call.
-my role Native[Routine $r, $libname where Str|Callable] {
+my role Native[Routine $r, $libname where Str|Callable|List] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;

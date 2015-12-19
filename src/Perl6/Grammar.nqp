@@ -472,7 +472,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token longname {
-        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <colonpair> ]*
+        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <!RESTRICTED> <colonpair> ]*
     }
 
     token deflongname {
@@ -4807,8 +4807,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             <?[“]> <quote=.LANG('MAIN','quote')>
         }
         token escape:sym<colonpair> {
-            <!RESTRICTED>
-            <?[:]> <colonpair=.LANG('MAIN','colonpair')>
+            <?[:]> <!RESTRICTED> <colonpair=.LANG('MAIN','colonpair')>
         }
         token escape:sym<#> {
             <?[#]> <.LANG('MAIN', 'comment')>
@@ -5129,14 +5128,13 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 
     token assertion:sym<var> {
-        <!RESTRICTED>
         [
-        | <?[&]> <var=.LANG('MAIN', 'term:sym<variable>')>
+        | <?[&]> <!RESTRICTED> <var=.LANG('MAIN', 'term:sym<variable>')>
             [
             | ':' <arglist>
             | '(' <arglist> ')'
             ]?
-        | <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
+        | <?sigil> <!RESTRICTED> <var=.LANG('MAIN', 'term:sym<variable>')>
         ]
     }
 

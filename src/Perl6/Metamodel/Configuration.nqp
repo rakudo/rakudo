@@ -15,4 +15,14 @@ class Perl6::Metamodel::Configuration {
         $submethod_type := $type;
     }
     method submethod_type() { $submethod_type }
+
+    my $multi_sig_comparator;
+    method set_multi_sig_comparator($comp) {
+        $multi_sig_comparator := $comp;
+    }
+    method compare_multi_sigs($a, $b) {
+        nqp::isconcrete($multi_sig_comparator)
+            ?? $multi_sig_comparator($a, $b)
+            !! 0
+    }
 }

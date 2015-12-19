@@ -134,5 +134,7 @@ my class Signature { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Signature $a, Signature $b) { $a.perl eq $b.perl }
+Perl6::Metamodel::Configuration.set_multi_sig_comparator(
+    -> \a, \b { a.signature eqv b.signature });
 
 # vim: ft=perl6 expandtab sw=4

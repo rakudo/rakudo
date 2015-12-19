@@ -92,8 +92,8 @@ my class RoleToClassApplier {
                     unless has_method($target, $name, 0)
                             || has_public_attribute($target, $name) {
                         nqp::die("Method '$name' must be implemented by " ~
-                        $target.HOW.name($target) ~
-                        " because it is required by a role");
+                            $target.HOW.name($target) ~
+                            " because it is required by a role");
                     }
                 }
                 elsif !has_method($target, $name, 1) {
@@ -112,12 +112,49 @@ my class RoleToClassApplier {
             }
         }
         
-        # Compose in any multi-methods; conflicts can be caught by
-        # the multi-dispatcher later.
+        # Compose in any multi-methods, looking for any requirements and
+        # ensuring they are met.
         if nqp::can($to_compose_meta, 'multi_methods_to_incorporate') {
             my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
-            for @multis {
-                $target.HOW.add_multi_method($target, $_.name, $_.code);
+            my @required;
+            for @multis -> $add {
+                my $yada := 0;
+                try { $yada := $add.code.yada }
+                if $yada {
+                    nqp::push(@required, $add);
+                }
+                else {
+                    my $already := 0;
+                    for $target.HOW.multi_methods_to_incorporate($target) -> $existing {
+                        if $existing.name eq $add.name {
+                            if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $add.code) {
+                                $already := 1;
+                                last;
+                            }
+                        }
+                    }
+                    unless $already {
+                        $target.HOW.add_multi_method($target, $add.name, $add.code);
+                    }
+                }
+                for @required -> $req {
+                    my $satisfaction := 0;
+                    for $target.HOW.multi_methods_to_incorporate($target) -> $existing {
+                        if $existing.name eq $req.name {
+                            if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $req.code) {
+                                $satisfaction := 1;
+                                last;
+                            }
+                        }
+                    }
+                    unless $satisfaction {
+                        my $name := $req.name;
+                        my $sig := $req.code.signature.perl;
+                        nqp::die("Multi method '$name' with signature $sig must be implemented by " ~
+                            $target.HOW.name($target) ~
+                            " because it is required by a role");
+                    }
+                }
             }
         }
 

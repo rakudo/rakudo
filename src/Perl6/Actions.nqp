@@ -192,6 +192,9 @@ sub unwanted($ast, $by) {
               $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
         }
+        elsif $ast.op eq 'bind' {
+            $ast.annotate('context','sink');
+        }
     }
     elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('context','sink');

@@ -98,11 +98,13 @@ sub wanted($ast,$by) {
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'lexotic' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
+            $ast.annotate('WANTED',1);
         }
         elsif $ast.op eq 'while' ||
               $ast.op eq 'until' ||
               $ast.op eq 'p6decontrv' {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
+            $ast.annotate('WANTED',1);
         }
     }
     elsif nqp::istype($ast,QAST::Want) {
@@ -125,6 +127,7 @@ sub wanted($ast,$by) {
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := WANTED($node[1], $byby);
+            $node.annotate('WANTED',1);
         }
     }
     $ast;
@@ -186,11 +189,13 @@ sub unwanted($ast, $by) {
               $ast.op eq 'lexotic' ||
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'while' ||
               $ast.op eq 'until' ||
               $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
+            $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'bind' {
             $ast.annotate('context','sink');
@@ -217,6 +222,7 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
             $node[1] := UNWANTED($node[1], $byby);
+            $node.annotate('context','sink');
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
             $node.annotate('context','sink');
@@ -2112,7 +2118,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $key := $*W.add_string_constant($key_str);
         QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
-            QAST::Var.new( :name('Pair'), :scope('lexical') ),
+            WANTED(QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),'make_pair'),
             $key, WANTED($value, 'make_pair')
         )
     }
@@ -5728,8 +5734,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := wanted(QAST::Stmts.new( :node($/),
                     QAST::Op.new( :op('call'), :name('&infix:<,>'),
                         QAST::Op.new(
-                            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
-                            QAST::Var.new( :name('Pair'), :scope('lexical') ),
+                            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($past[0].node // $/),
+                            QAST::Var.new( :name('Pair'), :scope('lexical'), :node($past[0].node // $/) ),
                             $past[0][1], $past[0][2]
                         ),
                         |@args
@@ -5870,8 +5876,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $_[2] := QAST::Want.new(|$_[2].list);
                             $past.push(
                                 QAST::Op.new(
-                                    :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
-                                    QAST::Var.new( :name('Pair'), :scope('lexical') ),
+                                    :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($_.node // $/),
+                                    QAST::Var.new( :name('Pair'), :scope('lexical'), :node($_.node // $/) ),
                                     $_[1], $_[2]
                                 )
                             );
@@ -7339,8 +7345,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $left.named('key');
         $right.named('value');
         my $pair := QAST::Op.new(
-            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
-            QAST::Var.new( :name('Pair'), :scope('lexical') ),
+            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
+            QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),
             $left, $right
         );
 

@@ -387,6 +387,11 @@ role STD {
         }
         self
     }
+
+    token RESTRICTED {
+        [ <?{ $*RESTRICTED }> [ $ || <.malformed($*RESTRICTED)> ] ]?
+        <!>
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
@@ -1995,12 +2000,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <special_variable>
         | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
-        | <?before <sigil> <?[ ( [ { ]>> <?{ !$*IN_DECL }> <contextualizer>
+        | <?before <sigil> <?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && $<twigil> eq '.' }>
-            [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
+            [ <.unsp> | '\\' | <?> ] <?[(]> <!RESTRICTED> <arglist=.postcircumfix>
         ]?
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }
@@ -2950,7 +2955,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
           | <nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>
           ]
-          '}'<?ENDSTMT>
+          '}'<!RESTRICTED><?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     }
@@ -4729,7 +4734,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role c1 {
-        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <block=.LANG('MAIN','block')> }
+        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block')> }
     }
 
     role c0 {
@@ -4740,6 +4745,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<$> {
             :my $*QSIGIL := '$';
             <?[$]>
+            <!RESTRICTED>
             [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
         }
     }
@@ -4752,6 +4758,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<@> {
             :my $*QSIGIL := '@';
             <?[@]>
+            <!RESTRICTED>
             <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
         }
     }
@@ -4764,6 +4771,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<%> {
             :my $*QSIGIL := '%';
             <?[%]>
+            <!RESTRICTED>
             <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
         }
     }
@@ -4776,6 +4784,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<&> {
             :my $*QSIGIL := '&';
             <?[&]>
+            <!RESTRICTED>
             <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
         }
     }
@@ -4798,6 +4807,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             <?[“]> <quote=.LANG('MAIN','quote')>
         }
         token escape:sym<colonpair> {
+            <!RESTRICTED>
             <?[:]> <colonpair=.LANG('MAIN','colonpair')>
         }
         token escape:sym<#> {
@@ -5073,6 +5083,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
 
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'|'temp'|'let'> <statement=.LANG('MAIN', 'statement')>
+        <!RESTRICTED>
         <.LANG('MAIN', 'eat_terminator')>
     }
 
@@ -5118,26 +5129,32 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 
     token assertion:sym<var> {
+        <!RESTRICTED>
+        [
         | <?[&]> <var=.LANG('MAIN', 'term:sym<variable>')>
             [
             | ':' <arglist>
             | '(' <arglist> ')'
             ]?
         | <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
+        ]
     }
 
     token assertion:sym<~~> {
         <sym>
+        <!RESTRICTED>
         [ <?[>]> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
     }
 
     token codeblock {
         :my $*ESCAPEBLOCK := 1;
+        <!RESTRICTED>
         <block=.LANG('MAIN','block')>
     }
 
     token arglist {
         :my $*IN_REGEX_ASSERTION := 1;
+        <!RESTRICTED>
         <arglist=.LANG('MAIN','arglist')>
     }
 

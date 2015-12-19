@@ -359,6 +359,7 @@ sub MAKE_REGEX($arg, :$i, :$m, :$context) {
         $arg.regex
     }
     else {
+        my $*RESTRICTED = 'regex interpolation';
         my $rx := $i && $m ?? EVAL("anon regex \{ :i :m $arg\}", :$context) !!
                         $i ?? EVAL("anon regex \{ :i $arg\}",    :$context) !!
                         $m ?? EVAL("anon regex \{ :m $arg\}",    :$context) !!

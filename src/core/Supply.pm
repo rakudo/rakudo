@@ -1591,6 +1591,7 @@ sub SUPPLY(&block) {
         has $.lock;
         has $.active is rw;
         has %.active-taps;
+        has @.close-phasers;
     }
 
     Supply.new(class :: does Tappable {
@@ -1604,6 +1605,7 @@ sub SUPPLY(&block) {
                 lock => Lock.new,
                 active => 1);
             self!run-supply-code(&!block, $state);
+            $state.close-phasers.push(.clone) for &!block.phasers('CLOSE');
             self!deactivate-one($state);
             Tap.new(-> { self!teardown($state) })
         }
@@ -1676,6 +1678,9 @@ sub SUPPLY(&block) {
         method !teardown($state) {
             .close for $state.active-taps.values;
             $state.active-taps = ();
+            while $state.close-phasers.pop() -> $close {
+                $close();
+            }
         }
 
         method live { False }

@@ -1811,6 +1811,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', unwanted($<blorst>.ast,'LAST').ann('code_object')); }
     method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', wanted($<blorst>.ast,'PRE').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', wanted($<blorst>.ast,'POST').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
+    method statement_prefix:sym<CLOSE>($/) { make $*W.add_phaser($/, 'CLOSE', unwanted($<blorst>.ast,'CLOSE').ann('code_object')); }
 
     method statement_prefix:sym<DOC>($/)   {
         if %*COMPILING<%?OPTIONS><doc> {

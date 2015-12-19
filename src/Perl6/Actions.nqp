@@ -162,6 +162,8 @@ sub unwanted($ast, $by) {
             ++$i;
         }
         $ast.annotate('context','sink');
+        $ast.push(QAST::WVal.new( :value($*W.find_symbol(['True'])) ))
+            if $e >= 0 && nqp::istype($ast[$e],QAST::Op) && $ast[$e].op eq 'bind';
     }
     elsif nqp::istype($ast,QAST::Block) {
         my int $i := 1;

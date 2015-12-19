@@ -25,7 +25,7 @@ my class Pair does Associative {
         $!value.ACCEPTS(%h.AT-KEY($!key));
     }
     multi method ACCEPTS(Pair:D: Pair:D $p) {
-        $!value.ACCEPTS(nqp::getattr($p,Pair,'$!value'));
+        $!value.ACCEPTS(nqp::getattr(nqp::decont($p),Pair,'$!value'));
     }
     multi method ACCEPTS(Pair:D: Mu $other) {
         $other."$!key"().Bool === $!value.Bool

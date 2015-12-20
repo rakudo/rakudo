@@ -8612,6 +8612,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for @($args) {
                 $raw.push($_.ann('before_promotion') || $_);
             }
+            $args := $raw;
         }
         elsif $name eq 'EVAL' {
             my $all_literal := 1;

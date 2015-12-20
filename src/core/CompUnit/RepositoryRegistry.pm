@@ -170,42 +170,6 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
-    method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
-        RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
-        $lock.protect( {
-            my @MODULES = nqp::clone(@*MODULES // ());
-
-            {
-                my @*MODULES := @MODULES;
-                if +@*MODULES == 0 and %*ENV<RAKUDO_PRECOMP_LOADING> -> $loading {
-                    @*MODULES := from-json $loading;
-                }
-                for @*MODULES.list -> $m {
-                    if $m eq $module_name {
-                        nqp::die("Circular module loading detected involving module '$module_name'");
-                    }
-                }
-                @*MODULES.push: $module_name;
-
-                my $compunit := (
-                    $file
-                    ?? $*REPO.load($file.IO)
-                    !! $*REPO.need(
-                        CompUnit::DependencySpecification.new(
-                            :short-name($module_name),
-                            :from(%opts<from> // 'Perl6'),
-                            :auth-matcher(%opts<auth> // True),
-                            :version-matcher(%opts<ver> // True),
-                        ),
-                    )
-                );
-                GLOBALish.WHO.merge-symbols($compunit.handle.globalish-package.WHO)
-                    if GLOBALish !=== Any;
-                $compunit
-            }
-        } )
-    }
-
     # Handles any object repossession conflicts that occurred during module load,
     # or complains about any that cannot be resolved.
     method resolve_repossession_conflicts(@conflicts) {

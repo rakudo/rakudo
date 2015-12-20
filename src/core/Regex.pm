@@ -40,12 +40,15 @@ my class Regex { # declared in BOOTSTRAP
 
     multi method Bool(Regex:D:) {
         my $underscore;
-        my $ctx := nqp::ctxcallerskipthunks(nqp::ctx());
-        $ctx := nqp::ctxcallerskipthunks($ctx)
-          until ($underscore := nqp::getlexrelcaller($ctx,'$_')).DEFINITE;
-        my $slash := nqp::getlexrelcaller($ctx,'$/');
-        $slash = $underscore.match(self);
-        $slash.Bool()
+        my $ctx := nqp::ctx();
+        until nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx)) {
+            if ($underscore := nqp::getlexrelcaller($ctx,'$_')).DEFINITE {
+                my $slash := nqp::getlexrelcaller($ctx,'$/');
+                $slash = $underscore.match(self);
+                return $slash.Bool()
+            }
+        }
+        False
     }
 
     multi method gist(Regex:D:) {

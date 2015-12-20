@@ -963,34 +963,17 @@ class Perl6::World is HLL::World {
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $comp_unit := self.find_symbol(['CompUnit', 'RepositoryRegistry']).load_module($module_name, %opts,
-            $cur_GLOBALish, :$line);
-
-        # During deserialization, ensure that we get this module loaded.
-        if self.is_precompilation_mode() {
-            $DEBUG("  Pre-compiling '$module_name'") if $DEBUG;
-            my $opt_hash := QAST::Op.new( :op('hash') );
-            for %opts {
-                self.add_object($_.value);
-                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := self.find_symbol(['Str']);
-                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
-                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
-                }
-                else {
-                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
-                }
-            }
-            self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
-                QAST::Op.new(
-                   :op('callmethod'), :name('load_module'),
-                   QAST::WVal.new( :value(self.find_symbol(['CompUnit', 'RepositoryRegistry'])) ),
-                   QAST::SVal.new( :value($module_name) ),
-                   $opt_hash,
-                   QAST::WVal.new( :value(self.find_symbol(['Any'])) ),
-                   QAST::IVal.new(:value($line), :named('line'))
-                ))));
-        }
+        my $true := self.find_symbol(['True']);
+        my $spec := self.find_symbol(['CompUnit', 'DependencySpecification']).new(
+            :short-name($module_name),
+            :from(%opts<from> // 'Perl6'),
+            :auth-matcher(%opts<auth> // $true),
+            :version-matcher(%opts<ver> // $true),
+        );
+        self.add_object($spec);
+        my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
+        my $comp_unit := $registry.head.need($spec);
+        $cur_GLOBALish.WHO.merge-symbols($comp_unit.handle.globalish-package.WHO);
 
         return $comp_unit;
     }

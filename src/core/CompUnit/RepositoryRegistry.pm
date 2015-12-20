@@ -166,6 +166,10 @@ class CompUnit::RepositoryRegistry {
         %custom-lib{$name}
     }
 
+    method head() { # mostly usefull for access from NQP
+        $*REPO
+    }
+
     method load_module($module_name, %opts, \GLOBALish is raw, :$line, :$file) {
         RAKUDO_MODULE_DEBUG("going to load $module_name: %opts.perl()") if $*RAKUDO_MODULE_DEBUG;
         $lock.protect( {
@@ -302,6 +306,6 @@ class CompUnit::RepositoryRegistry {
     }
 }
 
-sub RAKUDO_MODULE_DEBUG(*@str) { note "SET RMD: @str[]" }
+sub RAKUDO_MODULE_DEBUG(*@str) { note "$*PID SET RMD: @str[]" }
 
 # vim: ft=perl6 expandtab sw=4

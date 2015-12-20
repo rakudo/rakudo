@@ -355,7 +355,7 @@ sub monkey_see_no_eval() {
     nqp::existskey(%*PRAGMAS,'MONKEY-SEE-NO-EVAL')
         ?? %*PRAGMAS<MONKEY-SEE-NO-EVAL>   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING ||
-           try { $*W.find_symbol(['Test']); 1 } ||
+           try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() } ||
            nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
 }
 

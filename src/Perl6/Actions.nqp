@@ -1694,33 +1694,78 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := QAST::Stmts.new(:node($/));
         my $name_past;
         my $longname;
+        my $op;
+        my $has_file;
         if $<module_name> {
-            $longname  := $*W.dissect_longname($<module_name><longname>);
+            for $<module_name><longname><colonpair> -> $colonpair {
+                if ~$colonpair<identifier> eq 'file' {
+                    $has_file := $colonpair.ast[2];
+                    last;
+                }
+            }
+        }
+        if $<module_name> {
+            $longname := $*W.dissect_longname($<module_name><longname>);
             $name_past := $longname.name_past();
         }
         else {
             $name_past := WANTED($<file>.ast, 'require/name');
         }
-        my $op := QAST::Op.new(
-            :op('callmethod'), :name('load_module'),
-            $*W.symbol_lookup(['CompUnit', 'RepositoryRegistry'], $/),
-            $name_past,
-            QAST::Op.new( :op('hash') ),
-            $*W.symbol_lookup(['GLOBAL'], $/),
-        );
-        if $<module_name> {
+        if $<module_name> && nqp::defined($has_file) == 0 {
+            my $short_name := nqp::clone($name_past);
+            $short_name.named('short-name');
+            my $spec := QAST::Op.new(
+                :op('callmethod'), :name('new'),
+                $*W.symbol_lookup(['CompUnit', 'DependencySpecification'], $/),
+                $short_name,
+            );
             for $<module_name><longname><colonpair> -> $colonpair {
-                $op.push(
+                $spec.push(
                     QAST::Op.new( :named(~$colonpair<identifier>), :op<callmethod>, :name<value>,
                         WANTED($colonpair.ast,'require/pair')
                     )
                 );
             }
+            $op := QAST::Op.new(
+                :op('callmethod'), :name('need'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('head'),
+                    $*W.symbol_lookup(['CompUnit', 'RepositoryRegistry'], $/),
+                ),
+                $spec,
+            );
         }
         else {
-            $op.push( QAST::Op.new( :named<file>, :op<callmethod>, :name<Stringy>, WANTED($<file>.ast, 'require/stringy') ) );
+            my $file_past := WANTED(($has_file ?? $has_file !! $<file>.ast), 'require/name');
+            $op := QAST::Op.new(
+                :op('callmethod'), :name('load'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('head'),
+                    $*W.symbol_lookup(['CompUnit', 'RepositoryRegistry'], $/),
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('IO'),
+                    $file_past,
+                ),
+            );
         }
-        $past.push($op);
+        $past.push(QAST::Op.new(
+            :op('callmethod'), :name('merge-symbols'),
+            QAST::Op.new(
+                :op('who'),
+                $*W.symbol_lookup(['GLOBAL'], $/),
+            ),
+            QAST::Op.new(
+                :op('who'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('globalish-package'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('handle'),
+                        $op,
+                    ),
+                ),
+            ),
+        ));
 
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;

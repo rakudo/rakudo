@@ -6,7 +6,10 @@ method render($pod) {
 
 my &colored;
 if %*ENV<POD_TO_TEXT_ANSI> {
-    &colored = try { EVAL q{ use Terminal::ANSIColor; &colored } } // sub ($text, $color) { $text }
+    &colored = try {
+        use MONKEY-SEE-NO-EVAL;  # safe, not using EVAL for interpolation
+	EVAL q{ use Terminal::ANSIColor; &colored }
+    } // sub ($text, $color) { $text }
 } else {
     &colored = sub ($text, $color) { $text }
 }

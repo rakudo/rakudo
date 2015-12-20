@@ -173,7 +173,7 @@ my class Cursor does NQPCursorRole {
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, $i = 0, $m = 0, $s = 0, $a = 0, $context = PseudoStash) {
+    method INTERPOLATE(\var, $i = 0, $m = 0, $monkey = 0, $s = 0, $a = 0, $context = PseudoStash) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
@@ -205,7 +205,7 @@ my class Cursor does NQPCursorRole {
                             # regex rules.
                             return $cur.'!cursor_start_cur'()
                               if nqp::istype($topic,Associative);
-                            my $rx := MAKE_REGEX($topic, :$i, :$m, :$context);
+                            my $rx := MAKE_REGEX($topic, :$i, :$m, :$monkey, :$context);
                             my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
                         }
@@ -255,7 +255,7 @@ my class Cursor does NQPCursorRole {
                     # regex rules.
                     return $cur.'!cursor_start_cur'()
                       if nqp::istype($topic,Associative);
-                    my $rx := MAKE_REGEX($topic, :$i, :$m, :$context);
+                    my $rx := MAKE_REGEX($topic, :$i, :$m, :$monkey, :$context);
                     $match := self.$rx;
                     $len   := $match.pos - $match.from;
                 }
@@ -348,7 +348,7 @@ my class Cursor does NQPCursorRole {
     }
 }
 
-sub MAKE_REGEX($arg, :$i, :$m, :$context) {
+sub MAKE_REGEX($arg, :$i, :$m, :$monkey, :$context) {
     my role CachedCompiledRegex {
         has $.regex;
     }
@@ -359,7 +359,9 @@ sub MAKE_REGEX($arg, :$i, :$m, :$context) {
         $arg.regex
     }
     else {
-        my $*RESTRICTED = 'regex interpolation';
+        my $*RESTRICTED = "Prohibited regex interpolation"
+            unless $monkey;  # Comes from when regex was originally compiled.
+
         my $rx := $i && $m ?? EVAL("anon regex \{ :i :m $arg\}", :$context) !!
                         $i ?? EVAL("anon regex \{ :i $arg\}",    :$context) !!
                         $m ?? EVAL("anon regex \{ :m $arg\}",    :$context) !!

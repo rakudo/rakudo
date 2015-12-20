@@ -351,6 +351,14 @@ register_op_desugar('p6for', -> $qast {
     );
 });
 
+sub monkey_see_no_eval() {
+    nqp::existskey(%*PRAGMAS,'MONKEY-SEE-NO-EVAL')
+        ?? %*PRAGMAS<MONKEY-SEE-NO-EVAL>   # prevails if defined, can be either 1 or 0
+        !! $*COMPILING_CORE_SETTING ||
+           try { $*W.find_symbol(['Test']); 1 } ||
+           nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
+}
+
 role STDActions {
     method quibble($/) {
         make $<nibble>.ast;
@@ -5529,7 +5537,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my str $op := ~$<op>;
 
         # using nqp::op outside of setting
-        unless %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
+        unless %*PRAGMAS<MONKEY-GUTS> || %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
             $/.CURSOR.typed_panic('X::NQP::NotFound', op => $op);
         }
 
@@ -8542,6 +8550,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # the raw object to a Capture when calling it. For now, we just worry about the
     # special case, return.
     sub capture_or_raw($/,$args, $name) {
+        if $name eq 'sink' {
+            return $args;   # Note that sink itself wants its args, to eat 'em...
+        }
         if $name eq 'return' {
             my $ret := %*SIG_INFO<returns>;
             if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil' {
@@ -8556,16 +8567,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for @($args) {
                 $raw.push($_.ann('before_promotion') || $_);
             }
-            WANTALL($args, 'capture_or_raw/return');
-            $raw
         }
-        elsif $name eq 'sink' {
-            $args
+        elsif $name eq 'EVAL' {
+            $*W.throw($/, 'X::SecurityPolicy::Eval') unless monkey_see_no_eval();
         }
-        else {
-            WANTALL($args, 'capture_or_raw');
-            $args;
-        }
+        WANTALL($args, 'capture_or_raw');
+        $args;
     }
 
     # This checks if we have something of the form * op *, * op <thing> or
@@ -9175,6 +9182,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 $varast,
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
+                QAST::IVal.new( :value(monkey_see_no_eval()) ),
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) )
             ),
             QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9190,6 +9198,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9228,6 +9237,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9376,6 +9386,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(0) ),
                     QAST::IVal.new( :value(1) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
@@ -9390,6 +9401,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                                     wanted($<var>.ast, 'p5var'),
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(0) ),
+                                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*INTERPOLATION) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));

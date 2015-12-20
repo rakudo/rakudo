@@ -259,6 +259,10 @@ role STD {
         self
     }
 
+    method security($payload) {
+        self.typed_panic('X::SecurityPolicy::Eval', :$payload);
+    }
+
     method malformed($what) {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
@@ -389,7 +393,7 @@ role STD {
     }
 
     token RESTRICTED {
-        [ <?{ $*RESTRICTED }> [ $ || <.malformed($*RESTRICTED)> ] ]?
+        [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
         <!>
     }
 }

@@ -680,24 +680,36 @@ class Perl6::World is HLL::World {
 
     # pragmas without args
     my %no_args_pragma := nqp::hash(
-      'fatal',          1,
-      'internals',      1,
-      'MONKEY-TYPING',  1,
-      'nqp',            1,
-      'precompilation', 1,
-      'strict',         1,
-      'trace',          1,
-      'worries',        1,
+      'fatal',              1,
+      'internals',          1,
+      'MONKEY-TYPING',      1,
+      'MONKEY-SEE-NO-EVAL', 1,
+      'MONKEY-BRAINS',      1,
+      'MONKEY-GUTS',        1,
+      'MONKEY-BUSINESS',    1,
+      'MONKEY-TRAP',        1,
+      'MONKEY-SHINE',       1,
+      'nqp',                1,
+      'precompilation',     1,
+      'strict',             1,
+      'trace',              1,
+      'worries',            1,
     );
 
     # pragmas without args that just set %*PRAGMAS
     my %just_set_pragma := nqp::hash(
-      'fatal',          1,
-      'internals',      1,
-      'MONKEY-TYPING',  1,
-      'nqp',            1,
-      'trace',          1,
-      'worries',        1,
+      'fatal',              1,
+      'internals',          1,
+      'MONKEY-TYPING',      1,
+      'MONKEY-SEE-NO-EVAL', 1,
+      'MONKEY-BRAINS',      1,
+      'MONKEY-GUTS',        1,
+      'MONKEY-BUSINESS',    1,
+      'MONKEY-TRAP',        1,
+      'MONKEY-SHINE',       1,
+      'nqp',                1,
+      'trace',              1,
+      'worries',            1,
     );
 
     # not yet implemented pragmas
@@ -726,6 +738,9 @@ class Perl6::World is HLL::World {
 
         if %just_set_pragma{$name} {
             %*PRAGMAS{$name} := $on;
+        }
+        elsif $name eq 'MONKEY' {
+            %*PRAGMAS{$_.key} := $on if nqp::eqat($_.key,'MONKEY',0) for %just_set_pragma;
         }
         elsif $name eq 'strict' {
             if nqp::islist($arglist) {

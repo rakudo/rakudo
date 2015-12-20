@@ -1,7 +1,7 @@
-use nqp;
+use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2014 The Perl Foundation.
+# Copyright (C) 2007 - 2015 The Perl Foundation.
 
 # settable from outside
 my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;

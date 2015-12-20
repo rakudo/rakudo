@@ -88,6 +88,32 @@ my class Exception {
     method is-compile-time { False }
 }
 
+my class X::SecurityPolicy is Exception {}
+
+my class X::SecurityPolicy::Eval is X::SecurityPolicy {
+    has $.payload = "EVAL is a very dangerous function!!!";
+
+    my role SlurpySentry { }
+
+    method message() {
+        do {
+            # Remove spaces for die(*@msg)/fail(*@msg) forms
+            given $.payload {
+                when SlurpySentry {
+                    $_.list.join;
+                }
+                default {
+                    .Str;
+                }
+            }
+        } ~ " (use MONKEY-SEE-NO-EVAL to override,\nbut only if you're VERY sure your data contains no injection attacks)";
+    }
+    method Numeric() { $.payload.Numeric }
+    method from-slurpy (|cap) {
+        self.new(:payload(cap does SlurpySentry))
+    }
+}
+
 my class X::AdHoc is Exception {
     has $.payload = "Unexplained error";
 

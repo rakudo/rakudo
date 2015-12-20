@@ -10,6 +10,7 @@ my class Pair      { ... }
 my class Promise   { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
+my class X::SecurityPolicy::Eval { ... }
 
 my role QuantHash { ... }
 my role Setty { ... }

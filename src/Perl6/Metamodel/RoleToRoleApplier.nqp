@@ -127,8 +127,69 @@ my class RoleToRoleApplier {
                         else {
                             $target.HOW.add_collision($target, $name, %priv_meth_providers{$name}, :private(1));
                         }
-
                     }
+                }
+            }
+        }
+
+        # Compose multi-methods; need to pay attention to the signatures.
+        my %multis_by_name;
+        my %multis_required_by_name;
+        for @roles -> $role {
+            my $how := $role.HOW;
+            if nqp::can($how, 'multi_methods_to_incorporate') {
+                for $how.multi_methods_to_incorporate($role) {
+                    my $name := $_.name;
+                    my $to_add := $_.code;
+                    my $yada := 0;
+                    try { $yada := $to_add.yada; }
+                    if $yada {
+                        %multis_required_by_name{$name} := []
+                            unless %multis_required_by_name{$name};
+                        nqp::push(%multis_required_by_name{$name}, [$role, $to_add]);
+                    }
+                    else {
+                        if %multis_by_name{$name} -> @existing {
+                            # A multi-method can't conflict with itself.
+                            my int $already := 0;
+                            for @existing {
+                                if $_[1] =:= $to_add {
+                                    $already := 1;
+                                    last;
+                                }
+                            }
+                            nqp::push(@existing, [$role, $to_add]) unless $already;
+                        }
+                        else {
+                            %multis_by_name{$name} := [[$role, $to_add],];
+                        }
+                    }
+                }
+            }
+        }
+
+        # Look for conflicts, and compose non-conflicting.
+        for %multis_by_name {
+            my $name := $_.key;
+            my @cands := $_.value;
+            my @collisions;
+            for @cands -> $c1 {
+                my @collides;
+                for @cands -> $c2 {
+                    unless $c1[1] =:= $c2[1] {
+                        if Perl6::Metamodel::Configuration.compare_multi_sigs($c1[1], $c2[1]) {
+                            for ($c1, $c2) {
+                                nqp::push(@collides, $_[0].HOW.name($_[0]));
+                            }
+                            last;
+                        }
+                    }
+                }
+                if @collides {
+                    $target.HOW.add_collision($target, $name, @collides, :multi($c1[1]));
+                }
+                else {
+                    $target.HOW.add_multi_method($target, $name, $c1[1]);
                 }
             }
         }
@@ -155,15 +216,6 @@ my class RoleToRoleApplier {
                 }
                 unless $skip {
                     $target.HOW.add_attribute($target, $add_attr);
-                }
-            }
-            
-            # Any multi-methods go straight in; conflicts can be
-            # caught by the multi-dispatcher later.
-            if nqp::can($how, 'multi_methods_to_incorporate') {
-                my @multis := $how.multi_methods_to_incorporate($_);
-                for @multis {
-                    $target.HOW.add_multi_method($target, $_.name, $_.code);
                 }
             }
             

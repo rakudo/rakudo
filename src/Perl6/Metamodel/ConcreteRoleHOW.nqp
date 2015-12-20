@@ -35,11 +35,13 @@ class Perl6::Metamodel::ConcreteRoleHOW
         has $!name;
         has @!roles;
         has $!private;
+        has $!multi;
         method name() { $!name }
         method roles() { @!roles }
         method private() { $!private }
+        method multi() { $!multi }
     }
-    
+
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
         my $metarole := self.new(:roles(@roles));
         my $obj := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
@@ -49,9 +51,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $obj;
     }
     
-    method add_collision($obj, $colliding_name, @role_names, :$private = 0) {
+    method add_collision($obj, $colliding_name, @role_names, :$private = 0, :$multi) {
         @!collisions[+@!collisions] := Collision.new(
-            :name($colliding_name), :roles(@role_names), :private($private)
+            :name($colliding_name), :roles(@role_names), :$private, :$multi
         );
     }
 

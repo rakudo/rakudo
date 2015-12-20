@@ -71,6 +71,23 @@ my class RoleToClassApplier {
                         nqp::join(", ", $_.roles) ~ ")");
                 }
             }
+            elsif nqp::isconcrete($_.multi) {
+                my $match := 0;
+                for $target.HOW.multi_methods_to_incorporate($target) -> $maybe {
+                    if $_.name eq $maybe.name &&
+                            Perl6::Metamodel::Configuration.compare_multi_sigs($_.multi, $maybe.code) {
+                        $match := 1;
+                        last;
+                    }
+                }
+                unless $match {
+                    nqp::die("Multi method '" ~ $_.name ~ "' with signature " ~
+                        $_.multi.signature.perl ~ " must be resolved by class " ~
+                        $target.HOW.name($target) ~
+                        " because it exists in multiple roles (" ~
+                        nqp::join(", ", $_.roles) ~ ")");
+                }
+            }
             else {
                 unless has_method($target, $_.name, 1) {
                     nqp::die("Method '" ~ $_.name ~

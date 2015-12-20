@@ -7471,7 +7471,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # We build a StrDistance here, which lazily gets us the distance.
             QAST::Op.new(
                 :op<callmethod>, :name<new>, :returns($StrDistance),
-                QAST::Var.new( :name<StrDistance>, :scope<lexical> ),
+                WANTED(QAST::Var.new( :name<StrDistance>, :scope<lexical> ),'tr'),
                 QAST::Var.new( :name($orig_lhs), :scope<lexical>, :named('before') ),
                 QAST::Var.new( :name('$_'), :scope<lexical>, :named('after') )
             )
@@ -8614,7 +8614,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $name eq 'EVAL' {
-            $*W.throw($/, 'X::SecurityPolicy::Eval') unless monkey_see_no_eval();
+            my $all_literal := 1;
+            for @($args) {
+                $all_literal := 0 unless nqp::istype($_,QAST::SpecialArg) ||
+                    nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
+            }
+            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval();
         }
         WANTALL($args, 'capture_or_raw');
         $args;

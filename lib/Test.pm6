@@ -40,6 +40,8 @@ sub _init_io {
     $todo_output    = $PROCESS::OUT;
 }
 
+sub MONKEY-SEE-NO-EVAL() is export { 1 }
+
 ## test functions
 
 our sub output is rw {

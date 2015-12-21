@@ -146,7 +146,7 @@ my class RoleToRoleApplier {
                     if $yada {
                         %multis_required_by_name{$name} := []
                             unless %multis_required_by_name{$name};
-                        nqp::push(%multis_required_by_name{$name}, [$role, $to_add]);
+                        nqp::push(%multis_required_by_name{$name}, $to_add);
                     }
                     else {
                         if %multis_by_name{$name} -> @existing {
@@ -191,6 +191,16 @@ my class RoleToRoleApplier {
                 else {
                     $target.HOW.add_multi_method($target, $name, $c1[1]);
                 }
+            }
+        }
+
+        # Pass on any unsatisfied requirements (note that we check for the
+        # requirements being met when applying the summation of roles to a
+        # class, so we can avoid duplicating that logic here.)
+        for %multis_required_by_name {
+            my $name := $_.key;
+            for $_.value {
+                $target.HOW.add_multi_method($target, $name, $_);
             }
         }
 

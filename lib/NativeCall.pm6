@@ -175,6 +175,7 @@ sub guess_library_name($lib) is export(:TEST) {
            $libname = $lib;
         }
     }
+    return '' unless $libname.DEFINITE;
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
     note "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '';

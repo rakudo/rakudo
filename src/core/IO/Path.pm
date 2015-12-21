@@ -76,12 +76,11 @@ my class IO::Path is Cool {
         qq|"$.abspath".IO|;
     }
     multi method perl(IO::Path:D:) {
-        my $path =
           Rakudo::Internals.PERLIFY-STR($.is-absolute ?? $.abspath !! $.path);
 
         $!is-absolute  # attribute now set
-          ?? qq/"$path".IO(:SPEC({$!SPEC.perl}))/
-          !! qq/"$path".IO(:SPEC({$!SPEC.perl}),:CWD({$!CWD.perl}))/
+          ?? "{$.abspath.perl}.IO({:$!SPEC.perl})"
+          !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
     }
 
     method succ(IO::Path:D:) {

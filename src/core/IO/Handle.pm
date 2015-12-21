@@ -780,7 +780,7 @@ my class IO::Handle does IO {
     }
 
     multi method perl(IO::Handle:D:) {
-        "IO::Handle.new(path => {$!path.perl}, chomp => {$!chomp.perl})"
+        "IO::Handle.new({:$!path.perl},{$!chomp ?? :$!chomp.perl !! ''})"
     }
 
 

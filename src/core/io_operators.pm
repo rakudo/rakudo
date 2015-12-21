@@ -108,13 +108,6 @@ multi sub open($path, :$chomp = True, :$enc = 'utf8', |c) {
     $handle.open(:$chomp,:$enc,|c);
 }
 
-proto sub pipe(|) { * }
-multi sub pipe($path, :$chomp = True, :$enc = 'utf8', |c) {
-    my $handle = IO::Handle.new(:path($path.IO));
-    $handle // $handle.throw;
-    $handle.pipe(:$chomp,:$enc,|c);
-}
-
 proto sub lines(|) { * }
 multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
     nqp::istype($limit,Whatever) || $limit == Inf

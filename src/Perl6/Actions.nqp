@@ -6062,7 +6062,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
-            $past.push($/[0].ast);
+            $past.push(WANTED($/[0].ast, 'EXPR/META'));
             $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
             make $past;
             return 1;

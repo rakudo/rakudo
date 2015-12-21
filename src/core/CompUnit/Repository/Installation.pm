@@ -171,7 +171,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $dist-dir.child($dist.id).spurt: to-json($dist.Hash);
 
         my $precomp = $*REPO.precomp-repository;
-        my $*RESOURCES = Distribution::Resources.new(:repo($*REPO), :dist-id($dist.id));
+        my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id($dist.id));
         for $dist.provides.values.map(*.values[0]<file>) -> $file-id {
             my $source = $sources-dir.child($file-id);
             if $precomp.may-precomp {

@@ -88,7 +88,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 self.store.delete($compiler-id, $_);
             }
         }
-        spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
 
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))

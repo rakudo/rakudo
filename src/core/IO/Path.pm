@@ -76,8 +76,6 @@ my class IO::Path is Cool {
         qq|"$.abspath".IO|;
     }
     multi method perl(IO::Path:D:) {
-          Rakudo::Internals.PERLIFY-STR($.is-absolute ?? $.abspath !! $.path);
-
         $!is-absolute  # attribute now set
           ?? "{$.abspath.perl}.IO({:$!SPEC.perl})"
           !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"

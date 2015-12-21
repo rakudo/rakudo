@@ -8457,7 +8457,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_dot_equals($target, $call) {
         $call.unshift($*W.add_string_constant($call.name)) if $call.name || !$call.list;
-        $call.unshift($target);
+        $call.unshift(WANTED($target,'make_dot_equals'));
         $call.name('dispatch:<.=>');
         $call.op('callmethod');
         wantall($call, 'make_dot_equals');
@@ -8466,7 +8466,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_dot($target, $call) {
         $*W.add_string_constant($call.name);
-        $call.unshift($target);
+        $call.unshift(WANTED($target,'make_dot'));
         $call.op('callmethod');
         wantall($call, 'make_dot');
         $call;

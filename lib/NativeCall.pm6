@@ -180,7 +180,7 @@ sub guess_library_name($lib) is export(:TEST) {
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
     note "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '';
     #Err, this is a mess, why so many way to get the extension?
-    $ext = "dynlib" if $*KERNEL.name eq 'darwin'; #Os X?
+    $ext = "dylib" if $*KERNEL.name eq 'darwin'; #Os X?
     $ext = "dll" if $*DISTRO.is-win;
     $ext = $*VM.config<load_ext>.substr(1) if $*VM.config<load_ext> :exists;
     $ext = $*VM.config<nativecall.so>  if $*VM.config<nativecall.so> :exists;

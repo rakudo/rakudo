@@ -19,7 +19,7 @@ role CompUnit::Repository::Locally {
     }
     multi method perl(CompUnit::Repository::Locally:D:) {
         $?CLASS.^name
-          ~ qq/.new("{Rakudo::Internals.PERLIFY-STR($!prefix.abspath)}")/;
+          ~ qq/.new("$!prefix.abspath.perl()")/;
     }
 
     multi method WHICH(CompUnit::Repository::Locally:D:) { $!WHICH }

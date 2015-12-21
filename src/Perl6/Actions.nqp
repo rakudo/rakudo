@@ -7185,7 +7185,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
                     $type := $*W.handle-begin-time-exceptions($/, "parameterizing $str_longname",
-                        { $*W.parameterize_type($type, WANTED($<arglist>.ast,'typename'), $/) });
+                        {
+                            WANTALL($<arglist>.ast,'typename');
+                            $*W.parameterize_type($type, WANTED($<arglist>.ast,'typename'), $/)
+                        }
+                    );
                 }
 
                 if $<colonpairs><D> {

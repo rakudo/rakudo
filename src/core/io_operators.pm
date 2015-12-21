@@ -102,10 +102,8 @@ multi sub dir(Cool $path, |c) {
 }
 
 proto sub open(|) { * }
-multi sub open($path, :$chomp = True, :$enc = 'utf8', |c) {
-    my $handle = IO::Handle.new(:path($path.IO));
-    $handle // $handle.throw;
-    $handle.open(:$chomp,:$enc,|c);
+multi sub open(IO() $path, |c) {
+    IO::Handle.new(:$path).open(|c);
 }
 
 proto sub lines(|) { * }

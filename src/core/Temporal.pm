@@ -610,7 +610,7 @@ my class Date does Dateish {
                 # If we overflow on days in the month, rather than throw an
                 # exception, we just clip to the last of the month
                 my $day = $!day min $.days-in-month($year, $month);
-                $date = Date.new(:$year, :$month, :$day);
+                $date = self.new(:$year, :$month, :$day);
                 succeed;
             }
 

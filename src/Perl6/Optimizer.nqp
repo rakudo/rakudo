@@ -1084,11 +1084,15 @@ class Perl6::Optimizer {
         elsif $optype eq 'callmethod' && $op.name eq 'new' && $!void_context {
             if $op.node {
                 my str $op_txt := nqp::escape($op.node.Str);
-                $!problems.add_worry($op, qq[Useless use of "$op_txt" in sink context]);
+                my $warning := qq[Useless use of "$op_txt" in sink context];
+                note($warning) if $!debug;
+                $!problems.add_worry($op, $warning);
             }
             elsif nqp::istype($op[0],QAST::Var) && $op[0].scope eq 'lexical' {
                 my str $op_txt := $op[0].name;
-                $!problems.add_worry($op, qq[Useless use of "$op_txt" in sink context]);
+                my $warning := qq[Useless use of "$op_txt" in sink context];
+                note($warning) if $!debug;
+                $!problems.add_worry($op, $warning);
             }
         }
 
@@ -1370,14 +1374,19 @@ class Perl6::Optimizer {
                     }
                     elsif $!void_context {
                         my $suggest := ($op.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
-                        $!problems.add_worry($op, qq[Useless use of () in sink context$suggest])
+                        my $warning := qq[Useless use of () in sink context$suggest];
+                        note($warning) if $!debug;
+                        $!problems.add_worry($op, $warning);
                     }
                 }
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
                     my str $expr   := nqp::escape(widen($op.node));
-                    $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context])
-                        unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0;
+                    unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0 {
+                        my $warning := qq[Useless use of "$op_txt" in expression "$expr" in sink context];
+                        note($warning) if $!debug;
+                        $!problems.add_worry($op, $warning);
+                    }
                 }
                 # check if all arguments are known at compile time
                 my int $all_args_known := 1;
@@ -1748,6 +1757,7 @@ class Perl6::Optimizer {
             }
             if $warning {
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.ann('okifnil');
+                note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);
             }
         }
@@ -1790,14 +1800,13 @@ class Perl6::Optimizer {
             my str $sigil := nqp::substr($name, 0, 1);
             if $name ne "Nil" && $name ne 'ctxsave' {  # (comes from nqp, which doesn't know about wanted)
                 my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
-                $!problems.add_worry(
-                  $var,
-                  nqp::index(' $@%&', $sigil) < 1
+                my $warning := nqp::index(' $@%&', $sigil) < 1
                     ?? "Useless use of $name symbol in sink context$suggest"
                     !! $sigil eq $name
                         ?? "Useless use of unnamed $sigil variable in sink context$suggest"
-                        !! "Useless use of $name in sink context$suggest"
-                );
+                        !! "Useless use of $name in sink context$suggest";
+                note($warning) if $!debug;
+                $!problems.add_worry($var, $warning);
             }
         }
 
@@ -1979,8 +1988,11 @@ class Perl6::Optimizer {
                         my $value := ~$visit.node;
                         $value := '""' if $value eq '';
                         my $suggest := ($visit.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
-                        $!problems.add_worry($visit, qq[Useless use of constant value {~$visit.node} in sink context$suggest])
-                                unless $value eq 'Nil';
+                        unless $value eq 'Nil' {
+                            my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
+                            note($warning) if $!debug;
+                            $!problems.add_worry($visit, $warning)
+                        }
                     }
                     if $visit.value =:= $!symbols.PseudoStash {
                         self.poison_var_lowering();

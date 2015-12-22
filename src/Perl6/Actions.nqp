@@ -5749,7 +5749,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my %named_counts;
             for @args {
-                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
+                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair)
+                    && nqp::can($_[1], 'has_compile_time_value') {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
                     unless $*IN_DECL eq 'use' || $*IN_DECL eq 'no' || $*IN_DECL eq 'import' || $*IN_RETURN {
@@ -5760,7 +5761,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Make result.
             for @args {
-                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
+                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair)
+                    && nqp::can($_[1], 'has_compile_time_value') {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     if %named_counts{$name} == 1 {
                         $past.push($_[2]);

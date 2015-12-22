@@ -5352,7 +5352,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<args><invocant> {
             my $past := self.methodop($/);       # invocant was already removed from args
-            $past.unshift($<args><invocant>); # (and was stored here)
+            $past.unshift(WANTED($<args><invocant>,'identifier')); # (and was stored here)
             # say($past.dump);
             $past.node($/);
             make $past;
@@ -5422,7 +5422,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<args><invocant> {
             $past := self.methodop($/);       # invocant was already removed from args
-            $past.unshift($<args><invocant>); # (and was stored here)
+            $past.unshift(WANTED($<args><invocant>,'name')); # (and was stored here)
             # say($past.dump);
         }
         elsif $<args> {

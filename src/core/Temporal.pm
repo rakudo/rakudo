@@ -140,27 +140,27 @@ my role Dateish {
 
 }
 
-sub default-formatter(DateTime $dt, Bool :$subseconds) {
+my class DateTime does Dateish {
+    sub default-formatter(DateTime $dt, Bool :$subseconds) {
 # ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds
 # is true)
-    my $o = $dt.offset;
-    $o %% 60
-        or warn "Default DateTime formatter: offset $o not divisible by 60.\n";
-    my $year = sprintf((0 <= $dt.year <= 9999 ?? '%04d' !! '%+05d'), $dt.year);
-    sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
-        $year, $dt.month, $dt.day, $dt.hour, $dt.minute,
-        $subseconds
-          ?? $dt.second.fmt('%09.6f')
-          !! $dt.whole-second.fmt('%02d'),
-        do $o
-         ?? sprintf '%s%02d:%02d',
-                $o < 0 ?? '-' !! '+',
-                ($o.abs / 60 / 60).floor,
-                ($o.abs / 60 % 60).floor
-         !! 'Z';
-}
+        my $o = $dt.offset;
+        $o %% 60
+            or warn "Default DateTime formatter: offset $o not divisible by 60.\n";
+        my $year = sprintf((0 <= $dt.year <= 9999 ?? '%04d' !! '%+05d'), $dt.year);
+        sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
+            $year, $dt.month, $dt.day, $dt.hour, $dt.minute,
+            $subseconds
+              ?? $dt.second.fmt('%09.6f')
+              !! $dt.whole-second.fmt('%02d'),
+            do $o
+             ?? sprintf '%s%02d:%02d',
+                    $o < 0 ?? '-' !! '+',
+                    ($o.abs / 60 / 60).floor,
+                    ($o.abs / 60 % 60).floor
+             !! 'Z';
+    }
 
-my class DateTime does Dateish {
     has Int $.hour      = 0;
     has Int $.minute    = 0;
     has     $.second    = 0.0;

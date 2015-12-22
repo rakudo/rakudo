@@ -68,31 +68,26 @@ my role Dateish {
     }
 
     method week() { # algorithm from Claus Tøndering
-        my $a = $!year - ($!month <= 2).floor.Int;
-        my $b = $a div 4 - $a div 100 + $a div 400;
-        my $c = ($a - 1) div 4 - ($a - 1) div 100 + ($a - 1) div 400;
-        my $s = $b - $c;
-        my $e = $!month <= 2 ?? 0 !! $s + 1;
-        my $f = $!day + do $!month <= 2
-         ?? 31*($!month - 1) - 1
-         !! (153*($!month - 3) + 2) div 5 + 58 + $s;
+        my int $a = $!year - ($!month <= 2).floor.Int;
+        my int $b = $a div 4 - $a div 100 + $a div 400;
+        my int $c = ($a - 1) div 4 - ($a - 1) div 100 + ($a - 1) div 400;
+        my int $s = $b - $c;
+        my int $e = $!month <= 2 ?? 0 !! $s + 1;
+        my int $f = $!day
+          + ($!month <= 2
+              ?? 31*($!month - 1) - 1
+              !! (153*($!month - 3) + 2) div 5 + 58 + $s);
 
-        my $g = ($a + $b) % 7;
-        my $d = ($f + $g - $e) % 7;
-        my $n = $f + 3 - $d;
+        my int $g = ($a + $b) % 7;
+        my int $d = ($f + $g - $e) % 7;
+        my int $n = $f + 3 - $d;
 
-           $n < 0           ?? ($!year - 1, 53 - ($g - $s) div 5)
-        !! $n > 364 + $s    ?? ($!year + 1, 1)
-        !!                     ($!year,     $n div 7 + 1);
+           $n < 0        ?? ($!year - 1, 53 - ($g - $s) div 5)
+        !! $n > 364 + $s ?? ($!year + 1, 1                   )
+        !!                  ($!year,     $n div 7 + 1        );
     }
-
-    method week-year() {
-        self.week.[0]
-    }
-
-    method week-number() {
-        self.week.[1]
-    }
+    method week-year()   { self.week.AT-POS(0) }
+    method week-number() { self.week.AT-POS(1) }
 
     method weekday-of-month {
         ($!day - 1) div 7 + 1

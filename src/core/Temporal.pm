@@ -98,8 +98,13 @@ my role Dateish {
         ($!day - 1) div 7 + 1
     }
 
+    my $days-at-start-of-month := nqp::list(
+      0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
+    );
     method day-of-year() {
-        [+] flat $!day, map { self.days-in-month($!year, $^m) }, 1 ..^ $!month
+        $!day
+          + nqp::atpos($days-at-start-of-month,$!month)
+          + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
     method check-value($val is copy, $name, $range, :$allow-nonint) {

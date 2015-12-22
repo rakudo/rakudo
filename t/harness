@@ -204,5 +204,5 @@ Options:
     --stress - perform the stress tests/
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
-    --slow - spread tests marked "slow" equally over the run (on on non-Win)
+    --slow - spread tests marked "slow" equally over the run (on non-Win)
 

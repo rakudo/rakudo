@@ -179,17 +179,8 @@ sub guess_library_name($lib) is export(:TEST) {
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
     note "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '';
-    #Err, this is a mess, why so many way to get the extension?
-    $ext = "dylib" if $*KERNEL.name eq 'darwin'; #Os X?
-    $ext = "dll" if $*DISTRO.is-win;
-    $ext = $*VM.config<load_ext>.substr(1) if $*VM.config<load_ext> :exists;
-    $ext = $*VM.config<nativecall.so>  if $*VM.config<nativecall.so> :exists;
-    {$ext = $*VM.config<dll>; $ext ~~ s/^.*\%s\.//;} if $*VM.config<dll> :exists;
-    $apiversion = '.' ~ $apiversion if $apiversion ne '';
-    return ("$libname$apiversion.$ext").IO.absolute if $*KERNEL.name eq 'darwin';
-    return "$libname.$ext$apiversion" if !$*DISTRO.is-win;
-    return "$libname.$ext" if $*DISTRO.is-win;
-    return "$libname.so";
+
+    return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
 }
 
 my %lib;

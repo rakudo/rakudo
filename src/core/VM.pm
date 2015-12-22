@@ -40,6 +40,37 @@ class VM does Systemic {
         $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please
     }
+
+    method platform-library-name(IO::Path $library, Version :$version) {
+        my $distro := $*DISTRO;
+#?if !jvm
+        my $is-darwin = $*VM.config<osname> eq 'darwin';
+#?endif
+#?if jvm
+        my $is-darwin = $*VM.config<os.name> eq 'darwin';
+#?endif
+
+        my $basename  = $library.basename;
+        my $full-path = $library ne $basename;
+        my $dirname   = $library.dirname;
+
+        # OS X needs version before extension
+        $basename ~= ".$version" if $version.defined and $is-darwin;
+
+#?if moar
+        my $dll = self.config<dll>;
+        my $platform-name = sprintf($dll, $basename);
+#?endif
+#?if jvm
+        my $prefix = $is-darwin || $distro.is-win ?? '' !! 'lib';
+        my $platform-name = "$prefix$basename.{self.config<nativecall.so>}";
+#?endif
+
+        $platform-name ~= '.' ~ $version.Str
+            if $version.defined and not $is-darwin and not $distro.is-win;
+
+        $full-path ?? $dirname.IO.child($platform-name).abspath !! $platform-name.IO;
+    }
 }
 
 sub INITIALIZE-A-VM-NOW() {

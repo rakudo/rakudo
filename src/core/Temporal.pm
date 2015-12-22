@@ -3,7 +3,7 @@ my role Dateish {
     has Int $.month = 1;
     has Int $.day = 1;
 
-    method IO(|c) { IO::Path.new(self) }
+    method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
     method !VALID-UNIT($unit) {
         state %UNITS =  # core setting doesn't build if it is a my at role level
@@ -136,15 +136,23 @@ my role Dateish {
 }
 
 my class DateTime does Dateish {
-    sub default-formatter(DateTime $dt, Bool :$subseconds) {
-# ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds
-# is true)
-        my $o = $dt.offset;
+    has Int $.hour      = 0;
+    has Int $.minute    = 0;
+    has     $.second    = 0.0;
+    has     $.timezone  = 0; # UTC
+    has     &.formatter;
+      # Not an optimization but a necessity to ensure that
+      # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
+      # DST-induced ambiguity could ruin our day.
+
+    method !formatter(Bool :$subseconds) {
+# ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds is true)
+        my $o = $!timezone.Int;
         sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
-            $dt.year, $dt.month, $dt.day, $dt.hour, $dt.minute,
+            $!year, $!month, $!day, $!hour, $!minute,
             $subseconds
-              ?? $dt.second.fmt('%09.6f')
-              !! $dt.whole-second.fmt('%02d'),
+              ?? $!second.fmt('%09.6f')
+              !! $!second.Int.fmt('%02d'),
             $o
              ?? do {
                     warn "DateTime formatter: offset $o not divisible by 60"
@@ -157,21 +165,12 @@ my class DateTime does Dateish {
              !! 'Z';
     }
 
-    has Int $.hour      = 0;
-    has Int $.minute    = 0;
-    has     $.second    = 0.0;
-    has     $.timezone  = 0; # UTC
-    has     &.formatter = &default-formatter;
-      # Not an optimization but a necessity to ensure that
-      # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
-      # DST-induced ambiguity could ruin our day.
-
     multi method new() {
         fail "Required named parameter 'year' is missing for DateTime.new()";
     }
 
-    multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {
-        my $dt = self.bless(:$year, :&formatter, |%_);
+    multi method new(Int :$year!, *%_) {
+        my $dt = self.bless(:$year, |%_);
         $dt.check-date;
         $dt.check-time;
         $dt;
@@ -216,14 +215,14 @@ my class DateTime does Dateish {
             day => $date.day, |%_)
     }
 
-    multi method new(Instant:D $i, :$timezone=0, :&formatter=&default-formatter) {
+    multi method new(Instant:D $i, :$timezone=0, :&formatter) {
         my ($p, $leap-second) = $i.to-posix;
         my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
         $dt.clone(second => ($dt.second + $p % 1 + $leap-second)
             ).in-timezone($timezone);
     }
 
-    multi method new(Int:D $time is copy, :$timezone=0, :&formatter=&default-formatter) {
+    multi method new(Int:D $time is copy, :$timezone=0, :&formatter) {
         # Interpret $time as a POSIX time.
         my $second  = $time % 60; $time = $time div 60;
         my $minute  = $time % 60; $time = $time div 60;
@@ -245,7 +244,7 @@ my class DateTime does Dateish {
             :&formatter).in-timezone($timezone);
     }
 
-    multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
+    multi method new(Str $format, :$timezone is copy = 0, :&formatter) {
         $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d[<[\.,]>\d ** 1..6]?) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
@@ -280,7 +279,7 @@ my class DateTime does Dateish {
             :$second, :$timezone, :&formatter);
     }
 
-    method now(:$timezone=$*TZ, :&formatter=&default-formatter) returns DateTime:D {
+    method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
         self.new(now, :$timezone, :&formatter)
     }
 
@@ -458,21 +457,24 @@ my class DateTime does Dateish {
     }
 
     method Str() {
-        if $!second.floor == $!second {
-          &!formatter(self)
-        } else {
-           &!formatter === &default-formatter ?? &!formatter(self, :subseconds) !! &!formatter(self);
-        }
+        &!formatter
+          ?? &!formatter(self)
+          !! self!formatter( :subseconds($!second.floor != $!second) )
     }
 
     multi method perl(DateTime:D:) {
-        sprintf '%s.new(%s)', self.^name, join ', ', map { "{.key} => {.value}" }, do
-            :$!year, :$!month, :$!day, :$!hour, :$!minute,
-            second => $!second.perl,
-            (timezone => $!timezone.perl
-                unless $!timezone === 0),
-            (formatter => $.formatter.perl
-                unless &.formatter eqv &default-formatter)
+        self.^name
+          ~ '.new('
+          ~ (:$!year.perl,
+             :$!month.perl,
+             :$!day.perl,
+             :$!hour.perl,
+             :$!minute.perl,
+             :$!second.perl,
+             (:$!timezone.perl unless $!timezone === 0),
+             (:&!formatter.perl if &!formatter),
+            ).join(', ')
+         ~ ')'
     }
 
     multi method gist(DateTime:D:) {

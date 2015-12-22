@@ -295,9 +295,14 @@ my class Range is Cool does Iterable does Positional {
 
     multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)
-            and (topic cmp $!max) < +(!$!excludes-max)
+          and (topic cmp $!max) < +(!$!excludes-max)
     }
-
+    multi method ACCEPTS(Range:D: Cool:D \got) {
+        $!is-int && nqp::istype(got,Int)
+          ?? got >= $!min + $!excludes-min && got <= $!max - $!excludes-max
+          !! ($!excludes-min ?? got after $!min !! not got before $!min)
+               && ($!excludes-max ?? got before $!max !! not got after $!max)
+    }
     multi method ACCEPTS(Range:D: Range \topic) {
         (topic.min > $!min
          || topic.min == $!min
@@ -513,6 +518,11 @@ my class Range is Cool does Iterable does Positional {
             $value = $range.rand
         }
         $!min + $value
+    }
+
+    method in-range($got, $what?) {
+        self.ACCEPTS($got) 
+          || fail X::OutOfRange.new(:what($what // 'Value'),:$got,:range(self))
     }
 }
 

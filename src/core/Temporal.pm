@@ -160,20 +160,6 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
          !! 'Z';
 }
 
-sub get-local-timezone-offset {
-  my $utc = DateTime.new(now).posix.Int;
-  my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
-  my $second = nqp::p6box_i(nqp::atpos_i($fia, 0));
-  my $minute = nqp::p6box_i(nqp::atpos_i($fia, 1));
-  my $hour   = nqp::p6box_i(nqp::atpos_i($fia, 2));
-  my $day    = nqp::p6box_i(nqp::atpos_i($fia, 3));
-  my $month  = nqp::p6box_i(nqp::atpos_i($fia, 4));
-  my $year   = nqp::p6box_i(nqp::atpos_i($fia, 5));
-  my $local  = DateTime.new(:$year, :$month, :$day, :$hour, :$minute, :$second);
-  my $ltime  = $local.posix(True).Int;
-  $ltime - $utc;
-}
-
 my class DateTime does Dateish {
     has Int $.hour      = 0;
     has Int $.minute    = 0;
@@ -703,7 +689,7 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
 }
 
 multi sub INITIALIZE_DYNAMIC('$*TZ') {
-    PROCESS::<$TZ> = get-local-timezone-offset();
+    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset();
 }
 
 sub sleep($seconds = Inf --> Nil) {

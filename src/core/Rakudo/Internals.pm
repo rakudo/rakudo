@@ -1,3 +1,4 @@
+my class DateTime { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
@@ -675,6 +676,20 @@ my class Rakudo::Internals {
                   !! char-to-escapes($char);
         }
         $escaped
+    }
+
+    method get-local-timezone-offset() {
+        my $utc = DateTime.new(now).posix.Int;
+        my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
+        
+        DateTime.new(
+          :year(   nqp::atpos_i($fia,5)),
+          :month(  nqp::atpos_i($fia,4)),
+          :day(    nqp::atpos_i($fia,3)),
+          :hour(   nqp::atpos_i($fia,2)),
+          :minute( nqp::atpos_i($fia,1)),
+          :second( nqp::atpos_i($fia,0)),
+        ).posix(True).Int - $utc;
     }
 }
 

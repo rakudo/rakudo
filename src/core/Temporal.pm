@@ -145,14 +145,13 @@ my class DateTime does Dateish {
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
 
-    method !formatter(Bool :$subseconds) {
-# ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds is true)
+    method !formatter() { # ISO 8601 timestamp
         my $o = $!timezone.Int;
         sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
             $!year, $!month, $!day, $!hour, $!minute,
-            $subseconds
-              ?? $!second.fmt('%09.6f')
-              !! $!second.Int.fmt('%02d'),
+            $!second.floor == $!second
+              ?? $!second.Int.fmt('%02d')
+              !! $!second.fmt('%09.6f'),
             $o
              ?? do {
                     warn "DateTime formatter: offset $o not divisible by 60"
@@ -456,10 +455,11 @@ my class DateTime does Dateish {
         Date.new(:$!year, :$!month, :$!day);
     }
 
-    method Str() {
-        &!formatter
-          ?? &!formatter(self)
-          !! self!formatter( :subseconds($!second.floor != $!second) )
+    multi method Str(DateTime:D:) {
+        &!formatter ?? &!formatter(self) !! self!formatter
+    }
+    multi method gist(DateTime:D:) {
+        self.Str;
     }
 
     multi method perl(DateTime:D:) {
@@ -475,10 +475,6 @@ my class DateTime does Dateish {
              (:&!formatter.perl if &!formatter),
             ).join(', ')
          ~ ')'
-    }
-
-    multi method gist(DateTime:D:) {
-            self.Str;
     }
 }
 

@@ -6,14 +6,14 @@
 # http://tf.nist.gov/pubs/bulletin/leapsecond.htm
 # http://hpiers.obspm.fr/eop-pc/earthor/utc/TAI-UTC_tab.html
 
-my module tai-utc {
+my class tai-utc {
 
     #our $initial-offset = 10;
-    our sub initial-offset() { 10 }
+    method initial-offset() { 10 }
       # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
     # our @leap-second-dates = <
-    our sub leap-second-dates() {
+    method leap-second-dates() {
         BEGIN
         #BEGIN leap-second-dates
         (
@@ -55,7 +55,7 @@ my module tai-utc {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    our sub leap-second-posix() {
+    method leap-second-posix() {
         BEGIN
         #BEGIN leap-second-posix
         (
@@ -88,7 +88,6 @@ my module tai-utc {
         )
         #END leap-second-posix
     };
-
 };
 
 # vim: ft=perl6 expandtab sw=4

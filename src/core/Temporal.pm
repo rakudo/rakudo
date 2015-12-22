@@ -219,7 +219,7 @@ my class DateTime does Dateish {
                 ).throw;
             my $date = sprintf '%04d-%02d-%02d',
                 $dt.year, $dt.month, $dt.day;
-            $date eq any(tai-utc::leap-second-dates)
+            $date eq any(tai-utc.leap-second-dates)
                 or X::OutOfRange.new(
                         what  => 'second',
                         range => (0..^60),
@@ -400,7 +400,7 @@ my class DateTime does Dateish {
         }
 
         my $second = $!second;
-        if $second > 59 && $date ne any(tai-utc::leap-second-dates) {
+        if $second > 59 && $date ne any(tai-utc.leap-second-dates) {
             $second -= 60;
             $minute++;
             if $minute > 59 {

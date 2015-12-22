@@ -15,8 +15,8 @@ my class Instant is Cool does Real {
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
         my $p = $posix.floor;
-        my $offset = tai-utc::initial-offset;
-        for tai-utc::leap-second-posix() {
+        my $offset = tai-utc.initial-offset;
+        for tai-utc.leap-second-posix() {
             if $_ < $p {
                 ++$offset;
             } else {
@@ -32,8 +32,8 @@ my class Instant is Cool does Real {
     # value is true if *and only if* this Instant is in a leap
     # second.
         my $n = $.tai.floor;
-        my $offset = tai-utc::initial-offset;
-        for tai-utc::leap-second-posix() {
+        my $offset = tai-utc.initial-offset;
+        for tai-utc.leap-second-posix() {
             if $_ < $n - $offset {
                 ++$offset;
             } else {

@@ -17,9 +17,12 @@ my role Dateish {
     multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
     multi method is-leap-year(Dateish: $y) { IS-LEAP-YEAR($y) }
 
-    sub DAYS-IN-MONTH($year, $month) {
-        state @l = 0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
-        $month == 2 ?? 28 + IS-LEAP-YEAR($year) !! @l.AT-POS($month);
+    my $days-in-month := nqp::list(
+      0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+    );
+    sub DAYS-IN-MONTH(\year, \month) {
+        nqp::atpos($days-in-month,month) ||
+          ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
     proto method days-in-month(|) { * }
     multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }

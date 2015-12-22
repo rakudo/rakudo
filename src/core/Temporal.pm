@@ -145,19 +145,20 @@ my class DateTime does Dateish {
 # ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds
 # is true)
         my $o = $dt.offset;
-        $o %% 60
-            or warn "Default DateTime formatter: offset $o not divisible by 60.\n";
-        my $year = sprintf((0 <= $dt.year <= 9999 ?? '%04d' !! '%+05d'), $dt.year);
-        sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
-            $year, $dt.month, $dt.day, $dt.hour, $dt.minute,
+        sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
+            $dt.year, $dt.month, $dt.day, $dt.hour, $dt.minute,
             $subseconds
               ?? $dt.second.fmt('%09.6f')
               !! $dt.whole-second.fmt('%02d'),
-            do $o
-             ?? sprintf '%s%02d:%02d',
-                    $o < 0 ?? '-' !! '+',
-                    ($o.abs / 60 / 60).floor,
-                    ($o.abs / 60 % 60).floor
+            $o
+             ?? do {
+                    warn "DateTime formatter: offset $o not divisible by 60"
+                      unless $o %% 60;
+                    sprintf '%s%02d:%02d',
+                      $o < 0 ?? '-' !! '+',
+                      ($o.abs / 60 / 60).floor,
+                      ($o.abs / 60 % 60).floor
+                   }
              !! 'Z';
     }
 

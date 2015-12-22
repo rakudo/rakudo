@@ -28,7 +28,7 @@ my role Dateish {
     multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }
     multi method days-in-month(Dateish: $y, $m) { DAYS-IN-MONTH($y,$m) }
 
-    method daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
+    method !daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         if $m < 3 {
             $m += 12;
@@ -39,7 +39,7 @@ my role Dateish {
             - $y div 100  + $y div 400;
     }
 
-    method ymd-from-daycount($daycount) {
+    method !ymd-from-daycount($daycount) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         my Int $dc = $daycount.Int + 678881;
         my Int $ti = (4 * ($dc + 36525)) div 146097 - 1;
@@ -58,7 +58,7 @@ my role Dateish {
     }
 
     method get-daycount {
-        self.daycount-from-ymd($!year, $!month, $!day)
+        self!daycount-from-ymd($!year, $!month, $!day)
     }
 
     method day-of-month() { $!day }
@@ -125,7 +125,7 @@ my role Dateish {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
             %parts<year month day> =
-                self.ymd-from-daycount($new-dc);
+                self!ymd-from-daycount($new-dc);
         } else { # $unit eq 'month' | 'months' | 'year' | 'years'
             %parts<day> = 1;
             $unit eq 'year' and %parts<month> = 1;
@@ -439,7 +439,7 @@ my class DateTime does Dateish {
         # Let Dateish handle any further rollover.
         if ($c div 24) {
             %parts<year month day> =
-                self.ymd-from-daycount(self.get-daycount + $c div 24);
+                self!ymd-from-daycount(self.get-daycount + $c div 24);
         }
         self.clone-without-validating:
             :$timezone, |%parts;
@@ -518,7 +518,7 @@ my class Date does Dateish {
     multi method new(:$year!, :$month = 1, :$day = 1) {
         my $d = self.bless(:$year, :$month, :$day);
         $d.check-date;
-        $d!set-daycount(self.daycount-from-ymd($year,$month,$day));
+        $d!set-daycount(self!daycount-from-ymd($year,$month,$day));
         $d;
     }
 
@@ -541,7 +541,7 @@ my class Date does Dateish {
     multi method new(Dateish $d) {
         self.bless(
             :year($d.year), :month($d.month), :day($d.day),
-            :daycount(self.daycount-from-ymd($d.year,$d.month,$d.day))
+            :daycount(self!daycount-from-ymd($d.year,$d.month,$d.day))
         );
     }
 
@@ -561,7 +561,7 @@ my class Date does Dateish {
     }
 
     method new-from-daycount($daycount) {
-        my ($year, $month, $day) = self.ymd-from-daycount($daycount);
+        my ($year, $month, $day) = self!ymd-from-daycount($daycount);
         self.bless(:$daycount, :$year, :$month, :$day);
     }
 

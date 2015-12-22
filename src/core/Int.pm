@@ -157,8 +157,8 @@ my class Int does Real { # declared in BOOTSTRAP
 
             when Int    {  # smartmatch matches both UInt and Int
                 .^name eq 'UInt'
-                  ?? Range.new(    0, Inf )
-                  !! Range.new( -Inf, Inf )
+                  ?? Range.new(    0, Inf, :excludes-max )
+                  !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
                 }
 
             default {

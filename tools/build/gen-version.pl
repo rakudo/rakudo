@@ -30,7 +30,7 @@ sub hll-config(\$config) {
     \$config<release-number>   := '$release';
     \$config<codename>         := '$codename';
     \$config<build-date>       := '$builddate';
-    \$config<language_version> := '6.b';
+    \$config<language_version> := '6.c';
 }
 END_VERSION
 

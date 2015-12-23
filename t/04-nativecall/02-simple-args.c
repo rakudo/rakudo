@@ -95,3 +95,10 @@ DLLEXPORT int TakeUint32(unsigned int x)
         return 12;
     return 0;
 }
+
+DLLEXPORT int TakeSizeT(size_t x)
+{
+    if (x == 42)
+        return 13;
+    return 0;
+}

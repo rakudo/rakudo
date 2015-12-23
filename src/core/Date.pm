@@ -1,14 +1,8 @@
 my class Date does Dateish {
-    has Int $.daycount;
-
-    method !set-daycount($dc) { $!daycount = $dc }
-
-    method get-daycount { $!daycount }
 
     multi method new(:$year!, :$month = 1, :$day = 1) {
         my $d = self.bless(:$year, :$month, :$day);
         $d.check-date;
-        $d!set-daycount(self!daycount-from-ymd($year,$month,$day));
         $d;
     }
 
@@ -29,10 +23,7 @@ my class Date does Dateish {
     }
 
     multi method new(Dateish $d) {
-        self.bless(
-            :year($d.year), :month($d.month), :day($d.day),
-            :daycount(self!daycount-from-ymd($d.year,$d.month,$d.day))
-        );
+        self.bless(:year($d.year), :month($d.month), :day($d.day));
     }
 
     multi method new(Instant $i) {
@@ -44,7 +35,7 @@ my class Date does Dateish {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::unbox_i($!daycount)
+                nqp::unbox_i(self.daycount)
             ),
             ObjAt
         );
@@ -118,10 +109,10 @@ my class Date does Dateish {
     }
 
     method succ() {
-        self.new-from-daycount($!daycount + 1);
+        self.new-from-daycount(self.daycount + 1);
     }
     method pred() {
-        self.new-from-daycount($!daycount - 1);
+        self.new-from-daycount(self.daycount - 1);
     }
 
     multi method gist(Date:D:) {

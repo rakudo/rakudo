@@ -1,7 +1,9 @@
 my role Dateish {
+    # could all be ints once native atributes of roles are visible in classes
     has Int $.year;
     has Int $.month = 1;
     has Int $.day = 1;
+    has Int $!daycount;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
@@ -28,15 +30,15 @@ my role Dateish {
     multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }
     multi method days-in-month(Dateish: $y, $m) { DAYS-IN-MONTH($y,$m) }
 
-    method !daycount-from-ymd(Int() $y is copy, Int() $m is copy, $d) {
-        # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        if $m < 3 {
-            $m += 12;
-            --$y;
+    method daycount() {
+        $!daycount //= do {
+            # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
+            my $m = $!month < 3 ?? $!month + 12 !! $!month;
+            my $y = $!year - ($!month < 3);
+            -678973 + $!day + (153 * $m - 2) div 5
+              + 365 * $y + $y div 4
+              - $y div 100  + $y div 400;
         }
-        -678973 + $d + (153 * $m - 2) div 5
-            + 365 * $y + $y div 4
-            - $y div 100  + $y div 400;
     }
 
     method !ymd-from-daycount($daycount) {
@@ -57,13 +59,9 @@ my role Dateish {
         ($year, $month + 3, $day)
     }
 
-    method get-daycount {
-        self!daycount-from-ymd($!year, $!month, $!day)
-    }
-
     method day-of-month() { $!day }
 
-    method day-of-week($daycount = self.get-daycount) {
+    method day-of-week($daycount = self.daycount) {
         ($daycount + 2) % 7 + 1
     }
 
@@ -122,7 +120,7 @@ my role Dateish {
         # Helper for DateTime.truncated-to and Date.truncated-to.
         self!VALID-UNIT($unit);
         if $unit eq 'week' | 'weeks' {
-            my $dc = self.get-daycount;
+            my $dc = self.daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
             %parts<year month day> =
                 self!ymd-from-daycount($new-dc);

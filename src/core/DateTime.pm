@@ -237,8 +237,7 @@ my class DateTime does Dateish {
                 succeed;
             }
 
-            my $daycount = Date.new(self).daycount;
-            $daycount += $day-delta;
+            my $daycount = self.daycount + $day-delta;
             $date = Date.new-from-daycount($daycount);
         }
 
@@ -301,7 +300,7 @@ my class DateTime does Dateish {
         # Let Dateish handle any further rollover.
         if ($c div 24) {
             %parts<year month day> =
-                self!ymd-from-daycount(self.get-daycount + $c div 24);
+                self!ymd-from-daycount(self.daycount + $c div 24);
         }
         self.clone-without-validating:
             :$timezone, |%parts;

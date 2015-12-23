@@ -524,6 +524,14 @@ my class Range is Cool does Iterable does Positional {
         self.ACCEPTS($got) 
           || fail X::OutOfRange.new(:what($what // 'Value'),:$got,:range(self))
     }
+
+    multi method minmax(Range:D:) {
+        $!is-int
+          ?? self.int-bounds
+          !! $!excludes-min || $!excludes-max
+             ?? fail "Cannot return minmax on Range with excluded ends"
+             !! ($!min,$!max)
+    }
 }
 
 sub infix:<..>($min, $max) is pure {

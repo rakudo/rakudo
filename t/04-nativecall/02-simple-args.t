@@ -62,4 +62,7 @@ else {
 }
 is TakeUint32(0xFFFFFFFE), 12, 'passed uint8 0xFFFFFFFE';
 
+sub TakeSizeT(size_t) returns int32 is native('./02-simple-args') { * }
+is TakeSizeT(42),     13, 'passed size_t 42';
+
 # vim:ft=perl6

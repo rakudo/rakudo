@@ -1,34 +1,44 @@
 my class Date does Dateish {
 
-    multi method new(:$year!, :$month = 1, :$day = 1) {
-        my $d = self.bless(:$year, :$month, :$day);
-        $d.check-date;
-        $d;
+    multi method new(Date: Int() $year, Int() $month, Int() $day) {
+        (1..12).in-range($month,'Month');
+        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        self.bless(:$year, :$month, :$day)
     }
-
-    multi method new($year, $month, $day) {
-        self.new(:$year, :$month, :$day);
+    multi method new(Date: :$year!, :$month = 1, :$day = 1) {
+        self.new($year,$month,$day)
     }
-
-    multi method new(Str $date) {
-        $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
-            or X::Temporal::InvalidFormat.new(
-                    invalid-str => $date,
-                    format      => 'yyyy-mm-dd',
-            ).throw;
-        self.new(|$date.split('-').map({.Int}));
+    multi method new(Date: Str $date) {
+        CATCH {
+            when X::OutOfRange {
+                .throw
+            }
+            default {
+                X::Temporal::InvalidFormat.new(
+                  invalid-str => $date,
+                  format      => 'yyyy-mm-dd',
+                ).throw;
+            }
+        }
+        my @p = $date.split('-');
+        @p != 3
+          ?? die()
+          !! self.new(@p.AT-POS(0),@p.AT-POS(1),@p.AT-POS(2))
     }
-    multi method new() {
-        fail X::Cannot::New.new(class => self);
-    }
-
-    multi method new(Dateish $d) {
+    multi method new(Date: Dateish $d) {
         self.bless(:year($d.year), :month($d.month), :day($d.day));
     }
+    multi method new(Date: Instant $i) {
+        self.new(DateTime.new($i))
+    }
 
-    multi method new(Instant $i) {
-        my $dt = DateTime.new($i);
-        self.new($dt);
+    method new-from-daycount($daycount) {
+        my ($year, $month, $day) = self!ymd-from-daycount($daycount);
+        self.bless(:$daycount, :$year, :$month, :$day);
+    }
+
+    method today() {
+        self.new(DateTime.now);
     }
 
     multi method WHICH(Date:D:) {
@@ -39,15 +49,6 @@ my class Date does Dateish {
             ),
             ObjAt
         );
-    }
-
-    method new-from-daycount($daycount) {
-        my ($year, $month, $day) = self!ymd-from-daycount($daycount);
-        self.bless(:$daycount, :$year, :$month, :$day);
-    }
-
-    method today() {
-        self.new(DateTime.now);
     }
 
     method truncated-to(Cool $unit) {
@@ -83,13 +84,13 @@ my class Date does Dateish {
                 # If we overflow on days in the month, rather than throw an
                 # exception, we just clip to the last of the month
                 my $day = $!day min $.days-in-month($year, $month);
-                $date = self.new(:$year, :$month, :$day);
+                $date = self.new($year,$month,$day);
                 succeed;
             }
 
             when 'year' | 'years' {
                 my $year = $!year + $amount;
-                $date = self.new(:$year, :$!month, :$!day);
+                $date = self.new($year,$!month,$!day);
                 succeed;
             }
 
@@ -108,28 +109,21 @@ my class Date does Dateish {
         self.new(|%args);
     }
 
-    method succ() {
+    method succ(Date:D:) {
         self.new-from-daycount(self.daycount + 1);
     }
-    method pred() {
+    method pred(Date:D:) {
         self.new-from-daycount(self.daycount - 1);
     }
 
-    multi method gist(Date:D:) {
-        self.Str
-    }
-
     multi method Str(Date:D:) {
-        my str $format = (0 <= $!year <= 9999 ?? '%04d-%02d-%02d' !! '%+05d-%02d-%02d');
-        sprintf $format, $!year, $!month, $!day;
+        sprintf '%04d-%02d-%02d', $!year, $!month, $!day
     }
-
     multi method perl(Date:D:) {
-        self.^name ~ ".new($!year.perl(), $!month.perl(), $!day.perl())";
+        self.^name ~ ".new($!year,$!month,$!day)"
     }
-
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
-        $dt.year == $!year && $dt.month == $!month && $dt.day == $!day;
+        $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
 }
 

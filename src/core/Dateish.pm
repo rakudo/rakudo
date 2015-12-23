@@ -3,7 +3,7 @@ my role Dateish {
     has Int $.year;
     has Int $.month = 1;
     has Int $.day = 1;
-    has Int $!daycount;
+    has Int $.daycount;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
@@ -22,13 +22,22 @@ my role Dateish {
     my $days-in-month := nqp::list(
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
-    sub DAYS-IN-MONTH(\year, \month) {
+    method !DAYS-IN-MONTH(\year, \month) {
         nqp::atpos($days-in-month,month) ||
           ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
     proto method days-in-month(|) { * }
-    multi method days-in-month(Dateish:D:) { DAYS-IN-MONTH($!year,$!month) }
-    multi method days-in-month(Dateish: $y, $m) { DAYS-IN-MONTH($y,$m) }
+    multi method days-in-month(Dateish:D:) {
+        self!DAYS-IN-MONTH($!year,$!month)
+    }
+    multi method days-in-month(Dateish: $y, $m) {
+        self!DAYS-IN-MONTH($y,$m)
+    }
+
+    multi method new(Dateish:) {
+        fail X::Cannot::New.new(class => self);
+    }
+    multi method gist(Dateish:D:) { self.Str }
 
     method daycount() {
         $!daycount //= do {

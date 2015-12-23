@@ -320,10 +320,6 @@ my class DateTime does Dateish {
     multi method Str(DateTime:D:) {
         &!formatter ?? &!formatter(self) !! self!formatter
     }
-    multi method gist(DateTime:D:) {
-        self.Str;
-    }
-
     multi method perl(DateTime:D:) {
         self.^name
           ~ '.new('

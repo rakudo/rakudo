@@ -98,8 +98,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
-    method !precomp-id(Str $name) {
-        my $id = $name ~ self.path-spec;
+    method !precomp-id(Str $name, Str $dist-id) {
+        my $id = $name ~ $dist-id ~ self.path-spec;
         $id ~= ',' ~ self.next-repo.id if self.next-repo;
         nqp::sha1($id)
     }
@@ -111,8 +111,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
 
+        my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
-        if not $force and $dist-dir.child($dist.id) ~~ :e {
+        if not $force and $dist-dir.child($dist-id) ~~ :e {
             $lock.unlock;
             fail "$dist already installed";
         }
@@ -126,7 +127,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # "provides" or just "files".
         for %sources.kv -> $name, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!precomp-id($file);
+            my $id          = self!precomp-id($file, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
             $dist.provides{ $name } = {
@@ -141,7 +142,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %scripts.kv -> $basename, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!precomp-id($file);
+            my $id          = self!precomp-id($file, $dist-id);
             my $destination = $resources-dir.child($id);
             my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
@@ -162,20 +163,19 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %resources.kv -> $name, $file is copy {
             $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id             = self!precomp-id($file) ~ '.' ~ $file.IO.extension;
+            my $id             = self!precomp-id($file, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
             $dist.files{$name} = $id;
             copy($file, $destination);
         }
 
-        $dist-dir.child($dist.id).spurt: to-json($dist.Hash);
+        $dist-dir.child($dist-id).spurt: to-json($dist.Hash);
 
         my $precomp = $*REPO.precomp-repository;
-        my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id($dist.id));
-        for $dist.provides.values.map(*.values[0]<file>) -> $file-id {
-            my $source = $sources-dir.child($file-id);
+        my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+        for $dist.provides.values.map(*.values[0]<file>) -> $id {
+            my $source = $sources-dir.child($id);
             if $precomp.may-precomp {
-                my $id            = self!precomp-id($source.Str);
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
@@ -253,7 +253,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     );
                     my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
                     my $handle;
-                    my $id = self!precomp-id($loader.Str);
+                    my $id = $loader.basename;
                     if $precomp.may-precomp {
                         $handle = (
                             $precomp.load($id, :since($loader.modified)) # already precompiled?

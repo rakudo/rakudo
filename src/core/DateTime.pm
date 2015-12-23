@@ -10,8 +10,8 @@ my class DateTime does Dateish {
 
     method !formatter() { # ISO 8601 timestamp
         my $o = $!timezone.Int;
-        sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
-            $!year, $!month, $!day, $!hour, $!minute,
+        sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
+            self!year-Str, $!month, $!day, $!hour, $!minute,
             $!second.floor == $!second
               ?? $!second.Int.fmt('%02d')
               !! $!second.fmt('%09.6f'),
@@ -95,27 +95,39 @@ my class DateTime does Dateish {
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
-        my int $a = $time + 32044;     # date algorithm from Claus Tøndering
-        my int $b = (4 * $a + 3) div 146097; # 146097 = days in 400 years
-        my int $c = $a - (146097 * $b) div 4;
-        my int $d = (4 * $c + 3) div 1461;       # 1461 = days in 4 years
-        my int $e = $c - ($d * 1461) div 4;
-        my int $m = (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
+        my Int $a = $time + 32044;     # date algorithm from Claus Tøndering
+        my Int $b = (4 * $a + 3) div 146097; # 146097 = days in 400 years
+        my Int $c = $a - (146097 * $b) div 4;
+        my Int $d = (4 * $c + 3) div 1461;       # 1461 = days in 4 years
+        my Int $e = $c - ($d * 1461) div 4;
+        my Int $m = (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
         my int $day   = $e - (153 * $m + 2) div 5 + 1;
         my int $month = $m + 3 - 12 * ($m div 10);
-        my int $year  = $b * 100 + $d - 4800 + $m div 10;
+        my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
         my $dt =
           self.bless(:$year,:$month,:$day,:$hour,:$minute,:$second,:&formatter);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(Str $format, :$timezone, :&formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d[<[\.,]>\d ** 1..6]?) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
-            or X::Temporal::InvalidFormat.new(
-                    invalid-str => $format,
-                    target      => 'DateTime',
-                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-                ).throw;
+        X::Temporal::InvalidFormat.new(
+          invalid-str => $format,
+          target      => 'DateTime',
+          format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
+        ).throw unless $format ~~ /^
+          (<[+-]>? \d**4 \d*)                            # year
+          '-'
+          (\d\d)                                         # month
+          '-'
+          (\d\d)                                         # day
+          <[Tt]>                                         # time separator
+          (\d\d)                                         # hour
+          ':'
+          (\d\d)                                         # minute
+          ':'
+          (\d\d[<[\.,]>\d ** 1..6]?)                     # second
+          (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? # timezone
+        $/;
 
         my int $tz = 0;
         if $6 {

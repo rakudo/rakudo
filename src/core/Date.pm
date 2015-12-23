@@ -121,9 +121,7 @@ my class Date does Dateish {
         self.new-from-daycount(self.daycount - 1);
     }
 
-    multi method Str(Date:D:) {
-        sprintf '%04d-%02d-%02d', $!year, $!month, $!day
-    }
+    multi method Str(Date:D:) { self.yyyy-mm-dd }
     multi method perl(Date:D:) {
         self.^name ~ ".new($!year,$!month,$!day)"
     }

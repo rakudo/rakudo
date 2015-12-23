@@ -1,8 +1,8 @@
 my role Dateish {
     # could all be ints once native atributes of roles are visible in classes
     has Int $.year;
-    has Int $.month = 1;
-    has Int $.day = 1;
+    has int $.month = 1;
+    has int $.day = 1;
     has Int $.daycount;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
@@ -32,6 +32,10 @@ my role Dateish {
     }
     multi method days-in-month(Dateish: $y, $m) {
         self!DAYS-IN-MONTH($y,$m)
+    }
+
+    method !year-Str() {
+        sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
     }
 
     multi method new(Dateish:) {
@@ -109,7 +113,7 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd() { sprintf '%04d-%02d-%02d',$!year,$!month,$!day }
+    method yyyy-mm-dd() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
 
     method !truncate-ymd(Cool:D $unit, %parts? is copy) {
         if $unit eq 'week' | 'weeks' {

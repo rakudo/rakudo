@@ -191,15 +191,8 @@ my class Promise {
         my $vow    = $p.vow;
         for @promises -> $cand {
             $cand.then({
-                if .status == Kept {
-                    if $lock.protect({ $c = $c - 1 }) == 0 {
-                        $vow.keep(True)
-                    }
-                }
-                else {
-                    if $lock.protect({ my int $o = $c; $c = $c - ($n + 1); $o }) > 0 {
-                        $vow.break(.cause)
-                    }
+                if $lock.protect({ $c = $c - 1 }) == 0 {
+                    $vow.keep(True)
                 }
             })
         }

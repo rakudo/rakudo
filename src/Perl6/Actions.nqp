@@ -5047,10 +5047,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Trait.new($/, '&trait_mod:<of>', $<typename>.ast);
     }
 
-    method trait_mod:sym<as>($/) {
-        make Trait.new($/, '&trait_mod:<as>', $<typename>.ast);
-    }
-
     method trait_mod:sym<returns>($/) {
         make Trait.new($/, '&trait_mod:<returns>', $<typename>.ast);
     }

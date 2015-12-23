@@ -345,11 +345,6 @@ multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     $target.^mixin(Callable.^parameterize($type))
 }
 
-proto sub trait_mod:<as>(|) { * }
-multi sub trait_mod:<as>(Parameter:D $param, $type) {
-    $param.set_coercion($type);
-}
-
 proto sub trait_mod:<handles>(|) { * }
 multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {

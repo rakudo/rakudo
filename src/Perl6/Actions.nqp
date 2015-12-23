@@ -6779,7 +6779,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := nqp::uc($t); }  # disable transitive thunking for now
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
-            my $metapast := QAST::Op.new( :op<call>, :name($helper), $basepast );
+            my $metapast := QAST::Op.new( :op<call>, :name($helper), WANTED($basepast,'infixish') );
             $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
@@ -6802,8 +6802,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $basesym := '';
             }
             if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
-                $ast := QAST::Op.new( :op<call>,
-                        :name('&METAOP_TEST_ASSIGN' ~ $*W.canonicalize_pair('', $basesym)) );
+                $ast := WANTED(QAST::Op.new( :op<call>,
+                        :name('&METAOP_TEST_ASSIGN' ~ $*W.canonicalize_pair('', $basesym)) ),'infixish');
             }
             else {
                 $ast := QAST::Op.new( :node($/), :op<call>,
@@ -6823,7 +6823,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $base<OPER><sym>)),
                                            :scope<lexical>);
         my $metaop   := baseop_reduce($base<OPER><O>);
-        my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
+        my $metapast := QAST::Op.new( :op<call>, :name($metaop), WANTED($basepast,'reduce'));
         my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
@@ -6868,7 +6868,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                            :scope<lexical>);
-        my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, $basepast);
+        my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, WANTED($basepast,'hyperop'));
         if $<opening> eq '<<' || $<opening> eq '«' {
             my $dwim := $*W.add_constant('Int', 'int', 1);
             $dwim.named('dwim-left');

@@ -5,7 +5,7 @@ my role Dateish {
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
-    method !VALID-UNIT($unit) {
+    method VALID-UNIT($unit) {
         state %UNITS =  # core setting doesn't build if it is a my at role level
           (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
         X::DateTime::InvalidDeltaUnit.new(:$unit).throw
@@ -120,7 +120,7 @@ my role Dateish {
 
     method truncate-parts(Cool:D $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        self!VALID-UNIT($unit);
+        self.VALID-UNIT($unit);
         if $unit eq 'week' | 'weeks' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
@@ -331,7 +331,7 @@ my class DateTime does Dateish {
             unless %unit.keys;
 
         my ($unit, $amount) = %unit.kv;
-        self!VALID-UNIT($unit);
+        self.VALID-UNIT($unit);
 
         my $hour   = $!hour;
         my $minute = $!minute;
@@ -577,7 +577,7 @@ my class Date does Dateish {
             unless %unit.keys;
 
         my ($unit, $amount) = %unit.kv;
-        self!VALID-UNIT($unit);
+        self.VALID-UNIT($unit);
 
         my $date;
 

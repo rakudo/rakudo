@@ -1657,6 +1657,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     ## Terms
 
+    token term:sym<¤>                  { <sym>(\d+) }
     token term:sym<fatarrow>           { <fatarrow> }
     token term:sym<colonpair>          { <colonpair> }
     token term:sym<variable>           { <variable> { $*VAR := $<variable> } }

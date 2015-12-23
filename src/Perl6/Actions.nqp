@@ -100,11 +100,17 @@ sub wanted($ast,$by) {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('WANTED',1);
         }
-        elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' ||
-              $ast.op eq 'p6decontrv' {
+        elsif $ast.op eq 'p6decontrv' {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
             $ast.annotate('WANTED',1);
+        }
+        elsif $ast.op eq 'while' ||
+              $ast.op eq 'until' {
+            WANTALL($ast,$byby);
+            # Rewrite a 'while A { B }' to 'for Nil xx * -> $ { last unless A; B }'
+            my $*FAKE_MACRO := $ast;
+            my $match := $ast[1].node.CURSOR.'!cursor_init'('for Nil xx * -> $ { last ' ~ ($ast.op eq 'while' ?? 'unless' !! 'if') ~ ' ¤0; ¤1 }').statement.MATCH;
+            $ast := $match.ast;
         }
         elsif $ast.op eq 'if' ||
               $ast.op eq 'unless' ||
@@ -134,6 +140,7 @@ sub wanted($ast,$by) {
             }
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
+            return WANTED($node,$byby) if !$*COMPILING_CORE_SETTING;
             $node[1] := WANTED($node[1], $byby);
             $node.annotate('WANTED',1);
         }
@@ -206,10 +213,18 @@ sub unwanted($ast, $by) {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('context','sink');
         }
-        elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' ||
-              $ast.op eq 'p6decontrv' {
+        elsif $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
+            $ast.annotate('context','sink');
+        }
+        elsif $ast.op eq 'while' ||
+              $ast.op eq 'until' {
+            if !$*COMPILING_CORE_SETTING && $ast[1].ann('WANTMEPLEASE') {
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($ast, $byby));
+                $ast.annotate('context','sink');
+                return $ast;
+            }
+            $ast[1] := UNWANTED($ast[1], $byby);
             $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'if' ||
@@ -244,6 +259,11 @@ sub unwanted($ast, $by) {
             }
         }
         elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
+            if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
+                $ast.annotate('context','sink');
+                return $ast;
+            }
             $node[1] := UNWANTED($node[1], $byby);
             $node.annotate('context','sink');
         }
@@ -1086,7 +1106,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         }
                     }
                     else {
-                        if $i == $e && $*ESCAPEBLOCK {
+                        if nqp::istype($ast,QAST::Op) && ($ast.op eq 'while' || $ast.op eq 'until') {
+                            $ast := UNWANTED($ast,'statementlist/loop');   # statement level loops never want return value
+                        }
+                        elsif $i == $e && $*ESCAPEBLOCK {
                             $ast := QAST::Stmt.new(autosink(WANTED($ast,'statementlist/else')), :returns($ast.returns));
                         }
                         else {
@@ -2119,6 +2142,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     ## Terms
 
+    method term:sym<¤>($/)                  { make $*FAKE_MACRO[+$/[0]]; }
     method term:sym<fatarrow>($/)           { make $<fatarrow>.ast; }
     method term:sym<colonpair>($/)          { make $<colonpair>.ast; }
     method term:sym<variable>($/)           { make $<variable>.ast; }

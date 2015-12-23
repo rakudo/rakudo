@@ -2141,6 +2141,9 @@ class Perl6::World is HLL::World {
                 }
                 if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                     $code_past.has_exit_handler(1);
+                    if nqp::existskey(%phasers, 'KEEP') || nqp::existskey(%phasers,'UNDO') {
+                        $code_past.annotate('WANTMEPLEASE',1);
+                    }
                 }
             }
         }

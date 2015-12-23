@@ -136,7 +136,7 @@ my class DateTime does Dateish {
             $tz = $timezone;
         }
 
-        self.new(+$0,+$1,+$2,+$3,+$4,+$5,$tz,:&formatter)
+        self.new(+$0,+$1,+$2,+$3,+$4,+(~$5.subst(",",".")),$tz,:&formatter)
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {

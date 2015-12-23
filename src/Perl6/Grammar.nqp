@@ -3000,7 +3000,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $*IN_DECL := ''; }
         <.ws>
         <trait>*
+        :my %*MYSTERY;
         <?[<(«]> <term> <.ws>
+        <.explain_mystery> <.cry_sorrows>
     }
 
     rule type_declarator:sym<subset> {
@@ -3055,7 +3057,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         { $*W.push_lexpad($/) }
         [
-        || <initializer>
+        || :my %*MYSTERY; <initializer> <.explain_mystery> <.cry_sorrows>
         || <.missing: "initializer on constant declaration">
         ]
 

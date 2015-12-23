@@ -4,7 +4,7 @@ use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 12;
+plan 13;
 
 compile_test_lib('02-simple-args');
 

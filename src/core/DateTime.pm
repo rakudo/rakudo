@@ -1,8 +1,8 @@
 my class DateTime does Dateish {
-    has Int $.hour      = 0;
-    has Int $.minute    = 0;
+    has int $.hour      = 0;
+    has int $.minute    = 0;
     has     $.second    = 0.0;
-    has     $.timezone  = 0; # UTC
+    has int $.timezone  = 0; # UTC
     has     &.formatter;
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
@@ -27,118 +27,116 @@ my class DateTime does Dateish {
              !! 'Z';
     }
 
-    multi method new() {
-        fail "Required named parameter 'year' is missing for DateTime.new()";
-    }
+    multi method new(DateTime:
+      Int() $year,
+      Int() $month,
+      Int() $day,
+      Int() $hour,
+      Int() $minute,
+            $second,
+      Int() $timezone,
+      :&formatter,
+    ) {
+        (1..12).in-range($month,'Month');
+        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        (0..23).in-range($hour,'Hour');
+        (0..59).in-range($minute,'Minute');
+        (^61).in-range($second,'Second');
+        my $dt = self.bless(
+          :$year,:$month,:$day,:$hour,:$minute,:$second,:$timezone,:&formatter);
 
-    multi method new(Int :$year!, *%_) {
-        my $dt = self.bless(:$year, |%_);
-        $dt.check-date;
-        $dt.check-time;
-        $dt;
-    }
-
-    method check-time {
-        # Asserts the validity of and numifies $!hour, $!minute, and $!second.
-        self.check-value($!hour, 'hour', 0 ..^ 24);
-        self.check-value($!minute, 'minute', 0 ..^ 60);
-        self.check-value($!second, 'second', 0 ..^ 62, :allow-nonint);
-        if $!second >= 60 {
-            # Ensure this is an actual leap second.
-            self.second < 61
-                or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => 'No second 61 has yet been defined',
-                ).throw;
-            my $dt = self.utc;
-            $dt.hour == 23 && $dt.minute == 59
-                or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => 'a leap second can occur only at hour 23 and minute 59 UTC',
-                ).throw;
-            my $date = sprintf '%04d-%02d-%02d',
-                $dt.year, $dt.month, $dt.day;
-            $date eq any(tai-utc.leap-second-dates)
-                or X::OutOfRange.new(
-                        what  => 'second',
-                        range => (0..^60),
-                        got   => self.second,
-                        comment => "There is no leap second on UTC $date",
-                ).throw;
+        # check leap second spec
+        if $second >= 60 {
+            my $utc = $timezone ?? $dt.utc !! $dt;
+            X::OutOfRange.new(
+              what  => 'Second',
+              range => "0..^60",
+              got   => $second,
+              comment => 'a leap second can occur only at 23:59',
+            ).throw unless $utc.hour == 23 && $utc.minute == 59;
+            my $date = $utc.yyyy-mm-dd;
+            X::OutOfRange.new(
+              what  => 'Second',
+              range => "0..^60",
+              got   => $second,
+              comment => "There is no leap second on UTC $date",
+            ).throw unless tai-utc.leap-second-dates.first($date);
         }
-    }
 
-    multi method new(Date:D :$date!, *%_) {
-        self.new(year => $date.year, month => $date.month,
-            day => $date.day, |%_)
+        $dt
     }
-
-    multi method new(Instant:D $i, :$timezone=0, :&formatter) {
+    multi method new(DateTime:
+      :$year!,
+      :$month    = 1,
+      :$day      = 1,
+      :$hour     = 0,
+      :$minute   = 0,
+      :$second   = 0,
+      :$timezone = 0,
+      :&formatter,
+      ) {
+        self.new($year,$month,$day,$hour,$minute,$second,$timezone,:&formatter)
+    }
+    multi method new(DateTime: Date:D :$date!, *%_) {
+        self.new(:year($date.year),:month($date.month),:day($date.day),|%_)
+    }
+    multi method new(DateTime: Instant:D $i, :$timezone = 0, :&formatter) {
         my ($p, $leap-second) = $i.to-posix;
         my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
-        $dt.clone(second => ($dt.second + $p % 1 + $leap-second)
-            ).in-timezone($timezone);
+        $dt.clone(
+          :second($dt.second + $p % 1 + $leap-second)
+        ).in-timezone($timezone)
     }
-
-    multi method new(Int:D $time is copy, :$timezone=0, :&formatter) {
+    multi method new(Int:D $time is copy, :$timezone = 0, :&formatter) {
         # Interpret $time as a POSIX time.
-        my $second  = $time % 60; $time = $time div 60;
-        my $minute  = $time % 60; $time = $time div 60;
-        my $hour    = $time % 24; $time = $time div 24;
+        my int $second = $time % 60; $time = $time div 60;
+        my int $minute = $time % 60; $time = $time div 60;
+        my int $hour   = $time % 24; $time = $time div 24;
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
-        my $a = $time + 32044;     # date algorithm from Claus Tøndering
-        my $b = (4 * $a + 3) div 146097; # 146097 = days in 400 years
-        my $c = $a - (146097 * $b) div 4;
-        my $d = (4 * $c + 3) div 1461;       # 1461 = days in 4 years
-        my $e = $c - ($d * 1461) div 4;
-        my $m = (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
-        my $day   = $e - (153 * $m + 2) div 5 + 1;
-        my $month = $m + 3 - 12 * ($m div 10);
-        my $year  = $b * 100 + $d - 4800 + $m div 10;
-        self.bless(:$year, :$month, :$day,
-            :$hour, :$minute, :$second,
-            :&formatter).in-timezone($timezone);
-    }
+        my int $a = $time + 32044;     # date algorithm from Claus Tøndering
+        my int $b = (4 * $a + 3) div 146097; # 146097 = days in 400 years
+        my int $c = $a - (146097 * $b) div 4;
+        my int $d = (4 * $c + 3) div 1461;       # 1461 = days in 4 years
+        my int $e = $c - ($d * 1461) div 4;
+        my int $m = (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
+        my int $day   = $e - (153 * $m + 2) div 5 + 1;
+        my int $month = $m + 3 - 12 * ($m div 10);
+        my int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-    multi method new(Str $format, :$timezone is copy = 0, :&formatter) {
+        my $dt =
+          self.bless(:$year,:$month,:$day,:$hour,:$minute,:$second,:&formatter);
+        $timezone ?? $dt.in-timezone($timezone) !! $dt
+    }
+    multi method new(Str $format, :$timezone, :&formatter) {
         $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) <[Tt]> (\d\d) ':' (\d\d) ':' (\d\d[<[\.,]>\d ** 1..6]?) (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
                     format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
                 ).throw;
-        my $year   = (+$0).Int;
-        my $month  = (+$1).Int;
-        my $day    = (+$2).Int;
-        my $hour   = (+$3).Int;
-        my $minute = (+$4).Int;
-        my $second = +$5;
+
+        my int $tz = 0;
         if $6 {
-            $timezone
-                and X::DateTime::TimezoneClash.new.throw;
-            if $6.chars == 1 {
-                $timezone = 0;
-            } else {
-                if $6[2] && $6[2][0] > 59 {
-                    X::OutOfRange.new(
-                        what    => "minutes of timezone",
-                        got     => +$6[2][0],
-                        range   => 0..59,
-                   ).throw;
-                }
-                $timezone = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
+            X::DateTime::TimezoneClash.new.throw if $timezone;
+            if $6.chars != 1 {
+                X::OutOfRange.new(
+                  what  => "minutes of timezone",
+                  got   => +$6[2][0],
+                  range => "0..^60",
+                ).throw if $6[2] && $6[2][0] > 59;
+
+                $tz = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
                   # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
-                $6[0] eq '-' and $timezone = -$timezone;
+                $tz = -$tz if $6[0] eq '-';
             }
         }
-        self.new(:$year, :$month, :$day, :$hour, :$minute,
-            :$second, :$timezone, :&formatter);
+        elsif $timezone {
+            $tz = $timezone;
+        }
+
+        self.new(+$0,+$1,+$2,+$3,+$4,+$5,$tz,:&formatter)
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
@@ -150,8 +148,7 @@ my class DateTime does Dateish {
                    :$!second, :$!timezone, :&!formatter, %_;
         self.new(|%args);
     }
-
-    method clone-without-validating(*%_) { # A premature optimization.
+    method !clone-without-validating(*%_) { # A premature optimization.
         my %args = :$!year, :$!month, :$!day, :$!hour, :$!minute,
                    :$!second, :$!timezone, :&!formatter, %_;
         self.bless(|%args);
@@ -162,61 +159,56 @@ my class DateTime does Dateish {
     }
 
     method posix($ignore-timezone?) {
-        $ignore-timezone or self.offset == 0
-            or return self.utc.posix;
+        return self.utc.posix if $!timezone && !$ignore-timezone;
+
         # algorithm from Claus Tøndering
-        my $a = (14 - $!month.Int) div 12;
-        my $y = $!year.Int + 4800 - $a;
-        my $m = $!month.Int + 12 * $a - 3;
-        my $jd = $!day + (153 * $m + 2) div 5 + 365 * $y
+        my int $a = (14 - $!month) div 12;
+        my int $y = $!year + 4800 - $a;
+        my int $m = $!month + 12 * $a - 3;
+        my int $jd = $!day + (153 * $m + 2) div 5 + 365 * $y
             + $y div 4 - $y div 100 + $y div 400 - 32045;
-        ($jd - 2440588) * 24 * 60 * 60
-            + 60*(60*$!hour + $!minute) + self.whole-second;
+        ($jd - 2440588) * 86400
+          + $!hour      * 3600
+          + $!minute    * 60
+          + self.whole-second
     }
 
-    method offset {
-        $!timezone.Int;
-    }
+    method offset()            { $!timezone }
+    method offset-in-minutes() { $!timezone / 60 }
+    method offset-in-hours()   { $!timezone / 3600 }
 
-    method offset-in-minutes {
-        $!timezone.Int / 60;
-    }
+    method later(:$earlier, *%unit) {
+        my @pairs = %unit.pairs;
+        die "More than one time unit supplied" if @pairs > 1;
+        die "No time unit supplied"        unless @pairs;
 
-    method offset-in-hours {
-        $!timezone.Int / 60 / 60;
-    }
-
-    method later(*%unit) {
-        die "More than one time unit supplied"
-            if %unit.keys > 1;
-
-        die "No time unit supplied"
-            unless %unit.keys;
-
-        my ($unit, $amount) = %unit.kv;
+        my $unit   = @pairs.AT-POS(0).key;
         self!VALID-UNIT($unit);
 
-        my $hour   = $!hour;
-        my $minute = $!minute;
+        my $amount = @pairs.AT-POS(0).value;
+        $amount = -$amount if $earlier;
+
+        my int $hour   = $!hour;
+        my int $minute = $!minute;
         my $date;
 
         given $unit {
             when 'second' | 'seconds' {
-                return self.new(self.Instant + $amount, :$.timezone, :&.formatter);
+                return
+                  self.new(self.Instant + $amount, :$!timezone, :&!formatter);
             }
-
             when 'minute' | 'minutes' { $minute += $amount; proceed }
 
             $hour += floor($minute / 60);
             $minute %= 60;
 
-            when 'hour' | 'hours' { $hour += $amount; proceed }
+            when 'hour' | 'hours'     { $hour += $amount; proceed }
 
             my $day-delta += floor($hour / 24);
             $hour %= 24;
 
-            when 'day' | 'days' { $day-delta += $amount; proceed }
-            when 'week' | 'weeks' { $day-delta += 7 * $amount; proceed }
+            when 'day' | 'days'       { $day-delta += $amount; proceed }
+            when 'week' | 'weeks'     { $day-delta += 7 * $amount; proceed }
 
             when 'month' | 'months' {
                 my $month = $!month;
@@ -226,66 +218,62 @@ my class DateTime does Dateish {
                 $month = ($month - 1) % 12 + 1;
                 # If we overflow on days in the month, rather than throw an
                 # exception, we just clip to the last of the month
-                my $day = $!day min $.days-in-month($year, $month);
-                $date = Date.new(:$year, :$month, :$day);
+                $date = Date.new($year,$month,$!day > 28
+                  ?? $!day min self!DAYS-IN-MONTH($year,$month)
+                  !! $!day);
                 succeed;
             }
 
             when 'year' | 'years' {
-                my $year = $!year + $amount;
-                $date = Date.new(:$year, :$!month, :$!day);
+                $date = Date.new($!year + $amount,$!month,$!day);
                 succeed;
             }
 
-            my $daycount = self.daycount + $day-delta;
-            $date = Date.new-from-daycount($daycount);
+            $date = Date.new-from-daycount(self.daycount + $day-delta);
         }
 
         my $second = $!second;
-        if $second > 59 && $date ne any(tai-utc.leap-second-dates) {
+        if $second > 59 + ?tai-utc.leap-second-dates.first(~$date) {
             $second -= 60;
-            $minute++;
+            ++$minute;
             if $minute > 59 {
                 $minute -= 60;
-                $hour++;
+                ++$hour;
                 if $hour > 23 {
                     $hour -= 24;
-                    $date++;
+                    ++$date;
                 }
             }
         }
-        self.new(:$date, :$hour, :$minute, :$second, :$.timezone, :&.formatter);
+        self.bless(:year($date.year),:month($date.month),:day($date.day),
+          :$hour,:$minute,:$second,:$!timezone,:&!formatter)
     }
 
-    method earlier(*%unit) {
-        self.later(| -<< %unit);
-    }
+    method earlier(*%unit) { self.later(:earlier, |%unit) }
 
     method truncated-to(Cool $unit) {
+        self!VALID-UNIT($unit);
         my %parts;
         given $unit {
             %parts<second> = self.whole-second;
-            when 'second'   {}
+            when 'second' | 'seconds' {}
             %parts<second> = 0;
-            when 'minute'   {}
+            when 'minute' | 'minutes' {}
             %parts<minute> = 0;
-            when 'hour'     {}
+            when 'hour'   | 'hours'   {}
             %parts<hour> = 0;
-            when 'day'      {}
-            # Fall through to Dateish.
-            %parts = self.truncate-parts($unit, %parts);
+            when 'day'    | 'days'    {}
+            %parts = self!truncate-ymd($unit, %parts);
         }
-        self.clone-without-validating(|%parts);
+        self!clone-without-validating(|%parts);
     }
-
-    method whole-second() {
-        $!second.Int
-    }
+    method whole-second() { $!second.Int }
 
     method in-timezone($timezone) {
-        $timezone eqv $!timezone and return self;
-        my $old-offset = self.offset;
-        my $new-offset = $timezone.Int;
+        return self if $timezone == $!timezone;
+
+        my int $old-offset = self.offset;
+        my int $new-offset = $timezone.Int;
         my %parts;
         # Is the logic for handling leap seconds right?
         # I don't know, but it passes the tests!
@@ -302,37 +290,20 @@ my class DateTime does Dateish {
             %parts<year month day> =
                 self!ymd-from-daycount(self.daycount + $c div 24);
         }
-        self.clone-without-validating:
-            :$timezone, |%parts;
+        self!clone-without-validating: :$timezone, |%parts;
     }
 
-    method utc() {
-        self.in-timezone(0)
-    }
-    method local() {
-        self.in-timezone($*TZ)
-    }
+    method utc()   { self.in-timezone(0) }
+    method local() { self.in-timezone($*TZ) }
 
-    method Date() {
-        Date.new(:$!year, :$!month, :$!day);
-    }
+    method Date() { Date.new($!year,$!month,$!day) }
 
     multi method Str(DateTime:D:) {
         &!formatter ?? &!formatter(self) !! self!formatter
     }
     multi method perl(DateTime:D:) {
         self.^name
-          ~ '.new('
-          ~ (:$!year.perl,
-             :$!month.perl,
-             :$!day.perl,
-             :$!hour.perl,
-             :$!minute.perl,
-             :$!second.perl,
-             (:$!timezone.perl unless $!timezone === 0),
-             (:&!formatter.perl if &!formatter),
-            ).join(', ')
-         ~ ')'
+          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,$!timezone)"
     }
 }
 

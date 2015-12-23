@@ -52,7 +52,8 @@ my class Date does Dateish {
     }
 
     method truncated-to(Cool $unit) {
-        self.clone(|self.truncate-parts($unit));
+        self!VALID-UNIT($unit);
+        self!clone-without-validating(|self!truncate-ymd($unit));
     }
 
     method later(*%unit) {
@@ -107,6 +108,10 @@ my class Date does Dateish {
     method clone(*%_) {
         my %args = :$!year, :$!month, :$!day, %_;
         self.new(|%args);
+    }
+    method !clone-without-validating(*%_) { # A premature optimization.
+        my %args = :$!year, :$!month, :$!day, %_;
+        self.bless(|%args);
     }
 
     method succ(Date:D:) {

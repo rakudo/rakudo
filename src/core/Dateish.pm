@@ -109,33 +109,17 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method check-value($val is copy, $name, $range, :$allow-nonint) {
-        $val = $allow-nonint ?? +$val !! $val.Int;
-        $val ~~ $range
-            or X::OutOfRange.new(
-                        what    => $name,
-                        got     => $val,
-                        range   => $range,
-               ).throw;
-    }
+    method yyyy-mm-dd() { sprintf '%04d-%02d-%02d',$!year,$!month,$!day }
 
-    method check-date {
-        self.check-value($!month, 'month', 1 .. 12);
-        self.check-value($!day, "day of $!year/$!month",
-            1 .. self.days-in-month);
-    }
-
-    method truncate-parts(Cool:D $unit, %parts? is copy) {
-        # Helper for DateTime.truncated-to and Date.truncated-to.
-        self!VALID-UNIT($unit);
+    method !truncate-ymd(Cool:D $unit, %parts? is copy) {
         if $unit eq 'week' | 'weeks' {
             my $dc = self.daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
-            %parts<year month day> =
-                self!ymd-from-daycount($new-dc);
-        } else { # $unit eq 'month' | 'months' | 'year' | 'years'
-            %parts<day> = 1;
-            $unit eq 'year' and %parts<month> = 1;
+            %parts<year month day> = self!ymd-from-daycount($new-dc);
+        }
+        else { # $unit eq 'month' | 'months' | 'year' | 'years'
+            %parts<day>   = 1;
+            %parts<month> = 1 if $unit eq 'year' | 'years';
         }
         %parts;
     }

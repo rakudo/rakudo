@@ -468,7 +468,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-regex(Regex:D $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                   || $_.match($!test);
                 $_
             }
@@ -499,7 +499,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
-                         1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                         Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                            || $!test($_);
                          $_
                      }
@@ -556,7 +556,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-accepts(Mu $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                1 until ($_ := $!iter.pull-one) =:= IterationEnd
+                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                   || $!test.ACCEPTS($_);
                 $_
             }

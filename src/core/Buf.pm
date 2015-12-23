@@ -1,7 +1,8 @@
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
-my class X::Cannot::Lazy    { ... }
+my class X::Cannot::Lazy        { ... }
+my class X::Experimental        { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     multi method new() {
@@ -144,9 +145,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method unpack(|) { * }
     multi method unpack(Blob:D: Str:D $template) {
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
+            feature => "the 'unpack' method",
+            use     => "pack"
+        ).throw;
         self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
     }
     multi method unpack(Blob:D: @template) {
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
+            feature => "the 'unpack' method",
+            use     => "pack"
+        ).throw;
         my @bytes = self.list;
         my @fields;
         for @template -> $unit {
@@ -319,10 +328,18 @@ constant buf64 = Buf[uint64];
 
 proto sub pack(|) { * }
 multi sub pack(Str $template, *@items) {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
+        feature => "the 'pack' function",
+        use     => "pack"
+    ).throw;
     pack($template.comb(/<[a..zA..Z]>[\d+|'*']?/), @items)
 }
 
 multi sub pack(@template, *@items) {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
+        feature => "the 'pack' function",
+        use     => "pack"
+    ).throw;
     my @bytes;
     for @template -> $unit {
         my $directive = substr($unit,0,1);

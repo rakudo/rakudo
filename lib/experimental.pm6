@@ -33,3 +33,7 @@ package EXPORT::smallnatives {
     our native uint2 is repr('P6int') is Int is nativesize( 2) is unsigned { }
     our native uint4 is repr('P6int') is Int is nativesize( 4) is unsigned { }
 }
+
+package EXPORT::pack {
+    OUR::<EXPERIMENTAL-PACK> := True;
+}

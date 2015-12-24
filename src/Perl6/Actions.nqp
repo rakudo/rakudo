@@ -1127,8 +1127,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $pl := $past[+@($past) - 1];
-            $pl.annotate('final', 1);
-            $past.returns($pl.returns);
+            if $pl.ann('context') eq 'sink' {
+                $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            }
+            else {
+                $pl.annotate('final', 1);
+                $past.returns($pl.returns);
+            }
         }
         make $past;
     }

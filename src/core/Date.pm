@@ -9,21 +9,18 @@ my class Date does Dateish {
         self.new($year,$month,$day)
     }
     multi method new(Date: Str $date) {
-        CATCH {
-            when X::OutOfRange {
-                .throw
-            }
-            default {
-                X::Temporal::InvalidFormat.new(
-                  invalid-str => $date,
-                  format      => 'yyyy-mm-dd',
-                ).throw;
-            }
-        }
-        my @p = $date.split('-');
-        @p != 3
-          ?? die()
-          !! self.new(@p.AT-POS(0),@p.AT-POS(1),@p.AT-POS(2))
+        X::Temporal::InvalidFormat.new(
+          invalid-str => $date,
+          target      => 'Date',
+          format      => 'yyyy-mm-dd',
+        ).throw unless $date ~~ /^
+          (<[+-]>? \d**4 \d*)                            # year
+          '-'
+          (\d\d)                                         # month
+          '-'
+          (\d\d)                                         # day
+        $/;
+        self.new(+$0,+$1,+$2)
     }
     multi method new(Date: Dateish $d) {
         self.bless(:year($d.year), :month($d.month), :day($d.day));

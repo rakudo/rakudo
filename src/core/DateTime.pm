@@ -109,12 +109,12 @@ my class DateTime does Dateish {
           self.bless(:$year,:$month,:$day,:$hour,:$minute,:$second,:&formatter);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
-    multi method new(Str $format, :$timezone, :&formatter) {
+    multi method new(Str $datetime, :$timezone, :&formatter) {
         X::Temporal::InvalidFormat.new(
-          invalid-str => $format,
+          invalid-str => $datetime,
           target      => 'DateTime',
           format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-        ).throw unless $format ~~ /^
+        ).throw unless $datetime ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month

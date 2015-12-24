@@ -6012,6 +6012,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := block_closure($past);
             $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
         }
+        $past.node($/);
         make $past;
     }
 

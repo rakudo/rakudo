@@ -357,7 +357,7 @@ my class Problems {
 
     method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
-        if !nqp::can($mnode,'orig') { note("[DISLOCATED MESSAGE] " ~ $message); return; }
+#        if !nqp::can($mnode,'orig') { note("[DISLOCATED MESSAGE] " ~ $message); return; }
         my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
         my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
         my %cont := %!worrying;

@@ -74,21 +74,24 @@ my class Date does Dateish {
             when 'week' | 'weeks' { $day-delta = 7 * $amount; proceed }
 
             when 'month' | 'months' {
-                my $month = $!month;
-                my $year  = $!year;
+                my int $month = $!month;
+                my int $year  = $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
                 # If we overflow on days in the month, rather than throw an
                 # exception, we just clip to the last of the month
-                my $day = $!day min $.days-in-month($year, $month);
-                $date = self.new($year,$month,$day);
+                $date = Date.new($year,$month,$!day > 28
+                  ?? $!day min self!DAYS-IN-MONTH($year,$month)
+                  !! $!day);
                 succeed;
             }
 
             when 'year' | 'years' {
-                my $year = $!year + $amount;
-                $date = self.new($year,$!month,$!day);
+                my int $year = $!year + $amount;
+                $date = Date.new($year,$!month,$!day > 28
+                  ?? $!day min self!DAYS-IN-MONTH($year,$!month)
+                  !! $!day);
                 succeed;
             }
 

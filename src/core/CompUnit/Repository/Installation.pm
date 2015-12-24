@@ -173,16 +173,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         my $precomp = $*REPO.precomp-repository;
         my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+        my %done;
+        my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
         for $dist.provides.values.map(*.values[0]<file>) -> $id {
             my $source = $sources-dir.child($id);
             if $precomp.may-precomp {
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
+                if %done{$id} { note "(Already did $id)" if $verbose; next }
+                note("Precompiling $id") if $verbose;
                 $precomp.precompile($source.IO, $id, :force);
+                %done{$id} = 1;
                 for @rev-deps -> $rev-dep-id {
+                    if %done{$rev-dep-id} { note "(Already did $rev-dep-id)" if $verbose; next }
+                    note("Precompiling $rev-dep-id") if $verbose;
                     my $source = $sources-dir.child($rev-dep-id);
                     $precomp.precompile($source, $rev-dep-id, :force) if $source.e;
+                    %done{$rev-dep-id} = 1;
                 }
             }
         }

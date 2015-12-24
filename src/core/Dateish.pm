@@ -46,8 +46,8 @@ my role Dateish {
     method daycount() {
         $!daycount //= do {
             # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-            my $m = $!month < 3 ?? $!month + 12 !! $!month;
-            my $y = $!year - ($!month < 3);
+            my int $m = $!month < 3 ?? $!month + 12 !! $!month;
+            my int $y = $!year - ($!month < 3);
             -678973 + $!day + (153 * $m - 2) div 5
               + 365 * $y + $y div 4
               - $y div 100  + $y div 400;

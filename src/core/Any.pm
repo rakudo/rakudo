@@ -342,6 +342,9 @@ my class Any { # declared in BOOTSTRAP
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
         my int $elems = @indices.elems;
+        if $elems <= 2 {
+            die X::Bind.new();
+        }
         my \value := @indices.AT-POS($elems - 1);
         my $final := @indices.AT-POS($elems - 2);
         my $target := self;

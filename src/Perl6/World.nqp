@@ -2986,7 +2986,7 @@ class Perl6::World is HLL::World {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
             my $enclosing := @!BLOCKS[+@!BLOCKS - 1];
             my $enter_tmp := $enclosing.unique('enter_result_');
-            $enclosing[0].push(QAST::Var.new( :name($enter_tmp), :scope('local'), :decl('var') ));
+            $enclosing[0].push(WANTED(QAST::Var.new( :name($enter_tmp), :scope('local'), :decl('var') ),'add_phaser'));
             my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
             @pres.push($block);
             @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('local') ));

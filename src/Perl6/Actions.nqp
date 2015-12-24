@@ -1254,7 +1254,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op<sayfh>,
                             QAST::Op.new(:op<getstderr>),
-                            QAST::SVal.new(:value("$id ($file:$line)\n$code"))
+                            QAST::SVal.new(:value("$id ($file line $line)\n$code"))
                         ),
                         $past
                     );

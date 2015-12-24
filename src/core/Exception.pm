@@ -544,8 +544,8 @@ my role X::Comp is Exception {
             for @.modules.reverse[1..*] {
                 my $line = nqp::p6box_i($_<line>);
                 $r ~= $_<module>.defined
-                        ?? "\n  from module $_<module> ($_<filename>:$line)"
-                        !! "\n  from $_<filename>:$line";
+                        ?? "\n  from module $_<module> ($_<filename> line $line)"
+                        !! "\n  from $_<filename> line $line";
             }
             $r;
         }
@@ -627,8 +627,8 @@ my class X::Comp::BeginTime does X::Comp {
         for @.modules.reverse[1..*] {
             my $line = nqp::p6box_i($_<line>);
             $r ~= $_<module>.defined
-                    ?? "\n  from module $_<module> ($_<filename>:$line)"
-                    !! "\n  from $_<filename>:$line";
+                    ?? "\n  from module $_<module> ($_<filename> line $line)"
+                    !! "\n  from $_<filename> line $line";
         }
         unless $!exception ~~ X::MOP {
             $r ~= "\nException details:\n" ~ $!exception.gist.indent(2);

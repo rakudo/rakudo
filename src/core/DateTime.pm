@@ -223,8 +223,8 @@ my class DateTime does Dateish {
             when 'week' | 'weeks'     { $day-delta += 7 * $amount; proceed }
 
             when 'month' | 'months' {
-                my $month = $!month;
-                my $year  = $!year;
+                my int $month = $!month;
+                my int $year  = $!year;
                 $month += $amount;
                 $year += floor(($month - 1) / 12);
                 $month = ($month - 1) % 12 + 1;
@@ -237,7 +237,10 @@ my class DateTime does Dateish {
             }
 
             when 'year' | 'years' {
-                $date = Date.new($!year + $amount,$!month,$!day);
+                my int $year = $!year + $amount;
+                $date = Date.new($year,$!month,$!day > 28
+                  ?? $!day min self!DAYS-IN-MONTH($year,$!month)
+                  !! $!day);
                 succeed;
             }
 

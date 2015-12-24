@@ -22,7 +22,7 @@ my class Backtrace::Frame {
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;
-        my $text = "  in {$s}$.subname at {$.file}:$.line\n";
+        my $text = "  in {$s}$.subname at {$.file} line $.line\n";
 
         if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
             my $io = $!file.IO;

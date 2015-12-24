@@ -336,6 +336,7 @@ General Options:
                        Download and build a copy of NQP
     --gen-moar[=branch]
                        Download and build a copy of MoarVM to use
+    --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
     --git-protocol={ssh,https,git}
@@ -347,6 +348,7 @@ General Options:
                        For example: --git-reference=/home/user/repo/for_perl6
                        Folders 'nqp' and 'MoarVM' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
+    --no-clean         Skip cleanup before installation
 
 Configure.pl also reads options from 'config.default' in the current directory.
 END

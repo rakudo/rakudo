@@ -156,14 +156,14 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        my %args = :$!year, :$!month, :$!day, :$!hour, :$!minute,
-                   :$!second, :$!timezone, :&!formatter, %_;
-        self.new(|%args);
+        self.new(
+          :$!year, :$!month, :$!day, :$!hour, :$!minute, :$!second,
+          :$!timezone, :&!formatter, |%_)
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        my %args = :$!year, :$!month, :$!day, :$!hour, :$!minute,
-                   :$!second, :$!timezone, :&!formatter, %_;
-        self.bless(|%args);
+        self.bless(
+          :$!year, :$!month, :$!day, :$!hour, :$!minute, :$!second,
+          :$!timezone, :&!formatter, |%_)
     }
 
     method Instant() {

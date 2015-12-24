@@ -2990,6 +2990,7 @@ class Perl6::World is HLL::World {
             my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
             @pres.push($block);
             @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('local') ));
+            $var.annotate('WANTED',1);  # don't really know if wanted, but suppress warning
             return $var;
         }
         else {

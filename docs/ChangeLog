@@ -4,7 +4,7 @@ New in 2015.12:
    + Greatly overhauled module loading and installation, including handling
      precompilation at module installation time in Rakudo
    + Automatic precompilation of modules
-   + no precompilation pragma to opt out of precompilation
+   + 'no precompilation' pragma to opt out of precompilation
    + Can now specify the backlog for listening sockets
    + NativeCall now knows the size_t and bool types
    + Give IO::Socket::INET connect/listen methods
@@ -37,14 +37,14 @@ New in 2015.12:
    + Implement CLOSE phaser for supply blocks
    + Respect multi's sigs in role composition
    + Treat multis with equivalent sigs as collisions
-   + New method $*VM.platform-libary-name
+   + New method $*VM.platform-library-name
  + Incompatible changes
    + Bool is now a proper enum
    + Supply.new replaced by Supplier.new
    + An exact arity match in multiple dispatch beats slurpy/optional
    + Supplies consistently treat list values as single arguments
-   + Remove grep-index/first-index/last-index
-   + Remove support for Str.split(:all)
+   + Remove grep-index/first-index/last-index for attributes in grep/first
+   + Remove support for Str.split(:all) (use :v instead)
    + Changed IO::Socket::Async reading API to .Supply method
    + Order Complex first on .re, then .im
    + Order ranges first on min, then on max

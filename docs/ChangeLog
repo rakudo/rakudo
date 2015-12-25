@@ -1,29 +1,112 @@
 New in 2015.12:
  + Features
+   + Fixed size and multi-dimensional typed and native arrays
+   + Greatly overhauled module loading and installation, including handling
+     precompilation at module installation time in Rakudo
+   + Automatic precompilation of modules
+   + no precompilation pragma to opt out of precompilation
+   + Can now specify the backlog for listening sockets
+   + NativeCall now knows the size_t and bool types
+   + Give IO::Socket::INET connect/listen methods
    + while/until loops can now return lists of values
    + We now catch many more kinds of "Useless use of X in sink context"
    + On the flip side, the optimizer now has a much better idea of what is sunk
    + A number of convenient Unicode equivalents were introduced
    + Superscripts can now be used for integer powers
-   + Non-digit unicode characters with a numeric value (½ and such) can now be used for that numeric value
+   + Non-digit unicode characters with a numeric value (½ and such) can now be
+     used for that numeric value
    + There is a new "approximately equal" operator
    + The .narrow method can narrow things that are approximate integer
+   + Allow quoted words as input for Buf.unpack
+   + Can now mix in to enums
+   + Implement List.first()
+   + Added Supply.head and Supply.share
+   + Implement Range.rand
+   + Add support for USAGE argument help
+   + Provide tau constant (also: τ)
+   + Can now use channels with supply/react/whenever
+   + Implement %?RESOURCES
+   + Allow for :every *and* :times in SCHEDULER.cue
+   + Implement Promise.at
+   + Add .Date/.DateTime coercers to Instant
+   + Implement native-descriptor on handles/sockets
+   + Add UDP support to IO::Socket::Async
+   + Switch to doing newline translation at I/O boundaries
+   + Add support for specifing the api/abi version to native (NC) routine
+   + Greatly improved support for sized and unsigned native lexicals
+   + Implement CLOSE phaser for supply blocks
+   + Respect multi's sigs in role composition
+   + Treat multis with equivalent sigs as collisions
+   + New method $*VM.platform-libary-name
  + Incompatible changes
    + Bool is now a proper enum
    + Supply.new replaced by Supplier.new
+   + An exact arity match in multiple dispatch beats slurpy/optional
+   + Supplies consistently treat list values as single arguments
+   + Remove grep-index/first-index/last-index
+   + Remove support for Str.split(:all)
+   + Changed IO::Socket::Async reading API to .Supply method
+   + Order Complex first on .re, then .im
+   + Order ranges first on min, then on max
    + Use of EVAL now requires a declaration of 'use MONKEY-SEE-NO-EVAL'
    + Likewise regex interpolation is limited in the absence of the declaration
    + Empty loop modifiers must now use Nil to avoid "useless use" warning
    + Thunky operators now thunkify arguments even when used in metaoperators
    + SEQ() is renamed to STATEMENT_LIST() to avoid extra overloading of 'sequence'
+   + Tweak attribute initializer semantics match assignment semantics
+   + Make @a[^2] consistent with @a[0,1]
+   + Make ::= a NYI, in light of 6.c
+   + Promise.Supply is an on-demand Supply
+   + Remove earliest syntax
+   + Forbid argument-less Date.new
+   + Forbid Instant.new
+   + Remove IO::ArgFiles.nl
+   + Move sub-byte native int types to experimental
+   + Enforce return types in pointy block sigs
+   + Kill off has-accessor; use has_accessor instead, consistent with MOP
+   + Make X, Z, and roundrobin respect items
+   + Fix loss of structure in xx
+   + Enforce SSA on sigilless in `my (\x, \y) = 1, 2;`
+   + Remove IO::Socket::Inet.input-line-separator
+   + Remove IO::Socket::Async.(bytes|chars)-supply
+   + Remove IO::Handle.(ins|nl)
+   + Remove IO::Handle.seek(pos,Int:D whence)
+   + Promise.[anyof|allof] no longer break
+   + Make pack and unpack experimental
  + Fixes
    + Dynamic variables are now visible inside start { ... } blocks
+   + Sparse array no longer acts empty on shift
+   + Disallow positions < 0 on index/rindex
+   + Make "require PAKAGE/STRING" return said PACKAGE/STRING
+   + Fix BEGIN/CHECK block scoping precompilation bug
+   + Fix bug in the scheduler that could swallow exceptions
+   + Supply.from-list should follow 1-arg rule
+   + Prevent data loss in various cases with async sockets and processes
    + Autoincrements on native ints are now faster than on Int
    + The ~~ operator can now chain with other comparisons in many circumstances
    + Imported operators no longer lose their precedence info
-   + Various numeric operations now return overflow/underflow failures instead of wrong value
+   + Various numeric operations now return overflow/underflow failures instead
+     of wrong value
    + The :ss, :ii, and :mm options to s/// now all work together
    + Ranges and complex are now ordered more consistently
+   + Mixin Callable[$type] for all ways of declaring return type
+   + Don't ignore return types when calling ACCEPTS with Signatures
+   + Make MMD setup of sub print same as say/note/put
+   + Fixed circular module loading detection
+   + Cool.substr-eq should return a Bool
+   + Fix some failures to catch return outside routine
+   + Stop phaser loop swallowing loop exceptions
+   + Fix FIRST in loop/while/until
+   + Consistently return Nil for no value, not a typeobject
+   + Import should reuse precedence of exported ops
+   + Fix slurpy hashes in Signature ACCEPTS
+   + Fix SomeRole.^roles
+   + Make :transitive the default for .^roles.
+   + fail should reliably die if outside of a routine
+   + Make slicing with adverbs respect itemization
+   + Fix return type of qqw{...}
+   + Make (1,2,3)[2] = 4 and (1,2,3)[3] give same error
+   + Show non-printables in IO::Path.perl
 
 New in 2015.11:
  + Features

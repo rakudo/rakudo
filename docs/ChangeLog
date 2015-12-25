@@ -1,10 +1,29 @@
 New in 2015.12:
  + Features
+   + while/until loops can now return lists of values
+   + We now catch many more kinds of "Useless use of X in sink context"
+   + On the flip side, the optimizer now has a much better idea of what is sunk
+   + A number of convenient Unicode equivalents were introduced
+   + Superscripts can now be used for integer powers
+   + Non-digit unicode characters with a numeric value (½ and such) can now be used for that numeric value
+   + There is a new "approximately equal" operator
+   + The .narrow method can narrow things that are approximate integer
  + Incompatible changes
    + Bool is now a proper enum
    + Supply.new replaced by Supplier.new
+   + Use of EVAL now requires a declaration of 'use MONKEY-SEE-NO-EVAL'
+   + Likewise regex interpolation is limited in the absence of the declaration
+   + Empty loop modifiers must now use Nil to avoid "useless use" warning
+   + Thunky operators now thunkify arguments even when used in metaoperators
+   + SEQ() is renamed to STATEMENT_LIST() to avoid extra overloading of 'sequence'
  + Fixes
    + Dynamic variables are now visible inside start { ... } blocks
+   + Autoincrements on native ints are now faster than on Int
+   + The ~~ operator can now chain with other comparisons in many circumstances
+   + Imported operators no longer lose their precedence info
+   + Various numeric operations now return overflow/underflow failures instead of wrong value
+   + The :ss, :ii, and :mm options to s/// now all work together
+   + Ranges and complex are now ordered more consistently
 
 New in 2015.11:
  + Features

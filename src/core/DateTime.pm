@@ -9,22 +9,20 @@ my class DateTime does Dateish {
       # DST-induced ambiguity could ruin our day.
 
     method !formatter() { # ISO 8601 timestamp
-        my $o = $!timezone.Int;
         sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
             self!year-Str, $!month, $!day, $!hour, $!minute,
             $!second.floor == $!second
               ?? $!second.Int.fmt('%02d')
               !! $!second.fmt('%09.6f'),
-            $o
-             ?? do {
-                    warn "DateTime formatter: offset $o not divisible by 60"
-                      unless $o %% 60;
-                    sprintf '%s%02d:%02d',
-                      $o < 0 ?? '-' !! '+',
-                      ($o.abs / 60 / 60).floor,
-                      ($o.abs / 60 % 60).floor
-                   }
-             !! 'Z';
+            $!timezone == 0
+              ?? 'Z'
+              !! $!timezone > 0
+                ?? sprintf('+%02d:%02d',
+                     ($!timezone/3600).floor,
+                     ($!timezone/60%60).floor)
+                !! sprintf('-%02d:%02d',
+                  ($!timezone.abs/3600).floor,
+                  ($!timezone.abs/60%60).floor)
     }
 
     method BUILD(

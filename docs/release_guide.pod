@@ -168,6 +168,7 @@ Make sure everything compiles and runs from a known clean state:
   $ make realclean
   $ perl Configure.pl --gen-moar --backends=ALL
   $ make
+  $ make install
   $ make test
   $ make stresstest
 

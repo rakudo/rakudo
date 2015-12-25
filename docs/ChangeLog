@@ -77,7 +77,7 @@ New in 2015.12:
    + Dynamic variables are now visible inside start { ... } blocks
    + Sparse array no longer acts empty on shift
    + Disallow positions < 0 on index/rindex
-   + Make "require PAKAGE/STRING" return said PACKAGE/STRING
+   + Make "require PACKAGE/STRING" return said PACKAGE/STRING
    + Fix BEGIN/CHECK block scoping precompilation bug
    + Fix bug in the scheduler that could swallow exceptions
    + Supply.from-list should follow 1-arg rule

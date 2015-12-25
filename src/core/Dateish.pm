@@ -1,8 +1,7 @@
 my role Dateish {
-    # could all be ints once native atributes of roles are visible in classes
     has Int $.year;
-    has int $.month = 1;
-    has int $.day = 1;
+    has Int $.month = 1;
+    has Int $.day = 1;
     has Int $.daycount;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool

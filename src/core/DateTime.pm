@@ -1,8 +1,8 @@
 my class DateTime does Dateish {
-    has int $.hour      = 0;
-    has int $.minute    = 0;
-    has     $.second    = 0.0;
-    has int $.timezone  = 0; # UTC
+    has int $.hour;
+    has int $.minute;
+    has     $.second;
+    has int $.timezone;  # UTC
     has     &.formatter;
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
@@ -27,6 +27,16 @@ my class DateTime does Dateish {
              !! 'Z';
     }
 
+    method BUILD(
+      $!year,$!month,$!day,$hour,$minute,$!second,$timezone,&!formatter
+    ) {
+        # can't assign native in attributes inside signature yet
+        $!hour     = $hour,
+        $!minute   = $minute,
+        $!timezone = $timezone;
+        self
+    }
+
     multi method new(DateTime:
       Int() $year,
       Int() $month,
@@ -42,8 +52,9 @@ my class DateTime does Dateish {
         (0..23).in-range($hour,'Hour');
         (0..59).in-range($minute,'Minute');
         (^61).in-range($second,'Second');
-        my $dt = self.bless(
-          :$year,:$month,:$day,:$hour,:$minute,:$second,:$timezone,:&formatter);
+        my $dt = nqp::create(self).BUILD(
+          $year,$month,$day,$hour,$minute,$second,$timezone,&formatter
+        );
 
         # check leap second spec
         if $second >= 60 {
@@ -105,8 +116,9 @@ my class DateTime does Dateish {
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt =
-          self.bless(:$year,:$month,:$day,:$hour,:$minute,:$second,:&formatter);
+        my $dt = nqp::create(self).BUILD(
+          $year,$month,$day,$hour,$minute,$second,0,&formatter
+        );
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(Str $datetime, :$timezone, :&formatter) {
@@ -156,14 +168,33 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
+        my $h := nqp::getattr(%_,Map,'$!storage');
         self.new(
-          :$!year, :$!month, :$!day, :$!hour, :$!minute, :$!second,
-          :$!timezone, :&!formatter, |%_)
+          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
+          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
+          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
+          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
+          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
+          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          nqp::existskey($h,'timezone')
+            ?? nqp::atkey($h,'timezone')  !! $!timezone,
+          formatter => nqp::existskey($h,'formatter')
+            ?? nqp::atkey($h,'formatter') !! &!formatter,
+        )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        self.bless(
-          :$!year, :$!month, :$!day, :$!hour, :$!minute, :$!second,
-          :$!timezone, :&!formatter, |%_)
+        my $h := nqp::getattr(%_,Map,'$!storage');
+        nqp::create(self).BUILD(
+          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
+          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
+          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
+          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
+          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
+          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          nqp::existskey($h,'timezone')
+            ?? nqp::atkey($h,'timezone') !! $!timezone,
+          &!formatter,
+        )
     }
 
     method Instant() {
@@ -260,8 +291,8 @@ my class DateTime does Dateish {
                 }
             }
         }
-        self.bless(:year($date.year),:month($date.month),:day($date.day),
-          :$hour,:$minute,:$second,:$!timezone,:&!formatter)
+        nqp::create(self).BUILD($date.year,$date.month,$date.day,
+          $hour,$minute,$second,$!timezone,&!formatter)
     }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }

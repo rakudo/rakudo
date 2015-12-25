@@ -125,7 +125,7 @@ my class Supply {
                     {
                         state $i = 0;
                         emit($i++);
-                        CATCH { $cancellation.cancel }
+                        CATCH { $cancellation.cancel if $cancellation }
                     },
                     :every($!interval), :in($!delay)
                 );

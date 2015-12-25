@@ -1,7 +1,7 @@
 my role Dateish {
     has Int $.year;
-    has Int $.month = 1;
-    has Int $.day = 1;
+    has Int $.month;
+    has Int $.day;
     has Int $.daycount;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool

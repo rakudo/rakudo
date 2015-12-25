@@ -1,9 +1,11 @@
 my class Date does Dateish {
 
+    method BUILD($!year,$!month,$!day,$!daycount = Int) { self }
+
     multi method new(Date: Int() $year, Int() $month, Int() $day) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
-        self.bless(:$year, :$month, :$day)
+        nqp::create(self).BUILD($year,$month,$day)
     }
     multi method new(Date: :$year!, :$month = 1, :$day = 1) {
         self.new($year,$month,$day)
@@ -23,7 +25,7 @@ my class Date does Dateish {
         self.new(+$0,+$1,+$2)
     }
     multi method new(Date: Dateish $d) {
-        self.bless(:year($d.year), :month($d.month), :day($d.day));
+        nqp::create(self).BUILD($d.year,$d.month,$d.day)
     }
     multi method new(Date: Instant $i) {
         self.new(DateTime.new($i))
@@ -31,7 +33,7 @@ my class Date does Dateish {
 
     method new-from-daycount($daycount) {
         my ($year, $month, $day) = self!ymd-from-daycount($daycount);
-        self.bless(:$daycount, :$year, :$month, :$day);
+        nqp::create(self).BUILD($year,$month,$day,$daycount);
     }
 
     method today() {
@@ -110,8 +112,12 @@ my class Date does Dateish {
         self.new(|%args);
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        my %args = :$!year, :$!month, :$!day, %_;
-        self.bless(|%args);
+        my $h := nqp::getattr(%_,Map,'$!storage');
+        nqp::create(self).BUILD(
+          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')   !! $!year,
+          nqp::existskey($h,'month') ?? nqp::atkey($h,'month')  !! $!month,
+          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')    !! $!day,
+        )
     }
 
     method succ(Date:D:) {

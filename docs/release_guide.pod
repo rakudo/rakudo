@@ -13,7 +13,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2015-12-17   Rakudo #94 "коледа"             (Coke) # v6.c
   2016-01-16   Rakudo #95
   2016-02-20   Rakudo #96
   2016-03-19   Rakudo #97
@@ -351,6 +350,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2015-09-17   Rakudo #91 "Zürich"             (Coke)
   2015-10-22   Rakudo #92 "Niceville"          (Coke) # v6.b
   2015-11-19   Rakudo #93 "Bend"               (Coke)
+  2015-12-25   Rakudo #94 "коледа"             (Coke) # v6.c
 
 =head1 COPYRIGHT
 

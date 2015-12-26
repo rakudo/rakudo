@@ -81,36 +81,27 @@ my class Date does Dateish {
         $amount = -$amount if $earlier;
 
         my $date;
-        given $unit {
-
-            my $day-delta;
-            when 'day' | 'days' { $day-delta = $amount; proceed }
-            when 'week' | 'weeks' { $day-delta = 7 * $amount; proceed }
-
-            when 'month' | 'months' {
-                my int $month = $!month;
-                my int $year  = $!year;
-                $month += $amount;
-                $year += floor(($month - 1) / 12);
-                $month = ($month - 1) % 12 + 1;
-                # If we overflow on days in the month, rather than throw an
-                # exception, we just clip to the last of the month
-                $date = Date.new($year,$month,$!day > 28
-                  ?? $!day min self!DAYS-IN-MONTH($year,$month)
-                  !! $!day);
-                succeed;
-            }
-
-            when 'year' | 'years' {
-                my int $year = $!year + $amount;
-                $date = Date.new($year,$!month,$!day > 28
-                  ?? $!day min self!DAYS-IN-MONTH($year,$!month)
-                  !! $!day);
-                succeed;
-            }
-            $date = self.new-from-daycount(self.daycount + $day-delta);
+        if nqp::atkey($valid-units,$unit) -> $multiplier {
+            self.new-from-daycount(self.daycount + $multiplier * $amount )
         }
-        $date;
+        elsif $unit.starts-with('month') {
+            my int $month = $!month;
+            my int $year  = $!year;
+            $month += $amount;
+            $year += floor(($month - 1) / 12);
+            $month = ($month - 1) % 12 + 1;
+            # If we overflow on days in the month, rather than throw an
+            # exception, we just clip to the last of the month
+            Date.new($year,$month,$!day > 28
+              ?? $!day min self!DAYS-IN-MONTH($year,$month)
+              !! $!day);
+        }
+        else { # year
+            my int $year = $!year + $amount;
+            Date.new($year,$!month,$!day > 28
+              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
+              !! $!day);
+        }
     }
 
     method clone(*%_) {

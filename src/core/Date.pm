@@ -1,5 +1,21 @@
 my class Date does Dateish {
 
+    my $valid-units := nqp::hash(
+      'day',    1,
+      'days',   1,
+      'week',   7,
+      'weeks',  7,
+      'month',  0,
+      'months', 0,
+      'year',   0,
+      'years',  0,
+    );
+    method !VALID-UNIT($unit) {
+        nqp::existskey($valid-units,$unit)
+          ?? $unit
+          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+    }
+
     method BUILD($!year,$!month,$!day,$!daycount = Int) { self }
 
     multi method new(Date: Int() $year, Int() $month, Int() $day) {
@@ -51,8 +67,8 @@ my class Date does Dateish {
     }
 
     method truncated-to(Cool $unit) {
-        self!VALID-UNIT($unit);
-        self!clone-without-validating(|self!truncate-ymd($unit));
+        self!clone-without-validating(
+          |self!truncate-ymd(self!VALID-UNIT($unit)));
     }
 
     method later(:$earlier, *%unit) {
@@ -60,16 +76,12 @@ my class Date does Dateish {
         die "More than one time unit supplied" if @pairs > 1;
         die "No time unit supplied"        unless @pairs;
 
-        my $unit   = @pairs.AT-POS(0).key;
-        self!VALID-UNIT($unit);
-
+        my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
         my $amount = @pairs.AT-POS(0).value;
         $amount = -$amount if $earlier;
 
         my $date;
         given $unit {
-            X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-                when 'second' | 'seconds' | 'minute' | 'minutes' | 'hour' | 'hours';
 
             my $day-delta;
             when 'day' | 'days' { $day-delta = $amount; proceed }

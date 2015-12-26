@@ -25,6 +25,28 @@ my class DateTime does Dateish {
                   ($!timezone.abs/60%60).floor)
     }
 
+    my $valid-units := nqp::hash(
+      'second',       1,
+      'seconds',      1,
+      'minute',      60,
+      'minutes',     60,
+      'hour',      3600,
+      'hours',     3600,
+      'day',      86400,
+      'days',     86400,
+      'week',    604800,
+      'weeks',   604800,
+      'month',        0,
+      'months',       0,
+      'year',         0,
+      'years',        0,
+    );
+    method !VALID-UNIT($unit) {
+        nqp::existskey($valid-units,$unit)
+          ?? $unit
+          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+    }
+
     method BUILD(
       $!year,$!month,$!day,$hour,$minute,$!second,$timezone,&!formatter
     ) {
@@ -223,9 +245,7 @@ my class DateTime does Dateish {
         die "More than one time unit supplied" if @pairs > 1;
         die "No time unit supplied"        unless @pairs;
 
-        my $unit   = @pairs.AT-POS(0).key;
-        self!VALID-UNIT($unit);
-
+        my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
         my $amount = @pairs.AT-POS(0).value;
         $amount = -$amount if $earlier;
 
@@ -294,9 +314,8 @@ my class DateTime does Dateish {
     }
 
     method truncated-to(Cool $unit) {
-        self!VALID-UNIT($unit);
         my %parts;
-        given $unit {
+        given self!VALID-UNIT($unit) {
             %parts<second> = self.whole-second;
             when 'second' | 'seconds' {}
             %parts<second> = 0;

@@ -6,13 +6,6 @@ my role Dateish {
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
-    method !VALID-UNIT($unit) {
-        state %UNITS =  # core setting doesn't build if it is a my at role level
-          (<second minute hour day week month year> X~ "","s").map: {$_ => 1};
-        X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-          unless %UNITS.EXISTS-KEY($unit);
-    }
-
     sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
     proto method is-leap-year(|) { * }
     multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }

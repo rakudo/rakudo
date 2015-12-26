@@ -38,7 +38,7 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new(+$0,+$1,+$2)
+        self.new($0,$1,$2)
     }
     multi method new(Date: Dateish $d) {
         nqp::create(self).BUILD($d.year,$d.month,$d.day)

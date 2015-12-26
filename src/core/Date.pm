@@ -55,18 +55,18 @@ my class Date does Dateish {
         self!clone-without-validating(|self!truncate-ymd($unit));
     }
 
-    method later(*%unit) {
-        die "More than one time unit supplied"
-            if %unit.keys > 1;
+    method later(:$earlier, *%unit) {
+        my @pairs = %unit.pairs;
+        die "More than one time unit supplied" if @pairs > 1;
+        die "No time unit supplied"        unless @pairs;
 
-        die "No time unit supplied"
-            unless %unit.keys;
-
-        my ($unit, $amount) = %unit.kv;
+        my $unit   = @pairs.AT-POS(0).key;
         self!VALID-UNIT($unit);
 
-        my $date;
+        my $amount = @pairs.AT-POS(0).value;
+        $amount = -$amount if $earlier;
 
+        my $date;
         given $unit {
             X::DateTime::InvalidDeltaUnit.new(:$unit).throw
                 when 'second' | 'seconds' | 'minute' | 'minutes' | 'hour' | 'hours';
@@ -96,20 +96,18 @@ my class Date does Dateish {
                   !! $!day);
                 succeed;
             }
-
             $date = self.new-from-daycount(self.daycount + $day-delta);
         }
-
         $date;
     }
 
-    method earlier(*%unit) {
-        self.later(| -<< %unit);
-    }
-
     method clone(*%_) {
-        my %args = :$!year, :$!month, :$!day, %_;
-        self.new(|%args);
+        my $h := nqp::getattr(%_,Map,'$!storage');
+        self.new(
+          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')   !! $!year,
+          nqp::existskey($h,'month') ?? nqp::atkey($h,'month')  !! $!month,
+          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')    !! $!day,
+        )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
         my $h := nqp::getattr(%_,Map,'$!storage');

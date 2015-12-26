@@ -293,8 +293,6 @@ my class DateTime does Dateish {
           $hour,$minute,$second,$!timezone,&!formatter)
     }
 
-    method earlier(*%unit) { self.later(:earlier, |%unit) }
-
     method truncated-to(Cool $unit) {
         self!VALID-UNIT($unit);
         my %parts;

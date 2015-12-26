@@ -114,6 +114,8 @@ my role Dateish {
 
     method yyyy-mm-dd() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
 
+    method earlier(*%unit) { self.later(:earlier, |%unit) }
+
     method !truncate-ymd(Cool:D $unit, %parts? is copy) {
         if $unit eq 'week' | 'weeks' {
             my $dc = self.daycount;

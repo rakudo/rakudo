@@ -328,10 +328,8 @@ my class DateTime does Dateish {
         %parts<hour> = $c % 24;
 
         # Let Dateish handle any further rollover.
-        if ($c div 24) {
-            %parts<year month day> =
-                self!ymd-from-daycount(self.daycount + $c div 24);
-        }
+        self!ymd-from-daycount(self.daycount + $c div 24,
+          %parts<year>,%parts<month>,%parts<day>) if $c div 24;
         self!clone-without-validating: :$timezone, |%parts;
     }
 

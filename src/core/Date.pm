@@ -32,8 +32,8 @@ my class Date does Dateish {
     }
 
     method new-from-daycount($daycount) {
-        my ($year, $month, $day) = self!ymd-from-daycount($daycount);
-        nqp::create(self).BUILD($year,$month,$day,$daycount);
+        self!ymd-from-daycount($daycount, my $year, my $month, my $day);
+        nqp::create(self).BUILD($year,$month,$day,$daycount)
     }
 
     method today() {

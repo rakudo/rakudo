@@ -53,22 +53,24 @@ my role Dateish {
         }
     }
 
-    method !ymd-from-daycount($daycount) {
+    method !ymd-from-daycount($daycount,\year,\month,\day --> Nil) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         my Int $dc = $daycount.Int + 678881;
         my Int $ti = (4 * ($dc + 36525)) div 146097 - 1;
         my Int $year = 100 * $ti;
         my int $day = $dc - (36524 * $ti + ($ti div 4));
         my int $t = (4 * ($day + 366)) div 1461 - 1;
-        $year = $year + $t;
-        $day = $day - (365 * $t + ($t div 4));
+        year = $year + $t;
+        $day  = $day - (365 * $t + ($t div 4));
         my int $month = (5 * $day + 2) div 153;
-        $day = $day - ((2 + $month * 153) div 5 - 1);
+        day = $day - ((2 + $month * 153) div 5 - 1);
         if ($month > 9) {
-            $month = $month - 12;
-            $year = $year + 1;
+            month = $month - 9;
+            year  = year + 1;
         }
-        ($year, $month + 3, $day)
+        else {
+            month = $month + 3;
+        }
     }
 
     method day-of-month() { $!day }
@@ -120,7 +122,8 @@ my role Dateish {
         if $unit eq 'week' | 'weeks' {
             my $dc = self.daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
-            %parts<year month day> = self!ymd-from-daycount($new-dc);
+            self!ymd-from-daycount($new-dc,
+              %parts<year>,%parts<month>,%parts<day>);
         }
         else { # $unit eq 'month' | 'months' | 'year' | 'years'
             %parts<day>   = 1;

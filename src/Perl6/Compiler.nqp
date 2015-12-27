@@ -170,8 +170,36 @@ class Perl6::Compiler is HLL::Compiler {
         return 1;
     }
 
+    method try_load_readline() {
+        my @symbols;
+
+        try {
+            @symbols := self.eval("use nqp; use Readline; nqp::list(&readline, &add_history)", :outer_ctx(nqp::null()));
+
+            CATCH { } # it's ok if we can't load Readline
+        }
+
+        return 0 unless @symbols;
+
+        try {
+            $!readline := @symbols[0];
+            $!readline_add_history := @symbols[1];
+
+            CATCH {
+                nqp::say('I ran into a problem while trying to set up REPL completions:');
+                nqp::say(~$_);
+                nqp::say('Continuing without tab completions');
+                nqp::say('');
+
+                return 0;
+            }
+        }
+        return 1;
+    }
+
     method interactive(*%adverbs) {
         my $readline_loaded := 0;
+        $readline_loaded := $readline_loaded || self.try_load_readline();
         $readline_loaded := $readline_loaded || self.try_load_linenoise();
 
         $!completions := self.get-completions();

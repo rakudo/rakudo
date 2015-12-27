@@ -6,6 +6,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
 
+    method prefix {
+	IO::Path.new(%*ENV<DESTDIR> ~ $!prefix)
+    }
+
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
     }

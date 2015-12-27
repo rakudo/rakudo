@@ -9,7 +9,8 @@ my %provides =
     "experimental"               => "lib/experimental.pm6",
 ;
 
-CompUnit::RepositoryRegistry.repository-for-name('perl').install(
+PROCESS::<$REPO> := CompUnit::RepositoryRegistry.repository-for-spec("inst#@*ARGS[0]");
+$*REPO.install(
     Distribution.new(
         name     => "CORE",
         auth     => "perl",

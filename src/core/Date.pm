@@ -80,7 +80,6 @@ my class Date does Dateish {
         my $amount = @pairs.AT-POS(0).value.Int;
         $amount = -$amount if $earlier;
 
-        my $date;
         if nqp::atkey($valid-units,$unit) -> $multiplier {
             self.new-from-daycount(self.daycount + $multiplier * $amount )
         }

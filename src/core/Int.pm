@@ -389,6 +389,7 @@ multi sub is-prime(Int:D \i) {
     nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i(100)));
 }
 multi sub is-prime(\i) {
+    return nqp::p6bool(0) if i <= 0 or i.Rat.denominator != 1;
     nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i(100)));
 }
 

@@ -159,11 +159,6 @@ class Perl6::Compiler is HLL::Compiler {
             });
 
             CATCH {
-                nqp::say('I ran into a problem while trying to set up REPL completions:');
-                nqp::say(~$_);
-                nqp::say('Continuing without tab completions');
-                nqp::say('');
-
                 return 0;
             }
         }
@@ -186,11 +181,6 @@ class Perl6::Compiler is HLL::Compiler {
             $!readline_add_history := @symbols[1];
 
             CATCH {
-                nqp::say('I ran into a problem while trying to set up REPL completions:');
-                nqp::say(~$_);
-                nqp::say('Continuing without tab completions');
-                nqp::say('');
-
                 return 0;
             }
         }
@@ -201,6 +191,12 @@ class Perl6::Compiler is HLL::Compiler {
         my $readline_loaded := 0;
         $readline_loaded := $readline_loaded || self.try_load_readline();
         $readline_loaded := $readline_loaded || self.try_load_linenoise();
+
+        unless $readline_loaded {
+            nqp::say('I ran into a problem while trying to set up REPL completions:');
+            nqp::say('Continuing without tab completions');
+            nqp::say('');
+        }
 
         $!completions := self.get-completions();
 

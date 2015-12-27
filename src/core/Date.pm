@@ -77,7 +77,7 @@ my class Date does Dateish {
         die "No time unit supplied"        unless @pairs;
 
         my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
-        my $amount = @pairs.AT-POS(0).value;
+        my $amount = @pairs.AT-POS(0).value.Int;
         $amount = -$amount if $earlier;
 
         my $date;

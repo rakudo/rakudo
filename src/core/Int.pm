@@ -389,7 +389,8 @@ multi sub is-prime(Int:D \i) {
     nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i(100)));
 }
 multi sub is-prime(\i) {
-    nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i(100)));
+    i == i.floor
+     && nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i(100)));
 }
 
 proto sub expmod($, $, $) is pure  {*}

@@ -89,11 +89,12 @@ Controls whether .setting files are included in backtraces.
 
 =over
 
-=item C<RAKUDO_PRECOMP_PREFIX> (I<Str>; F<src/core/CompUnit/RepositoryRegistry.pm>)
+=item C<RAKUDO_PREFIX> (I<Str>; F<src/core/CompUnit/RepositoryRegistry.pm>)
 
-When this is set, Rakudo will perform all normal precompilation actions in the specified directory.
-This is intended as an escape hatch for build-time bootstrapping issues, where Rakudo may be built
-as an unprivileged user without write access to the runtime paths in NQP's config.
+When this is set, Rakudo will look for the standard repositories (perl, vendor, site) in the
+specified directory. This is intended as an escape hatch for build-time bootstrapping issues,
+where Rakudo may be built as an unprivileged user without write access to the runtime paths
+in NQP's config.
 
 =item C<RAKUDO_PRECOMP_DIST> (F<src/core/CompUnit/PrecompilationRepository.pm>)
 

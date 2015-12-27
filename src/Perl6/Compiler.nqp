@@ -41,8 +41,8 @@ my sub sorted_set_insert(@values, $value) {
 }
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!linenoise;
-    has $!linenoise_add_history;
+    has $!readline;
+    has $!readline_add_history;
     has $!completions;
 
     method compilation-id() {
@@ -123,47 +123,57 @@ class Perl6::Compiler is HLL::Compiler {
         @completions
     }
 
-    method interactive(*%adverbs) {
+    method try_load_linenoise() {
         my @symbols;
+
         try {
             @symbols := self.eval("use nqp; use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)", :outer_ctx(nqp::null()));
 
-            CATCH {} # it's ok if we can't load Linenoise
+            CATCH { } # it's ok if we can't load Linenoise
         }
 
-        if @symbols {
-            try {
-                $!linenoise := @symbols[0];
-                $!linenoise_add_history := @symbols[1];
-                my $linenoise_set_completion_callback := @symbols[2];
-                my $linenoise_add_completion := @symbols[3];
+        return 0 unless @symbols;
 
-                $!completions := self.get-completions();
-                $linenoise_set_completion_callback(sub ($line, $c) {
-                    my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
+        try {
+            $!readline := @symbols[0];
+            $!readline_add_history := @symbols[1];
 
-                    my $prefix    := $m ?? ~$m<prefix>    !! '';
-                    my $last_word := $m ?? ~$m<last_word> !! '';
+            my $linenoise_set_completion_callback := @symbols[2];
+            my $linenoise_add_completion := @symbols[3];
 
-                    my $it := nqp::iterator($!completions);
+            $!completions := self.get-completions();
+            $linenoise_set_completion_callback(sub ($line, $c) {
+                my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
-                    while $it {
-                        my $k := nqp::shift($it);
+                my $prefix    := $m ?? ~$m<prefix>    !! '';
+                my $last_word := $m ?? ~$m<last_word> !! '';
 
-                        if $k ~~ /^ $last_word / {
-                            $linenoise_add_completion($c, $prefix ~ $k);
-                        }
+                my $it := nqp::iterator($!completions);
+
+                while $it {
+                    my $k := nqp::shift($it);
+
+                    if $k ~~ /^ $last_word / {
+                        $linenoise_add_completion($c, $prefix ~ $k);
                     }
-                });
-
-                CATCH {
-                    nqp::say('I ran into a problem while trying to set up REPL completions:');
-                    nqp::say(~$_);
-                    nqp::say('Continuing without tab completions');
-                    nqp::say('');
                 }
+            });
+
+            CATCH {
+                nqp::say('I ran into a problem while trying to set up REPL completions:');
+                nqp::say(~$_);
+                nqp::say('Continuing without tab completions');
+                nqp::say('');
+
+                return 0;
             }
         }
+        return 1;
+    }
+
+    method interactive(*%adverbs) {
+        my $readline_loaded := 0;
+        $readline_loaded := $readline_loaded || self.try_load_linenoise();
 
         my $*moreinput := sub ($cursor) {
             my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
@@ -260,9 +270,9 @@ class Perl6::Compiler is HLL::Compiler {
                 }
             }
 
-            $line := $!linenoise($prompt);
+            $line := $!readline($prompt);
             if $line.defined {
-                $!linenoise_add_history($line);
+                $!readline_add_history($line);
                 $line
             } else {
                 $line := nqp::null_s()

@@ -141,7 +141,6 @@ class Perl6::Compiler is HLL::Compiler {
             my $linenoise_set_completion_callback := @symbols[2];
             my $linenoise_add_completion := @symbols[3];
 
-            $!completions := self.get-completions();
             $linenoise_set_completion_callback(sub ($line, $c) {
                 my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
@@ -174,6 +173,8 @@ class Perl6::Compiler is HLL::Compiler {
     method interactive(*%adverbs) {
         my $readline_loaded := 0;
         $readline_loaded := $readline_loaded || self.try_load_linenoise();
+
+        $!completions := self.get-completions();
 
         my $*moreinput := sub ($cursor) {
             my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');

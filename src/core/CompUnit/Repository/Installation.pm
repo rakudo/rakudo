@@ -107,7 +107,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method install(Distribution $dist, %sources, %scripts?, %resources?, :$force) {
         $!lock.protect( {
         my @*MODULES;
-        my $path   = self.writeable-path or die "No writeable path found";
+        my $path   = self.writeable-path or die "No writeable path found, $.prefix not writeable";
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
 
@@ -304,7 +304,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method id() {
         return $!id if $!id;
         $!id = self.CompUnit::Repository::Locally::id();
-        $!id = nqp::sha1($!id ~ self!dist-dir.dir)
+        my $dist-dir = $.prefix.child('dist');
+        $!id = nqp::sha1($!id ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
     }
 
     method short-id() { 'inst' }

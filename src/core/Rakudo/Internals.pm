@@ -679,17 +679,18 @@ my class Rakudo::Internals {
     }
 
     method get-local-timezone-offset() {
-        my $utc = DateTime.new(now).posix.Int;
+        my $utc     = time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
         
         DateTime.new(
-          :year(   nqp::atpos_i($fia,5)),
-          :month(  nqp::atpos_i($fia,4)),
-          :day(    nqp::atpos_i($fia,3)),
-          :hour(   nqp::atpos_i($fia,2)),
-          :minute( nqp::atpos_i($fia,1)),
-          :second( nqp::atpos_i($fia,0)),
-        ).posix(True).Int - $utc;
+          nqp::atpos_i($fia,5),
+          nqp::atpos_i($fia,4),
+          nqp::atpos_i($fia,3),
+          nqp::atpos_i($fia,2),
+          nqp::atpos_i($fia,1),
+          nqp::atpos_i($fia,0),
+          0,
+        ).posix(True) - $utc;
     }
 
 # Keep track of the differences between TAI and UTC for internal use.

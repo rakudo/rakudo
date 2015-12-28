@@ -9,7 +9,7 @@ use LWP::Simple 'get';
 
 my $url = 'ftp://hpiers.obspm.fr/iers/bul/bulc/TimeSteps.history';
 
-$ARGV[0] ||= 'src/core/tai-utc.pm';
+$ARGV[0] ||= 'src/core/Rakudo/Internals.pm';
 my $tu_path = $ARGV[0];
 
 my @dates = do {

@@ -94,7 +94,6 @@ src/core/AST.pm
 src/core/CallFrame.pm
 src/core/allomorphs.pm
 src/core/Main.pm
-src/core/tai-utc.pm
 src/core/Instant.pm
 src/core/Duration.pm
 src/core/Dateish.pm

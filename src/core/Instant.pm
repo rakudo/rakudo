@@ -5,7 +5,7 @@ my class Duration {... }
 my class Instant is Cool does Real {
     has Rat $.tai;
       # A linear count of seconds since 1970-01-01T00:00:00Z, plus
-      # tai-utc::initial-offset. Thus, $.tai matches TAI from 1970
+      # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
 
     method BUILD($!tai) { self }
@@ -17,7 +17,7 @@ my class Instant is Cool does Real {
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
         nqp::create(Instant).BUILD(
-          tai-utc.tai-from-posix($posix,$prefer-leap-second).Rat
+          Rakudo::Internals.tai-from-posix($posix,$prefer-leap-second).Rat
         )
     }
 
@@ -25,7 +25,7 @@ my class Instant is Cool does Real {
     # The inverse of .from-posix, except that the second return
     # value is true if *and only if* this Instant is in a leap
     # second.
-        tai-utc.posix-from-tai($!tai)
+        Rakudo::Internals.posix-from-tai($!tai)
     }
 
     multi method Str(Instant:D:) {

@@ -91,7 +91,7 @@ my class DateTime does Dateish {
               range => "0..^60",
               got   => $second,
               comment => "There is no leap second on UTC $date",
-            ).throw unless tai-utc.is-leap-second-date($date);
+            ).throw unless Rakudo::Internals.is-leap-second-date($date);
         }
 
         $dt
@@ -297,7 +297,7 @@ my class DateTime does Dateish {
         }
 
         my $second = $!second;
-        if $second > 59 + tai-utc.is-leap-second-date(~$date) {
+        if $second > 59 + Rakudo::Internals.is-leap-second-date(~$date) {
             $second -= 60;
             ++$minute;
             if $minute > 59 {

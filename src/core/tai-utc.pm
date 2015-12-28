@@ -8,13 +8,10 @@
 
 my class tai-utc {
 
-    #our $initial-offset = 10;
-    method initial-offset() { 10 }
-      # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
+    my int $initial-offset = 10;
+    # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
-    # our @leap-second-dates = <
-    method leap-second-dates() {
-        BEGIN
+    my $leap-second-dates :=
         #BEGIN leap-second-dates
         (
         '1972-06-30',
@@ -45,7 +42,7 @@ my class tai-utc {
         '2015-06-30',
         )
         #END leap-second-dates
-    };
+    ;
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -55,8 +52,7 @@ my class tai-utc {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    method leap-second-posix() {
-        BEGIN
+    my $leap-second-posix :=
         #BEGIN leap-second-posix
         (
           78796800,
@@ -87,7 +83,38 @@ my class tai-utc {
         1435708800,
         )
         #END leap-second-posix
-    };
-};
+    ;
+
+    method initial-offset()    { $initial-offset    }
+    method leap-second-dates() { $leap-second-dates }
+    method leap-second-posix() { $leap-second-posix }
+
+    my $dates    := nqp::getattr($leap-second-dates,List,'$!reified');
+    my $posixes  := nqp::getattr($leap-second-posix,List,'$!reified');
+    my int $elems = nqp::elems($dates);
+
+    method is-leap-second-date(\date) {
+        my str $date = nqp::unbox_s(date);
+        my int $i    = -1;
+        Nil while ($i = $i + 1) < $elems && $date gt nqp::atpos($dates,$i);
+        $i < $elems && $date eq nqp::atpos($dates,$i);
+    }
+
+    method tai-from-posix(\posix,$prefer-leap-second = False) {
+        my Int $p = posix.floor;
+        my int $i = -1;
+        Nil while ($i = $i + 1) < $elems && $p > nqp::atpos($posixes,$i);
+        posix + $initial-offset + $i +
+          ($i < $elems && !$prefer-leap-second && $p == nqp::atpos($posixes,$i))
+    }
+
+    method posix-from-tai(\tai) {
+        my Int $t = tai.floor - $initial-offset;
+        my int $i = -1;
+        Nil while ($i = $i + 1) < $elems && nqp::atpos($posixes,$i) < ($t - $i);
+        tai - $initial-offset - $i,
+          $i < $elems && nqp::atpos($posixes,$i) == $t - $i
+    }
+}
 
 # vim: ft=perl6 expandtab sw=4

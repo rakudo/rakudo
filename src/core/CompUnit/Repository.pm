@@ -11,6 +11,16 @@ role CompUnit::Repository {
         returns CompUnit:D
         { ... }
 
+    # Resolves a dependency specification to a concrete dependency.
+    # Returns a CompUnit object that represents the selected dependency.
+    # If there is no matching dependency, an undefined CompUnit is returned.
+    method resolve(CompUnit::DependencySpecification $spec)
+        returns CompUnit
+    {
+        return self.next-repo.resolve($spec) if self.next-repo;
+        CompUnit
+    }
+
     # Just load the file and return a CompUnit object representing it.
     method load(IO::Path:D $file)
         returns CompUnit:D

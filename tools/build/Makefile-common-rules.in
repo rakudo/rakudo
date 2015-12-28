@@ -13,5 +13,6 @@ t/localtest.data:
 
 realclean: clean
 	$(RM_F) Makefile config.status MANIFEST
+	$(RM_RF) lib/.precomp/ t/04-nativecall/.precomp/
 
 distclean: realclean

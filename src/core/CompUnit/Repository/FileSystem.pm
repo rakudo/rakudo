@@ -11,17 +11,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     # global cache of files seen
     my %seen;
 
-    method need(
-        CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
-    {
+    method !matching-file(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
-            my $name               = $spec.short-name;
+            my $name = $spec.short-name;
             return %!loaded{$name} if %!loaded{$name}:exists;
 
             my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
+            return $base if %seen{$base}:exists;
             my $found;
 
             # find source file
@@ -42,45 +38,64 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 }
             }
             # deduce path to compilation unit from package name
-            else {
-                if %seen{$base} -> $compunit {
-                    return $compunit;
-                }
-
-                # have extensions to check
-                elsif %extensions<Perl6> -> @extensions {
-                    for @extensions -> $extension {
-                        my $path = $base ~ $extension;
-                        $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
-                    }
+            elsif %extensions<Perl6> -> @extensions {
+                for @extensions -> $extension {
+                    my $path = $base ~ $extension;
+                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
                 }
             }
 
-            if $found {
-                my $id = nqp::sha1($name ~ $*REPO.id);
-                my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-                my $handle = (
-                    $precomp.may-precomp and (
-                        $precomp.load($id, :since($found.modified)) # already precompiled?
-                        or $precomp.precompile($found, $id) and $precomp.load($id) # if not do it now
-                    )
-                );
-                my $precompiled = ?$handle;
+            return $base, $found if $found;
+        }
+        False
+    }
 
-                if $*W and $*W.is_precompilation_mode {
-                    if $precompiled {
-                        say "$id $found";
-                    }
-                    else {
-                        nqp::exit(0);
-                    }
+    method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {
+        my ($base, $file) = self!matching-file($spec);
+        return CompUnit.new(
+            :short-name($spec.short-name),
+            :repo-id($file.Str),
+            :repo(self)
+        ) if $base;
+        return self.next-repo.resolve($spec) if self.next-repo;
+        Nil
+    }
+
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+    )
+        returns CompUnit:D
+    {
+        my ($base, $file) = self!matching-file($spec);
+        if $base {
+            my $name = $spec.short-name;
+            return %!loaded{$name} if %!loaded{$name}:exists;
+            return %seen{$base}    if %seen{$base}:exists;
+
+            my $id = nqp::sha1($name ~ $*REPO.id);
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
+            my $handle = (
+                $precomp.may-precomp and (
+                    $precomp.load($id, :since($file.modified)) # already precompiled?
+                    or $precomp.precompile($file, $id) and $precomp.load($id) # if not do it now
+                )
+            );
+            my $precompiled = ?$handle;
+
+            if $*W and $*W.is_precompilation_mode {
+                if $precompiled {
+                    say "$id $file";
                 }
-                $handle ||= CompUnit::Loader.load-source-file($found); # precomp failed
-
-                return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                    :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
-                );
+                else {
+                    nqp::exit(0);
+                }
             }
+            $handle ||= CompUnit::Loader.load-source-file($file); # precomp failed
+
+            return %!loaded{$name} = %seen{$base} = CompUnit.new(
+                :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
+            );
         }
 
         return self.next-repo.need($spec, $precomp) if self.next-repo;

@@ -238,16 +238,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         @candi
     }
 
-    method need(
-        CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
-    {
+    method !matching-dist(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
-                my $dist-dir = self!dist-dir;
+                my $dist-dir = $.prefix.child('dist');
                 my @dists = $lookup.lines.unique.map({
                     $_ => from-json($dist-dir.child($_).slurp)
                 }).grep({
@@ -256,48 +251,82 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     and $_.value<provides>{$spec.short-name}:exists
                 });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
-                    my $dver = $dist<ver>
-                            ?? nqp::istype($dist<ver>,Version)
-                                ?? $dist<ver>
-                                !! Version.new( ~$dist<ver> )
-                            !! Version.new('0');
-
-                    my $loader = $.prefix.child('sources').child(
-                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
-                    );
-                    my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-                    my $handle;
-                    my $id = $loader.basename;
-                    if $precomp.may-precomp {
-                        $handle = (
-                            $precomp.load($id, :since($loader.modified)) # already precompiled?
-                            or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
-                        );
-                        if $*W and $*W.is_precompilation_mode {
-                            if $handle {
-                                say "$id $loader";
-                            }
-                            else {
-                                nqp::exit(0);
-                            }
-                        }
-                    }
-                    my $precompiled = defined $handle;
-                    $handle //= CompUnit::Loader.load-source-file($loader);
-                    my $compunit = CompUnit.new(
-                        :$handle,
-                        :short-name($spec.short-name),
-                        :version($dver),
-                        :auth($dist<auth> // Str),
-                        :repo(self),
-                        :repo-id($id),
-                        :$precompiled,
-                        :distribution(Distribution.new(|$dist)),
-                    );
-                    return %!loaded{$compunit.short-name} = $compunit;
+                    $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
+                    return ($dist-id, $dist);
                 }
             }
+        }
+        Nil
+    }
+
+    method resolve(
+        CompUnit::DependencySpecification $spec,
+    )
+        returns CompUnit
+    {
+        my ($dist-id, $dist) = self!matching-dist($spec);
+        if $dist-id {
+            my $loader = $.prefix.child('sources').child(
+                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+            );
+            my $id = $loader.basename;
+            return CompUnit.new(
+                :handle(CompUnit::Handle),
+                :short-name($spec.short-name),
+                :version($dist<ver>),
+                :auth($dist<auth> // Str),
+                :repo(self),
+                :repo-id($id),
+                :distribution(Distribution.new(|$dist)),
+            );
+        }
+        return self.next-repo.resolve($spec) if self.next-repo;
+        Nil
+    }
+
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+    )
+        returns CompUnit:D
+    {
+        my ($dist-id, $dist) = self!matching-dist($spec);
+        if $dist-id {
+            return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
+
+            my $loader = $.prefix.child('sources').child(
+                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+            );
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+            my $handle;
+            my $id = $loader.basename;
+            if $precomp.may-precomp {
+                $handle = (
+                    $precomp.load($id, :since($loader.modified)) # already precompiled?
+                    or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
+                );
+                if $*W and $*W.is_precompilation_mode {
+                    if $handle {
+                        say "$id $loader";
+                    }
+                    else {
+                        nqp::exit(0);
+                    }
+                }
+            }
+            my $precompiled = defined $handle;
+            $handle //= CompUnit::Loader.load-source-file($loader);
+            my $compunit = CompUnit.new(
+                :$handle,
+                :short-name($spec.short-name),
+                :version($dist<ver>),
+                :auth($dist<auth> // Str),
+                :repo(self),
+                :repo-id($id),
+                :$precompiled,
+                :distribution(Distribution.new(|$dist)),
+            );
+            return %!loaded{$compunit.short-name} = $compunit;
         }
         return self.next-repo.need($spec, $precomp) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;

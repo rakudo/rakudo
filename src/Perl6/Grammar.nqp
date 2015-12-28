@@ -1499,9 +1499,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <version> [
                     ||  <?{ $<version><vnum>[0] == 5 }> {
-                            my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
-                            $*W.do_import($/, $module, 'Perl5');
-                            $*W.import_EXPORTHOW($/, $module);
+                            my $loader;
+                            {
+                                $loader := $*W.find_symbol(['&LOAD-V5']);
+                                CATCH {
+                                    $/.CURSOR.typed_panic:
+                                        'X::Language::Unsupported',
+                                        version => ~$<version>;
+                                }
+                            }
+                            $loader($<version>.ast.compile_time_value);
                         }
                     ||  <?{ $<version><vnum>[0] == 6 }> {
                             my $version_parts := $<version><vnum>;

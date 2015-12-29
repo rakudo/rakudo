@@ -190,6 +190,34 @@ sub guess_library_name($lib) is export(:TEST) {
     return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
 }
 
+sub check_routine_sanity(Routine $r) is export(:TEST) {
+    #Maybe this should use the hash already existing?
+    sub validnctype ($type) {
+      return True if $type.^name eq 'Str' | 'str' | 'Bool';
+      return False if $type.REPR eq 'P6opaque';
+      return False if $type.HOW.^can("nativesize") && $type.^nativesize == 0; #to disting int and int32 for example
+      return validnctype($type.of) if $type.REPR eq 'CArray' and $type.^can('of');
+      return True;
+    }
+    my $sig = $r.signature;
+    for @($sig.params).kv -> $i, $param {
+        next if $r ~~ Method and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
+        if $param.type ~~ Callable {
+          # We probably want to check the given routine type too here. but I don't know how
+          next;
+        }
+        next unless $param.type.^name eq 'Buf' #Buf are Uninstantiable, make this buggy
+        || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
+        if !validnctype($param.type) {
+           die "In '{$r.name}' routine declaration - Not an accepted NativeCall type for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n" ~
+           "-->For Numerical type, use the appropriate int32/int64/num64...";
+        }
+    }
+    if $r.returns.^name ne 'Mu' and !validnctype($r.returns) {
+        die "The returning type of '{$r.name}' --> {$r.returns.^name} is errornous. You should not return a non NativeCall supported type (like Int inplace of int32), truncating errors can appear with different architectures";
+    }
+}
+
 my %lib;
 my @cpp-name-mangler =
     &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
@@ -281,6 +309,7 @@ multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
 # Specifies that the routine is actually a native call, into the
 # current executable (platform specific) or into a named library
 multi trait_mod:<is>(Routine $r, :$native!) is export(:DEFAULT, :traits) {
+    check_routine_sanity($r);
     $r does Native[$r, $native === True ?? Str !! $native];
 }
 

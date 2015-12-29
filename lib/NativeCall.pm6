@@ -206,7 +206,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
           # We probably want to check the given routine type too here. but I don't know how
           next;
         }
-        next unless $param.type.^name eq 'Buf' #Buf are Uninstantiable, make this buggy
+        next unless $param.type.^name eq 'Buf' | 'Blob'  #Buf are Uninstantiable, make this buggy
         || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
         if !validnctype($param.type) {
            die "In '{$r.name}' routine declaration - Not an accepted NativeCall type for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n" ~

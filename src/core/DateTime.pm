@@ -3,7 +3,6 @@ my class DateTime does Dateish {
     has int $.minute;
     has     $.second;
     has int $.timezone;  # UTC
-    has     &.formatter;
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
@@ -343,9 +342,6 @@ my class DateTime does Dateish {
 
     method Date() { Date.new($!year,$!month,$!day) }
 
-    multi method Str(DateTime:D:) {
-        &!formatter ?? &!formatter(self) !! self!formatter
-    }
     multi method perl(DateTime:D:) {
         self.^name
           ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,$!timezone)"

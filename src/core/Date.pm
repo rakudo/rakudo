@@ -1,5 +1,7 @@
 my class Date does Dateish {
 
+    method !formatter() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
+
     my $valid-units := nqp::hash(
       'day',    1,
       'days',   1,
@@ -16,17 +18,17 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method BUILD($!year,$!month,$!day,$!daycount = Int) { self }
+    method BUILD($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
-    multi method new(Date: Int() $year, Int() $month, Int() $day) {
+    multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
-        nqp::create(self).BUILD($year,$month,$day)
+        nqp::create(self).BUILD($year,$month,$day,&formatter)
     }
-    multi method new(Date: :$year!, :$month = 1, :$day = 1) {
-        self.new($year,$month,$day)
+    multi method new(Date: :$year!, :$month = 1, :$day = 1, :&formatter) {
+        self.new($year,$month,$day,:&formatter)
     }
-    multi method new(Date: Str $date) {
+    multi method new(Date: Str $date, :&formatter) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $date,
           target      => 'Date',
@@ -38,23 +40,20 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new($0,$1,$2)
+        self.new($0,$1,$2,:&formatter)
     }
-    multi method new(Date: Dateish $d) {
-        nqp::create(self).BUILD($d.year,$d.month,$d.day)
+    multi method new(Date: Dateish $d, :&formatter) {
+        nqp::create(self).BUILD($d.year,$d.month,$d.day,&formatter)
     }
-    multi method new(Date: Instant $i) {
-        self.new(DateTime.new($i))
+    multi method new(Date: Instant $i, :&formatter) {
+        self.new(DateTime.new($i),:&formatter)
     }
-
-    method new-from-daycount($daycount) {
+    method new-from-daycount($daycount,:&formatter) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
-        nqp::create(self).BUILD($year,$month,$day,$daycount)
+        nqp::create(self).BUILD($year,$month,$day,&formatter,$daycount)
     }
 
-    method today() {
-        self.new(DateTime.now);
-    }
+    method today(:&formatter) { self.new(DateTime.now, :&formatter) }
 
     multi method WHICH(Date:D:) {
         nqp::box_s(
@@ -91,13 +90,13 @@ my class Date does Dateish {
             $month = ($month - 1) % 12 + 1;
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
-            Date.new($year,$month,$!day > 28
+            self.new($year,$month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
-            Date.new($year,$!month,$!day > 28
+            self.new($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
@@ -106,17 +105,19 @@ my class Date does Dateish {
     method clone(*%_) {
         my $h := nqp::getattr(%_,Map,'$!storage');
         self.new(
-          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month') ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')    !! $!day,
+          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
+          nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
+          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
+          :&!formatter,
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
         my $h := nqp::getattr(%_,Map,'$!storage');
         nqp::create(self).BUILD(
-          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month') ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')    !! $!day,
+          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
+          nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
+          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
+          &!formatter,
         )
     }
 
@@ -127,7 +128,6 @@ my class Date does Dateish {
         self.new-from-daycount(self.daycount - 1);
     }
 
-    multi method Str(Date:D:) { self.yyyy-mm-dd }
     multi method perl(Date:D:) {
         self.^name ~ ".new($!year,$!month,$!day)"
     }

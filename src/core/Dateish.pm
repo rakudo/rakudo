@@ -1,8 +1,9 @@
 my role Dateish {
     has Int $.year;
-    has Int $.month;
-    has Int $.day;
+    has Int $.month;     # should be int
+    has Int $.day;       # should be int
     has Int $.daycount;
+    has     &.formatter;
 
     method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
 
@@ -32,6 +33,10 @@ my role Dateish {
 
     multi method new(Dateish:) {
         fail X::Cannot::New.new(class => self);
+    }
+
+    multi method Str(Dateish:D:) {
+        &!formatter ?? &!formatter(self) !! self!formatter
     }
     multi method gist(Dateish:D:) { self.Str }
 
@@ -107,7 +112,7 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
+    method yyyy-mm-dd() { sprintf '%04d-%02d-%02d',$!year,$!month,$!day }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }
 
@@ -124,7 +129,6 @@ my role Dateish {
         }
         %parts;
     }
-
 }
 
 # =begin pod

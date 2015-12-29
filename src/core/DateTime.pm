@@ -3,7 +3,6 @@ my class DateTime does Dateish {
     has int $.minute;
     has     $.second;
     has int $.timezone;  # UTC
-    has     &.formatter;
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
@@ -26,20 +25,20 @@ my class DateTime does Dateish {
     }
 
     my $valid-units := nqp::hash(
-      'second',       1,
-      'seconds',      1,
-      'minute',      60,
-      'minutes',     60,
-      'hour',      3600,
-      'hours',     3600,
-      'day',      86400,
-      'days',     86400,
-      'week',    604800,
-      'weeks',   604800,
-      'month',        0,
-      'months',       0,
-      'year',         0,
-      'years',        0,
+      'second',  0,
+      'seconds', 0,
+      'minute',  0,
+      'minutes', 0,
+      'hour',    0,
+      'hours',   0,
+      'day',     0,
+      'days',    0,
+      'week',    0,
+      'weeks',   0,
+      'month',   1,
+      'months',  1,
+      'year',    1,
+      'years',   1,
     );
     method !VALID-UNIT($unit) {
         nqp::existskey($valid-units,$unit)
@@ -118,11 +117,11 @@ my class DateTime does Dateish {
           :second($dt.second + $p % 1 + $leap-second)
         ).in-timezone($timezone)
     }
-    multi method new(Int:D $time is copy, :$timezone = 0, :&formatter) {
+    multi method new(Numeric:D $time is copy, :$timezone = 0, :&formatter) {
         # Interpret $time as a POSIX time.
-        my int $second = $time % 60; $time = $time div 60;
-        my int $minute = $time % 60; $time = $time div 60;
-        my int $hour   = $time % 24; $time = $time div 24;
+        my     $second = $time % 60; $time = $time.Int div 60;
+        my int $minute = $time % 60; $time = $time     div 60;
+        my int $hour   = $time % 24; $time = $time     div 24;
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
@@ -184,7 +183,7 @@ my class DateTime does Dateish {
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
-        self.new(now, :$timezone, :&formatter)
+        self.new(nqp::time_n(), :$timezone, :&formatter)
     }
 
     method clone(*%_) {
@@ -249,68 +248,54 @@ my class DateTime does Dateish {
         my $amount = @pairs.AT-POS(0).value.Int;
         $amount = -$amount if $earlier;
 
-        my int $hour   = $!hour;
-        my int $minute = $!minute;
-        my $date;
+        # work on instant (tai)
+        if $unit.starts-with('second') {
+            self.new(self.Instant + $amount, :$!timezone, :&!formatter)
+        }
 
-        given $unit {
-            when 'second' | 'seconds' {
-                return
-                  self.new(self.Instant + $amount, :$!timezone, :&!formatter);
-            }
-            when 'minute' | 'minutes' { $minute += $amount; proceed }
+        # on a leap second and not moving by second
+        elsif $!second >= 60 {
+            my $dt := 
+              self!clone-without-validating(:second($!second-1)).later(|%unit);
+            $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
+              && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
+              ?? $dt!clone-without-validating(:$!second)
+              !! $dt
+        }
 
-            $hour += floor($minute / 60);
+        # month,year
+        elsif nqp::atkey($valid-units,$unit) {
+            my $date := Date.new($!year,$!month,$!day).later(|%unit);
+            nqp::create(self).BUILD(
+              nqp::getattr($date,Date,'$!year'),
+              nqp::getattr($date,Date,'$!month'),
+              nqp::getattr($date,Date,'$!day'),
+              $!hour, $!minute, $!second, $!timezone, &!formatter
+            )
+        }
+        # minute,hour,day,week
+        else {
+            my int $minute = $!minute;
+            my int $hour   = $!hour;
+
+            $minute += $amount if $unit.starts-with('minute');
+            $hour   += floor($minute / 60);
             $minute %= 60;
+            $hour   += $amount if $unit.starts-with('hour');
 
-            when 'hour' | 'hours'     { $hour += $amount; proceed }
-
-            my $day-delta += floor($hour / 24);
+            my $day-delta = floor($hour / 24);
             $hour %= 24;
 
-            when 'day' | 'days'       { $day-delta += $amount; proceed }
-            when 'week' | 'weeks'     { $day-delta += 7 * $amount; proceed }
+            $day-delta = $amount     if $unit.starts-with('day');
+            $day-delta = 7 * $amount if $unit.starts-with('week');
 
-            when 'month' | 'months' {
-                my int $month = $!month;
-                my int $year  = $!year;
-                $month += $amount;
-                $year += floor(($month - 1) / 12);
-                $month = ($month - 1) % 12 + 1;
-                # If we overflow on days in the month, rather than throw an
-                # exception, we just clip to the last of the month
-                $date = Date.new($year,$month,$!day > 28
-                  ?? $!day min self!DAYS-IN-MONTH($year,$month)
-                  !! $!day);
-                succeed;
-            }
-
-            when 'year' | 'years' {
-                my int $year = $!year + $amount;
-                $date = Date.new($year,$!month,$!day > 28
-                  ?? $!day min self!DAYS-IN-MONTH($year,$!month)
-                  !! $!day);
-                succeed;
-            }
-
-            $date = Date.new-from-daycount(self.daycount + $day-delta);
+            my $date := Date.new-from-daycount(self.daycount + $day-delta);
+            nqp::create(self).BUILD(
+              nqp::getattr($date,Date,'$!year'),
+              nqp::getattr($date,Date,'$!month'),
+              nqp::getattr($date,Date,'$!day'),
+              $hour, $minute, $!second, $!timezone, &!formatter)
         }
-
-        my $second = $!second;
-        if $second > 59 + Rakudo::Internals.is-leap-second-date(~$date) {
-            $second -= 60;
-            ++$minute;
-            if $minute > 59 {
-                $minute -= 60;
-                ++$hour;
-                if $hour > 23 {
-                    $hour -= 24;
-                    ++$date;
-                }
-            }
-        }
-        nqp::create(self).BUILD($date.year,$date.month,$date.day,
-          $hour,$minute,$second,$!timezone,&!formatter)
     }
 
     method truncated-to(Cool $unit) {
@@ -357,9 +342,6 @@ my class DateTime does Dateish {
 
     method Date() { Date.new($!year,$!month,$!day) }
 
-    multi method Str(DateTime:D:) {
-        &!formatter ?? &!formatter(self) !! self!formatter
-    }
     multi method perl(DateTime:D:) {
         self.^name
           ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,$!timezone)"

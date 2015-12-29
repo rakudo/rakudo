@@ -10,7 +10,7 @@ compile_test_lib('06-struct');
 
 class MyStruct is repr('CStruct') {
     has long   $.long;
-    has num    $.num;
+    has num64  $.num;
     has int8   $.byte;
     has num32  $.float;
     has CArray $.arr;
@@ -31,7 +31,7 @@ class MyStruct is repr('CStruct') {
 # is declared as type CArray[long].
 class MyStruct2 is repr('CStruct') {
     has long         $.long;
-    has num          $.num;
+    has num64        $.num;
     has int8         $.byte;
     has num32        $.float;
     has CArray[long] $.arr;
@@ -49,8 +49,8 @@ class IntStruct is repr('CStruct') {
 }
 
 class NumStruct is repr('CStruct') {
-    has num $.first;
-    has num $.second;
+    has num64 $.first;
+    has num64 $.second;
 
     # Work around struct members not being containerized yet.
     method init {

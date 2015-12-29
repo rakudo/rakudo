@@ -9,13 +9,13 @@ plan 33;
 compile_test_lib('05-arrays');
 
 {
-    sub ReturnADoubleArray() returns CArray[num] is native("./05-arrays") { * }
+    sub ReturnADoubleArray() returns CArray[num64] is native("./05-arrays") { * }
     my @rarr := ReturnADoubleArray();
     is_approx @rarr[0], 23.45e0, 'returning double array (1)';
     is_approx @rarr[1], -99.87e0, 'returning double array (2)';
     is_approx @rarr[2], 0.25e0, 'returning double array (3)';
 
-    sub TakeADoubleArrayAndAddElements(CArray[num]) returns num is native("./05-arrays") { * }
+    sub TakeADoubleArrayAndAddElements(CArray[num64]) returns num64 is native("./05-arrays") { * }
     my @parr := CArray[num].new();
     @parr[0] = 9.5e0;
     @parr[1] = 32.5e0;

@@ -105,12 +105,45 @@ sub wanted($ast,$by) {
             $ast.annotate('WANTED',1);
         }
         elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' {
-            WANTALL($ast,$byby);
-            # Rewrite a 'while A { B }' to 'for Nil xx * -> $ { last unless A; B }'
-            my $*FAKE_MACRO := $ast;
-            my $match := $ast[1].node.CURSOR.'!cursor_init'('for Nil xx * -> $ { last ' ~ ($ast.op eq 'while' ?? 'unless' !! 'if') ~ ' ¤0; ¤1 }').statement.MATCH;
-            $ast := $match.ast;
+              $ast.op eq 'until' ||
+              $ast.op eq 'repeat_while' ||
+              $ast.op eq 'repeat_until' {
+
+            my $repeat := nqp::eqat($ast.op,'repeat',0);
+            my $while := nqp::index($ast.op,'while',0) >= 0;
+
+            # we always have a body
+            my $cond := WANTED($ast[0],$byby);
+            my $body := WANTED($ast[1],$byby);
+            my $past := QAST::Op.new(:op<callmethod>, :name<from-loop>, :node($body.node),
+                QAST::WVal.new( :value($*W.find_symbol(['Seq']))),
+                block_closure(Perl6::Actions::make_thunk_ref($body, $body.node)) );
+
+            # conditional (if not always true (or if repeat))
+            $past.push( block_closure(
+                Perl6::Actions::make_thunk_ref(
+                    $while
+                        ?? $cond
+                        !! QAST::Op.new( :op<callmethod>, :name<not>, $cond ),
+                    nqp::can($cond,'node')
+                        ?? $cond.node
+                        !! $body.node
+                )
+            ))
+                if $repeat || !$cond.has_compile_time_value || !$cond.compile_time_value == $while;
+
+            # 3rd part of loop, if any
+            $past.push( UNWANTED(block_closure(Perl6::Actions::make_thunk_ref($ast[2], $ast[2].node)),$byby) )
+                if +@($ast) > 2;
+
+            if $repeat {
+                my $wval := QAST::WVal.new( :value($*W.find_symbol(['True'])) );
+                $wval.named('repeat');
+                $past.push($wval);
+            }
+
+            $ast := $past;
+            $ast.annotate('WANTED',1);
         }
         elsif $ast.op eq 'if' ||
               $ast.op eq 'unless' ||
@@ -124,30 +157,38 @@ sub wanted($ast,$by) {
     elsif nqp::istype($ast,QAST::Want) {
         $ast.annotate('WANTED',1);
         my $node := $ast[0];
-        if nqp::istype($node,QAST::Op) && $node.op eq 'call' && !$node.name {
-            $node := $node[0];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
+        if nqp::istype($node,QAST::Op) {
+            if $node.op eq 'call' && !$node.name {
+                $node := $node[0];
+                if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                    $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
+                }
             }
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callstatic' {
-            $node[0] := WANTED($node[0], $byby);
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
-            $node := $node[1];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
+            elsif $node.op eq 'callstatic' {
+                $node[0] := WANTED($node[0], $byby);
             }
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
-            return WANTED($node,$byby) if !$*COMPILING_CORE_SETTING;
-            $node[1] := WANTED($node[1], $byby);
-            $node.annotate('WANTED',1);
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without') {
-            $node[1] := WANTED($node[1], $byby);
-            $node[2] := WANTED($node[2], $byby) if +@($node) > 2 && nqp::istype($node[2],QAST::Node);
-            $node.annotate('WANTED',1);
+            elsif $node.op eq 'p6for' {
+                $node := $node[1];
+                if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                    $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
+                }
+            }
+            elsif $node.op eq 'while' ||
+                  $node.op eq 'until' ||
+                  $node.op eq 'repeat_while' ||
+                  $node.op eq 'repeat_until' {
+                return WANTED($node,$byby) if !$*COMPILING_CORE_SETTING;
+                $node[1] := WANTED($node[1], $byby);
+                $node.annotate('WANTED',1);
+            }
+            elsif $node.op eq 'if' ||
+                  $node.op eq 'unless' ||
+                  $node.op eq 'with' ||
+                  $node.op eq 'without' {
+                $node[1] := WANTED($node[1], $byby);
+                $node[2] := WANTED($node[2], $byby) if +@($node) > 2 && nqp::istype($node[2],QAST::Node);
+                $node.annotate('WANTED',1);
+            }
         }
     }
     $ast;
@@ -218,7 +259,10 @@ sub unwanted($ast, $by) {
             $ast.annotate('context','sink');
         }
         elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' {
+              $ast.op eq 'until' ||
+              $ast.op eq 'repeat_while' ||
+              $ast.op eq 'repeat_until' {
+            # Do we need to force loop to produce return values for internal reasons?
             if !$*COMPILING_CORE_SETTING && $ast[1].ann('WANTMEPLEASE') {
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($ast, $byby));
                 $ast.annotate('context','sink');
@@ -2147,7 +2191,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     ## Terms
 
-    method term:sym<¤>($/)                  { make $*FAKE_MACRO[+$/[0]]; }
     method term:sym<fatarrow>($/)           { make $<fatarrow>.ast; }
     method term:sym<colonpair>($/)          { make $<colonpair>.ast; }
     method term:sym<variable>($/)           { make $<variable>.ast; }
@@ -8381,7 +8424,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $ref
     }
 
-    sub make_thunk_ref($to_thunk, $/) {
+    our sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
         fatalize($to_thunk) if %*PRAGMAS<fatal>;
         $block.push(QAST::Stmts.new(autosink($to_thunk)));

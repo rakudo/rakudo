@@ -83,7 +83,7 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
+        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>') {
             WANTALL($ast,$byby);
         }
         elsif $ast.op eq 'p6capturelex' {

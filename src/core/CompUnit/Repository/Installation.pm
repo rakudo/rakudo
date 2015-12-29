@@ -123,6 +123,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $bin-dir       = self!bin-dir;
         state $is-win   //= $*DISTRO.is-win; # only look up once
 
+        self!add-short-name($dist.name, $dist); # so scripts can find their dist
+
         # Walk the to be installed files, decide whether we put them into
         # "provides" or just "files".
         for %sources.kv -> $name, $file is copy {

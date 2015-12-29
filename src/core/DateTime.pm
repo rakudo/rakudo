@@ -118,11 +118,11 @@ my class DateTime does Dateish {
           :second($dt.second + $p % 1 + $leap-second)
         ).in-timezone($timezone)
     }
-    multi method new(Int:D $time is copy, :$timezone = 0, :&formatter) {
+    multi method new(Numeric:D $time is copy, :$timezone = 0, :&formatter) {
         # Interpret $time as a POSIX time.
-        my int $second = $time % 60; $time = $time div 60;
-        my int $minute = $time % 60; $time = $time div 60;
-        my int $hour   = $time % 24; $time = $time div 24;
+        my     $second = $time % 60; $time = $time.Int div 60;
+        my int $minute = $time % 60; $time = $time     div 60;
+        my int $hour   = $time % 24; $time = $time     div 24;
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
@@ -184,7 +184,7 @@ my class DateTime does Dateish {
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
-        self.new(now, :$timezone, :&formatter)
+        self.new(nqp::time_n(), :$timezone, :&formatter)
     }
 
     method clone(*%_) {

@@ -10,6 +10,10 @@ class B {};
 
 sub goodPointer(Pointer $a)  { * };
 
+sub goodPointer2(Pointer[int32]) { * };
+
+sub badPointer(Pointer[int] $a) { * };
+
 sub goodCStruct(A $a) { * };
 
 sub goodBuf(Buf $a) { * };
@@ -69,6 +73,8 @@ sub testr($r) {
 }
 
 lives-ok {testr(&goodPointer)}, "Taking a pointer is fine";
+lives-ok {testr(&goodPointer2)}, "Taking a Pointer[int32] is fine";
+dies-ok {testr(&badPointer)}, "Taking a Pointer[Int] is NOT fine";
 lives-ok {testr(&goodCStruct)}, "Taking a CStruct is fine";
 lives-ok {testr(&goodCArray)}, "Taking a CArray is fine";
 lives-ok {testr(&goodBuf)}, "Taking a Buf is fine";
@@ -104,6 +110,8 @@ eval-lives-ok 'use NativeCall; sub test2(int32 $a) is native("fake") {*};', "Goo
 eval-lives-ok 'use NativeCall; class A is repr("CPointer") { sub foo(A $a) is native("fake") {*} }', "Embeded type";
 eval-lives-ok 'use NativeCall; sub foo() is native("fake") {*}', "Void function";
 eval-lives-ok 'use NativeCall; class Piko { method All_The_Things(int8, int16, int32, long, num32, num64) returns long is native("./11-cpp") is nativeconv("thisgnu") { * }}', "Method are silly";
+eval-lives-ok 'use NativeCall; sub p5_str_to_sv(int32, long, Blob) is native("foo") { * };', "Blob should work";
+eval-lives-ok 'use NativeCall; class Foo is repr("CPointer") {sub foo() returns Foo is native("foo") { * } }', "Return a type in its definition";
 
 done-testing
 

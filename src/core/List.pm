@@ -3,6 +3,7 @@ my class X::TypeCheck { ... }
 my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Lazy { ... }
 my class X::Cannot::Empty { ... }
+my class IO::CatPath { ... }
 my class Supply { ... }
 my class Supplier { ... }
 
@@ -888,6 +889,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::push_s($rsa, '...') if $infinite;
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
     }
+
+    method IO() { IO::CatPath.new(self) }
 
     method push(|) is nodal {
         X::Immutable.new(:typename<List>,:method<push>).throw

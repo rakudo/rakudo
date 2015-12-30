@@ -37,7 +37,7 @@ my sub MAIN_HELPER($retval = 0) {
                 last;
             }
         }
-        $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@args));
+        PROCESS::<$ARGFILES> = IO::CatHandle.new(@args ?? @args !! $*IN);
         @positional-arguments, %named-arguments;
     }
 

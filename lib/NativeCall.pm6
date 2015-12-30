@@ -192,11 +192,12 @@ sub guess_library_name($lib) is export(:TEST) {
 
 sub check_routine_sanity(Routine $r) is export(:TEST) {
     #Maybe this should use the hash already existing?
-    sub validnctype ($type) {
-      return True if $type.^name eq 'Str' | 'str' | 'Bool';
-      return False if $type.REPR eq 'P6opaque';
-      return False if $type.HOW.^can("nativesize") && $type.^nativesize == 0; #to disting int and int32 for example
-      return validnctype($type.of) if $type.REPR eq 'CArray' and $type.^can('of');
+    sub validnctype (Mu ::T) {
+      return True if %repr_map{T.REPR}:exists and T.REPR ne 'CArray' | 'CPointer';
+      return True if T.^name eq 'Str' | 'str' | 'Bool';
+      return False if T.REPR eq 'P6opaque';
+      return False if T.HOW.^can("nativesize") && T.^nativesize == 0; #to disting int and int32 for example
+      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
       return True;
     }
     my $sig = $r.signature;
@@ -206,14 +207,15 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
           # We probably want to check the given routine type too here. but I don't know how
           next;
         }
-        next unless $param.type.^name eq 'Buf' | 'Blob'  #Buf are Uninstantiable, make this buggy
+        next unless $param.type ~~ Buf | Blob #Buf are Uninstantiable, make this buggy
         || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
         if !validnctype($param.type) {
            die "In '{$r.name}' routine declaration - Not an accepted NativeCall type for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n" ~
            "-->For Numerical type, use the appropriate int32/int64/num64...";
         }
     }
-    if $r.returns.^name ne 'Mu' and !validnctype($r.returns) {
+    return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
+    if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
         die "The returning type of '{$r.name}' --> {$r.returns.^name} is errornous. You should not return a non NativeCall supported type (like Int inplace of int32), truncating errors can appear with different architectures";
     }
 }

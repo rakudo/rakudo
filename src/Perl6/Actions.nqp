@@ -7526,7 +7526,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $infixish := $<sibble><infixish>;
         my $right;
         if !$infixish || $infixish.Str eq '=' {
-            $right := wanted($<sibble><right>.ast,'quote:s///');
+            $right := WANTED($<sibble><right>.ast,'quote:s///');
         }
         else {
             $right := $infixish.ast;
@@ -7535,7 +7535,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('p6scalarfromdesc'), QAST::Op.new( :op('null') ) ),
                 QAST::Var.new( :name('$/'), :scope('lexical') )
             ));
-            $right.push(wanted($<sibble><right>.ast,'quote:s'));
+            $right.push(WANTED($<sibble><right>.ast,'quote:s'));
         }
         my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
 

@@ -689,7 +689,6 @@ my class Rakudo::Internals {
           nqp::atpos_i($fia,2),
           nqp::atpos_i($fia,1),
           nqp::atpos_i($fia,0),
-          0,
         ).posix(True) - $utc;
     }
 

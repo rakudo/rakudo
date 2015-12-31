@@ -487,7 +487,7 @@ my class Range is Cool does Iterable does Positional {
 
     method sum() {
         my ($start,$stop) = self.int-bounds || nextsame;
-        my $elems = $stop - $start + 1;
+        my $elems = 0 max $stop - $start + 1;
         ($start + $stop) * $elems div 2;
     }
 

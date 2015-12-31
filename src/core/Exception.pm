@@ -1388,7 +1388,7 @@ my class X::Syntax::Self::WithoutObject does X::Syntax {
 }
 my class X::Syntax::VirtualCall does X::Syntax {
     has $.call;
-    method message() { "Virtual call $.call may not be used on partially constructed objects" }
+    method message() { "Virtual method call $.call may not be used on partially constructed object (maybe you mean {$.call.subst('.','!')} for direct attribute access here?)" }
 }
 my class X::Syntax::NoSelf does X::Syntax {
     has $.variable;

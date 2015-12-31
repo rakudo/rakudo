@@ -228,7 +228,6 @@ sub unwanted($ast, $by) {
     elsif nqp::istype($ast,QAST::Block) {
         my int $i := 1;
         my $*WANTEDOUTERBLOCK := $ast;
-        note('++ ' ~ ($*W.is_lexically_visible('&prefix:<++>',$ast) ?? "yes" !! "no"));
         while $i <= $e {
             $ast[$i] := UNWANTED($ast[$i], $byby);
             ++$i;

@@ -76,6 +76,7 @@ sub wanted($ast,$by) {
     }
     elsif nqp::istype($ast,QAST::Block) {
         my int $i := 1;
+        my $*WANTEDOUTERBLOCK := $ast;
         while $i <= $e {
             $ast[$i] := WANTED($ast[$i], $byby);
             ++$i;
@@ -115,26 +116,24 @@ sub wanted($ast,$by) {
             # we always have a body
             my $cond := WANTED($ast[0],$byby);
             my $body := WANTED($ast[1],$byby);
+            my $block := Perl6::Actions::make_thunk_ref($body, $body.node);
             my $past := QAST::Op.new(:op<callmethod>, :name<from-loop>, :node($body.node),
                 QAST::WVal.new( :value($*W.find_symbol(['Seq']))),
-                block_closure(Perl6::Actions::make_thunk_ref($body, $body.node)) );
+                block_closure($block) );
 
             # conditional (if not always true (or if repeat))
-            $past.push( block_closure(
-                Perl6::Actions::make_thunk_ref(
-                    $while
-                        ?? $cond
-                        !! QAST::Op.new( :op<callmethod>, :name<not>, $cond ),
-                    nqp::can($cond,'node')
-                        ?? $cond.node
-                        !! $body.node
-                )
-            ))
-                if $repeat || !$cond.has_compile_time_value || !$cond.compile_time_value == $while;
+            if $repeat || !$cond.has_compile_time_value || !$cond.compile_time_value == $while {
+                $cond := QAST::Op.new( :op<callmethod>, :name<not>, $cond ) unless $while;
+                $block := Perl6::Actions::make_thunk_ref($cond, nqp::can($cond,'node') ?? $cond.node !! $body.node);
+                $past.push( block_closure($block) );
+            }
 
             # 3rd part of loop, if any
-            $past.push( UNWANTED(block_closure(Perl6::Actions::make_thunk_ref($ast[2], $ast[2].node)),$byby) )
-                if +@($ast) > 2;
+            if +@($ast) > 2 {
+                $block := Perl6::Actions::make_thunk_ref($ast[2], $ast[2].node);
+                $block.annotate('outer',$*WANTEDOUTERBLOCK) if $*WANTEDOUTERBLOCK;
+                $past.push( UNWANTED(block_closure($block),$byby) )
+            }
 
             if $repeat {
                 my $wval := QAST::WVal.new( :value($*W.find_symbol(['True'])) );
@@ -228,6 +227,8 @@ sub unwanted($ast, $by) {
     }
     elsif nqp::istype($ast,QAST::Block) {
         my int $i := 1;
+        my $*WANTEDOUTERBLOCK := $ast;
+        note('++ ' ~ ($*W.is_lexically_visible('&prefix:<++>',$ast) ?? "yes" !! "no"));
         while $i <= $e {
             $ast[$i] := UNWANTED($ast[$i], $byby);
             ++$i;

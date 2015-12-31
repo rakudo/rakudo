@@ -184,10 +184,15 @@ my class Promise {
         X::Promise::Combinator.new(:$combinator).throw
           if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@promises, Promise);
 
+        my $p = Promise.new;
+        unless @promises {
+            $p.keep;
+            return $p
+        }
+
         my int $n  = $N;
         my int $c  = $n;
         my $lock  := nqp::create(Lock);
-        my $p      = Promise.new;
         my $vow    = $p.vow;
         for @promises -> $cand {
             $cand.then({

@@ -2396,8 +2396,21 @@ class CompUnit::DependencySpecification { ... }
 my class X::CompUnit::UnsatisfiedDependency is Exception {
     has CompUnit::DependencySpecification $.specification;
 
+    my sub is-core($name) {
+        my @parts = $name.split("::");
+        my $ns := ::CORE.WHO;
+        for @parts {
+            return False unless $ns{$_}:exists;
+            $ns := $ns{$_}.WHO;
+        };
+        True
+    };
+
     method message() {
-        "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+        my $name = $.specification.short-name;
+        is-core($name)
+            ?? "{$name} is a builtin type. You can use it without loading a module."
+            !! "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
     }
 }
 

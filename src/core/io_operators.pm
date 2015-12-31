@@ -1,4 +1,4 @@
-my class IO::ArgFiles { ... }
+my class IO::CatHandle { ... }
 
 proto sub print(|) { * }
 multi sub print(Str:D \x) {
@@ -145,7 +145,7 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
+multi sub slurp(IO::CatHandle:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
     my $result := $io.slurp(:$bin, :$enc, |c);
     $result // $result.throw;
 }

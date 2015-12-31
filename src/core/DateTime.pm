@@ -63,7 +63,7 @@ my class DateTime does Dateish {
       Int() $hour,
       Int() $minute,
             $second,
-      Int() $timezone,
+      :$timezone = 0,
       :&formatter,
     ) {
         (1..12).in-range($month,'Month');
@@ -105,7 +105,7 @@ my class DateTime does Dateish {
       :$timezone = 0,
       :&formatter,
       ) {
-        self.new($year,$month,$day,$hour,$minute,$second,$timezone,:&formatter)
+        self.new($year,$month,$day,$hour,$minute,$second,:$timezone,:&formatter)
     }
     multi method new(DateTime: Date:D :$date!, *%_) {
         self.new(:year($date.year),:month($date.month),:day($date.day),|%_)
@@ -140,7 +140,7 @@ my class DateTime does Dateish {
         );
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
-    multi method new(Str $datetime, :$timezone, :&formatter) {
+    multi method new(Str $datetime, :$timezone is copy, :&formatter) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $datetime,
           target      => 'DateTime',
@@ -160,9 +160,8 @@ my class DateTime does Dateish {
           (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? # timezone
         $/;
 
-        my int $tz = 0;
         if $6 {
-            X::DateTime::TimezoneClash.new.throw if $timezone;
+            X::DateTime::TimezoneClash.new.throw with $timezone;
             if $6.chars != 1 {
                 X::OutOfRange.new(
                   what  => "minutes of timezone",
@@ -170,16 +169,14 @@ my class DateTime does Dateish {
                   range => "0..^60",
                 ).throw if $6[2] && $6[2][0] > 59;
 
-                $tz = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
+                $timezone = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
                   # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
-                $tz = -$tz if $6[0] eq '-';
+                $timezone = -$timezone if $6[0] eq '-';
             }
         }
-        elsif $timezone {
-            $tz = $timezone;
-        }
+        $timezone //= 0;
 
-        self.new($0,$1,$2,$3,$4,+(~$5.subst(",",".")),$tz,:&formatter)
+        self.new($0,$1,$2,$3,$4,+(~$5.subst(",",".")),:$timezone,:&formatter)
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
@@ -195,7 +192,7 @@ my class DateTime does Dateish {
           nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
           nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
           nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
-          nqp::existskey($h,'timezone')
+          timezone => nqp::existskey($h,'timezone')
             ?? nqp::atkey($h,'timezone')  !! $!timezone,
           formatter => nqp::existskey($h,'formatter')
             ?? nqp::atkey($h,'formatter') !! &!formatter,
@@ -344,7 +341,7 @@ my class DateTime does Dateish {
 
     multi method perl(DateTime:D:) {
         self.^name
-          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,$!timezone)"
+          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,{:$!timezone.perl})"
     }
 }
 

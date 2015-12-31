@@ -1,9 +1,11 @@
-{
+multi sub INITIALIZE_DYNAMIC('@*ARGS') {
     my @ARGS;
     my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
     @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
-    nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
-    PROCESS::<$ARGFILES> = IO::ArgFiles.new(:args(@ARGS));
+    PROCESS::<@ARGS> := @ARGS;
+}
+multi sub INITIALIZE_DYNAMIC('$*ARGFILES') {
+    PROCESS::<$ARGFILES> = IO::CatHandle.new(@*ARGS ?? @*ARGS !! $*IN).open;
 }
 
 # vim: ft=perl6 expandtab sw=4

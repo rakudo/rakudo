@@ -27,14 +27,14 @@ is +Pointer.new($a),     $a, 'Pointer.new accepts a native int too';
 ok ReturnNullPointer() === Pointer,           'A returned NULL pointer is the Pointer type object itself';
 
 {
-    eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[Int] works (RT #124321)';
+    eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[int32] works (RT #124321)';
         use NativeCall;
 
-        sub TakeTwoPointersToInt( Pointer[Int], Pointer[Int] )
+        sub TakeTwoPointersToInt( Pointer[int32], Pointer[int32] )
           is native( './04-pointers' ) { * }
 
-        my Pointer[Int] $r;
-        my Pointer[Int] $c;
+        my Pointer[int32] $r;
+        my Pointer[int32] $c;
 
         TakeTwoPointersToInt( $r, $c );
         CODE

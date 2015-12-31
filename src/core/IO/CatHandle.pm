@@ -71,6 +71,7 @@ class IO::CatHandle is IO::Handle {
             while self!next-handle {
                 .return with $!handle.get;
             }
+            Nil
         }
     }
 
@@ -79,6 +80,7 @@ class IO::CatHandle is IO::Handle {
             while self!next-handle {
                 .return with $!handle.getc;
             }
+            Nil
         }
     }
 

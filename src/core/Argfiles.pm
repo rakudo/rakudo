@@ -5,7 +5,7 @@ multi sub INITIALIZE_DYNAMIC('@*ARGS') {
     PROCESS::<@ARGS> := @ARGS;
 }
 multi sub INITIALIZE_DYNAMIC('$*ARGFILES') {
-    PROCESS::<$ARGFILES> = IO::CatHandle.new(@*ARGS ?? @*ARGS !! $*IN).open;
+    PROCESS::<$ARGFILES> = @*ARGS ?? IO::CatHandle.new(@*ARGS).open !! $*IN;
 }
 
 # vim: ft=perl6 expandtab sw=4

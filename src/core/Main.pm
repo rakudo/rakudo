@@ -37,7 +37,6 @@ my sub MAIN_HELPER($retval = 0) {
                 last;
             }
         }
-        PROCESS::<@ARGS> := @args;
         @positional-arguments, %named-arguments;
     }
 

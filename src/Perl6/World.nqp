@@ -426,7 +426,10 @@ class Perl6::World is HLL::World {
     method push_lexpad($/) {
         # Create pad, link to outer, annotate with creating statement, and add to stack.
         my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
-        if +@!BLOCKS {
+        if $*WANTEDOUTERBLOCK {  # (outside of 1st push/pop pass)
+            $pad.annotate('outer', $*WANTEDOUTERBLOCK);
+        }
+        elsif +@!BLOCKS {
             $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
         }
         $pad.annotate('statement_id', $*STATEMENT_ID);
@@ -1899,7 +1902,12 @@ class Perl6::World is HLL::World {
 
     # Creates a simple code object with an empty signature
     method create_simple_code_object($block, $type) {
-        self.cur_lexpad()[0].push($block);
+        if $*WANTEDOUTERBLOCK {
+            $*WANTEDOUTERBLOCK[0].push($block);
+        }
+        else {
+            self.cur_lexpad()[0].push($block);
+        }
         my $sig := self.create_signature(nqp::hash('parameter_objects', []));
         return self.create_code_object($block, $type, $sig);
     }
@@ -3453,12 +3461,24 @@ class Perl6::World is HLL::World {
         # scopes.
         if +@name == 1 {
             my $final_name := @name[0];
-            my int $i := $start_scope;
-            while $i > 0 {
-                $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($final_name);
-                if +%sym {
-                    return self.force_value(%sym, $final_name, 1);
+            if $*WANTEDOUTERBLOCK {
+                my $scope := $*WANTEDOUTERBLOCK;
+                while $scope {
+                    my %sym := $scope.symbol($final_name);
+                    if +%sym {
+                        return self.force_value(%sym, $final_name, 1);
+                    }
+                    $scope := $scope.ann('outer');
+                }
+            }
+            else {
+                my int $i := $start_scope;
+                while $i > 0 {
+                    $i := $i - 1;
+                    my %sym := @!BLOCKS[$i].symbol($final_name);
+                    if +%sym {
+                        return self.force_value(%sym, $final_name, 1);
+                    }
                 }
             }
         }

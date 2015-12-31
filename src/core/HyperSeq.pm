@@ -50,6 +50,8 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
             has $!status;
             has int $!sequence-number;
 
+            has int $!next-result-sequence-number;
+
             method new(\hyper-iterator) {
                 my \iter = nqp::create(self);
                 my \lock = Lock.new;
@@ -156,21 +158,43 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
 
             method !block-for-result() {
                 my int $we-got-an-empty-buffer;
+                my int $last-amount-of-completed = 0;
                 repeat while $we-got-an-empty-buffer {
                     my int $work-deficit = 0;
                     $we-got-an-empty-buffer = 0;
                     $!lock.protect({
-                        until nqp::elems($!work-completed) || self!finished() {
+                        until nqp::elems($!work-completed) > $last-amount-of-completed || self!finished() {
                             $!cond-have-result.wait();
                         }
-                        if nqp::elems($!work-completed) {
-                            $!active-result-buffer := nqp::shift($!work-completed).output;
+                        my Mu $backlog := Mu;
+                        while nqp::elems($!work-completed) && !$we-got-an-empty-buffer {
+                            my $first-result := nqp::shift($!work-completed);
+                            if $!configuration.race || $first-result.sequence-number == $!next-result-sequence-number {
+                                $!active-result-buffer := $first-result.output;
+                                $!next-result-sequence-number++;
+                            } else {
+                                if $backlog =:= Mu {
+                                    $backlog := nqp::list();
+                                }
+                                nqp::push($backlog, $first-result);
+                            }
                             $work-deficit = $!configuration.degree - nqp::elems($!work-available);
-                            if $!active-result-buffer.elems == 0 {
+                            if $!active-result-buffer =:= Mu || $!active-result-buffer.elems == 0 {
+                                unless $!active-result-buffer =:= Mu {
+                                    note("   it has { $!active-result-buffer.elems } elements.");
+                                }
                                 $!active-result-buffer := Mu;
                                 $we-got-an-empty-buffer = 1;
+                            } else {
+                                last;
                             }
                         }
+                        unless $backlog =:= Mu {
+                            while nqp::elems($backlog) {
+                                nqp::push($!work-completed, nqp::shift($backlog));
+                            }
+                        }
+                        $last-amount-of-completed = nqp::elems($!work-completed);
                     });
                     while $!status != ALL_ADDED && $work-deficit > 0 {
                         last if self!add-batch() =:= IterationEnd;

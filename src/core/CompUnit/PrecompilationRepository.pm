@@ -8,7 +8,7 @@
         }
 
         method may-precomp() {
-            if %*ENV<RAKUDO_PRECOMP> eq 'none' { # 'read-only' is considered in .precompile
+            if %*ENV<RAKUDO_PRECOMP> ~~ 'none' { # 'read-only' is considered in .precompile
                 RAKUDO_MODULE_DEBUG("Not precompiling or considering extant precompilations") if $*RAKUDO_MODULE_DEBUG;
                 False;
             } else {
@@ -86,7 +86,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             return True;
         }
 
-        if %*ENV<RAKUDO_PRECOMP> eq 'read-only' { # 'none' is considered in may-precomp
+        if %*ENV<RAKUDO_PRECOMP> ~~ 'read-only' { # 'none' is considered in may-precomp
             RAKUDO_MODULE_DEBUG("Not precompiling $path and extant precompilation not found") if $*RAKUDO_MODULE_DEBUG;
             self.store.unlock;
             return True;

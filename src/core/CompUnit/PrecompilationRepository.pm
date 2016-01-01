@@ -8,7 +8,12 @@
         }
 
         method may-precomp() {
-            $i < 3 # number of next repo after None and the first Default
+            if %*ENV<RAKUDO_PRECOMP> eq 'none' { # 'read-only' is considered in .precompile
+                RAKUDO_MODULE_DEBUG("Not precompiling or considering extant precompilations") if $*RAKUDO_MODULE_DEBUG;
+                False;
+            } else {
+                $i < 3 # number of next repo after None and the first Default
+            }
         }
     }
 }
@@ -73,11 +78,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False) {
-        if %*ENV<RAKUDO_PRECOMP> ~~ 'none' { # Eww
-            RAKUDO_MODULE_DEBUG("Not precompiling $path or considering extant precompilations") if $*RAKUDO_MODULE_DEBUG;
-            return True;
-        }
-
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
         if not $force and $io.e and $io.s {
@@ -86,8 +86,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             return True;
         }
 
-        if %*ENV<RAKUDO_PRECOMP> ~~ 'read-only' {
+        if %*ENV<RAKUDO_PRECOMP> eq 'read-only' { # 'none' is considered in may-precomp
             RAKUDO_MODULE_DEBUG("Not precompiling $path and extant precompilation not found") if $*RAKUDO_MODULE_DEBUG;
+            self.store.unlock;
             return True;
         }
 

@@ -69,7 +69,9 @@ sub goodretstrencoded() returns Str is encoded('utf8')  { * };
 
 
 sub testr($r) {
-   check_routine_sanity($r);
+    # upgrade NativeCall warnings to exceptions for easier testing
+    CONTROL { when CX::Warn { .die } }
+    check_routine_sanity($r);
 }
 
 lives-ok {testr(&goodPointer)}, "Taking a pointer is fine";
@@ -105,7 +107,9 @@ lives-ok {testr(&badretbool)}, "FIXME: Returning a Bool maybe be bugged";
 lives-ok {testr(&goodstrencoded)}, "Taking an encoded Str is fine";
 lives-ok {testr(&goodretstrencoded)}, "Returning an encoded Str is fine";
 
-eval-dies-ok 'use NativeCall; sub test(Int $a) is native("fake") {*};', "Bad trait declaration";
+# TODO rewrite this test to test for a warning instead of a fatal error:
+#eval-dies-ok 'use NativeCall; sub test(Int $a) is native("fake") {*};', "Bad trait declaration";
+
 eval-lives-ok 'use NativeCall; sub test2(int32 $a) is native("fake") {*};', "Good trait declaration";
 eval-lives-ok 'use NativeCall; class A is repr("CPointer") { sub foo(A $a) is native("fake") {*} }', "Embeded type";
 eval-lives-ok 'use NativeCall; sub foo() is native("fake") {*}', "Void function";

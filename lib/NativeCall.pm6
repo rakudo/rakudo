@@ -210,13 +210,16 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
         next unless $param.type ~~ Buf | Blob #Buf are Uninstantiable, make this buggy
         || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
         if !validnctype($param.type) {
-           die "In '{$r.name}' routine declaration - Not an accepted NativeCall type for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n" ~
-           "-->For Numerical type, use the appropriate int32/int64/num64...";
+           warn "In '{$r.name}' routine declaration - Not an accepted NativeCall type"
+            ~ " for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n"
+            ~ " --> For Numerical type, use the appropriate int32/int64/num64...";
         }
     }
     return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
     if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
-        die "The returning type of '{$r.name}' --> {$r.returns.^name} is errornous. You should not return a non NativeCall supported type (like Int inplace of int32), truncating errors can appear with different architectures";
+        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is errornous."
+            ~ " You should not return a non NativeCall supported type (like Int inplace of int32),"
+            ~ " truncating errors can appear with different architectures";
     }
 }
 

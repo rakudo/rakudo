@@ -73,11 +73,21 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False) {
+        if %*ENV<RAKUDO_PRECOMP> ~~ 'none' { # Eww
+            RAKUDO_MODULE_DEBUG("Not precompiling $path or considering extant precompilations") if $*RAKUDO_MODULE_DEBUG;
+            return True;
+        }
+
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
         if not $force and $io.e and $io.s {
             RAKUDO_MODULE_DEBUG("$path already precompiled into $io") if $*RAKUDO_MODULE_DEBUG;
             self.store.unlock;
+            return True;
+        }
+
+        if %*ENV<RAKUDO_PRECOMP> ~~ 'read-only' {
+            RAKUDO_MODULE_DEBUG("Not precompiling $path and extant precompilation not found") if $*RAKUDO_MODULE_DEBUG;
             return True;
         }
 

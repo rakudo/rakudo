@@ -744,26 +744,21 @@ my class Array { # declared in BOOTSTRAP
 
         method !new-internal(\values, \shape) {
             my \arr = nqp::create(self);
+            nqp::bindattr(
+              arr,
+              Array,
+              '$!descriptor',
+              Perl6::Metamodel::ContainerDescriptor.new(
+                :of(TValue), :rw(1), :default(TValue))
+            );
             if shape.DEFINITE {
                 my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
                 allocate-shaped-storage(arr, list-shape);
                 arr does ShapedArray[Mu];
                 arr.^set_name('Array');
                 nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-                nqp::bindattr(
-                    arr,
-                    Array,
-                    '$!descriptor',
-                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
-                );
                 arr.STORE(values) if values;
             } else {
-                nqp::bindattr(
-                    arr,
-                    Array,
-                    '$!descriptor',
-                    Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :rw(1))
-                );
                 arr.STORE(values);
             }
             arr

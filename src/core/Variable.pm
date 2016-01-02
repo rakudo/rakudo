@@ -40,7 +40,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     my $what := $var.VAR.WHAT;
 
     my $descriptor;
-    try {
+    {
         $descriptor := nqp::getattr($var, $what.^mixin_base, '$!descriptor');
         CATCH {
             nqp::istype($default,Whatever)
@@ -63,7 +63,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
 multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    try { nqp::getattr(
+    { nqp::getattr(
             $var,
             $what.^mixin_base,
             '$!descriptor',

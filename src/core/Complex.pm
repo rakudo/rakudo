@@ -80,8 +80,10 @@ my class Complex is Cool does Numeric {
     }
 
     method sqrt(Complex:D:) {
-        my Num ($mag, $angle) = self.polar;
-        $mag.sqrt.unpolar($angle/2);
+        my Num $abs = self.abs;
+        my Num $re = (($abs + self.re)/2).sqrt;
+        my Num $im = (($abs - self.re)/2).sqrt;
+        Complex.new($re, self.im < 0 ?? -$im !! $im);
     }
 
     multi method exp(Complex:D:) {

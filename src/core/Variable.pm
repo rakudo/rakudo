@@ -24,6 +24,15 @@ my class Variable {
             ?? -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx()))), self.name)) }
             !! -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctx()), self.name)) }
     }
+
+    submethod native(Mu $what) {
+        my $name := $what.perl;
+        $name.starts-with('array') || $name eq 'Mu'
+          ?? $name
+          !! $name.ends-with('LexRef')
+            ?? $name.substr(0,3).lc
+            !! '';
+    }
 }
 
 # "is" traits
@@ -43,11 +52,16 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     {
         $descriptor := nqp::getattr($var, $what.^mixin_base, '$!descriptor');
         CATCH {
-            nqp::istype($default,Whatever)
-              ?? $v.throw( 'X::Comp::NYI',
-                :feature<is default(*) on natives> )
-              !! $v.throw( 'X::Comp::Trait::NotOnNative',
-                :type<is>, :subtype<default> ); # can't find out native type yet
+            my $native = $v.native($what);
+            $native
+              ?? nqp::istype($default,Whatever)
+                ?? $v.throw('X::Comp::NYI',
+                     :feature("is default(*) on native $native"))
+                !! $v.throw( 'X::Comp::Trait::NotOnNative',
+                     :type<is>, :subtype<default>,
+                     :native($native eq 'Mu' ?? ''!! $native ))  # yuck
+              !! $v.throw('X::Comp::NYI',
+                     :feature("is default on shaped $what.perl()"))
         }
     }
 
@@ -63,14 +77,16 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
 multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    { nqp::getattr(
-            $var,
-            $what.^mixin_base,
-            '$!descriptor',
-          ).set_dynamic($dynamic);
+    {
+        nqp::getattr($var,$what.^mixin_base,'$!descriptor').set_dynamic($dynamic);
         CATCH {
-            $v.throw( 'X::Comp::Trait::NotOnNative',
-              :type<is>, :subtype<dynamic> ); # can't find out native type yet
+            my $native = $v.native($what);
+            $native
+              ?? $v.throw( 'X::Comp::Trait::NotOnNative',
+                   :type<is>, :subtype<dynamic>,
+                   :native($native eq 'Mu' ?? ''!! $native ))  # yuck
+              !! $v.throw('X::Comp::NYI',
+                     :feature("is dynamic on shaped $what.perl()"))
         }
     }
 }

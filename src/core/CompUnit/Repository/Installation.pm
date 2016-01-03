@@ -104,9 +104,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
-    method !precomp-id(Str $name, Str $dist-id) {
-        my $id = $name ~ $dist-id ~ self.path-spec;
-        $id ~= ',' ~ self.next-repo.id if self.next-repo;
+    method !file-id(Str $name, Str $dist-id) {
+        my $id = $name ~ $dist-id;
         nqp::sha1($id)
     }
 
@@ -135,7 +134,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # "provides" or just "files".
         for %sources.kv -> $name, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!precomp-id($file, $dist-id);
+            my $id          = self!file-id($file, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
             $dist.provides{ $name } = {
@@ -151,7 +150,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %scripts.kv -> $basename, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!precomp-id($file, $dist-id);
+            my $id          = self!file-id($file, $dist-id);
             my $destination = $resources-dir.child($id);
             my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
@@ -172,7 +171,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %resources.kv -> $name, $file is copy {
             $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id             = self!precomp-id($file, $dist-id) ~ '.' ~ $file.IO.extension;
+            my $id             = self!file-id($file, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
             $dist.files{$name} = $id;
             copy($file, $destination);

@@ -44,7 +44,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             my ($id, $src) = $dependency.words;
             my $file = self.store.path($compiler-id, $id);
             my $modified = $file.modified;
-            RAKUDO_MODULE_DEBUG("$path mtime: $modified since: $since src: {$src.IO.modified}") if $*RAKUDO_MODULE_DEBUG;
+            RAKUDO_MODULE_DEBUG("$file mtime: $modified since: $since src: {$src.IO.modified}") if $*RAKUDO_MODULE_DEBUG;
             return False if $modified > $since or not $src.IO.e or $modified <= $src.IO.modified;
             %!loaded{$id} //= self!load-handle-for-path(self.store.load($compiler-id, $id));
             say "$id $src" if $*W and $*W.is_precompilation_mode;

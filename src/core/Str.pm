@@ -472,8 +472,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method subst-mutate($self is rw: $matcher, $replacement,
-                       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options) {
+    multi method subst-mutate(
+      Str:D $self is rw: $matcher, $replacement,
+      :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options
+    ) {
         my $global = %options<g> || %options<global>;
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);

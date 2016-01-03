@@ -264,16 +264,18 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }
 
-    proto method subst-mutate(|c) {
+    proto method subst-mutate(|) {
         $/ := nqp::getlexdyn('$/');
         {*}
     }
-    multi method subst-mutate($self is rw: |c) {
+    multi method subst-mutate(
+      Cool:D $self is rw: $matcher, $replacement, *%named
+    ) {
         $/ := nqp::getlexdyn('$/');
-        my $str = Str($self);
-        my $match = $str.subst-mutate(|c);
-        $self = $str;
-        $match;
+        my $str   = $self.Str;
+        my $match = $str.subst-mutate($matcher,$replacement,|%named);
+        $self     = $str;
+        $match
     }
 
     proto method IO(|) { * }

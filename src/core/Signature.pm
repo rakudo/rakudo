@@ -92,7 +92,8 @@ my class Signature { # declared in BOOTSTRAP
             nqp::clone($!params));
     }
 
-    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
+    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu,
+                     :&where = -> $ { 'where { ... }' } ) {
         # Opening.
         my $text = $perl ?? ':(' !! '(';
 
@@ -105,7 +106,9 @@ my class Signature { # declared in BOOTSTRAP
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                $text ~= $sep ~ $param.perl(:$elide-type);
+                my $parmstr = $param.perl(:$elide-type, :&where);
+                return Nil without $parmstr;
+                $text ~= $sep ~ $parmstr;
                 $text .= subst(/' $'$/,'') unless $perl;
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
@@ -135,6 +138,16 @@ my class Signature { # declared in BOOTSTRAP
 
 multi sub infix:<eqv>(Signature $a, Signature $b) { $a.perl eq $b.perl }
 Perl6::Metamodel::Configuration.set_multi_sig_comparator(
-    -> \a, \b { a.signature eqv b.signature });
+    -> \a, \b { my $sa = a.signature.^find_private_method('gistperl')(
+                     a.signature, True, :where(-> $ { Nil }));
+                with $sa {
+                    my $sb = b.signature.^find_private_method('gistperl')(
+                        b.signature, True, :where(-> $ { Nil }));
+                    $sa eqv $sb;
+                }
+                else {
+                    False;
+                }
+               });
 
 # vim: ft=perl6 expandtab sw=4

@@ -217,7 +217,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
     }
     return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
     if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
-        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is errornous."
+        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is erroneous."
             ~ " You should not return a non NativeCall supported type (like Int inplace of int32),"
             ~ " truncating errors can appear with different architectures";
     }

@@ -4,16 +4,18 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
-        $!prefix.mkdir;
-    }
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
     }
 
+    method !writeable-path {
+        self.can-install ?? $.prefix !! IO::Path;
+    }
+
     method can-install() {
-        $.prefix.w
+        $.prefix.w || ?(!$.prefix.e && try { $.prefix.mkdir } && $.prefix.e);
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--
@@ -109,7 +111,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method install(Distribution $dist, %sources, %scripts?, %resources?, :$force) {
         $!lock.protect( {
         my @*MODULES;
-        my $path   = self.writeable-path or die "No writeable path found, $.prefix not writeable";
+        my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
         my $lock //= $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
 

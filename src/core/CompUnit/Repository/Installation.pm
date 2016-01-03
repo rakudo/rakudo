@@ -298,24 +298,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
             );
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-            my $handle;
             my $id = $loader.basename;
-            if $precomp.may-precomp {
-                $handle = (
-                    $precomp.load($id, :since($loader.modified)) # already precompiled?
-                    or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
-                );
-                if $*W and $*W.is_precompilation_mode {
-                    if $handle {
-                        say "$id $loader";
-                    }
-                    else {
-                        nqp::exit(0);
-                    }
-                }
-            }
+            my $handle = $precomp.try-load($id, $loader);
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
+
             my $compunit = CompUnit.new(
                 :$handle,
                 :short-name($spec.short-name),

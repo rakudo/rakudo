@@ -4,7 +4,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has int $!lock-count = 0;
 
     submethod BUILD(IO::Path :$!prefix) {
-        $!prefix.mkdir;
+        $!prefix.mkdir unless $!prefix.e;
     }
 
     method !dir(CompUnit::PrecompilationId $compiler-id,

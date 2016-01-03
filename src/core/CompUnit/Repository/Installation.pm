@@ -4,7 +4,9 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) {
+        $!prefix.mkdir;
+    }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;

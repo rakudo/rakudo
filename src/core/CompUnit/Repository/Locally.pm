@@ -27,6 +27,8 @@ role CompUnit::Repository::Locally {
         self.short-id ~ '#' ~ $!prefix.abspath;
     }
 
+    method prefix { "{$!prefix}".IO }
+
     method id() {
         my $name = self.path-spec;
         $name ~= ',' ~ self.next-repo.id if self.next-repo;

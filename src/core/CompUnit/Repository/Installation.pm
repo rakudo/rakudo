@@ -4,6 +4,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
 
+    my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
+
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
 
     method writeable-path {
@@ -143,6 +145,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     :$!cver
                 }
             };
+            note("Installing {$name} for {$dist.name}") if $verbose and $name ne $dist.name;
             copy($file, $destination);
         }
 
@@ -180,7 +183,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $precomp = $*REPO.precomp-repository;
         my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
         my %done;
-        my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
         for $dist.provides.values.map(*.values[0]<file>) -> $id {
             my $source = $sources-dir.child($id);
             if $precomp.may-precomp {

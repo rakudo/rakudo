@@ -22,6 +22,27 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     my $lle;
 
+    method try-load(CompUnit::PrecompilationId $id, IO::Path $source) returns CompUnit::Handle {
+        my $handle = (
+            self.may-precomp and (
+                self.load($id, :since($source.modified)) # already precompiled?
+                or self.precompile($source, $id) and self.load($id) # if not do it now
+            )
+        );
+        my $precompiled = ?$handle;
+
+        if $*W and $*W.is_precompilation_mode {
+            if $precompiled {
+                say "$id $source";
+            }
+            else {
+                nqp::exit(0);
+            }
+        }
+
+        $handle ?? $handle !! Nil
+    }
+
     method !load-handle-for-path(IO::Path $path) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled $path") }

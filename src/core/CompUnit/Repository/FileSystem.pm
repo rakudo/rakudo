@@ -75,26 +75,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             my $id = nqp::sha1($name ~ $*REPO.id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = (
-                $precomp.may-precomp and (
-                    $precomp.load($id, :since($file.modified)) # already precompiled?
-                    or $precomp.precompile($file, $id) and $precomp.load($id) # if not do it now
-                )
-            );
-            my $precompiled = ?$handle;
-
-            if $*W and $*W.is_precompilation_mode {
-                if $precompiled {
-                    say "$id $file";
-                }
-                else {
-                    nqp::exit(0);
-                }
-            }
-            $handle ||= CompUnit::Loader.load-source-file($file); # precomp failed
+            my $handle = $precomp.try-load($id, $file);
+            my $precompiled = defined $handle;
+            $handle //= CompUnit::Loader.load-source-file($file); # precomp failed
 
             return %!loaded{$name} = %seen{$base} = CompUnit.new(
-                :short-name($name), :$handle, :repo(self), :repo-id($id), :$precompiled
+                :short-name($name),
+                :$handle,
+                :repo(self),
+                :repo-id($id),
+                :$precompiled,
             );
         }
 

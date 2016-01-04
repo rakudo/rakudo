@@ -199,7 +199,7 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
+    multi method perl(Parameter:D: Mu:U :$elide-type = Any, :&where = -> $ { 'where { ... }' }) {
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
@@ -279,7 +279,11 @@ my class Parameter { # declared in BOOTSTRAP
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
-        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
+        unless nqp::isnull($!post_constraints) {
+            my $where = &where(self);
+            return Nil without $where;
+            $rest ~= " $where";
+        }
         $rest ~= ' = { ... }' if $default;
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;

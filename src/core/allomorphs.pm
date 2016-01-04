@@ -98,12 +98,17 @@ multi sub val(*@maybevals) {
     @maybevals.list.map({ val($_) }).eager;
 }
 
+multi sub val(Mu) {
+    warn "Value of type Mu uselessly passed to val()";
+    Mu
+}
+
 # needed to preserve slip-ness
-multi sub val(Slip $maybevals) {
+multi sub val(Slip:D $maybevals) {
     val(|$maybevals).Slip
 }
 
-multi sub val(Pair $ww-thing) {
+multi sub val(Pair:D $ww-thing) {
     # this is a Pair object possible in «» constructs; just pass it through. We
     # capture this specially from the below sub to avoid emitting a warning
     # whenever an affected «» construct is being processed.
@@ -116,7 +121,7 @@ multi sub val(\one-thing) {
     one-thing;
 }
 
-multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
+multi sub val(Str:D $MAYBEVAL, :$val-or-fail = False) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -125,6 +130,7 @@ multi sub val(Str $MAYBEVAL, :$val-or-fail = False) {
 
     my str $str = nqp::unbox_s($MAYBEVAL);
     my int $eos = nqp::chars($str);
+    return IntStr.new(0,"") unless $eos;  # handle ""
 
     # S02:3276-3277: Ignore leading and trailing whitespace
     my int $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,

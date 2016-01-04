@@ -615,14 +615,15 @@ class Perl6::World is HLL::World {
             %*LANG<MAIN> := $cursor.WHAT;
         }
 
+        my $actions := %*LANG<MAIN-actions>;
         # Add action method if needed.
-        unless nqp::can($*ACTIONS, $canname) {
+        unless nqp::can($actions, $canname) {
             my role PackageDeclaratorAction[$meth] {
                 method ::($meth)($/) {
                     make $<package_def>.ast;
                 }
             };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+            %*LANG<MAIN-actions> := $actions.HOW.mixin($actions,
                 PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
         }
         self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document contians my (jnthn) input to where implementation work for
+This document contains my (jnthn) input to where implementation work for
 Perl 6 module/precomp stuff should head. While much has been converged on by
 existing work, some problems have also been consistently avoided or punted
 on; robust pre-compilation management is one such issue. Everything here is

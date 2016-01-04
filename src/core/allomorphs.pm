@@ -67,31 +67,23 @@ my class ComplexStr is Complex is Str {
 # we define cmp ops for these allomorphic types as numeric first, then Str. If
 # you want just one half of the cmp, you'll need to coerce the args
 multi sub infix:<cmp>(IntStr $a, IntStr $b) {
-    given $a.Int cmp $b.Int {
-        return $_ unless $_ === Order::Same;
-        $a.Str cmp $b.Str
-    }
+    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
+      given $a.Int cmp $b.Int
 }
 
 multi sub infix:<cmp>(RatStr $a, RatStr $b) {
-    given $a.Rat cmp $b.Rat {
-        return $_ unless $_ === Order::Same;
-        $a.Str cmp $b.Str
-    }
+    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
+      given $a.Rat cmp $b.Rat
 }
 
 multi sub infix:<cmp>(NumStr $a, NumStr $b) {
-    given $a.Num cmp $b.Num {
-        return $_ unless $_ === Order::Same;
-        $a.Str cmp $b.Str
-    }
+    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
+      given $a.Num cmp $b.Num
 }
 
 multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
-    given $a.Complex cmp $b.Complex {
-        return $_ unless $_ === Order::Same;
-        $a.Str cmp $b.Str
-    }
+    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
+      given $a.Complex cmp $b.Complex
 }
 
 multi sub val(*@maybevals) {
@@ -108,12 +100,12 @@ multi sub val(Slip:D $maybevals) {
     val(|$maybevals).Slip
 }
 
-multi sub val(Pair:D $ww-thing) {
+multi sub val(Pair:D \ww-thing) is raw {
     # this is a Pair object possible in «» constructs; just pass it through. We
     # capture this specially from the below sub to avoid emitting a warning
     # whenever an affected «» construct is being processed.
 
-    $ww-thing;
+    ww-thing
 }
 
 multi sub val(\one-thing) {
@@ -121,7 +113,7 @@ multi sub val(\one-thing) {
     one-thing;
 }
 
-multi sub val(Str:D $MAYBEVAL, :$val-or-fail = False) {
+multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -149,37 +141,27 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail = False) {
 
     # Fail all the way out when parse failures occur. Return the original
     # string, or a failure if we're Str.Numeric
-    my &parse_fail := -> $msg {
-        if $val-or-fail {
-            fail X::Str::Numeric.new(
-                    source => $MAYBEVAL,
-                    reason => $msg,
-                    :$pos,
-            );
-        } else {
-            return $MAYBEVAL;
-        }
-    };
+    my &parse_fail := -> \msg {
+        $val-or-fail
+          ?? fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
+          !! return $MAYBEVAL
+    }
 
     # return an appropriate type when we've found a number. Allomorphic unless
     # Str.Numeric is calling
     my &parse_win := -> \newval {
-        if $val-or-fail {
-            return newval;
-        } else {
-            if newval.isa(Num) {
-                return NumStr.new(newval, $MAYBEVAL);
-            } elsif newval.isa(Rat) {
-                return RatStr.new(newval, $MAYBEVAL);
-            } elsif newval.isa(Complex) {
-                return ComplexStr.new(newval, $MAYBEVAL);
-            } elsif newval.isa(Int) {
-                return IntStr.new(newval, $MAYBEVAL);
-            } else {
-                die "Unknown type {newval.^name} found in val() processing";
-            }
-        }
-    };
+        $val-or-fail
+          ?? return newval
+          !! newval.isa(Num)
+            ?? return NumStr.new(newval, $MAYBEVAL)
+            !! newval.isa(Rat)
+              ?? return RatStr.new(newval, $MAYBEVAL)
+              !! newval.isa(Complex)
+                ?? return ComplexStr.new(newval, $MAYBEVAL)
+                !! newval.isa(Int)
+                  ?? return IntStr.new(newval, $MAYBEVAL)
+                  !! die "Unknown type {newval.^name} found in val() processing"
+    }
 
     my sub parse-simple-number() {
         # Handle NaN here, to make later parsing simpler
@@ -286,7 +268,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail = False) {
 
             # Otherwise, return a Rat
             my Int $numerator := $int * $base + $frac;
-            return Rat.new($numerator, $base);
+            Rat.new($numerator, $base);
         }
 
         # Look for radix specifiers
@@ -370,17 +352,17 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail = False) {
                 if nqp::islt_i($pos, $eos)
                 && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
 
-            return parse-int-frac-exp();
+            parse-int-frac-exp();
         }
         elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
             # 'Inf'
             $pos = nqp::add_i($pos, 3);
-            return $neg ?? -Inf !! Inf;
+            $neg ?? -Inf !! Inf;
         }
         else {
             # Last chance: a simple decimal number
             $radix = 10;
-            return parse-int-frac-exp();
+            parse-int-frac-exp();
         }
     }
 

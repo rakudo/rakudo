@@ -16,7 +16,7 @@ try {
     }
 }
 
-plan 20;
+plan 26;
 
 # shell 'dumpbin /exports 13-cpp-mangling.dll';
 
@@ -44,6 +44,14 @@ class Foo is repr<CPPStruct> {
     method TakeALongLongPointer(Pointer[longlong]) returns int32 is native("./13-cpp-mangling") { * }
     method TakeAFloatPointer(Pointer[num32])       returns int32 is native("./13-cpp-mangling") { * }
     method TakeADoublePointer(Pointer[num64])      returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAUInt(uint32)                       returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAUShort(uint16)                     returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAUChar(uint8)                       returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAInt64(int64)                       returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAULongLong(ulonglong)               returns int32 is native("./13-cpp-mangling") { * }
+    method TakeAUInt64(uint64)                     returns int32 is native("./13-cpp-mangling") { * }
+
+
 }
 
 my $foo = Foo.new;
@@ -68,3 +76,9 @@ is $foo.TakeALongPointer(Pointer[long].new),         16, 'long* mangling';
 is $foo.TakeALongLongPointer(Pointer[longlong].new), 17, 'long long* mangling';
 is $foo.TakeAFloatPointer(Pointer[num32].new),       18, 'float* mangling';
 is $foo.TakeADoublePointer(Pointer[num64].new),      19, 'double* mangling';
+is $foo.TakeAUInt(1),                                20, 'uint mangling';
+is $foo.TakeAUShort(1),                              21, 'ushort mangling';
+is $foo.TakeAUChar(1),                               22, 'uchar mangling';
+is $foo.TakeAInt64(1),                               23, 'int64 mangling';
+is $foo.TakeAULongLong(1),                           24, 'unsigned long long mangling';
+is $foo.TakeAUInt64(1),                              25, 'uint64 mangling';

@@ -6317,7 +6317,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub check_smartmatch($/,$pat) {
         if nqp::can($pat,'ann') && $pat.ann('is_S') {
-            $/.PRECURSOR.worry("Smartmatch with S/// can never succeed because the subsequent string match will fail");
+            $/.PRECURSOR.worry('Smartmatch with S/// can never succeed because the string it returns will fail to match. You can use given instead of ~~.');
         }
 
         if $pat ~~ QAST::WVal && istype($pat.returns, $*W.find_symbol(['Bool'])) && nqp::isconcrete($pat.value) {

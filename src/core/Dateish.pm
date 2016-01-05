@@ -32,7 +32,9 @@ my role Dateish {
     }
 
     multi method new(Dateish:) {
-        fail X::Cannot::New.new(class => self);
+        fail %_
+          ?? "Cannot call {self.^name}.new with these named parameters: {%_.keys}"
+          !! X::Cannot::New.new(class => self)
     }
 
     multi method Str(Dateish:D:) {

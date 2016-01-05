@@ -74,11 +74,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
-    warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor;
+    warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor || $attr.has_private_accessor;
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
-    warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
+    warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor || $attr.has_private_accessor;
 }
 multi sub trait_mod:<is>(Attribute $attr, :$required!) {
     $attr.set_required();

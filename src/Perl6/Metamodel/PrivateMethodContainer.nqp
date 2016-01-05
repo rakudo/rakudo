@@ -21,4 +21,10 @@ role Perl6::Metamodel::PrivateMethodContainer {
             %!private_methods{$name} !!
             nqp::null()
     }
+
+    # Checks if this package (not its parents) declares a given
+    # private method.
+    method declares_private_method($obj, $name) {
+	%!private_methods{$name} ?? 1 !! 0;
+    }
 }

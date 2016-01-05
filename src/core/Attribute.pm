@@ -3,6 +3,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
+    #     has int $!has_private_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
     #     has Mu $!auto_viv_container;
@@ -17,10 +18,11 @@ my class Attribute { # declared in BOOTSTRAP
 
     method compose(Mu $package) {
         # Generate accessor method, if we're meant to have one.
-        if self.has_accessor {
+        if self.has_accessor || self.has_private_accessor {
             my str $name   = nqp::unbox_s(self.name);
-            my $meth_name := nqp::substr($name, 2);
-            unless $package.^declares_method($meth_name) {
+            my $meth_name := nqp::substr($name, 2);	    
+	    my $has_method = self.has_private_accessor ?? $package.^declares_private_method($meth_name) !! $package.^declares_method($meth_name);
+            unless $has_method {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
@@ -77,7 +79,11 @@ my class Attribute { # declared in BOOTSTRAP
                         }
                 }
                 $meth.set_name($meth_name);
-                $package.^add_method($meth_name, $meth);
+		if self.has_private_accessor {
+		    $package.^add_private_method($meth_name, $meth);
+		} else {
+                    $package.^add_method($meth_name, $meth);
+		}
             }
         }
 

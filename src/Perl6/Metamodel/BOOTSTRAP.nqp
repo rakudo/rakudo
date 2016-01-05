@@ -1104,6 +1104,7 @@ BEGIN {
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
+    #     has int $!has_private_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
     #     has Mu $!auto_viv_container;
@@ -1119,6 +1120,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_private_accessor>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu), :package(Attribute)));
@@ -1134,11 +1136,12 @@ BEGIN {
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
         nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$has_accessor,
-                :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
+                 :$has_private_accessor, :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
+	    nqp::bindattr_i($attr, Attribute, '$!has_private_accessor', $has_private_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
             if nqp::existskey(%other, 'container_descriptor') {
@@ -1187,6 +1190,10 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
             nqp::p6bool(nqp::getattr_i(nqp::decont($self),
                 Attribute, '$!has_accessor'));
+        }));
+    Attribute.HOW.add_method(Attribute, 'has_private_accessor', nqp::getstaticcode(sub ($self) {
+            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!has_private_accessor'));
         }));
     Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
             nqp::p6bool(nqp::getattr_i(nqp::decont($self),

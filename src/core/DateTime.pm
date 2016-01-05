@@ -252,8 +252,8 @@ my class DateTime does Dateish {
 
         # on a leap second and not moving by second
         elsif $!second >= 60 {
-            my $dt := 
-              self!clone-without-validating(:second($!second-1)).later(|%unit);
+            my $dt := self!clone-without-validating(
+              :second($!second-1)).later(|($unit => $amount));
             $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
               && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
               ?? $dt!clone-without-validating(:$!second)
@@ -262,7 +262,8 @@ my class DateTime does Dateish {
 
         # month,year
         elsif nqp::atkey($valid-units,$unit) {
-            my $date := Date.new($!year,$!month,$!day).later(|%unit);
+            my $date :=
+              Date.new($!year,$!month,$!day).later(|($unit => $amount));
             nqp::create(self).BUILD(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),

@@ -50,10 +50,14 @@ my role Setty does QuantHash {
         self.bless(:elems(%e));
     }
 
-    method ACCEPTS($other) {
-        self.defined
-          ?? $other (<=) self && self (<=) $other
-          !! $other.^does(self);
+    multi method ACCEPTS(Setty:U: $other) {
+        $other.^does(self)
+    }
+    multi method ACCEPTS(Setty:D: Seq:D \seq) {
+        self.ACCEPTS(seq.list)
+    }
+    multi method ACCEPTS(Setty:D: $other) {
+        $other (<=) self && self (<=) $other
     }
 
     multi method Str(Setty:D $ : --> Str) { ~ %!elems.values }

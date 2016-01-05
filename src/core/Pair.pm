@@ -74,7 +74,7 @@ my class Pair does Associative {
     multi method EXISTS-KEY(Pair:D: $key) { $key eq $!key }
 
     method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }
+    method FLATTENABLE_HASH() { nqp::hash($!key.Str, $!value) }
 }
 
 multi sub infix:<eqv>(Pair:D $a, Pair:D $b) {

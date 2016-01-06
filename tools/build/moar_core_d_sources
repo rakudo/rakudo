@@ -1,1 +1,7 @@
 src/core.d/core_prologue.pm
+src/core.d/IO/ArgFiles.pm
+src/core.d/IO/CatPath.pm
+src/core.d/IO/CatHandle.pm
+src/core.d/List.pm
+src/core.d/io_operators.pm
+src/core.d/Argfiles.pm

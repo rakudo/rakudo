@@ -1141,6 +1141,15 @@ my class X::Subscript::Negative is Exception {
     }
 }
 
+my class X::Invalid::Value is Exception {
+    has $.method;
+    has $.name;
+    has $.value;
+    method message {
+        "Invalid value '$.value' for :$.name on method $.method"
+    }
+}
+
 my class X::Value::Dynamic does X::Comp {
     has $.what;
     method message() { "$.what value must be known at compile time" }

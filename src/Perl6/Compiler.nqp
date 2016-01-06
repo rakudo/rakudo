@@ -134,34 +134,29 @@ class Perl6::Compiler is HLL::Compiler {
 
         return 0 unless @symbols;
 
-        try {
-            $!readline := @symbols[0];
-            $!readline_add_history := @symbols[1];
+        $!readline := @symbols[0];
+        $!readline_add_history := @symbols[1];
 
-            my $linenoise_set_completion_callback := @symbols[2];
-            my $linenoise_add_completion := @symbols[3];
+        my $linenoise_set_completion_callback := @symbols[2];
+        my $linenoise_add_completion := @symbols[3];
 
-            $linenoise_set_completion_callback(sub ($line, $c) {
-                my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
+        $linenoise_set_completion_callback(sub ($line, $c) {
+            my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
-                my $prefix    := $m ?? ~$m<prefix>    !! '';
-                my $last_word := $m ?? ~$m<last_word> !! '';
+            my $prefix    := $m ?? ~$m<prefix>    !! '';
+            my $last_word := $m ?? ~$m<last_word> !! '';
 
-                my $it := nqp::iterator($!completions);
+            my $it := nqp::iterator($!completions);
 
-                while $it {
-                    my $k := nqp::shift($it);
+            while $it {
+                my $k := nqp::shift($it);
 
-                    if $k ~~ /^ $last_word / {
-                        $linenoise_add_completion($c, $prefix ~ $k);
-                    }
+                if $k ~~ /^ $last_word / {
+                    $linenoise_add_completion($c, $prefix ~ $k);
                 }
-            });
-
-            CATCH {
-                return 0;
             }
-        }
+        });
+
         return 1;
     }
 
@@ -176,25 +171,35 @@ class Perl6::Compiler is HLL::Compiler {
 
         return 0 unless @symbols;
 
-        try {
-            $!readline := @symbols[0];
-            $!readline_add_history := @symbols[1];
+        $!readline := @symbols[0];
+        $!readline_add_history := @symbols[1];
 
-            CATCH {
-                return 0;
-            }
-        }
         return 1;
     }
 
     method interactive(*%adverbs) {
         my $readline_loaded := 0;
-        $readline_loaded := $readline_loaded || self.try_load_readline();
-        $readline_loaded := $readline_loaded || self.try_load_linenoise();
+        my $problem;
 
-        unless $readline_loaded {
-            nqp::say('I ran into a problem while trying to set up REPL completions:');
-            nqp::say('Continuing without tab completions');
+        try {
+            $readline_loaded := $readline_loaded || self.try_load_readline();
+
+            CATCH {
+                $problem := $_;
+            }
+        }
+
+        try {
+            $readline_loaded := $readline_loaded || self.try_load_linenoise();
+
+            CATCH {
+                $problem := $_;
+            }
+        }
+
+        if !$readline_loaded && $problem {
+            nqp::say("I ran into a problem while trying to set up REPL completions: $problem");
+            nqp::say('Continuing without tab completions or line editor');
             nqp::say('');
         }
 

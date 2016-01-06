@@ -197,9 +197,14 @@ class Perl6::Compiler is HLL::Compiler {
             }
         }
 
-        if !$readline_loaded && $problem {
-            nqp::say("I ran into a problem while trying to set up REPL completions: $problem");
-            nqp::say('Continuing without tab completions or line editor');
+        if !$readline_loaded {
+            if $problem {
+                nqp::say("I ran into a problem while trying to set up REPL completions: $problem");
+                nqp::say('Continuing without tab completions or line editor');
+                nqp::say('You may want to consider using rlwrap for simple line editor functionality');
+            } else {
+                nqp::say('You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor');
+            }
             nqp::say('');
         }
 

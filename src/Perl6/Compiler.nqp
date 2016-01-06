@@ -185,7 +185,9 @@ class Perl6::Compiler is HLL::Compiler {
             $readline_loaded := $readline_loaded || self.try_load_readline();
 
             CATCH {
-                $problem := $_;
+                nqp::say("I ran into a problem while trying to set up Readline: $_");
+                nqp::say('Falling back to Linenoise (if present)');
+                $problem := 1;
             }
         }
 
@@ -193,13 +195,13 @@ class Perl6::Compiler is HLL::Compiler {
             $readline_loaded := $readline_loaded || self.try_load_linenoise();
 
             CATCH {
-                $problem := $_;
+                nqp::say("I ran into a problem while trying to set up Linenoise: $_");
+                $problem := 1;
             }
         }
 
         if !$readline_loaded {
             if $problem {
-                nqp::say("I ran into a problem while trying to set up REPL completions: $problem");
                 nqp::say('Continuing without tab completions or line editor');
                 nqp::say('You may want to consider using rlwrap for simple line editor functionality');
             } else {

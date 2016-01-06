@@ -20,6 +20,7 @@ my class Date does Dateish {
 
     method SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
+    proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');

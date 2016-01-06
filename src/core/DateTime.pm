@@ -56,6 +56,7 @@ my class DateTime does Dateish {
         self
     }
 
+    proto method new(|) {*}
     multi method new(DateTime:
       Int() $year,
       Int() $month,

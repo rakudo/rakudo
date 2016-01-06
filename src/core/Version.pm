@@ -109,7 +109,7 @@ class Version {
         nqp::box_s(nqp::unbox_s(self.^name ~ '|' ~ $!string), ObjAt);
     }
 
-    method parts() { $!parts }
+    method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::p6bool($!plus) }
 }
 

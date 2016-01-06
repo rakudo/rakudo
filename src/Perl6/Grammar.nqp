@@ -1161,7 +1161,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # for runaway detection
         :my $*LASTQUOTE := [0,0];
 
-        { $*W.loading_and_symbol_setup($/) }
+        {
+            nqp::getcomp('perl6').reset_language_version();
+            $*W.loading_and_symbol_setup($/)
+        }
 
         <.finishpad>
         <.bom>?
@@ -1557,10 +1560,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     ||  <?{ $<version><vnum>[0] == 6 }> {
                             my $version_parts := $<version><vnum>;
                             my $vwant := $<version>.ast.compile_time_value;
-                            my $vhave := $*W.find_symbol(['Version']).new(
-                                nqp::getcomp('perl6').language_version());
+                            my $comp := nqp::getcomp('perl6');
+                            my $vhave := $*W.find_symbol(['Version']).new($comp.language_version());
+                            my $vcould := $*W.find_symbol(['Version']).new('6.d.PREVIEW');
                             my $sm := $*W.find_symbol(['&infix:<~~>']);
-                            if !$sm($vhave,$vwant) {
+                            if $sm($vcould, $vwant) && $vwant.parts.AT-POS($vwant.parts.elems - 1) eq 'PREVIEW' {
+                                $comp.set_language_version('6.d');
+                                $*W.load_setting($/, 'CORE.d');
+                            }
+                            elsif !$sm($vhave,$vwant) {
                                 $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
                             }
                             $*MAIN   := 'MAIN';

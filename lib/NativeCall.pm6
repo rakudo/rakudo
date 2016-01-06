@@ -86,7 +86,7 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
 }
 
 my %signed_ints_by_size =
-    1 => 'int',
+    1 => 'char',
     2 => 'short',
     4 => 'int',
     8 => 'longlong',

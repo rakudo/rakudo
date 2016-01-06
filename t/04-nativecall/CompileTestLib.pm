@@ -9,9 +9,12 @@ sub compile_test_lib($name) is export {
     my $libname = $VM.platform-library-name($name.IO);
     if $VM.name eq 'moar' {
         my $o  = $cfg<obj>;
+
+        # MoarVM exposes exposes GNU make directives here, but we cannot pass this to gcc directly.
+        my $ldshared = $cfg<ldshared>.subst(/'--out-implib,lib$(notdir $@).a'/, "--out-implib,$libname.a");
+
         $c_line = "$cfg<cc> -c $cfg<ccshared> $cfg<ccout>$name$o $cfg<cflags> t/04-nativecall/$name.c";
-        $l_line = "$cfg<ld> $cfg<ldshared> $cfg<ldflags> " ~
-            "$cfg<ldlibs> $cfg<ldout>$libname $name$o";
+        $l_line = "$cfg<ld> $ldshared $cfg<ldflags> $cfg<ldlibs> $cfg<ldout>$libname $name$o";
         @cleanup = << "$libname" "$name$o" >>;
     }
     elsif $VM.name eq 'jvm' {

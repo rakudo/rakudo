@@ -58,17 +58,38 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
         when int8 {
             $R ~ $K ~ 'D'
         }
+        when uint8 {
+            $R ~ $K ~ 'E'
+        }
         when int16 {
             $R ~ $K ~ 'F'
+        }
+        when uint16 {
+            $R ~ $K ~ 'G'
         }
         when int32 {
             $P ~ $K ~ 'H'
         }
+        when uint32 {
+            $P ~ $K ~ 'I'
+        }
         when NativeCall::Types::long {
             $R ~ $K ~ 'J'
         }
+        when NativeCall::Types::ulong {
+            $R ~ $K ~ 'K'
+        }
+        when int64 {
+            $R ~ '_J'
+        }
         when NativeCall::Types::longlong {
             $R ~ '_J'
+        }
+        when uint64 {
+            $R ~ '_K'
+        }
+        when NativeCall::Types::ulonglong {
+            $R ~ '_K'
         }
         when num32 {
             $R ~ $K ~ 'M'

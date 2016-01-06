@@ -30,6 +30,12 @@ public:
     virtual int TakeALongLongPointer(long long *i);
     virtual int TakeAFloatPointer(float *i);
     virtual int TakeADoublePointer(double *i);
+    virtual int TakeAUInt(unsigned int i);
+    virtual int TakeAUShort(unsigned short i);
+    virtual int TakeAUChar(unsigned char i);
+    virtual int TakeAInt64(long long i);
+    virtual int TakeAULongLong(unsigned long long i);
+    virtual int TakeAUInt64(unsigned long long i);
 };
 
 Foo::Foo()  { };
@@ -55,3 +61,9 @@ int Foo::TakeALongPointer(long *i)          { return 16; }
 int Foo::TakeALongLongPointer(long long *i) { return 17; }
 int Foo::TakeAFloatPointer(float *i)        { return 18; }
 int Foo::TakeADoublePointer(double *i)      { return 19; }
+int Foo::TakeAUInt(unsigned int i)          { return 20; }
+int Foo::TakeAUShort(unsigned short i)      { return 21; }
+int Foo::TakeAUChar(unsigned char i)        { return 22; }
+int Foo::TakeAInt64(long long i)            { return 23; }
+int Foo::TakeAULongLong(unsigned long long i) { return 24; }
+int Foo::TakeAUInt64(unsigned long long i)    { return 25; }

@@ -252,7 +252,8 @@ class Perl6::World is HLL::World {
               nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_MODULE_DEBUG'),0)
               ?? -> *@strs {
                      my $err := nqp::getstderr();
-                     nqp::printfh($err, "\$*W RMD: ");
+                     my $now := nqp::time_n();
+                     nqp::printfh($err, $now ~ " \$*W RMD: ");
                      for @strs { nqp::printfh($err, $_) };
                      nqp::printfh($err, "\n");
                  }

@@ -3,6 +3,8 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
+    has $!language_version;
+
     method compilation-id() {
         my class IDHolder { }
         BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
@@ -11,7 +13,20 @@ class Perl6::Compiler is HLL::Compiler {
 
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Perl' }
-    method language_version() { self.config<language_version> }
+    method reset_language_version() {
+        $!language_version := NQPMu;
+    }
+    method set_language_version($version) {
+        $!language_version := $version;
+    }
+    method language_version() {
+        if nqp::defined($!language_version) {
+            $!language_version
+        }
+        else {
+            $!language_version := self.config<language_version>
+        }
+    }
 
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {

@@ -7,6 +7,7 @@
 # discouraged to maintain predictable semantics. Finally, both .hyper() and
 # .race() are implemented here, and return a HyperSeq wrapping the iterator.
 my class HyperSeq { ... }
+my class X::Invalid::Value { ... }
 my role Iterable {
     method iterator() { ... }
 
@@ -107,11 +108,20 @@ my role Iterable {
         }.new(self))
     }
 
+    method !valid-hyper-race($method,$batch,$degree --> Nil) {
+        fail X::Invalid::Value.new(:$method,:name<batch>,:value($batch))
+          if $batch <= 0;
+        fail X::Invalid::Value.new(:$method,:name<degree>,:value($degree))
+          if $degree <= 0;
+    }
+
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+        self!valid-hyper-race('hyper',$batch,$degree);
         self!go-hyper(HyperConfiguration.new(:!race, :$batch, :$degree))
     }
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+        self!valid-hyper-race('race',$batch,$degree);
         self!go-hyper(HyperConfiguration.new(:race, :$batch, :$degree))
     }
 

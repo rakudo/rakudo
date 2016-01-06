@@ -18,12 +18,14 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method BUILD($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
+    method SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
-        nqp::create(self).BUILD($year,$month,$day,&formatter)
+        self === Date
+          ?? nqp::create(self).SET-SELF($year,$month,$day,&formatter)
+          !! self.bless(:$year,:$month,:$day,:&formatter)
     }
     multi method new(Date: :$year!, :$month = 1, :$day = 1, :&formatter) {
         self.new($year,$month,$day,:&formatter)
@@ -43,14 +45,23 @@ my class Date does Dateish {
         self.new($0,$1,$2,:&formatter)
     }
     multi method new(Date: Dateish $d, :&formatter) {
-        nqp::create(self).BUILD($d.year,$d.month,$d.day,&formatter)
+        self === Date
+          ?? nqp::create(self).SET-SELF($d.year,$d.month,$d.day,&formatter)
+          !! self.bless(
+               :year($d.year),
+               :month($d.month),
+               :day($d.day),
+               :&formatter,
+             )
     }
     multi method new(Date: Instant $i, :&formatter) {
         self.new(DateTime.new($i),:&formatter)
     }
     method new-from-daycount($daycount,:&formatter) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
-        nqp::create(self).BUILD($year,$month,$day,&formatter,$daycount)
+        self === Date
+          ?? nqp::create(self).SET-SELF($year,$month,$day,&formatter,$daycount)
+          !! self.bless(:$year,:$month,:$day,:&formatter,:$daycount)
     }
 
     method today(:&formatter) { self.new(DateTime.now, :&formatter) }
@@ -113,7 +124,7 @@ my class Date does Dateish {
     }
     method !clone-without-validating(*%_) { # A premature optimization.
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self).BUILD(
+        nqp::create(self).SET-SELF(
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,

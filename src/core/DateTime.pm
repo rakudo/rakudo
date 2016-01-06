@@ -46,7 +46,7 @@ my class DateTime does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method BUILD(
+    method SET-SELF(
       $!year,$!month,$!day,$hour,$minute,$!second,$timezone,&!formatter
     ) {
         # can't assign native in attributes inside signature yet
@@ -71,9 +71,12 @@ my class DateTime does Dateish {
         (0..23).in-range($hour,'Hour');
         (0..59).in-range($minute,'Minute');
         (^61).in-range($second,'Second');
-        my $dt = nqp::create(self).BUILD(
-          $year,$month,$day,$hour,$minute,$second,$timezone,&formatter
-        );
+        my $dt = self === DateTime
+          ?? nqp::create(self).SET-SELF(
+               $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
+          !! self.bless(
+               :$year,:$month,:$day,
+               :$hour,:$minute,:$second,:$timezone,:&formatter);
 
         # check leap second spec
         if $second >= 60 {
@@ -117,7 +120,9 @@ my class DateTime does Dateish {
           :second($dt.second + $p % 1 + $leap-second)
         ).in-timezone($timezone)
     }
-    multi method new(Numeric:D $time is copy, :$timezone = 0, :&formatter) {
+    multi method new(DateTime:
+      Numeric:D $time is copy, :$timezone = 0, :&formatter
+    ) {
         # Interpret $time as a POSIX time.
         my     $second = $time % 60; $time = $time.Int div 60;
         my int $minute = $time % 60; $time = $time     div 60;
@@ -135,12 +140,17 @@ my class DateTime does Dateish {
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt = nqp::create(self).BUILD(
-          $year,$month,$day,$hour,$minute,$second,0,&formatter
-        );
+        my $dt = self === DateTime
+          ?? nqp::create(self).SET-SELF(
+               $year,$month,$day,$hour,$minute,$second,0,&formatter)
+          !! self.bless(
+               :$year,:$month,:$day,
+               :$hour,:$minute,:$second,:timezone(0),:&formatter);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
-    multi method new(Str $datetime, :$timezone is copy, :&formatter) {
+    multi method new(DateTime:
+      Str:D $datetime, :$timezone is copy, :&formatter
+    ) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $datetime,
           target      => 'DateTime',
@@ -199,8 +209,10 @@ my class DateTime does Dateish {
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
+        return self.clone(|%_) unless self === DateTime;
+
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self).BUILD(
+        nqp::create(self).SET-SELF(
           nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
           nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
           nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
@@ -264,7 +276,7 @@ my class DateTime does Dateish {
         elsif nqp::atkey($valid-units,$unit) {
             my $date :=
               Date.new($!year,$!month,$!day).later(|($unit => $amount));
-            nqp::create(self).BUILD(
+            nqp::create(self).SET-SELF(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),
               nqp::getattr($date,Date,'$!day'),
@@ -288,7 +300,7 @@ my class DateTime does Dateish {
             $day-delta = 7 * $amount if $unit.starts-with('week');
 
             my $date := Date.new-from-daycount(self.daycount + $day-delta);
-            nqp::create(self).BUILD(
+            nqp::create(self).SET-SELF(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),
               nqp::getattr($date,Date,'$!day'),

@@ -64,7 +64,7 @@ class CompUnit::RepositoryRegistry {
             }
 #?endif
 
-            my $prefix := %*ENV<RAKUDO_PREFIX> // nqp::p6box_s(
+            my $prefix := %ENV<RAKUDO_PREFIX> // nqp::p6box_s(
               nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
             );
 

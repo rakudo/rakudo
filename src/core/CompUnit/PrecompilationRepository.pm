@@ -42,7 +42,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $compiler-id = $*PERL.compiler.id;
         my int $DEBUG = $*RAKUDO_MODULE_DEBUG;
         for ($path ~ '.deps').IO.lines -> $dependency {
-            my ($id, $src) = $dependency.words;
+            Rakudo::Internals.KEY_SPACE_VALUE($dependency,my $id,my $src);
             my $file = self.store.path($compiler-id, $id);
             my $modified = $file.modified;
             RAKUDO_MODULE_DEBUG("$file mtime: $modified since: $since src: {$src.IO.modified}") if $DEBUG;
@@ -125,7 +125,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             my @dependencies;
             my $compiler-id = $*PERL.compiler.id;
             for @result -> $dependency {
-                my ($dependency-id, $dependency-src) = $dependency.words;
+                Rakudo::Internals.KEY_SPACE_VALUE(
+                  $dependency,my $dependency-id,my $dependency-src);
                 my $path = self.store.path($compiler-id, $dependency-id);
                 if $path.e {
                     push @dependencies, $dependency;

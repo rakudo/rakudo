@@ -68,8 +68,8 @@ class CompUnit::RepositoryRegistry {
               nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
             );
 
-            my $abspath := "$prefix/share/libraries.json";
-            if IO::Path.new-from-absolute-path($abspath).e {
+#            my $abspath := "$prefix/share/libraries.json";
+#            if IO::Path.new-from-absolute-path($abspath).e {
 #            my $config = from-json( slurp $abspath );
 #
 #            for $config.list -> @group {
@@ -89,9 +89,9 @@ class CompUnit::RepositoryRegistry {
 #                    }
 #                }
 #            }
-            }
+#            }
             # There is no config file, so pick sane defaults.
-            else {
+#            else {
                 # XXX Various issues with this stuff on JVM
                 my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
                 try {
@@ -106,7 +106,7 @@ class CompUnit::RepositoryRegistry {
                   (%custom-lib<site>   = "inst#$prefix/site"),
                   (%custom-lib<vendor> = "inst#$prefix/vendor"),
                   (%custom-lib<perl>   = "inst#$prefix");
-            }
+#            }
         }
 
         my CompUnit::Repository $next-repo := CompUnit::Repository::AbsolutePath.new(

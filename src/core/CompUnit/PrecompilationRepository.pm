@@ -60,7 +60,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
-        my $path = self.store.load($*PERL.compiler.id, $id);
+        my $compiler-id = $*PERL.compiler.id;
+        my $path = self.store.load($compiler-id, $id);
         if $path {
             my $modified = $path.modified;
             if (not $since or $modified > $since) and self!load-dependencies($path, $modified) {
@@ -69,7 +70,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             else {
                 RAKUDO_MODULE_DEBUG("Removing precompiled $path mtime: $modified since: $since")
                   if $*RAKUDO_MODULE_DEBUG;
-                self.store.delete($*PERL.compiler.id, $id); # remove outdated file so we precompile again
+                # remove outdated file so we precompile again
+                self.store.delete($compiler-id, $id);
                 self.store.unlock;
                 CompUnit::Handle
             }
@@ -123,7 +125,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         else {
             RAKUDO_MODULE_DEBUG("Precompiled $path into $io") if $DEBUG;
             my @dependencies;
-            my $compiler-id = $*PERL.compiler.id;
             for @result -> $dependency {
                 Rakudo::Internals.KEY_SPACE_VALUE(
                   $dependency,my $dependency-id,my $dependency-src);

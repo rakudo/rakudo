@@ -180,9 +180,6 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
                             }
                             $work-deficit = $!configuration.degree - nqp::elems($!work-available);
                             if $!active-result-buffer =:= Mu || $!active-result-buffer.elems == 0 {
-                                unless $!active-result-buffer =:= Mu {
-                                    note("   it has { $!active-result-buffer.elems } elements.");
-                                }
                                 $!active-result-buffer := Mu;
                                 $we-got-an-empty-buffer = 1;
                             } else {

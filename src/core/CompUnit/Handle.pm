@@ -18,12 +18,9 @@ class CompUnit::Handle {
     # be returned here. A Callable type object otherwise.
     method export-sub() returns Callable {
         my $module := self.unit;
-        if $module and nqp::existskey($module, '&EXPORT') {
-            nqp::atkey($module, '&EXPORT');
-        }
-        else {
-            Nil
-        }
+        $module && nqp::existskey($module, '&EXPORT')
+          ?? nqp::atkey($module, '&EXPORT')
+          !! Nil
     }
 
     # The EXPORT package from the UNIT of the compilation unit; a

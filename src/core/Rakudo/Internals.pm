@@ -702,7 +702,7 @@ my class Rakudo::Internals {
         my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
         !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? '--ll-exception'
-          !! ''
+          !! Empty
     }
 
     method get-local-timezone-offset() {

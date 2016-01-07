@@ -345,7 +345,8 @@ Please refactor this code using the new Iterator / Seq interface.
     method note() { note(self) }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
-        if $*gistseen -> \sems {
+        if nqp::isnull(nqp::getlexdyn('$*gistseen')) == 0 {
+            my \sems := $*gistseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);

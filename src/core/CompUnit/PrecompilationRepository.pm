@@ -104,16 +104,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
           ?? '--ll-exception'
           !! Empty;
-        %*ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
-        %*ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
-        my $current_dist = %*ENV<RAKUDO_PRECOMP_DIST>;
-        %*ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
+        my %ENV := %*ENV;
+        %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
+        %ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
+        my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
+        %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         RAKUDO_MODULE_DEBUG("Precompiling $path into $io") if $DEBUG;
         my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
-        %*ENV<RAKUDO_PRECOMP_WITH>:delete;
-        %*ENV<RAKUDO_PRECOMP_LOADING>:delete;
-        %*ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
+        %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
+        %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
+        %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 
         my @result = $proc.out.lines;
         if not $proc.out.close or $proc.status {  # something wrong

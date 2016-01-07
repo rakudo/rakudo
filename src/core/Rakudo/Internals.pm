@@ -705,6 +705,15 @@ my class Rakudo::Internals {
           !! Empty
     }
 
+#?if moar
+    method PRECOMP-EXT()    { "moarvm" }
+    method PRECOMP-TARGET() { "mbc"    }
+#?endif
+#?if jvm
+    method PRECOMP-EXT()    { "jar" }
+    method PRECOMP-TARGET() { "jar" }
+#?endif
+
     method get-local-timezone-offset() {
         my $utc = DateTime.new(now).posix.Int;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));

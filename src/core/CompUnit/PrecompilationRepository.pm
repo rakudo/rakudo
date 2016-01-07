@@ -20,6 +20,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     has CompUnit::PrecompilationStore $.store;
     has %!loaded;
 
+    my $lle;
+
     method !load-handle-for-path(IO::Path $path) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
         RAKUDO_MODULE_DEBUG("Loading precompiled $path")
@@ -100,10 +102,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
-        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
-          ?? '--ll-exception'
-          !! Empty;
+        $lle //= Rakudo::Internals.LL-EXCEPTION;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
         %ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];

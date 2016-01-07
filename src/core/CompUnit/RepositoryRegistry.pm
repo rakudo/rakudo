@@ -270,6 +270,8 @@ class CompUnit::RepositoryRegistry {
     }
 }
 
-sub RAKUDO_MODULE_DEBUG(*@str) { note "{ nqp::time_n } $*PID SET RMD: @str[]" }
+sub RAKUDO_MODULE_DEBUG(*@str) {
+    note "$*RAKUDO_MODULE_DEBUG_TIME_PID() SET RMD: @str[]";
+}
 
 # vim: ft=perl6 expandtab sw=4

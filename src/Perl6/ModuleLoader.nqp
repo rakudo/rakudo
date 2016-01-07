@@ -1,8 +1,7 @@
 my $DEBUG := +nqp::ifnull(nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG'), 0);
 sub DEBUG(*@strs) {
     my $err := nqp::getstderr();
-    my $now := nqp::time_n();
-    nqp::printfh($err, $now ~ " P6M RMD: ");
+    nqp::printfh($err, "     " ~ nqp::getpid() ~ " P6M RMD: ");
     for @strs { nqp::printfh($err, $_) };
     nqp::printfh($err, "\n");
     1;

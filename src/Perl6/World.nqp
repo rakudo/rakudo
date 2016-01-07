@@ -248,16 +248,22 @@ class Perl6::World is HLL::World {
 
     method RAKUDO_MODULE_DEBUG() {
         unless nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
-            $!RAKUDO_MODULE_DEBUG :=
-              nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_MODULE_DEBUG'),0)
-              ?? -> *@strs {
+            my $hash := nqp::getenvhash();
+            if nqp::existskey($hash,'RAKUDO_MODULE_DEBUG')
+              && nqp::atkey($hash,'RAKUDO_MODULE_DEBUG') {
+                my $DYNAMIC := self.find_symbol(['&DYNAMIC']);
+                my $RMDTP   := $DYNAMIC('$*RAKUDO_MODULE_DEBUG_TIME_PID');
+                $!RAKUDO_MODULE_DEBUG := -> *@strs {
                      my $err := nqp::getstderr();
-                     my $now := nqp::time_n();
-                     nqp::printfh($err, $now ~ " \$*W RMD: ");
+                     nqp::printfh($err, $RMDTP());
+                     nqp::printfh($err, " \$*W RMD: ");
                      for @strs { nqp::printfh($err, $_) };
                      nqp::printfh($err, "\n");
-                 }
-              !! 0;
+                }
+            }
+            else {
+                $!RAKUDO_MODULE_DEBUG := 0;
+            }
         }
         $!RAKUDO_MODULE_DEBUG;
     }

@@ -697,6 +697,14 @@ my class Rakudo::Internals {
         $escaped
     }
 
+    # return whether running with --ll-exception
+    method LL-EXCEPTION() {
+        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
+        !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
+          ?? '--ll-exception'
+          !! ''
+    }
+
     method get-local-timezone-offset() {
         my $utc     = time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));

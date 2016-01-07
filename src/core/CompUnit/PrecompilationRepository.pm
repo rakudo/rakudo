@@ -110,7 +110,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         RAKUDO_MODULE_DEBUG("Precompiling $path into $io") if $DEBUG;
-        my $proc = run($*EXECUTABLE, $lle, "--target={$*VM.precomp-target}", "--output=$io", $path, :out);
+        my $proc = run(
+          $*EXECUTABLE,
+          $lle,
+          "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
+          "--output=$io",
+          $path,
+          :out,
+        );
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
         %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;

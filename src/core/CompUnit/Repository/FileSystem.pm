@@ -18,7 +18,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         returns CompUnit:D
     {
         if $spec.from eq 'Perl6' {
-            state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
             my $name               = $spec.short-name;
             return %!loaded{$name} if %!loaded{$name}:exists;
 
@@ -90,10 +89,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method load(IO::Path:D $file) returns CompUnit:D {
         unless $file.is-absolute {
-            state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
-            my $precompiled = $file.Str.ends-with($precomp-ext);
+            my $precompiled =
+              $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
             my $path = $!prefix.child($file);
 
             if $path.f {

@@ -11,10 +11,10 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
 
     method load(IO::Path:D $file) returns CompUnit:D {
         if $file.is-absolute {
-            state Str $precomp-ext = $*VM.precomp-ext;  # should be $?VM probably
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
-            my $precompiled = $file.Str.ends-with($precomp-ext);
+            my $precompiled =
+              $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
 
             if $file.f {
                 return %!loaded{$file} = CompUnit.new(

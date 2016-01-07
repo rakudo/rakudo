@@ -919,6 +919,7 @@ class Perl6::World is HLL::World {
             $DEBUG("Performing imports for '$name'") if $DEBUG;
             self.do_import($/, $comp_unit.handle, $name, $arglist);
             self.import_EXPORTHOW($/, $comp_unit.handle);
+            $DEBUG("Imports for '$name' done") if $DEBUG;
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");

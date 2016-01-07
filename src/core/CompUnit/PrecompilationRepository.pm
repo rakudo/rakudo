@@ -40,7 +40,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     method !load-dependencies(IO::Path $path, Instant $since) {
         my @dependencies = ($path ~ '.deps').IO.lines;
         my $compiler-id = $*PERL.compiler.id;
-        for ($path ~ '.deps').IO.lines -> $dependency {
+        for @dependencies -> $dependency {
             my ($id, $src) = $dependency.words;
             my $file = self.store.path($compiler-id, $id);
             my $modified = $file.modified;

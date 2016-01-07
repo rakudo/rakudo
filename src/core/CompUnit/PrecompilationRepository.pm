@@ -46,7 +46,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             my $file = self.store.path($compiler-id, $id);
             my $modified = $file.modified;
             RAKUDO_MODULE_DEBUG("$file mtime: $modified since: $since src: {$src.IO.modified}") if $DEBUG;
-            return False if $modified > $since or not $src.IO.e or $modified <= $src.IO.modified;
+
+            return False if $modified > $since;
+            my $srcIO = $src.IO;
+            return False if not $srcIO.e or $modified <= $srcIO.modified;
+
             %!loaded{$id} //= self!load-handle-for-path(self.store.load($compiler-id, $id));
 
             # report back id and source location of dependency to dependant

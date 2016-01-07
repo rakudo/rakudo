@@ -6,7 +6,7 @@ class CompUnit::DependencySpecification {
     has $.api-matcher = True;
 
     method Str(CompUnit::DependencySpecification:D:) {
-        return join '', $.short-name,
+        join '', $.short-name,
           ($.version-matcher//True) ~~ Bool ?? '' !! ":ver<$.version-matcher>",
           ($.auth-matcher   //True) ~~ Bool ?? '' !! ":auth<$.auth-matcher>",
           ($.api-matcher    //True) ~~ Bool ?? '' !! ":api<$.api-matcher>";

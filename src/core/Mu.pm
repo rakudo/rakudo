@@ -373,7 +373,8 @@ Please refactor this code using the new Iterator / Seq interface.
     multi method gist(Mu:D:) { self.perl }
 
     method perlseen(Mu:D \SELF: $id, $perl, *%named) {
-        if $*perlseen -> \sems {
+        if nqp::isnull(nqp::getlexdyn('$*perlseen')) == 0 {
+            my \sems := $*perlseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);

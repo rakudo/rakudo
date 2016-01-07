@@ -234,6 +234,25 @@ my class Rakudo::Internals {
         Nil
     }
 
+    # key space value split: Str to split, str to store key, str to store value
+    method KEY_SPACE_VALUE(Str $command, \key, \value --> Nil) {
+        my str $str   = nqp::unbox_s($command);
+        my int $index = nqp::index($str,' ');
+        if nqp::isgt_i($index,0) {
+            key   = nqp::substr($str,0,$index);
+            value = nqp::substr($str,$index + 1,nqp::chars($str) - $index);
+        }
+        elsif nqp::islt_i($index,0) {
+            key   = $str;
+            value = '';
+        }
+        else {
+            key   = '';
+            value = nqp::substr($str,1,nqp::chars($str) - 1);
+        }
+        Nil
+    }
+
     my $encodings := nqp::hash(
       # fast mapping for identicals
       'utf8',            'utf8',

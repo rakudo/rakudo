@@ -124,17 +124,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
         else {
             RAKUDO_MODULE_DEBUG("Precompiled $path into $io") if $DEBUG;
-            my @dependencies;
+            my str $dependencies = '';
             for @result -> $dependency {
                 Rakudo::Internals.KEY_SPACE_VALUE(
                   $dependency,my $dependency-id,my $dependency-src);
                 my $path = self.store.path($compiler-id, $dependency-id);
                 if $path.e {
-                    push @dependencies, $dependency;
-                    spurt(($path ~ '.rev-deps').IO, "$id\n", :append);
+                    $dependencies ~= "$dependency\n";
+                    spurt($path ~ '.rev-deps', "$id\n", :append);
                 }
             }
-            spurt(($io ~ '.deps').IO, @dependencies.map(* ~ "\n").join(''));
+            spurt($io ~ '.deps', $dependencies);
             self.store.unlock;
             True
         }

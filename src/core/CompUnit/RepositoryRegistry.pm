@@ -26,17 +26,6 @@ class CompUnit::RepositoryRegistry {
         } );
     }
 
-    method files($file, :$name, :$auth, :$ver) {
-        for @*INC -> $spec {
-            if self.repository-for-spec($spec) -> $cur {
-                if $cur.files($file, :$name,:$auth,:$ver).list -> @candi {
-                    return @candi;
-                }
-            }
-        }
-        ();
-    }
-
     my %custom-lib;
     method setup-repositories() {
         my @INC;

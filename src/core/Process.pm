@@ -1,6 +1,15 @@
 multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := +?%*ENV<RAKUDO_MODULE_DEBUG>;
 }
+multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG_TIME_PID') {
+    PROCESS::<$RAKUDO_MODULE_DEBUG_TIME_PID> = {
+        state Num $last = Rakudo::Internals.INITTIME;
+        my num $now = nqp::time_n;
+        my $time-pid = sprintf '%4d %5d', 1000 * ($now - $last), nqp::getpid();
+        $last = $now;
+        $time-pid
+    }
+}
 
 multi sub INITIALIZE_DYNAMIC('$*PID') {
     PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());

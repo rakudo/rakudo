@@ -247,25 +247,16 @@ class Perl6::World is HLL::World {
     }
 
     method RAKUDO_MODULE_DEBUG() {
-        unless nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
-            my $hash := nqp::getenvhash();
-            if nqp::existskey($hash,'RAKUDO_MODULE_DEBUG')
-              && nqp::atkey($hash,'RAKUDO_MODULE_DEBUG') {
-                my $DYNAMIC := self.find_symbol(['&DYNAMIC']);
-                my $RMDTP   := $DYNAMIC('$*RAKUDO_MODULE_DEBUG_TIME_PID');
-                $!RAKUDO_MODULE_DEBUG := -> *@strs {
-                     my $err := nqp::getstderr();
-                     nqp::printfh($err, $RMDTP());
-                     nqp::printfh($err, " \$*W RMD: ");
-                     for @strs { nqp::printfh($err, $_) };
-                     nqp::printfh($err, "\n");
-                }
-            }
-            else {
-                $!RAKUDO_MODULE_DEBUG := 0;
-            }
+        if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
+            $!RAKUDO_MODULE_DEBUG
         }
-        $!RAKUDO_MODULE_DEBUG;
+        elsif !$*COMPILING_CORE_SETTING {
+            $!RAKUDO_MODULE_DEBUG :=
+              self.find_symbol(['&DYNAMIC'])('$*RAKUDO_MODULE_DEBUG')
+        }
+        else {
+            $!RAKUDO_MODULE_DEBUG := False
+        }
     }
 
     method loading_and_symbol_setup($/) {
@@ -732,8 +723,8 @@ class Perl6::World is HLL::World {
 
     method do_pragma($/,$name,$on,$arglist) {
 
-        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
-        $DEBUG("Attempting '$name' as a pragma") if $DEBUG;
+        my $RMD := self.RAKUDO_MODULE_DEBUG;
+        $RMD("Attempting '$name' as a pragma") if $RMD;
 
         if %nyi_pragma{$name} {
             self.throw($/,
@@ -824,11 +815,11 @@ class Perl6::World is HLL::World {
             }
         }
         else {
-            $DEBUG("  '$name' is not a valid pragma") if $DEBUG;
+            $RMD("  '$name' is not a valid pragma") if $RMD;
             return 0;                        # go try module
         }
 
-        $DEBUG("Successfully handled '$name' as a pragma") if $DEBUG;
+        $RMD("Successfully handled '$name' as a pragma") if $RMD;
         1;
     }
 
@@ -897,7 +888,7 @@ class Perl6::World is HLL::World {
         my %cp;
         my $arglist;
 
-        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
+        my $RMD := self.RAKUDO_MODULE_DEBUG;
 
         if $thisname {
             $name := $thisname;
@@ -914,12 +905,12 @@ class Perl6::World is HLL::World {
         }
 
         if $use {
-            $DEBUG("Attempting to load '$name'") if $DEBUG;
+            $RMD("Attempting to load '$name'") if $RMD;
             my $comp_unit := self.load_module($/, $name, %cp, $*GLOBALish);
-            $DEBUG("Performing imports for '$name'") if $DEBUG;
+            $RMD("Performing imports for '$name'") if $RMD;
             self.do_import($/, $comp_unit.handle, $name, $arglist);
             self.import_EXPORTHOW($/, $comp_unit.handle);
-            $DEBUG("Imports for '$name' done") if $DEBUG;
+            $RMD("Imports for '$name' done") if $RMD;
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");
@@ -929,8 +920,8 @@ class Perl6::World is HLL::World {
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
     method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
-        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
-        $DEBUG("  Early loading '$module_name'") if $DEBUG;
+        my $RMD := self.RAKUDO_MODULE_DEBUG;
+        $RMD("  Early loading '$module_name'") if $RMD;
 
         # Immediate loading.
         my $line   := self.current_line($/);
@@ -939,7 +930,7 @@ class Perl6::World is HLL::World {
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
-            $DEBUG("  Pre-compiling '$module_name'") if $DEBUG;
+            $RMD("  Pre-compiling '$module_name'") if $RMD;
             my $opt_hash := QAST::Op.new( :op('hash') );
             for %opts {
                 self.add_object($_.value);
@@ -970,8 +961,8 @@ class Perl6::World is HLL::World {
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
     method load_module($/, $module_name, %opts, $cur_GLOBALish) {
-        my $DEBUG := self.RAKUDO_MODULE_DEBUG;
-        $DEBUG("  Late loading '$module_name'") if $DEBUG;
+        my $RMD := self.RAKUDO_MODULE_DEBUG;
+        $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
         my $line   := self.current_line($/);

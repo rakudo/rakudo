@@ -274,8 +274,7 @@ class CompUnit::RepositoryRegistry {
         my @found;
         my $default-short-id = 'file';
 
-    RAKUDO_MODULE_DEBUG("Parsing specs: $specs")
-      if $*RAKUDO_MODULE_DEBUG;
+        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
         # for all possible specs
         for $specs.split(/ \s* ',' \s* /) -> $spec {
@@ -292,10 +291,6 @@ class CompUnit::RepositoryRegistry {
         }
         @found;
     }
-}
-
-sub RAKUDO_MODULE_DEBUG(*@str) {
-    note "$*RAKUDO_MODULE_DEBUG_TIME_PID() SET RMD: @str[]";
 }
 
 # vim: ft=perl6 expandtab sw=4

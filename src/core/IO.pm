@@ -272,6 +272,24 @@ sub FILETEST-RWX(Str $abspath) {
 sub FILETEST-Z(Str $abspath) {
     nqp::p6bool(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE)==0);
 }
+#?if moar
+sub FILETEST-MODIFIED(Str $abspath) {
+    Instant.from-posix( nqp::p6box_n(
+      nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
+    ));
+}
+sub FILETEST-ACCESSED(Str $abspath) {
+    Instant.from-posix( nqp::p6box_n(
+      nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_ACCESSTIME)
+    ));
+}
+sub FILETEST-CHANGED(Str $abspath) {
+    Instant.from-posix( nqp::p6box_n(
+      nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
+    ));
+}
+#?endif
+#?if !moar
 sub FILETEST-MODIFIED(Str $abspath) {
     Instant.from-posix( nqp::p6box_i(
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
@@ -287,6 +305,7 @@ sub FILETEST-CHANGED(Str $abspath) {
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
     ));
 }
+#?endif
 
 my %FILETEST-HASH =
   e => -> $p { True },

@@ -26,108 +26,140 @@ class CompUnit::RepositoryRegistry {
         } );
     }
 
-    my %custom-lib;
+    my $custom-lib := nqp::hash();
     method setup-repositories() {
-        my @INC;
-        my %ENV := %*ENV; # only look up environment once
+        my $raw-specs;
+        # only look up environment once
+        my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
 
         # starting up for creating precomp
-        if %ENV<RAKUDO_PRECOMP_WITH> -> \specs {
-            @INC = specs.split(','); # assume well formed strings
+        if nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH') {
+            # assume well formed strings
+            $raw-specs :=
+              nqp::split(',',nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'));
         }
 
         # normal start up
         else {
+            $raw-specs := nqp::list();
             my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
             if nqp::defined($I) {
                 if nqp::islist($I) {
                     my Mu $iter := nqp::iterator($I);
                     while $iter {
-                        @INC.append: parse-include-specS(nqp::shift($iter));
+                        nqp::push($raw-specs,nqp::unbox_s($_))
+                          for parse-include-specS(nqp::shift($iter));
                     }
-               }
+                }
                 else {
-                    @INC.append: parse-include-specS(nqp::p6box_s($I));
+                    nqp::push($raw-specs,nqp::unbox_s($_))
+                      for parse-include-specS($I);
                 }
             }
 
-            if %ENV<RAKUDOLIB> -> $rakudolib {
-                @INC.append: parse-include-specS($rakudolib);
+            if nqp::existskey($ENV,'RAKUDOLIB') {
+                nqp::push($raw-specs,nqp::unbox_s($_))
+                  for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
             }
-            if %ENV<PERL6LIB> -> $perl6lib {
-                @INC.append: parse-include-specS($perl6lib);
+            if nqp::existskey($ENV,'PERL6LIB') {
+                nqp::push($raw-specs,nqp::unbox_s($_))
+                  for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }
 
 #?if jvm
             for nqp::hllize(nqp::jvmclasspaths()) -> $path {
-                @INC.append: parse-include-specS($path);
+                nqp::push($raw-specs,nqp::unbox_s($_))
+                  for parse-include-specS($path);
             }
 #?endif
 
-            my $prefix := %ENV<RAKUDO_PREFIX> // nqp::p6box_s(
-              nqp::concat(nqp::atkey(nqp::backendconfig,'prefix'),'/share/perl6')
-            );
+            my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+              ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
+              !! nqp::concat(
+                   nqp::atkey(nqp::backendconfig,'prefix'),
+                   '/share/perl6'
+                 );
 
-#            my $abspath := "$prefix/share/libraries.json";
-#            if IO::Path.new-from-absolute-path($abspath).e {
-#            my $config = from-json( slurp $abspath );
-#
-#            for $config.list -> @group {
-#                for @group>>.kv -> $class, $props {
-#                    for $props.list -> $prop {
-#                        if nqp::istype($prop,Associative) {
-#                            for $prop.value.flat -> $path {
-#                                @INC.push: parse-include-specS($path);
-#                                %custom-lib{$prop.key} = $path;
-#                            }
-#                        }
-#                        else {
-#                            for $prop.flat -> $path {
-#                                @INC.push: parse-include-specS($path);
-#                            }
-#                        }
-#                    }
-#                }
-#            }
-#            }
-            # There is no config file, so pick sane defaults.
-#            else {
-                # XXX Various issues with this stuff on JVM
-                my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');  # TEMPORARY
-                try {
-                    if %ENV<HOME>
-                      // (%ENV<HOMEDRIVE> // '') ~ (%ENV<HOMEPATH> // '') -> $home {
-                        my $ver := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-                        my $path := "$home/.perl6/$ver";
-                        @INC.append: (%custom-lib<home> = "inst#$path");
-                    }
+            # XXX Various issues with this stuff on JVM , TEMPORARY
+            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
+            try {
+                if nqp::existskey($ENV,'HOME')
+                  ?? nqp::atkey($ENV,'HOME')
+                  !! nqp::concat(
+                       (nqp::existskey($ENV,'HOMEDRIVE')
+                         ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
+                       (nqp::existskey($ENV,'HOMEPATH')
+                         ?? nqp::atkey($ENV,'HOMEPATH') !! '')
+                     ) -> $home {
+                    my $ver := nqp::atkey($compiler,'version');
+                    my str $path = "inst#$home/.perl6/$ver";
+                    nqp::bindkey($custom-lib,'home',$path);
+                    nqp::push($raw-specs,$path);
                 }
-                @INC.append:
-                  (%custom-lib<site>   = "inst#$prefix/site"),
-                  (%custom-lib<vendor> = "inst#$prefix/vendor"),
-                  (%custom-lib<perl>   = "inst#$prefix");
-#            }
+            }
+
+            # set up custom libs
+            my str $site = "inst#$prefix/site";
+            nqp::bindkey($custom-lib,'site',$site);
+            nqp::push($raw-specs,$site);
+
+            my str $vendor = "inst#$prefix/vendor";
+            nqp::bindkey($custom-lib,'vendor',$vendor);
+            nqp::push($raw-specs,$vendor);
+
+            my str $perl = "inst#$prefix";
+            nqp::bindkey($custom-lib,'perl',$perl);
+            nqp::push($raw-specs,$perl);
         }
 
-        my CompUnit::Repository $next-repo := CompUnit::Repository::AbsolutePath.new(
-            :next-repo(
-                CompUnit::Repository::NQP.new(
-                    :next-repo(CompUnit::Repository::Perl5.new)
-                )
+        # your basic repo chain
+        my CompUnit::Repository $next-repo :=
+          CompUnit::Repository::AbsolutePath.new(
+            :next-repo( CompUnit::Repository::NQP.new(
+              :next-repo(CompUnit::Repository::Perl5.new)
             )
+          )
         );
+
         my %repos;
         my $SPEC := $*SPEC;
-        my &canon = -> $repo {
-            my @parts = $repo.split('#');
-            join '#', @parts[0], $SPEC.canonpath(@parts[1]);
+        sub normalize(\spec){
+            my $parts := nqp::split('#',spec);
+            nqp::concat(
+              nqp::concat(nqp::atpos($parts,0),'#'),
+              nqp::unbox_s($SPEC.canonpath(nqp::atpos($parts,1)))
+            );
         };
-        %repos{$_} = $next-repo := self.use-repository(
-                self.repository-for-spec($_),
-                :current($next-repo),
-            ) for @INC>>.&canon.unique.reverse;
 
-        $_ = %repos{$_.&canon} for %custom-lib.values;
+        # create reverted, unique list of path-specs
+        my $iter   := nqp::iterator($raw-specs);
+        my $unique := nqp::hash();
+        my $specs  := nqp::list();
+        while $iter {
+            my str $path-spec = normalize(nqp::shift($iter));
+            unless nqp::existskey($unique,$path-spec) {
+                nqp::bindkey($unique,$path-spec,1);
+                nqp::unshift($specs,$path-spec);
+            }
+        }
+
+        # convert path-specs to repos
+        $iter := nqp::iterator($specs);
+        my $repos := nqp::hash();
+        while $iter {
+            my str $spec = nqp::shift($iter);
+            $next-repo := self.use-repository(
+              self.repository-for-spec($spec), :current($next-repo));
+            nqp::bindkey($repos,$spec,$next-repo);
+        }
+
+        # convert custom-lib path-specs to repos
+        $iter := nqp::iterator($custom-lib);
+        while $iter {
+            my \pair = nqp::shift($iter);
+            nqp::bindkey($custom-lib,nqp::iterkey_s(pair),
+              nqp::atkey($repos,normalize(nqp::iterval(pair))));
+        }
 
         $next-repo
     }
@@ -150,9 +182,12 @@ class CompUnit::RepositoryRegistry {
         PROCESS::<$REPO> := $repo;
     }
 
-    method repository-for-name(Str:D $name) {
+    method repository-for-name(Str:D \name) {
         $*REPO; # initialize if not yet done
-        %custom-lib{$name}
+        my str $name = nqp::unbox_s(name);
+        nqp::existskey($custom-lib,$name)
+          ?? nqp::atkey($custom-lib,$name)
+          !! Nil
     }
 
     method head() { # mostly usefull for access from NQP

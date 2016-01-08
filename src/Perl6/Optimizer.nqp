@@ -1132,17 +1132,17 @@ class Perl6::Optimizer {
                     if $value.HOW.name($value) eq 'QAST::NVal' {
                         if $type =:= $!symbols.find_in_setting("Int") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
                                     :valuetype<Num>
                                 );
                         } elsif $type =:= $!symbols.find_in_setting("Rat") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
                                     :valuetype<Num>
                                 );
                         } elsif $type =:= $!symbols.find_in_setting("Complex") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
+                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Numeric>,
                                     :valuetype<Num>
                                 );
                         }

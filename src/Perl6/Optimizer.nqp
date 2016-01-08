@@ -1128,21 +1128,24 @@ class Perl6::Optimizer {
                             );
                     }
                 } elsif $want_type eq 'Nn' {
-                    if $type =:= $!symbols.find_in_setting("Int") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Num>
-                            );
-                    } elsif $type =:= $!symbols.find_in_setting("Rat") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Num>
-                            );
-                    } elsif $type =:= $!symbols.find_in_setting("Complex") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
-                                :valuetype<Num>
-                            );
+                    my $value := $op[1][2];
+                    if $value.HOW.name($value) eq 'QAST::NVal' {
+                        if $type =:= $!symbols.find_in_setting("Int") {
+                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                                    :valuetype<Num>
+                                );
+                        } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
+                                    :valuetype<Num>
+                                );
+                        } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
+                                    :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
+                                    :valuetype<Num>
+                                );
+                        }
                     }
                 }
             }

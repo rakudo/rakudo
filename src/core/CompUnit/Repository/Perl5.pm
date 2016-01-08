@@ -9,7 +9,9 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
             require Inline::Perl5;
             my $perl5 = ::('Inline::Perl5').default_perl5;
 
-RAKUDO_MODULE_DEBUG("Loading {$spec.short-name} via Inline::Perl5") if $*RAKUDO_MODULE_DEBUG;
+            if $*RAKUDO_MODULE_DEBUG -> $RMD {
+                $RMD("Loading {$spec.short-name} via Inline::Perl5");
+            }
             $perl5.require(
                 $spec.short-name,
                 $spec.version-matcher !== True ?? $spec.version-matcher.Num !! Num,

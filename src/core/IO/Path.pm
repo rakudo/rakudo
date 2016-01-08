@@ -381,7 +381,7 @@ my class IO::Path is Cool {
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
-        True;
+        $!e = True;
     }
 
     method rmdir(IO::Path:D:) {
@@ -389,6 +389,7 @@ my class IO::Path is Cool {
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
         } }
+        $!e = False;
         True;
     }
 

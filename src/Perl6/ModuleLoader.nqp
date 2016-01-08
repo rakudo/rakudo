@@ -109,7 +109,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             if !%known_symbols{$sym} {
                 ($target){$sym} := $_.value;
             }
-            elsif ($target){$sym} =:= $_.value {
+            elsif nqp::decont(($target){$sym}) =:= nqp::decont($_.value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {

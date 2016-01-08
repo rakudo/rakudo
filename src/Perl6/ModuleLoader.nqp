@@ -118,7 +118,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                                    || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
                 my $target_mo := ($target){$sym}.HOW;
                 my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how
-                                   || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
+                                   || $target_mo.HOW.name($target_mo) eq $nqp_stub_how;
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.

@@ -6334,6 +6334,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub make_smartmatch($/, $negated) {
         my $lhs := wanted($/[0].ast,'smarmatch/lhs');
         my $rhs := wanted($/[1].ast,'smarmatch/rhs');
+        check_smartmatch($/[1],$rhs);
         # autoprime only on Whatever with explicit *
         return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
         return 0 if $rhs ~~ QAST::WVal && istype($rhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($rhs.value);
@@ -6348,7 +6349,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
-        check_smartmatch($/[1],$rhs);
 
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(

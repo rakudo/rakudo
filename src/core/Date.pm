@@ -18,18 +18,26 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
+    method !SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
+
+    method !new-from-positional(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
+        (1..12).in-range($month,'Month');
+        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        self === Date
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
+          !! self.bless(:$year,:$month,:$day,:&formatter)
+    }
 
     proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
-          ?? nqp::create(self).SET-SELF($year,$month,$day,&formatter)
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter)
     }
     multi method new(Date: :$year!, :$month = 1, :$day = 1, :&formatter) {
-        self.new($year,$month,$day,:&formatter)
+        self!new-from-positional($year,$month,$day,:&formatter)
     }
     multi method new(Date: Str $date, :&formatter) {
         X::Temporal::InvalidFormat.new(
@@ -43,11 +51,11 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new($0,$1,$2,:&formatter)
+        self!new-from-positional($0,$1,$2,:&formatter)
     }
     multi method new(Date: Dateish $d, :&formatter) {
         self === Date
-          ?? nqp::create(self).SET-SELF($d.year,$d.month,$d.day,&formatter)
+          ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
                :year($d.year),
                :month($d.month),
@@ -61,7 +69,7 @@ my class Date does Dateish {
     method new-from-daycount($daycount,:&formatter) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         self === Date
-          ?? nqp::create(self).SET-SELF($year,$month,$day,&formatter,$daycount)
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
           !! self.bless(:$year,:$month,:$day,:&formatter,:$daycount)
     }
 
@@ -102,13 +110,13 @@ my class Date does Dateish {
             $month = ($month - 1) % 12 + 1;
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
-            self.new($year,$month,$!day > 28
+            self!new-from-positional($year,$month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
-            self.new($year,$!month,$!day > 28
+            self!new-from-positional($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
@@ -116,7 +124,7 @@ my class Date does Dateish {
 
     method clone(*%_) {
         my $h := nqp::getattr(%_,Map,'$!storage');
-        self.new(
+        self!new-from-positional(
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
@@ -125,7 +133,7 @@ my class Date does Dateish {
     }
     method !clone-without-validating(*%_) { # A premature optimization.
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self).SET-SELF(
+        nqp::create(self)!SET-SELF(
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
@@ -141,7 +149,7 @@ my class Date does Dateish {
     }
 
     multi method perl(Date:D:) {
-        self.^name ~ ".new($!year,$!month,$!day)"
+        self.^name ~ ".new({:$!year.perl},{:$!month.perl},{:$!day.perl})"
     }
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year

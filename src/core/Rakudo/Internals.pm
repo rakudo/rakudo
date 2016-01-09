@@ -719,12 +719,12 @@ my class Rakudo::Internals {
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
         
         DateTime.new(
-          nqp::atpos_i($fia,5),
-          nqp::atpos_i($fia,4),
-          nqp::atpos_i($fia,3),
-          nqp::atpos_i($fia,2),
-          nqp::atpos_i($fia,1),
-          nqp::atpos_i($fia,0),
+          :year(nqp::atpos_i($fia,5)),
+          :month(nqp::atpos_i($fia,4)),
+          :day(nqp::atpos_i($fia,3)),
+          :hour(nqp::atpos_i($fia,2)),
+          :minute(nqp::atpos_i($fia,1)),
+          :second(nqp::atpos_i($fia,0)),
         ).posix(True) - $utc;
     }
 

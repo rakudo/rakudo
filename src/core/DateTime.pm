@@ -46,7 +46,7 @@ my class DateTime does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method SET-SELF(
+    method !SET-SELF(
       $!year,$!month,$!day,$hour,$minute,$!second,$timezone,&!formatter
     ) {
         # can't assign native in attributes inside signature yet
@@ -55,9 +55,7 @@ my class DateTime does Dateish {
         $!timezone = $timezone;
         self
     }
-
-    proto method new(|) {*}
-    multi method new(DateTime:
+    method !new-from-positional(DateTime:
       Int() $year,
       Int() $month,
       Int() $day,
@@ -73,7 +71,7 @@ my class DateTime does Dateish {
         (0..59).in-range($minute,'Minute');
         (^61).in-range($second,'Second');
         my $dt = self === DateTime
-          ?? nqp::create(self).SET-SELF(
+          ?? nqp::create(self)!SET-SELF(
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
@@ -99,6 +97,8 @@ my class DateTime does Dateish {
 
         $dt
     }
+
+    proto method new(|) {*}
     multi method new(DateTime:
       :$year!,
       :$month    = 1,
@@ -109,7 +109,8 @@ my class DateTime does Dateish {
       :$timezone = 0,
       :&formatter,
       ) {
-        self.new($year,$month,$day,$hour,$minute,$second,:$timezone,:&formatter)
+        self!new-from-positional(
+          $year,$month,$day,$hour,$minute,$second,:$timezone,:&formatter)
     }
     multi method new(DateTime: Date:D :$date!, *%_) {
         self.new(:year($date.year),:month($date.month),:day($date.day),|%_)
@@ -142,7 +143,7 @@ my class DateTime does Dateish {
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
         my $dt = self === DateTime
-          ?? nqp::create(self).SET-SELF(
+          ?? nqp::create(self)!SET-SELF(
                $year,$month,$day,$hour,$minute,$second,0,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
@@ -187,7 +188,8 @@ my class DateTime does Dateish {
         }
         $timezone //= 0;
 
-        self.new($0,$1,$2,$3,$4,+(~$5.subst(",",".")),:$timezone,:&formatter)
+        self!new-from-positional(
+          $0,$1,$2,$3,$4,+(~$5.subst(",",".")),:$timezone,:&formatter)
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
@@ -196,7 +198,7 @@ my class DateTime does Dateish {
 
     method clone(*%_) {
         my $h := nqp::getattr(%_,Map,'$!storage');
-        self.new(
+        self!new-from-positional(
           nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
           nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
           nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
@@ -213,7 +215,7 @@ my class DateTime does Dateish {
         return self.clone(|%_) unless self === DateTime;
 
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self).SET-SELF(
+        nqp::create(self)!SET-SELF(
           nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
           nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
           nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
@@ -276,8 +278,8 @@ my class DateTime does Dateish {
         # month,year
         elsif nqp::atkey($valid-units,$unit) {
             my $date :=
-              Date.new($!year,$!month,$!day).later(|($unit => $amount));
-            nqp::create(self).SET-SELF(
+              Date.new(:$!year,:$!month,:$!day).later(|($unit => $amount));
+            nqp::create(self)!SET-SELF(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),
               nqp::getattr($date,Date,'$!day'),
@@ -301,7 +303,7 @@ my class DateTime does Dateish {
             $day-delta = 7 * $amount if $unit.starts-with('week');
 
             my $date := Date.new-from-daycount(self.daycount + $day-delta);
-            nqp::create(self).SET-SELF(
+            nqp::create(self)!SET-SELF(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),
               nqp::getattr($date,Date,'$!day'),
@@ -351,11 +353,11 @@ my class DateTime does Dateish {
     method utc()   { self.in-timezone(0) }
     method local() { self.in-timezone($*TZ) }
 
-    method Date() { Date.new($!year,$!month,$!day) }
+    method Date() { Date.new(:$!year,:$!month,:$!day) }
 
     multi method perl(DateTime:D:) {
         self.^name
-          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second,{:$!timezone.perl})"
+          ~ ".new({:$!year.perl},{:$!month.perl},{:$!day.perl},{:$!hour.perl},{:$!minute.perl},{:$!second.perl},{:$!timezone.perl})"
     }
 }
 

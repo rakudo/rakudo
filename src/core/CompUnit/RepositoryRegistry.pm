@@ -91,7 +91,7 @@ class CompUnit::RepositoryRegistry {
                        (nqp::existskey($ENV,'HOMEPATH')
                          ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                      ) -> $home {
-                    my $ver := nqp::atkey($compiler,'version');
+                    my $ver := nqp::p6box_s(nqp::atkey($compiler,'version'));
                     my str $path = "inst#$home/.perl6/$ver";
                     nqp::bindkey($custom-lib,'home',$path);
                     nqp::push($raw-specs,$path);

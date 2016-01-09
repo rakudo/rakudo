@@ -40,21 +40,21 @@ enum ProtocolType (
 
 sub MAKE-ABSOLUTE-PATH($path,$abspath) {
     if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
-        return $path;
+        $path
     }
     elsif $path.substr-eq(":",1) {  # assume C: something
         if $path.substr-eq("/",2) { #  assume C:/ like prefix
-            return $path;
+            $path
         }
         elsif !$abspath.starts-with(substr($path,0,2)) {
             die "Can not set relative dir from different roots";
         }
         else {
-            return $abspath ~ substr($path,2);
+            $abspath ~ substr($path,2)
         }
     }
     else {                            # assume relative path
-        return $abspath ~ $path;
+        $abspath ~ $path;
     }
 }
 

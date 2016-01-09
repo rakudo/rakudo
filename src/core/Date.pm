@@ -20,14 +20,6 @@ my class Date does Dateish {
 
     method !SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
-    method !new-from-positional(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
-        (1..12).in-range($month,'Month');
-        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
-        self === Date
-          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter)
-    }
-
     proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
         (1..12).in-range($month,'Month');
@@ -37,7 +29,7 @@ my class Date does Dateish {
           !! self.bless(:$year,:$month,:$day,:&formatter)
     }
     multi method new(Date: :$year!, :$month = 1, :$day = 1, :&formatter) {
-        self!new-from-positional($year,$month,$day,:&formatter)
+        self.new($year,$month,$day,:&formatter)
     }
     multi method new(Date: Str $date, :&formatter) {
         X::Temporal::InvalidFormat.new(
@@ -51,7 +43,7 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self!new-from-positional($0,$1,$2,:&formatter)
+        self.new($0,$1,$2,:&formatter)
     }
     multi method new(Date: Dateish $d, :&formatter) {
         self === Date
@@ -110,13 +102,13 @@ my class Date does Dateish {
             $month = ($month - 1) % 12 + 1;
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
-            self!new-from-positional($year,$month,$!day > 28
+            self.new($year,$month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
-            self!new-from-positional($year,$!month,$!day > 28
+            self.new($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
@@ -124,7 +116,7 @@ my class Date does Dateish {
 
     method clone(*%_) {
         my $h := nqp::getattr(%_,Map,'$!storage');
-        self!new-from-positional(
+        self.new(
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
@@ -149,7 +141,7 @@ my class Date does Dateish {
     }
 
     multi method perl(Date:D:) {
-        self.^name ~ ".new({:$!year.perl},{:$!month.perl},{:$!day.perl})"
+        self.^name ~ ".new($!year,$!month,$!day)"
     }
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year

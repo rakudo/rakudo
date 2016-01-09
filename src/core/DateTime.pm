@@ -278,7 +278,7 @@ my class DateTime does Dateish {
         # month,year
         elsif nqp::atkey($valid-units,$unit) {
             my $date :=
-              Date.new(:$!year,:$!month,:$!day).later(|($unit => $amount));
+              Date.new($!year,$!month,$!day).later(|($unit => $amount));
             nqp::create(self)!SET-SELF(
               nqp::getattr($date,Date,'$!year'),
               nqp::getattr($date,Date,'$!month'),
@@ -353,7 +353,7 @@ my class DateTime does Dateish {
     method utc()   { self.in-timezone(0) }
     method local() { self.in-timezone($*TZ) }
 
-    method Date() { Date.new(:$!year,:$!month,:$!day) }
+    method Date() { Date.new($!year,$!month,$!day) }
 
     multi method perl(DateTime:D:) {
         self.^name

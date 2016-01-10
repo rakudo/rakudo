@@ -839,6 +839,27 @@ my class Rakudo::Internals {
           $i < $elems && nqp::atpos($posixes,$i) == $t - $i
     }
 
+    my $initializers := nqp::hash;
+    method REGISTER-DYNAMIC(Str \name, &code, Str \ver = '6.c' --> Nil) {
+        my str $name = nqp::unbox_s(name);
+        my str $ver  = nqp::unbox_s(ver);
+        my str $with = $ver ~ "\0" ~ $name;
+        nqp::existskey($initializers,$with)
+          ?? die "Already have initializer for '$name' ('$ver')"
+          !! nqp::bindkey($initializers,$with,&code);
+        nqp::bindkey($initializers,$name,&code)  # first come, first kept
+          unless nqp::existskey($initializers,$name);
+    }
+    method INITIALIZE-DYNAMIC(str \name) {
+        my str $ver  = nqp::getcomp('perl6').language_version;
+        my str $with = $ver ~ "\0" ~ name;
+        nqp::existskey($initializers,$with)
+          ?? nqp::atkey($initializers,$with)()
+          !! nqp::existskey($initializers,name)
+            ?? nqp::atkey($initializers,name)()
+            !! X::Dynamic::NotFound.new(:name(name));
+    }
+
     method MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
         if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
             $path

@@ -1,4 +1,4 @@
-multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := ?%*ENV<RAKUDO_MODULE_DEBUG>
       ?? -> *@str --> Nil {
             state Num $last = Rakudo::Internals.INITTIME;
@@ -10,11 +10,11 @@ multi sub INITIALIZE_DYNAMIC('$*RAKUDO_MODULE_DEBUG') {
       !! False
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PID') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*PID', {
     PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
 }
 
-multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
     PROCESS::<$EXECUTABLE> := IO::Path.new-from-absolute-path(
 #?if jvm
       $*VM.properties<perl6.execname>
@@ -28,31 +28,31 @@ multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE') {
     );
 }
 
-multi sub INITIALIZE_DYNAMIC('$*EXECUTABLE-NAME') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
     PROCESS::<$EXECUTABLE-NAME> := $*EXECUTABLE.basename;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PROGRAM-NAME') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
     PROCESS::<$PROGRAM-NAME> := nqp::getcomp('perl6').user-progname;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PROGRAM') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
     PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM-NAME);
 }
 
-multi sub INITIALIZE_DYNAMIC('$*TMPDIR') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*TMPDIR', {
     PROCESS::<$TMPDIR> := $*SPEC.tmpdir;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*TOLERANCE') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
     PROCESS::<$TOLERANCE> := item 1e-15;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*REPO') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
 }
 
-multi sub INITIALIZE_DYNAMIC('$*HOME') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     my $HOME;
 
     if %*ENV<HOME> -> $home {

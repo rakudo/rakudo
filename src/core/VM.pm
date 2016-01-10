@@ -109,7 +109,7 @@ sub INITIALIZE-A-VM-NOW() {
 #?endif
 }
 
-multi sub INITIALIZE_DYNAMIC('$*VM') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*VM', {
     PROCESS::<$VM> := INITIALIZE-A-VM-NOW();
 }
 

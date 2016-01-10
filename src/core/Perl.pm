@@ -24,7 +24,7 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux freebsd openbsd netbsd dragonfly win32> }
 }
 
-multi sub INITIALIZE_DYNAMIC('$*PERL') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
     PROCESS::<$PERL> := Perl.new;
 }
 multi sub postcircumfix:<{ }> (Perl $d, "compiler" )   {

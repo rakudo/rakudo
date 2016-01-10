@@ -107,7 +107,7 @@ sub term:<now>() {
     Instant.from-posix: nqp::time_n
 }
 
-multi sub INITIALIZE_DYNAMIC('$*INITTIME') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*INITTIME', {
     PROCESS::<$INITTIME> := Instant.from-posix: Rakudo::Internals.INITTIME;
 }
 

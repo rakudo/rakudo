@@ -85,7 +85,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
 }
 
 # set up $*DISTRO
-multi sub INITIALIZE_DYNAMIC('$*DISTRO') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
     PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
 }
 

@@ -30,7 +30,7 @@ my role IO::Local {
         Rakudo::Internals.MAKE-BASENAME($!abspath)
     }
     method extension(IO::Local:D:) {
-        MAKE-EXT(Rakudo::Internals.MAKE-BASENAME($!abspath))
+        Rakudo::Internals.MAKE-EXT(Rakudo::Internals.MAKE-BASENAME($!abspath))
     }
 
     method IO(IO::Local:D:)      { self }

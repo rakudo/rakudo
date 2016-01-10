@@ -632,8 +632,26 @@ my class Rakudo::Internals {
         chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars).fail !! 1;
     }
 
+    my $IS-WIN = do {
+        my str $os = Rakudo::Internals.TRANSPOSE(nqp::lc(
+#?if jvm
+          nqp::atkey(nqp::jvmgetproperties,'os.name')
+#?endif
+#?if !jvm
+          nqp::atkey(nqp::backendconfig,'osname')
+#?endif
+        )," ","");
+        nqp::p6bool(
+          nqp::iseq_s($os,'mswin32')
+            || nqp::iseq_s($os,'mingw')
+            || nqp::iseq_s($os,'msys')
+            || nqp::iseq_s($os,'cygwin')
+        )
+    }
+    method IS-WIN() { $IS-WIN }
+
     method error-rcgye() {  # red clear green yellow eject
-        %*ENV<RAKUDO_ERROR_COLOR> // !$*DISTRO.is-win
+        %*ENV<RAKUDO_ERROR_COLOR> // !self.IS-WIN
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
           !! ("", "", "", "", "<HERE>");
     }
@@ -740,6 +758,7 @@ my class Rakudo::Internals {
           unless nqp::existskey($initializers,$name);
     }
     method INITIALIZE-DYNAMIC(str \name) {
+#print "Initializing {name}\n";
         my str $ver  = nqp::getcomp('perl6').language_version;
         my str $with = $ver ~ "\0" ~ name;
         nqp::existskey($initializers,$with)

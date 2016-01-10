@@ -126,7 +126,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $sources-dir   = self!sources-dir;
         my $resources-dir = self!resources-dir;
         my $bin-dir       = self!bin-dir;
-        state $is-win   //= $*DISTRO.is-win; # only look up once
+        my $is-win        = Rakudo::Internals.IS-WIN;
 
         self!add-short-name($dist.name, $dist); # so scripts can find their dist
 

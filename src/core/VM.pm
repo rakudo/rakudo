@@ -42,7 +42,7 @@ class VM does Systemic {
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
-        my $distro := $*DISTRO;
+        my $is-win = Rakudo::Internals.IS-WIN;
 #?if !jvm
         my $is-darwin = $*VM.config<osname> eq 'darwin';
 #?endif
@@ -62,12 +62,12 @@ class VM does Systemic {
         my $platform-name = sprintf($dll, $basename);
 #?endif
 #?if jvm
-        my $prefix = $distro.is-win ?? '' !! 'lib';
+        my $prefix = $is-win ?? '' !! 'lib';
         my $platform-name = "$prefix$basename.{self.config<nativecall.so>}";
 #?endif
 
         $platform-name ~= '.' ~ $version.Str
-            if $version.defined and not $is-darwin and not $distro.is-win;
+            if $version.defined and not $is-darwin and not $is-win;
 
         $full-path ?? $dirname.IO.child($platform-name).abspath !! $platform-name.IO;
     }

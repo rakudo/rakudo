@@ -58,7 +58,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     if %*ENV<HOME> -> $home {
         $HOME = $home;
     }
-    elsif $*DISTRO.is-win {
+    elsif Rakudo::Internals.IS-WIN {
         $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
     }
     PROCESS::<$HOME> = $HOME ?? IO::Path.new($HOME) !! Nil;
@@ -82,7 +82,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
         submethod BUILD (:$!name) { PROCESS::{$!name} := self }
 
         sub fetch {
-            once if !$*DISTRO.is-win && try { qx/id/ } -> $id {
+            once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
                 if $id ~~ m/^
                   [ uid "=" $<uid>=(\d+) ]
                   [ "(" $<user>=(<-[ ) ]>+) ")" ]

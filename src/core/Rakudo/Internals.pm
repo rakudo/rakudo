@@ -803,6 +803,84 @@ my class Rakudo::Internals {
           ?? ''
           !! nqp::p6box_s(nqp::substr($basename,$offset + 1));
     }
+
+    my $clean-parts-nul := nqp::hash( '..', 1, '.', 1, '', 1);
+    method MAKE-CLEAN-PARTS(Str:D \abspath) {
+        my str $abspath = nqp::unbox_s(abspath);
+        my $parts := nqp::split('/',$abspath);
+
+        # handle //unc/ on win
+        if nqp::iseq_s(nqp::atpos($parts,1),'')        # //
+          && nqp::iseq_s(nqp::atpos($parts,0),'') {    # and no C: like stuff
+            my str $front = nqp::join('/',nqp::list(   # collapse to '//unc/'
+                nqp::atpos($parts,0),
+                nqp::atpos($parts,1),
+                nqp::atpos($parts,2),
+            ));
+            nqp::splice($parts,nqp::list($front),0,3); # and replace
+        }
+
+        # front part cleanup
+        my $empty := nqp::list();
+        nqp::splice($parts,$empty,1,1)
+          while nqp::existskey($clean-parts-nul,nqp::atpos($parts,1));
+
+        # recursive ".." and "." handling
+        sub updirs($index is copy) {
+
+            # the end
+            if $index == 1 {
+                nqp::splice($parts,$empty,1,1);
+                1
+            }
+
+            # something to check
+            elsif nqp::atpos($parts,$index - 1) -> $part {
+                if nqp::iseq_i(nqp::ord($part),46) { # substr($part,0,1) eq '.'
+                    if nqp::iseq_s($part,'..') {
+                        updirs($index - 1);
+                    }
+                    elsif nqp::iseq_s($part,'.') {
+                        nqp::splice($parts,$empty,$index,1);
+                        updirs($index - 1);
+                    }
+                    else {
+                        nqp::splice($parts,$empty,--$index,2);
+                        $index;
+                    }
+                }
+                else {
+                    nqp::splice($parts,$empty,--$index,2);
+                    $index;
+                }
+            }
+
+            # nul, just ignore
+            else {
+                nqp::splice($parts,$empty,$index,1);
+                updirs($index);
+            }
+        }
+
+        # back part cleanup
+        my int $checks = nqp::elems($parts) - 1;
+        while nqp::isgt_i($checks,1) {
+            if nqp::atpos($parts,$checks) -> $part {
+                nqp::iseq_s($part,'..')
+                  ?? ($checks = updirs($checks))
+                  !! nqp::iseq_s($part,'.')
+                    ?? nqp::splice($parts,$empty,$checks--,1)
+                    !! --$checks;
+            }
+            else {
+                nqp::splice($parts,$empty,$checks--,1);
+            }
+        }
+
+        # need / at the end
+        nqp::push($parts,"");
+        $parts
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

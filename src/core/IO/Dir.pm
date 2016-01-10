@@ -3,7 +3,7 @@ my class IO::Dir is Cool does IO::Local {
 
     submethod BUILD(:$!abspath,:$check) {
         if $check {   # should really be .resolve, but we don't have that yet
-            @!parts = MAKE-CLEAN-PARTS($!abspath);
+            @!parts = Rakudo::Internals.MAKE-CLEAN-PARTS($!abspath);
             $!abspath = @!parts.join('/');
             fail "$!abspath is not a directory" unless FILETEST-D($!abspath);
         }

@@ -38,69 +38,6 @@ enum ProtocolType (
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
-my %CLEAN-PARTS-NUL = 'Str|..' => 1, 'Str|.' => 1, 'Str|' => 1;
-sub MAKE-CLEAN-PARTS(Str $abspath) {
-    my @parts = $abspath.split('/');
-
-    # handle //unc/ on win
-    @parts.unshift( @parts.splice(0,3).join('/') )
-      if @parts.AT-POS(1) eq ''    # //
-      and @parts.AT-POS(0) eq '';  # and no C: like stuff
-
-    # front part cleanup
-    @parts.splice(1,1)
-      while %CLEAN-PARTS-NUL.EXISTS-KEY(@parts.AT-POS(1).WHICH);
-
-    # recursive ".." and "." handling
-    sub updirs($index is copy) {
-
-        # the end
-        if $index == 1 {
-            @parts.splice(1,1);
-            return 1;
-        }
-
-        # something to check
-        elsif @parts.AT-POS($index - 1) -> $part {
-            if $part.ord == 46 { # fast substr($part,0,1) eq '.'
-                if $part eq '..' {
-                    return updirs($index - 1);
-                }
-                elsif $part eq '.' {
-                    @parts.splice($index,1);
-                    return updirs($index - 1);
-                }
-            }
-            @parts.splice(--$index,2);
-            return $index;
-        }
-
-        # nul, just ignore
-        else {
-            @parts.splice($index,1);
-            return updirs($index);
-        }
-    }
-
-    # back part cleanup
-    my Int $checks = @parts.end;
-    while $checks > 1 {
-        if @parts.AT-POS($checks) -> $part {
-            $part eq '..'
-              ?? ($checks = updirs($checks))
-              !! $part eq '.'
-                ?? @parts.splice($checks--, 1)
-                !! $checks--;
-        }
-        else {
-            @parts.splice($checks--, 1);
-        }
-    }
-
-    # need / at the end
-    @parts.push("");
-}
-
 sub REMOVE-ROOT(Str $r, Str $p) {
     my str $root  = nqp::unbox_s($r);
     my str $path  = nqp::unbox_s($p);
@@ -118,7 +55,7 @@ sub REMOVE-ROOT(Str $r, Str $p) {
 
 sub CHANGE-DIRECTORY($path,$base,&test) {
 
-    my $abspath = MAKE-CLEAN-PARTS(
+    my $abspath = Rakudo::Internals.MAKE-CLEAN-PARTS(
       Rakudo::Internals.MAKE-ABSOLUTE-PATH($path,$base)).join('/');
     FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
       ?? IO::Path.new-from-absolute-path($abspath.chop)

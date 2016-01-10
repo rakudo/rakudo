@@ -144,7 +144,7 @@ class Kernel does Systemic {
 #?endif
 }
 
-multi sub INITIALIZE_DYNAMIC('$*KERNEL') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {
     PROCESS::<$KERNEL> := Kernel.new;
 }
 

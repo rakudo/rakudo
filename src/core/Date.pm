@@ -170,7 +170,7 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-multi sub INITIALIZE_DYNAMIC('$*TZ') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
     PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset();
 }
 

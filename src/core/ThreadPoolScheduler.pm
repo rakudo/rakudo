@@ -181,7 +181,7 @@ my class ThreadPoolScheduler does Scheduler {
 }
 
 # This thread pool scheduler will be the default one.
-multi sub INITIALIZE_DYNAMIC('$*SCHEDULER') {
+Rakudo::Internals.REGISTER-DYNAMIC: '$*SCHEDULER', {
     PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
 }
 

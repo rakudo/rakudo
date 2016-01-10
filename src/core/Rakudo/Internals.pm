@@ -747,7 +747,7 @@ my class Rakudo::Internals {
     }
 
     my $initializers := nqp::hash;
-    method REGISTER-DYNAMIC(Str \name, &code, Str \ver = '6.c' --> Nil) {
+    method REGISTER-DYNAMIC(Str:D \name, &code, Str \ver = '6.c' --> Nil) {
         my str $name = nqp::unbox_s(name);
         my str $ver  = nqp::unbox_s(ver);
         my str $with = $ver ~ "\0" ~ $name;
@@ -768,7 +768,7 @@ my class Rakudo::Internals {
             !! X::Dynamic::NotFound.new(:name(name));
     }
 
-    method MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
+    method MAKE-ABSOLUTE-PATH(Str:D $path, Str:D $abspath) {
         if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
             $path
         }
@@ -788,12 +788,20 @@ my class Rakudo::Internals {
         }
     }
 
-    method MAKE-BASENAME(Str \abspath) {
+    method MAKE-BASENAME(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
         my int $offset  = nqp::rindex($abspath,'/');
-        $offset == -1
+        nqp::iseq_i($offset,-1)
           ?? abspath
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
+    }
+
+    method MAKE-EXT(Str:D \basename) {
+        my str $basename = nqp::unbox_s(basename);
+        my int $offset   = nqp::rindex($basename,'.');
+        nqp::iseq_i($offset,-1)
+          ?? ''
+          !! nqp::p6box_s(nqp::substr($basename,$offset + 1));
     }
 }
 

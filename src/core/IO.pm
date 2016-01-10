@@ -38,14 +38,6 @@ enum ProtocolType (
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
-sub MAKE-EXT(Str $basename) {
-    my str $basename_s = nqp::unbox_s($basename);
-    my int $offset     = nqp::rindex($basename_s,'.');
-    nqp::p6bool($offset == -1)
-      ?? ''
-      !! nqp::box_s(nqp::substr($basename_s,$offset + 1),Str);
-}
-
 my %CLEAN-PARTS-NUL = 'Str|..' => 1, 'Str|.' => 1, 'Str|' => 1;
 sub MAKE-CLEAN-PARTS(Str $abspath) {
     my @parts = $abspath.split('/');

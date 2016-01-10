@@ -41,7 +41,9 @@ my class IO::Dir is Cool does IO::Local {
         Rakudo::Internals.MAKE-BASENAME($!abspath.chop)
     }
     method extension(IO::Dir:D:) {
-        MAKE-EXT(Rakudo::Internals.MAKE-BASENAME($!abspath.chop))
+        Rakudo::Internals.MAKE-EXT(
+          Rakudo::Internals.MAKE-BASENAME($!abspath.chop)
+        )
     }
     method succ(IO::Dir:D:) { $!abspath.chop.succ ~ '/' }
     method pred(IO::Dir:D:) { $!abspath.chop.pred ~ '/' }

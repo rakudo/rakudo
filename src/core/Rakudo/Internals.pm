@@ -727,6 +727,27 @@ my class Rakudo::Internals {
           :second( nqp::atpos_i($fia,0)),
         ).posix(True).Int - $utc;
     }
+
+
+    method MAKE-ABSOLUTE-PATH($path,$abspath) {
+        if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
+            $path
+        }
+        elsif $path.substr-eq(":",1) {  # assume C: something
+            if $path.substr-eq("/",2) { #  assume C:/ like prefix
+                $path
+            }
+            elsif !$abspath.starts-with(substr($path,0,2)) {
+                die "Can not set relative dir from different roots";
+            }
+            else {
+                $abspath ~ substr($path,2)
+            }
+        }
+        else {                            # assume relative path
+            $abspath ~ $path;
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

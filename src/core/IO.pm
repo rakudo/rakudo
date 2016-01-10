@@ -38,26 +38,6 @@ enum ProtocolType (
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
-sub MAKE-ABSOLUTE-PATH($path,$abspath) {
-    if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
-        $path
-    }
-    elsif $path.substr-eq(":",1) {  # assume C: something
-        if $path.substr-eq("/",2) { #  assume C:/ like prefix
-            $path
-        }
-        elsif !$abspath.starts-with(substr($path,0,2)) {
-            die "Can not set relative dir from different roots";
-        }
-        else {
-            $abspath ~ substr($path,2)
-        }
-    }
-    else {                            # assume relative path
-        $abspath ~ $path;
-    }
-}
-
 sub MAKE-BASENAME(Str $abspath) {
     my str $abspath_s = nqp::unbox_s($abspath);
     my int $offset    = nqp::rindex($abspath_s,'/');
@@ -154,7 +134,8 @@ sub REMOVE-ROOT(Str $r, Str $p) {
 
 sub CHANGE-DIRECTORY($path,$base,&test) {
 
-    my $abspath = MAKE-CLEAN-PARTS(MAKE-ABSOLUTE-PATH($path,$base)).join('/');
+    my $abspath = MAKE-CLEAN-PARTS(
+      Rakudo::Internals.MAKE-ABSOLUTE-PATH($path,$base)).join('/');
     FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
       ?? IO::Path.new-from-absolute-path($abspath.chop)
       !! fail X::IO::Chdir.new(

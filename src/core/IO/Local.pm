@@ -56,13 +56,15 @@ my role IO::Local {
     method changed(IO::Local:D:)  { FILETEST-CHANGED( $!abspath) }
 
     method rename(IO::Local:D: Str() $to, :$createonly) {
-        RENAME-PATH($!abspath,MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'),:$createonly);
+        RENAME-PATH($!abspath,
+          Rakudo::Internals.MAKE-ABSOLUTE-PATH($to,$*CWD ~ '/'),:$createonly);
     }
     method chmod(IO::Local:D: Int() $mode) {
         CHMOD-PATH($!abspath, $mode);
     }
     method symlink(IO::Local:D: Str() $name) {
-        SYMLINK-PATH($!abspath, MAKE-ABSOLUTE-PATH($name,$*CWD ~ '/'));
+        SYMLINK-PATH($!abspath,
+          Rakudo::Internals.MAKE-ABSOLUTE-PATH($name,$*CWD ~ '/'));
     }
 
 #?if moar

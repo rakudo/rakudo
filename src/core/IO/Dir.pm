@@ -37,8 +37,12 @@ my class IO::Dir is Cool does IO::Local {
         self!parts;
         '/' ~ @!parts[1 .. *-3].join('/');
     }
-    method basename(IO::Dir:D:)  { MAKE-BASENAME($!abspath.chop) }
-    method extension(IO::Dir:D:) { MAKE-EXT(MAKE-BASENAME($!abspath.chop))}
+    method basename(IO::Dir:D:)  {
+        Rakudo::Internals.MAKE-BASENAME($!abspath.chop)
+    }
+    method extension(IO::Dir:D:) {
+        MAKE-EXT(Rakudo::Internals.MAKE-BASENAME($!abspath.chop))
+    }
     method succ(IO::Dir:D:) { $!abspath.chop.succ ~ '/' }
     method pred(IO::Dir:D:) { $!abspath.chop.pred ~ '/' }
     method d(IO::Dir:D:) { True }

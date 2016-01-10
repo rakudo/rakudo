@@ -38,14 +38,6 @@ enum ProtocolType (
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
-sub MAKE-BASENAME(Str $abspath) {
-    my str $abspath_s = nqp::unbox_s($abspath);
-    my int $offset    = nqp::rindex($abspath_s,'/');
-    nqp::p6bool($offset == -1)
-      ?? $abspath
-      !! nqp::box_s(nqp::substr($abspath_s,$offset + 1),Str);
-}
-
 sub MAKE-EXT(Str $basename) {
     my str $basename_s = nqp::unbox_s($basename);
     my int $offset     = nqp::rindex($basename_s,'.');
@@ -414,7 +406,8 @@ sub MAKE-DIR-LIST(Str $abspath, Mu $test) {
                     last;
                 }
                 my Str $elem = nqp::box_s($elem_s,Str);
-                take $elem if $test.ACCEPTS(MAKE-BASENAME($elem));
+                take $elem
+                  if $test.ACCEPTS(Rakudo::Internals.MAKE-BASENAME($elem));
             }
         }
         else {

@@ -26,8 +26,12 @@ my role IO::Local {
         @!parts = $!abspath.split('/') unless @!parts;  # remove if above ok
         @!parts[1 .. *-2].join('/');
     }
-    method basename(IO::Local:D:)  { MAKE-BASENAME($!abspath) }
-    method extension(IO::Local:D:) { MAKE-EXT(MAKE-BASENAME($!abspath))}
+    method basename(IO::Local:D:)  {
+        Rakudo::Internals.MAKE-BASENAME($!abspath)
+    }
+    method extension(IO::Local:D:) {
+        MAKE-EXT(Rakudo::Internals.MAKE-BASENAME($!abspath))
+    }
 
     method IO(IO::Local:D:)      { self }
     method Numeric(IO::Local:D:) { self.basename.Numeric }

@@ -839,8 +839,7 @@ my class Rakudo::Internals {
           $i < $elems && nqp::atpos($posixes,$i) == $t - $i
     }
 
-
-    method MAKE-ABSOLUTE-PATH($path,$abspath) {
+    method MAKE-ABSOLUTE-PATH(Str $path, Str $abspath) {
         if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
             $path
         }
@@ -858,6 +857,14 @@ my class Rakudo::Internals {
         else {                            # assume relative path
             $abspath ~ $path;
         }
+    }
+
+    method MAKE-BASENAME(Str \abspath) {
+        my str $abspath = nqp::unbox_s(abspath);
+        my int $offset  = nqp::rindex($abspath,'/');
+        $offset == -1
+          ?? abspath
+          !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 }
 

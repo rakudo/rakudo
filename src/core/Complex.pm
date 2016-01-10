@@ -81,9 +81,9 @@ my class Complex is Cool does Numeric {
 
     method sqrt(Complex:D:) {
         my Num $abs = self.abs;
-        my Num $re = (($abs + $!re)/2).sqrt;
-        my Num $im = (($abs - $!re)/2).sqrt;
-        Complex.new($re, $!im < 0 ?? -$im !! $im);
+        my Num $re = (($abs + self.re)/2).sqrt;
+        my Num $im = (($abs - self.re)/2).sqrt;
+        Complex.new($re, self.im < 0 ?? -$im !! $im);
     }
 
     multi method exp(Complex:D:) {
@@ -429,23 +429,7 @@ multi sub infix:<**>(Num(Real) \a, Complex:D \b) returns Complex:D {
     a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b) returns Complex:D {
-    return a if b == 0e0;
-    my $ib = b.Int;
-    return a ** $ib if $ib == b;
-    my $fb = b - $ib;
-    return $fb * 2 == 1e0 ?? a ** $ib * a.sqrt
-    !!    -$fb * 2 == 1e0 ?? a ** $ib / a.sqrt
-    !!    (b * a.log).exp
-}
-multi sub infix:<**>(Complex:D \a, Int:D \b) returns Complex:D {
-    my $r = Complex.new(1e0, 0e0);
-    my $u = b.abs;
-    my $t = a;
-    while $u > 0 {
-        $r *= $t if $u +& 1 == 1;
-        $u +>= 1; $t *= $t;
-    }
-    b < 0 ?? 1e0 / $r !! $r;
+    (b * a.log).exp
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }

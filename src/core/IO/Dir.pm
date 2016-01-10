@@ -23,7 +23,8 @@ my class IO::Dir is Cool does IO::Local {
     }
 
     method chdir(IO::Dir:D: Str() $path, :$test = 'r') {
-        my $new := self.new( MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
+        my $new := self.new(
+          Rakudo::Internals.MAKE-ABSOLUTE-PATH($path,$!abspath), :check );
         $new // $new.throw;
         my $result := $new.all($test);
         $result // $result.throw;

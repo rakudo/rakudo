@@ -903,6 +903,9 @@ my class Rakudo::Internals {
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
+    method FILETEST-L(Str:D \abspath) {
+        nqp::fileislink(nqp::unbox_s(abspath))
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -919,6 +919,12 @@ my class Rakudo::Internals {
     method FILETEST-X(Str:D \abspath) {
         nqp::fileexecutable(nqp::unbox_s(abspath))
     }
+    method FILETEST-RWX(Str:D \abspath) {
+        my str $abspath = nqp::unbox_s(abspath);
+        nqp::filereadable($abspath)
+          && nqp::filewritable($abspath)
+          && nqp::fileexecutable($abspath)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

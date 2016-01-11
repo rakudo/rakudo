@@ -38,21 +38,6 @@ enum ProtocolType (
 # obfuscated names, will have to do.  They should also provide excellent
 # optimizing targets.
 
-sub REMOVE-ROOT(Str $r, Str $p) {
-    my str $root  = nqp::unbox_s($r);
-    my str $path  = nqp::unbox_s($p);
-    my int $chars = nqp::chars($root);
-
-    return $p if $chars >= nqp::chars($path);  # makes no sense
-
-    my int $i;
-    while $i < $chars && nqp::ordat($root,$i) == nqp::ordat($path,$i) {
-        $i = $i + 1;
-    }
-
-    $i == $chars ?? nqp::box_s(nqp::substr($path,$i),Str) !! $p;
-}
-
 sub CHANGE-DIRECTORY($path,$base,&test) {
 
     my $abspath = Rakudo::Internals.MAKE-CLEAN-PARTS(

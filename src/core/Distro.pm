@@ -61,7 +61,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
         }
         $auth := 'Apple Computer, Inc.'; # presumably
     }
-    elsif '/etc/os-release'.IO.e {
+    elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
         $_ := '/etc/os-release'.IO.slurp.subst(:g, /'"'/,'');
         $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
         $name    := ~$0 if m/^^ ID         \= (\N*) /;

@@ -890,6 +890,10 @@ my class Rakudo::Internals {
           ?? nqp::p6box_s(nqp::substr($path,nqp::chars($root)))
           !! path;
     }
+
+    method FILETEST-E(Str:D \abspath) {
+        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

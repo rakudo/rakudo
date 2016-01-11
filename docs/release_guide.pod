@@ -14,6 +14,11 @@ end of this document.
 =head2 Planned future releases
 
   2016-01-16   Rakudo #95  - Coke
+
+Note that #95 will be the first release that has to cope with
+backward compatibility issues. As such, we may end up delaying
+this release to insure any compatibility issues are resolved.
+
   2016-02-20   Rakudo #96
   2016-03-19   Rakudo #97
   2016-04-16   Rakudo #98

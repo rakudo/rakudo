@@ -541,13 +541,13 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<d>)
     }
 
-    method f() {
+    method f(--> Bool) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-F($!abspath)
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<f>)
     }
 
-    method s() {
+    method s(--> Int) {
         $.e
           ?? $.f
             ?? Rakudo::Internals.FILETEST-S($!abspath)
@@ -555,9 +555,10 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<s>)
     }
 
-    method l() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<l>) if !$.e;
-        FILETEST-L($!abspath);
+    method l(--> Bool) {
+        $.e
+          ?? ?Rakudo::Internals.FILETEST-L($!abspath)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<l>)
     }
 
     method r() {

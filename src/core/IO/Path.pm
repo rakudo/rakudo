@@ -592,9 +592,11 @@ my class IO::Path is Cool {
     }
 
     method z() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<z>) if !$.e;
-        fail X::IO::NotAFile.new(:path(self.Str),:trying<z>)     if !$.f;
-        FILETEST-Z($!abspath);
+        $.e
+          ?? $.f
+            ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
+            !! fail X::IO::NotAFile.new(:path(~self),:trying<z>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<z>)
     }
 
     method modified() {

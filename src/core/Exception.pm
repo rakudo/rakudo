@@ -1360,7 +1360,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^O' => '$?DISTRO.name or $*DISTRO.name',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
-      '$^T' => '$*BASETIME',
+      '$^T' => '$*INITTIME',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',

@@ -122,9 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-sub FILETEST-R(Str $abspath) {
-    nqp::p6bool(nqp::filereadable(nqp::unbox_s($abspath)));
-}
 sub FILETEST-W(Str $abspath) {
     nqp::p6bool(nqp::filewritable(nqp::unbox_s($abspath)));
 }
@@ -206,7 +203,7 @@ sub FILETEST-ALL(Str $path, *@tests) {
 
     # most common cases
     if @tests.join -> $tests {
-        return FILETEST-R($path)   if $tests eq "r";
+        return Rakudo::Internals.FILETEST-R($path)   if $tests eq "r";
         return FILETEST-RW($path)  if $tests eq "rw";
         return FILETEST-RWX($path) if $tests eq "rwx";
     }

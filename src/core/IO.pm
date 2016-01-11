@@ -122,9 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-sub FILETEST-X(Str $abspath) {
-    nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($abspath)));
-}
 sub FILETEST-RWX(Str $abspath) {
     my str $p = nqp::unbox_s($abspath);
     nqp::p6bool(

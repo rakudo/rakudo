@@ -42,16 +42,16 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
 
     my $abspath = Rakudo::Internals.MAKE-CLEAN-PARTS(
       Rakudo::Internals.MAKE-ABSOLUTE-PATH($path,$base)).join('/');
-    FILETEST-E($abspath) && FILETEST-D($abspath) && test($abspath)
+    Rakudo::Internals.FILETEST-E($abspath)
+      && FILETEST-D($abspath)
+      && test($abspath)
       ?? IO::Path.new-from-absolute-path($abspath.chop)
       !! fail X::IO::Chdir.new(
-           :$path,
-           :os-error( "does not exist, is not a dir or no access" ),
-         );
+           :$path, :os-error( "does not exist, is not a dir or no access" ))
 }
 
 sub COPY-FILE(Str $from, Str $to, :$createonly --> True) {
-    if $createonly and FILETEST-E($to) {
+    if $createonly && Rakudo::Internals.FILETEST-E($to) {
         fail X::IO::Copy.new(
           :$from,
           :$to,
@@ -66,7 +66,7 @@ sub COPY-FILE(Str $from, Str $to, :$createonly --> True) {
 }
 
 sub RENAME-PATH(Str $from, Str $to, :$createonly --> True) {
-    if $createonly and FILETEST-E($to) {
+    if $createonly && Rakudo::Internals.FILETEST-E($to) {
         fail X::IO::Rename.new(
           :$from,
           :$to,
@@ -122,9 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-sub FILETEST-E(Str $abspath) {
-    nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_EXISTS) );
-}
 sub FILETEST-D(Str $abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_ISDIR) );
 }

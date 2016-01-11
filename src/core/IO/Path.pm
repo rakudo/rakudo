@@ -532,39 +532,6 @@ my class IO::Path is Cool {
         self.open(|c).words(:close);
     }
 
-    my %t =
-      e => -> $p { True }, # if we get here, it exists
-      d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },
-      f => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISREG)) },
-      s => -> $p { %t.AT-KEY("f")($p) && nqp::box_i(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE),Int) },
-      l => -> $p { nqp::p6bool(nqp::fileislink(nqp::unbox_s($p))) },
-      r => -> $p { nqp::p6bool(nqp::filereadable(nqp::unbox_s($p))) },
-      w => -> $p { nqp::p6bool(nqp::filewritable(nqp::unbox_s($p))) },
-      x => -> $p { nqp::p6bool(nqp::fileexecutable(nqp::unbox_s($p))) },
-      z => -> $p { %t.AT-KEY("f")($p) && nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_FILESIZE) == 0) },
-
-      "!e" => -> $p { False }, # if we get here, it exists
-      "!d" => -> $p { !%t.AT-KEY("d")($p) },
-      "!f" => -> $p { !%t.AT-KEY("f")($p) },
-      "!l" => -> $p { !%t.AT-KEY("l")($p) },
-      "!r" => -> $p { !%t.AT-KEY("r")($p) },
-      "!w" => -> $p { !%t.AT-KEY("w")($p) },
-      "!x" => -> $p { !%t.AT-KEY("x")($p) },
-      "!z" => -> $p { !%t.AT-KEY("z")($p) },
-    ;
-
-    method all(*@tests) {
-        return False if !@tests or !$.e;
-
-        my $result = True;
-        for @tests -> $t {
-            die "Unknown test $t" unless %t.EXISTS-KEY($t);
-            last unless $result = $result && %t.AT-KEY($t)($!abspath);
-        }
-
-        $result;
-    }
-
     method e() { $!e //= ?Rakudo::Internals.FILETEST-E($.abspath) }
 
     method d() {

@@ -50,7 +50,7 @@ my role IO::Local {
     method pred(IO::Local:D:) { $!abspath.pred }
 
     method e(IO::Local:D:)   { True }
-    method f(IO::Local:D:)   { FILETEST-F(  $!abspath) }
+    method f(IO::Local:D:)   { ?Rakudo::Internals.FILETEST-F(  $!abspath) }
     method s(IO::Local:D:)   { FILETEST-S(  $!abspath) }
     method l(IO::Local:D:)   { FILETEST-L(  $!abspath) }
     method r(IO::Local:D:)   { FILETEST-R(  $!abspath) }

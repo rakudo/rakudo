@@ -123,7 +123,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
         %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 
-        my @result = $proc.out.lines;
+        my @result = $proc.out.lines.unique;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
             push @result, "Return status { $proc.status }\n";

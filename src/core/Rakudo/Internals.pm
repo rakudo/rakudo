@@ -900,6 +900,9 @@ my class Rakudo::Internals {
     method FILETEST-F(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG)
     }
+    method FILETEST-S(Str:D \abspath) {
+        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

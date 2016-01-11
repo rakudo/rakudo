@@ -122,9 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-sub FILETEST-S(Str $abspath) {
-    nqp::p6box_i(nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_FILESIZE) );
-}
 sub FILETEST-L(Str $abspath) {
     nqp::p6bool(nqp::fileislink(nqp::unbox_s($abspath)));
 }

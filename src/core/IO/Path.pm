@@ -548,9 +548,11 @@ my class IO::Path is Cool {
     }
 
     method s() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<s>) if !$.e;
-        fail X::IO::NotAFile.new(:path(self.Str),:trying<s>)     if !$.f;
-        FILETEST-S($!abspath);
+        $.e
+          ?? $.f
+            ?? Rakudo::Internals.FILETEST-S($!abspath)
+            !! fail X::IO::NotAFile.new(:path(~self),:trying<s>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<s>)
     }
 
     method l() {

@@ -111,8 +111,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         $RMD("Precompiling $path into $io") if $RMD;
+        my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
         my $proc = run(
-          $*EXECUTABLE,
+          $perl6,
           $lle,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
           "--output=$io",

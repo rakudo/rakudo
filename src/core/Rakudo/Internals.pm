@@ -894,6 +894,10 @@ my class Rakudo::Internals {
     method FILETEST-E(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }
+
+    method FILETEST-D(Str:D \abspath) {
+        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

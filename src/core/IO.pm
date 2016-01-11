@@ -43,7 +43,7 @@ sub CHANGE-DIRECTORY($path,$base,&test) {
     my $abspath = Rakudo::Internals.MAKE-CLEAN-PARTS(
       Rakudo::Internals.MAKE-ABSOLUTE-PATH($path,$base)).join('/');
     Rakudo::Internals.FILETEST-E($abspath)
-      && FILETEST-D($abspath)
+      && Rakudo::Internals.FILETEST-D($abspath)
       && test($abspath)
       ?? IO::Path.new-from-absolute-path($abspath.chop)
       !! fail X::IO::Chdir.new(
@@ -122,9 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-sub FILETEST-D(Str $abspath) {
-    nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_ISDIR) );
-}
 sub FILETEST-F(Str $abspath) {
     nqp::p6bool( nqp::stat(nqp::unbox_s($abspath),nqp::const::STAT_ISREG) );
 }
@@ -240,7 +237,7 @@ sub FILETEST-ALL(Str $path, *@tests) {
 sub DIR-GATHER(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-D($elem)
+            take Rakudo::Internals.FILETEST-D($elem)
               ?? IO::Dir.new(:abspath($elem ~ '/'))
               !! IO::File.new(:abspath($elem));
         }
@@ -250,7 +247,7 @@ sub DIR-GATHER(Str $abspath,Mu $test) {
 sub DIR-GATHER-STR(Str $abspath,Mu $test) {
     gather {
         for MAKE-DIR-LIST($abspath,$test) -> $elem {
-            take FILETEST-D($elem)
+            take Rakudo::Internals.FILETEST-D($elem)
               ?? $elem ~ '/'
               !! $elem;
         }

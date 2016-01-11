@@ -532,11 +532,13 @@ my class IO::Path is Cool {
         self.open(|c).words(:close);
     }
 
-    method e() { $!e //= ?Rakudo::Internals.FILETEST-E($.abspath) }
-
-    method d() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<d>) if !$.e;
-        FILETEST-D($!abspath);
+    method e(--> Bool) {
+        $!e //= ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath
+    }
+    method d(--> Bool) {
+        $.e
+          ?? ?Rakudo::Internals.FILETEST-D($!abspath)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<d>)
     }
 
     method f() {

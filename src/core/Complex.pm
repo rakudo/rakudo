@@ -429,7 +429,26 @@ multi sub infix:<**>(Num(Real) \a, Complex:D \b) returns Complex:D {
     a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b) returns Complex:D {
-    (b * a.log).exp
+    return Complex.new(NaN, NaN) if b.isNaN || b.abs == Inf;
+    my $ib = b.Int;
+    return a ** $ib if $ib == b;
+    my $fb = b - $ib;
+    return $fb * 2 == 1e0 ?? a ** $ib * a.sqrt
+    !!    -$fb * 2 == 1e0 ?? a ** $ib / a.sqrt
+    !!    (b * a.log).exp
+}
+multi sub infix:<**>(Complex:D \a, Int:D \b) returns Complex:D {
+    my $r = Complex.new(1e0, 0e0);
+    return $r if b == 0;
+    return  a if a == $r;
+    return  a if b == 1;
+    my $u = b.abs;
+    my $t = a;
+    while $u > 0 {
+        $r *= $t if $u +& 1 == 1;
+        $u +>= 1; $t *= $t;
+    }
+    b < 0 ?? 1e0 / $r !! $r;
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }

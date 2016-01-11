@@ -992,6 +992,15 @@ my class Rakudo::Internals {
         nqp::push($parts,"");
         $parts
     }
+
+    method REMOVE-ROOT(Str:D \root, Str:D \path) {
+        my str $root = nqp::unbox_s(root);
+        my str $path = nqp::unbox_s(path);
+
+        nqp::eqat($path,$root,0)
+          ?? nqp::p6box_s(nqp::substr($path,nqp::chars($root)))
+          !! path;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -12,8 +12,12 @@ my role IO::Local {
     method absolute(IO::Local:D:) { $!abspath }
 
     proto method relative(|) { * }
-    multi method relative(IO::Local:D:) { REMOVE-ROOT($*CWD ~ '/',$!abspath) }
-    multi method relative(IO::Local:D: $root) { REMOVE-ROOT($root,$!abspath) }
+    multi method relative(IO::Local:D:) {
+        Rakudo::Internals.REMOVE-ROOT($*CWD ~ '/',$!abspath)
+    }
+    multi method relative(IO::Local:D: $root) {
+        Rakudo::Internals.REMOVE-ROOT($root,$!abspath)
+    }
 
     method !parts() { @!parts = $!abspath.split('/') unless @!parts }
     method volume(IO::Local:D:)    {

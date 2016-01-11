@@ -1023,6 +1023,10 @@ my class Rakudo::Internals {
     method FILETEST-W(Str:D \abspath) {
         nqp::filewritable(nqp::unbox_s(abspath))
     }
+    method FILETEST-RW(Str:D \abspath) {
+        my str $abspath = nqp::unbox_s(abspath);
+        nqp::filereadable($abspath) && nqp::filewritable($abspath)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

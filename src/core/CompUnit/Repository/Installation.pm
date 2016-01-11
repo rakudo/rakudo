@@ -208,6 +208,23 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lock.unlock;
     } ) }
 
+    method uninstall(Distribution $dist) {
+        my %provides      = $dist.provides;
+        my %files         = $dist.files;
+        my $sources-dir   = self.prefix.child('sources');
+        my $resources-dir = self.prefix.child('resources');
+        my $bin-dir       = self.prefix.child('bin');
+        my $short-dir     = self.prefix.child('short');
+        my $dist-dir      = self.prefix.child('dist');
+
+        $short-dir.child(nqp::sha1($_)).unlink for %files.grep: {$_.key ~~ /^bin\//};
+        $short-dir.child(nqp::sha1($_)).unlink for %provides.keys;
+        $short-dir.child(nqp::sha1($dist.name)).unlink;
+        $sources-dir.child($_<file>).unlink for %provides.values.map(*.values.Slip);
+        $resources-dir.child($_).unlink for %files.values;
+        $dist-dir.child($dist.id).unlink;
+    }
+
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
         my $prefix = self.prefix;

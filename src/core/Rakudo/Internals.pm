@@ -1036,6 +1036,10 @@ my class Rakudo::Internals {
           && nqp::filewritable($abspath)
           && nqp::fileexecutable($abspath)
     }
+    method FILETEST-Z(Str:D \abspath) {
+        nqp::iseq_i(
+          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE),0)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

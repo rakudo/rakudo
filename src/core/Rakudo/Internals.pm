@@ -1006,35 +1006,54 @@ my class Rakudo::Internals {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }
     method FILETEST-D(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR)
+        my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
+        nqp::isge_i($d,0) ?? $d !! fail X::IO::Unknown.new(:trying<d>)
     }
     method FILETEST-F(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG)
+        my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
+        nqp::isge_i($f,0) ?? $f !! fail X::IO::Unknown.new(:trying<f>)
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
     method FILETEST-L(Str:D \abspath) {
-        nqp::fileislink(nqp::unbox_s(abspath))
+        my int $l = nqp::fileislink(nqp::unbox_s(abspath));
+        nqp::isge_i($l,0) ?? $l !! fail X::IO::Unknown.new(:trying<l>)
     }
     method FILETEST-R(Str:D \abspath) {
-        nqp::filereadable(nqp::unbox_s(abspath))
+        my int $r = nqp::filereadable(nqp::unbox_s(abspath));
+        nqp::isge_i($r,0) ?? $r !! fail X::IO::Unknown.new(:trying<r>)
     }
     method FILETEST-W(Str:D \abspath) {
-        nqp::filewritable(nqp::unbox_s(abspath))
+        my int $w = nqp::filewritable(nqp::unbox_s(abspath));
+        nqp::isge_i($w,0) ?? $w !! fail X::IO::Unknown.new(:trying<w>)
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
-        nqp::filereadable($abspath) && nqp::filewritable($abspath)
+        my int $r = nqp::filereadable($abspath);
+        my int $w = nqp::filewritable($abspath);
+        nqp::isge_i($r,0)
+          ?? nqp::isge_i($w,0)
+            ?? nqp::bitand_i($r,$w)
+            !! fail X::IO::Unknown.new(:trying<w>)
+          !! fail X::IO::Unknown.new(:trying<r>)
     }
     method FILETEST-X(Str:D \abspath) {
-        nqp::fileexecutable(nqp::unbox_s(abspath))
+        my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
+        nqp::isge_i($x,0) ?? $x !! fail X::IO::Unknown.new(:trying<x>)
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
-        nqp::filereadable($abspath)
-          && nqp::filewritable($abspath)
-          && nqp::fileexecutable($abspath)
+        my int $r = nqp::filereadable($abspath);
+        my int $w = nqp::filewritable($abspath);
+        my int $x = nqp::fileexecutable($abspath);
+        nqp::isge_i($r,0)
+          ?? nqp::isge_i($w,0)
+            ?? nqp::isge_i($x,0)
+              ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
+              !! fail X::IO::Unknown.new(:trying<x>)
+            !! fail X::IO::Unknown.new(:trying<w>)
+          !! fail X::IO::Unknown.new(:trying<r>)
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(

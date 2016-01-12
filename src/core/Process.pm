@@ -3,7 +3,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
       ?? -> *@str --> Nil {
             state Num $last = Rakudo::Internals.INITTIME;
             my num $now = nqp::time_n;
-            note sprintf "%4d %5d RMD: @str[]",
+            my $str = @str>>.indent(16).join("\n").substr(16);
+            note sprintf "%4d %5d RMD: $str",
               1000 * ($now - $last), nqp::getpid();
             $last = $now;
          }

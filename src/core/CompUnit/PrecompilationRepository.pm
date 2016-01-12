@@ -24,7 +24,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     method !load-handle-for-path(IO::Path $path) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled $path") }
+        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$path") }
         my $handle := CompUnit::Loader.load-precompilation-file($path);
         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
         CATCH {
@@ -46,7 +46,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             Rakudo::Internals.KEY_SPACE_VALUE($dependency,my $id,my $src);
             my $file = self.store.path($compiler-id, $id);
             my $modified = $file.modified;
-            $RMD("$file mtime: $modified since: $since src: {$src.IO.modified}")
+            $RMD("$file\nmtime: $modified\nsince: $since\n  src: {$src.IO.modified}")
               if $RMD;
 
             return False if $modified > $since;
@@ -71,7 +71,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Removing precompiled $path mtime: $modified since: $since")
+                    $RMD("Removing precompiled $path\nmtime: $modified\nsince: $since")
                 }
                 # remove outdated file so we precompile again
                 self.store.delete($compiler-id, $id);
@@ -90,7 +90,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
-            $RMD("$path already precompiled into $io") if $RMD;
+            $RMD("$path\nalready precompiled into\n$io") if $RMD;
             self.store.unlock;
             return True;
         }

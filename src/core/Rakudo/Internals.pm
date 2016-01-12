@@ -1049,6 +1049,14 @@ my class Rakudo::Internals {
         nqp::stat(nqp::unbox_s(abspath), nqp::const::STAT_MODIFYTIME)
 #?endif
     }
+    method FILETEST-ACCESSED(Str:D \abspath) {
+#?if moar
+        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
+#?endif
+#?if !moar
+        nqp::stat(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
+#?endif
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

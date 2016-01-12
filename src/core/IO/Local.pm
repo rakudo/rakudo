@@ -65,7 +65,9 @@ my role IO::Local {
     method accessed(IO::Local:D:) { 
         Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
     }
-    method changed(IO::Local:D:)  { FILETEST-CHANGED( $!abspath) }
+    method changed(IO::Local:D:)  {
+        Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED( $!abspath))
+    }
 
     method rename(IO::Local:D: Str() $to, :$createonly) {
         RENAME-PATH($!abspath,

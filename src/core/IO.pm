@@ -122,21 +122,6 @@ sub REMOVE-DIR(Str $path --> True) {
     } }
 }
 
-#?if moar
-sub FILETEST-CHANGED(Str $abspath) {
-    Instant.from-posix( nqp::p6box_n(
-      nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
-    ));
-}
-#?endif
-#?if !moar
-sub FILETEST-CHANGED(Str $abspath) {
-    Instant.from-posix( nqp::p6box_i(
-      nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_CHANGETIME)
-    ));
-}
-#?endif
-
 my %FILETEST-HASH =
   e => -> $p { True },
   d => -> $p { nqp::p6bool(nqp::stat(nqp::unbox_s($p),nqp::const::STAT_ISDIR)) },

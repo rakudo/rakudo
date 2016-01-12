@@ -402,6 +402,10 @@ my role X::OS is Exception {
 
 my role X::IO does X::OS { };
 
+my class X::IO::Unknown does X::IO {
+    has $.trying;
+    method message { "Unknown IO error trying '$.trying'" }
+}
 my class X::IO::Rename does X::IO {
     has $.from;
     has $.to;

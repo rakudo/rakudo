@@ -12,7 +12,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
 #    method ACCEPTS(*@)    { Nil }  # XXX spec says Nil, but makes spectest hang
 
     method BIND-POS(*@)   { die "Attempted to BIND-POS to {self.gist}." }
-    method BIND-KEY(*@)   { fail X::Bind.new(target => '{self.gist}') }
+    method BIND-KEY(*@)   { fail X::Bind.new(target => self.gist) }
     method ASSIGN-POS(*@) { die "Attempted to ASSIGN-POS to {self.gist}." }
     method ASSIGN-KEY(*@) { die "Attempted to ASSIGN-KEY to {self.gist}." }
     method STORE(*@)      { X::Assignment::RO.new(:typename<Nil>).throw }
@@ -21,6 +21,10 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method unshift(*@) is nodal { die "Attempted to unshift to {self.gist}." }
     method prepend(*@) is nodal { die "Attempted to prepend to {self.gist}." }
     method FALLBACK(*@)   { Nil }
+
+    # These suggest using Nil.new if they fall through, which is LTA
+    method ords { self.Str.ords }
+    method chrs { self.Str.chrs }
 
     method iterator() { self.list.iterator }
 }

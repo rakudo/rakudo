@@ -605,15 +605,16 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<modified>)
     }
 
-    method accessed() {
+    method accessed(--> Instant) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<accessed>)
     }
 
-    method changed() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<changed>) if !$.e;
-        FILETEST-CHANGED($!abspath);
+    method changed(--> Instant) {
+        $.e
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<changed>)
     }
 }
 

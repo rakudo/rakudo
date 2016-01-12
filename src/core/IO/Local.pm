@@ -59,7 +59,9 @@ my role IO::Local {
     method x(IO::Local:D:)   { ?Rakudo::Internals.FILETEST-X(  $!abspath) }
     method rwx(IO::Local:D:) { ?Rakudo::Internals.FILETEST-RWX($!abspath) }
     method z(IO::Local:D:)   { ?Rakudo::Internals.FILETEST-Z(  $!abspath) }
-    method modified(IO::Local:D:) { FILETEST-MODIFIED($!abspath) }
+    method modified(IO::Local:D:) {
+        Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
+    }
     method accessed(IO::Local:D:) { FILETEST-ACCESSED($!abspath) }
     method changed(IO::Local:D:)  { FILETEST-CHANGED( $!abspath) }
 

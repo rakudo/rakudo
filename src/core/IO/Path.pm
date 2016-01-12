@@ -591,7 +591,7 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
     }
 
-    method z() {
+    method z(--> Bool) {
         $.e
           ?? $.f
             ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
@@ -599,9 +599,10 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<z>)
     }
 
-    method modified() {
-        fail X::IO::DoesNotExist.new(:path(self.Str),:trying<modified>) if !$.e;
-        FILETEST-MODIFIED($!abspath);
+    method modified(--> Instant) {
+        $.e
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<modified>)
     }
 
     method accessed() {

@@ -123,11 +123,6 @@ sub REMOVE-DIR(Str $path --> True) {
 }
 
 #?if moar
-sub FILETEST-MODIFIED(Str $abspath) {
-    Instant.from-posix( nqp::p6box_n(
-      nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
-    ));
-}
 sub FILETEST-ACCESSED(Str $abspath) {
     Instant.from-posix( nqp::p6box_n(
       nqp::stat_time(nqp::unbox_s($abspath), nqp::const::STAT_ACCESSTIME)
@@ -140,11 +135,6 @@ sub FILETEST-CHANGED(Str $abspath) {
 }
 #?endif
 #?if !moar
-sub FILETEST-MODIFIED(Str $abspath) {
-    Instant.from-posix( nqp::p6box_i(
-      nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_MODIFYTIME)
-    ));
-}
 sub FILETEST-ACCESSED(Str $abspath) {
     Instant.from-posix( nqp::p6box_i(
       nqp::stat(nqp::unbox_s($abspath), nqp::const::STAT_ACCESSTIME)

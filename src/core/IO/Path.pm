@@ -47,7 +47,7 @@ my class IO::Path is Cool {
     }
 
     method abspath() {
-        $!abspath //= substr($!path,0,1) eq '-'
+        $!abspath //= $!path.starts-with('-')
           ?? ''
           !! $!SPEC.rel2abs($!path,$!CWD);
     }

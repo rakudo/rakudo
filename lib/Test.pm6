@@ -289,7 +289,11 @@ sub skip-rest($reason = '<unknown>') is export {
     $time_before = nqp::time_n;
 }
 
-sub subtest(&subtests, $desc = '') is export {
+multi sub subtest($desc, &subtests) is export {
+    subtest(&subtests, $desc);
+}
+
+multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
     $indents ~= "    ";

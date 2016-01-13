@@ -715,10 +715,13 @@ my class Rakudo::Internals {
         $escaped
     }
 
-    # return whether running with --ll-exception
+    # easy access to compile options
+    my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
+    $compiling-options := nqp::hash() if nqp::isnull($compiling-options);
+
+    # running with --ll-exception
     method LL-EXCEPTION() {
-        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
-        !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
+        nqp::existskey($compiling-options, 'll-exception')
           ?? '--ll-exception'
           !! Empty
     }

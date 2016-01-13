@@ -294,6 +294,7 @@ multi sub subtest($desc, &subtests) is export {
 }
 
 multi sub subtest(&subtests, $desc = '') is export {
+    diag($desc) if $desc;
     _push_vars();
     _init_vars();
     $indents ~= "    ";

@@ -21,6 +21,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     has %!loaded;
 
     my $lle;
+    my $profile;
 
     method !load-handle-for-path(IO::Path $path) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
@@ -74,6 +75,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $RMD("Removing precompiled $path\nmtime: $modified\nsince: $since")
                 }
                 # remove outdated file so we precompile again
+                    my $profile;
                 self.store.delete($compiler-id, $id);
                 self.store.unlock;
                 CompUnit::Handle
@@ -103,7 +105,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        $lle //= Rakudo::Internals.LL-EXCEPTION;
+        $lle     //= Rakudo::Internals.LL-EXCEPTION;
+        $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
         %ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
@@ -115,6 +118,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $proc = run(
           $perl6,
           $lle,
+          $profile,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
           "--output=$io",
           $path,

@@ -731,6 +731,15 @@ my class Rakudo::Internals {
           ?? '--profile'
           !! Empty
     }
+    # whatever specified with -I
+    method INCLUDE() {
+        nqp::existskey($compiling-options,'I')
+          ?? do {
+                my $I := nqp::atkey($compiling-options,'I');
+                nqp::islist($I) ?? $I !! nqp::list($I)
+             }
+          !! nqp::list()
+    }
 
 #?if moar
     method PRECOMP-EXT()    { "moarvm" }

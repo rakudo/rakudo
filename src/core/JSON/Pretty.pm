@@ -37,16 +37,18 @@ my class JSONPrettyActions {
 
     method str($/)               { make ~$/ }
 
-    my %esc = '\\' => "\\",
-              '/'  => "/",
-              'b'  => "\b",
-              'n'  => "\x0A",
-              't'  => "\t",
-              'f'  => "\f",
-              'r'  => "\r",
-              '"'  => "\"";
+    my $escapes := nqp::hash(
+      '\\' , "\\",
+      '/'  , "/",
+      'b'  , "\b",
+      'n'  , "\x0A",
+      't'  , "\t",
+      'f'  , "\f",
+      'r'  , "\r",
+      '"'  , "\"",
+    );
     method str_escape($/) {
-        make $<xdigit> ?? chr(:16($<xdigit>.join)) !! %esc.AT-KEY(~$/);
+        make $<xdigit> ?? chr(:16($<xdigit>.join)) !! nqp::atkey($escapes,~$/)
     }
 }
 

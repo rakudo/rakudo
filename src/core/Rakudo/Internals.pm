@@ -725,6 +725,12 @@ my class Rakudo::Internals {
           ?? '--ll-exception'
           !! Empty
     }
+    # running with --profile
+    method PROFILE() {
+        nqp::existskey($compiling-options, 'profile')
+          ?? '--profile'
+          !! Empty
+    }
 
 #?if moar
     method PRECOMP-EXT()    { "moarvm" }

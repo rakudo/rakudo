@@ -42,19 +42,9 @@ class CompUnit::RepositoryRegistry {
         # normal start up
         else {
             $raw-specs := nqp::list();
-            my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
-            if nqp::defined($I) {
-                if nqp::islist($I) {
-                    my Mu $iter := nqp::iterator($I);
-                    while $iter {
-                        nqp::push($raw-specs,nqp::unbox_s($_))
-                          for parse-include-specS(nqp::shift($iter));
-                    }
-                }
-                else {
-                    nqp::push($raw-specs,nqp::unbox_s($_))
-                      for parse-include-specS($I);
-                }
+            for Rakudo::Internals.INCLUDE -> $specs {
+               nqp::push($raw-specs,nqp::unbox_s($_))
+                 for parse-include-specS($specs);
             }
 
             if nqp::existskey($ENV,'RAKUDOLIB') {

@@ -93,7 +93,7 @@ my class JSONException is Exception {
     }
 }
 
-proto sub to-json($, :$indent = 0, :$first = 0) {*}
+proto sub to-json(|) {*}
 
 multi sub to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
 multi sub to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }

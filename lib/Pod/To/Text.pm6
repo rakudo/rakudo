@@ -80,7 +80,7 @@ sub table2text($pod) {
         }
         $ret ~= "\n";
     }
-    return $ret;
+    $ret
 }
 
 sub declarator2text($pod) {
@@ -107,7 +107,7 @@ sub declarator2text($pod) {
             ''
         }
     }
-    return "$what\n{$pod.WHEREFORE.WHY.contents}"
+    "$what\n{$pod.WHEREFORE.WHY.contents}"
 }
 
 sub signature2text($params) {
@@ -125,10 +125,9 @@ my %formats =
 
 sub formatting2text($pod) {
     my $text = $pod.contents>>.&pod2text.join;
-    if $pod.type ~~ %formats {
-        return colored($text, %formats{$pod.type});
-    }
-    $text
+    $pod.type ~~ %formats
+      ?? colored($text, %formats{$pod.type})
+      !! $text
 }
 
 sub twine2text($twine) {
@@ -138,12 +137,12 @@ sub twine2text($twine) {
         $r ~= twine2text($f.contents);
         $r ~= $s;
     }
-    return $r;
+    $r;
 }
 
 sub twrap($text is copy, :$wrap=75 ) {
     $text ~~ s:g/(. ** {$wrap} <[\s]>*)\s+/$0\n/;
-    return $text
+    $text
 }
 
 # vim: ft=perl6

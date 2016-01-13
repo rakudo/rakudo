@@ -270,9 +270,7 @@ my class Parameter { # declared in BOOTSTRAP
                and nqp::isnull($!sub_signature) {
                     $name = '\\';
             }
-            if $name.substr(0,1) ne '\\' {
-                $rest ~= ' is raw';
-            }
+            $rest ~= ' is raw' unless $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.perl();

@@ -1238,7 +1238,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has Mu $!iter;
             has &!as;
             has &!with;
-            has $!last;
+            has $!last_as;
             has int $!first;
             method BUILD(\list, &!as, &!with) {
                 $!iter  = list.iterator;
@@ -1250,40 +1250,43 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                my $which = &!as($value);
-                if $!first {
-                    $!first = 0;
-                }
-                else {
-                    until IterationEnd =:= $value || !with($which,$!last) {
-                        $value := $!iter.pull-one;
-                        $which = &!as($value);
+                unless $value =:= IterationEnd {
+                    my $which := &!as($value);
+                    if $!first {
+                        $!first = 0;
                     }
+                    else {
+                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd { 
+                            $!last_as = $which;
+                            $which := &!as($value);
+                        }
+                    }
+                    $!last_as = $which;
                 }
-                $!last = $which;
-                $value
+                $value;
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                my $which = &!as($value);
-                my $no-sink;
-                if $!first {
-                    $!first = 0;
-                    unless IterationEnd =:= $value {
+                unless $value =:= IterationEnd {
+                    my $which;
+                    my $last_as := $!last_as;
+                    my $no-sink;
+                    if $!first {
                         $no-sink := $target.push($value);
-                        $!last = $which;
+                        $which := &!as($value);
+                        $last_as := $which;
+                        $value := $!iter.pull-one;
+                    }
+                    until IterationEnd =:= $value {
+                        $which := &!as($value);
+                        unless with($last_as, $which) {
+                            $no-sink := $target.push($value);
+                        }
+                        $last_as := $which;
                         $value := $!iter.pull-one;
                     }
                 }
-                until IterationEnd =:= $value {
-                    $which = &!as($value);
-                    unless with($which,$!last) {
-                        $no-sink := $target.push($value);
-                        $!last = $which;
-                    }
-                    $value := $!iter.pull-one;
-                }
-                $value
+                IterationEnd
             }
         }.new(self, &as, &with))
     }
@@ -1301,34 +1304,41 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method new(\list, &with) { nqp::create(self).BUILD(list, &with) }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                if $!first {
-                    $!first = 0;
+                unless $value =:= IterationEnd {
+                    if $!first {
+                        $!first = 0;
+                    }
+                    else {
+                        my $ov = $value;
+                        until !with($!last, $value)
+                           or ($value := $!iter.pull-one) =:= IterationEnd {
+                            $!last = $ov;
+                            $ov = $value;
+                        }
+                    }
+                    $!last = $value
                 }
-                else {
-                    $value := $!iter.pull-one
-                      until IterationEnd =:= $value || !with($value,$!last);
-                }
-                $!last = $value
+                $value;
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                my $no-sink;
-                if $!first {
-                    $!first = 0;
-                    unless IterationEnd =:= $value {
+                unless $value =:= IterationEnd {
+                    my $last_val = $!last;
+                    my $no-sink;
+                    if $!first {
                         $no-sink := $target.push($value);
-                        $!last = $value;
+                        $last_val := $value;
+                        $value := $!iter.pull-one;
+                    }
+                    until IterationEnd =:= $value {
+                        unless with($last_val, $value) {
+                            $no-sink := $target.push($value);
+                        }
+                        $last_val := $value;
                         $value := $!iter.pull-one;
                     }
                 }
-                until IterationEnd =:= $value {
-                    unless with($value,$!last) {
-                        $no-sink := $target.push($value);
-                        $!last = $value;
-                    }
-                    $value := $!iter.pull-one;
-                }
-                $value
+                IterationEnd
             }
         }.new(self, &with))
     }

@@ -277,7 +277,7 @@ my class Supply {
                 my int $cleaned-up = 0;
                 my $source-tap = $!source.tap(
                     -> \value {
-                        my \accepted = try $test.ACCEPTS(value);
+                        my \accepted = try $!test.ACCEPTS(value);
                         if accepted {
                             emit(value);
                         }

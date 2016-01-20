@@ -1704,17 +1704,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    # Negative indent (outdent)
+    # Negative indent (de-indent)
     multi method indent(Int() $steps where { $_ < 0 }) {
-        outdent(self, $steps);
+        de-indent(self, $steps);
     }
 
-    # Whatever indent (outdent)
+    # Whatever indent (de-indent)
     multi method indent(Whatever $steps) {
-        outdent(self, $steps);
+        de-indent(self, $steps);
     }
 
-    sub outdent($obj, $steps) {
+    sub de-indent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
         my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
             # Split the line into indent and content
@@ -1734,24 +1734,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
             { :$indent-size, :@indent-chars, :rest(~$rest) };
         });
 
-        # Figure out the amount * should outdent by, we also use this for warnings
+        # Figure out the amount * should de-indent by, we also use this for warnings
         my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
-        # Set the actual outdent amount here
-        my Int $outdent = nqp::istype($steps,Whatever)
+        # Set the actual de-indent amount here
+        my Int $de-indent = nqp::istype($steps,Whatever)
           ?? $common-prefix
           !! -$steps;
 
-        warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
-            if $outdent > $common-prefix;
+        warn "Asked to remove $de-indent spaces, but the shortest indent is $common-prefix spaces"
+            if $de-indent > $common-prefix;
 
         # Work forwards from the left end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)
-        # the specified outdent amount.
+        # the specified de-indent amount.
         @lines.map(-> $l {
             my $pos = 0;
-            while $l<indent-chars> and $pos < $outdent {
+            while $l<indent-chars> and $pos < $de-indent {
                 if $l<indent-chars>.shift.key eq "\t" {
                     $pos -= $pos % $?TABSTOP;
                     $pos += $?TABSTOP;
@@ -1768,7 +1768,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $pos += $?TABSTOP;
                 }
             }
-            $l<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $l<rest>;
+            $l<indent-chars>».key.join ~ ' ' x ($pos - $de-indent) ~ $l<rest>;
         }).join;
     }
 

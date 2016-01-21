@@ -1,6 +1,6 @@
 my class JSONPrettyActions {
     method TOP($/) {
-        make $/.values.[0].ast;
+        make $<value>.ast;
     };
     method object($/) {
         make $<pairlist>.ast.hash.item;
@@ -53,7 +53,7 @@ my class JSONPrettyActions {
 }
 
 my grammar JSONPrettyGrammar {
-    token TOP       { ^ \s* [ <object> | <array> ] \s* $ }
+    token TOP       { \s* <value> \s*          }
     rule object     { '{' ~ '}' <pairlist>     }
     rule pairlist   { <pair> * % \,            }
     rule pair       { <string> ':' <value>     }

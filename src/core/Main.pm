@@ -16,11 +16,12 @@ my sub MAIN_HELPER($retval = 0) {
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
         my (@positional-arguments, %named-arguments);
-        my $stopped = False;
         while +@args {
             my $passed-value = @args.shift;
-            $stopped = $passed-value eq '--';
-            if !$stopped && $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
+	    if $passed-value eq '--' {
+                @positional-arguments.append: @args.map: &val;
+                last;
+            } elsif $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
                 my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
 
                 with $arg.index('=') {
@@ -32,9 +33,7 @@ my sub MAIN_HELPER($retval = 0) {
                     %named-arguments.push: $arg => !$negate;
                 }
             } else {
-                @args.unshift($passed-value) unless $passed-value eq '--';
-                @positional-arguments.append: @args.map: &val;
-                last;
+                @positional-arguments.append: val $passed-value;
             }
         }
         @positional-arguments, %named-arguments;

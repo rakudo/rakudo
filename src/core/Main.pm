@@ -64,9 +64,11 @@ my sub MAIN_HELPER($retval = 0) {
           !! strip_path_prefix($*PROGRAM-NAME);
         for $m.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
-            my (@required-named, @optional-named, @positional, $docs);
+            my (@literal, @required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {
                 my $argument;
+                my $constraints = $param.constraint_list;
+
                 if $param.named {
                     if $param.slurpy {
                         $argument  = '--<' ~ substr($param.name,1) ~ '>=...';
@@ -84,8 +86,11 @@ my sub MAIN_HELPER($retval = 0) {
                         }
                     }
                 }
+		elsif !@positional and $constraints.elems == 1 and $constraints[0].isa(Str) {
+                    @literal.push($constraints[0]);
+                }
                 else {
-                    my $constraints  = $param.constraint_list.map(*.gist).join(' ');
+                    $constraints = $constraints.map(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? '<' ~ substr($param.name,1) ~ '>' !!
                                 $simple-const ??       $constraints                !!
@@ -100,7 +105,7 @@ my sub MAIN_HELPER($retval = 0) {
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
-            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
+            my $msg = join(' ', $prog-name, @literal, @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);
         }
 

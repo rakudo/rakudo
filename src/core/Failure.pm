@@ -2,7 +2,7 @@ my class Failure is Nil {
     has $.exception;
     has $.backtrace;
 #?if moar
-    has int $.handled;
+    has int $!handled;
 #?endif
 #?if jvm
     has $!handled;

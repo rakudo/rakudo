@@ -55,6 +55,7 @@ my class Failure is Nil {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
+    method handled(Failure:D:)    { Bool($!handled); }
 
 #?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }

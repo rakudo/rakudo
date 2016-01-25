@@ -6,7 +6,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
+    submethod BUILD(:$!prefix, :$!bindir, :$!lock, :$!WHICH, :$!next-repo) { }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
@@ -68,7 +68,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method !sources-dir() {
@@ -90,7 +90,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !bin-dir() {
-        my $bin = $.prefix.child('bin');
+        my $bin = $!bindir || $.prefix.child('bin');
         $bin.mkdir unless $bin.e;
         $bin
     }
@@ -154,14 +154,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $destination = $resources-dir.child($id);
             my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
-                "$path/bin/$withoutext$be".IO.spurt:
+                "$bin-dir/$withoutext$be".IO.spurt:
                     $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be").subst('#dist-name#', $dist.name);
                 if $is-win {
-                    "$path/bin/$withoutext$be.bat".IO.spurt:
+                    "$bin-dir/$withoutext$be.bat".IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);
                 }
                 else {
-                    "$path/bin/$withoutext$be".IO.chmod(0o755);
+                    "$bin-dir/$withoutext$be".IO.chmod(0o755);
                 }
             }
             self!add-short-name($basename, $dist);

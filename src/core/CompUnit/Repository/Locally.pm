@@ -1,16 +1,18 @@
 role CompUnit::Repository::Locally {
     has Lock     $!lock;
     has IO::Path $.prefix is required;
+    has IO::Path $.bindir is rw;
     has Str      $.WHICH;
 
     my %instances;
 
-    method new(CompUnit::Repository::Locally: Str:D :$prefix, CompUnit::Repository :$next-repo) {
-        my $abspath := $*SPEC.rel2abs($prefix);
-        my $IO      := IO::Path.new-from-absolute-path($abspath);
+    method new(CompUnit::Repository::Locally: Str:D :$prefix, :$bindir, CompUnit::Repository :$next-repo) {
+        my $abspath   := $*SPEC.rel2abs($prefix);
+        my $IO-prefix := IO::Path.new-from-absolute-path($abspath);
+        my $IO-bindir := $bindir ?? IO::Path.new-from-absolute-path($bindir) !! IO::Path;
 
         %instances{$abspath} //=
-          self.bless(:prefix($IO), :lock(Lock.new), :WHICH(self.^name ~ '|' ~ $abspath), :$next-repo);
+          self.bless(:prefix($IO-prefix), :bindir($IO-bindir), :lock(Lock.new), :WHICH(self.^name ~ '|' ~ $abspath), :$next-repo);
     }
 
     multi method Str(CompUnit::Repository::Locally:D:) { $!prefix.abspath }

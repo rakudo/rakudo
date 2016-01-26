@@ -73,10 +73,9 @@ my class Hash { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
-    method STORE_AT_KEY(\key, Mu $x) is raw {
+    method STORE_AT_KEY(\key, Mu $x --> Nil) {
         my $v := nqp::p6scalarfromdesc($!descriptor);
         nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
-        $v;
     }
 
     # introspection
@@ -299,7 +298,7 @@ my class Hash { # declared in BOOTSTRAP
                 );
             }
         }
-        method STORE_AT_KEY(Str \key, TValue $x) is raw {
+        method STORE_AT_KEY(Str \key, TValue $x --> Nil) {
             my $v :=
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
@@ -362,7 +361,7 @@ my class Hash { # declared in BOOTSTRAP
                     });
             }
         }
-        method STORE_AT_KEY(TKey \key, TValue $x) is raw {
+        method STORE_AT_KEY(TKey \key, TValue $x --> Nil) {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());

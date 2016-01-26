@@ -203,13 +203,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self
     }
 
-    proto method STORE_AT_KEY(|) is raw { * }
-    multi method STORE_AT_KEY(Str \key, Mu \value) is raw {
+    proto method STORE_AT_KEY(|) { * }
+    multi method STORE_AT_KEY(Str \key, Mu \value --> Nil) {
         nqp::defined($!storage) ||
             nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
-    multi method STORE_AT_KEY(\key, Mu \value) is raw {
+    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
         nqp::defined($!storage) ||
             nqp::bindattr(self, Map, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)

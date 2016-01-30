@@ -134,7 +134,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # "provides" or just "files".
         for %sources.kv -> $name, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!file-id($file, $dist-id);
+            # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
+            my $id          = self!file-id($name, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
             $dist.provides{ $name } = {
@@ -171,7 +172,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %resources.kv -> $name, $file is copy {
             $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id             = self!file-id($file, $dist-id) ~ '.' ~ $file.IO.extension;
+            # $name is 'libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
+            my $id             = self!file-id($name, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
             $dist.files{$name} = $id;
             copy($file, $destination);

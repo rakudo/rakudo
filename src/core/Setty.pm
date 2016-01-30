@@ -27,9 +27,9 @@ my role Setty does QuantHash {
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {
-        my \e := Hash.^parameterize(Bool, Any).new;
-        e{$_} = True for %!elems.values;
-        e;
+        my %e;
+        %e{$_} = True for %!elems.values;
+        %e;
     }
 
     multi method new(Setty: +@args) {

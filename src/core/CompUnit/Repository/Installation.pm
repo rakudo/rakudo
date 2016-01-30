@@ -68,7 +68,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method !sources-dir() {

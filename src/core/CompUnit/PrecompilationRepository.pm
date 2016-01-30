@@ -75,7 +75,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $RMD("Removing precompiled $path\nmtime: $modified\nsince: $since")
                 }
                 # remove outdated file so we precompile again
-                    my $profile;
                 self.store.delete($compiler-id, $id);
                 self.store.unlock;
                 CompUnit::Handle

@@ -89,7 +89,7 @@ sub cmp_rev {
     my @b = parse_revision($b);
     my $cmp = 0;
     for (0..4) {
-        $cmp = $a[$_] <=> $b[$_];
+        $cmp = $a[$_] <=> $b[$_] if (defined $a[$_] && defined $b[$_]);
         last if $cmp;
     }
     $cmp;

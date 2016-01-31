@@ -48,19 +48,48 @@ sub system_or_die {
 sub parse_revision {
     my $rev = shift;
     my $sep = qr/[_.]/;
-    $rev =~ /(\d+)$sep(\d+)(?:$sep(\d+))?(?:-(\d+)-g[a-f0-9]*)?$/
-        or die "Unrecognized revision specifier '$rev'\n";
-    return ($1, $2, $3 || 0, $4 || 0);
-}
+    my $rev_regex = qr/
+        (?<year> \d+)
+        $sep
+        (?<month> \d+)
+        (?:
+            $sep
+            (?<day> \d+)
+        )?
+        (?:
+            -
+            (?:
+                (?<revno> \d+) - g[a-f0-9]*
 
+                |
+
+                RC (?<rcno> \d+)
+            )
+        )?
+        $
+    /x;
+    if ($rev =~ $rev_regex) {
+        if (defined $+{revno}) {
+            return (0, $+{revno});
+        }
+        elsif (defined $+{year} && defined $+{month}) {
+            return ($+{year}, $+{month}, $+{day}, $+{rcno});
+        }
+        else {
+            return (0);
+        }
+    } else {
+        die "Unrecognized revision specifier '$rev'\n";
+    }
+}
 
 sub cmp_rev {
     my ($a, $b) = @_;
     my @a = parse_revision($a);
     my @b = parse_revision($b);
     my $cmp = 0;
-    for (0..3) {
-        $cmp = $a[$_] <=> $b[$_];
+    for (0..4) {
+        $cmp = $a[$_] <=> $b[$_] if (defined $a[$_] && defined $b[$_]);
         last if $cmp;
     }
     $cmp;

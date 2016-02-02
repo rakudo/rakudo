@@ -356,6 +356,7 @@ Previous releases were bundled as part of monthly Parrot releases.
 
   2015-12-25   Rakudo #94 "коледа"             (Coke) # v6.c
   2016-02-01   Rakudo #95                      (Coke)
+  2016-02-02   2016.01.1                       (Coke)
 
 =head1 COPYRIGHT
 

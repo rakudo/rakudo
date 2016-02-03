@@ -73,7 +73,7 @@ sub parse_revision {
             return (0, $+{revno});
         }
         elsif (defined $+{year} && defined $+{month}) {
-            return ($+{year}, $+{month}, $+{day}, $+{rcno});
+            return ($+{year}, $+{month}, $+{day} // 0, $+{rcno} // 0);
         }
         else {
             return (0);

@@ -69,15 +69,7 @@ sub parse_revision {
         $
     /x;
     if ($rev =~ $rev_regex) {
-        if (defined $+{revno}) {
-            return (0, $+{revno});
-        }
-        elsif (defined $+{year} && defined $+{month}) {
-            return ($+{year}, $+{month}, $+{day}, $+{rcno});
-        }
-        else {
-            return (0);
-        }
+        return ($+{year}, $+{month}, $+{day} || 0, $+{rcno} || 0, $+{revno} || 0);
     } else {
         die "Unrecognized revision specifier '$rev'\n";
     }

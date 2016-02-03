@@ -6,7 +6,7 @@ my class Block { # declared in BOOTSTRAP
     method of(Block:D:)      { nqp::getattr(self,Code,'$!signature').returns }
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
-    method add_phaser(Str $name, &block) {
+    method add_phaser(Str $name, &block --> Nil) {
         nqp::isnull($!phasers) &&
             nqp::bindattr(self, Block, '$!phasers', nqp::hash());
         nqp::existskey($!phasers, nqp::unbox_s($name)) ||
@@ -23,7 +23,7 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_phasers(str $name) {
+    method fire_phasers(str $name --> Nil) {
         if !nqp::isnull($!phasers) && nqp::existskey($!phasers, $name) {
             my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
             nqp::while($iter, nqp::shift($iter).(), :nohandler);

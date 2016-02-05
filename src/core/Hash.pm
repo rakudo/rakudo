@@ -6,33 +6,31 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
-    multi method AT-KEY(Hash:D: Str \key) is raw {
-        my Mu $storage := nqp::getattr(self, Map, '$!storage');
-        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
-            unless nqp::defined($storage);
-        my str $key = key;
+    multi method AT-KEY(Hash:D: Str:D \key) is raw {
+        nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          unless nqp::attrinited(self,Map,'$!storage');
         nqp::ifnull(
-          nqp::atkey($storage,$key),
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key)),
           nqp::p6bindattrinvres(
             (my \v := nqp::p6scalarfromdesc($!descriptor)),
             Scalar,
             '$!whence',
-            -> { nqp::bindkey($storage,$key,v) }
+            -> { nqp::bindkey(
+                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key),v) }
           )
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
-        my Mu $storage := nqp::getattr(self, Map, '$!storage');
-        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
-            unless nqp::defined($storage);
-        my str $key = key.Str;
+        nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          unless nqp::attrinited(self,Map,'$!storage');
         nqp::ifnull(
-          nqp::atkey($storage,$key),
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.Str)),
           nqp::p6bindattrinvres(
             (my \v := nqp::p6scalarfromdesc($!descriptor)),
             Scalar,
             '$!whence',
-            -> { nqp::bindkey($storage,$key,v) }
+            -> { nqp::bindkey(
+                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.Str),v) }
           )
         )
     }

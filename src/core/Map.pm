@@ -174,10 +174,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.map: { (.value »=>» .key).cache.Slip }
     }
 
+    multi method AT-KEY(Map:D: Str:D \key) is raw {
+        nqp::defined($!storage)
+          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
+          !! Nil
+    }
     multi method AT-KEY(Map:D: \key) is raw {
-        my str $skey = nqp::unbox_s(key.Str);
-        nqp::defined($!storage) && nqp::existskey($!storage, $skey)
-          ?? nqp::atkey($!storage, $skey)
+        nqp::defined($!storage)
+          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
           !! Nil
     }
 

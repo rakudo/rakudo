@@ -13,9 +13,8 @@ my class Capture { # declared in BOOTSTRAP
             nqp::getattr(nqp::decont(@list.list), List, '$!reified')
         );
         nqp::bindattr(self,Capture,'$!hash',
-          nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
-            ?? nqp::getattr(nqp::decont(%hash),Map,'$!storage')
-            !! nqp::hash);
+          nqp::getattr(nqp::decont(%hash),Map,'$!storage'))
+            if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
     }
 
     multi method WHICH (Capture:D:) {
@@ -33,27 +32,25 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method AT-KEY(Capture:D: \key) is raw {
-        my str $skey = nqp::unbox_s(key.Str);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
-    }
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
-        my str $skey = nqp::unbox_s(key);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
+        nqp::ifnull(nqp::atkey($!hash,nqp::unbox_s(key)), Nil)
+    }
+    multi method AT-KEY(Capture:D: \key) is raw {
+        nqp::ifnull(nqp::atkey($!hash,nqp::unbox_s(key.Str)), Nil)
     }
 
     multi method AT-POS(Capture:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
+        nqp::islt_i(pos,0)
+          ?? fail X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          !! nqp::ifnull(nqp::atpos($!list,pos),Nil)
     }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-          if nqp::islt_i($pos,0);
-        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Nil;
+        nqp::islt_i($pos,0)
+          ?? fail X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          !! nqp::ifnull(nqp::atpos($!list,$pos),Nil)
     }
 
     method hash(Capture:D:) {
@@ -113,7 +110,7 @@ my class Capture { # declared in BOOTSTRAP
         }
     }
     multi method Bool(Capture:D:) {
-        $!list || $!hash ?? True !! False
+        ?($!list || $!hash)
     }
 
     method Capture(Capture:D:) {

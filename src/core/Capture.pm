@@ -7,13 +7,15 @@ my class Capture { # declared in BOOTSTRAP
 
     method from-args(|c) { c }
 
-    submethod BUILD(:@list, :%hash) {
+    submethod BUILD(:@list, :%hash --> Nil) {
         @list.elems; # force reification of all
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.list), List, '$!reified')
         );
-        my Mu $hs := nqp::getattr(nqp::decont(%hash), Map, '$!storage');
-        nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
+        nqp::bindattr(self,Capture,'$!hash',
+          nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
+            ?? nqp::getattr(nqp::decont(%hash),Map,'$!storage')
+            !! nqp::hash);
     }
 
     multi method WHICH (Capture:D:) {

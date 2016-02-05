@@ -165,9 +165,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $r1 = $r1 - 1;
             # extend string if carried past first rangechar position
             $str = nqp::replace($str, $r0, 0,
-                       nqp::existskey($carrydigit, $ch1)
-                           ?? nqp::atkey($carrydigit, $ch1)
-                           !! $ch1)
+              nqp::ifnull(nqp::atkey($carrydigit,$ch1),$ch1))
                 if $r1 < $r0;
         }
         $str;
@@ -1363,8 +1361,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method encode(Str:D $encoding = 'utf8') {
 #?endif
         my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        my $type   :=
-          nqp::existskey($enc_type,$enc) ?? nqp::atkey($enc_type,$enc) !! blob8;
+        my $type   := nqp::ifnull(nqp::atkey($enc_type,$enc),blob8);
 #?if moar
         return nqp::encoderep(nqp::unbox_s(self), $enc, nqp::unbox_s($replacement), nqp::decont($type.new))
             if $replacement.defined;

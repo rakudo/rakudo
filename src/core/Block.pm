@@ -6,40 +6,46 @@ my class Block { # declared in BOOTSTRAP
     method of(Block:D:)      { nqp::getattr(self,Code,'$!signature').returns }
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
-    method add_phaser(Str $name, &block --> Nil) {
-        nqp::isnull($!phasers) &&
-            nqp::bindattr(self, Block, '$!phasers', nqp::hash());
-        nqp::existskey($!phasers, nqp::unbox_s($name)) ||
-            nqp::bindkey($!phasers, nqp::unbox_s($name), nqp::list());
-        if $name eq 'LEAVE' || $name eq 'KEEP' || $name eq 'UNDO' {
-            nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
+    method add_phaser(Str:D \name, &block --> Nil) {
+        nqp::bindattr(self,Block,'$!phasers',nqp::hash)
+          unless nqp::attrinited(self,Block,'$!phasers');
+
+        my str $name = name;
+        nqp::bindkey($!phasers,$name,nqp::list)
+          unless nqp::existskey($!phasers,$name);
+
+        if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
+            nqp::unshift(nqp::atkey($!phasers,$name),&block);
             self.add_phaser('!LEAVE-ORDER', &block);
         }
-        elsif $name eq 'NEXT' || $name eq '!LEAVE-ORDER' || $name eq 'POST' {
-            nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
+        elsif nqp::iseq_s($name,'NEXT') || nqp::iseq_s($name,'!LEAVE-ORDER') || nqp::iseq_s($name,'POST') {
+            nqp::unshift(nqp::atkey($!phasers,$name),&block);
         }
         else {
-            nqp::push(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
+            nqp::push(nqp::atkey($!phasers,$name),&block);
         }
     }
 
     method fire_phasers(str $name --> Nil) {
-        if !nqp::isnull($!phasers) && nqp::existskey($!phasers, $name) {
+        if nqp::attrinited(self,Block,'$!phasers') && nqp::existskey($!phasers, $name) {
             my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
             nqp::while($iter, nqp::shift($iter).(), :nohandler);
         }
     }
 
-    method has-phasers() { !nqp::isnull($!phasers) }
+    method has-phasers() { nqp::attrinited(self,Block,'$!phasers') }
 
-    method phasers(Str $name) {
-        unless nqp::isnull($!phasers) {
-            if nqp::existskey($!phasers, nqp::unbox_s($name)) {
-                return nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-                    nqp::atkey($!phasers, nqp::unbox_s($name)));
-            }
-        }
-        ()
+    method has-phaser(Str:D \name) {
+        nqp::attrinited(self,Block,'$!phasers')
+          && nqp::existskey($!phasers,nqp::unbox_s(name))
+    }
+
+    method phasers(Str:D $name) {
+        nqp::attrinited(self,Block,'$!phasers')
+          && nqp::existskey($!phasers,nqp::unbox_s($name))
+          ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+               nqp::atkey($!phasers,nqp::unbox_s($name)))
+          !! ()
     }
 
     method assuming(Block:D $self: |primers) {

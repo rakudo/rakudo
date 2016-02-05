@@ -98,8 +98,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     if !$!did-init && nqp::can(&!block, 'fire_phasers') {
                         $!did-init         = 1;
                         $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = +&!block.phasers('NEXT');
-                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
+                        $!NEXT             = &!block.has-phaser('NEXT');
+                        nqp::p6setfirstflag(&!block)
+                          if &!block.has-phaser('FIRST');
                     }
 
                     if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
@@ -162,8 +163,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     if !$!did-init && nqp::can(&!block, 'fire_phasers') {
                         $!did-init         = 1;
                         $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = +&!block.phasers('NEXT');
-                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
+                        $!NEXT             = &!block.has-phaser('NEXT');
+                        nqp::p6setfirstflag(&!block)
+                          if &!block.has-phaser('FIRST');
                     }
                     my $result;
                     my int $redo;
@@ -230,8 +232,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     if !$!did-init && nqp::can(&!block, 'fire_phasers') {
                         $!did-init         = 1;
                         $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = +&!block.phasers('NEXT');
-                        nqp::p6setfirstflag(&!block) if &!block.phasers('FIRST');
+                        $!NEXT             = &!block.has-phaser('NEXT');
+                        nqp::p6setfirstflag(&!block)
+                          if &!block.has-phaser('FIRST');
                     }
 
                     if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {

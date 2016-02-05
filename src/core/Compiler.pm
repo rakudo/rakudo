@@ -15,9 +15,7 @@ class Compiler does Systemic {
     ) {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-        $!id = nqp::p6box_s( nqp::existskey($compiler,'id')
-          ?? nqp::atkey($compiler,'id')
-          !! $id );
+        $!id = nqp::p6box_s(nqp::ifnull(nqp::atkey($compiler,'id'),$id));
         $!version = Version.new(
           $version // nqp::p6box_s(nqp::atkey($compiler, 'version')) );
         $!release =

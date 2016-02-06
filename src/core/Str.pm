@@ -91,8 +91,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ~ "\x[2581,2582,2583,2584,2585,2586,2587,2588]" # lower blocks
         ~ "\x[2680,2681,2682,2683,2684,2685,2680]" # die faces
         ~ "\x[2776,2777,2778,2779,277A,277B,277C,277D,277E,277F,2776]" # dingbat negative circled 1..10
-        ~ "\x[1F37A,1F37B]"  # beer mugs
-        ~ "\x[1F42A,1F42B]"; # camels
+        ~ "\x[1F37A,1F37B,1F37A]"  # beer mugs
+        ~ "\x[1F42A,1F42B,1F42A]"; # camels
 
     # digit to extend the string with if carried past first rangechar position
     my $carrydigit := nqp::hash(

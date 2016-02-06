@@ -204,6 +204,7 @@ Please refactor this code using the new Iterator / Seq interface.
     }
 
     method BUILD_LEAST_DERIVED(%attrinit) {
+        my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan for just this class.
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
@@ -217,35 +218,24 @@ Please refactor this code using the new Iterator / Seq interface.
                 nqp::atpos($task, 1)(self, |%attrinit);
             }
             elsif nqp::iseq_i($code, 1) {
-                # See if we have a value to initialize this attr
-                # with.
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
+                # See if we have a value to initialize this attr with.
+                nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                  = nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2))))
+                  if nqp::existskey($init,nqp::atpos($task,2));
             }
             elsif nqp::iseq_i($code, 2) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3), nqp::list())
-                }
+                nqp::existskey($init,nqp::atpos($task,2))
+                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                       = nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
+                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                       nqp::list);
             }
             elsif nqp::iseq_i($code, 3) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3), nqp::hash())
-                }
+                nqp::existskey($init,nqp::atpos($task,2))
+                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                       = nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
+                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                       nqp::hash);
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
@@ -254,25 +244,19 @@ Please refactor this code using the new Iterator / Seq interface.
                 }
             }
             elsif nqp::iseq_i($code, 5) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_i(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
+                  if nqp::existskey($init,nqp::atpos($task,2));
             }
             elsif nqp::iseq_i($code, 6) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_n(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
+                  if nqp::existskey($init,nqp::atpos($task,2));
             }
             elsif nqp::iseq_i($code, 7) {
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_s(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
+                  if nqp::existskey($init,nqp::atpos($task,2));
             }
             elsif nqp::iseq_i($code, 13) {
                 nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));

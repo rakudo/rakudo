@@ -96,3 +96,4 @@ perl6-gdb-m
 perl6-valgrind-m
 *.rakudo.moar
 *.rakudo.jvm
+**/.precomp

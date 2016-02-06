@@ -291,7 +291,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $list := nqp::getattr(self,List,'$!reified');
         my $sum = 0;
         my int $i = -1;
-        $sum = $sum + (nqp::existspos($list,$i) ?? nqp::atpos($list,$i) !! 0)
+        $sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0)
           while ($i = $i + 1) < $elems;
         $sum
     }

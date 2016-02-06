@@ -159,6 +159,7 @@ Please refactor this code using the new Iterator / Seq interface.
                   if nqp::existskey($init,nqp::atpos($task,2));
             }
             elsif nqp::iseq_i($code, 6) {
+                my $something;  # avoid issue with JIT
                 nqp::bindattr_n(self,nqp::atpos($task,1),nqp::atpos($task,3),
                   nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
                   if nqp::existskey($init,nqp::atpos($task,2));

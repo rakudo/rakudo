@@ -110,7 +110,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
        "\x1F42A","\x1F42B",# camels
     );
     # calculate the beginning and ending positions of <!after '.'><rangechar+>
-    my sub RANGEPOS(str $str) {
+    sub RANGEPOS(str $str, \pos, \end) {  # sadly, --> Nil doesn't work here
         my int $pos = nqp::chars($str);
         while $pos > 0 {
             $pos = $pos - 1;
@@ -121,18 +121,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $pos = $pos - 1;
                     $ch = nqp::substr($str, $pos, 1);
                     last if nqp::iseq_s($ch, '.');
-                    return ($pos+1, $end)
-                        unless nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0);
+                    unless nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0) {
+                        pos = $pos + 1;
+                        end = $end;
+                        return;
+                    }
                 }
-                return ($pos, $end) unless nqp::iseq_s($ch, '.');
+                unless nqp::iseq_s($ch, '.') {
+                    pos = $pos;
+                    end = $end;
+                    return;
+                }
             }
         }
-        (0, -1);
+        pos = 0;
+        end = -1;
+        return
     }
 
     method pred(Str:D:) {
         my str $str = self;
-        my Int ($Ir0, $Ir1) = RANGEPOS($str);
+        RANGEPOS($str, my Int $Ir0, my Int $Ir1);
         my int $r0 = $Ir0;
         my int $r1 = $Ir1;
         while $r1 >= $r0 {
@@ -152,7 +161,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method succ(Str:D:) {
         my str $str = self;
-        my Int ($Ir0, $Ir1) = RANGEPOS($str);
+        RANGEPOS($str, my Int $Ir0, my Int $Ir1);
         my int $r0 = $Ir0;
         my int $r1 = $Ir1;
         while $r1 >= $r0 {

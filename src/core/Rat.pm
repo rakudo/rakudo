@@ -11,7 +11,7 @@ my class Rat is Cool does Rational[Int, Int] {
             $d div= 2 while $d %% 2;
             self.REDUCE-ME;
         }
-        ($d == 1) ?? self.base(10,*) !! '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>';
+        ($d == 1) ?? self.base(10,*) !! 'Rat.new(' ~ $!numerator ~ ', ' ~ $!denominator ~ ')';
     }
 }
 

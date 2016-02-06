@@ -81,7 +81,7 @@ my class Junction { # declared in BOOTSTRAP
             my $res_junc := nqp::clone(nqp::decont($arg));
             nqp::bindattr($res_junc, Junction, '$!storage',
                 nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
-            return $res_junc;
+            $res_junc;
         }
 
         # Look for a junctional arg in the positionals.

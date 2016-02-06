@@ -772,7 +772,7 @@ my class Supply {
             my int $skip;
             my \c = @c.iterator;
 
-            sub next-batch() {
+            sub next-batch(--> Nil) {
                 given c.pull-one {
                     when Pair {
                         $elems   = +.key;
@@ -789,7 +789,7 @@ my class Supply {
             next-batch;
 
             my @batched;
-            sub flush() {
+            sub flush(--> Nil) {
                 emit( @batched.splice(0, +@batched, @batched[* + $gap .. *]) );
                 $skip = $to-skip;
             }
@@ -812,11 +812,11 @@ my class Supply {
         supply {
             my @batched;
             my $last_time;
-            sub flush {
+            sub flush(--> Nil) {
                 emit([@batched]);
                 @batched = ();
             }
-            sub final-flush {
+            sub final-flush(--> Nil) {
                 flush if @batched;
             }
 
@@ -1182,7 +1182,7 @@ my class Supply {
             my int $emitted;
             my int $bled;
             my int $done;
-            sub emit-status($id) {
+            sub emit-status($id --> Nil) {
                $status.emit(
                  { :$allowed, :$bled, :buffered(+@buffer),
                    :$emitted, :$id,   :$limit,  :$vent-at } );
@@ -1282,13 +1282,13 @@ my class Supply {
         my int $done;
         my int $vent = $vent-at if $bleed;
         my $ready = Supplier::Preserving.new;
-        sub start-process(\val) {
+        sub start-process(\val --> Nil) {
             my $p = Promise.start( $process, :$scheduler, val );
             $running = $running + 1;
             $allowed = $allowed - 1;
             $p.then: { $ready.emit($p) };
         }
-        sub emit-status($id) {
+        sub emit-status($id --> Nil) {
            $status.emit(
              { :$allowed, :$bled, :buffered(+@buffer),
                :$emitted, :$id,   :$limit, :$running } );

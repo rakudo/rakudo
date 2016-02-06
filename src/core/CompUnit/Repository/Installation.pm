@@ -332,7 +332,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!precomp
     }
 
-    sub provides-warning($is-win, $name) {
+    sub provides-warning($is-win, $name --> Nil) {
         my ($red,$clear) = Rakudo::Internals.error-rcgye;
 
         note "$red==={$clear}WARNING!$red===$clear

@@ -130,32 +130,25 @@ Please refactor this code using the new Iterator / Seq interface.
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = %attrinit{$key_name};
-                }
+                nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                  = %attrinit.AT-KEY($key_name)
+                  if %attrinit.EXISTS-KEY($key_name);
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = %attrinit{$key_name};
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3), nqp::list())
-                }
+                %attrinit.EXISTS-KEY($key_name)
+                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                       = %attrinit.AT-KEY($key_name))
+                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                       nqp::list);
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = %attrinit{$key_name};
-                }
-                else {
-                    nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3), nqp::hash())
-                }
+                %attrinit.EXISTS-KEY($key_name)
+                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                       = %attrinit.AT-KEY($key_name))
+                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                       nqp::hash);
             }
             elsif nqp::iseq_i($code, 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
@@ -165,31 +158,27 @@ Please refactor this code using the new Iterator / Seq interface.
             }
             elsif nqp::iseq_i($code, 5) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_i(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY($key_name)))
+                  if %attrinit.EXISTS-KEY($key_name);
             }
             elsif nqp::iseq_i($code, 6) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_n(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY($key_name)))
+                  if %attrinit.EXISTS-KEY($key_name);
             }
             elsif nqp::iseq_i($code, 7) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.EXISTS-KEY($key_name) {
-                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
-                        nqp::decont(%attrinit{$key_name}));
-                }
+                nqp::bindattr_s(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                  nqp::decont(%attrinit.AT-KEY($key_name)))
+                  if %attrinit.EXISTS-KEY($key_name);
             }
             elsif nqp::iseq_i($code, 8) {
                 my int $cur_value = nqp::getattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                if nqp::iseq_i($cur_value, 0) {
-                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
-                        nqp::atpos($task, 3)(self, $cur_value));
-                }
+                nqp::bindattr_i(self,nqp::atpos($task,1),nqp::atpos($task,2),
+                  nqp::atpos($task, 3)(self, $cur_value))
+                  if nqp::iseq_i($cur_value, 0);
             }
             elsif nqp::iseq_i($code, 9) {
                 my num $cur_value = nqp::getattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
@@ -200,10 +189,9 @@ Please refactor this code using the new Iterator / Seq interface.
             }
             elsif nqp::iseq_i($code, 10) {
                 my str $cur_value = nqp::getattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                if nqp::isnull_s($cur_value) {
-                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
-                        nqp::atpos($task, 3)(self, $cur_value));
-                }
+                nqp::bindattr_s(self,nqp::atpos($task,1),nqp::atpos($task,2),
+                  nqp::atpos($task, 3)(self, $cur_value))
+                  if nqp::isnull_s($cur_value);
             }
             elsif nqp::iseq_i($code, 11) {
                 my $attr_name = nqp::p6box_s(nqp::atpos($task, 2));

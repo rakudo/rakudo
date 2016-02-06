@@ -8,7 +8,7 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
         nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::attrinited(self,Map,'$!storage');
+          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
         nqp::ifnull(
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key)),
           nqp::p6bindattrinvres(
@@ -22,7 +22,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method AT-KEY(Hash:D: \key) is raw {
         nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::attrinited(self,Map,'$!storage');
+          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
         nqp::ifnull(
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.Str)),
           nqp::p6bindattrinvres(

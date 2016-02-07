@@ -3868,6 +3868,7 @@ class Perl6::World is HLL::World {
 
             # Build and throw exception object.
             %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
+            %opts<pos>             := $c.pos;
             %opts<modules>         := p6ize_recursive(@*MODULES // []);
             %opts<pre>             := @locprepost[0];
             %opts<post>            := @locprepost[1];

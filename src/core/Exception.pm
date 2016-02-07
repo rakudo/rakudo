@@ -525,6 +525,7 @@ my class X::IO::Chmod does X::IO {
 
 my role X::Comp is Exception {
     has $.filename;
+    has $.pos;
     has $.line;
     has $.column;
     has @.modules;

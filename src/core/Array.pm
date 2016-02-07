@@ -198,7 +198,7 @@ my class Array { # declared in BOOTSTRAP
         multi method BIND-POS(Array:U: |c) is raw {
             self.Any::BIND-POS(|c)
         }
-        multi method BIND-POS(**@indices is raw) is raw {
+        multi method BIND-POS(Array:D: **@indices is raw) is raw {
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems - 1;
@@ -451,14 +451,14 @@ my class Array { # declared in BOOTSTRAP
             !! (nqp::atpos(reified, $ipos) = assignee)
     }
 
-    multi method BIND-POS(Int $pos, Mu \bindval) is raw {
+    multi method BIND-POS(Array:D: Int $pos, Mu \bindval) is raw {
         self!ensure-allocated();
         my int $ipos = $pos;
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
         nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval);
     }
-    multi method BIND-POS(int $pos, Mu \bindval) is raw {
+    multi method BIND-POS(Array:D: int $pos, Mu \bindval) is raw {
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
@@ -765,13 +765,13 @@ my class Array { # declared in BOOTSTRAP
         }
 
         proto method BIND-POS(|) { * }
-        multi method BIND-POS(Int $pos, TValue \bindval) is raw {
+        multi method BIND-POS(Array:D: Int $pos, TValue \bindval) is raw {
             my int $ipos = $pos;
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
             nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval)
         }
-        multi method BIND-POS(int $pos, TValue \bindval) is raw {
+        multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {
             my $todo := nqp::getattr(self, List, '$!todo');
             $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
             nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)

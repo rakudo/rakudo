@@ -338,6 +338,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! Nil
     }
 
+    method BIND-POS(List:D: Int \pos, \what) is raw {
+        X::Bind.new.throw unless nqp::iscont(self.AT-POS(pos));
+        nqp::bindpos(nqp::getattr(self,List,'$!reified'),nqp::unbox_i(pos),what)
+    }
+
     multi method EXISTS-POS(List:D: int $pos) {
         self!ensure-allocated;
         $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;

@@ -289,17 +289,14 @@ my class Hash { # declared in BOOTSTRAP
 
     my role TypedHash[::TValue] does Associative[TValue] {
         method AT-KEY(::?CLASS:D: Str() $key) is raw {
-            if self.EXISTS-KEY($key) {
-                nqp::findmethod(Map, 'AT-KEY')(self, $key);
-            }
-            else {
-                nqp::p6bindattrinvres(
-                    (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'))),
-                    Scalar,
-                    '$!whence',
-                    -> { nqp::findmethod(Map, 'STORE_AT_KEY')(self, $key, v) }
-                );
-            }
+            self.EXISTS-KEY($key)
+              ?? nqp::findmethod(Map,'AT-KEY')(self,$key)
+              !! nqp::p6bindattrinvres(
+                   (my \v := nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))),
+                   Scalar,
+                   '$!whence',
+                   -> { nqp::findmethod(Map,'STORE_AT_KEY')(self,$key,v) }
+                 )
         }
         method STORE_AT_KEY(Str \key, TValue $x --> Nil) {
             my $v :=

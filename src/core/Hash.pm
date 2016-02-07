@@ -298,10 +298,9 @@ my class Hash { # declared in BOOTSTRAP
                    -> { nqp::findmethod(Map,'STORE_AT_KEY')(self,$key,v) }
                  )
         }
-        method STORE_AT_KEY(Str \key, TValue $x --> Nil) {
-            my $v :=
-              nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
-            nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
+        method STORE_AT_KEY(Str \key, TValue \x --> Nil) {
+            nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
+              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
         }
         multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
             my Mu $storage := nqp::getattr(self, Map, '$!storage');

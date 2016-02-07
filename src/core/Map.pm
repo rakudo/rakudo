@@ -12,9 +12,22 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
-        my $hash := Hash.new;
-        nqp::bindattr($hash,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
-        $hash
+        if nqp::attrinited(self,Map,'$!storage') {
+            my $hash       := nqp::create(Hash);
+            my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
+            my $descriptor := nqp::null;
+            my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+            while $iter {
+                my $tmp := nqp::shift($iter);
+                nqp::bindkey($storage,nqp::iterkey_s($tmp),
+                  nqp::p6scalarfromdesc($descriptor) =
+                    nqp::decont(nqp::iterval($tmp)));
+            }
+            $hash
+        }
+        else {
+            nqp::create(Hash)
+        }
     }
 
     multi method Bool(Map:D:) {

@@ -36,9 +36,9 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
-        my Mu $storage := nqp::getattr(self, Map, '$!storage');
-        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
-            unless nqp::defined($storage);
+        nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
+        my $storage := nqp::getattr(self,Map,'$!storage');
         my str $key = nqp::istype(key, Str) ?? key !! key.Str;
         nqp::existskey($storage, $key)
             ?? (nqp::atkey($storage, $key) = assignval)
@@ -300,7 +300,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
               nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
         }
-        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
+        method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
             my Mu $storage := nqp::getattr(self, Map, '$!storage');
             $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
                 unless nqp::defined($storage);

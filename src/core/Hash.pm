@@ -121,7 +121,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::deletekey(
             nqp::getattr(self, Map, '$!storage'),
             nqp::unbox_s(key)
-        );
+        ) if nqp::defined(nqp::getattr(self,Map,'$!storage'))
     }
 
     method push(+values) {

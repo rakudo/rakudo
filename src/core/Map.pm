@@ -12,7 +12,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
-        if nqp::attrinited(self,Map,'$!storage') {
+        if nqp::defined('$!storage') {
             my $hash       := nqp::create(Hash);
             my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
             my $descriptor := nqp::null;
@@ -221,37 +221,37 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE_AT_KEY(|) { * }
-    multi method STORE_AT_KEY(Str \key, Mu \value --> Nil) {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
+    multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
+        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
     multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
+        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
 
     method Capture(Map:D:) {
-        my $cap := nqp::create(Capture);
-        nqp::bindattr($cap, Capture, '$!hash', $!storage);
-        $cap
+        if nqp::defined($!storage) {
+            my $cap := nqp::create(Capture);
+            nqp::bindattr($cap,Capture,'$!hash',$!storage);
+            $cap
+        }
+        else {
+            nqp::create(Capture)
+        }
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-        $!storage
+        nqp::defined($!storage)
+          ?? $!storage
+          !! nqp::bindattr(self,Map,'$!storage',nqp::hash)
     }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {
-        if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
-            self.keys.fmt($format, $sep);
-        }
-        else {
-            self.pairs.fmt($format, $sep);
-        }
+        nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
+          ?? self.keys.fmt($format, $sep)
+          !! self.pairs.fmt($format, $sep)
     }
 
     method hash() { self }

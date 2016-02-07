@@ -7226,7 +7226,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method rat_number($/) { make $<bare_rat_number>.ast }
 
     method bare_rat_number($/) {
-        my $nu := @($<nu>.ast)[0].compile_time_value;
+        my $nu := $<nu>.ast.compile_time_value;
         my $de := $<de>.ast;
         my $ast := $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
         $ast.node($/);

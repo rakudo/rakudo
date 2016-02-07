@@ -47,11 +47,10 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        my Mu $storage := nqp::getattr(self, Map, '$!storage');
-        $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
-            unless nqp::defined($storage);
-        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
-        nqp::bindkey($storage, $key, bindval)
+        nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
+          nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
     }
 
     multi method perl(Hash:D \SELF:) {

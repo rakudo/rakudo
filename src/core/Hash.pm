@@ -91,21 +91,19 @@ my class Hash { # declared in BOOTSTRAP
 
     # introspection
     method name() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! $d.name()
+        nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
-    method keyof () { Any }
+    method keyof() {
+        Any
+    }
     method of() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
     method default() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Any !! $d.default;
+        nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! so $d.dynamic;
+        nqp::isnull($!descriptor) ?? Nil !! nqp::p6bool($!descriptor.dynamic)
     }
 
     multi method DELETE-KEY(Hash:U:) { Nil }

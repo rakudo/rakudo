@@ -32,7 +32,9 @@ my class Instant is Cool does Real {
         'Instant:' ~ $!tai
     }
     multi method perl(Instant:D:) {
-        "Instant.from-posix({self.to-posix.perl})";
+        my @p = self.to-posix;
+        # The second value in @pos is a 0 or 1 rather than a Bool
+        "Instant.from-posix({@p[0].perl}, {@p[1] ?? 'True' !! 'False'})";
     }
     method Bridge(Instant:D:) { $!tai.Bridge }
     method Num   (Instant:D:) { $!tai.Num    }

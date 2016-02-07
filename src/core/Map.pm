@@ -12,7 +12,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
-        if nqp::defined('$!storage') {
+        if nqp::defined($!storage) {
             my $hash       := nqp::create(Hash);
             my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
             my $descriptor := nqp::null;

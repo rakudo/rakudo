@@ -84,9 +84,9 @@ my class Hash { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
-    method STORE_AT_KEY(\key, Mu $x --> Nil) {
-        my $v := nqp::p6scalarfromdesc($!descriptor);
-        nqp::findmethod(Map, 'STORE_AT_KEY')(self, key, $v = $x);
+    method STORE_AT_KEY(\key, Mu \x --> Nil) {
+        nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
+           nqp::p6scalarfromdesc($!descriptor) = x)
     }
 
     # introspection

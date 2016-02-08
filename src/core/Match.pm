@@ -64,9 +64,12 @@ my class Match is Capture is Cool {
 
     multi method perl(Match:D:) {
         my %attrs;
-        for <orig from to ast list hash> {
-            %attrs{$_} = self."$_"().perl;
-        }
+        %attrs.ASSIGN-KEY("orig", self.orig.perl);
+        %attrs.ASSIGN-KEY("from", self.from.perl);
+        %attrs.ASSIGN-KEY("to",   self.to.perl  );
+        %attrs.ASSIGN-KEY("ast",  self.ast.perl );
+        %attrs.ASSIGN-KEY("list", self.list.perl);
+        %attrs.ASSIGN-KEY("hash", self.hash.perl);
 
         'Match.new('
             ~ %attrs.fmt('%s => %s', ', ')

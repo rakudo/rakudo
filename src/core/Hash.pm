@@ -327,12 +327,12 @@ my class Hash { # declared in BOOTSTRAP
                    nqp::getattr(self,Hash,'$!descriptor')) = assignval)
         }
 
-        method BIND-KEY($key, TValue \bindval) is raw {
-            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
-                nqp::bindattr(self, Map, '$!storage', nqp::hash());
+        method BIND-KEY(::?CLASS:D: \key, TValue \bindval) is raw {
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
             nqp::bindkey(
                 nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s($key.Str),
+                nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str),
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {

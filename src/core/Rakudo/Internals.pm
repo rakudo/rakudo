@@ -872,7 +872,7 @@ my class Rakudo::Internals {
         my int $i = -1;
         Nil while ($i = $i + 1) < $elems && nqp::atpos($posixes,$i) < ($t - $i);
         tai - $initial-offset - $i,
-          $i < $elems && nqp::atpos($posixes,$i) == $t - $i
+          nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
     }
 
     my $initializers := nqp::hash;

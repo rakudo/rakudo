@@ -365,22 +365,17 @@ my class Hash { # declared in BOOTSTRAP
                  )
         }
 
-        method STORE_AT_KEY(TKey \key, TValue $x --> Nil) {
-            my $key_which = key.WHICH;
-            nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
-                nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
-                nqp::bindattr(self, Map, '$!storage', nqp::hash());
+        method STORE_AT_KEY(TKey \key, TValue \x --> Nil) {
+            my str $which = key.WHICH;
+            $!keys := nqp::hash unless nqp::defined($!keys);
+            nqp::bindkey($!keys,$which,key);
+
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
             nqp::bindkey(
-                nqp::getattr(self, $?CLASS, '$!keys'),
-                nqp::unbox_s($key_which),
-                key);
-            my $v :=
-              nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
-            nqp::bindkey(
-                nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s($key_which),
-                $v = $x);
+              nqp::getattr(self,Map,'$!storage'),$which,
+              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x
+            )
         }
         method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) {
             my Mu $storage := nqp::getattr(self, Map, '$!storage');

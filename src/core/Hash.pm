@@ -299,7 +299,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
               nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
         }
-        method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
+        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
             my Mu $storage := nqp::getattr(self, Map, '$!storage');
             $storage := nqp::bindattr(self, Map, '$!storage', nqp::hash())
                 unless nqp::defined($storage);

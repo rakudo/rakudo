@@ -125,7 +125,7 @@ my class Hash { # declared in BOOTSTRAP
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if values.is-lazy;
         my $previous;
-        my $has_previous;
+        my int $has_previous = 0;
         for values -> $e {
             if $has_previous {
                 self!_push_construct($previous, $e);
@@ -137,17 +137,15 @@ my class Hash { # declared in BOOTSTRAP
                 $has_previous = 1;
             }
         }
-        if $has_previous {
-            warn "Trailing item in Hash.push";
-        }
+        warn "Trailing item in Hash.push" if $has_previous;
         self
     }
 
     method append(+values) {
         fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
           if values.is-lazy;
-        my $previous;
-        my $has_previous;
+        my $previous = 0;
+        my int $has_previous;
         for values -> $e {
             if $has_previous {
                 self!_append_construct($previous, $e);
@@ -159,9 +157,7 @@ my class Hash { # declared in BOOTSTRAP
                 $has_previous = 1;
             }
         }
-        if $has_previous {
-            warn "Trailing item in Hash.append";
-        }
+        warn "Trailing item in Hash.append" if $has_previous;
         self
     }
 

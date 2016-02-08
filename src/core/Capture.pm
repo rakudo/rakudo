@@ -54,9 +54,14 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method hash(Capture:D:) {
-        my $enum := nqp::create(Map);
-        nqp::bindattr($enum, Map, '$!storage', $!hash);
-        $enum;
+        if nqp::defined($!hash) && nqp::elems($!hash) {
+            my $map := nqp::create(Map);
+            nqp::bindattr($map,Map,'$!storage',$!hash);
+            $map
+        }
+        else {
+            nqp::create(Map)
+        }
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key ) {

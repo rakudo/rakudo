@@ -347,31 +347,26 @@ my class Hash { # declared in BOOTSTRAP
         has $!keys;
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
-            my $key_which = key.WHICH;
-            if self.EXISTS-KEY(key) {
-                nqp::findmethod(Map, 'AT-KEY')(self, $key_which);
-            }
-            else {
-                nqp::p6bindattrinvres(
-                    (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'))),
-                    Scalar,
-                    '$!whence',
-                    -> {
-                        nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
-                            nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-                        nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
-                            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-                        nqp::bindkey(
-                            nqp::getattr(self, $?CLASS, '$!keys'),
-                            nqp::unbox_s($key_which),
-                            key);
-                        nqp::bindkey(
-                            nqp::getattr(self, Map, '$!storage'),
-                            nqp::unbox_s($key_which),
-                            v);
-                    });
-            }
+            my str $which = key.WHICH;
+            nqp::defined($!keys) && nqp::existskey($!keys,$which)
+              ?? nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which)
+              !! nqp::p6bindattrinvres(
+                   (my \v := nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))),
+                   Scalar,
+                   '$!whence',
+                   -> {
+                     nqp::bindattr(self,$?CLASS,'$!keys',nqp::hash)
+                       unless nqp::defined(nqp::getattr(self,$?CLASS,'$!keys'));
+                     nqp::bindkey(
+                       nqp::getattr(self,$?CLASS,'$!keys'),$which,key);
+                     nqp::bindattr(self,Map,'$!storage',nqp::hash)
+                       unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
+                     nqp::bindkey(
+                       nqp::getattr(self,Map,'$!storage'),$which,v);
+                   }
+                 )
         }
+
         method STORE_AT_KEY(TKey \key, TValue $x --> Nil) {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||

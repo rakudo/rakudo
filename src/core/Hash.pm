@@ -396,25 +396,20 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
-            my $key_which = key.WHICH;
-            nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
-                nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            nqp::defined(nqp::getattr(self, Map, '$!storage')) ||
-                nqp::bindattr(self, Map, '$!storage', nqp::hash());
-            nqp::bindkey(
-                nqp::getattr(self, $?CLASS, '$!keys'),
-                nqp::unbox_s($key_which),
-                key);
-            nqp::bindkey(
-                nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s($key_which),
-                bindval)
+            $!keys := nqp::hash unless nqp::defined($!keys);
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
+            my str $which = key.WHICH;
+            nqp::bindkey($!keys,$which,key);
+            nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,bindval)
         }
+
         method EXISTS-KEY(TKey \key) {
             nqp::defined($!keys)
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
         }
+
         method keys(Map:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
             Seq.new(class :: does Iterator {

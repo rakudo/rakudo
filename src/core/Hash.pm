@@ -410,6 +410,28 @@ my class Hash { # declared in BOOTSTRAP
               !! False
         }
 
+        method DELETE-KEY(TKey \key, :$SINK) {
+            my str $which = key.WHICH;
+            if nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which) {
+                if $SINK {
+                    nqp::deletekey($!keys,$which);
+                    nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which);
+                    Nil
+                }
+                else {
+                    my Mu $val :=
+                      nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which);
+                    nqp::deletekey($!keys,$which);
+                    nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which);
+                    $val
+                }
+            }
+            else {
+                TValue
+            }
+        }
+
         method keys(Map:) {
             return ().list unless self.DEFINITE && nqp::defined($!keys);
             Seq.new(class :: does Iterator {
@@ -507,21 +529,6 @@ my class Hash { # declared in BOOTSTRAP
                       self.pairs.sort.map({.perl}).join(', ')
                     })"
             })
-        }
-        multi method DELETE-KEY($key) {
-            my Mu $val = self.AT-KEY($key);
-            my $key-which = $key.WHICH;
-
-            nqp::deletekey(
-                nqp::getattr(self, $?CLASS, '$!keys'),
-                nqp::unbox_s($key-which)
-            );
-
-            nqp::deletekey(
-                nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s($key-which)
-            );
-            $val;
         }
 
         # gotta force capture keys to strings or binder fails

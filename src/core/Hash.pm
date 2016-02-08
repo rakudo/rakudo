@@ -355,10 +355,8 @@ my class Hash { # declared in BOOTSTRAP
                    Scalar,
                    '$!whence',
                    -> {
-                     nqp::bindattr(self,$?CLASS,'$!keys',nqp::hash)
-                       unless nqp::defined(nqp::getattr(self,$?CLASS,'$!keys'));
-                     nqp::bindkey(
-                       nqp::getattr(self,$?CLASS,'$!keys'),$which,key);
+                     $!keys := nqp::hash unless nqp::defined($!keys);
+                     nqp::bindkey($!keys,$which,key);
                      nqp::bindattr(self,Map,'$!storage',nqp::hash)
                        unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
                      nqp::bindkey(

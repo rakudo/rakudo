@@ -352,37 +352,37 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
-        has $!keys;
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
             my str $which = key.WHICH;
-            nqp::defined($!keys) && nqp::existskey($!keys,$which)
-              ?? nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which)
+
+            nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which)
+              ?? nqp::getattr(
+                   nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
+                   Pair,'$!value')
               !! nqp::p6bindattrinvres(
-                   (my \v := nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))),
+                   (my \v := nqp::p6scalarfromdesc(
+                     nqp::getattr(self,Hash,'$!descriptor'))),
                    Scalar,
                    '$!whence',
                    -> {
-                     $!keys := nqp::hash unless nqp::defined($!keys);
-                     nqp::bindkey($!keys,$which,key);
-                     nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                       unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-                     nqp::bindkey(
-                       nqp::getattr(self,Map,'$!storage'),$which,v);
+                       nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
+                         Pair.new(key,v));
+                       v
                    }
                  )
         }
 
         method STORE_AT_KEY(TKey \key, TValue \x --> Nil) {
-            my str $which = key.WHICH;
-            $!keys := nqp::hash unless nqp::defined($!keys);
-            nqp::bindkey($!keys,$which,key);
-
             nqp::bindattr(self,Map,'$!storage',nqp::hash)
               unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
+            my str $which = key.WHICH;
+
             nqp::bindkey(
-              nqp::getattr(self,Map,'$!storage'),$which,
-              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x
+              nqp::getattr(self,Map,'$!storage'),$which,Pair.new(key,
+              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
             )
         }
 
@@ -390,31 +390,31 @@ my class Hash { # declared in BOOTSTRAP
             nqp::bindattr(self,Map,'$!storage',nqp::hash)
               unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
             my str $which = key.WHICH;
-            if nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which) {
-                nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which)
-                  = assignval
-            }
-            else {
-                $!keys := nqp::hash unless nqp::defined($!keys);
-                nqp::bindkey($!keys,$which,key);
-                nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
-                  nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))
-                  = assignval)
-            }
+
+            nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which)
+              ?? (nqp::getattr(
+                   nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
+                   Pair, '$!value') = assignval)
+              !! nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
+                   Pair.new(key,nqp::p6scalarfromdesc(
+                     nqp::getattr(self,Hash,'$!descriptor')) = assignval));
+            assignval
         }
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
-            $!keys := nqp::hash unless nqp::defined($!keys);
             nqp::bindattr(self,Map,'$!storage',nqp::hash)
               unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
             my str $which = key.WHICH;
-            nqp::bindkey($!keys,$which,key);
-            nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,bindval)
+
+            nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
+              Pair.new(key,bindval));
+            bindval
         }
 
         method EXISTS-KEY(TKey \key) {
-            nqp::defined($!keys)
-              ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? nqp::p6bool(nqp::existskey(
+                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.WHICH)))
               !! False
         }
 
@@ -423,99 +423,83 @@ my class Hash { # declared in BOOTSTRAP
             my TValue $val;
             if nqp::getattr(self,Map,'$!storage') -> \storage {
                 if nqp::existskey(storage,$which) {
-                    $val = nqp::atkey(storage,$which);
-                    nqp::deletekey($!keys,$which);
+                    $val =
+                      nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value');
                     nqp::deletekey(storage,$which);
                 }
             }
             $val
         }
 
-        method keys(Map:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-            Seq.new(class :: does Iterator {
-                has $!hash-iter;
-
-                method new(\hash, $class) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!hash-iter',
-                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
-                    iter
-                }
-
-                method pull-one() {
-                    $!hash-iter
-                        ?? nqp::iterval(nqp::shift($!hash-iter))
-                        !! IterationEnd
-                }
-            }.new(self, $?CLASS))
+        method keys() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                     method pull-one() {
+                         $!hash-iter
+                           ?? nqp::getattr(nqp::iterval(
+                                nqp::shift($!hash-iter)),Pair,'$!key')
+                           !! IterationEnd
+                     }
+                 }.new(self))
+              !! ().list
         }
-        method kv(Map:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
-
-            my $storage := nqp::getattr(self, Map, '$!storage');
-            Seq.new(class :: does Iterator {
-                has $!hash-iter;
-                has $!storage;
-                has int $!on-value;
-                has $!current-value;
-
-                method new(\hash, $class, $storage) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!hash-iter',
-                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
-                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
-                    iter
-                }
-
-                method pull-one() {
-                    if $!on-value {
-                        $!on-value = 0;
-                        $!current-value
-                    }
-                    elsif $!hash-iter {
-                        my \tmp = nqp::shift($!hash-iter);
-                        $!on-value = 1;
-                        $!current-value := nqp::atkey($!storage, nqp::iterkey_s(tmp));
-                        nqp::iterval(tmp)
-                    }
-                    else {
-                        IterationEnd
-                    }
-                }
-            }.new(self, $?CLASS, nqp::getattr(self, Map, '$!storage')))
+        method values() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                     method pull-one() {
+                         $!hash-iter
+                           ?? nqp::getattr(nqp::iterval(
+                                nqp::shift($!hash-iter)),Pair,'$!value')
+                           !! IterationEnd
+                     }
+                 }.new(self))
+              !! ().list
         }
-        method pairs(Map:) {
-            return ().list unless self.DEFINITE && nqp::defined($!keys);
+        method kv() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                     has $!pair;
 
-            my $storage := nqp::getattr(self, Map, '$!storage');
-            Seq.new(class :: does Iterator {
-                has $!hash-iter;
-                has $!storage;
-
-                method new(\hash, $class, $storage) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!hash-iter',
-                        nqp::iterator(nqp::getattr(hash, $class, '$!keys')));
-                    nqp::bindattr(iter, self, '$!storage', nqp::decont($storage));
-                    iter
-                }
-
-                method pull-one() {
-                    if $!hash-iter {
-                        my \tmp = nqp::shift($!hash-iter);
-                        Pair.new(nqp::iterval(tmp), nqp::atkey($!storage, nqp::iterkey_s(tmp)));
-                    }
-                    else {
-                        IterationEnd
-                    }
-                }
-            }.new(self, $?CLASS, nqp::getattr(self, Map, '$!storage')))
+                     method pull-one() {
+                         if $!pair {
+                             my $value := nqp::getattr($!pair,Pair,'$!value');
+                             $!pair := nqp::null;
+                             $value
+                         }
+                         elsif $!hash-iter {
+                             $!pair := nqp::iterval(nqp::shift($!hash-iter));
+                             nqp::getattr($!pair,Pair,'$!key')
+                         }
+                         else {
+                             IterationEnd
+                         }
+                     }
+                 }.new(self))
+              !! ().list
         }
-        method antipairs(Map:) {
-            self.map: { .value => .key }
+        method pairs() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                     method pull-one() {
+                         $!hash-iter
+                           ?? nqp::iterval(nqp::shift($!hash-iter))
+                           !! IterationEnd
+                     }
+                 }.new(self))
+              !! ().list
         }
-        method invert(Map:) {
+        method antipairs() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                     method pull-one() {
+                         $!hash-iter
+                           ?? nqp::iterval(nqp::shift($!hash-iter)).antipair
+                           !! IterationEnd
+                     }
+                 }.new(self))
+              !! ().list
+        }
+        method invert() {
             self.map: { .value »=>» .key }
         }
         multi method perl(::?CLASS:D \SELF:) {
@@ -531,17 +515,21 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         # gotta force capture keys to strings or binder fails
-        method Capture(Map:D:) {
-            my $cap := nqp::create(Capture);
-            my $h := nqp::hash();
-            for self.kv -> \k, \v {
-                my str $skey = nqp::istype(k, Str) ?? k !! k.Str;
-                nqp::bindkey($h, $skey, v);
-            }
-            nqp::bindattr($cap, Capture, '$!hash', $h);
-            $cap
+        method Capture() {
+            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+              ?? do {
+                     my $cap := nqp::create(Capture);
+                     my $h := nqp::hash();
+                     for self.kv -> \k, \v {
+                         nqp::bindkey($h,
+                           nqp::unbox_s(nqp::istype(k,Str) ?? k !! k.Str),
+                           v)
+                     }
+                     nqp::bindattr($cap,Capture,'$!hash',$h);
+                     $cap
+                 }
+              !! nqp::create(Capture)
         }
-
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

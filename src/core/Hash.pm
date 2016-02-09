@@ -63,6 +63,30 @@ my class Hash { # declared in BOOTSTRAP
           nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
     }
 
+    multi method DELETE-KEY(Hash:U:) { Nil }
+    multi method DELETE-KEY(Hash:D: Str:D \key) {
+        my $val := nqp::p6scalarfromdesc($!descriptor);
+        if nqp::getattr(self,Map,'$!storage') -> \storage {
+            my str $key = key;
+            if nqp::existskey(storage,$key) {
+                $val = nqp::atkey(storage,$key);
+                nqp::deletekey(storage,$key);
+            }
+        }
+        $val
+    }
+    multi method DELETE-KEY(Hash:D: \key) {
+        my $val := nqp::p6scalarfromdesc($!descriptor);
+        if nqp::getattr(self,Map,'$!storage') -> \storage {
+            my str $key = key.Str;
+            if nqp::existskey(storage,$key) {
+                $val = nqp::atkey(storage,$key);
+                nqp::deletekey(storage,$key);
+            }
+        }
+        $val
+    }
+
     multi method perl(Hash:D \SELF:) {
         SELF.perlseen('Hash', {
             '$' x nqp::iscont(SELF)  # self is always deconted
@@ -113,22 +137,6 @@ my class Hash { # declared in BOOTSTRAP
     }
     method dynamic() {
         nqp::isnull($!descriptor) ?? Nil !! nqp::p6bool($!descriptor.dynamic)
-    }
-
-    multi method DELETE-KEY(Hash:U:) { Nil }
-    multi method DELETE-KEY(Str() \key) {
-        my Mu $val = self.AT-KEY(key);
-        nqp::deletekey(
-            nqp::getattr(self, Map, '$!storage'),
-            nqp::unbox_s(key)
-        );
-        $val;
-    }
-    multi method DELETE-KEY(Str() \key, :$SINK! --> Nil) {
-        nqp::deletekey(
-            nqp::getattr(self, Map, '$!storage'),
-            nqp::unbox_s(key)
-        ) if nqp::defined(nqp::getattr(self,Map,'$!storage'))
     }
 
     method push(+values) {
@@ -410,26 +418,17 @@ my class Hash { # declared in BOOTSTRAP
               !! False
         }
 
-        method DELETE-KEY(TKey \key, :$SINK) {
+        method DELETE-KEY(TKey \key) {
             my str $which = key.WHICH;
-            if nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which) {
-                if $SINK {
+            my TValue $val;
+            if nqp::getattr(self,Map,'$!storage') -> \storage {
+                if nqp::existskey(storage,$which) {
+                    $val = nqp::atkey(storage,$which);
                     nqp::deletekey($!keys,$which);
-                    nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which);
-                    Nil
-                }
-                else {
-                    my Mu $val :=
-                      nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which);
-                    nqp::deletekey($!keys,$which);
-                    nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which);
-                    $val
+                    nqp::deletekey(storage,$which);
                 }
             }
-            else {
-                TValue
-            }
+            $val
         }
 
         method keys(Map:) {

@@ -35,6 +35,11 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
+    method STORE_AT_KEY(\key, Mu \x --> Nil) {
+        nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
+           nqp::p6scalarfromdesc($!descriptor) = x)
+    }
+
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
         nqp::bindattr(self,Map,'$!storage',nqp::hash)
           unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
@@ -115,11 +120,6 @@ my class Hash { # declared in BOOTSTRAP
         nqp::push($attrs, '$!storage'   );
         nqp::push($attrs,  nqp::getattr(nqp::decont(self), Map, '$!storage'));
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
-    }
-
-    method STORE_AT_KEY(\key, Mu \x --> Nil) {
-        nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
-           nqp::p6scalarfromdesc($!descriptor) = x)
     }
 
     # introspection

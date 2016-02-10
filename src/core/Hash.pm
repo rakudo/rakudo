@@ -61,6 +61,8 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::p6scalarfromdesc($!descriptor) = assignval)
     }
 
+    # for some reason, this can't be turned into a multi without
+    # making setting compilation get very confused indeed
     method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
         nqp::bindattr(self,Map,'$!storage',nqp::hash)
           unless nqp::defined(nqp::getattr(self,Map,'$!storage'));

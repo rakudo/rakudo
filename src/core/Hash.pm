@@ -299,50 +299,6 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
-        method AT-KEY(::?CLASS:D: Str() $key) is raw {
-            self.EXISTS-KEY($key)
-              ?? nqp::findmethod(Map,'AT-KEY')(self,$key)
-              !! nqp::p6bindattrinvres(
-                   (my \v := nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))),
-                   Scalar,
-                   '$!whence',
-                   -> { nqp::findmethod(Map,'STORE_AT_KEY')(self,$key,v) }
-                 )
-        }
-        method STORE_AT_KEY(Str \key, TValue \x --> Nil) {
-            nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
-              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
-        }
-
-        multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, TValue \assignval) is raw {
-            nqp::bindattr(self,Map,'$!storage',nqp::hash)
-              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-            my $storage := nqp::getattr(self,Map,'$!storage');
-            my str $key = key;
-            nqp::existskey($storage, $key)
-              ?? (nqp::atkey($storage, $key) = assignval)
-              !! nqp::bindkey($storage, $key,nqp::p6scalarfromdesc(
-                   nqp::getattr(self,Hash,'$!descriptor')) = assignval)
-        }
-        multi method ASSIGN-KEY(::?CLASS:D: \key, TValue \assignval) is raw {
-            nqp::bindattr(self,Map,'$!storage',nqp::hash)
-              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-            my $storage := nqp::getattr(self,Map,'$!storage');
-            my str $key = key.Str;
-            nqp::existskey($storage, $key)
-              ?? (nqp::atkey($storage, $key) = assignval)
-              !! nqp::bindkey($storage, $key,nqp::p6scalarfromdesc(
-                   nqp::getattr(self,Hash,'$!descriptor')) = assignval)
-        }
-
-        method BIND-KEY(::?CLASS:D: \key, TValue \bindval) is raw {
-            nqp::bindattr(self,Map,'$!storage',nqp::hash)
-              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-            nqp::bindkey(
-                nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str),
-                bindval)
-        }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 '(my '

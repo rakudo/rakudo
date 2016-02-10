@@ -8925,6 +8925,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
+        CATCH {
+            $*W.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
+        }
         my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }

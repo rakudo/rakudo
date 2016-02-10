@@ -298,7 +298,7 @@ my class Array { # declared in BOOTSTRAP
         arr
     }
 
-    method !ensure-allocated() {
+    method !ensure-allocated(--> Nil) {
         nqp::bindattr(self, List, '$!reified', nqp::create(IterationBuffer))
             unless nqp::getattr(self, List, '$!reified').DEFINITE;
     }

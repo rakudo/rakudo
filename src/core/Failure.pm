@@ -2,10 +2,10 @@ my class Failure is Nil {
     has $.exception;
     has $.backtrace;
 #?if moar
-    has int $.handled is rw;
+    has int $!handled;
 #?endif
 #?if jvm
-    has $.handled is rw;
+    has $!handled;
 #?endif
 
     multi method new() {
@@ -54,6 +54,19 @@ my class Failure is Nil {
         Bool::False;
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
+    method handled() {
+        Proxy.new(
+          FETCH => {
+#?if moar
+              nqp::p6bool($!handled)
+#?endif
+#?if jvm
+              $!handled.Bool
+#?endif
+          },
+          STORE => -> $, $value { $!handled = $value.Bool }
+       )
+    }
 
 #?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }

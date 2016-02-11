@@ -5,7 +5,7 @@ my class Failure is Nil {
     has int $!handled;
 #?endif
 #?if jvm
-    has $!handled;
+    has Int $!handled;   # alas, native int breaks on the JVM
 #?endif
 
     multi method new() {
@@ -64,7 +64,7 @@ my class Failure is Nil {
               $!handled.Bool
 #?endif
           },
-          STORE => -> $, $value { $!handled = $value.Bool }
+          STORE => -> $, $value { $!handled = $value.Bool.Numeric }
        )
     }
 

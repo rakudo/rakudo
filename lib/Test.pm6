@@ -191,7 +191,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
 }
 
 multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
     if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
@@ -211,7 +211,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
     my $ok = proclaim(?$test, $desc);
@@ -228,7 +228,7 @@ multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
 }
 
 multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     die "Tolerance must be a positive number greater than zero" unless $tol > 0;
     my $abs-diff = ($got - $expected).abs;
     my $abs-max = max($got.abs, $expected.abs);
@@ -239,14 +239,14 @@ multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') i
         diag("expected: $expected");
         diag("got:      $got");
     }
-    $time_before = nqp::p6box_n(nqp::time_n);
+    $time_before = nqp::time_n;
     $ok;
 }
 
 multi sub is-approx(Numeric $got, Numeric $expected,
                     Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
 		    :$desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
     die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
     my $abs-diff = ($got - $expected).abs;
@@ -283,7 +283,7 @@ multi sub skip($reason, $count = 1) is export {
 }
 
 sub skip-rest($reason = '<unknown>') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     die "A plan is required in order to use skip-rest" if $no_plan;
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::time_n;
@@ -322,7 +322,7 @@ multi sub flunk($reason) is export {
 }
 
 multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
@@ -330,7 +330,7 @@ multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "
 }
 
 multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.perl ~ "'")) is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $ok = proclaim($var.does($type), $msg)
         or diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
     $time_before = nqp::time_n;
@@ -338,7 +338,7 @@ multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.pe
 }
 
 multi sub can-ok(Mu $var, Str $meth, $msg = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $ok = proclaim($var.^can($meth), $msg);
     $time_before = nqp::time_n;
     $ok;
@@ -381,7 +381,7 @@ multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
 }
 
 multi sub dies-ok(Callable $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $death = 1;
     try {
         $code();
@@ -393,7 +393,7 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
 }
 
 multi sub lives-ok(Callable $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     try {
         $code();
     }
@@ -403,7 +403,7 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
 }
 
 multi sub eval-dies-ok(Str $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $ee = eval_exception($code);
     my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::time_n;
@@ -411,7 +411,7 @@ multi sub eval-dies-ok(Str $code, $reason = '') is export {
 }
 
 multi sub eval-lives-ok(Str $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $ee = eval_exception($code);
     my $ok = proclaim((not defined $ee), $reason)
         or diag("Error: $ee");
@@ -420,7 +420,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 }
 
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
+    $time_after = nqp::time_n;
     my $test = _is_deeply( $got, $expected );
     my $ok = proclaim($test, $reason);
     if !$test {

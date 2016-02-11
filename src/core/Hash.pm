@@ -393,9 +393,9 @@ my class Hash { # declared in BOOTSTRAP
             nqp::defined(nqp::getattr(self,Map,'$!storage'))
               ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
                      method pull-one() {
-                         $!hash-iter
+                         $!iter
                            ?? nqp::getattr(nqp::iterval(
-                                nqp::shift($!hash-iter)),Pair,'$!key')
+                                nqp::shift($!iter)),Pair,'$!key')
                            !! IterationEnd
                      }
                  }.new(self))
@@ -405,9 +405,9 @@ my class Hash { # declared in BOOTSTRAP
             nqp::defined(nqp::getattr(self,Map,'$!storage'))
               ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
                      method pull-one() {
-                         $!hash-iter
+                         $!iter
                            ?? nqp::getattr(nqp::iterval(
-                                nqp::shift($!hash-iter)),Pair,'$!value')
+                                nqp::shift($!iter)),Pair,'$!value')
                            !! IterationEnd
                      }
                  }.new(self))
@@ -424,8 +424,8 @@ my class Hash { # declared in BOOTSTRAP
                              $!pair := nqp::null;
                              $value
                          }
-                         elsif $!hash-iter {
-                             $!pair := nqp::iterval(nqp::shift($!hash-iter));
+                         elsif $!iter {
+                             $!pair := nqp::iterval(nqp::shift($!iter));
                              nqp::getattr($!pair,Pair,'$!key')
                          }
                          else {
@@ -439,8 +439,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::defined(nqp::getattr(self,Map,'$!storage'))
               ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
                      method pull-one() {
-                         $!hash-iter
-                           ?? nqp::iterval(nqp::shift($!hash-iter))
+                         $!iter
+                           ?? nqp::iterval(nqp::shift($!iter))
                            !! IterationEnd
                      }
                  }.new(self))
@@ -450,8 +450,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::defined(nqp::getattr(self,Map,'$!storage'))
               ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
                      method pull-one() {
-                         $!hash-iter
-                           ?? nqp::iterval(nqp::shift($!hash-iter)).antipair
+                         $!iter
+                           ?? nqp::iterval(nqp::shift($!iter)).antipair
                            !! IterationEnd
                      }
                  }.new(self))

@@ -7,22 +7,22 @@ my class X::Assignment::ToShaped { ... };
 my class Rakudo::Internals {
 
     our role MappyIterator does Iterator {
-        has $!hash-storage;
-        has $!hash-iter;
+        has Mu $!storage;
+        has Mu $!iter;
 
         method BUILD(\hash) {
-            $!hash-storage := nqp::getattr(hash, Map, '$!storage');
-            $!hash-storage := nqp::hash() unless $!hash-storage.DEFINITE;
-            $!hash-iter    := nqp::iterator($!hash-storage);
+            $!storage := nqp::getattr(hash,Map,'$!storage');
+            $!storage := nqp::hash() unless $!storage.DEFINITE;
+            $!iter    := nqp::iterator($!storage);
             self
         }
         method new(\hash) { nqp::create(self).BUILD(hash) }
         method count-only() {
-            $!hash-iter := Mu;
-            nqp::p6box_i(nqp::elems($!hash-storage))
+            $!iter := Mu;
+            nqp::p6box_i(nqp::elems($!storage))
         }
         method sink-all() {
-            $!hash-iter := Mu;
+            $!iter := Mu;
             IterationEnd
         }
     }

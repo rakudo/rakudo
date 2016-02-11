@@ -82,8 +82,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method pairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                if $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                if $!iter {
+                    my \tmp = nqp::shift($!iter);
                     Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp))
                 }
                 else {
@@ -92,8 +92,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(
                       Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp)));
                 }
@@ -104,15 +104,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method keys(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                $!hash-iter
-                    ?? nqp::iterkey_s(nqp::shift($!hash-iter))
+                $!iter
+                    ?? nqp::iterkey_s(nqp::shift($!iter))
                     !! IterationEnd
             }
             method push-all($target) {
                 my $no-sink;
                 $no-sink :=
-                  $target.push(nqp::iterkey_s(nqp::shift($!hash-iter)))
-                    while $!hash-iter;
+                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
+                    while $!iter;
                 IterationEnd
             }
         }.new(self))
@@ -124,10 +124,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             method pull-one() is raw {
                 if $!on-value {
                     $!on-value = 0;
-                    nqp::iterval($!hash-iter)
+                    nqp::iterval($!iter)
                 }
-                elsif $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                elsif $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $!on-value = 1;
                     nqp::iterkey_s(tmp)
                 }
@@ -137,8 +137,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(nqp::iterkey_s(tmp));
                     $no-sink := $target.push(nqp::iterval(tmp));
                 }
@@ -149,14 +149,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method values(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() is raw {
-                $!hash-iter
-                    ?? nqp::iterval(nqp::shift($!hash-iter))
+                $!iter
+                    ?? nqp::iterval(nqp::shift($!iter))
                     !! IterationEnd
             }
             method push-all($target) {
                 my $no-sink;
-                $no-sink := $target.push(nqp::iterval(nqp::shift($!hash-iter)))
-                  while $!hash-iter;
+                $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
+                  while $!iter;
                 IterationEnd
             }
         }.new(self))
@@ -164,8 +164,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                if $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                if $!iter {
+                    my \tmp = nqp::shift($!iter);
                     Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) )
                 }
                 else {
@@ -174,8 +174,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(
                       Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) ));
                 }

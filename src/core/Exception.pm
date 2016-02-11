@@ -80,9 +80,9 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := nqp::getlexcaller('RETURN');
+        my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
         $return($fail) unless nqp::isnull($return);
-        $fail
+        $fail.exception.throw
     }
 
     method is-compile-time { False }

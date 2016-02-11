@@ -6,13 +6,16 @@ my class X::Assignment::ToShaped { ... };
 
 my class Rakudo::Internals {
 
+    # an empty hash for when we need to iterate over something
+    my \no-keys := nqp::hash;
+
     our role MappyIterator does Iterator {
-        has Mu $!storage;
-        has Mu $!iter;
+        has $!storage;
+        has $!iter;
 
         method BUILD(\hash) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!storage := nqp::hash() unless $!storage.DEFINITE;
+            $!storage := no-keys unless $!storage.DEFINITE;
             $!iter    := nqp::iterator($!storage);
             self
         }
@@ -717,7 +720,7 @@ my class Rakudo::Internals {
 
     # easy access to compile options
     my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
-    $compiling-options := nqp::hash() if nqp::isnull($compiling-options);
+    $compiling-options := no-keys if nqp::isnull($compiling-options);
 
     # running with --ll-exception
     method LL-EXCEPTION() {

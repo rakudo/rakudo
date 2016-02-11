@@ -44,6 +44,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!readline;
     has $!readline_add_history;
     has $!completions;
+    has $!is-interactive;
 
     method compilation-id() {
         my class IDHolder { }
@@ -178,6 +179,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method interactive(*%adverbs) {
+        $!is-interactive := 1;
         my $readline_loaded := 0;
         my $problem;
 
@@ -325,6 +327,10 @@ class Perl6::Compiler is HLL::Compiler {
 
     method eval($code, *@args, *%adverbs) {
         my $super := nqp::findmethod(HLL::Compiler, 'eval');
+        unless $!is-interactive {
+            return $super(self, $code, |@args, |%adverbs);
+        }
+
         my $output := '';
         my $ex;
         try {

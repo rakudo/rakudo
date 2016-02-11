@@ -2,10 +2,10 @@ my class Failure is Nil {
     has $.exception;
     has $.backtrace;
 #?if moar
-    has int $!handled;
+    has int $.handled is rw;
 #?endif
 #?if jvm
-    has $!handled;
+    has $.handled is rw;
 #?endif
 
     multi method new() {
@@ -54,7 +54,6 @@ my class Failure is Nil {
         Bool::False;
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
-
 
 #?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }

@@ -43,7 +43,7 @@ my sub MAIN_HELPER($retval = 0) {
     # Generate $?USAGE string (default usage info for MAIN)
     my sub gen-usage() {
         my @help-msgs;
-        my %arg-help;
+        my Pair @arg-help;
 
         my sub strip_path_prefix($name) {
             my $SPEC := $*SPEC;
@@ -96,7 +96,7 @@ my sub MAIN_HELPER($retval = 0) {
                     $argument = "[$argument]"     if $param.optional;
                     @positional.push($argument);
                 }
-                %arg-help{$argument} //= $param.WHY.contents if $param.WHY;  # Use first defined
+                @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
@@ -105,10 +105,10 @@ my sub MAIN_HELPER($retval = 0) {
             @help-msgs.push($msg);
         }
 
-        if %arg-help {
+        if @arg-help {
             @help-msgs.push('');
-            my $offset = max(%arg-help.map: { .key.chars }) + 4;
-            @help-msgs.append(%arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
+            my $offset = max(@arg-help.map: { .key.chars }) + 4;
+            @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
         my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");

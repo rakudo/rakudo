@@ -340,10 +340,12 @@ class Perl6::Compiler is HLL::Compiler {
                 if nqp::what($_).HOW.name(nqp::what($_)) eq 'BOOTException' {
                     my $inner := nqp::getpayload(nqp::decont($_));
 
-                    my $ex-type := nqp::what($inner).HOW.name(nqp::what($inner));
-                    if $ex-type eq 'X::Syntax::Missing' {
-                        if $inner.pos() == nqp::chars($code) {
-                            return self.needs-more-input();
+                    if $inner {
+                        my $ex-type := nqp::what($inner).HOW.name(nqp::what($inner));
+                        if $ex-type eq 'X::Syntax::Missing' {
+                            if $inner.pos() == nqp::chars($code) {
+                                return self.needs-more-input();
+                            }
                         }
                     }
                 }

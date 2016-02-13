@@ -720,7 +720,6 @@ my class Rakudo::Internals {
 
     # easy access to compile options
     my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
-    $compiling-options := no-keys if nqp::isnull($compiling-options);
 
     # running with --ll-exception
     method LL-EXCEPTION() {

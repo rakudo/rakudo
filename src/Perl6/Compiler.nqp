@@ -179,7 +179,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method interactive(*%adverbs) {
-        $!multi-line-enabled := 1;
+        $!multi-line-enabled := !nqp::atkey(nqp::getenvhash(), 'RAKUDO_DISABLE_MULTILINE');
         my $readline_loaded := 0;
         my $problem;
 

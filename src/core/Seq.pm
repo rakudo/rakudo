@@ -111,6 +111,13 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     multi method perl(Seq:D \SELF:) {
+        unless $!iter.DEFINITE && ! $!list.DEFINITE {
+            # cannot call .cache on a Seq that's already been iterated,
+            # so we need to produce a string that, when EVAL'd, reproduces
+            # an already iterated Seq.
+            # compare RT #127492
+            return 'do { #`(a sequence that has been iterated already) my \s = ().Seq; s.list; s }';
+        }
         self.cache.perl ~ '.Seq';
     }
 

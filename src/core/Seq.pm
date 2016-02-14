@@ -45,6 +45,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         $seq
     }
 
+    method new-consumed() {
+        self.bless;
+    }
+
     method is-ready(Seq:D:) { $!iter.DEFINITE }
 
     method iterator(Seq:D:) {
@@ -116,7 +120,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
             # compare RT #127492
-            return 'do { #`(a sequence that has been iterated already) my \s = ().Seq; s.list; s }';
+            return self.^name ~ '.new-consumed()';
         }
         self.cache.perl ~ '.Seq';
     }

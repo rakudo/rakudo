@@ -48,9 +48,13 @@ class Distribution::Resources does Associative {
     multi method BUILD(:$!dist-id, Str :$!repo --> Nil) { }
 
     method from-precomp() {
-        return unless %*ENV<RAKUDO_PRECOMP_DIST>;
-        my %data := from-json %*ENV<RAKUDO_PRECOMP_DIST>;
-        self.new(:repo(%data<repo>), :dist-id(%data<dist-id>))
+        if %*ENV<RAKUDO_PRECOMP_DIST> -> \dist {
+            my %data := from-json dist;
+            self.new(:repo(%data<repo>), :dist-id(%data<dist-id>))
+        }
+        else {
+            Nil
+        }
     }
 
     method AT-KEY($key) {

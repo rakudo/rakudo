@@ -1424,14 +1424,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $.unsubstituted_text;
         has str $.substituted_text;
 
-        submethod BUILD(:$!source, :$!squash, :$!complement) { }
+        submethod BUILD(:$!source, :$!squash, :$!complement --> Nil) { }
 
-        method add_substitution($key, $value) {
+        method add_substitution($key, $value --> Nil) {
             $/ := CALLERS::('$/');
             push @!substitutions, $key => $value;
         }
 
-        submethod compare_substitution($substitution, Int $pos, Int $length) {
+        submethod compare_substitution(
+          $substitution, int $pos, int $length --> Nil
+        ) {
             $/ := CALLERS::('$/');
             if $!next_match > $pos
                || $!next_match == $pos && $!substitution_length < $length {
@@ -1466,14 +1468,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         proto method increment_index(|) {*}
-        multi method increment_index(Regex $s) {
+        multi method increment_index(Regex $s --> Nil) {
             $/ := CALLERS::('$/');
             substr($!source,$!index) ~~ $s;
             $!last_match_obj = $/;
             $!index = $!next_match + $/.chars;
         }
 
-        multi method increment_index(Cool $s) {
+        multi method increment_index(Cool $s --> Nil) {
             $/ := CALLERS::('$/');
             $!index = $!next_match + nqp::chars($s.Str);
         }

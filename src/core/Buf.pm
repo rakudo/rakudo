@@ -5,8 +5,10 @@ my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    multi method new() {
-        nqp::create(self)
+    multi method new(:$elems) {
+        my $buf := nqp::create(self);
+        nqp::setelems($buf, nqp::unbox_i($elems.Int)) if $elems;
+        $buf
     }
     multi method new(@values) {
         my $buf := nqp::create(self);

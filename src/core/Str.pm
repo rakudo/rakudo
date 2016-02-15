@@ -1491,12 +1491,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $/ := CALLERS::('$/');
             $cds = $!match_obj;
             my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
-            if $!prev_result
-                && $!prev_result eq $result
-                && $!unsubstituted_text eq ''
-                && $!squash {
-                $result = '';
-            }
+            $result = ''
+              if $!squash
+              && $!prev_result
+              && $!prev_result eq $result
+              && $!unsubstituted_text eq '';
             $!prev_result = $orig-result;
             nqp::unbox_s($result)
         }

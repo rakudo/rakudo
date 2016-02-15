@@ -1538,7 +1538,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }
 
-            return $!next_match < $!source.chars && @!substitutions;
+            $!next_match < $!source.chars && @!substitutions;
         }
     }
 

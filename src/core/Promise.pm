@@ -25,7 +25,7 @@ my class Promise {
     has @!thens;
     has Mu $!dynamic_context;
 
-    submethod BUILD(:$!scheduler = $*SCHEDULER) {
+    submethod BUILD(:$!scheduler = $*SCHEDULER --> Nil) {
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
         $!status           = Planned;

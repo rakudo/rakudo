@@ -24,7 +24,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ObjAt
         );
     }
-    submethod BUILD(Str() :$value = '') {
+    submethod BUILD(Str() :$value = '' --> Nil) {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 

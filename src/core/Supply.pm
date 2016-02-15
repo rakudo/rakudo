@@ -3,7 +3,7 @@
 my class Tap {
     has &!on-close;
 
-    submethod BUILD(:&!on-close) { }
+    submethod BUILD(:&!on-close --> Nil) { }
 
     method new(&on-close) {
         self.bless(:&on-close)
@@ -63,7 +63,7 @@ my class Supply {
     multi method new(Tappable $tappable) {
         self.bless(:$tappable);
     }
-    submethod BUILD(:$!tappable!) {}
+    submethod BUILD(:$!tappable! --> Nil) { }
 
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
@@ -89,7 +89,7 @@ my class Supply {
             has &!closing;
             has $!scheduler;
 
-            submethod BUILD(:&!producer!, :&!closing!, :$!scheduler!) {}
+            submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
             method tap(&emit, &done, &quit) {
                 my $p = Supplier.new;
@@ -118,7 +118,7 @@ my class Supply {
             has $!interval;
             has $!delay;
 
-            submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
+            submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
 
             method tap(&emit, |) {
                 my $cancellation = $!scheduler.cue(
@@ -161,7 +161,7 @@ my class Supply {
         $!tappable.serial ?? self !! Supply.new(class :: does SimpleOpTappable {
             has $!lock = Lock.new;
 
-            submethod BUILD(:$!source!) {}
+            submethod BUILD(:$!source! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -190,7 +190,7 @@ my class Supply {
         $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
             has int $!finished;
 
-            submethod BUILD(:$!source!) {}
+            submethod BUILD(:$!source! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -222,7 +222,7 @@ my class Supply {
             has int $!finished;
             has &!on-close;
 
-            submethod BUILD(:$!source!, :&!on-close!) {}
+            submethod BUILD(:$!source!, :&!on-close! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -239,7 +239,7 @@ my class Supply {
         Supply.new(class :: does SimpleOpTappable {
             has &!mapper;
 
-            submethod BUILD(:$!source!, :&!mapper!) {}
+            submethod BUILD(:$!source!, :&!mapper! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -271,7 +271,7 @@ my class Supply {
         Supply.new(class :: does SimpleOpTappable {
             has Mu $!test;
 
-            submethod BUILD(:$!source!, Mu :$!test!) {}
+            submethod BUILD(:$!source!, Mu :$!test! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -303,7 +303,7 @@ my class Supply {
         Supply.new(class :: does SimpleOpTappable {
             has $!scheduler;
 
-            submethod BUILD(:$!source!, :$!scheduler!) {}
+            submethod BUILD(:$!source!, :$!scheduler! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -328,7 +328,7 @@ my class Supply {
                 has $!value;
                 has &!startee;
 
-                submethod BUILD(:$!value, :&!startee) { }
+                submethod BUILD(:$!value, :&!startee --> Nil) { }
 
                 method tap(&emit, &done, &quit) {
                     my int $closed = 0;
@@ -357,7 +357,7 @@ my class Supply {
             has $!last_cancellation;
             has $!lock = Lock.new;
 
-            submethod BUILD(:$!source!, :$!time!, :$!scheduler!) {}
+            submethod BUILD(:$!source!, :$!time!, :$!scheduler! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -402,7 +402,7 @@ my class Supply {
             has $!time;
             has $!scheduler;
 
-            submethod BUILD(:$!source!, :$!time, :$!scheduler!) {}
+            submethod BUILD(:$!source!, :$!time, :$!scheduler! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
@@ -1445,7 +1445,7 @@ my class Supplier {
     method new() {
         self.bless(taplist => TapList.new)
     }
-    submethod BUILD(:$!taplist!) { }
+    submethod BUILD(:$!taplist! --> Nil) { }
 
     method emit(Supplier:D: Mu \value) {
         $!taplist.emit(value);
@@ -1597,7 +1597,7 @@ sub SUPPLY(&block) {
     Supply.new(class :: does Tappable {
         has &!block;
 
-        submethod BUILD(:&!block) { }
+        submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
             my $state = SupplyBlockState.new(

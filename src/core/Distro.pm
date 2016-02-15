@@ -15,7 +15,8 @@ class Distro does Systemic {
       :$!auth,
       :$!path-sep,
       :$!signature  = Blob,
-      :$!desc = Str,
+      :$!desc = Str
+      --> Nil
     ) {
         $!name = $name.lc;    # lowercase
         $!name ~~ s:g/" "//;  # spaceless

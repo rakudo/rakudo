@@ -14,7 +14,7 @@ class Kernel does Systemic {
         $has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
     }
 
-    submethod BUILD (:$!auth = "unknown") {}
+    submethod BUILD(:$!auth = "unknown" --> Nil) { }
 
     method name {
         $!name //= do {

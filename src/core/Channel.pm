@@ -32,7 +32,7 @@ my class Channel {
     my class CHANNEL_CLOSE { }
     my class CHANNEL_FAIL  { has $.error }
 
-    submethod BUILD() {
+    submethod BUILD(--> Nil) {
         $!queue := nqp::create(Queue);
         $!closed_promise = Promise.new;
         $!closed_promise_vow = $!closed_promise.vow;

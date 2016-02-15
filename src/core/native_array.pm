@@ -732,7 +732,7 @@ sub permutations(int $n where $n > 0) {
             # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
             has int $!n;
             has     @!a;
-            submethod BUILD(:$n) { $!n = $n }  # cannot set natives in sig yet
+            submethod BUILD(:$n --> Nil) { $!n = $n } # cannot set native in sig
             #method is-lazy { True }
             method pull-one {
                 return (@!a = ^$!n).List unless @!a;

@@ -14,12 +14,13 @@ class VM does Systemic {
     has $.precomp-target;
     has $.precomp-dir;
 
-    submethod BUILD (
+    submethod BUILD(
       :$!config,
       :$!desc = Str,
 #?if jvm
       :$!properties,
 #?endif
+      --> Nil
     ) {
 #?if moar
         $!name           = 'moar';

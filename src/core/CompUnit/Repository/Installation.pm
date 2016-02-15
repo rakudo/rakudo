@@ -6,7 +6,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;

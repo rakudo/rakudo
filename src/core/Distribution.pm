@@ -41,12 +41,11 @@ class Distribution::Resources does Associative {
 
     proto method BUILD(|) { * }
 
-    multi method BUILD(:$!dist-id, CompUnit::Repository :$repo) {
+    multi method BUILD(:$!dist-id, CompUnit::Repository :$repo --> Nil) {
         $!repo = $repo.path-spec;
     }
 
-    multi method BUILD(:$!dist-id, Str :$!repo) {
-    }
+    multi method BUILD(:$!dist-id, Str :$!repo --> Nil) { }
 
     method from-precomp() {
         return unless %*ENV<RAKUDO_PRECOMP_DIST>;

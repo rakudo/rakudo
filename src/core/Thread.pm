@@ -12,7 +12,12 @@ my class Thread {
     # Thread's (user-defined) name.
     has Str $.name;
 
-    submethod BUILD(:&code!, Bool() :$!app_lifetime = False, Str() :$!name = "<anon>") {
+    submethod BUILD(
+             :&code!,
+      Bool() :$!app_lifetime = False,
+      Str()  :$!name         = "<anon>"
+      --> Nil
+    ) {
         $!vm_thread := nqp::newthread(
             anon sub THREAD-ENTRY() {
                 my $*THREAD = self;

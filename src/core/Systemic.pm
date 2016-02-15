@@ -5,11 +5,12 @@ role Systemic {
     has Blob $.signature;
     has Str $.desc;
 
-    submethod BUILD (
+    submethod BUILD(
       :$!name    = "unknown",
       :$!auth    = "unknown",
-      :$!version = Version.new("unknown"),
-    ) {}
+      :$!version = Version.new("unknown")
+      --> Nil
+    ) { }
     multi method gist(Systemic:D:) {
         $.name ~ (" ($!version)" if $.version.gist ne "vunknown")
     }
@@ -26,10 +27,11 @@ role Universal {
     has Version $.version;
     has Blob $.signature;
 
-    submethod BUILD (
+    submethod BUILD(
       :$!name    = "unknown",
       :$!auth    = "unknown",
       :$!version = Version.new("unknown"),
+      --> Nil
     ) {}
     multi method gist(Universal:D:) {
         $!name ~ (" ($!version)" if $!version.gist ne "vunknown")

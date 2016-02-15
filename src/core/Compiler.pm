@@ -11,7 +11,8 @@ class Compiler does Systemic {
       :$version,
       :$release,
       :$build-date,
-      :$codename,
+      :$codename
+      --> Nil
     ) {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');

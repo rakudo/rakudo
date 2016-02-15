@@ -27,7 +27,7 @@ my class Failure is Nil {
          self.bless(:exception(X::AdHoc.from-slurpy(|cap)));
     }
 
-    submethod BUILD (:$!exception) {
+    submethod BUILD(:$!exception --> Nil) {
         $!backtrace = $!exception.backtrace() || Backtrace.new(8);
         $!exception.reset-backtrace;
     }

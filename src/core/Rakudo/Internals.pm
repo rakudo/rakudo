@@ -541,7 +541,8 @@ my class Rakudo::Internals {
         has int $!bust;
         has $!lock;
 
-        submethod BUILD(:&!on-data-ready!, :&!on-completed!, :&!on-error!) {
+        submethod BUILD(
+          :&!on-data-ready!, :&!on-completed!, :&!on-error! --> Nil) {
             $!buffer := nqp::list();
             $!buffer-start-seq = 0;
             $!done-target = -1;

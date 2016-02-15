@@ -3,7 +3,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has IO::Handle $!lock;
     has int $!lock-count = 0;
 
-    submethod BUILD(IO::Path :$!prefix) {
+    submethod BUILD(IO::Path :$!prefix --> Nil) {
         $!prefix.mkdir unless $!prefix.e;
     }
 

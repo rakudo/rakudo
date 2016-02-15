@@ -17,7 +17,7 @@ my class KeyReducer {
     
     my Mu $interop;
     my Mu $ReentrantLock;
-    submethod BUILD(:$!initializer, :$!reducer) {
+    submethod BUILD(:$!initializer, :$!reducer --> Nil) {
         unless nqp::isconcrete($interop) {
             $interop := nqp::jvmbootinterop();
             $ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');

@@ -62,6 +62,7 @@ my class DateTime does Dateish {
       Int() $hour,
       Int() $minute,
             $second,
+            %extra,
       :$timezone = 0,
       :&formatter,
     ) {
@@ -75,7 +76,7 @@ my class DateTime does Dateish {
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:$timezone,:&formatter);
+               :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra);
 
         # check leap second spec
         if $second >= 60 {
@@ -99,8 +100,9 @@ my class DateTime does Dateish {
     }
 
     proto method new(|) {*}
-    multi method new(DateTime: \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter) {
-        self!new-from-positional(y,mo,d,h,mi,s,:$timezone,:&formatter)
+    multi method new(DateTime:
+      \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter,*%_) {
+        self!new-from-positional(y,mo,d,h,mi,s,%_,:$timezone,:&formatter)
     }
     multi method new(DateTime:
       :$year!,
@@ -111,22 +113,23 @@ my class DateTime does Dateish {
       :$second   = 0,
       :$timezone = 0,
       :&formatter,
+      *%_
       ) {
         self!new-from-positional(
-          $year,$month,$day,$hour,$minute,$second,:$timezone,:&formatter)
+          $year,$month,$day,$hour,$minute,$second,%_,:$timezone,:&formatter)
     }
     multi method new(DateTime: Date:D :$date!, *%_) {
         self.new(:year($date.year),:month($date.month),:day($date.day),|%_)
     }
-    multi method new(DateTime: Instant:D $i, :$timezone = 0, :&formatter) {
+    multi method new(DateTime: Instant:D $i, :$timezone = 0, *%_) {
         my ($p, $leap-second) = $i.to-posix;
-        my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
+        my $dt = self.new( floor($p - $leap-second).Int, |%_ );
         $dt.clone(
-          :second($dt.second + $p % 1 + $leap-second)
+          :second($dt.second + $p % 1 + $leap-second), |%_
         ).in-timezone($timezone)
     }
     multi method new(DateTime:
-      Numeric:D $time is copy, :$timezone = 0, :&formatter
+      Numeric:D $time is copy, :$timezone = 0, :&formatter, *%_
     ) {
         # Interpret $time as a POSIX time.
         my     $second = $time % 60; $time = $time.Int div 60;
@@ -150,11 +153,11 @@ my class DateTime does Dateish {
                $year,$month,$day,$hour,$minute,$second,0,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),:&formatter);
+               :$hour,:$minute,:$second,:timezone(0),&formatter,|%_);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:
-      Str:D $datetime, :$timezone is copy, :&formatter
+      Str:D $datetime, :$timezone is copy, :&formatter, *%_
     ) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $datetime,
@@ -192,7 +195,7 @@ my class DateTime does Dateish {
         $timezone //= 0;
 
         self!new-from-positional(
-          $0,$1,$2,$3,$4,+(~$5.subst(",",".")),:$timezone,:&formatter)
+          $0,$1,$2,$3,$4,+(~$5.subst(",",".")),%_,:$timezone,:&formatter)
     }
 
     method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
@@ -208,6 +211,7 @@ my class DateTime does Dateish {
           nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
           nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
           nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          %_,
           timezone => nqp::existskey($h,'timezone')
             ?? nqp::atkey($h,'timezone')  !! $!timezone,
           formatter => nqp::existskey($h,'formatter')

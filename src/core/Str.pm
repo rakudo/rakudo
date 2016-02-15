@@ -1444,26 +1444,32 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        proto method triage_substitution(|) {*}
-        multi method triage_substitution($_ where { nqp::istype(.key,Regex) }) {
+        method !triage_substitution($_) {
             $/ := CALLERS::('$/');
-            my $m := $!source.match(.key, :continue($!index));
-            return unless $m;
-            $!last_match_obj = $/;
-            self.compare_substitution($_, $m.from, $m.to - $m.from);
-            True
-        }
-
-        multi method triage_substitution($_ where { nqp::istype(.key,Cool) }) {
-            $/ := CALLERS::('$/');
-            my $pos := index($!source, .key, $!index);
-            return unless defined $pos;
-            self.compare_substitution($_, $pos, .key.chars);
-            True
-        }
-
-        multi method triage_substitution($_) {
-            X::Str::Trans::IllegalKey.new(key => $_).throw;
+            my $key := .key;
+            if nqp::istype($key,Regex) {
+                if $!source.match($key, :continue($!index)) -> \m {
+                    $!last_match_obj = $/;
+                    self.compare_substitution($_, m.from, m.to - m.from);
+                    True
+                }
+                else {
+                    False
+                }
+            }
+            elsif nqp::istype($key,Cool) {
+                my $pos := index($!source, $key, $!index);
+                if $pos.defined {
+                    self.compare_substitution($_, $pos, .key.chars);
+                    True
+                }
+                else {
+                    False
+                }
+            }
+            else {
+                X::Str::Trans::IllegalKey.new(key => $_).throw;
+            }
         }
 
         proto method increment_index(|) {*}
@@ -1501,7 +1507,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
-            @!substitutions = @!substitutions.grep: { self.triage_substitution($_) }
+            @!substitutions =
+              @!substitutions.grep: { self!triage_substitution($_) }
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = substr($!source,$!index, $!next_match - $!index);

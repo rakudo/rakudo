@@ -8,6 +8,14 @@ my class Range is Cool does Iterable does Positional {
     has int $!excludes-max;
     has int $!infinite;
     has int $!is-int;
+
+    method !SET-SELF( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
+        $!excludes-min = excludes-min // 0;
+        $!excludes-max = excludes-max // 0;
+        $!infinite = infinite;
+        $!is-int   = nqp::istype($!min,Int) && nqp::istype($!max,Int);
+        self
+    }
     method is-lazy { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
@@ -32,45 +40,37 @@ my class Range is Cool does Iterable does Positional {
         X::Range::InvalidArg.new(:got(max)).throw;
     }
     multi method new(Whatever \min,Whatever \max,:$excludes-min,:$excludes-max){
-        nqp::create(self).BUILD(-Inf,Inf,$excludes-min,$excludes-max,1);
+        nqp::create(self)!SET-SELF(-Inf,Inf,$excludes-min,$excludes-max,1);
     }
     multi method new(Whatever \min, \max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(-Inf,max,$excludes-min,$excludes-max,1);
+        nqp::create(self)!SET-SELF(-Inf,max,$excludes-min,$excludes-max,1);
     }
     multi method new(\min, Whatever \max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(min,Inf,$excludes-min,$excludes-max,1);
+        nqp::create(self)!SET-SELF(min,Inf,$excludes-min,$excludes-max,1);
     }
     multi method new(Real \min, Real() $max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(
+        nqp::create(self)!SET-SELF(
           min,$max,$excludes-min,$excludes-max,$max == Inf || min == -Inf);
     }
     multi method new(List:D \min, \max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(
+        nqp::create(self)!SET-SELF(
           +min,
           nqp::istype(max,List) || nqp::istype(max,Match) ?? +max !! max,
           $excludes-min, $excludes-max, 0);
     }
     multi method new(Match:D \min, \max, :$excludes-min, :$excludes-max) {
-        nqp::create(self).BUILD(
+        nqp::create(self)!SET-SELF(
           +min,
           nqp::istype(max,List) || nqp::istype(max,Match) ?? +max !! max,
           $excludes-min, $excludes-max, 0);
     }
     multi method new(\min, \max, :$excludes-min, :$excludes-max!) {
-        nqp::create(self).BUILD(min, max,$excludes-min,$excludes-max,0);
+        nqp::create(self)!SET-SELF(min, max,$excludes-min,$excludes-max,0);
     }
     multi method new(\min, \max, :$excludes-min!, :$excludes-max) {
-        nqp::create(self).BUILD(min,max,$excludes-min,$excludes-max,0);
+        nqp::create(self)!SET-SELF(min,max,$excludes-min,$excludes-max,0);
     }
-    multi method new(\min, \max) { nqp::create(self).BUILD(min,max,0,0,0) }
-
-    submethod BUILD( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
-        $!excludes-min = excludes-min // 0;
-        $!excludes-max = excludes-max // 0;
-        $!infinite = infinite;
-        $!is-int   = nqp::istype($!min,Int) && nqp::istype($!max,Int);
-        self;
-    }
+    multi method new(\min, \max) { nqp::create(self)!SET-SELF(min,max,0,0,0) }
 
     method excludes-min() { ?$!excludes-min }
     method excludes-max() { ?$!excludes-max }
@@ -108,8 +108,8 @@ my class Range is Cool does Iterable does Positional {
                 has int $!i;
                 has int $!n;
 
-                method BUILD(\i,\n) { $!i = i - 1; $!n = n; self }
-                method new(\i,\n)   { nqp::create(self).BUILD(i,n) }
+                method !SET-SELF(\i,\n) { $!i = i - 1; $!n = n; self }
+                method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
 
                 method pull-one() {
                     ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
@@ -155,8 +155,8 @@ my class Range is Cool does Iterable does Positional {
             class :: does Iterator {
                 has $!i;
 
-                method BUILD(\i)  { $!i = i; self }
-                method new(\i)    { nqp::create(self).BUILD(i) }
+                method !SET-SELF(\i)  { $!i = i; self }
+                method new(\i)    { nqp::create(self)!SET-SELF(i) }
                 method pull-one() { $!i++ }
                 method is-lazy()  { True  }
             }.new($!min + $!excludes-min)
@@ -172,13 +172,13 @@ my class Range is Cool does Iterable does Positional {
                        has int $!i;
                        has int $!n;
 
-                       method BUILD(\from,\end) {
+                       method !SET-SELF(\from,\end) {
                            $!i = nqp::ord(nqp::unbox_s(from)) - 1;
                            $!n = nqp::ord(nqp::unbox_s(end));
                            self
                        }
                        method new(\from,\end) {
-                           nqp::create(self).BUILD(from,end)
+                           nqp::create(self)!SET-SELF(from,end)
                        }
                        method pull-one() {
                            ( $!i = $!i + 1 ) <= $!n
@@ -205,14 +205,14 @@ my class Range is Cool does Iterable does Positional {
                 has $!e;
                 has int $!exclude;
 
-                method BUILD(\i,\exclude,\e) {
+                method !SET-SELF(\i,\exclude,\e) {
                     $!i       = i;
                     $!exclude = exclude.Int;
                     $!e       = e;
                     self
                 }
                 method new(\i,\exclude,\e) {
-                    nqp::create(self).BUILD(i,exclude,e)
+                    nqp::create(self)!SET-SELF(i,exclude,e)
                 }
 
                 method pull-one() {
@@ -333,12 +333,12 @@ my class Range is Cool does Iterable does Positional {
               ?? Seq.new(class :: does Iterator {
                     has int $!min;
                     has Int $!elems;
-                    method BUILD(\min,\elems) {
+                    method !SET-SELF(\min,\elems) {
                         $!min    = min;
                         $!elems := nqp::decont(elems);
                         self
                     }
-                    method new(\b,\e) { nqp::create(self).BUILD(b,e) }
+                    method new(\b,\e) { nqp::create(self)!SET-SELF(b,e) }
                     method pull-one() { $!min + nqp::rand_I($!elems, Int) }
                     method is-lazy()  { True }
                 }.new($!min + $!excludes-min, $elems))
@@ -366,13 +366,13 @@ my class Range is Cool does Iterable does Positional {
                     has int $!min;
                     has Int $!elems;
                     has int $!todo;
-                    method BUILD(\min,\elems,\todo) {
+                    method !SET-SELF(\min,\elems,\todo) {
                         $!min    = min;
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         self
                     }
-                    method new(\m,\e,\t) { nqp::create(self).BUILD(m,e,t) }
+                    method new(\m,\e,\t) { nqp::create(self)!SET-SELF(m,e,t) }
                     method pull-one() {
                         $!todo--
                           ?? $!min + nqp::rand_I($!elems, Int)
@@ -402,14 +402,14 @@ my class Range is Cool does Iterable does Positional {
                     has Int $!elems;
                     has int $!todo;
                     has $!seen;
-                    method BUILD(\min,\elems,\todo) {
+                    method !SET-SELF(\min,\elems,\todo) {
                         $!min    = min;
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         $!seen  := nqp::hash();
                         self
                     }
-                    method new(\m,\e,\t) { nqp::create(self).BUILD(m,e,t) }
+                    method new(\m,\e,\t) { nqp::create(self)!SET-SELF(m,e,t) }
                     method pull-one() {
                         my Int $value;
                         my str $key;

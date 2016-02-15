@@ -5,14 +5,14 @@ my class Match is Capture is Cool {
     has $.CURSOR;
     has $.made;
 
-    # new/BUILD here only for performance reasons
-    method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
-        nqp::create(self).BUILD(:$orig,:$from,:$to,:$CURSOR,:$made);
-    }
-    method BUILD(:$!orig,:$from,:$to,:$!CURSOR,:$!made) {
+    # new/!SET-SELF here only for performance reasons
+    method !SET-SELF(:$!orig,:$from,:$to,:$!CURSOR,:$!made) {
         $!from   = $from // 0;  # cannot assign to int in sig
         $!to     = $to   // 0;  # cannot assign to int in sig
         self;
+    }
+    method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
+        nqp::create(self)!SET-SELF(:$orig,:$from,:$to,:$CURSOR,:$made);
     }
 
     method ast(Match:D:) { $!made }

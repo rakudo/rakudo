@@ -53,7 +53,7 @@ my role Baggy does QuantHash {
     }
 
 #--- interface methods
-    method BUILD(Baggy:D: Mu \elems) {
+    method !SET-SELF(Baggy:D: Mu \elems) {
         %!elems := elems;
 
         if self.^name.chars == 3 { # shoddy heuristic for Bag/Mix
@@ -114,7 +114,7 @@ my role Baggy does QuantHash {
                 nqp::bindkey($elems,$which,self!PAIR($_,1));
             }
         }
-        nqp::create(self).BUILD($elems)
+        nqp::create(self)!SET-SELF($elems)
     }
     method new-from-pairs(*@pairs) {
         my $elems := nqp::hash();
@@ -146,7 +146,7 @@ my role Baggy does QuantHash {
             }
         }
         self!SANITY($elems) if $seen-pair;
-        nqp::create(self).BUILD($elems)
+        nqp::create(self)!SET-SELF($elems)
     }
 
 #--- iterator methods
@@ -468,13 +468,13 @@ my role Baggy does QuantHash {
             has int $!todo;
             has int $!keep;
 
-            method BUILD($!total, @!pairs, \keep, \todo) {
+            method !SET-SELF($!total, @!pairs, \keep, \todo) {
                 $!todo = todo;
                 $!keep = +?keep;
                 self
             }
             method new(\total,\pairs,\keep,\count) {
-                nqp::create(self).BUILD(
+                nqp::create(self)!SET-SELF(
                   total, pairs, keep, keep ?? count !! (total min count))
             }
 
@@ -500,8 +500,10 @@ my role Baggy does QuantHash {
             has Int $!total;
             has @!pairs;
 
-            method BUILD($!total, @!pairs) { self }
-            method new(\total,\pairs) { nqp::create(self).BUILD(total,pairs) }
+            method !SET-SELF($!total, @!pairs) { self }
+            method new(\total,\pairs) {
+                nqp::create(self)!SET-SELF(total,pairs)
+            }
             method is-lazy() { True }
 
             method pull-one() {

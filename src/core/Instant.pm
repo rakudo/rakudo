@@ -8,7 +8,7 @@ my class Instant is Cool does Real {
       # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
 
-    method BUILD($!tai) { self }
+    method SET-SELF($!tai) { self } # cannot be private because of operators
 
     method new(*@) { X::Cannot::New.new(class => self).throw }
 
@@ -16,7 +16,7 @@ my class Instant is Cool does Real {
     # $posix is in general not expected to be an integer.
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
-        nqp::create(Instant).BUILD(
+        nqp::create(Instant).SET-SELF(
           Rakudo::Internals.tai-from-posix($posix,$prefer-leap-second).Rat
         )
     }
@@ -81,23 +81,23 @@ multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
 }
 
 multi sub infix:<+>(Instant:D $a, Real:D $b) {
-    nqp::create(Instant).BUILD($a.tai + $b.Rat)
+    nqp::create(Instant).SET-SELF($a.tai + $b.Rat)
 }
 multi sub infix:<+>(Real:D $a, Instant:D $b) {
-    nqp::create(Instant).BUILD($a.Rat + $b.tai)
+    nqp::create(Instant).SET-SELF($a.Rat + $b.tai)
 }
 multi sub infix:<+>(Instant:D $a, Duration:D $b) {
-    nqp::create(Instant).BUILD($a.tai + $b.tai)
+    nqp::create(Instant).SET-SELF($a.tai + $b.tai)
 }
 multi sub infix:<+>(Duration:D $a, Instant:D $b) {
-    nqp::create(Instant).BUILD($a.tai + $b.tai)
+    nqp::create(Instant).SET-SELF($a.tai + $b.tai)
 }
 
 multi sub infix:<->(Instant:D $a, Instant:D $b) {
     Duration.new: $a.tai - $b.tai;
 }
 multi sub infix:<->(Instant:D $a, Real:D $b) {
-    nqp::create(Instant).BUILD($a.tai - $b.Rat)
+    nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
 }
 
 sub term:<time>() { nqp::p6box_i(nqp::time_i()) }

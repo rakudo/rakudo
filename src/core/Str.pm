@@ -195,12 +195,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     role ProcessStr does Iterator {
         has str $!str;
         has int $!chars;
-        submethod BUILD(\string) {
+        method !SET-SELF(\string) {
             $!str   = nqp::unbox_s(string);
             $!chars = nqp::chars($!str);
             self
         }
-        method new(\string) { nqp::create(self).BUILD(string) }
+        method new(\string) { nqp::create(self)!SET-SELF(string) }
     }
 
     multi method comb(Str:D:) {
@@ -225,7 +225,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!pos;
             has int $!max;
             has int $!todo;
-            submethod BUILD(\string,\size,\limit,\inf) {
+            method !SET-SELF(\string,\size,\limit,\inf) {
                 $!str   = nqp::unbox_s(string);
                 $!chars = nqp::chars($!str);
                 $!size  = 1 max size;
@@ -234,7 +234,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!todo  = (inf ?? $!max !! (0 max limit)) + 1;
                 self
             }
-            method new(\s,\z,\l,\i) { nqp::create(self).BUILD(s,z,l,i) }
+            method new(\s,\z,\l,\i) { nqp::create(self)!SET-SELF(s,z,l,i) }
             method pull-one() {
                 ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
@@ -258,12 +258,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has str $!str;
             has str $!pat;
             has int $!pos;
-            submethod BUILD(\string, \pat) {
+            method !SET-SELF(\string, \pat) {
                 $!str = nqp::unbox_s(string);
                 $!pat = nqp::unbox_s(pat);
                 self
             }
-            method new(\string, \pat) { nqp::create(self).BUILD(string, pat) }
+            method new(\string, \pat) { nqp::create(self)!SET-SELF(string,pat) }
             method pull-one() {
                 my int $found = nqp::index($!str, $!pat, $!pos);
                 if $found < 0 {
@@ -294,14 +294,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has str $!pat;
             has int $!pos;
             has int $!todo;
-            submethod BUILD(\string, \pat, \limit) {
+            method !SET-SELF(\string, \pat, \limit) {
                 $!str  = nqp::unbox_s(string);
                 $!pat  = nqp::unbox_s(pat);
                 $!todo = nqp::unbox_i(limit.Int);
                 self
             }
             method new(\string, \pat, \limit) {
-                nqp::create(self).BUILD(string, pat, limit)
+                nqp::create(self)!SET-SELF(string, pat, limit)
             }
             method pull-one() {
                 my int $found = nqp::index($!str, $!pat, $!pos);
@@ -874,7 +874,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 has int $!match-chars;
                 has int $!todo;
                 has int $!pos;
-                method BUILD(\string, \match, \todo) {
+                method !SET-SELF(\string, \match, \todo) {
                     $!string      = nqp::unbox_s(string);
                     $!chars       = nqp::chars($!string);
                     $!match       = nqp::unbox_s(match);
@@ -883,7 +883,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     self
                 }
                 method new(\string,\match,\todo) {
-                    nqp::create(self).BUILD(string,match,todo)
+                    nqp::create(self)!SET-SELF(string,match,todo)
                 }
                 method !last-part() is raw {
                     my str $string = nqp::substr($!string,$!pos);
@@ -937,7 +937,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 has int $!pos;
                 has int $!first;
                 has int $!last;
-                method BUILD(\string, \todo, \skip-empty) {
+                method !SET-SELF(\string, \todo, \skip-empty) {
                     $!string = nqp::unbox_s(string);
                     $!chars  = nqp::chars($!string);
                     $!todo   = todo;
@@ -954,7 +954,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     self
                 }
                 method new(\string,\todo,\skip-empty) {
-                    nqp::create(self).BUILD(string,todo,skip-empty)
+                    nqp::create(self)!SET-SELF(string,todo,skip-empty)
                 }
                 method pull-one() is raw {
                     if $!first {             # do empty string first
@@ -1275,14 +1275,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!chars;
             has int $!pos;
 
-            submethod BUILD(\string) {
+            method !SET-SELF(\string) {
                 $!str   = nqp::unbox_s(string);
                 $!chars = nqp::chars($!str);
                 $!pos   = nqp::findnotcclass(
                   nqp::const::CCLASS_WHITESPACE, $!str, 0, $!chars);
                 self
             }
-            method new(\string) { nqp::create(self).BUILD(string) }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 my int $left;
                 my int $nextpos;

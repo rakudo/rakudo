@@ -13,13 +13,13 @@ my class Rakudo::Internals {
         has $!storage;
         has $!iter;
 
-        method BUILD(\hash) {
+        method !SET-SELF(\hash) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
             $!storage := no-keys unless $!storage.DEFINITE;
             $!iter    := nqp::iterator($!storage);
             self
         }
-        method new(\hash) { nqp::create(self).BUILD(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method count-only() {
             $!iter := Mu;
             nqp::p6box_i(nqp::elems($!storage))
@@ -116,7 +116,7 @@ my class Rakudo::Internals {
         has @!pairs;
         has $!total;
 
-        method BUILD(\list-of-pairs) {
+        method !SET-SELF(\list-of-pairs) {
             $!total = 0;
             for list-of-pairs.pairs {
                 my $value := .value;
@@ -127,7 +127,7 @@ my class Rakudo::Internals {
             }
             self
         }
-        method new(\list-of-pairs) { nqp::create(self).BUILD(list-of-pairs) }
+        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
         method roll() {
             my $rand = $!total.rand;
             my $seen = 0;

@@ -99,6 +99,9 @@ my class DateTime does Dateish {
     }
 
     proto method new(|) {*}
+    multi method new(DateTime: \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter) {
+        self!new-from-positional(y,mo,d,h,mi,s,:$timezone,:&formatter)
+    }
     multi method new(DateTime:
       :$year!,
       :$month    = 1,
@@ -357,7 +360,9 @@ my class DateTime does Dateish {
 
     multi method perl(DateTime:D:) {
         self.^name
-          ~ ".new({:$!year.perl},{:$!month.perl},{:$!day.perl},{:$!hour.perl},{:$!minute.perl},{:$!second.perl},{:$!timezone.perl})"
+          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second"
+          ~ (',' ~ :$!timezone.perl if $!timezone)
+          ~ ')'
     }
 }
 

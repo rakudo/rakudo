@@ -1460,7 +1460,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             elsif nqp::istype($key,Cool) {
                 my $pos := index($!source, $key, $!index);
                 if $pos.defined {
-                    self.compare_substitution($_, $pos, .key.chars);
+                    self.compare_substitution($_, $pos, $key.chars);
                     True
                 }
                 else {
@@ -1472,17 +1472,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        proto method increment_index(|) {*}
-        multi method increment_index(Regex $s --> Nil) {
+        method !increment_index($s --> Nil) {
             $/ := CALLERS::('$/');
-            substr($!source,$!index) ~~ $s;
-            $!last_match_obj = $/;
-            $!index = $!next_match + $/.chars;
-        }
-
-        multi method increment_index(Cool $s --> Nil) {
-            $/ := CALLERS::('$/');
-            $!index = $!next_match + nqp::chars($s.Str);
+            if nqp::istype($s,Regex) {
+                substr($!source,$!index) ~~ $s;
+                $!last_match_obj = $/;
+                $!index = $!next_match + $/.chars;
+            }
+            else {
+                $!index = $!next_match
+                  + nqp::chars(nqp::istype($s,Str) ?? $s !! $s.Str);
+            }
         }
 
         method get_next_substitution_result {
@@ -1512,12 +1512,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
                 = substr($!source,$!index, $!next_match - $!index);
-            if defined $!next_substitution {
+            if $!next_substitution.defined {
                 if $!complement {
                     my $oldidx = $!index;
                     if $!unsubstituted_text {
                         my $result = self.get_next_substitution_result;
-                        self.increment_index($!next_substitution.key);
+                        self!increment_index($!next_substitution.key);
                         $!substituted_text = substr($!source,$oldidx + $!unsubstituted_text.chars,
                             $!index - $oldidx - $!unsubstituted_text.chars);
                         $!unsubstituted_text = $!squash ?? $result
@@ -1526,7 +1526,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     else {
                         return if $!next_match == $!source.chars;
                         my $result = self.get_next_substitution_result;
-                        self.increment_index($!next_substitution.key);
+                        self!increment_index($!next_substitution.key);
                         $!substituted_text = '';
                         $!unsubstituted_text = substr($!source,$oldidx, $!index - $oldidx);
                     }
@@ -1534,7 +1534,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 else {
                     return if $!next_match == $!source.chars;
                     $!substituted_text = self.get_next_substitution_result;
-                    self.increment_index($!next_substitution.key);
+                    self!increment_index($!next_substitution.key);
                 }
             }
 

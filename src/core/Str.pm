@@ -1427,7 +1427,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         submethod BUILD(:$!source, :$!squash, :$!complement --> Nil) { }
 
         method add_substitution($key, $value --> Nil) {
-            $/ := CALLERS::('$/');
             push @!substitutions, $key => $value;
         }
 

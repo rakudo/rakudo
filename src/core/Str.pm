@@ -1407,10 +1407,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     my class LSM {
-        has @!substitutions;
+        has $!substitutions;
         has str $!source;
         has int $!squash;
         has int $!complement;
+        has str $!prev_result;
 
         has int $!index;
         has int $!next_match;
@@ -1418,65 +1419,39 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         has $!first_substitution; # need this one for :c with arrays
         has $!next_substitution;
-        has $!prev_result;
         has $!match_obj;
         has $!last_match_obj;
 
-        has str $.unsubstituted_text;
-        has str $.substituted_text;
+        has str $!unsubstituted_text;
+        has str $!substituted_text;
 
         method !SET-SELF(\source,\squash,\complement) {
-            $!source     = nqp::unbox_s(source);
-            $!squash     = ?squash;
-            $!complement = ?complement;
+            $!substitutions := nqp::list;
+            $!source         = nqp::unbox_s(source);
+            $!squash         = ?squash;
+            $!complement     = ?complement;
+            $!prev_result    = '';
             self
         }
         method new(\source,\squash,\complement) {
             nqp::create(self)!SET-SELF(source,squash,complement)
         }
 
-        method add_substitution($key, $value --> Nil) {
-            push @!substitutions, $key => $value;
+        method add_substitution($pair --> Nil) {
+            nqp::push($!substitutions,$pair);
         }
 
         method !compare_substitution(
           $substitution, int $pos, int $length --> Nil
         ) {
-            if $!next_match > $pos
-               || $!next_match == $pos && $!substitution_length < $length {
+            if nqp::isgt_i($!next_match,$pos)
+              || nqp::iseq_i($!next_match,$pos)
+                   && nqp::islt_i($!substitution_length,$length) {
 
-                $!next_match = $pos;
+                $!next_match          = $pos;
                 $!substitution_length = $length;
-                $!next_substitution = $substitution;
-                $!match_obj = $!last_match_obj;
-            }
-        }
-
-        method !triage_substitution($_) {
-            $/ := nqp::getlexcaller('$/');
-            my $key := .key;
-            if nqp::istype($key,Regex) {
-                if $!source.match($key, :continue($!index)) -> \m {
-                    $!last_match_obj = $/;
-                    self!compare_substitution($_, m.from, m.to - m.from);
-                    True
-                }
-                else {
-                    False
-                }
-            }
-            elsif nqp::istype($key,Cool) {
-                my $pos := index($!source, $key, $!index);
-                if $pos.defined {
-                    self!compare_substitution($_, $pos, $key.chars);
-                    True
-                }
-                else {
-                    False
-                }
-            }
-            else {
-                X::Str::Trans::IllegalKey.new(key => $_).throw;
+                $!next_substitution   = $substitution;
+                $!match_obj           = $!last_match_obj;
             }
         }
 
@@ -1495,28 +1470,63 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # note: changes outer $/
         method get_next_substitution_result {
-            my $result = $!complement ?? $!first_substitution.value !! $!next_substitution.value;
-            my $cds := nqp::getlexcaller('$/');
+            my $value = $!complement
+              ?? $!first_substitution.value
+              !! $!next_substitution.value;
+
+            my $outer_slash := nqp::getlexcaller('$/');
             $/ := nqp::getlexcaller('$/');
-            $cds = $!match_obj;
-            my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
+            $outer_slash = $!match_obj;
+
+            my str $result = nqp::istype($value,Callable)
+              ?? $value().Str
+              !! nqp::istype($value,Str)
+                ?? $value
+                !! $value.Str;
+            my str $orig_result = $result;
+
             $result = ''
               if $!squash
-              && $!prev_result
-              && $!prev_result eq $result
-              && $!unsubstituted_text eq '';
-            $!prev_result = $orig-result;
-            nqp::unbox_s($result)
+              && nqp::chars($!prev_result)
+              && nqp::iseq_s($!prev_result,$result)
+              && nqp::iseq_s($!unsubstituted_text,'');
+
+            $!prev_result = $orig_result;
+            $result
         }
 
         method next_substitution() {
             $/ := nqp::getlexcaller('$/');
             $!next_match = nqp::chars($!source);
-            $!first_substitution //= @!substitutions[0];
+            $!first_substitution = nqp::atpos($!substitutions,0)
+              unless nqp::defined($!first_substitution);
 
-            # triage_substitution has a side effect!
-            @!substitutions =
-              @!substitutions.grep: { self!triage_substitution($_) }
+            # triage substitutions left to do
+            my $todo := nqp::list;
+            my $iter := nqp::iterator($!substitutions);
+            while $iter {
+                my $this := nqp::shift($iter);
+                my $key  := $this.key;
+                if nqp::istype($key,Regex) {
+                    if $!source.match($key, :continue($!index)) -> \m {
+                        $!last_match_obj = $/;
+                        self!compare_substitution($this, m.from, m.to - m.from);
+                        nqp::push($todo,$this);
+                    }
+                }
+                elsif nqp::istype($key,Cool) {
+                    my str $skey = nqp::istype($key,Str) ?? $key !! $key.Str;
+                    my int $pos  = nqp::index($!source,$skey,$!index);
+                    if nqp::isge_i($pos,0) {
+                        self!compare_substitution($this,$pos,nqp::chars($skey));
+                        nqp::push($todo,$this);
+                    }
+                }
+                else {
+                    X::Str::Trans::IllegalKey.new(key => $this).throw;
+                }
+            }
+            $!substitutions := $todo;
 
             $!unsubstituted_text =
               nqp::substr($!source,$!index,$!next_match - $!index);
@@ -1551,7 +1561,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }
 
-            $!next_match < nqp::chars($!source) && @!substitutions;
+            nqp::islt_i($!next_match,nqp::chars($!source))
+              && nqp::elems($!substitutions)
+        }
+
+        method result() {
+            $/ := nqp::getlexcaller('$/');
+            my Mu $result := nqp::list_s;
+
+            while self.next_substitution {
+                nqp::push_s($result,$!unsubstituted_text);
+                nqp::push_s($result,$!substituted_text);
+            }
+            nqp::push_s($result,$!unsubstituted_text);
+            nqp::p6box_s(nqp::join('', $result))
         }
     }
 
@@ -1652,13 +1675,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join('',$result));
     }
     multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
-        my sub myflat(*@s) { @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ } }
+        my sub myflat(*@s) {
+            @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ }
+        }
         my sub expand($s) {
-            return myflat($s.list).Slip
-              if nqp::istype($s,Iterable) || nqp::istype($s,Positional);
-            flat $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
-                flat(.[0] ?? ~.[0] .. ~.[1] !! ~$_).Slip
-            };
+            nqp::istype($s,Iterable) || nqp::istype($s,Positional)
+              ?? myflat($s.list).Slip
+              !! flat $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
+                     flat(.[0] ?? ~.[0] .. ~.[1] !! ~$_).Slip
+                 }
         }
 
         $/ := nqp::getlexcaller('$/');
@@ -1666,18 +1691,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
         for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
-            if nqp::istype($p.key,Regex) {
-                $lsm.add_substitution($p.key, $p.value);
+            my $key   := $p.key;
+            my $value := $p.value;
+            if nqp::istype($key,Regex) {
+                $lsm.add_substitution($p);
             }
-            elsif nqp::istype($p.value,Callable) {
-                my @from = expand $p.key;
-                for @from -> $f {
-                    $lsm.add_substitution($f, $p.value);
-                }
+            elsif nqp::istype($value,Callable) {
+                $lsm.add_substitution(Pair.new($_,$value)) for expand $key;
             }
             else {
-                my @from = expand $p.key;
-                my @to = expand $p.value;
+                my @from = expand $key;
+                my @to = expand $value;
                 if @to {
                     my $padding = $d ?? '' !! @to[@to - 1];
                     @to = flat @to, $padding xx @from - @to;
@@ -1686,18 +1710,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     @to = '' xx @from
                 }
                 for flat @from Z @to -> $f, $t {
-                    $lsm.add_substitution($f, $t);
+                    $lsm.add_substitution(Pair.new($f,$t));
                 }
             }
         }
 
-        my Mu $ret := nqp::list_s();
-        while $lsm.next_substitution {
-            nqp::push_s($ret, nqp::unbox_s($lsm.unsubstituted_text));
-            nqp::push_s($ret, nqp::unbox_s($lsm.substituted_text));
-        }
-        nqp::push_s($ret, nqp::unbox_s($lsm.unsubstituted_text));
-        nqp::p6box_s(nqp::join('', $ret))
+        $lsm.result
     }
     proto method indent($) {*}
     # Zero indent does nothing

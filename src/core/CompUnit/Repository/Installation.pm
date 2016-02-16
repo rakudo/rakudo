@@ -104,6 +104,23 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
+    method !remove-dist-from-short-name-lookup-files($dist) {
+        my $short-dir = $.prefix.child('short');
+        return unless $short-dir.e;
+
+        my $id = $dist.id;
+
+        for $short-dir.dir -> $file {
+            my $filtered = ($file.lines ∖ $id);
+            if $filtered.elems > 0 {
+                $file.spurt: $filtered.keys.sort.map({"$_\n"}).join('');
+            }
+            else {
+                $file.unlink;
+            }
+        }
+    }
+
     method !file-id(Str $name, Str $dist-id) {
         my $id = $name ~ $dist-id;
         nqp::sha1($id)
@@ -216,12 +233,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $sources-dir   = self.prefix.child('sources');
         my $resources-dir = self.prefix.child('resources');
         my $bin-dir       = self.prefix.child('bin');
-        my $short-dir     = self.prefix.child('short');
         my $dist-dir      = self.prefix.child('dist');
 
-        $short-dir.child(nqp::sha1($_.value)).unlink for %files.grep: {$_.key ~~ /^bin\//};
-        $short-dir.child(nqp::sha1($_)).unlink for %provides.keys;
-        $short-dir.child(nqp::sha1($dist.name)).unlink;
+        self!remove-dist-from-short-name-lookup-files($dist);
+        $bin-dir.child($_.value).unlink for %files.grep: {$_.key ~~ /^bin\//};
         $sources-dir.child($_).unlink for %provides.map(*.value<pm><file>);
         $resources-dir.child($_).unlink for %files.values;
         $dist-dir.child($dist.id).unlink;

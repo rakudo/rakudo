@@ -4302,6 +4302,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unless nqp::istype($cur_key, $*W.find_symbol(['Str'])) {
                 $cur_key := $cur_key.Str;
             }
+            unless nqp::defined($cur_value) {
+                $*W.throw($/, 'X::Comp::NYI',
+                    feature => "Using a type object as a value for an enum",
+                );
+            }
 
             # Create and install value.
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);

@@ -1433,7 +1433,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         submethod compare_substitution(
           $substitution, int $pos, int $length --> Nil
         ) {
-            $/ := CALLERS::('$/');
+            $/ := nqp::getlexcaller('$/');
             if $!next_match > $pos
                || $!next_match == $pos && $!substitution_length < $length {
 
@@ -1445,7 +1445,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         method !triage_substitution($_) {
-            $/ := CALLERS::('$/');
+            $/ := nqp::getlexcaller('$/');
             my $key := .key;
             if nqp::istype($key,Regex) {
                 if $!source.match($key, :continue($!index)) -> \m {
@@ -1473,7 +1473,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         method !increment_index($s --> Nil) {
-            $/ := CALLERS::('$/');
+            $/ := nqp::getlexcaller('$/');
             if nqp::istype($s,Regex) {
                 substr($!source,$!index) ~~ $s;
                 $!last_match_obj = $/;
@@ -1485,10 +1485,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
+        # note: changes outer $/
         method get_next_substitution_result {
             my $result = $!complement ?? $!first_substitution.value !! $!next_substitution.value;
-            my $cds := CALLERS::('$/');
-            $/ := CALLERS::('$/');
+            my $cds := nqp::getlexcaller('$/');
+            $/ := nqp::getlexcaller('$/');
             $cds = $!match_obj;
             my $orig-result = $result = ($result ~~ Callable ?? $result() !! $result).Str;
             $result = ''
@@ -1501,7 +1502,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         method next_substitution() {
-            $/ := CALLERS::('$/');
+            $/ := nqp::getlexcaller('$/');
             $!next_match = $!source.chars;
             $!first_substitution //= @!substitutions[0];
 
@@ -1545,7 +1546,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method trans(Str:D: Pair:D \what, *%n) {
         my $from = what.key;
         my $to   = what.value;
-        $/ := CALLERS::('$/');
+        $/ := nqp::getlexcaller('$/');
+
         return self.trans(|%n, (what,))
           if !nqp::istype($from,Str)   # from not a string
           || !$from.defined            # or a type object
@@ -1646,7 +1648,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             };
         }
 
-        $/ := CALLERS::('$/');
+        $/ := nqp::getlexcaller('$/');
         my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
         for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw

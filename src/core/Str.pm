@@ -1407,16 +1407,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     my class LSM {
-        has Str $!source;
         has @!substitutions;
-        has $!squash;
-        has $!complement;
+        has str $!source;
+        has int $!squash;
+        has int $!complement;
 
         has int $!index;
         has int $!next_match;
+        has int $!substitution_length;
+
         has $!first_substitution; # need this one for :c with arrays
         has $!next_substitution;
-        has $!substitution_length;
         has $!prev_result;
         has $!match_obj;
         has $!last_match_obj;
@@ -1424,7 +1425,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $.unsubstituted_text;
         has str $.substituted_text;
 
-        submethod BUILD(:$!source, :$!squash, :$!complement --> Nil) { }
+        method !SET-SELF(\source,\squash,\complement) {
+            $!source     = nqp::unbox_s(source);
+            $!squash     = ?squash;
+            $!complement = ?complement;
+            self
+        }
+        method new(\source,\squash,\complement) {
+            nqp::create(self)!SET-SELF(source,squash,complement)
+        }
 
         method add_substitution($key, $value --> Nil) {
             push @!substitutions, $key => $value;
@@ -1502,42 +1511,47 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         method next_substitution() {
             $/ := nqp::getlexcaller('$/');
-            $!next_match = $!source.chars;
+            $!next_match = nqp::chars($!source);
             $!first_substitution //= @!substitutions[0];
 
             # triage_substitution has a side effect!
             @!substitutions =
               @!substitutions.grep: { self!triage_substitution($_) }
 
-            $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index,
-                = substr($!source,$!index, $!next_match - $!index);
+            $!unsubstituted_text =
+              nqp::substr($!source,$!index,$!next_match - $!index);
             if $!next_substitution.defined {
                 if $!complement {
                     my $oldidx = $!index;
-                    if $!unsubstituted_text {
+                    if nqp::chars($!unsubstituted_text) -> \todo {
                         my $result = self.get_next_substitution_result;
                         self!increment_index($!next_substitution.key);
-                        $!substituted_text = substr($!source,$oldidx + $!unsubstituted_text.chars,
-                            $!index - $oldidx - $!unsubstituted_text.chars);
-                        $!unsubstituted_text = $!squash ?? $result
-                            !! $result x $!unsubstituted_text.chars;
+                        $!substituted_text = nqp::substr(
+                          $!source,
+                          $oldidx + todo,
+                          $!index - $oldidx - todo,
+                        );
+                        $!unsubstituted_text = $!squash
+                          ?? $result
+                          !! $result x todo;
                     }
                     else {
-                        return if $!next_match == $!source.chars;
+                        return if $!next_match == nqp::chars($!source);
                         my $result = self.get_next_substitution_result;
                         self!increment_index($!next_substitution.key);
                         $!substituted_text = '';
-                        $!unsubstituted_text = substr($!source,$oldidx, $!index - $oldidx);
+                        $!unsubstituted_text =
+                          nqp::substr($!source,$oldidx,$!index - $oldidx);
                     }
                 }
                 else {
-                    return if $!next_match == $!source.chars;
+                    return if $!next_match == nqp::chars($!source);
                     $!substituted_text = self.get_next_substitution_result;
                     self!increment_index($!next_substitution.key);
                 }
             }
 
-            $!next_match < $!source.chars && @!substitutions;
+            $!next_match < nqp::chars($!source) && @!substitutions;
         }
     }
 
@@ -1648,7 +1662,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         $/ := nqp::getlexcaller('$/');
-        my $lsm = LSM.new(:source(self), :squash($s), :complement($c));
+        my $lsm = LSM.new(self,$s,$c);
         for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);

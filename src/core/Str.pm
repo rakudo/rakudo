@@ -1430,7 +1430,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             push @!substitutions, $key => $value;
         }
 
-        submethod compare_substitution(
+        method !compare_substitution(
           $substitution, int $pos, int $length --> Nil
         ) {
             if $!next_match > $pos
@@ -1449,7 +1449,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             if nqp::istype($key,Regex) {
                 if $!source.match($key, :continue($!index)) -> \m {
                     $!last_match_obj = $/;
-                    self.compare_substitution($_, m.from, m.to - m.from);
+                    self!compare_substitution($_, m.from, m.to - m.from);
                     True
                 }
                 else {
@@ -1459,7 +1459,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             elsif nqp::istype($key,Cool) {
                 my $pos := index($!source, $key, $!index);
                 if $pos.defined {
-                    self.compare_substitution($_, $pos, $key.chars);
+                    self!compare_substitution($_, $pos, $key.chars);
                     True
                 }
                 else {

@@ -1433,7 +1433,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         submethod compare_substitution(
           $substitution, int $pos, int $length --> Nil
         ) {
-            $/ := nqp::getlexcaller('$/');
             if $!next_match > $pos
                || $!next_match == $pos && $!substitution_length < $length {
 

@@ -156,7 +156,7 @@ my class PseudoStash is Map {
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
         my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.EXISTS-KEY($key) {
-            %pseudoers{$key}(self)
+            %pseudoers.AT-KEY($key)(self)
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             my Mu $store := nqp::getattr(self, Map, '$!storage');

@@ -566,7 +566,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     $thing;
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms,:$target-package) {
+sub REQUIRE_IMPORT($compunit, *@syms) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package.WHO;
@@ -582,13 +582,9 @@ sub REQUIRE_IMPORT($compunit, *@syms,:$target-package) {
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
-    # Merge GLOBALish from compunit.
-    # XXX: should probably use CALLER::UNIT:: but RT #127536
+    # Merge GLOBAL from compunit.
     GLOBAL::.merge-symbols($GLOBALish);
-
-    $target-package.defined ??
-        INDIRECT_NAME_LOOKUP($GLOBALish,$target-package) !!
-        $compunit.short-name; # roast says if requiring file return its path
+    Nil;
 }
 
 sub infix:<andthen>(+a) {

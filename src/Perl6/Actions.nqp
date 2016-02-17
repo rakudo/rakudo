@@ -1767,6 +1767,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $compunit_past;
         my $target_package;
         my $has_file;
+        my $longname;
         if $<module_name> {
             for $<module_name><longname><colonpair> -> $colonpair {
                 if ~$colonpair<identifier> eq 'file' {
@@ -1774,6 +1775,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     last;
                 }
             }
+            $longname := $*W.dissect_longname($<module_name><longname>);
             $target_package := $*W.dissect_longname($<module_name><longname>).name_past;
         }
         if $<module_name> && nqp::defined($has_file) == 0 {
@@ -1811,11 +1813,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
                                         );
-        if $target_package {
-            $target_package.named('target-package');
-            $require_past.push($target_package);
-        }
-
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);
@@ -1833,7 +1830,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past.push($require_past);
-
+        $past.push($<module_name>
+                   ?? self.make_indirect_lookup($longname.components())
+                   !! $<file>.ast);
         make $past;
     }
 

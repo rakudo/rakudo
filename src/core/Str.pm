@@ -1504,8 +1504,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     my class LSM {
-        has $!substitutions;
         has str $!source;
+        has     $!substitutions;
         has int $!squash;
         has int $!complement;
         has str $!prev_result;
@@ -1522,20 +1522,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $!unsubstituted_text;
         has str $!substituted_text;
 
-        method !SET-SELF(\source,\squash,\complement) {
-            $!substitutions := nqp::list;
+        method !SET-SELF(\source,\substitutions,\squash,\complement) {
             $!source         = nqp::unbox_s(source);
+            $!substitutions := nqp::getattr(substitutions,List,'$!reified');
             $!squash         = ?squash;
             $!complement     = ?complement;
             $!prev_result    = '';
             self
         }
-        method new(\source,\squash,\complement) {
-            nqp::create(self)!SET-SELF(source,squash,complement)
-        }
-
-        method add_substitution($pair --> Nil) {
-            nqp::push($!substitutions,$pair);
+        method new(\source,\substitutions,\squash,\complement) {
+            nqp::create(self)!SET-SELF(source,substitutions,squash,complement)
         }
 
         method !compare_substitution(
@@ -1674,7 +1670,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::p6box_s(nqp::join('', $result))
         }
     }
-    multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
+    multi method trans(Str:D:
+      *@changes, :c(:$complement), :s(:$squash), :d(:$delete)) {
+        $/ := nqp::getlexcaller('$/');
+
         my sub myflat(*@s) {
             @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ }
         }
@@ -1686,36 +1685,36 @@ my class Str does Stringy { # declared in BOOTSTRAP
                  }
         }
 
-        $/ := nqp::getlexcaller('$/');
-        my $lsm = LSM.new(self,$s,$c);
+        my $substitutions := nqp::list;
         for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
               unless nqp::istype($p,Pair);
+
             my $key   := $p.key;
             my $value := $p.value;
             if nqp::istype($key,Regex) {
-                $lsm.add_substitution($p);
+                nqp::push($substitutions,$p);
             }
             elsif nqp::istype($value,Callable) {
-                $lsm.add_substitution(Pair.new($_,$value)) for expand $key;
+                nqp::push($substitutions,Pair.new($_,$value)) for expand $key;
             }
             else {
                 my @from = expand $key;
                 my @to = expand $value;
                 if @to {
-                    my $padding = $d ?? '' !! @to[@to - 1];
+                    my $padding = $delete ?? '' !! @to[@to - 1];
                     @to = flat @to, $padding xx @from - @to;
                 }
                 else {
                     @to = '' xx @from
                 }
                 for flat @from Z @to -> $f, $t {
-                    $lsm.add_substitution(Pair.new($f,$t));
+                    nqp::push($substitutions,Pair.new($f,$t));
                 }
             }
         }
 
-        $lsm.result
+        LSM.new(self,$substitutions,$squash,$complement).result;
     }
     proto method indent($) {*}
     # Zero indent does nothing

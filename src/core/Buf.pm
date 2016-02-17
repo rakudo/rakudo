@@ -318,7 +318,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         self!append(@values,'append')
     }
 
-    method !append(Buf:D: @values, $action --> Nil) {
+    method !append(Buf:D: @values, $action) {
         fail X::Cannot::Lazy.new(:$action,:what(self.^name))
           if @values.is-lazy;
 

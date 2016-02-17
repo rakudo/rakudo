@@ -584,7 +584,7 @@ sub REQUIRE_IMPORT($compunit, *@syms,:$target-package) {
     }
     # Merge GLOBALish from compunit.
     # XXX: should probably use CALLER::UNIT:: but RT #127536
-    CALLER::LEXICAL::GLOBALish::.merge-symbols($GLOBALish);
+    GLOBAL::.merge-symbols($GLOBALish);
 
     $target-package.defined ??
         INDIRECT_NAME_LOOKUP($GLOBALish,$target-package) !!

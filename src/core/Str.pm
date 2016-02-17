@@ -1400,7 +1400,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
-        self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
+        self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {  # ' highlighting
             my Str $s = $m.Str;
             $s ~~ $where ?? filter($s) !! $s;
         });

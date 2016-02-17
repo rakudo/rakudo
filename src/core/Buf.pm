@@ -299,20 +299,22 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::bindpos_i(self,$pos,assignee)
     }
 
-    multi method push(Buf:D: Mu $value --> Nil) {
-        nqp::push_i(self,$value)
+    multi method push(Buf:D: Mu $value) {
+        nqp::push_i(self,$value);
+        self
     }
-    multi method push(Buf:D: *@values  --> Nil) {
+    multi method push(Buf:D: *@values) {
         self!append(@values,'push')
     }
 
-    multi method append(Buf:D: Mu $value --> Nil) {
-        nqp::push_i(self,$value)
+    multi method append(Buf:D: Mu $value) {
+        nqp::push_i(self,$value);
+        self
     }
-    multi method append(Buf:D: @values   --> Nil) {
+    multi method append(Buf:D: @values) {
         self!append(@values,'append')
     }
-    multi method append(Buf:D: *@values  --> Nil) {
+    multi method append(Buf:D: *@values) {
         self!append(@values,'append')
     }
 
@@ -325,6 +327,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         my int $i     = -1;
         nqp::push_i(self,nqp::atpos($list,$i))
           while nqp::islt_i($i = $i + 1,$elems);
+        self
     }
 }
 

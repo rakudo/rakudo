@@ -1406,6 +1406,103 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
     }
 
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    multi method trans(Str:D: Pair:D \what, *%n) {
+        my $from = what.key;
+        my $to   = what.value;
+        $/ := nqp::getlexcaller('$/');
+
+        return self.trans(|%n, (what,))
+          if !nqp::istype($from,Str)   # from not a string
+          || !$from.defined            # or a type object
+          || !nqp::istype($to,Str)     # or to not a string
+          || !$to.defined              # or a type object
+          || %n;                       # or any named params passed
+
+        # from 1 char
+        return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
+          if $from.chars == 1;
+
+        sub expand(Str:D \x) {
+            my str $s     = nqp::unbox_s(x);
+            my int $found = nqp::index($s,'..',1);
+            return x       #  not found or at the end without trail
+              if nqp::iseq_i($found,-1) || nqp::iseq_i($found,nqp::chars($s)-2);
+
+            my int $from   = nqp::ordat($s,$found - 1);
+            my int $to     = nqp::ordat($s,$found + 2);
+            my Mu $result := nqp::list_s();
+
+            nqp::push_s($result,nqp::substr($s,0,$found - 1));
+            while nqp::isle_i($from,$to) {
+                nqp::push_s($result,nqp::chr($from));
+                $from = $from + 1;
+            }
+            nqp::push_s($result,nqp::substr($s,$found + 3));
+
+            expand(nqp::p6box_s(nqp::join('',$result)));
+        }
+
+        my str $sfrom  = nqp::unbox_s(expand($from));
+        my str $str    = nqp::unbox_s(self);
+        my str $chars  = nqp::chars($str);
+        my Mu $result := nqp::list_s();
+        my str $check;
+        my int $i;
+
+        # something to convert to
+        if $to.chars -> $tochars {
+            nqp::setelems($result,$chars);
+
+            # all convert to one char
+            if $tochars == 1 {
+                my str $sto = nqp::unbox_s($to);
+
+                while nqp::islt_i($i,$chars) {
+                    $check = nqp::substr($str,$i,1);
+                    nqp::bindpos_s(
+                      $result, $i, nqp::iseq_i(nqp::index($sfrom,$check),-1)
+                        ?? $check
+                        !! $sto
+                    );
+                    $i = $i + 1;
+                }
+            }
+
+            # multiple chars to convert to
+            else {
+                my str $sto   = nqp::unbox_s(expand($to));
+                my int $sfl   = nqp::chars($sfrom);
+                my int $found;
+
+                # repeat until mapping complete
+                $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+
+                while nqp::islt_i($i,$chars) {
+                    $check = nqp::substr($str,$i,1);
+                    $found = nqp::index($sfrom,$check);
+                    nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
+                      ?? $check
+                      !! nqp::substr($sto,$found,1)
+                    );
+                    $i = $i + 1;
+                }
+            }
+        }
+
+        # just remove
+        else {
+            while nqp::islt_i($i,$chars) {
+                $check = nqp::substr($str,$i,1);
+                nqp::push_s($result, $check)
+                  if nqp::iseq_i(nqp::index($sfrom,$check),-1);
+                $i = $i + 1;
+            }
+        }
+
+        nqp::p6box_s(nqp::join('',$result));
+    }
+
     my class LSM {
         has $!substitutions;
         has str $!source;
@@ -1576,103 +1673,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push_s($result,$!unsubstituted_text);
             nqp::p6box_s(nqp::join('', $result))
         }
-    }
-
-    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
-    multi method trans(Str:D: Pair:D \what, *%n) {
-        my $from = what.key;
-        my $to   = what.value;
-        $/ := nqp::getlexcaller('$/');
-
-        return self.trans(|%n, (what,))
-          if !nqp::istype($from,Str)   # from not a string
-          || !$from.defined            # or a type object
-          || !nqp::istype($to,Str)     # or to not a string
-          || !$to.defined              # or a type object
-          || %n;                       # or any named params passed
-
-        # from 1 char
-        return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
-          if $from.chars == 1;
-
-        sub expand(Str:D \x) {
-            my str $s     = nqp::unbox_s(x);
-            my int $found = nqp::index($s,'..',1);
-            return x       #  not found or at the end without trail
-              if nqp::iseq_i($found,-1) || nqp::iseq_i($found,nqp::chars($s)-2);
-
-            my int $from   = nqp::ordat($s,$found - 1);
-            my int $to     = nqp::ordat($s,$found + 2);
-            my Mu $result := nqp::list_s();
-
-            nqp::push_s($result,nqp::substr($s,0,$found - 1));
-            while nqp::isle_i($from,$to) {
-                nqp::push_s($result,nqp::chr($from));
-                $from = $from + 1;
-            }
-            nqp::push_s($result,nqp::substr($s,$found + 3));
-
-            expand(nqp::p6box_s(nqp::join('',$result)));
-        }
-
-        my str $sfrom  = nqp::unbox_s(expand($from));
-        my str $str    = nqp::unbox_s(self);
-        my str $chars  = nqp::chars($str);
-        my Mu $result := nqp::list_s();
-        my str $check;
-        my int $i;
-
-        # something to convert to
-        if $to.chars -> $tochars {
-            nqp::setelems($result,$chars);
-
-            # all convert to one char
-            if $tochars == 1 {
-                my str $sto = nqp::unbox_s($to);
-
-                while nqp::islt_i($i,$chars) {
-                    $check = nqp::substr($str,$i,1);
-                    nqp::bindpos_s(
-                      $result, $i, nqp::iseq_i(nqp::index($sfrom,$check),-1)
-                        ?? $check
-                        !! $sto
-                    );
-                    $i = $i + 1;
-                }
-            }
-
-            # multiple chars to convert to
-            else {
-                my str $sto   = nqp::unbox_s(expand($to));
-                my int $sfl   = nqp::chars($sfrom);
-                my int $found;
-
-                # repeat until mapping complete
-                $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
-
-                while nqp::islt_i($i,$chars) {
-                    $check = nqp::substr($str,$i,1);
-                    $found = nqp::index($sfrom,$check);
-                    nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
-                      ?? $check
-                      !! nqp::substr($sto,$found,1)
-                    );
-                    $i = $i + 1;
-                }
-            }
-        }
-
-        # just remove
-        else {
-            while nqp::islt_i($i,$chars) {
-                $check = nqp::substr($str,$i,1);
-                nqp::push_s($result, $check)
-                  if nqp::iseq_i(nqp::index($sfrom,$check),-1);
-                $i = $i + 1;
-            }
-        }
-
-        nqp::p6box_s(nqp::join('',$result));
     }
     multi method trans(Str:D: *@changes, :complement(:$c), :squash(:$s), :delete(:$d)) {
         my sub myflat(*@s) {

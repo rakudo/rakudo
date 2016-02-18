@@ -17,7 +17,7 @@ my class IO::Path is Cool {
         nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 
-    submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD!) { }
+    submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD! --> Nil) { }
 
     method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         method !fap() {

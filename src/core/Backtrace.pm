@@ -50,7 +50,7 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
-    submethod BUILD(:$!bt, :$!bt-next) { $!frames := nqp::list }
+    submethod BUILD(:$!bt, :$!bt-next --> Nil) { $!frames := nqp::list }
 
     multi method new(Mu $e, Int $offset = 0) {
         $e.^name eq 'BOOTException'

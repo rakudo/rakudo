@@ -3,12 +3,11 @@ role CompUnit::Repository::Locally {
     has IO::Path $.prefix is required;
     has Str      $.WHICH;
 
-    my %instances;
-
     method new(CompUnit::Repository::Locally: Str:D :$prefix, CompUnit::Repository :$next-repo) {
         my $abspath := $*SPEC.rel2abs($prefix);
         my $IO      := IO::Path.new-from-absolute-path($abspath);
 
+        state %instances;
         %instances{$abspath} //=
           self.bless(:prefix($IO), :lock(Lock.new), :WHICH(self.^name ~ '|' ~ $abspath), :$next-repo);
     }

@@ -1764,10 +1764,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
-        my $name_past;
-        my $longname;
-        my $op;
+        my $compunit_past;
+        my $target_package;
         my $has_file;
+        my $longname;
         if $<module_name> {
             for $<module_name><longname><colonpair> -> $colonpair {
                 if ~$colonpair<identifier> eq 'file' {
@@ -1775,30 +1775,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     last;
                 }
             }
-        }
-        if $<module_name> {
             $longname := $*W.dissect_longname($<module_name><longname>);
-            $name_past := $longname.name_past();
-        }
-        else {
-            $name_past := WANTED($<file>.ast, 'require/name');
+            $target_package := $*W.dissect_longname($<module_name><longname>).name_past;
         }
         if $<module_name> && nqp::defined($has_file) == 0 {
-            my $short_name := nqp::clone($name_past);
+            my $short_name := nqp::clone($target_package);
             $short_name.named('short-name');
             my $spec := QAST::Op.new(
                 :op('callmethod'), :name('new'),
                 $*W.symbol_lookup(['CompUnit', 'DependencySpecification'], $/),
                 $short_name,
             );
-            for $<module_name><longname><colonpair> -> $colonpair {
-                $spec.push(
-                    QAST::Op.new( :named(~$colonpair<identifier>), :op<callmethod>, :name<value>,
-                        WANTED($colonpair.ast,'require/pair')
-                    )
-                );
-            }
-            $op := QAST::Op.new(
+            $compunit_past := QAST::Op.new(
                 :op('callmethod'), :name('need'),
                 QAST::Op.new(
                     :op('callmethod'), :name('head'),
@@ -1809,7 +1797,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $file_past := WANTED(($has_file ?? $has_file !! $<file>.ast), 'require/name');
-            $op := QAST::Op.new(
+            $compunit_past := QAST::Op.new(
                 :op('callmethod'), :name('load'),
                 QAST::Op.new(
                     :op('callmethod'), :name('head'),
@@ -1821,32 +1809,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
             );
         }
-        $past.push(QAST::Op.new(
-            :op('callmethod'), :name('merge-symbols'),
-            QAST::Op.new(
-                :op('who'),
-                $*W.symbol_lookup(['GLOBAL'], $/),
-            ),
-            QAST::Op.new(
-                :op('who'),
-                QAST::Op.new(
-                    :op('callmethod'), :name('globalish-package'),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('handle'),
-                        $op,
-                    ),
-                ),
-            ),
-        ));
-
+        my $require_past := QAST::Op.new(:node($/), :op<call>,
+                                        :name<&REQUIRE_IMPORT>,
+                                        $compunit_past,
+                                        );
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);
             my $lexpad      := $*W.cur_lexpad();
             my $*SCOPE      := 'my';
-            my $import_past := QAST::Op.new(:node($/), :op<call>,
-                               :name<&REQUIRE_IMPORT>,
-                               $name_past);
 
             while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {
                 my $symbol := nqp::unbox_s($arg.Str());
@@ -1855,15 +1826,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 declare_variable($/, $past,
                         nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
                         []);
-                $import_past.push($*W.add_string_constant($symbol));
+                $require_past.push($*W.add_string_constant($symbol));
             }
-            $past.push($import_past);
         }
-
+        $past.push($require_past);
         $past.push($<module_name>
-            ?? self.make_indirect_lookup($longname.components())
-            !! $<file>.ast);
-
+                   ?? self.make_indirect_lookup($longname.components())
+                   !! $<file>.ast);
         make $past;
     }
 
@@ -4331,6 +4300,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             unless nqp::istype($cur_key, $*W.find_symbol(['Str'])) {
                 $cur_key := $cur_key.Str;
+            }
+            unless nqp::defined($cur_value) {
+                $*W.throw($/, 'X::Comp::NYI',
+                    feature => "Using a type object as a value for an enum",
+                );
             }
 
             # Create and install value.
@@ -7226,7 +7200,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method rat_number($/) { make $<bare_rat_number>.ast }
 
     method bare_rat_number($/) {
-        my $nu := @($<nu>.ast)[0].compile_time_value;
+        my $nu := $<nu>.ast.compile_time_value;
         my $de := $<de>.ast;
         my $ast := $*W.add_constant('Rat', 'type_new', $nu, $de, :nocache(1));
         $ast.node($/);
@@ -8925,6 +8899,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
+        CATCH {
+            $*W.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
+        }
         my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }

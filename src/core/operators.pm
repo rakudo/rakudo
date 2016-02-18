@@ -566,26 +566,27 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     $thing;
 }
 
-sub REQUIRE_IMPORT($package-name, *@syms) {
-    my $package = CALLER::OUR::($package-name);
-    my $who     = $package.WHO;
-    unless $who.EXISTS-KEY('EXPORT') {
-        die "Trying to import symbols @syms.join(', ') from '$package-name', but it does not export anything";
-    }
-    $who := $who<EXPORT>.WHO<DEFAULT>.WHO;
+sub REQUIRE_IMPORT($compunit, *@syms) {
+    my $handle := $compunit.handle;
+    my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
+    my $GLOBALish := $handle.globalish-package.WHO;
     my @missing;
+    # Set the runtime values for compile time stub symbols
     for @syms {
-        unless $who.EXISTS-KEY($_) {
+        unless $DEFAULT.EXISTS-KEY($_) {
             @missing.push: $_;
             next;
         }
-        OUTER::CALLER::{$_} := $who{$_};
+        OUTER::CALLER::{$_} := $DEFAULT{$_};
     }
     if @missing {
-        X::Import::MissingSymbols.new(:from($package-name), :@missing).throw;
+        X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
-    $package
+    # Merge GLOBAL from compunit.
+    GLOBAL::.merge-symbols($GLOBALish);
+    Nil;
 }
+
 sub infix:<andthen>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;

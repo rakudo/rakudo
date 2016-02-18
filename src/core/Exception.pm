@@ -80,9 +80,9 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := nqp::getlexcaller('RETURN');
+        my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
         $return($fail) unless nqp::isnull($return);
-        $fail
+        $fail.exception.throw
     }
 
     method is-compile-time { False }
@@ -525,6 +525,7 @@ my class X::IO::Chmod does X::IO {
 
 my role X::Comp is Exception {
     has $.filename;
+    has $.pos;
     has $.line;
     has $.column;
     has @.modules;
@@ -1809,8 +1810,20 @@ my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);
     has $.expected is default(Nil);
-    method gotn()      { (try $!got.^name eq $!expected.^name ?? $!got.perl      !! $!got.^name)      // "?" }
-    method expectedn() { (try $!got.^name eq $!expected.^name ?? $!expected.perl !! $!expected.^name) // "?" }
+    method gotn() {
+        my $perl = (try $!got.perl) // "?";
+        $perl = "$perl.substr(0,21)..." if $perl.chars > 24;
+        (try $!got.^name eq $!expected.^name
+          ?? $perl
+          !! "$!got.^name() ($perl)"
+        ) // "?"
+    }
+    method expectedn() {
+        (try $!got.^name eq $!expected.^name
+          ?? $!expected.perl
+          !! $!expected.^name
+        ) // "?"
+    }
     method priors() {
         my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
             "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
@@ -2334,7 +2347,7 @@ my class X::InvalidTypeSmiley does X::Comp {
 my class X::Seq::Consumed is Exception {
     method message() {
         "This Seq has already been iterated, and its values consumed\n" ~
-        "(you might solve this by addding .cache on usages of the Seq, or\n" ~
+        "(you might solve this by adding .cache on usages of the Seq, or\n" ~
         "by assigning the Seq into an array)"
     }
 }

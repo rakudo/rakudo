@@ -300,24 +300,34 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method push(Buf:D: Mu $value) {
-        nqp::push_i(self, $value);
+        nqp::push_i(self,$value);
+        self
     }
     multi method push(Buf:D: *@values) {
-        self.append(@values);
+        self!append(@values,'push')
     }
 
-    multi method append(Buf:D: @values is copy) {
-        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+    multi method append(Buf:D: Mu $value) {
+        nqp::push_i(self,$value);
+        self
+    }
+    multi method append(Buf:D: @values) {
+        self!append(@values,'append')
+    }
+    multi method append(Buf:D: *@values) {
+        self!append(@values,'append')
+    }
+
+    method !append(Buf:D: @values, $action) {
+        fail X::Cannot::Lazy.new(:$action,:what(self.^name))
           if @values.is-lazy;
 
-        my int $length = nqp::elems(self);
-        my @splicees := nqp::create(self);
-        nqp::push_i(@splicees, @values.shift) while @values;
-        nqp::splice(self, @splicees, $length, 0);
-    }
-
-    multi method append(Buf:D: *@values) {
-        self.append(@values);
+        my     $list := nqp::getattr(@values,List,'$!reified');
+        my int $elems = nqp::elems($list);
+        my int $i     = -1;
+        nqp::push_i(self,nqp::atpos($list,$i))
+          while nqp::islt_i($i = $i + 1,$elems);
+        self
     }
 }
 

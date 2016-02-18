@@ -1,11 +1,12 @@
 class Perl does Systemic {
     has Compiler $.compiler;
 
-    submethod BUILD (
+    submethod BUILD(
       :$!name      = 'Perl 6',
       :$!auth      = "The Perl Foundation",
       :$!version   = Version.new(nqp::getcomp('perl6').language_version()),
-      :$!compiler  = Compiler.new,
+      :$!compiler  = Compiler.new
+      --> Nil
     ) { }
 
     method VMnames { <moar jvm > }

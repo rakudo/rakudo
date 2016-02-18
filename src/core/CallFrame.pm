@@ -10,7 +10,7 @@ my class CallFrame {
         while $i-- {
             $ctx := nqp::ctxcaller($ctx);
         }
-        my $h := nqp::create(Map);
+        my $h := nqp::create(Stash);  # should probably be PseudoStash?
         nqp::bindattr($h, Map, '$!storage', $ctx);
         nqp::bindattr($self, CallFrame, '%!my', $h);
         nqp::bindattr($self, CallFrame, '$!level', $l);

@@ -7,13 +7,14 @@ my class Capture { # declared in BOOTSTRAP
 
     method from-args(|c) { c }
 
-    submethod BUILD(:@list, :%hash) {
+    submethod BUILD(:@list, :%hash --> Nil) {
         @list.elems; # force reification of all
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.list), List, '$!reified')
         );
-        my Mu $hs := nqp::getattr(nqp::decont(%hash), Map, '$!storage');
-        nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
+        nqp::bindattr(self,Capture,'$!hash',
+          nqp::getattr(nqp::decont(%hash),Map,'$!storage'))
+            if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
     }
 
     multi method WHICH (Capture:D:) {
@@ -31,33 +32,36 @@ my class Capture { # declared in BOOTSTRAP
         $WHICH;
     }
 
-    multi method AT-KEY(Capture:D: \key) is raw {
-        my str $skey = nqp::unbox_s(key.Str);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
-    }
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
-        my str $skey = nqp::unbox_s(key);
-        nqp::existskey($!hash,$skey) ?? nqp::atkey($!hash, $skey) !! Nil;
+        nqp::ifnull(nqp::atkey($!hash,nqp::unbox_s(key)), Nil)
+    }
+    multi method AT-KEY(Capture:D: \key) is raw {
+        nqp::ifnull(nqp::atkey($!hash,nqp::unbox_s(key.Str)), Nil)
     }
 
     multi method AT-POS(Capture:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::existspos($!list,pos) ?? nqp::atpos($!list,pos) !! Nil;
+        nqp::islt_i(pos,0)
+          ?? fail X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          !! nqp::ifnull(nqp::atpos($!list,pos),Nil)
     }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-          if nqp::islt_i($pos,0);
-        nqp::existspos($!list,$pos) ?? nqp::atpos($!list,$pos) !! Nil;
+        nqp::islt_i($pos,0)
+          ?? fail X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          !! nqp::ifnull(nqp::atpos($!list,$pos),Nil)
     }
 
     method hash(Capture:D:) {
-        my $enum := nqp::create(Map);
-        nqp::bindattr($enum, Map, '$!storage', $!hash);
-        $enum;
+        if nqp::defined($!hash) && nqp::elems($!hash) {
+            my $map := nqp::create(Map);
+            nqp::bindattr($map,Map,'$!storage',$!hash);
+            $map
+        }
+        else {
+            nqp::create(Map)
+        }
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key ) {
@@ -111,7 +115,7 @@ my class Capture { # declared in BOOTSTRAP
         }
     }
     multi method Bool(Capture:D:) {
-        $!list || $!hash ?? True !! False
+        ?($!list || $!hash)
     }
 
     method Capture(Capture:D:) {

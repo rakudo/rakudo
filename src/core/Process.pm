@@ -70,7 +70,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
         has Int $!id;
         has Str $!name;
 
-        submethod BUILD (:$!id, :$!name) { }
+        submethod BUILD(:$!id, :$!name --> Nil) { }
 
         method Numeric { $!id }
         method Str     { $!name }
@@ -80,7 +80,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     class IdFetch {
         has Str $!name;
 
-        submethod BUILD (:$!name) { PROCESS::{$!name} := self }
+        submethod BUILD(:$!name --> Nil) { PROCESS::{$!name} := self }
 
         sub fetch {
             once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {

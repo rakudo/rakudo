@@ -6,23 +6,26 @@ my class X::Assignment::ToShaped { ... };
 
 my class Rakudo::Internals {
 
-    our role MappyIterator does Iterator {
-        has $!hash-storage;
-        has $!hash-iter;
+    # an empty hash for when we need to iterate over something
+    my \no-keys := nqp::hash;
 
-        method BUILD(\hash) {
-            $!hash-storage := nqp::getattr(hash, Map, '$!storage');
-            $!hash-storage := nqp::hash() unless $!hash-storage.DEFINITE;
-            $!hash-iter    := nqp::iterator($!hash-storage);
+    our role MappyIterator does Iterator {
+        has $!storage;
+        has $!iter;
+
+        method !SET-SELF(\hash) {
+            $!storage := nqp::getattr(hash,Map,'$!storage');
+            $!storage := no-keys unless $!storage.DEFINITE;
+            $!iter    := nqp::iterator($!storage);
             self
         }
-        method new(\hash) { nqp::create(self).BUILD(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method count-only() {
-            $!hash-iter := Mu;
-            nqp::p6box_i(nqp::elems($!hash-storage))
+            $!iter := Mu;
+            nqp::p6box_i(nqp::elems($!storage))
         }
         method sink-all() {
-            $!hash-iter := Mu;
+            $!iter := Mu;
             IterationEnd
         }
     }
@@ -113,7 +116,7 @@ my class Rakudo::Internals {
         has @!pairs;
         has $!total;
 
-        method BUILD(\list-of-pairs) {
+        method !SET-SELF(\list-of-pairs) {
             $!total = 0;
             for list-of-pairs.pairs {
                 my $value := .value;
@@ -124,7 +127,7 @@ my class Rakudo::Internals {
             }
             self
         }
-        method new(\list-of-pairs) { nqp::create(self).BUILD(list-of-pairs) }
+        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
         method roll() {
             my $rand = $!total.rand;
             my $seen = 0;
@@ -538,7 +541,8 @@ my class Rakudo::Internals {
         has int $!bust;
         has $!lock;
 
-        submethod BUILD(:&!on-data-ready!, :&!on-completed!, :&!on-error!) {
+        submethod BUILD(
+          :&!on-data-ready!, :&!on-completed!, :&!on-error! --> Nil) {
             $!buffer := nqp::list();
             $!buffer-start-seq = 0;
             $!done-target = -1;
@@ -717,7 +721,6 @@ my class Rakudo::Internals {
 
     # easy access to compile options
     my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
-    $compiling-options := nqp::hash() if nqp::isnull($compiling-options);
 
     # running with --ll-exception
     method LL-EXCEPTION() {
@@ -872,7 +875,7 @@ my class Rakudo::Internals {
         my int $i = -1;
         Nil while ($i = $i + 1) < $elems && nqp::atpos($posixes,$i) < ($t - $i);
         tai - $initial-offset - $i,
-          $i < $elems && nqp::atpos($posixes,$i) == $t - $i
+          nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
     }
 
     my $initializers := nqp::hash;
@@ -1079,28 +1082,13 @@ my class Rakudo::Internals {
     }
 
     method FILETEST-MODIFIED(Str:D \abspath) {
-#?if moar
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_MODIFYTIME)
-#?endif
-#?if !moar
-        nqp::stat(nqp::unbox_s(abspath), nqp::const::STAT_MODIFYTIME)
-#?endif
     }
     method FILETEST-ACCESSED(Str:D \abspath) {
-#?if moar
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
-#?endif
-#?if !moar
-        nqp::stat(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
-#?endif
     }
     method FILETEST-CHANGED(Str:D \abspath) {
-#?if moar
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
-#?endif
-#?if !moar
-        nqp::stat(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
-#?endif
     }
 }
 

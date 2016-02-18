@@ -1,7 +1,7 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    submethod BUILD (:%!elems)  { }
+    submethod BUILD(:%!elems --> Nil)  { }
     method default(--> Bool) { False }
 
     multi method keys(Setty:D:) {
@@ -27,9 +27,9 @@ my role Setty does QuantHash {
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {
-        my %e;
-        %e{$_} = True for %!elems.values;
-        %e;
+        my \e = Hash.^parameterize(Bool, Any).new;
+        e{$_} = True for %!elems.values;
+        e;
     }
 
     multi method new(Setty: +@args) {

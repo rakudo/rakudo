@@ -20,8 +20,8 @@ sub awaiterator(@promises) {
     Seq.new(class :: does Iterator {
         has @!todo;
         has @!done;
-        method BUILD(\todo) { @!todo = todo; self }
-        method new(\todo) { nqp::create(self).BUILD(todo) }
+        method !SET-SELF(\todo) { @!todo = todo; self }
+        method new(\todo) { nqp::create(self)!SET-SELF(todo) }
         method pull-one() is raw {
             if @!done {
                 @!done.shift

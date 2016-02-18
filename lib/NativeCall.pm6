@@ -186,7 +186,6 @@ sub guess_library_name($lib, Bool $no-version = False) is export(:TEST) {
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
     warn "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '' and ! $no-version;
-
     return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
 }
 

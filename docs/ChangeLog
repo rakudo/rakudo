@@ -1,3 +1,25 @@
+New in 2016.01
+ + Fixes:
+   + Chained .grep calls on Supply fixed (RT #127297)
+   + Fixed interaction with perl6-debug and precompilation that resulted in an
+     endless loop
+   + re-enabled warning when smart-matching against a True or False literal
+   + Fixed internal error when reporting certain type errors (RT #127207)
+   + Fixed rare "duplicate definition of symbol" errors (RT #127107)
+   + Fixed interpolating of pairs with non-key strings into signatures
+   + Fixed error when smart-matching Seq against a Set (RT #127166)
+   + Improved error message when smart-matching against an S///-expression
+   + Fixed bad interaction between EXPORTHOW and multiple declarations (RT #126566)
+   + Fixed various issues regarding precompilation
+   + Improved accuracy of Complex.sqrt
+   + hyper now preserves order of results, as designed
+   + Range.sum on an empty, numeric Range is now 0
+   + Fixed Promise.allof() with an empty list of promises (RT #127101)
+   + Improved message on premature virtual method call (RT #127097)
+   + Better error message for module load failures of types that are part of
+     the setting
+   + Support for Readline in addition to Linenoise
+
 New in 2015.12:
  + Features
    + Fixed size and multi-dimensional typed and native arrays

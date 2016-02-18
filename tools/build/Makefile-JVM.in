@@ -8,7 +8,7 @@ NQP_PREFIX = @nqp_prefix@
 
 J_BUILD_DIR = gen/jvm
 
-PERL6_LANG_DIR = $(PREFIX)/share/nqp
+J_LIBPATH = $(PREFIX)/share/nqp/lib
 
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
@@ -365,9 +365,9 @@ sometests: j-all
 
 j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.pl
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
+	$(MKPATH) $(DESTDIR)$(J_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
+	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(J_LIBPATH)/Perl6
 	$(CP) $(SETTING_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime

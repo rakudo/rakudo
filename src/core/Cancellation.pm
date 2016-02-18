@@ -3,7 +3,7 @@ my class Cancellation {
     has $!lock;
     has @!async_handles;
 
-    submethod BUILD(:@!async_handles) {
+    submethod BUILD(:@!async_handles --> Nil) {
         $!cancelled = False;
         $!lock      = Lock.new;
     }

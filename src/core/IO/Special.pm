@@ -1,7 +1,7 @@
 class IO::Special {
     has Str $.what;
 
-    submethod BUILD(:$!what!)    { }
+    submethod BUILD(:$!what! --> Nil) { }
     method WHICH(IO::Special:D:) { "IO::Special$!what" }
     method Str(IO::Special:D:)   { $!what }
 

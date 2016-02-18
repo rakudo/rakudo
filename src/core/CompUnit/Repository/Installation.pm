@@ -6,7 +6,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo) { }
+    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
@@ -68,7 +68,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
-    exit run($*EXECUTABLE-NAME, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method !sources-dir() {
@@ -104,6 +104,23 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lookup.close;
     }
 
+    method !remove-dist-from-short-name-lookup-files($dist) {
+        my $short-dir = $.prefix.child('short');
+        return unless $short-dir.e;
+
+        my $id = $dist.id;
+
+        for $short-dir.dir -> $file {
+            my $filtered = ($file.lines ∖ $id);
+            if $filtered.elems > 0 {
+                $file.spurt: $filtered.keys.sort.map({"$_\n"}).join('');
+            }
+            else {
+                $file.unlink;
+            }
+        }
+    }
+
     method !file-id(Str $name, Str $dist-id) {
         my $id = $name ~ $dist-id;
         nqp::sha1($id)
@@ -134,7 +151,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # "provides" or just "files".
         for %sources.kv -> $name, $file is copy {
             $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!file-id($file, $dist-id);
+            # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
+            my $id          = self!file-id($name, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
             $dist.provides{ $name } = {
@@ -171,7 +189,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for %resources.kv -> $name, $file is copy {
             $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id             = self!file-id($file, $dist-id) ~ '.' ~ $file.IO.extension;
+            # $name is 'libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
+            my $id             = self!file-id($name, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
             $dist.files{$name} = $id;
             copy($file, $destination);
@@ -208,6 +227,21 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lock.unlock;
     } ) }
 
+    method uninstall(Distribution $dist) {
+        my %provides      = $dist.provides;
+        my %files         = $dist.files;
+        my $sources-dir   = self.prefix.child('sources');
+        my $resources-dir = self.prefix.child('resources');
+        my $bin-dir       = self.prefix.child('bin');
+        my $dist-dir      = self.prefix.child('dist');
+
+        self!remove-dist-from-short-name-lookup-files($dist);
+        $bin-dir.child($_.value).unlink for %files.grep: {$_.key ~~ /^bin\//};
+        $sources-dir.child($_).unlink for %provides.map(*.value<pm><file>);
+        $resources-dir.child($_).unlink for %files.values;
+        $dist-dir.child($dist.id).unlink;
+    }
+
     method files($file, :$name, :$auth, :$ver) {
         my @candi;
         my $prefix = self.prefix;
@@ -238,16 +272,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         @candi
     }
 
-    method need(
-        CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
-    {
+    method !matching-dist(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
-                my $dist-dir = self!dist-dir;
+                my $dist-dir = $.prefix.child('dist');
                 my @dists = $lookup.lines.unique.map({
                     $_ => from-json($dist-dir.child($_).slurp)
                 }).grep({
@@ -256,48 +285,69 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     and $_.value<provides>{$spec.short-name}:exists
                 });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
-                    my $dver = $dist<ver>
-                            ?? nqp::istype($dist<ver>,Version)
-                                ?? $dist<ver>
-                                !! Version.new( ~$dist<ver> )
-                            !! Version.new('0');
-
-                    my $loader = $.prefix.child('sources').child(
-                        $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
-                    );
-                    my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-                    my $handle;
-                    my $id = $loader.basename;
-                    if $precomp.may-precomp {
-                        $handle = (
-                            $precomp.load($id, :since($loader.modified)) # already precompiled?
-                            or $precomp.precompile($loader, $id) and $precomp.load($id) # if not do it now
-                        );
-                        if $*W and $*W.is_precompilation_mode {
-                            if $handle {
-                                say "$id $loader";
-                            }
-                            else {
-                                nqp::exit(0);
-                            }
-                        }
-                    }
-                    my $precompiled = defined $handle;
-                    $handle //= CompUnit::Loader.load-source-file($loader);
-                    my $compunit = CompUnit.new(
-                        :$handle,
-                        :short-name($spec.short-name),
-                        :version($dver),
-                        :auth($dist<auth> // Str),
-                        :repo(self),
-                        :repo-id($id),
-                        :$precompiled,
-                        :distribution(Distribution.new(|$dist)),
-                    );
-                    return %!loaded{$compunit.short-name} = $compunit;
+                    $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
+                    return ($dist-id, $dist);
                 }
             }
+        }
+        Nil
+    }
+
+    method resolve(
+        CompUnit::DependencySpecification $spec,
+    )
+        returns CompUnit
+    {
+        my ($dist-id, $dist) = self!matching-dist($spec);
+        if $dist-id {
+            my $loader = $.prefix.child('sources').child(
+                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+            );
+            my $id = $loader.basename;
+            return CompUnit.new(
+                :handle(CompUnit::Handle),
+                :short-name($spec.short-name),
+                :version($dist<ver>),
+                :auth($dist<auth> // Str),
+                :repo(self),
+                :repo-id($id),
+                :distribution(Distribution.new(|$dist)),
+            );
+        }
+        return self.next-repo.resolve($spec) if self.next-repo;
+        Nil
+    }
+
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+    )
+        returns CompUnit:D
+    {
+        my ($dist-id, $dist) = self!matching-dist($spec);
+        if $dist-id {
+            return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
+
+            my $loader = $.prefix.child('sources').child(
+                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+            );
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+            my $id = $loader.basename;
+            my $handle = $precomp.try-load($id, $loader);
+            my $precompiled = defined $handle;
+            $handle //= CompUnit::Loader.load-source-file($loader);
+
+            my $compunit = CompUnit.new(
+                :$handle,
+                :short-name($spec.short-name),
+                :version($dist<ver>),
+                :auth($dist<auth> // Str),
+                :repo(self),
+                :repo-id($id),
+                :$precompiled,
+                :distribution(Distribution.new(|$dist)),
+            );
+            return %!loaded{$compunit.short-name} = $compunit;
         }
         return self.next-repo.need($spec, $precomp) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
@@ -332,7 +382,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!precomp
     }
 
-    sub provides-warning($is-win, $name) {
+    sub provides-warning($is-win, $name --> Nil) {
         my ($red,$clear) = Rakudo::Internals.error-rcgye;
 
         note "$red==={$clear}WARNING!$red===$clear

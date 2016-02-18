@@ -5,9 +5,7 @@ my class AST {
     has $!quasi_context;
     has $!Str;
 
-    submethod BUILD(:$past) {
-        $!past := $past;
-    }
+    submethod BUILD(:$past --> Nil) { $!past := $past }
 
     method incarnate($quasi_context, @unquote_asts) {
         my $incarnation = self.clone();

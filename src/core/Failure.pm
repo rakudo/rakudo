@@ -5,31 +5,30 @@ my class Failure is Nil {
     has int $!handled;
 #?endif
 #?if jvm
-    has $!handled;
+    has Int $!handled;   # alas, native int breaks on the JVM
 #?endif
+
+    method !SET-SELF($!exception) {
+        $!backtrace = $!exception.backtrace || Backtrace.new(5);
+        $!exception.reset-backtrace;
+        self
+    }
 
     multi method new() {
         my $stash := CALLER::;
         my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
-        self.bless(:exception( $payload ~~ Exception
-          ?? $payload !! X::AdHoc.new(:$payload)
-        ))
+        nqp::create(self)!SET-SELF(
+          $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
+        )
     }
-    multi method new(Exception $exception) {
-        self.bless(:$exception);
+    multi method new(Exception:D \exception) {
+        nqp::create(self)!SET-SELF(exception)
     }
     multi method new($payload) {
-        self.bless(:exception( $payload ~~ Exception
-          ?? $payload !! X::AdHoc.new(:$payload)
-        ))
+        nqp::create(self)!SET-SELF(X::AdHoc.new(:$payload))
     }
     multi method new(|cap (*@msg)) {
-         self.bless(:exception(X::AdHoc.from-slurpy(|cap)));
-    }
-
-    submethod BUILD (:$!exception) {
-        $!backtrace = $!exception.backtrace() || Backtrace.new(8);
-        $!exception.reset-backtrace;
+        nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
     # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.
@@ -54,7 +53,19 @@ my class Failure is Nil {
         Bool::False;
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
-
+    method handled() {
+        Proxy.new(
+          FETCH => {
+#?if moar
+              nqp::p6bool($!handled)
+#?endif
+#?if jvm
+              $!handled.Bool
+#?endif
+          },
+          STORE => -> $, $value { $!handled = $value.Bool.Numeric }
+       )
+    }
 
 #?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }

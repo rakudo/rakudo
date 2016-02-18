@@ -12,9 +12,22 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
-        my $hash := Hash.new;
-        nqp::bindattr($hash,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
-        $hash
+        if nqp::defined($!storage) && nqp::elems($!storage) {
+            my $hash       := nqp::create(Hash);
+            my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
+            my $descriptor := nqp::null;
+            my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+            while $iter {
+                my $tmp := nqp::shift($iter);
+                nqp::bindkey($storage,nqp::iterkey_s($tmp),
+                  nqp::p6scalarfromdesc($descriptor) =
+                    nqp::decont(nqp::iterval($tmp)));
+            }
+            $hash
+        }
+        else {
+            nqp::create(Hash)
+        }
     }
 
     multi method Bool(Map:D:) {
@@ -69,8 +82,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method pairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                if $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                if $!iter {
+                    my \tmp = nqp::shift($!iter);
                     Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp))
                 }
                 else {
@@ -79,8 +92,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(
                       Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp)));
                 }
@@ -91,15 +104,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method keys(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                $!hash-iter
-                    ?? nqp::iterkey_s(nqp::shift($!hash-iter))
+                $!iter
+                    ?? nqp::iterkey_s(nqp::shift($!iter))
                     !! IterationEnd
             }
             method push-all($target) {
                 my $no-sink;
                 $no-sink :=
-                  $target.push(nqp::iterkey_s(nqp::shift($!hash-iter)))
-                    while $!hash-iter;
+                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
+                    while $!iter;
                 IterationEnd
             }
         }.new(self))
@@ -111,10 +124,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             method pull-one() is raw {
                 if $!on-value {
                     $!on-value = 0;
-                    nqp::iterval($!hash-iter)
+                    nqp::iterval($!iter)
                 }
-                elsif $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                elsif $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $!on-value = 1;
                     nqp::iterkey_s(tmp)
                 }
@@ -124,8 +137,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(nqp::iterkey_s(tmp));
                     $no-sink := $target.push(nqp::iterval(tmp));
                 }
@@ -136,14 +149,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method values(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() is raw {
-                $!hash-iter
-                    ?? nqp::iterval(nqp::shift($!hash-iter))
+                $!iter
+                    ?? nqp::iterval(nqp::shift($!iter))
                     !! IterationEnd
             }
             method push-all($target) {
                 my $no-sink;
-                $no-sink := $target.push(nqp::iterval(nqp::shift($!hash-iter)))
-                  while $!hash-iter;
+                $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
+                  while $!iter;
                 IterationEnd
             }
         }.new(self))
@@ -151,8 +164,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {
             method pull-one() {
-                if $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                if $!iter {
+                    my \tmp = nqp::shift($!iter);
                     Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) )
                 }
                 else {
@@ -161,8 +174,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my $no-sink;
-                while $!hash-iter {
-                    my \tmp = nqp::shift($!hash-iter);
+                while $!iter {
+                    my \tmp = nqp::shift($!iter);
                     $no-sink := $target.push(
                       Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) ));
                 }
@@ -174,10 +187,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.map: { (.value »=>» .key).cache.Slip }
     }
 
+    multi method AT-KEY(Map:D: Str:D \key) is raw {
+        nqp::defined($!storage)
+          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
+          !! Nil
+    }
     multi method AT-KEY(Map:D: \key) is raw {
-        my str $skey = nqp::unbox_s(key.Str);
-        nqp::defined($!storage) && nqp::existskey($!storage, $skey)
-          ?? nqp::atkey($!storage, $skey)
+        nqp::defined($!storage)
+          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
           !! Nil
     }
 
@@ -203,38 +220,38 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self
     }
 
-    proto method STORE_AT_KEY(|) is raw { * }
-    multi method STORE_AT_KEY(Str \key, Mu \value) is raw {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
+    proto method STORE_AT_KEY(|) { * }
+    multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
+        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
-    multi method STORE_AT_KEY(\key, Mu \value) is raw {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
+    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
+        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
 
     method Capture(Map:D:) {
-        my $cap := nqp::create(Capture);
-        nqp::bindattr($cap, Capture, '$!hash', $!storage);
-        $cap
+        if nqp::defined($!storage) {
+            my $cap := nqp::create(Capture);
+            nqp::bindattr($cap,Capture,'$!hash',$!storage);
+            $cap
+        }
+        else {
+            nqp::create(Capture)
+        }
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        nqp::defined($!storage) ||
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-        $!storage
+        nqp::defined($!storage)
+          ?? $!storage
+          !! nqp::bindattr(self,Map,'$!storage',nqp::hash)
     }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {
-        if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
-            self.keys.fmt($format, $sep);
-        }
-        else {
-            self.pairs.fmt($format, $sep);
-        }
+        nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
+          ?? self.keys.fmt($format, $sep)
+          !! self.pairs.fmt($format, $sep)
     }
 
     method hash() { self }

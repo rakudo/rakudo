@@ -21,17 +21,19 @@ my class Date does Dateish {
     method !SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
     proto method new(|) {*}
-    multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter) {
+    multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter, *%_) {
         (1..12).in-range($month,'Month');
         (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter)
+          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
-    multi method new(Date: :$year!, :$month = 1, :$day = 1, :&formatter) {
-        self.new($year,$month,$day,:&formatter)
+    multi method new(Date: Int() :$year!, Int() :$month = 1, Int() :$day = 1, :&formatter, *%_) {
+        self === Date
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
+          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
-    multi method new(Date: Str $date, :&formatter) {
+    multi method new(Date: Str $date, :&formatter, *%_) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $date,
           target      => 'Date',
@@ -43,9 +45,9 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new($0,$1,$2,:&formatter)
+        self.new($0,$1,$2,:&formatter,|%_)
     }
-    multi method new(Date: Dateish $d, :&formatter) {
+    multi method new(Date: Dateish $d, :&formatter, *%_) {
         self === Date
           ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
@@ -53,10 +55,11 @@ my class Date does Dateish {
                :month($d.month),
                :day($d.day),
                :&formatter,
+               |%_
              )
     }
-    multi method new(Date: Instant $i, :&formatter) {
-        self.new(DateTime.new($i),:&formatter)
+    multi method new(Date: Instant $i, :&formatter, *%_) {
+        self.new(DateTime.new($i),:&formatter,|%_)
     }
     method new-from-daycount($daycount,:&formatter) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);

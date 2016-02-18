@@ -3,15 +3,13 @@ my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 
-    proto method new(|) { * }
-    multi method new(Real \re, Real \im) {
-        nqp::create(self).BUILD(re, im);
-    }
-    submethod BUILD(Num() \re, Num() \im) {
+    method !SET-SELF(Num() \re, Num() \im) {
         $!re = re;
         $!im = im;
-        self;
+        self
     }
+    proto method new(|) { * }
+    multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
 
     multi method WHICH(Complex:D:) {
         nqp::box_s(

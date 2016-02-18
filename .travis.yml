@@ -1,8 +1,12 @@
 language: "perl"
-perl:
-    - "5.10"
+
+os:
+    - linux
+    - osx
 
 sudo: false
+
+fast_finish: true
 
 install: "echo"
 
@@ -16,7 +20,7 @@ branches:
 notifications:
   irc:
     channels:
-    - "irc.freenode.net#perl6"
+      - "irc.freenode.net#perl6"
     on_success: change
     on_failure: always
     template:

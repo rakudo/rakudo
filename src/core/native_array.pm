@@ -184,12 +184,12 @@ my class array does Iterable is repr('VMArray') {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method BUILD(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).BUILD(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -379,12 +379,12 @@ my class array does Iterable is repr('VMArray') {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method BUILD(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).BUILD(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -732,7 +732,7 @@ sub permutations(int $n where $n > 0) {
             # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
             has int $!n;
             has     @!a;
-            submethod BUILD(:$n) { $!n = $n; self }
+            submethod BUILD(:$n --> Nil) { $!n = $n } # cannot set native in sig
             #method is-lazy { True }
             method pull-one {
                 return (@!a = ^$!n).List unless @!a;

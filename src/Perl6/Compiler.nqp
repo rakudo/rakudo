@@ -44,6 +44,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!readline;
     has $!readline_add_history;
     has $!completions;
+    has $!multi-line-enabled;
 
     method compilation-id() {
         my class IDHolder { }
@@ -178,6 +179,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method interactive(*%adverbs) {
+        $!multi-line-enabled := !nqp::atkey(nqp::getenvhash(), 'RAKUDO_DISABLE_MULTILINE');
         my $readline_loaded := 0;
         my $problem;
 
@@ -323,4 +325,36 @@ class Perl6::Compiler is HLL::Compiler {
         $line;
     }
 
+    method eval($code, *@args, *%adverbs) {
+        my $super := nqp::findmethod(HLL::Compiler, 'eval');
+        unless $!multi-line-enabled {
+            return $super(self, $code, |@args, |%adverbs);
+        }
+
+        my $output := '';
+        my $ex;
+        try {
+            $output := $super(self, $code, |@args, |%adverbs);
+
+            CATCH {
+                if nqp::what($_).HOW.name(nqp::what($_)) eq 'BOOTException' {
+                    my $inner := nqp::getpayload(nqp::decont($_));
+
+                    if $inner {
+                        my $ex-type := nqp::what($inner).HOW.name(nqp::what($inner));
+                        if $ex-type eq 'X::Syntax::Missing' {
+                            if $inner.pos() == nqp::chars($code) {
+                                return self.needs-more-input();
+                            }
+                        }
+                    }
+                }
+                $ex := $_;
+            }
+        }
+        if $ex {
+            nqp::rethrow($ex);
+        }
+        $output;
+    }
 }

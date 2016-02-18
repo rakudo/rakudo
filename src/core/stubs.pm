@@ -35,13 +35,9 @@ sub DYNAMIC(\name) is raw {
           unless nqp::isnull(prom);
         if nqp::isnull(x) {
             my str $pkgname = nqp::replace($name, 1, 1, '');
-            x := nqp::existskey((my \globalwho := GLOBAL.WHO), $pkgname)
-              ?? nqp::atkey(globalwho, $pkgname)
-#              !! nqp::existskey((my \settingwho := SETTING.WHO), $pkgname)
-#                ?? nqp::atkey(settingwho, $pkgname)
-                !! nqp::existskey((my \processwho := PROCESS.WHO), $pkgname)
-                  ?? nqp::atkey(processwho, $pkgname)
-                  !! Rakudo::Internals.INITIALIZE-DYNAMIC($name);
+            x := nqp::ifnull(nqp::atkey(GLOBAL.WHO,$pkgname),
+                   nqp::ifnull(nqp::atkey(PROCESS.WHO,$pkgname),
+                     Rakudo::Internals.INITIALIZE-DYNAMIC($name)));
             fail x if nqp::istype(x, Exception);
         }
     }

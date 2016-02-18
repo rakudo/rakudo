@@ -1,5 +1,4 @@
 # for our tantrums
-my class X::TypeCheck { ... }
 my class X::TypeCheck::Splice { ... }
 my class X::Cannot::Lazy { ... }
 my class X::Cannot::Empty { ... }

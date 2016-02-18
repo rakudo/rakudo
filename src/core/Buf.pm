@@ -3,6 +3,7 @@ my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
+my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     multi method new() {
@@ -299,34 +300,67 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::bindpos_i(self,$pos,assignee)
     }
 
-    multi method push(Buf:D: Mu $value) {
-        nqp::push_i(self,$value);
-        self
+    multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
+    multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
+    multi method push(Buf:D: Mu $got) {
+        X::TypeCheck.new(:operation("push to Buf"),:$got,:expected(T)).throw
     }
-    multi method push(Buf:D: *@values) {
-        self!append(@values,'push')
-    }
+    multi method push(Buf:D:  @values) { self!pend(@values,'push') }
+    multi method push(Buf:D: *@values) { self!pend(@values,'push') }
 
-    multi method append(Buf:D: Mu $value) {
-        nqp::push_i(self,$value);
-        self
+    multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
+    multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
+    multi method append(Buf:D: Mu $got) {
+        X::TypeCheck.new(:operation("append to Buf"),:$got,:expected(T)).throw
     }
-    multi method append(Buf:D: @values) {
-        self!append(@values,'append')
-    }
-    multi method append(Buf:D: *@values) {
-        self!append(@values,'append')
-    }
+    multi method append(Buf:D:  @values) { self!pend(@values,'append') }
+    multi method append(Buf:D: *@values) { self!pend(@values,'append') }
 
-    method !append(Buf:D: @values, $action) {
+    multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
+    multi method unshift(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
+    multi method unshift(Buf:D: Mu $got) {
+        X::TypeCheck.new(:operation("unshift to Buf"),:$got,:expected(T)).throw
+    }
+    multi method unshift(Buf:D:  @values) { self!pend(@values,'unshift') }
+    multi method unshift(Buf:D: *@values) { self!pend(@values,'unshift') }
+
+    multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
+    multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
+    multi method prepend(Buf:D: Mu $got) {
+        X::TypeCheck.new(:operation("prepend to Buf"),:$got,:expected(T)).throw
+    }
+    multi method prepend(Buf:D:  @values) { self!pend(@values,'prepend') }
+    multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }
+
+    method !pend(Buf:D: @values, $action) {
         fail X::Cannot::Lazy.new(:$action,:what(self.^name))
           if @values.is-lazy;
 
         my     $list := nqp::getattr(@values,List,'$!reified');
         my int $elems = nqp::elems($list);
-        my int $i     = -1;
-        nqp::push_i(self,nqp::atpos($list,$i))
-          while nqp::islt_i($i = $i + 1,$elems);
+        my int $i;
+
+        CATCH {
+            nqp::istype($_,X::AdHoc)
+              && .payload eq "This type cannot unbox to a native integer"
+                ?? X::TypeCheck.new(
+                     operation => "{$action}ing element #$i to Buf",
+                     got       => nqp::atpos($list,$i),
+                     expected  => T,
+                   ).throw
+                !! .throw
+        }
+
+        if $action eq 'push' || $action eq 'append' {
+            $i = -1;
+            nqp::push_i(self,nqp::atpos($list,$i))
+              while nqp::islt_i($i = $i + 1,$elems);
+        }
+        else {
+            $i = $elems;
+            nqp::unshift_i(self,nqp::atpos($list,$i))
+              while nqp::isge_i($i = $i - 1,0);
+        }
         self
     }
 }

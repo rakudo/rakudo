@@ -1423,27 +1423,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
           if $from.chars == 1;
 
-        sub expand(Str:D \x) {
-            my str $s     = nqp::unbox_s(x);
-            my int $found = nqp::index($s,'..',1);
-            return x       #  not found or at the end without trail
-              if nqp::iseq_i($found,-1) || nqp::iseq_i($found,nqp::chars($s)-2);
-
-            my int $from   = nqp::ordat($s,$found - 1);
-            my int $to     = nqp::ordat($s,$found + 2);
-            my Mu $result := nqp::list_s();
-
-            nqp::push_s($result,nqp::substr($s,0,$found - 1));
-            while nqp::isle_i($from,$to) {
-                nqp::push_s($result,nqp::chr($from));
-                $from = $from + 1;
-            }
-            nqp::push_s($result,nqp::substr($s,$found + 3));
-
-            expand(nqp::p6box_s(nqp::join('',$result)));
-        }
-
-        my str $sfrom  = nqp::unbox_s(expand($from));
+        my str $sfrom  = Rakudo::Internals.EXPAND-LITERAL-RANGE($from,0);
         my str $str    = nqp::unbox_s(self);
         my str $chars  = nqp::chars($str);
         my Mu $result := nqp::list_s();
@@ -1471,8 +1451,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # multiple chars to convert to
             else {
-                my str $sto   = nqp::unbox_s(expand($to));
-                my int $sfl   = nqp::chars($sfrom);
+                my str $sto = Rakudo::Internals.EXPAND-LITERAL-RANGE($to,0);
+                my int $sfl = nqp::chars($sfrom);
                 my int $found;
 
                 # repeat until mapping complete
@@ -1680,9 +1660,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my sub expand($s) {
             nqp::istype($s,Iterable) || nqp::istype($s,Positional)
               ?? myflat($s.list).Slip
-              !! flat $s.comb(/ (\w) '..' (\w) | . /, :match).map: {
-                     flat(.[0] ?? ~.[0] .. ~.[1] !! ~$_).Slip
-                 }
+              !! Rakudo::Internals.EXPAND-LITERAL-RANGE($s,1)
         }
 
         my $substitutions := nqp::list;

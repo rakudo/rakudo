@@ -1810,8 +1810,20 @@ my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);
     has $.expected is default(Nil);
-    method gotn()      { (try $!got.^name eq $!expected.^name ?? $!got.perl      !! $!got.^name)      // "?" }
-    method expectedn() { (try $!got.^name eq $!expected.^name ?? $!expected.perl !! $!expected.^name) // "?" }
+    method gotn() {
+        my $perl = (try $!got.perl) // "?";
+        $perl = "$perl.substr(0,21)..." if $perl.chars > 24;
+        (try $!got.^name eq $!expected.^name
+          ?? $perl
+          !! "$!got.^name() ($perl)"
+        ) // "?"
+    }
+    method expectedn() {
+        (try $!got.^name eq $!expected.^name
+          ?? $!expected.perl
+          !! $!expected.^name
+        ) // "?"
+    }
     method priors() {
         my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
             "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";

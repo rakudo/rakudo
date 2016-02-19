@@ -454,6 +454,7 @@ S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 S06-operator-overloading/semicolon.t
 S06-operator-overloading/sub.t   # slow
+S06-operator-overloading/prefix.t
 S06-operator-overloading/term.t
 S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t

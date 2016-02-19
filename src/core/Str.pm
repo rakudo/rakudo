@@ -1038,7 +1038,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   && nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
                     nqp::push($positions,Pair.new($i,nqp::unbox_i($index)));
                     nqp::push($sorted,nqp::unbox_i($found = $found + 1));
-                    $pos  = $i + $chars;
+                    $pos  = $i + 1;
                     $todo = $todo - 1;
                 }
                 $tried = $tried + 1;

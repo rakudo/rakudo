@@ -65,25 +65,11 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
 
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
-        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int)))
-                },
-                STORE => method (int $v) {
-                    nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos.Int), $v);
-                    self
-                }
+        multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
+            nqp::atposref_i(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_i(nqp::atpos_i(nqp::decont(arr), $pos))
-                },
-                STORE => method (int $v) {
-                    nqp::bindpos_i(nqp::decont(arr), $pos, $v);
-                    self
-                }
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+            nqp::atposref_i(nqp::decont(arr), $pos);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
@@ -100,25 +86,11 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
-        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int)))
-                },
-                STORE => method (num $v) {
-                    nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos.Int), $v);
-                    self
-                }
+        multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
+            nqp::atposref_n(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
-            Proxy.new:
-                FETCH => method () {
-                    nqp::p6box_n(nqp::atpos_n(nqp::decont(arr), $pos))
-                },
-                STORE => method (num $v) {
-                    nqp::bindpos_n(nqp::decont(arr), $pos, $v);
-                    self
-                }
+        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+            nqp::atposref_n(nqp::decont(arr), $pos);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);

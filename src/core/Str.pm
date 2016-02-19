@@ -1652,6 +1652,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method trans(Str:D:
       *@changes, :c(:$complement), :s(:$squash), :d(:$delete)) {
+
+        # nothing to do
+        return self unless self.chars;
+
         $/ := nqp::getlexcaller('$/');
 
         my sub myflat(*@s) {
@@ -1663,6 +1667,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! Rakudo::Internals.EXPAND-LITERAL-RANGE($s,1)
         }
 
+        my int $just-strings = !$complement && !$squash;
+        my int $just-chars   = $just-strings;
+        my $needles := nqp::list;
+        my $pins    := nqp::list;
+
         my $substitutions := nqp::list;
         for @changes -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw
@@ -1671,9 +1680,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my $key   := $p.key;
             my $value := $p.value;
             if nqp::istype($key,Regex) {
+                $just-strings = 0;
                 nqp::push($substitutions,$p);
             }
             elsif nqp::istype($value,Callable) {
+                $just-strings = 0;
                 nqp::push($substitutions,Pair.new($_,$value)) for expand $key;
             }
             else {
@@ -1688,13 +1699,66 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     !! '';
 
                 my int $i = -1;
-                nqp::push($substitutions,Pair.new(nqp::atpos($from,$i),
-                  nqp::islt_i($i,$to-elems) ?? nqp::atpos($to,$i) !! $padding))
-                  while nqp::islt_i($i = $i + 1,$from-elems);
+                while nqp::islt_i($i = $i + 1,$from-elems) {
+                    my $key   := nqp::atpos($from,$i);
+                    my $value := nqp::islt_i($i,$to-elems)
+                      ?? nqp::atpos($to,$i)
+                      !! $padding;
+                    nqp::push($substitutions,Pair.new($key,$value));
+                    if $just-strings {
+                        if nqp::istype($key,Str) && nqp::istype($value,Str) {
+                            $key := nqp::unbox_s($key);
+                            $just-chars = 0 if nqp::isgt_i(nqp::chars($key),1);
+                            nqp::push($needles,$key);
+                            nqp::push($pins,nqp::unbox_s($value));
+                        }
+                        else {
+                            $just-strings = 0;
+                        }
+                    }
+                }
             }
         }
 
-        LSM.new(self,$substitutions,$squash,$complement).result;
+        # can do special cases for just strings
+        if $just-strings {
+
+            # only need to go through string once
+            if $just-chars {
+                my $lookup   := nqp::hash;
+                my int $elems = nqp::elems($needles);
+                my int $i     = -1;
+                nqp::bindkey($lookup,
+                  nqp::atpos($needles,$i),nqp::atpos($pins,$i))
+                  while nqp::islt_i($i = $i + 1,$elems);
+
+                my $result := nqp::split("",nqp::unbox_s(self));
+                $i = -1;
+                $elems = nqp::elems($result);
+                nqp::bindpos($result,$i,
+                  nqp::atkey($lookup,nqp::atpos($result,$i)))
+                    if nqp::existskey($lookup,nqp::atpos($result,$i))
+                  while nqp::islt_i($i = $i + 1,$elems);
+                nqp::join("",$result)
+            }
+
+            # use multi-needle split with in-place mapping
+            else {
+                my $result :=
+                  nqp::getattr(self.split($needles,:k),List,'$!reified');
+                my int $elems = nqp::elems($result);
+                my int $i    = -1;
+                nqp::bindpos($result,$i,
+                  nqp::atpos($pins,nqp::atpos($result,$i)))
+                  while nqp::islt_i($i = $i + 2,$elems);
+                nqp::join("",$result)
+            }
+        }
+
+        # alas, need to use more complex route
+        else {
+            LSM.new(self,$substitutions,$squash,$complement).result;
+        }
     }
     proto method indent($) {*}
     # Zero indent does nothing

@@ -17,7 +17,7 @@ Note that we are trying very hard to insure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to insure any compatibility issues are resolved.
 
-  2016-02-20   Rakudo #96
+  2016-02-20   Rakudo #96    Coke
   2016-03-19   Rakudo #97
   2016-04-16   Rakudo #98
   2016-05-21   Rakudo #99

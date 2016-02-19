@@ -1659,7 +1659,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         my sub expand($s) {
             nqp::istype($s,Iterable) || nqp::istype($s,Positional)
-              ?? myflat($s.list).Slip
+              ?? (my @ = myflat($s.list).Slip)
               !! Rakudo::Internals.EXPAND-LITERAL-RANGE($s,1)
         }
 
@@ -1677,18 +1677,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::push($substitutions,Pair.new($_,$value)) for expand $key;
             }
             else {
-                my @from = expand $key;
-                my @to = expand $value;
-                if @to {
-                    my $padding = $delete ?? '' !! @to[@to - 1];
-                    @to = flat @to, $padding xx @from - @to;
-                }
-                else {
-                    @to = '' xx @from
-                }
-                for flat @from Z @to -> $f, $t {
-                    nqp::push($substitutions,Pair.new($f,$t));
-                }
+                my $from := nqp::getattr(expand($key),  List,'$!reified');
+                my $to   := nqp::getattr(expand($value),List,'$!reified');
+                my $from-elems = nqp::elems($from);
+                my $to-elems   = nqp::elems($to);
+                my $padding = $delete
+                  ?? ''
+                  !! $to-elems
+                    ?? nqp::atpos($to,$to-elems - 1)
+                    !! '';
+
+                my int $i = -1;
+                nqp::push($substitutions,Pair.new(nqp::atpos($from,$i),
+                  nqp::islt_i($i,$to-elems) ?? nqp::atpos($to,$i) !! $padding))
+                  while nqp::islt_i($i = $i + 1,$from-elems);
             }
         }
 

@@ -12,6 +12,7 @@ New in 2016.02
    + Specifying ::a now gives proper compile time error (RT #127504)
    + Rakudo jars are now installed in the proper location
    + Enums with a type object now fail with an NYI error
+   + .first(:end) on uncached iterators no longer fails
  + Additions:
    + Buf.unshift/Buf.prepend
    + DateTime.new(y,mo,d,h,mi,s) fully positional candidate

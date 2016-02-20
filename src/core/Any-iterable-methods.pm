@@ -698,7 +698,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method first(|) is nodal { * }
     multi method first(:$end) {
         $end
-          ?? ((my $elems = self.elems) ?? self.AT-POS($elems - 1) !! Nil)
+          ?? ((my $elems = +self) ?? self.AT-POS($elems - 1) !! Nil)
           !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
     }
     multi method first(Bool:D $t) {
@@ -706,7 +706,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Regex:D $test, :$end, *%a) is raw {
         if $end {
-            my $elems = self.elems;
+            my $elems = +self;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
                 return self!first-result($index,$_,'first :end',%a)
@@ -727,7 +727,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
-            my $elems = self.elems;
+            my $elems = +self;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
                 return self!first-result($index,$_,'first :end',%a)
@@ -748,7 +748,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Mu $test, :$end, *%a) is raw {
         if $end {
-            my $elems = self.elems;
+            my $elems = +self;
             if $elems && !($elems == Inf) {
                 my int $index = $elems;
                 return self!first-result($index,$_,'first :end',%a)

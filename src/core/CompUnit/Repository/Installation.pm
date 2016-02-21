@@ -126,6 +126,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
+
+    method !repo-prefix() {
+        my $repo-prefix = CompUnit::RepositoryRegistry.name-for-repository(self) // '';
+        $repo-prefix ~= '#' if $repo-prefix;
+        $repo-prefix
+    }
+
     method install(Distribution $dist, %sources, %scripts?, %resources?, :$force) {
         $!lock.protect( {
         my @*MODULES;
@@ -199,23 +206,41 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $dist-dir.child($dist-id).spurt: to-json($dist.Hash);
 
         my $precomp = $*REPO.precomp-repository;
-        my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-        my %done;
-        for $dist.provides.values.map(*.values[0]<file>) -> $id {
-            my $source = $sources-dir.child($id);
-            if $precomp.may-precomp {
+        my $repo-prefix = self!repo-prefix;
+        if $precomp.may-precomp {
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+            my %done;
+            for $dist.provides.kv -> $source-name, $ext {
+                my $id = $ext.values[0]<file>;
+                my $source = $sources-dir.child($id);
                 my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
-                if %done{$id} { note "(Already did $id)" if $verbose; next }
-                note("Precompiling $id") if $verbose;
-                $precomp.precompile($source.IO, $id, :force);
+                if %done{$id} {
+                    note "(Already did $id)" if $verbose;
+                    next;
+                }
+                note("Precompiling $id ($source-name)") if $verbose;
+                $precomp.precompile(
+                    $source.IO,
+                    $id,
+                    :force,
+                    :source-name("$repo-prefix$source.relative($.prefix) ($source-name)"),
+                );
                 %done{$id} = 1;
                 for @rev-deps -> $rev-dep-id {
-                    if %done{$rev-dep-id} { note "(Already did $rev-dep-id)" if $verbose; next }
-                    note("Precompiling $rev-dep-id") if $verbose;
+                    if %done{$rev-dep-id} {
+                        note "(Already did $rev-dep-id)" if $verbose;
+                        next;
+                    }
+                    note("Precompiling rev-dep $rev-dep-id") if $verbose;
                     my $source = $sources-dir.child($rev-dep-id);
-                    $precomp.precompile($source, $rev-dep-id, :force) if $source.e;
+                    $precomp.precompile(
+                        $source,
+                        $rev-dep-id,
+                        :force,
+                        :source-name($repo-prefix ~ $source.relative($.prefix))
+                    ) if $source.e;
                     %done{$rev-dep-id} = 1;
                 }
             }
@@ -333,7 +358,12 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             );
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $id = $loader.basename;
-            my $handle = $precomp.try-load($id, $loader);
+            my $repo-prefix = self!repo-prefix;
+            my $handle = $precomp.try-load(
+                $id,
+                $loader,
+                :source-name("$repo-prefix$loader.relative($.prefix) ($spec.short-name())"),
+            );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
 

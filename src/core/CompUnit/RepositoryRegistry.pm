@@ -179,6 +179,16 @@ class CompUnit::RepositoryRegistry {
           !! Nil
     }
 
+    method name-for-repository(CompUnit::Repository $repo) {
+        $*REPO; # initialize if not yet done
+        my $iter := nqp::iterator($custom-lib);
+        while $iter {
+            my \pair = nqp::shift($iter);
+            return nqp::iterkey_s(pair) if nqp::iterval(pair).prefix eq $repo.prefix;
+        }
+        Nil
+    }
+
     method head() { # mostly usefull for access from NQP
         $*REPO
     }

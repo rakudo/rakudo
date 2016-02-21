@@ -23,11 +23,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     my $lle;
     my $profile;
 
-    method try-load(CompUnit::PrecompilationId $id, IO::Path $source) returns CompUnit::Handle {
+    method try-load(CompUnit::PrecompilationId $id, IO::Path $source, :$source-name) returns CompUnit::Handle {
         my $handle = (
             self.may-precomp and (
                 self.load($id, :since($source.modified)) # already precompiled?
-                or self.precompile($source, $id) and self.load($id) # if not do it now
+                or self.precompile($source, $id, :$source-name) and self.load($id) # if not do it now
             )
         );
         my $precompiled = ?$handle;
@@ -107,7 +107,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
     }
 
-    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False) {
+    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False, :$source-name) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
@@ -141,6 +141,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           $profile,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
           "--output=$io",
+          "--source-name=$source-name",
           $path,
           :out,
           :err,

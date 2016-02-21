@@ -75,7 +75,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             my $id = nqp::sha1($name ~ $*REPO.id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = $precomp.try-load($id, $file);
+            my $handle = $precomp.try-load($id, $file, :source-name("$file ($spec.short-name())"));
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($file); # precomp failed
 

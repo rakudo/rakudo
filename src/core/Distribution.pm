@@ -34,7 +34,6 @@ class Distribution {
 }
 
 role CompUnit::Repository { ... }
-class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 class Distribution::Resources does Associative {
     has Str $.dist-id;
     has Str $.repo;

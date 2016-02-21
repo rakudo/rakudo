@@ -1,6 +1,7 @@
 my class Exception { ... }
 
 my class Backtrace { ... }
+my class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 
 my $RAKUDO-VERBOSE-STACKFRAME;
 
@@ -93,6 +94,11 @@ my class Backtrace {
 
             my $file := $annotations<file>;
             next unless $file;
+
+            my @parts = $file.split('#', 2);
+            if @parts.elems == 2 {
+                $file := CompUnit::RepositoryRegistry.repository-for-name(@parts[0]).prefix.child(@parts[1]).abspath;
+            }
 
             # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')

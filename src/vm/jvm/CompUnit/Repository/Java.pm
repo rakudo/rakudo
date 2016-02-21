@@ -6,11 +6,12 @@ class CompUnit::Repository::Java does CompUnit::Repository {
         returns CompUnit:D
     {
         if $spec.from eq 'Java' {
-            my $nqp := nqp::gethllsym('perl6', 'ModuleLoader');
+            my $java := nqp::gethllsym('perl6', 'JavaModuleLoader');
+            say "got hllsym JavaModuleLoader..." if %*ENV<RAKUDO_MODULE_DEBUG>;
 
             return CompUnit.new(
                 :short-name($spec.short-name),
-                :handle(CompUnit::Handle.new($nqp.load_module($spec.short-name, {:from<NQP>}))),
+                :handle(CompUnit::Handle.new($java.load_module($spec.short-name, {:from<Java>}))),
                 :repo(self),
                 :repo-id($spec.short-name),
                 :from($spec.from),

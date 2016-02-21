@@ -123,9 +123,7 @@ my class Cool { # declared in BOOTSTRAP
     method chr() {
         self.Int.chr;
     }
-    method chrs(Cool:D:) {
-        self>>.chr.join;
-    }
+    method chrs(Cool:D:) { chrs(self.list) }
     method ords(Cool:D:) { self.Str.ords }
 
 

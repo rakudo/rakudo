@@ -2110,7 +2110,15 @@ sub UNBASE_BRACKET($base, @a) {
 }
 
 sub chrs(*@c) returns Str:D {
-    @c.map({.chr}).join;
+    fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;
+    my $list     := nqp::getattr(@c,List,'$!reified');
+    my int $i     = -1;
+    my int $elems = nqp::elems($list);
+    my $result   := nqp::list;
+    nqp::setelems($result,$elems);
+    nqp::bindpos($result,$i,nqp::chr(nqp::atpos($list,$i)))
+      while ($i = $i + 1) < $elems;
+    nqp::join("",$result)
 }
 
 proto sub substr(|) { * }

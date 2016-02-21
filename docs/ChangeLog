@@ -21,6 +21,7 @@ New in 2016.02
    + REPL now supports multi-line statements (experimental)
  + Efficiency:
    + Str.trans can now be up to 160x faster
+   + @a.chrs noq 3x faster, chrs(@a) now 9x faster
    + Many Map/Hash related functions can be up to 2x as fast
    + Magic increment/decrement on strings 2x as fast
    + Some percentages improvement in object creation, phaser handling,

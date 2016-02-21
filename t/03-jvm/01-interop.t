@@ -5,9 +5,9 @@ plan 25;
 
 {
     # still supported
-    use java::lang::String:from<java>;
+    use java::lang::String:from<Java>;
 
-    ok 1, "alive after 'use java::lang::String:from<java>' (not deprecated yet)";
+    ok 1, "alive after 'use java::lang::String:from<Java>' (not deprecated yet)";
 }
 
 {

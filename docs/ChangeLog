@@ -8,7 +8,7 @@ New in 2016.02
    + Exception.fail now dies reliably outside of a routine
    + fix problem with Str.split with multiple overlapping needles
    + Map.Hash now correctly separates from the Map
-   + Fix rondtrip issues of Instants
+   + Fix roundtrip issues of Instants
    + Specifying ::a now gives proper compile time error (RT #127504)
    + Rakudo jars are now installed in the proper location
    + Enums with a type object now fail with an NYI error

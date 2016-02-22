@@ -17,7 +17,6 @@ Note that we are trying very hard to insure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to insure any compatibility issues are resolved.
 
-  2016-02-20   Rakudo #96    Coke
   2016-03-19   Rakudo #97
   2016-04-16   Rakudo #98
   2016-05-21   Rakudo #99
@@ -355,8 +354,9 @@ Previous releases were bundled as part of monthly Parrot releases.
   2015-11-19   Rakudo #93 "Bend"               (Coke)
 
   2015-12-25   Rakudo #94 "коледа"             (Coke) # v6.c
-  2016-02-01   Rakudo #95                      (Coke)
+  2016-02-01   Rakudo #95 "2016.01"            (Coke)
   2016-02-02   2016.01.1                       (Coke)
+  2016-02-21   Rakudo #96 "2016.02"            (Coke)
 
 =head1 COPYRIGHT
 

@@ -85,12 +85,12 @@ in a year not reflected by the file’s copyright notice.)
 
 Update Rakudo’s leap-second tables:
 
-  $ perl tools/update-tai-utc.pl src/core/tai-utc.pm
+  $ perl tools/update-tai-utc.pl
 
 If a new leap second has been announced, F<tai-utc.pm> will be modified, so
 commit the new version:
 
-  $ git commit src/core/tai-utc.pm
+  $ git commit src
 
 But probably there won’t be any new leap seconds, in which case the file
 will be unchanged.

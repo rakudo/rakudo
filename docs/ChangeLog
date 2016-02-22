@@ -25,7 +25,7 @@ New in 2016.02
    + Many Map/Hash related functions can be up to 2x as fast
    + Magic increment/decrement on strings 2x as fast
    + Some percentages improvement in object creation, phaser handling,
-     summing, creating failures,
+     summing, creating failures.
    + Object hashes re-implemented using 1 internal hash, instead of 2.
      This results in about 10% less memory usage, and a few % less in CPU
 

@@ -1,6 +1,7 @@
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
+my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
@@ -298,6 +299,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
             if nqp::islt_i($pos,0);
         nqp::bindpos_i(self,$pos,assignee)
+    }
+
+    multi method pop(Buf:D:) {
+        nqp::elems(self)
+          ?? nqp::pop_i(self)
+          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name))
     }
 
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }

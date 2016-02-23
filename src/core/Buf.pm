@@ -320,6 +320,19 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         );
     }
 
+    multi method splice(Buf:D: int @values, $offset = 0, $size = Whatever) {
+        my int $remove = nqp::istype($size,Whatever)
+          ?? nqp::elems(self) - $offset
+          !! nqp::istype($size,Int)
+            ?? $size
+            !! $size.Int;
+        my $result := $remove
+          ?? self.subbuf($offset,$remove)  # until something smarter
+          !! nqp::create(self);
+        nqp::splice(self,@values,$offset,$remove);
+        $result
+    }
+
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Mu $got) { self!fail-typecheck('push',$got) }

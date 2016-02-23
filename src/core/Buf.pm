@@ -312,6 +312,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method push(Buf:D: Mu $got) {
         X::TypeCheck.new(:operation("push to Buf"),:$got,:expected(T)).throw
     }
+    multi method push(Buf:D: int @values) {
+        my int $elems = nqp::elems(@values);
+        my int $i     = -1;
+        nqp::push_i(self,nqp::atpos_i(@values,$i)) while ($i = $i + 1) < $elems;
+        self
+    }
     multi method push(Buf:D:  @values) { self!pend(@values,'push') }
     multi method push(Buf:D: *@values) { self!pend(@values,'push') }
 
@@ -319,6 +325,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Mu $got) {
         X::TypeCheck.new(:operation("append to Buf"),:$got,:expected(T)).throw
+    }
+    multi method append(Buf:D: int @values) {
+        my int $elems = nqp::elems(@values);
+        my int $i     = -1;
+        nqp::push_i(self,nqp::atpos_i(@values,$i)) while ($i = $i + 1) < $elems;
+        self
     }
     multi method append(Buf:D:  @values) { self!pend(@values,'append') }
     multi method append(Buf:D: *@values) { self!pend(@values,'append') }
@@ -328,6 +340,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method unshift(Buf:D: Mu $got) {
         X::TypeCheck.new(:operation("unshift to Buf"),:$got,:expected(T)).throw
     }
+    multi method unshift(Buf:D: int @values) {
+        my int $elems = nqp::elems(@values);
+        my int $i     = $elems;
+        nqp::unshift_i(self,nqp::atpos_i(@values,$i)) while ($i = $i - 1) > 0;
+        self
+    }
     multi method unshift(Buf:D:  @values) { self!pend(@values,'unshift') }
     multi method unshift(Buf:D: *@values) { self!pend(@values,'unshift') }
 
@@ -335,6 +353,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Mu $got) {
         X::TypeCheck.new(:operation("prepend to Buf"),:$got,:expected(T)).throw
+    }
+    multi method prepend(Buf:D: int @values) {
+        my int $elems = nqp::elems(@values);
+        my int $i     = $elems;
+        nqp::unshift_i(self,nqp::atpos_i(@values,$i)) while ($i = $i - 1) > 0;
+        self
     }
     multi method prepend(Buf:D:  @values) { self!pend(@values,'prepend') }
     multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }

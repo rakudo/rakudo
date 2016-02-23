@@ -168,9 +168,9 @@ Make sure everything compiles and runs from a known clean state:
   $ make
   $ make test
   $ make install
-  $ (cd t/spec & git checkout 6.c)    # test stable language spec
+  $ (cd t/spec & git checkout 6.c-errata) # test stable language spec
   $ make stresstest
-  $ (cd t/spec & git checkout master) # test latest language spec
+  $ (cd t/spec & git checkout master)     # test latest language spec
   $ make stresstest
 
 There are many tests to run for the stresstest target.  If

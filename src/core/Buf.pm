@@ -306,6 +306,11 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? nqp::pop_i(self)
           !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name))
     }
+    multi method shift(Buf:D:) {
+        nqp::elems(self)
+          ?? nqp::shift_i(self)
+          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
+    }
 
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }

@@ -288,8 +288,8 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
-        X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>).throw
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
             if nqp::islt_i(pos,0);
         nqp::bindpos_i(self,\pos,assignee)
     }
@@ -312,11 +312,17 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
     }
 
+    method !fail-typecheck($action,$got) {
+        fail X::TypeCheck.new(
+          operation => $action ~ " to " ~ self.^name,
+          got       => $got,
+          expected  => T,
+        );
+    }
+
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
-    multi method push(Buf:D: Mu $got) {
-        X::TypeCheck.new(:operation("push to Buf"),:$got,:expected(T)).throw
-    }
+    multi method push(Buf:D: Mu $got) { self!fail-typecheck('push',$got) }
     multi method push(Buf:D: int @values) {
         nqp::splice(self,@values,nqp::elems(self),0);
         self
@@ -326,9 +332,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
-    multi method append(Buf:D: Mu $got) {
-        X::TypeCheck.new(:operation("append to Buf"),:$got,:expected(T)).throw
-    }
+    multi method append(Buf:D: Mu $got) { self!fail-typecheck('append',$got) }
     multi method append(Buf:D: int @values) {
         nqp::splice(self,@values,nqp::elems(self),0);
         self
@@ -338,9 +342,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
-    multi method unshift(Buf:D: Mu $got) {
-        X::TypeCheck.new(:operation("unshift to Buf"),:$got,:expected(T)).throw
-    }
+    multi method unshift(Buf:D: Mu $got) { self!fail-typecheck('unshift',$got) }
     multi method unshift(Buf:D: int @values) {
         nqp::splice(self,@values,0,0);
         self
@@ -350,9 +352,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
-    multi method prepend(Buf:D: Mu $got) {
-        X::TypeCheck.new(:operation("prepend to Buf"),:$got,:expected(T)).throw
-    }
+    multi method prepend(Buf:D: Mu $got) { self!fail-typecheck('prepend',$got) }
     multi method prepend(Buf:D: int @values) {
         nqp::splice(self,@values,0,0);
         self

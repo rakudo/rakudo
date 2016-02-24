@@ -229,7 +229,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             until ($got := $iter.pull-one) =:= IterationEnd {
                 nqp::istype($got,Int)
                   ?? nqp::push_i(to,$got)
-                  !! self!fail-typecheck(action~"ing element #"~$i,$got).throw
+                  !! self!fail-typecheck(action~"ing element #"~$i,$got).throw;
+                $i = $i + 1;
             }
         }
         to

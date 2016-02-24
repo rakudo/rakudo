@@ -381,34 +381,30 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }
 
     method !pend(Buf:D: @values, $action) {
-        fail X::Cannot::Lazy.new(:$action,:what(self.^name))
-          if @values.is-lazy;
-
-        my     $list := nqp::getattr(@values,List,'$!reified');
-        my int $i;
-        CATCH {
-            nqp::istype($_,X::AdHoc)
-              && .payload eq "This type cannot unbox to a native integer"
-                ?? X::TypeCheck.new(
-                     operation => "{$action}ing element #$i to Buf",
-                     got       => nqp::atpos($list,$i),
-                     expected  => T,
-                   ).throw
-                !! .throw
-        }
-
-        if $action eq 'push' || $action eq 'append' {
-            my int $elems = nqp::elems($list);
-            $i = -1;
-            nqp::push_i(self,nqp::atpos($list,$i))
-              while nqp::islt_i($i = $i + 1,$elems);
-        }
-        else {
-            $i = nqp::elems($list);
-            nqp::unshift_i(self,nqp::atpos($list,$i))
-              while nqp::isge_i($i = $i - 1,0);
-        }
+        @values.is-lazy
+          ?? fail X::Cannot::Lazy.new(:$action,:what(self.^name))
+          !! $action eq 'push' || $action eq 'append'
+            ?? self!push-list($action,self,@values)
+            !! self!unshift-list($action,self,@values);
         self
+    }
+
+    method !push-list(\action,\to,\from --> Nil) {
+        my Mu $from  := nqp::getattr(from,List,'$!reified');
+        my int $elems = nqp::elems($from);
+        my int $i     = -1;
+        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+          ?? nqp::push_i(to,$got)
+          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+          while nqp::islt_i($i = $i + 1,$elems);
+    }
+    method !unshift-list(\action,\to,\from --> Nil) {
+        my Mu $from := nqp::getattr(from,List,'$!reified');
+        my int $i    = nqp::elems($from);
+        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+          ?? nqp::unshift_i(to,$got)
+          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+          while nqp::isge_i($i = $i - 1,0);
     }
 }
 

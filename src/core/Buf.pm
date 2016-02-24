@@ -7,32 +7,13 @@ my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    multi method new() {
-        nqp::create(self)
+    multi method new(Blob:) { nqp::create(self) }
+    multi method new(Blob: @values) {
+        @values.is-lazy
+          ?? fail X::Cannot::Lazy.new(:action<new>,:what(self.^name))
+          !! self!push-list("initializ",nqp::create(self),@values)
     }
-    multi method new(@values) {
-        my $buf := nqp::create(self);
-        # the fast route
-        if nqp::istype(@values,Iterable) {
-            my $iter := @values.iterator;
-            my $pulled;
-            nqp::push_i($buf,$pulled)
-              until ($pulled := $iter.pull-one) =:= IterationEnd;
-        }
-
-        # the slow route
-        else {
-            my int $n = @values.elems;
-            my int $i = -1;
-            nqp::setelems($buf, $n);
-            nqp::bindpos_i($buf, $i, @values.AT-POS($i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$n);
-        }
-        $buf
-    }
-    multi method new(*@values) {
-        self.new(@values)
-    }
+    multi method new(Blob: *@values) { self.new(@values) }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
         nqp::p6bool(
@@ -231,23 +212,48 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method encoding() { Any }
 
     method !push-list(\action,\to,\from) {
-        my Mu $from  := nqp::getattr(from,List,'$!reified');
-        my int $elems = nqp::elems($from);
-        my int $i     = -1;
-        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
-          ?? nqp::push_i(to,$got)
-          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
-          while nqp::islt_i($i = $i + 1,$elems);
+        if nqp::istype(from,List) {
+            my Mu $from  := nqp::getattr(from,List,'$!reified');
+            my int $elems = nqp::elems($from);
+            my int $i     = -1;
+            my $got;
+            nqp::istype(($got := nqp::atpos($from,$i)),Int)
+              ?? nqp::push_i(to,$got)
+              !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+              while nqp::islt_i($i = $i + 1,$elems);
+        }
+        else {
+            my $iter := from.iterator;
+            my int $i = 0;
+            my $got;
+            until ($got := $iter.pull-one) =:= IterationEnd {
+                nqp::istype($got,Int)
+                  ?? nqp::push_i(to,$got)
+                  !! self!fail-typecheck(action~"ing element #"~$i,$got).throw
+            }
+        }
         to
     }
     method !unshift-list(\action,\to,\from) {
-        my Mu $from := nqp::getattr(from,List,'$!reified');
-        my int $i    = nqp::elems($from);
-        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
-          ?? nqp::unshift_i(to,$got)
-          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
-          while nqp::isge_i($i = $i - 1,0);
-        to
+        if nqp::istype(from,List) {
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            my int $i    = nqp::elems($from);
+            nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+              ?? nqp::unshift_i(to,$got)
+              !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+              while nqp::isge_i($i = $i - 1,0);
+            to
+        }
+        else {
+            nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
+        }
+    }
+    method !fail-typecheck($action,$got) {
+        fail X::TypeCheck.new(
+          operation => $action ~ " to " ~ self.^name,
+          got       => $got,
+          expected  => T,
+        );
     }
 }
 
@@ -332,14 +338,6 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
     }
 
-    method !fail-typecheck($action,$got) {
-        fail X::TypeCheck.new(
-          operation => $action ~ " to " ~ self.^name,
-          got       => $got,
-          expected  => T,
-        );
-    }
-
     multi method splice(Buf:D: int $got, Int $offset = 0, $size = Whatever) {
         self!splice-native($got,$offset,$size)
     }
@@ -357,7 +355,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method splice(Buf:D: @values, Int $offset = 0, $size = Whatever) {
         self!splice-native(
-          self!push-list("splice",nqp::create(self),@values),$offset,$size)
+          self!push-list("splic",nqp::create(self),@values),$offset,$size)
     }
 
     method !splice-native(Buf:D: \x, int $offset, $size) {

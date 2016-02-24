@@ -343,37 +343,42 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Mu $got) { self!fail-typecheck('push',$got) }
-    multi method push(Buf:D: Buf:D $buf)  { self!push-native($buf)    }
-    multi method push(Buf:D: int @values) { self!push-native(@values) }
+    multi method push(Buf:D: Buf:D $buf) {
+        nqp::splice(self,$buf,nqp::elems(self),0)
+    }
+    multi method push(Buf:D: int @values) {
+        nqp::splice(self,@values,nqp::elems(self),0)
+    }
     multi method push(Buf:D:  @values) { self!pend(@values,'push') }
     multi method push(Buf:D: *@values) { self!pend(@values,'push') }
 
     multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Mu $got) { self!fail-typecheck('append',$got) }
-    multi method append(Buf:D: Buf:D $buf)  { self!push-native($buf)    }
-    multi method append(Buf:D: int @values) { self!push-native(@values) }
+    multi method append(Buf:D: Buf:D $buf) {
+        nqp::splice(self,$buf,nqp::elems(self),0)
+    }
+    multi method append(Buf:D: int @values) {
+        nqp::splice(self,@values,nqp::elems(self),0)
+    }
     multi method append(Buf:D:  @values) { self!pend(@values,'append') }
     multi method append(Buf:D: *@values) { self!pend(@values,'append') }
 
     multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Mu $got) { self!fail-typecheck('unshift',$got) }
-    multi method unshift(Buf:D: Buf:D $buf)  { self!unshift-native($buf)    }
-    multi method unshift(Buf:D: int @values) { self!unshift-native(@values) }
+    multi method unshift(Buf:D: Buf:D $buf)  { nqp::splice(self,$buf,0,0)    }
+    multi method unshift(Buf:D: int @values) { nqp::splice(self,@values,0,0) }
     multi method unshift(Buf:D:  @values) { self!pend(@values,'unshift') }
     multi method unshift(Buf:D: *@values) { self!pend(@values,'unshift') }
 
     multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Mu $got) { self!fail-typecheck('prepend',$got) }
-    multi method prepend(Buf:D: Buf:D $buf)  { self!unshift-native($buf)    }
-    multi method prepend(Buf:D: int @values) { self!unshift-native(@values) }
+    multi method prepend(Buf:D: Buf:D $buf)  { nqp::splice(self,$buf,0,0)    }
+    multi method prepend(Buf:D: int @values) { nqp::splice(self,@values,0,0) }
     multi method prepend(Buf:D:  @values) { self!pend(@values,'prepend') }
     multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }
-
-    method !push-native(\x)    { nqp::splice(self,x,nqp::elems(self),0) }
-    method !unshift-native(\x) { nqp::splice(self,x,0,0);               }
 
     method !pend(Buf:D: @values, $action) {
         fail X::Cannot::Lazy.new(:$action,:what(self.^name))

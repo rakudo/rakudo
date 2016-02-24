@@ -385,9 +385,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           if @values.is-lazy;
 
         my     $list := nqp::getattr(@values,List,'$!reified');
-        my int $elems = nqp::elems($list);
         my int $i;
-
         CATCH {
             nqp::istype($_,X::AdHoc)
               && .payload eq "This type cannot unbox to a native integer"
@@ -400,12 +398,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         }
 
         if $action eq 'push' || $action eq 'append' {
+            my int $elems = nqp::elems($list);
             $i = -1;
             nqp::push_i(self,nqp::atpos($list,$i))
               while nqp::islt_i($i = $i + 1,$elems);
         }
         else {
-            $i = $elems;
+            $i = nqp::elems($list);
             nqp::unshift_i(self,nqp::atpos($list,$i))
               while nqp::isge_i($i = $i - 1,0);
         }

@@ -7,8 +7,10 @@ my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    multi method new() {
-        nqp::create(self)
+    multi method new(:$initial-elems) {
+        my $buf := nqp::create(self);
+        nqp::setelems($buf, nqp::unbox_i($initial-elems.Int)) if $initial-elems;
+        $buf
     }
     multi method new(@values) {
         my $buf := nqp::create(self);

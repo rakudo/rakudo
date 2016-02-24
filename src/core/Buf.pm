@@ -320,11 +320,24 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         );
     }
 
-    multi method splice(Buf:D: Buf:D $buf, $offset = 0, $size = Whatever) {
+    multi method splice(Buf:D: int $got, Int $offset = 0, $size = Whatever) {
+        self!splice-native($got,$offset,$size)
+    }
+    multi method splice(Buf:D: Int $got, Int $offset = 0, $size = Whatever) {
+        self!splice-native($got,$offset,$size)
+    }
+    multi method splice(Buf:D: Mu $got, Int $offset = 0, $size = Whatever) {
+        self!fail-typecheck('splice',$got)
+    }
+    multi method splice(Buf:D: Buf:D $buf, Int $offset = 0, $size = Whatever) {
         self!splice-native($buf,$offset,$size)
     }
-    multi method splice(Buf:D: int @values, $offset = 0, $size = Whatever) {
+    multi method splice(Buf:D: int @values, Int $offset = 0, $size = Whatever) {
         self!splice-native(@values,$offset,$size)
+    }
+    multi method splice(Buf:D: @values, Int $offset = 0, $size = Whatever) {
+        self!splice-native(
+          self!push-list("splice",nqp::create(self),@values),$offset,$size)
     }
 
     method !splice-native(Buf:D: \x, int $offset, $size) {
@@ -336,7 +349,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         my $result := $remove
           ?? self.subbuf($offset,$remove)  # until something smarter
           !! nqp::create(self);
-        nqp::splice(self,x,$offset,$remove);
+        nqp::splice(self,nqp::islist(x) ?? x !! nqp::list_i(x),$offset,$remove);
         $result
     }
 
@@ -385,11 +398,10 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? fail X::Cannot::Lazy.new(:$action,:what(self.^name))
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
-            !! self!unshift-list($action,self,@values);
-        self
+            !! self!unshift-list($action,self,@values)
     }
 
-    method !push-list(\action,\to,\from --> Nil) {
+    method !push-list(\action,\to,\from) {
         my Mu $from  := nqp::getattr(from,List,'$!reified');
         my int $elems = nqp::elems($from);
         my int $i     = -1;
@@ -397,14 +409,16 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? nqp::push_i(to,$got)
           !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
           while nqp::islt_i($i = $i + 1,$elems);
+        to
     }
-    method !unshift-list(\action,\to,\from --> Nil) {
+    method !unshift-list(\action,\to,\from) {
         my Mu $from := nqp::getattr(from,List,'$!reified');
         my int $i    = nqp::elems($from);
         nqp::istype((my $got := nqp::atpos($from,$i)),Int)
           ?? nqp::unshift_i(to,$got)
           !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
           while nqp::isge_i($i = $i - 1,0);
+        to
     }
 }
 

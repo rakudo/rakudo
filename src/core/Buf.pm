@@ -229,6 +229,26 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method contents(Blob:D:) { self.list }
 
     method encoding() { Any }
+
+    method !push-list(\action,\to,\from) {
+        my Mu $from  := nqp::getattr(from,List,'$!reified');
+        my int $elems = nqp::elems($from);
+        my int $i     = -1;
+        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+          ?? nqp::push_i(to,$got)
+          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+          while nqp::islt_i($i = $i + 1,$elems);
+        to
+    }
+    method !unshift-list(\action,\to,\from) {
+        my Mu $from := nqp::getattr(from,List,'$!reified');
+        my int $i    = nqp::elems($from);
+        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+          ?? nqp::unshift_i(to,$got)
+          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+          while nqp::isge_i($i = $i - 1,0);
+        to
+    }
 }
 
 constant blob8 = Blob[uint8];
@@ -399,26 +419,6 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)
-    }
-
-    method !push-list(\action,\to,\from) {
-        my Mu $from  := nqp::getattr(from,List,'$!reified');
-        my int $elems = nqp::elems($from);
-        my int $i     = -1;
-        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
-          ?? nqp::push_i(to,$got)
-          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
-          while nqp::islt_i($i = $i + 1,$elems);
-        to
-    }
-    method !unshift-list(\action,\to,\from) {
-        my Mu $from := nqp::getattr(from,List,'$!reified');
-        my int $i    = nqp::elems($from);
-        nqp::istype((my $got := nqp::atpos($from,$i)),Int)
-          ?? nqp::unshift_i(to,$got)
-          !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
-          while nqp::isge_i($i = $i - 1,0);
-        to
     }
 }
 

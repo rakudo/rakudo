@@ -144,6 +144,6 @@ See `docs/compiler_overview.pod`.
 
 ## AUTHOR
 
-Patrick Michaud "pmichaud@pobox.com" is the current pumpking for
-Rakudo Perl 6.  See CREDITS for the many people that have contributed
+Jonathan Worthington is the current pumpking for Rakudo Perl 6.
+See CREDITS for the many people that have contributed
 to the development of the Rakudo compiler.

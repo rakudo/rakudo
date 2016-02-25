@@ -8,6 +8,12 @@ my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     multi method new(Blob:) { nqp::create(self) }
+    multi method new(Blob: Blob:D $blob) {
+        nqp::splice(nqp::create(self),$blob,0,0)
+    }
+    multi method new(Blob: int @values) {
+        nqp::splice(nqp::create(self),@values,0,0)
+    }
     multi method new(Blob: @values) {
         @values.is-lazy
           ?? fail X::Cannot::Lazy.new(:action<new>,:what(self.^name))
@@ -215,11 +221,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if nqp::istype(from,List) {
             my Mu $from  := nqp::getattr(from,List,'$!reified');
             my int $elems = nqp::elems($from);
-            my int $i     = -1;
+            my int $j     = nqp::elems(to);
+            nqp::setelems(to, $j + $elems);  # presize for efficiency
+            my int $i = -1;
             my $got;
             nqp::istype(($got := nqp::atpos($from,$i)),Int)
-              ?? nqp::push_i(to,$got)
-              !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+              ?? nqp::bindpos_i(to,$j++,$got)
+              !! self!fail-typecheck-element(action,$i,$got).throw
               while nqp::islt_i($i = $i + 1,$elems);
         }
         else {
@@ -229,7 +237,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             until ($got := $iter.pull-one) =:= IterationEnd {
                 nqp::istype($got,Int)
                   ?? nqp::push_i(to,$got)
-                  !! self!fail-typecheck(action~"ing element #"~$i,$got).throw;
+                  !! self!fail-typecheck-element(action,$i,$got).throw;
                 $i = $i + 1;
             }
         }
@@ -241,13 +249,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             my int $i    = nqp::elems($from);
             nqp::istype((my $got := nqp::atpos($from,$i)),Int)
               ?? nqp::unshift_i(to,$got)
-              !! self!fail-typecheck(action ~ "ing element #" ~ $i,$got).throw
+              !! self!fail-typecheck-element(action,$i,$got).throw
               while nqp::isge_i($i = $i - 1,0);
             to
         }
         else {
             nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
         }
+    }
+    method !fail-typecheck-element(\action,\i,\got) {
+        self!fail-typecheck(action ~ "ing element #" ~ i,got);
     }
     method !fail-typecheck($action,$got) {
         fail X::TypeCheck.new(

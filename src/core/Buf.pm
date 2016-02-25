@@ -99,14 +99,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
 
-    method list(Blob:D:) {
-        my int $n = nqp::elems(self);
-        my $list := nqp::list;
-        nqp::setelems($list,$n);
-        my int $i = -1;
-        nqp::bindpos($list,$i,nqp::atpos_i(self, $i))
-          while nqp::islt_i($i = nqp::add_i($i,1),$n);
-        $list
+    multi method list(Blob:D:) {
+        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+            method pull-one() is raw {
+                nqp::islt_i($!i = $!i + 1,$!elems)
+                  ?? nqp::atpos_i($!blob,$!i)
+                  !! IterationEnd
+            }
+        }.new(self))
     }
 
     multi method gist(Blob:D:) {
@@ -383,6 +383,16 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
             if nqp::islt_i($pos,0);
         nqp::bindpos_i(self,$pos,assignee)
+    }
+
+    multi method list(Buf:D:) {
+        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+            method pull-one() is raw {
+                nqp::islt_i($!i = $!i + 1,$!elems)
+                  ?? nqp::atposref_i($!blob,$!i)
+                  !! IterationEnd
+            }
+        }.new(self))
     }
 
     multi method pop(Buf:D:) {

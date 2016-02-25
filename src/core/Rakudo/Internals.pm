@@ -30,6 +30,36 @@ my class Rakudo::Internals {
         }
     }
 
+    our role BlobbyIterator does Iterator {
+        has $!blob;
+        has int $!elems;
+        has Int $!i;   # cannot be an int yet sadly enough
+
+        method SET-SELF(\blob) {
+            $!blob := blob;
+            $!i     = -1;
+            $!elems = nqp::elems($!blob);
+            self
+        }
+        method new(\blob) { nqp::create(self).SET-SELF(blob) }
+        method push-all($target) {
+            my $blob      := $!blob;  # attribute access is slower
+            my int $i      = $!i;
+            my int $elems  = $!elems;
+            $target.push(nqp::atpos_i($blob,$i))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            IterationEnd
+        }
+        method count-only() {
+            $!i = $!elems;
+            nqp::p6box_i($!elems)
+        }
+        method sink-all() {
+            $!i = $!elems;
+            IterationEnd
+        }
+    }
+
     our class WhateverIterator does Iterator {
         has $!source;
         has $!last;

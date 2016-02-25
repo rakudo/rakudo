@@ -650,6 +650,15 @@ my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time() { True }
 }
 
+my class X::Comp::FailGoal does X::Comp {
+    has $.dba;
+    has $.goal;
+
+    method is-compile-time() { True }
+
+    method message { "Unable to parse expression in $.dba; couldn't find final $.goal" }
+}
+
 my role X::Syntax does X::Comp { }
 my role X::Pod                 { }
 

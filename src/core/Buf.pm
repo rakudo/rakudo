@@ -21,6 +21,38 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(Blob: *@values) { self.new(@values) }
 
+    proto method allocate(|) { * }
+    multi method allocate(Blob:U: Int $elements) {
+        nqp::setelems(nqp::create(self),$elements)
+    }
+    multi method allocate(Blob:U: Int $elements, int $value) {
+        my int $elems = $elements;
+        my $blob     := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i($i = $i + 1,$elems);
+        $blob;
+    }
+    multi method allocate(Blob:U: Int $elements, Int \value) {
+        my int $value = value;
+        self.allocate($elements,$value)
+    }
+    multi method allocate(Blob:U: Int $elements, Mu $got) {
+        self!fail-typecheck('allocate',$got)
+    }
+    multi method allocate(Blob:U: Int $elements, int @values) {
+        self!initialize(nqp::setelems(nqp::create(self),$elements),0,@values)
+    }
+    multi method allocate(Blob:U: Int $elements, Blob:D $blob) {
+        self!initialize(nqp::setelems(nqp::create(self),$elements),0,$blob)
+    }
+    multi method allocate(Blob:U: Int $elements, @values) {
+        self!initialize(
+          nqp::setelems(nqp::create(self),$elements),0,Blob.new(@values))
+    }
+    multi method allocate(Blob:U: Int $elements, *@values) {
+        self.allocate($elements,@values)
+    }
+
     multi method EXISTS-POS(Blob:D: int \pos) {
         nqp::p6bool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
@@ -256,6 +288,23 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         else {
             nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
         }
+    }
+    method !initialize(\to,\at,\from) {
+        if nqp::elems(from) -> int $values { # something to init with
+            my int $elems = nqp::elems(to) - $values;
+            my int $i     = at - $values;
+            nqp::splice(to,from,$i,$values)
+              while nqp::isle_i($i = $i + $values,$elems);
+
+            if nqp::isgt_i($i,$elems) {  # something left to init
+                $i     = $i - 1;         # went one too far
+                $elems = $elems + $values;
+                my int $j = -1;
+                nqp::bindpos_i(to,$i,nqp::atpos_i(from,$j = ($j + 1) % $values))
+                  while nqp::islt_i($i = $i + 1,$elems);
+            }
+        }
+        to
     }
     method !fail-typecheck-element(\action,\i,\got) {
         self!fail-typecheck(action ~ "ing element #" ~ i,got);

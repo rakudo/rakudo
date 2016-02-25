@@ -399,6 +399,8 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
     }
 
+    method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
+
     multi method splice(Buf:D: int $got, Int $offset = 0, $size = Whatever) {
         self!splice-native($got,$offset,$size)
     }

@@ -49,9 +49,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self!initialize(
           nqp::setelems(nqp::create(self),$elements),0,Blob.new(@values))
     }
-    multi method allocate(Blob:U: Int $elements, *@values) {
-        self.allocate($elements,@values)
-    }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
         nqp::p6bool(

@@ -321,6 +321,9 @@ do {
                    nqp::printfh($err, "\n");
                 }
             }
+            elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
+                nqp::printfh($err, $e.Str);
+            }
             else {
                 nqp::printfh($err, "===SORRY!===\n");
                 nqp::printfh($err, $e.Str);

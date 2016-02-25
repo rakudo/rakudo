@@ -940,6 +940,13 @@ my class Rakudo::Internals {
         $list ?? $result !! nqp::join("",$result)
     }
 
+    my int $VERBATIM-EXCEPTION = 0;
+    method VERBATIM-EXCEPTION($set?) {
+        my int $value = $VERBATIM-EXCEPTION;
+        $VERBATIM-EXCEPTION = $set if defined($set);
+        $value
+    }
+
     method MAKE-ABSOLUTE-PATH(Str:D $path, Str:D $abspath) {
         if $path.ord == 47 {              # 4x faster substr($path,0,1) eq "/"
             $path

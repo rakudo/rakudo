@@ -143,6 +143,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           "--output=$io",
           $path,
           :out,
+          :err,
         );
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
@@ -151,9 +152,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my @result = $proc.out.lines.unique;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
-            push @result, "Return status { $proc.status }\n";
-            $RMD("Precomping $path failed: {@result}") if $RMD;
-            fail @result if @result;
+            $RMD("Precomping $path failed: $proc.status()") if $RMD;
+            Rakudo::Internals.VERBATIM-EXCEPTION(1);
+            die $proc.err.slurp-rest;
         }
         else {
             $RMD("Precompiled $path into $io") if $RMD;

@@ -156,22 +156,24 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
             die $proc.err.slurp-rest;
         }
-        else {
-            $RMD("Precompiled $path into $io") if $RMD;
-            my str $dependencies = '';
-            for @result -> $dependency {
-                Rakudo::Internals.KEY_SPACE_VALUE(
-                  $dependency,my $dependency-id,my $dependency-src);
-                my $path = self.store.path($compiler-id, $dependency-id);
-                if $path.e {
-                    $dependencies ~= "$dependency\n";
-                    spurt($path ~ '.rev-deps', "$id\n", :append);
-                }
-            }
-            spurt($io ~ '.deps', $dependencies);
-            self.store.unlock;
-            True
+
+        if $proc.err.slurp-rest -> $warnings {
+            $*ERR.print($warnings);
         }
+        $RMD("Precompiled $path into $io") if $RMD;
+        my str $dependencies = '';
+        for @result -> $dependency {
+            Rakudo::Internals.KEY_SPACE_VALUE(
+              $dependency,my $dependency-id,my $dependency-src);
+            my $path = self.store.path($compiler-id, $dependency-id);
+            if $path.e {
+                $dependencies ~= "$dependency\n";
+                spurt($path ~ '.rev-deps', "$id\n", :append);
+            }
+        }
+        spurt($io ~ '.deps', $dependencies);
+        self.store.unlock;
+        True
     }
 }
 

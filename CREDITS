@@ -393,6 +393,7 @@ U: RabidGravy
 N: Jonathan Worthington
 U: jnthn
 E: jnthn@jnthn.net
+D: Perl 6 (Rakudo Perl) lead developer, current pumpking
 W: http://www.jnthn.net/
 
 N: Joshua Gatcomb
@@ -577,7 +578,7 @@ E: patrick.abisalloum@gmail.com
 
 N: Patrick R. Michaud
 U: pmichaud
-D: Perl 6 (Rakudo Perl) lead developer, pumpking
+D: Perl 6 (Rakudo Perl) lead developer, initial pumpking
 E: pmichaud@pobox.com
 
 N: Paul Cochrane

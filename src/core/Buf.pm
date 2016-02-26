@@ -673,14 +673,12 @@ multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
 multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
 
-sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
-    my Blob $subbuf = $b.subbuf($from, $elems);
+sub subbuf-rw(Buf:D \b, $from = 0, $elems = b.elems - $from) is rw {
+    my Blob $subbuf = b.subbuf($from, $elems);
     Proxy.new(
         FETCH   => sub ($) { $subbuf },
-        STORE   => sub ($, Blob $new) {
-            $b = $b.subbuf(0, $from)
-               ~ $new
-               ~ $b.subbuf($from + $elems);
+        STORE   => sub ($, Blob:D $new) {
+            nqp::splice(nqp::decont(b),nqp::decont($new),$from,$elems)
         }
     );
 }

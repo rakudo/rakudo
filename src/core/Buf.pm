@@ -665,13 +665,13 @@ multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
         !! False
 }
 
-multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b)) }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b) {  a.SAME(b)          }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !a.SAME(b)          }
-multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1  }
-multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1  }
-multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1  }
-multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1  }
+multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
+multi sub infix:<eq> (Blob:D \a, Blob:D \b) {   a =:= b || a.SAME(b)  }
+multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !(a =:= b || a.SAME(b)) }
+multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1      }
+multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
+multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
+multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
 
 sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
     my Blob $subbuf = $b.subbuf($from, $elems);

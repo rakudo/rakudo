@@ -887,6 +887,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         for (Iterator<Map.Entry<String, SixModelObject>> it = names.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, SixModelObject> ent = it.next();
             if (ent.getValue() != null) {
+                methods.bind_key_boxed(tc, ent.getKey(), ent.getValue());
                 hash.bind_key_boxed(tc, ent.getKey(), ent.getValue());
             }
             else

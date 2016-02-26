@@ -594,10 +594,9 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my int $alen = nqp::elems($adc);
     my int $blen = nqp::elems($bdc);
 
+    nqp::setelems($res, $alen + $blen);
     nqp::splice($res, $adc, 0, $alen);
     nqp::splice($res, $bdc, $alen, $blen);
-
-    $res
 }
 
 multi sub prefix:<~^>(Blob:D $a) {

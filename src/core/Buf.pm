@@ -629,21 +629,20 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
     ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
 }
 
-multi sub infix:<eqv>(Blob:D $a, Blob:D $b) {
-    if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
-        my int $n  = $a.elems;
-        my int $i  = 0;
-        my Mu $da := nqp::decont($a);
-        my Mu $db := nqp::decont($b);
-        while $i < $n {
-            return False unless nqp::iseq_i(nqp::atpos_i($da, $i), nqp::atpos_i($db, $i));
-            $i = $i + 1;
-        }
-        True
-    }
-    else {
-        False
-    }
+multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
+    return True if a =:= b;
+    return False unless a.WHAT === b.WHAT;
+
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elems = nqp::elems($a);
+    return False unless nqp::iseq_i($elems,nqp::elems($b));
+
+    my int $i = -1;
+    return False unless nqp::iseq_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i))
+      while nqp::islt_i($i = $i + 1,$elems);
+
+    True
 }
 
 multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {

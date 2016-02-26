@@ -161,6 +161,19 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $subbuf
     }
 
+    method SAME(Blob:D: Blob:D \other) {
+        my $other := nqp::decont(other);
+        my int $elems = nqp::elems(self);
+        return False unless nqp::iseq_i($elems,nqp::elems($other));
+
+        my int $i = -1;
+        return False
+          unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+          while nqp::islt_i($i = $i + 1,$elems);
+
+        True
+    }
+
     proto method unpack(|) { * }
     multi method unpack(Blob:D: Str:D $template) {
         nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
@@ -630,19 +643,11 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    return True if a =:= b;
-    return False unless a.WHAT === b.WHAT;
-
-    my $a := nqp::decont(a);
-    my $b := nqp::decont(b);
-    my int $elems = nqp::elems($a);
-    return False unless nqp::iseq_i($elems,nqp::elems($b));
-
-    my int $i = -1;
-    return False unless nqp::iseq_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i))
-      while nqp::islt_i($i = $i + 1,$elems);
-
-    True
+    a =:= b
+      ?? True
+      !! a.WHAT === b.WHAT
+        ?? a.SAME(b)
+        !! False
 }
 
 multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {

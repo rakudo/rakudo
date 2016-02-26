@@ -161,6 +161,21 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $subbuf
     }
 
+    method COMPARE(Blob:D: Blob:D \other) {
+        my $other := nqp::decont(other);
+        my int $elems = nqp::elems(self);
+        if nqp::cmp_i($elems,nqp::elems($other)) -> $diff {
+            $diff
+        }
+        else {
+            my int $i = -1;
+            return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+              if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+              while nqp::islt_i($i = $i + 1,$elems);
+            0
+        }
+    }
+
     method SAME(Blob:D: Blob:D \other) {
         my $other := nqp::decont(other);
         my int $elems = nqp::elems(self);
@@ -650,28 +665,13 @@ multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
         !! False
 }
 
-multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {
-    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
-}
-
-multi sub infix:<eq>(Blob:D \a, Blob:D \b) {  a.SAME(b) }
-multi sub infix:<ne>(Blob:D \a, Blob:D \b) { !a.SAME(b) }
-
-multi sub infix:<lt>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) == -1
-}
-
-multi sub infix:<gt>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) ==  1
-}
-
-multi sub infix:<le>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) !=  1
-}
-
-multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) != -1
-}
+multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b)) }
+multi sub infix:<eq> (Blob:D \a, Blob:D \b) {  a.SAME(b)          }
+multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !a.SAME(b)          }
+multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1  }
+multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1  }
+multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1  }
+multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1  }
 
 sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
     my Blob $subbuf = $b.subbuf($from, $elems);

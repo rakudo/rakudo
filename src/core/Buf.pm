@@ -654,13 +654,8 @@ multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {
     [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
 }
 
-multi sub infix:<eq>(Blob:D $a, Blob:D $b) {
-    $a.elems == $b.elems && $a.list eq $b.list
-}
-
-multi sub infix:<ne>(Blob:D $a, Blob:D $b) {
-    not $a eq $b;
-}
+multi sub infix:<eq>(Blob:D \a, Blob:D \b) {  a.SAME(b) }
+multi sub infix:<ne>(Blob:D \a, Blob:D \b) { !a.SAME(b) }
 
 multi sub infix:<lt>(Blob:D $a, Blob:D $b) {
     ($a cmp $b) == -1

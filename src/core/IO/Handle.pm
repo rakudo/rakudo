@@ -754,14 +754,13 @@ my class IO::Handle does IO {
 
     proto method slurp-rest(|) { * }
     multi method slurp-rest(IO::Handle:D: :$bin!) returns Buf {
-        my $Buf := buf8.new();
+        my $res := buf8.new();
         loop {
-            my $buf := buf8.new();
-            nqp::readfh($!PIO,$buf,65536);
-            last if $buf.bytes == 0;
-            $Buf.push($buf);
+            my $buf := nqp::readfh($!PIO,buf8.new,0x100000);
+            last unless nqp::elems($buf);
+            $res.push($buf);
         }
-        $Buf
+        $res
     }
     multi method slurp-rest(IO::Handle:D: :$enc) returns Str {
         self.encoding($enc) if $enc.defined;

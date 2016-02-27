@@ -633,28 +633,74 @@ multi sub prefix:<~^>(Blob:D $a) {
                          $a.new($a.list.map: 0xFF - *);
 }
 
-multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
-    my $minlen := $a.elems min $b.elems;
-    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
-    @anded-contents.append: 0 xx ($a.elems - @anded-contents.elems);
-    @anded-contents.append: 0 xx ($b.elems - @anded-contents.elems);
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@anded-contents);
+multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitand_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i($i = $i + 1,$do);
+
+    $i = $i - 1;    # went one too far
+    nqp::bindpos_i($r,$i,0) while nqp::islt_i($i = $i + 1,$max);
+
+    $r
 }
 
-multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
-    @ored-contents.append: $a.list[@ored-contents.elems ..^ $a.elems];
-    @ored-contents.append: $b.list[@ored-contents.elems ..^ $b.elems];
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@ored-contents);
+multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i($i = $i + 1,$do);
+
+    $i = $i - 1;    # went one too far
+    nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
+      while nqp::islt_i($i = $i + 1,$max);
+
+    $r
 }
 
-multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
-    @xored-contents.append: $a.list[@xored-contents.elems ..^ $a.elems];
-    @xored-contents.append: $b.list[@xored-contents.elems ..^ $b.elems];
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
+multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitxor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i($i = $i + 1,$do);
+
+    $i = $i - 1;    # went one too far
+    nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
+      while nqp::islt_i($i = $i + 1,$max);
+
+    $r
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {

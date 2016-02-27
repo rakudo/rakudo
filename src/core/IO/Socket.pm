@@ -52,14 +52,16 @@ my role IO::Socket does IO {
 
     method read(IO::Socket:D: Int(Cool) $bufsize) {
         fail('Socket not available') unless $!PIO;
-        my $res = buf8.new();
-        my $buf;
-        repeat {
-            $buf := buf8.new();
-            nqp::readfh($!PIO, $buf, nqp::unbox_i($bufsize - $res.elems));
-            $res ~= $buf;
-        } while $res.elems < $bufsize && $buf.elems;
-        $res;
+        my int $toread = $bufsize;
+        my $res := nqp::readfh($!PIO,buf8.new,$toread);
+
+        while nqp::elems($res) < $toread {
+            my $buf := nqp::readfh($!PIO,buf8.new,$toread - nqp::elems($res));
+            last unless nqp::elems($buf);
+            $res.push($buf);
+        }
+
+        $res
     }
 
     method poll(Int $bitmask, $seconds) {

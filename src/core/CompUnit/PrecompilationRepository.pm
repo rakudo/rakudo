@@ -163,6 +163,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $RMD("Precompiled $path into $io") if $RMD;
         my str $dependencies = '';
         for @result -> $dependency {
+            unless $dependency ~~ /^<[A..Z0..9]> ** 40 \s .+/ {
+                say $dependency;
+                next
+            }
             Rakudo::Internals.KEY_SPACE_VALUE(
               $dependency,my $dependency-id,my $dependency-src);
             my $path = self.store.path($compiler-id, $dependency-id);

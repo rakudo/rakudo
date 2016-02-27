@@ -227,6 +227,13 @@ role STD {
 
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
+    method FAILGOAL($goal, $dba?) {
+        unless $dba {
+            $dba := nqp::getcodename(nqp::callercode());
+        }
+        self.typed_panic('X::Comp::FailGoal', :$dba, :$goal);
+    }
+
     method panic(*@args) {
         self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
     }

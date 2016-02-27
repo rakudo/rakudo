@@ -342,7 +342,9 @@ class Perl6::Compiler is HLL::Compiler {
 
                     if $inner {
                         my $ex-type := nqp::what($inner).HOW.name(nqp::what($inner));
-                        if $ex-type eq 'X::Syntax::Missing' {
+                        if $ex-type eq 'X::Syntax::Missing' ||
+                           $ex-type eq 'X::Comp::FailGoal'
+                        {
                             if $inner.pos() == nqp::chars($code) {
                                 return self.needs-more-input();
                             }

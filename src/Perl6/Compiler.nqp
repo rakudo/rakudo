@@ -45,6 +45,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!readline_add_history;
     has $!completions;
     has $!multi-line-enabled;
+    has $!p6repl;
 
     method compilation-id() {
         my class IDHolder { }
@@ -178,6 +179,11 @@ class Perl6::Compiler is HLL::Compiler {
         return 1;
     }
 
+    method load-p6-repl() {
+        my $repl := self.eval("use REPL; REPL.new", :outer_ctx(nqp::null()));
+        return $repl;
+    }
+
     method interactive(*%adverbs) {
         $!multi-line-enabled := !nqp::atkey(nqp::getenvhash(), 'RAKUDO_DISABLE_MULTILINE');
         my $readline_loaded := 0;
@@ -215,6 +221,14 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::say("To exit type 'exit' or '^D'");
 
         $!completions := self.get-completions();
+
+        try {
+            $!p6repl := self.load-p6-repl();
+            $!p6repl.interactive(%adverbs);
+            CATCH {
+                $!p6repl := Mu;
+            }
+        }
 
         my $*moreinput := sub ($cursor) {
             my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
@@ -278,6 +292,11 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method readline($stdin, $stdout, $prompt) {
+        my $super := nqp::findmethod(HLL::Compiler, 'readline');
+
+        if $!p6repl {
+            return $!p6repl.readline(self, $super, $stdin, $stdout, $prompt);
+        }
         my $line;
 
         try {
@@ -320,7 +339,6 @@ class Perl6::Compiler is HLL::Compiler {
             }
 
             CATCH {
-                my $super := nqp::findmethod(HLL::Compiler, 'readline');
                 $line := $super(self, $stdin, $stdout, $prompt);
             }
         }
@@ -329,6 +347,9 @@ class Perl6::Compiler is HLL::Compiler {
 
     method eval($code, *@args, *%adverbs) {
         my $super := nqp::findmethod(HLL::Compiler, 'eval');
+        if $!p6repl {
+            return $!p6repl.eval(self, $super, $code, @args, %adverbs);
+        }
         unless $!multi-line-enabled {
             return $super(self, $code, |@args, |%adverbs);
         }

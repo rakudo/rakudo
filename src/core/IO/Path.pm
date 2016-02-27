@@ -470,7 +470,7 @@ my class IO::Path is Cool {
                 my $buf := buf8.new();
                 nqp::readfh($PIO,$buf,65536);
                 last if $buf.bytes == 0;
-                $Buf := $Buf ~ $buf;
+                $Buf.push($buf);
             }
             $handle.close;
             $Buf;

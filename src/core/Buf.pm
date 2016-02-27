@@ -627,10 +627,19 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     nqp::splice($res, $bdc, $alen, $blen);
 }
 
-multi sub prefix:<~^>(Blob:D $a) {
-    $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
-    $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
-                         $a.new($a.list.map: 0xFF - *);
+multi sub prefix:<~^>(Blob:D \a) {
+    my $a        := nqp::decont(a);
+    my int $elems = nqp::elems($a);
+
+    my $r := nqp::create($a);
+    nqp::setelems($a,$elems);
+
+    my int $i    = -1;
+    my int $mask = 0xFFFFFFFFFFFFFFFF;
+    nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
+      while nqp::islt_i($i = $i + 1,$elems);
+
+    $r
 }
 
 multi sub infix:<~&>(Blob:D \a, Blob:D \b) {

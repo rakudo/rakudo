@@ -503,7 +503,7 @@ my class Range is Cool does Iterable does Positional {
         if $!excludes-min || $!excludes-max {
             if $!excludes-min {
                 if $!excludes-max {
-                    $value = $range.rand while $value == 0 || $value = $range;
+                    $value = $range.rand while $value == 0 || $value == $range;
                 }
                 else {
                     $value = $range.rand while $value == 0;

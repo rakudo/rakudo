@@ -118,11 +118,10 @@ Please refactor this code using the new Iterator / Seq interface.
         # would get expensive.
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
-        my int $i       = 0;
-        while nqp::islt_i($i, $count) {
+        my int $i       = -1;
+        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
-            $i = nqp::add_i($i, 1);
             if nqp::iseq_i($code, 0) {
                 # Custom BUILD call.
                 nqp::atpos($task, 1)(self, |%attrinit);
@@ -208,11 +207,10 @@ Please refactor this code using the new Iterator / Seq interface.
         # Get the build plan for just this class.
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
-        my int $i       = 0;
-        while nqp::islt_i($i, $count) {
+        my int $i       = -1;
+        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
-            $i = nqp::add_i($i, 1);
             if nqp::iseq_i($code, 0) {
                 # Custom BUILD call.
                 nqp::atpos($task, 1)(self, |%attrinit);

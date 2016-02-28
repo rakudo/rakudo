@@ -63,21 +63,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method AT-POS(Blob:D: int \pos) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
+        self!fail-range(pos)
+          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
         nqp::atpos_i(self, pos);
     }
     multi method AT-POS(Blob:D: Int:D \pos) {
-        my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
-        nqp::atpos_i(self,$pos);
+        self!fail-range(pos)
+          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
+        nqp::atpos_i(self,pos);
     }
 
     multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
@@ -328,6 +321,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             }
         }
         to
+    }
+    method !fail-range($got) {
+        fail X::OutOfRange.new(
+          :what($*INDEX // 'Index'),
+          :$got,
+          :range("0..{nqp::elems(self)-1}")
+        );
     }
     method !fail-typecheck-element(\action,\i,\got) {
         self!fail-typecheck(action ~ "ing element #" ~ i,got);

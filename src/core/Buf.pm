@@ -55,7 +55,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         );
     }
     multi method EXISTS-POS(Blob:D: Int:D \pos) {
-        pos < nqp::elems(self) && pos >= 0;
+        nqp::p6bool(
+          nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
+        );
     }
 
     multi method AT-POS(Blob:D: int \pos) {

@@ -7,6 +7,8 @@ my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
+    my int $bpe = (T.^nativesize / 8).Int;  # other then *8 not supported yet
+
     multi method new(Blob:) { nqp::create(self) }
     multi method new(Blob: Blob:D $blob) {
         nqp::splice(nqp::create(self),$blob,0,0)
@@ -84,9 +86,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 
-    method bytes(Blob:D:) {
-        ceiling(self.elems * ::T.^nativesize / 8);
-    }
+    method bytes(Blob:D:) { nqp::mul_i(nqp::elems(self),$bpe) }
+
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }

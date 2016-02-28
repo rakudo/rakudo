@@ -84,18 +84,16 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method named_names() {
-        if !nqp::isnull($!named_names) {
-            my Int $count = nqp::p6box_i(nqp::elems($!named_names));
-            my Int $i = 0;
-            my @res;
-            while $i < $count {
-                @res.push: nqp::p6box_s(nqp::atpos($!named_names, nqp::unbox_i($i)));
-                $i++;
-            }
-            @res;
-        } else {
-            ().list
+        my @res;
+        unless nqp::isnull($!named_names) { # apparently we need boxed strings
+            my int $elems = nqp::elems($!named_names);
+            my $list := nqp::bindattr(@res,List,'$!reified',
+              nqp::setelems(nqp::list,$elems));
+            my int $i = -1;
+            nqp::bindpos($list,$i,nqp::p6box_s(nqp::atpos($!named_names,$i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
         }
+        @res
     }
 
     method positional() {

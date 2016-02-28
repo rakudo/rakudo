@@ -96,6 +96,9 @@ my class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
+        multi method append(array:D: int @values) {
+            nqp::splice(self,@values,nqp::elems(self),0)
+        }
         multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;

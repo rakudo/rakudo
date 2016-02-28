@@ -78,22 +78,18 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::atpos_i(self,$pos);
     }
 
-    multi method Bool(Blob:D:) {
-        nqp::p6bool(nqp::elems(self));
-    }
+    multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
 
-    method elems(Blob:D:) {
-        nqp::p6box_i(nqp::elems(self));
-    }
+    method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
+    method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
+    method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
+
     method bytes(Blob:D:) {
         ceiling(self.elems * ::T.^nativesize / 8);
     }
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
-
-    method Numeric(Blob:D:) { self.elems }
-    method Int(Blob:D:)     { self.elems }
 
     method decode(Blob:D: $encoding = 'utf-8') {
         nqp::p6box_s(

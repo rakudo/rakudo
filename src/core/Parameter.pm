@@ -38,41 +38,30 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method sigil() {
-        my $sigil = '';
-        my $name = $.name;
-        if $name {
-            $sigil = substr($name,0,1);
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $sigil = '\\' without '@$%&'.index($sigil);
-            }
-        } else {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-                $sigil = '@';
-            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-                $sigil = '%';
-            } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
-                $sigil = '&';
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $sigil = '\\';
-            } else {
-                $sigil = '$';
-            }
-        }
-        $sigil;
+        nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)
+          ?? '|'
+          !! nqp::isnull_s($!variable_name)
+            ?? nqp::bitand_i($!flags,$SIG_ELEM_ARRAY_SIGIL)
+              ?? '@'
+              !!  nqp::bitand_i($!flags,$SIG_ELEM_HASH_SIGIL)
+                ?? '%'
+                !! nqp::eqat(nqp::unbox_s($!nominal_type.^name),'Callable',0)
+                  ?? '&'
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
+                    ?? '\\'
+                    !! '$'
+            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
+                 nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+              ?? '\\'
+              !! nqp::substr($!variable_name,0,1)
     }
 
     method twigil() {
-        my $twigil = '';
-        if ($!flags +& $SIG_ELEM_BIND_PUBLIC_ATTR) {
-            $twigil = '.';
-        } elsif ($!flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
-            $twigil = '!';
-        }
-        $twigil;
+        nqp::bitand_i($!flags,$SIG_ELEM_BIND_PUBLIC_ATTR)
+          ?? '.'
+          !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
+            ?? '!'
+            !! ''
     }
 
     method constraint_list() {

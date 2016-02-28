@@ -94,7 +94,7 @@ my class Parameter { # declared in BOOTSTRAP
             nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
     }
 
-    method named_names() { self!p6box-list('$!named_names') }
+    method named_names() { self!arrayize('$!named_names') }
 
     method positional() {
         nqp::p6bool(
@@ -142,7 +142,7 @@ my class Parameter { # declared in BOOTSTRAP
             ?? $!default_value
             !! { $!default_value }
     }
-    method type_captures() { self!p6box-list('$!type_captures') }
+    method type_captures() { self!arrayize('$!type_captures') }
 
     method !flags() { $!flags }
 
@@ -260,15 +260,15 @@ my class Parameter { # declared in BOOTSTRAP
         $!why := $why;
     }
 
-    method !p6box-list(\name) {
+    method !arrayize(\name) {
         my $attribute := nqp::getattr(self,Parameter,name);
         my @res;
-        unless nqp::isnull($attribute) { # apparently we need boxed strings
+        unless nqp::isnull($attribute) {
             my int $elems = nqp::elems($attribute);
             my $list := nqp::bindattr(@res,List,'$!reified',
               nqp::setelems(nqp::list,$elems));
             my int $i = -1;
-            nqp::bindpos($list,$i,nqp::p6box_s(nqp::atpos($attribute,$i)))
+            nqp::bindpos($list,$i,nqp::atpos($attribute,$i))
               while nqp::islt_i($i = nqp::add_i($i,1),$elems);
         }
         @res

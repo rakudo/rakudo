@@ -88,6 +88,14 @@ my class array does Iterable is repr('VMArray') {
                 expected  => T,
             ).throw;
         }
+        multi method append(array:D: int $value) {
+            nqp::push_i(self, $value);
+            self
+        }
+        multi method append(array:D: Int $value) {
+            nqp::push_i(self, $value);
+            self
+        }
         multi method append(array:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
               if @values.is-lazy;

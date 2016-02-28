@@ -33,6 +33,17 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;
 
+    my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
+                                           +| $SIG_ELEM_SLURPY_NAMED
+                                           +| $SIG_ELEM_IS_CAPTURE;
+    my constant $SIG_ELEM_IS_SLURPY = $SIG_ELEM_SLURPY_POS
+                                   +| $SIG_ELEM_SLURPY_NAMED
+                                   +| $SIG_ELEM_SLURPY_LOL
+                                   +| $SIG_ELEM_SLURPY_ONEARG;
+    my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
+                                         +| $SIG_ELEM_IS_COPY
+                                         +| $SIG_ELEM_IS_RAW;
+
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
@@ -83,90 +94,55 @@ my class Parameter { # declared in BOOTSTRAP
             nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
     }
 
-    method named_names() {
-        my @res;
-        unless nqp::isnull($!named_names) { # apparently we need boxed strings
-            my int $elems = nqp::elems($!named_names);
-            my $list := nqp::bindattr(@res,List,'$!reified',
-              nqp::setelems(nqp::list,$elems));
-            my int $i = -1;
-            nqp::bindpos($list,$i,nqp::p6box_s(nqp::atpos($!named_names,$i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-        }
-        @res
-    }
+    method named_names() { self!p6box-list('$!named_names') }
 
     method positional() {
         nqp::p6bool(
-            ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE)) == 0 &&
-            nqp::isnull($!named_names)
-         )
-    }
-
-    method slurpy() {
-        nqp::p6bool(
-            $!flags +& ($SIG_ELEM_SLURPY_POS
-                        +| $SIG_ELEM_SLURPY_NAMED
-                        +| $SIG_ELEM_SLURPY_LOL
-                        +| $SIG_ELEM_SLURPY_ONEARG)
+          nqp::isnull($!named_names)
+          && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0)
         )
     }
 
+    method slurpy() {
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
+    }
     method optional() {
-        ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
     }
-
     method raw() {
-        ?($!flags +& $SIG_ELEM_IS_RAW)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
     }
-
     method capture() {
-        ?($!flags +& $SIG_ELEM_IS_CAPTURE)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
     }
-
     method rw() {
-        ?($!flags +& $SIG_ELEM_IS_RW)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
     }
-
     method onearg() {
-        ?($!flags +& $SIG_ELEM_SLURPY_ONEARG)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
     }
-
     method copy() {
-        ?($!flags +& $SIG_ELEM_IS_COPY)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
     }
-
     method readonly() {
-        !($.rw || $.copy || $.raw)
+        nqp::p6bool(
+          nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0)
+        )
     }
-
     method invocant() {
-        ?($!flags +& $SIG_ELEM_INVOCANT)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
     }
-
     method multi-invocant() {
-        ?($!flags +& $SIG_ELEM_MULTI_INVOCANT)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
-
     method default() {
-        nqp::isnull($!default_value) ?? Any !!
-            $!default_value ~~ Code ?? $!default_value !! { $!default_value }
+        nqp::isnull($!default_value)
+          ?? Any
+          !! nqp::istype($!default_value,Code)
+            ?? $!default_value
+            !! { $!default_value }
     }
-
-    method type_captures() {
-        if !nqp::isnull($!type_captures) {
-            my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
-            my Int $i = 0;
-            my @res;
-            while $i < $count {
-                @res.push: nqp::p6box_s(nqp::atpos($!type_captures, nqp::unbox_i($i)));
-                $i++;
-            }
-            @res;
-        } else {
-            ().list
-        }
-    }
+    method type_captures() { self!p6box-list('$!type_captures') }
 
     method !flags() { $!flags }
 
@@ -282,6 +258,20 @@ my class Parameter { # declared in BOOTSTRAP
 
     method set_why($why) {
         $!why := $why;
+    }
+
+    method !p6box-list(\name) {
+        my $attribute := nqp::getattr(self,Parameter,name);
+        my @res;
+        unless nqp::isnull($attribute) { # apparently we need boxed strings
+            my int $elems = nqp::elems($attribute);
+            my $list := nqp::bindattr(@res,List,'$!reified',
+              nqp::setelems(nqp::list,$elems));
+            my int $i = -1;
+            nqp::bindpos($list,$i,nqp::p6box_s(nqp::atpos($attribute,$i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+        }
+        @res
     }
 }
 

@@ -3071,6 +3071,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my %config := hash(
                 name => $attrname,
                 has_accessor => $twigil eq '.',
+		has_private_accessor => $twigil eq '!',
                 container_descriptor => $descriptor,
                 type => %cont_info<bind_constraint>,
                 package => $*W.find_symbol(['$?CLASS']));

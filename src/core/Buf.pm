@@ -40,14 +40,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self!fail-typecheck('allocate',$got)
     }
     multi method allocate(Blob:U: Int $elements, int @values) {
-        self!initialize(nqp::setelems(nqp::create(self),$elements),0,@values)
+        self!spread(nqp::setelems(nqp::create(self),$elements),@values)
     }
     multi method allocate(Blob:U: Int $elements, Blob:D $blob) {
-        self!initialize(nqp::setelems(nqp::create(self),$elements),0,$blob)
+        self!spread(nqp::setelems(nqp::create(self),$elements),$blob)
     }
     multi method allocate(Blob:U: Int $elements, @values) {
-        self!initialize(
-          nqp::setelems(nqp::create(self),$elements),0,Blob.new(@values))
+        self!spread(nqp::setelems(nqp::create(self),$elements),Blob.new(@values))
     }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
@@ -314,10 +313,10 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
         }
     }
-    method !initialize(\to,\at,\from) {
+    method !spread(\to,\from) {
         if nqp::elems(from) -> int $values { # something to init with
             my int $elems = nqp::elems(to) - $values;
-            my int $i     = at - $values;
+            my int $i     = -$values;
             nqp::splice(to,from,$i,$values)
               while nqp::isle_i($i = $i + $values,$elems);
 

@@ -1,13 +1,6 @@
 class CompUnit::Repository::Java does CompUnit::Repository {
     has $!interop;
 
-    sub make_package($name, $who) {
-        my $pkg := nqp::knowhow().new_type(:name);
-        $pkg.HOW.compose($pkg);
-        nqp::setwho($pkg, $who);
-        $pkg
-    }
-
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),

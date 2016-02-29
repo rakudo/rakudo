@@ -408,12 +408,12 @@ my class Rakudo::Internals {
     }
 
     our role ShapedArrayCommon {
-        proto method push(|c) {
+        proto method push(|c) is nodal {
             self.DEFINITE
                 ?? X::IllegalOnFixedDimensionArray.new(operation => 'push').throw
                 !! self.Any::push(|c)
         }
-        proto method append(|c) {
+        proto method append(|c) is nodal {
             self.DEFINITE
                 ?? X::IllegalOnFixedDimensionArray.new(operation => 'append').throw
                 !! self.Any::append(|c)
@@ -427,12 +427,12 @@ my class Rakudo::Internals {
             X::IllegalOnFixedDimensionArray.new(operation => 'shift').throw
         }
 
-        proto method unshift(|c) {
+        proto method unshift(|c) is nodal {
             self.DEFINITE
                 ?? X::IllegalOnFixedDimensionArray.new(operation => 'unshift').throw
                 !! self.Any::unshift(|c)
         }
-        proto method prepend(|c) {
+        proto method prepend(|c) is nodal {
             self.DEFINITE
                 ?? X::IllegalOnFixedDimensionArray.new(operation => 'prepend').throw
                 !! self.Any::prepend(|c)

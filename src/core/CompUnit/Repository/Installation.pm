@@ -232,15 +232,25 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         $dist-dir.child($dist-id).spurt: to-json($dist.Hash);
 
-        my $precomp = $*REPO.precomp-repository;
-        my $repo-prefix = self!repo-prefix;
-        if $precomp.may-precomp {
+        # reset cached id so it's generated again on next access.
+        # identity changes with every installation of a dist.
+        $!id = Any;
+
+        {
+            my $head = $*REPO;
+            PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
+            my $precomp = $*REPO.precomp-repository;
+            my $repo-prefix = self!repo-prefix;
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
-            for $dist.provides.kv -> $source-name, $ext {
-                my $id = $ext.values[0]<file>;
+            my @provides = $dist.provides.kv.map(-> $source-name, $ext {($source-name, $ext.values[0]<file>)});
+            my $compiler-id = $*PERL.compiler.id;
+            for @provides -> ($source-name, $id) {
+                $precomp.store.delete($compiler-id, $id);
+            }
+            for @provides -> ($source-name, $id) {
                 my $source = $sources-dir.child($id);
-                my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
+                my $rev-deps-file = ($precomp.store.path($compiler-id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
                 if %done{$id} {
@@ -251,7 +261,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $precomp.precompile(
                     $source.IO,
                     $id,
-                    :force,
                     :source-name("$repo-prefix$source.relative($.prefix) ($source-name)"),
                 );
                 %done{$id} = 1;
@@ -271,11 +280,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     %done{$rev-dep-id} = 1;
                 }
             }
+            PROCESS::<$REPO> := $head;
         }
 
-        # reset cached id so it's generated again on next access.
-        # identity changes with every installation of a dist.
-        $!id = Any;
         $lock.unlock;
     } ) }
 
@@ -375,9 +382,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new,
     )
         returns CompUnit:D
     {
+        push @precomp-stores, self!precomp-store;
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
@@ -392,6 +401,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $id,
                 $loader,
                 :source-name("$repo-prefix$loader.relative($.prefix) ($spec.short-name())"),
+                :$spec,
+                :@precomp-stores,
             );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
@@ -408,7 +419,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             );
             return %!loaded{$compunit.short-name} = $compunit;
         }
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
@@ -430,13 +441,15 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
+    method !precomp-store() returns CompUnit::PrecompilationStore {
+        CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.child('precomp')),
+        )
+    }
+
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('precomp')),
-                )
-            ),
+            :store(self!precomp-store),
         ) unless $!precomp;
         $!precomp
     }

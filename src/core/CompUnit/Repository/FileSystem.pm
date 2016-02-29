@@ -64,9 +64,11 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new,
     )
         returns CompUnit:D
     {
+        push @precomp-stores, self!precomp-store;
         my ($base, $file) = self!matching-file($spec);
         if $base {
             my $name = $spec.short-name;
@@ -75,7 +77,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             my $id = nqp::sha1($name ~ $*REPO.id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = $precomp.try-load($id, $file, :source-name("$file ($spec.short-name())"));
+            my $handle = $precomp.try-load(
+                $id,
+                $file,
+                :source-name("$file ($spec.short-name())"),
+                :$spec,
+                :@precomp-stores,
+            );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($file); # precomp failed
 
@@ -88,7 +96,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             );
         }
 
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
@@ -136,13 +144,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $.prefix.parent.child('resources').child($key);
     }
 
+    method !precomp-store() returns CompUnit::PrecompilationStore {
+        CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.child('.precomp')),
+        )
+    }
+
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('.precomp')),
-                )
-            ),
+            :store(self!precomp-store),
         ) unless $!precomp;
         $!precomp
     }

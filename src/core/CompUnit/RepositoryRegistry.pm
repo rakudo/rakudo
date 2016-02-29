@@ -33,10 +33,12 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
 
         # starting up for creating precomp
-        if nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH') {
+        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
+            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
+            !! False;
+        if $precomp-specs {
             # assume well formed strings
-            $raw-specs :=
-              nqp::split(',',nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'));
+            $raw-specs := nqp::split(',', $precomp-specs);
         }
 
         # normal start up
@@ -85,30 +87,32 @@ class CompUnit::RepositoryRegistry {
                  ) -> $home {
                 my str $path = "inst#$home/.perl6";
                 nqp::bindkey($custom-lib,'home',$path);
-                nqp::push($raw-specs,$path);
+                nqp::push($raw-specs, $path) unless $precomp-specs;
             }
         }
 
         # set up custom libs
         my str $site = "inst#$prefix/site";
         nqp::bindkey($custom-lib,'site',$site);
-        nqp::push($raw-specs,$site);
+        nqp::push($raw-specs, $site) unless $precomp-specs;
 
         my str $vendor = "inst#$prefix/vendor";
         nqp::bindkey($custom-lib,'vendor',$vendor);
-        nqp::push($raw-specs,$vendor);
+        nqp::push($raw-specs, $vendor) unless $precomp-specs;
 
         my str $perl = "inst#$prefix";
         nqp::bindkey($custom-lib,'perl',$perl);
-        nqp::push($raw-specs,$perl);
+        nqp::push($raw-specs, $perl) unless $precomp-specs;
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
-          CompUnit::Repository::AbsolutePath.new(
-            :next-repo( CompUnit::Repository::NQP.new(
-              :next-repo(CompUnit::Repository::Perl5.new)
+            $precomp-specs
+            ?? CompUnit::Repository
+            !! CompUnit::Repository::AbsolutePath.new(
+                :next-repo( CompUnit::Repository::NQP.new(
+                    :next-repo(CompUnit::Repository::Perl5.new)
+                )
             )
-          )
         );
 
         my %repos;

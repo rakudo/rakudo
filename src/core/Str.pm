@@ -1318,7 +1318,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $found = $found + 1;
                     return nqp::p6box_i($found) if $found == $n;
                 }
-                nqp::p6box_i($found)
+                $found ?? nqp::p6box_i($found) !! IterationEnd
             }
             method push-all($target) {
                 my int $left;

@@ -85,16 +85,13 @@ my class Parameter { # declared in BOOTSTRAP
             nqp::hllize($!post_constraints))
     }
 
-    method type() {
-        $!nominal_type
-    }
-
-    method named() {
-        !nqp::p6bool(nqp::isnull($!named_names)) ||
-            nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
-    }
-
+    method type() { $!nominal_type }
     method named_names() { self!arrayize('$!named_names') }
+    method named() {
+        nqp::p6bool(
+          $!named_names || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
+        )
+    }
 
     method positional() {
         nqp::p6bool(

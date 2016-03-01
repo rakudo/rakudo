@@ -434,11 +434,21 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
 
-    multi method splice(Buf:D \SELF:) {
-        my $buf = SELF; SELF = Buf.new; $buf
-    }
+    my $empty := nqp::list_i;
+    multi method splice(Buf:D \SELF:) { my $buf = SELF; SELF = Buf.new; $buf }
     multi method splice(Buf:D: Int $offset, $size = Whatever, :$SINK) {
-        self!splice-native($offset,$size,Nil,$SINK)
+        my int $remove = self!remove($offset,$size);
+        if $SINK {
+            nqp::splice(self,$empty,$offset,$remove);
+            Nil
+        }
+        else {
+            my $result := $remove
+              ?? self.subbuf($offset,$remove)  # until something smarter
+              !! nqp::create(self);
+            nqp::splice(self,$empty,$offset,$remove);
+            $result
+        }
     }
     multi method splice(Buf:D: Int $offset, $size, int $got, :$SINK) {
         self!splice-native($offset,$size,$got,$SINK)
@@ -460,31 +470,27 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           self!push-list("splic",nqp::create(self),@values),$SINK)
     }
 
-    my $empty := nqp::list_i;
-    method !splice-native(Buf:D: Int $offset, $size, \x, $SINK) {
-        my int $remove = nqp::istype($size,Whatever)
-          ?? nqp::elems(self) - $offset
-          !! nqp::istype($size,Int)
-            ?? $size
-            !! $size.Int;
+    method !remove(\offset,\size) {
+        nqp::istype(size,Whatever)
+          ?? nqp::elems(self) - offset
+          !! nqp::istype(size,Int)
+            ?? size
+            !! size.Int
+    }
 
+    method !splice-native(Buf:D: Int $offset, $size, \x, $SINK) {
+        my int $remove = self!remove($offset,$size);
         if $SINK {
-            nqp::splice(self,x.DEFINITE
-              ?? nqp::islist(x)
-                ?? x
-                !! nqp::list_i(x)
-              !! $empty,$offset,$remove);
+            nqp::splice(
+              self,nqp::islist(x) ?? x !! nqp::list_i(x),$offset,$remove);
             Nil
         }
         else {
             my $result := $remove
               ?? self.subbuf($offset,$remove)  # until something smarter
               !! nqp::create(self);
-            nqp::splice(self,x.DEFINITE
-              ?? nqp::islist(x)
-                ?? x
-                !! nqp::list_i(x)
-              !! $empty,$offset,$remove);
+            nqp::splice(
+              self,nqp::islist(x) ?? x !! nqp::list_i(x),$offset,$remove);
             $result
         }
     }

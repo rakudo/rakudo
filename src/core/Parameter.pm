@@ -86,7 +86,9 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method type() { $!nominal_type }
-    method named_names() { self!arrayize('$!named_names') }
+    method named_names() {
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!named_names)
+    }
     method named() {
         nqp::p6bool(
           $!named_names || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
@@ -139,7 +141,9 @@ my class Parameter { # declared in BOOTSTRAP
             ?? $!default_value
             !! { $!default_value }
     }
-    method type_captures() { self!arrayize('$!type_captures') }
+    method type_captures() {
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!type_captures)
+    }
 
     method !flags() { $!flags }
 
@@ -255,20 +259,6 @@ my class Parameter { # declared in BOOTSTRAP
 
     method set_why($why) {
         $!why := $why;
-    }
-
-    method !arrayize(\name) {
-        my $attribute := nqp::getattr(self,Parameter,name);
-        my @res;
-        unless nqp::isnull($attribute) {
-            my int $elems = nqp::elems($attribute);
-            my $list := nqp::bindattr(@res,List,'$!reified',
-              nqp::setelems(nqp::list,$elems));
-            my int $i = -1;
-            nqp::bindpos($list,$i,nqp::atpos($attribute,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-        }
-        @res
     }
 }
 

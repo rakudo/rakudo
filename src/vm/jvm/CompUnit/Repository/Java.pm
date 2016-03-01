@@ -27,7 +27,7 @@ class CompUnit::Repository::Java does CompUnit::Repository {
             nqp::setwho(::($spec.short-name), Stash.new());
             ::($spec.short-name).WHO<EXPORT> := Metamodel::PackageHOW.new();
             ::($spec.short-name).WHO<&EXPORT> := sub EXPORT(*@args) {
-                Map.new($inner => $jtype);
+                Map.new($inner => nqp::decont($jtype));
             }
 
             return CompUnit.new(

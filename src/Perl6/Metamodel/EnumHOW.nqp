@@ -92,8 +92,8 @@ class Perl6::Metamodel::EnumHOW
     method enum_value_list($obj) {
         @!enum_value_list
     }
-    
-    method compose($obj) {
+
+    method compose($obj, :$compiler_services) {
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.

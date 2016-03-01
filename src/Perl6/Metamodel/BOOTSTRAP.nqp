@@ -36,7 +36,7 @@ my class BOOTSTRAPATTR {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
         self.new(:name($!name), :box_target($!box_target), :type($ins))
     }
-    method compose($obj) { }
+    method compose($obj, :$compiler_services) { }
 }
 
 # Stub all types.

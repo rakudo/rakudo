@@ -228,6 +228,9 @@ class Perl6::World is HLL::World {
     # Cache of container info and descriptor for magicals.
     has %!magical_cds;
 
+    # Cached compiler services object, if any.
+    has $!compiler_services;
+
     # are we module debugging?
     has $!RAKUDO_MODULE_DEBUG;
 
@@ -2679,7 +2682,61 @@ class Perl6::World is HLL::World {
 
     # Composes the package, and stores an event for this action.
     method pkg_compose($/, $obj) {
-        self.ex-handle($/, { $obj.HOW.compose($obj) })
+        my $compiler_services := self.get_compiler_services();
+        if nqp::isconcrete($compiler_services) {
+            self.ex-handle($/, { $obj.HOW.compose($obj, :$compiler_services) })
+        }
+        else {
+            self.ex-handle($/, { $obj.HOW.compose($obj) })
+        }
+    }
+
+    my class CompilerServices {
+        has $!w;
+
+        method generate_accessor(str $meth_name, $package_type, str $attr_name, $type, int $rw) {
+            my $native := nqp::objprimspec($type) != 0;
+            my $acc := QAST::Var.new(
+                :scope($native && $rw ?? 'attributeref' !! 'attribute'),
+                :name($attr_name), :returns($type),
+                QAST::Op.new(
+                    :op('decont'),
+                    QAST::Var.new( :name('self'), :scope('local') )
+                ),
+                QAST::WVal.new( :value($package_type) )
+            );
+            unless $native || $rw {
+                $acc := QAST::Op.new( :op('decont'), $acc );
+            }
+            my $block := QAST::Block.new(
+                :name($meth_name), :blocktype('declaration_static'),
+                QAST::Stmts.new(
+                    QAST::Var.new(
+                        :decl('param'), :scope('local'), :name('self')
+                    ),
+                    QAST::Var.new(
+                        :decl('param'), :scope('local'), :name('_'), :slurpy, :named
+                    )
+                ),
+                QAST::Stmts.new($acc));
+            $!w.cur_lexpad()[0].push($block);
+            my %sig_info := nqp::hash('parameters', [
+            ]);
+            return $!w.create_code_object($block, 'Method',
+                $!w.create_signature_and_params(NQPMu, %sig_info, $block, 'Any'));
+        }
+    }
+    method get_compiler_services() {
+        unless nqp::isconcrete($!compiler_services) {
+            try {
+                my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
+                my $wrapped := CompilerServices.new(w => self);
+                my $wrapper := nqp::create($wtype);
+                nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
+                $!compiler_services := $wrapper;
+            }
+        }
+        $!compiler_services
     }
 
     # Builds a curried role based on a parsed argument list.

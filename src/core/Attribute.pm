@@ -15,7 +15,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has int $!required;
     #     has Mu $!container_initializer;
 
-    method compose(Mu $package) {
+    method compose(Mu $package, :$compiler_services) {
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
@@ -24,7 +24,15 @@ my class Attribute { # declared in BOOTSTRAP
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
-                if self.rw {
+
+                # Get the compiler to generate us an accessor when possible.
+                if $compiler_services.DEFINITE {
+                    $meth := $compiler_services.generate_accessor($meth_name,
+                        $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
+                }
+
+                # No compiler services available, so do it as a closure.
+                elsif self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
                         method (Mu:D \fles:) is raw {
@@ -46,6 +54,7 @@ my class Attribute { # declared in BOOTSTRAP
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
                         }
+                    $meth.set_name($meth_name);
                 } else {
                     # ro accessor
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
@@ -75,8 +84,8 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
+                    $meth.set_name($meth_name);
                 }
-                $meth.set_name($meth_name);
                 $package.^add_method($meth_name, $meth);
             }
         }

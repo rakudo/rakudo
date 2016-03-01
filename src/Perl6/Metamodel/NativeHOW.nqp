@@ -30,7 +30,7 @@ class Perl6::Metamodel::NativeHOW
         self.add_stash($obj);
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);

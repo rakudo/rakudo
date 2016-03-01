@@ -69,8 +69,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     method group($obj) {
         $!in_group ?? $!group !! $obj
     }
-    
-    method compose($obj) {
+
+    method compose($obj, :$compiler_services) {
         my @rtl;
         if $!in_group {
             @rtl.push($!group);

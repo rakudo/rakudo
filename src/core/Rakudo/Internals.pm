@@ -1150,6 +1150,14 @@ my class Rakudo::Internals {
     method FILETEST-CHANGED(Str:D \abspath) {
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
     }
+
+    our class CompilerServices {
+        has Mu $!compiler;
+
+        method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
+            $!compiler.generate_accessor($name, package_type, $attr_name, type, $rw);
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

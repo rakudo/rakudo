@@ -66,7 +66,7 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
@@ -112,8 +112,8 @@ class Perl6::Metamodel::ClassHOW
         self.setup_finalization($obj);
 
         # Compose attributes.
-        self.compose_attributes($obj);
-        
+        self.compose_attributes($obj, :$compiler_services);
+
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.
         unless self.get_boolification_mode($obj) != 0 {

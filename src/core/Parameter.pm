@@ -74,6 +74,13 @@ my class Parameter { # declared in BOOTSTRAP
             ?? '!'
             !! ''
     }
+    method modifier() {
+        nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
+          ?? ':D'
+          !! nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY)
+            ?? ':U'
+            !! ''
+    }
 
     method constraint_list() {
         nqp::isnull($!post_constraints) ?? () !!
@@ -167,9 +174,7 @@ my class Parameter { # declared in BOOTSTRAP
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
-        my $modifier = $!flags +& $SIG_ELEM_DEFINED_ONLY
-          ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
-            ?? ':U' !! '';
+        my $modifier = self.modifier;
 
         $perl ~= "::$_ " for @($.type_captures);
         # XXX Need a CODE_SIGIL too?

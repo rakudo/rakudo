@@ -434,37 +434,59 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
 
-    multi method splice(Buf:D: int $got, Int $offset = 0, $size = Whatever) {
-        self!splice-native($got,$offset,$size)
+    multi method splice(Buf:D \SELF:) {
+        my $buf = SELF; SELF = Buf.new; $buf
     }
-    multi method splice(Buf:D: Int $got, Int $offset = 0, $size = Whatever) {
-        self!splice-native($got,$offset,$size)
+    multi method splice(Buf:D: Int $offset, $size = Whatever, :$SINK) {
+        self!splice-native($offset,$size,Nil,$SINK)
     }
-    multi method splice(Buf:D: Mu $got, Int $offset = 0, $size = Whatever) {
+    multi method splice(Buf:D: Int $offset, $size, int $got, :$SINK) {
+        self!splice-native($offset,$size,$got,$SINK)
+    }
+    multi method splice(Buf:D: Int $offset, $size, Int $got, :$SINK) {
+        self!splice-native($offset,$size,$got,$SINK)
+    }
+    multi method splice(Buf:D: Int $offset, $size, Mu $got, :$SINK) {
         self!fail-typecheck('splice',$got)
     }
-    multi method splice(Buf:D: Buf:D $buf, Int $offset = 0, $size = Whatever) {
-        self!splice-native($buf,$offset,$size)
+    multi method splice(Buf:D: Int $offset, $size, Buf:D $buf, :$SINK) {
+        self!splice-native($offset,$size,$buf,$SINK)
     }
-    multi method splice(Buf:D: int @values, Int $offset = 0, $size = Whatever) {
-        self!splice-native(@values,$offset,$size)
+    multi method splice(Buf:D: Int $offset, $size, int @values, :$SINK) {
+        self!splice-native($offset,$size,@values,$SINK)
     }
-    multi method splice(Buf:D: @values, Int $offset = 0, $size = Whatever) {
-        self!splice-native(
-          self!push-list("splic",nqp::create(self),@values),$offset,$size)
+    multi method splice(Buf:D: Int $offset, $size, @values, :$SINK) {
+        self!splice-native($offset,$size,
+          self!push-list("splic",nqp::create(self),@values),$SINK)
     }
 
-    method !splice-native(Buf:D: \x, int $offset, $size) {
+    my $empty := nqp::list_i;
+    method !splice-native(Buf:D: Int $offset, $size, \x, $SINK) {
         my int $remove = nqp::istype($size,Whatever)
           ?? nqp::elems(self) - $offset
           !! nqp::istype($size,Int)
             ?? $size
             !! $size.Int;
-        my $result := $remove
-          ?? self.subbuf($offset,$remove)  # until something smarter
-          !! nqp::create(self);
-        nqp::splice(self,nqp::islist(x) ?? x !! nqp::list_i(x),$offset,$remove);
-        $result
+
+        if $SINK {
+            nqp::splice(self,x.DEFINITE
+              ?? nqp::islist(x)
+                ?? x
+                !! nqp::list_i(x)
+              !! $empty,$offset,$remove);
+            Nil
+        }
+        else {
+            my $result := $remove
+              ?? self.subbuf($offset,$remove)  # until something smarter
+              !! nqp::create(self);
+            nqp::splice(self,x.DEFINITE
+              ?? nqp::islist(x)
+                ?? x
+                !! nqp::list_i(x)
+              !! $empty,$offset,$remove);
+            $result
+        }
     }
 
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }

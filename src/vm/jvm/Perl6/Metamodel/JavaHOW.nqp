@@ -31,7 +31,6 @@ class Perl6::Metamodel::JavaHOW
                 return %methods{$name}
             }
         }
+        nqp::null()
     }
-
- 
 }

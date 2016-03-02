@@ -143,3 +143,11 @@ plan 25;
         is $sb.toString(), "foo", 'calling through to a less visible parent method works';
     }
 }
+
+{
+    use java::util::zip::CRC32:from<Java>;
+    {
+        my $crc32 = CRC32.new;
+        throws-like { $crc32.foo() }, X::Method::NotFound;
+    }
+}

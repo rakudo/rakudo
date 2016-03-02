@@ -139,7 +139,7 @@ plan 25;
     use java::lang::StringBuilder:from<Java>;
     {
         my $sb = StringBuilder.new();
-        $sb = $sb.append("foo"); # dies
+        $sb = $sb.append("foo");
         is $sb.toString(), "foo", 'calling through to a less visible parent method works';
     }
 }

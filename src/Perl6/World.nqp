@@ -2694,6 +2694,10 @@ class Perl6::World is HLL::World {
     my class CompilerServices {
         has $!w;
 
+        # We share one Signature object among accessors for a given package.
+        has $!acc_sig_cache;
+        has $!acc_sig_cache_type;
+
         method generate_accessor(str $meth_name, $package_type, str $attr_name, $type, int $rw) {
             my $native := nqp::objprimspec($type) != 0;
             my $acc := QAST::Var.new(
@@ -2720,11 +2724,20 @@ class Perl6::World is HLL::World {
                 ),
                 QAST::Stmts.new($acc));
             $!w.cur_lexpad()[0].push($block);
-            my %sig_info := nqp::hash('parameters', [
-            ]);
-            return $!w.create_code_object($block, 'Method',
-                $!w.create_signature_and_params(NQPMu, %sig_info, $block,
-                    'Any', :method, invocant_type => $package_type));
+
+            my $sig;
+            if $package_type =:= $!acc_sig_cache_type {
+                $sig := $!acc_sig_cache;
+            }
+            else {
+                my %sig_info := nqp::hash('parameters', []);
+                $sig := $!w.create_signature_and_params(NQPMu, %sig_info,
+                    $block, 'Any', :method, invocant_type => $package_type);
+                $!acc_sig_cache := $sig;
+                $!acc_sig_cache_type := $package_type;
+            }
+
+            return $!w.create_code_object($block, 'Method', $sig);
         }
     }
     method get_compiler_services() {

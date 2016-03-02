@@ -734,7 +734,7 @@ class Perl6::World is HLL::World {
               'X::NYI',
               :feature(($on ?? 'use' !! 'no') ~ " $name"),
             );
-        } 
+        }
         elsif %no_args_pragma{$name} {
             if nqp::islist($arglist) {
                 self.throw($/, 'X::Pragma::NoArgs', :$name)
@@ -2723,7 +2723,8 @@ class Perl6::World is HLL::World {
             my %sig_info := nqp::hash('parameters', [
             ]);
             return $!w.create_code_object($block, 'Method',
-                $!w.create_signature_and_params(NQPMu, %sig_info, $block, 'Any'));
+                $!w.create_signature_and_params(NQPMu, %sig_info, $block,
+                    'Any', :method, invocant_type => $package_type));
         }
     }
     method get_compiler_services() {

@@ -107,6 +107,8 @@ my role Completions {
 class REPL is export { # XXX no need for is export later
     also does Completions;
 
+    has Mu $.compiler;
+
     # XXX print fallback messages
     method !load-line-editor() {
         my $readline = try require Readline;
@@ -128,7 +130,8 @@ class REPL is export { # XXX no need for is export later
         self does FallbackBehavior;
     }
 
-    method interactive(Mu \adverbs) {
+    method interactive(Mu \compiler, Mu \adverbs) {
+        $!compiler = compiler;
         self!load-line-editor();
     }
 

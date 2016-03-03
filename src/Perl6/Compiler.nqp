@@ -224,8 +224,9 @@ class Perl6::Compiler is HLL::Compiler {
 
         try {
             $!p6repl := self.load-p6-repl();
-            $!p6repl.interactive(%adverbs);
+            $!p6repl.interactive(self, %adverbs);
             CATCH {
+                say("couldn't load REPL.pm: $_");
                 $!p6repl := Mu;
             }
         }

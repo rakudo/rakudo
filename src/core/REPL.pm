@@ -80,6 +80,28 @@ my role Completions {
     }
 
     method update-completions {
+        my $context := self.compiler.context;
+
+        return unless $context;
+
+        my $pad := nqp::ctxlexpad($context);
+        my $it := nqp::iterator($pad);
+
+        while $it {
+            my $e := nqp::shift($it);
+            my $k := nqp::iterkey_s($e);
+            my $m = $k ~~ /^ "&"? $<word>=[\w* <.lower> \w*] $/;
+            if $m {
+                my $word = ~$m<word>;
+                sorted-set-insert(@!completions, $word);
+            }
+        }
+
+        my $PACKAGE = self.compiler.eval('$?PACKAGE', :outer_ctx($context));
+
+        for $PACKAGE.WHO.keys -> $k {
+            sorted-set-insert(@!completions, $k);
+        }
     }
 
     method extract-last-word(Str $line) {

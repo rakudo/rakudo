@@ -60,6 +60,7 @@ my role LinenoiseBehavior[$WHO] {
     }
 
     method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
+        self.update-completions;
         linenoise(prompt) // nqp::null_s()
     }
 }
@@ -160,7 +161,6 @@ class REPL is export { # XXX no need for is export later
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
         my \result = super.(SELF, code, |@(args), |%(adverbs));
         # XXX we don't get a context until our next readline?
-        self.update-completions;
         result
     }
 }

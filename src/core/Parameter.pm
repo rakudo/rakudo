@@ -264,4 +264,66 @@ my class Parameter { # declared in BOOTSTRAP
     }
 }
 
+multi sub infix:<eqv>(Parameter \a, Parameter \b) {
+
+    # we're us
+    return True if a =:= b;
+
+    # different nominal or coerce type
+    return False
+      unless nqp::iseq_s(
+          nqp::getattr(a,Parameter,'$!nominal_type').^name,
+          nqp::getattr(b,Parameter,'$!nominal_type').^name
+        )
+      && nqp::iseq_s(
+          nqp::getattr(a,Parameter,'$!coerce_type').^name,
+          nqp::getattr(b,Parameter,'$!coerce_type').^name
+        );
+
+    # different flags
+    return False
+      if nqp::isne_i(
+        nqp::getattr(a,Parameter,'$!flags'),
+        nqp::getattr(b,Parameter,'$!flags')
+      );
+
+    # not both named or not same name
+    if a.named {
+        return False
+          unless b.named
+            && a.named_names.AT-POS(0) eq b.named_names.AT-POS(0);
+    }
+
+    # unnamed vs named
+    elsif b.named {
+        return False;
+    }
+
+    # first has a post constraint
+    my Mu $pca := nqp::getattr(a,Parameter,'$!post_constraints');
+    if nqp::islist($pca) {
+
+        # callable means runtime check, so no match
+        return False if nqp::istype(nqp::atpos($pca,0),Callable);
+
+        # second doesn't have a post constraint
+        my Mu $pcb := nqp::getattr(b,Parameter,'$!post_constraints');
+        return False unless nqp::islist($pcb);
+
+        # second is a Callable, so runtime check, so no match
+        return False if nqp::istype(nqp::atpos($pcb,0),Callable);
+
+        # not same literal value
+        return False unless nqp::atpos($pca,0) eqv nqp::atpos($pcb,0);
+    }
+
+    # first doesn't, second *does* have a post constraint
+    elsif nqp::islist(nqp::getattr(b,Parameter,'$!post_constraints')) {
+        return False;
+    }
+
+    # it's a match
+    True
+}
+
 # vim: ft=perl6 expandtab sw=4

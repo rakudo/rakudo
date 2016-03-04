@@ -47,6 +47,11 @@ my class Parameter { # declared in BOOTSTRAP
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
+    method usage-name() {
+        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+          ?? $!variable_name
+          !! nqp::substr($!variable_name,1)
+    }
 
     method sigil() {
         nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)

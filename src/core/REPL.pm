@@ -131,6 +131,7 @@ class REPL is export { # XXX no need for is export later
     also does Completions;
 
     has Mu $.compiler;
+    has Bool $!multi-line-enabled;
 
     # XXX print fallback messages
     method !load-line-editor() {
@@ -154,6 +155,7 @@ class REPL is export { # XXX no need for is export later
     }
 
     method interactive(Mu \compiler, Mu \adverbs) {
+        $!multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
         $!compiler = compiler;
         self!load-line-editor();
     }
@@ -162,7 +164,7 @@ class REPL is export { # XXX no need for is export later
         try {
             CATCH {
                 when X::Syntax::Missing {
-                    if .pos == code.chars {
+                    if $!multi-line-enabled && .pos == code.chars {
                         adverbs<more_input> = 1;
                         return;
                     }
@@ -170,7 +172,7 @@ class REPL is export { # XXX no need for is export later
                 }
 
                 when X::Comp::FailGoal {
-                    if .pos == code.chars {
+                    if $!multi-line-enabled && .pos == code.chars {
                         adverbs<more_input> = 1;
                         return;
                     }

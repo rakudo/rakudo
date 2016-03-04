@@ -70,7 +70,7 @@ my sub MAIN_HELPER($retval = 0) {
                 my $argument;
                 if $param.named {
                     if $param.slurpy {
-                        $argument  = '--<' ~ substr($param.name,1) ~ '>=...';
+                        $argument  = '--<' ~ $param.name.subst($param.sigil, '', :nth(1)) ~ '>=...';
                         @optional-named.push("[$argument]");
                     }
                     else {
@@ -88,7 +88,7 @@ my sub MAIN_HELPER($retval = 0) {
                 else {
                     my $constraints  = $param.constraint_list.map(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
-                    $argument = $param.name   ?? '<' ~ substr($param.name,1) ~ '>' !!
+                    $argument = $param.name   ?? '<' ~ $param.name.subst($param.sigil, '', :nth(1)) ~ '>' !!
                                 $simple-const ??       $constraints                !!
                                                  '<' ~ $param.type.^name     ~ '>' ;
 

@@ -256,7 +256,7 @@ my class Parameter { # declared in BOOTSTRAP
             return Nil without $where;
             $rest ~= " $where";
         }
-        $rest ~= ' = { ... }' if $default;
+        $rest ~= " = $!default_value.perl()" if $default;
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }

@@ -159,8 +159,26 @@ class REPL is export { # XXX no need for is export later
     }
 
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
-        my \result = super.(SELF, code, |@(args), |%(adverbs));
-        # XXX we don't get a context until our next readline?
-        result
+        try {
+            CATCH {
+                when X::Syntax::Missing {
+                    if .pos == code.chars {
+                        adverbs<more_input> = 1;
+                        return;
+                    }
+                    .throw;
+                }
+
+                when X::Comp::FailGoal {
+                    if .pos == code.chars {
+                        adverbs<more_input> = 1;
+                        return;
+                    }
+                    .throw;
+                }
+            }
+
+            super.(SELF, code, |@(args), |%(adverbs))
+        }
     }
 }

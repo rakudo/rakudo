@@ -37,6 +37,8 @@ my class Code does Callable { # declared in BOOTSTRAP
     method line(Code:D:) {
         nqp::getcodelocation($!do)<line>;
     }
+
+    multi method perl(Code:D:) { '{ ... }' }
 }
 
 # vim: ft=perl6 expandtab sw=4

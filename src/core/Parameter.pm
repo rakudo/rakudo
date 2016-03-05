@@ -159,19 +159,79 @@ my class Parameter { # declared in BOOTSTRAP
 
     method !flags() { $!flags }
 
-    multi method ACCEPTS(Parameter:D: Parameter:D $other) {
-        return False unless $other.type ~~ $.type;
-        return False unless
-            $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
-            and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <=
-                $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
-        if $.sub_signature {
-            return False unless $other.sub_signature ~~ $.sub_signature;
+    multi method ACCEPTS(Parameter:D: Parameter:D \other) {
+
+        # we're us
+        my \o := nqp::decont(other);
+        return True if self =:= o;
+
+        # nominal type is acceptable
+        if $!nominal_type.ACCEPTS(nqp::getattr(o,Parameter,'$!nominal_type')) {
+            my $oflags := nqp::getattr(o,Parameter,'$!flags');
+
+            # here not defined only, or both defined only
+            return False
+              unless nqp::isle_i(
+                nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
+                nqp::bitand_i($oflags,$SIG_ELEM_DEFINED_ONLY))
+
+            # here not undefined only, or both undefined only
+              && nqp::isle_i(
+                nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
+                nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY));
         }
-        if $.named {
-            return False unless $other.named;
-            return False unless Set($other.named_names) (<=) Set($.named_names);
+
+        # nominal type not same
+        else {
+            return False;
         }
+
+        # we have sub sig and not the same
+        my $osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
+        if $!sub_signature {
+            return False
+              unless $osub_signature
+              && $!sub_signature.ACCEPTS($osub_signature);
+        }
+
+        # no sub sig, but other has one
+        elsif $osub_signature {
+            return False;
+        }
+
+        # have nameds here
+        my $onamed_names := nqp::getattr(o,Parameter,'$!named_names');
+        if $!named_names {
+
+            # nameds there
+            if $onamed_names {
+
+                # too many nameds there, can never be subset
+                my int $elems = nqp::elems($!named_names);
+                return False
+                  if nqp::isgt_i(nqp::elems($onamed_names),$elems);
+
+                # set up lookup hash
+                my $lookup := nqp::hash;
+                my int $i   = -1;
+                nqp::bindkey($lookup,nqp::atpos($!named_names,$i),1)
+                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+                # make sure the other nameds are all here
+                $elems = nqp::elems($onamed_names);
+                $i     = -1;
+                return False unless
+                  nqp::existskey($lookup,nqp::atpos($onamed_names,$i))
+                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            }
+        }
+
+        # no nameds here, but we do there (implies not a subset)
+        elsif $onamed_names {
+            return False;
+        }
+
+        # it's a match!
         True;
     }
 

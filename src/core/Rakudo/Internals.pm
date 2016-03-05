@@ -667,8 +667,16 @@ my class Rakudo::Internals {
     }
     method IS-WIN() { $IS-WIN }
 
+    method NUMERIC-ENV-KEY(\key) {
+        %*ENV.EXISTS-KEY(key)
+          ?? %*ENV.AT-KEY(key)
+            ?? +%*ENV.AT-KEY(key)
+            !! 0
+          !! Nil
+    }
+
     method error-rcgye() {  # red clear green yellow eject
-        %*ENV<RAKUDO_ERROR_COLOR> // !self.IS-WIN
+        self.NUMERIC-ENV-KEY("RAKUDO_ERROR_COLOR") // !self.IS-WIN
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
           !! ("", "", "", "", "<HERE>");
     }

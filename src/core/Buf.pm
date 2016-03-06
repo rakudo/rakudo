@@ -267,16 +267,18 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method !push-list(\action,\to,\from) {
         if nqp::istype(from,List) {
-            my Mu $from  := nqp::getattr(from,List,'$!reified');
-            my int $elems = nqp::elems($from);
-            my int $j     = nqp::elems(to);
-            nqp::setelems(to, $j + $elems);  # presize for efficiency
-            my int $i = -1;
-            my $got;
-            nqp::istype(($got := nqp::atpos($from,$i)),Int)
-              ?? nqp::bindpos_i(to,$j++,$got)
-              !! self!fail-typecheck-element(action,$i,$got).throw
-              while nqp::islt_i($i = $i + 1,$elems);
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            if nqp::defined($from) {
+                my int $elems = nqp::elems($from);
+                my int $j     = nqp::elems(to);
+                nqp::setelems(to, $j + $elems);  # presize for efficiency
+                my int $i = -1;
+                my $got;
+                nqp::istype(($got := nqp::atpos($from,$i)),Int)
+                  ?? nqp::bindpos_i(to,$j++,$got)
+                  !! self!fail-typecheck-element(action,$i,$got).throw
+                  while nqp::islt_i($i = $i + 1,$elems);
+            }
         }
         else {
             my $iter := from.iterator;
@@ -294,11 +296,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method !unshift-list(\action,\to,\from) {
         if nqp::istype(from,List) {
             my Mu $from := nqp::getattr(from,List,'$!reified');
-            my int $i    = nqp::elems($from);
-            nqp::istype((my $got := nqp::atpos($from,$i)),Int)
-              ?? nqp::unshift_i(to,$got)
-              !! self!fail-typecheck-element(action,$i,$got).throw
-              while nqp::isge_i($i = $i - 1,0);
+            if nqp::defined($from) {
+                my int $i = nqp::elems($from);
+                nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+                  ?? nqp::unshift_i(to,$got)
+                  !! self!fail-typecheck-element(action,$i,$got).throw
+                  while nqp::isge_i($i = $i - 1,0);
+            }
             to
         }
         else {

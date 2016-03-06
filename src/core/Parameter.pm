@@ -178,7 +178,12 @@ my class Parameter { # declared in BOOTSTRAP
             # here not undefined only, or both undefined only
               && nqp::isle_i(
                 nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
-                nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY));
+                nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY))
+
+            # here is rw, or both is rw
+              && nqp::isle_i(
+                nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
+                nqp::bitand_i($oflags,$SIG_ELEM_IS_RW));
         }
 
         # nominal type not same

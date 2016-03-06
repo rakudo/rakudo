@@ -1571,11 +1571,13 @@ class Perl6::Optimizer {
                             my str $assignop;
                             my $assignee;
                             my $assignee_var;
+                            my int $is-always-definite;
                             if $is_var {
                                 my str $sigil := nqp::substr($op[1].name, 0, 1);
 
                                 if nqp::objprimspec($op[1].returns) -> $spec {
                                     $assignop := @native_assign_ops[$spec];
+                                    $is-always-definite := 1;
                                 } elsif $sigil eq '$' {
                                     $assignop := 'assign';
                                 } else {
@@ -1611,12 +1613,18 @@ class Perl6::Optimizer {
                             $op.pop;
 
                             $op.push($assignee);
-                            $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                QAST::Op.new( :op('if'),
-                                    QAST::Op.new( :op('p6definite'), $assignee_var),
+                            if ($is-always-definite) {
+                                $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
                                     $assignee_var,
-                                    QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
-                                $operand));
+                                    $operand));
+                            } else {
+                                $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                    QAST::Op.new( :op('if'),
+                                        QAST::Op.new( :op('p6definite'), $assignee_var),
+                                        $assignee_var,
+                                        QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
+                                    $operand));
+                            }
 
                             if $assignop ne 'assign' && nqp::objprimspec($assignee.returns) {
                                 $op.returns($assignee.returns);

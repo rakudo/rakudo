@@ -147,46 +147,51 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
     # different number of parameters or no parameters
     my $ap := nqp::getattr(a.params,List,'$!reified');
     my $bp := nqp::getattr(b.params,List,'$!reified');
-    my Int $elems = nqp::elems($ap);
+    my int $elems = nqp::elems($ap);
     return False if nqp::isne_i($elems,nqp::elems($bp));
     return True unless $elems;
 
     # compare all positionals
-    my Int $i = -1;
+    my int $i = -1;
     Nil
       while nqp::islt_i($i = nqp::add_i($i,1),$elems)
         && nqp::atpos($ap,$i) eqv nqp::atpos($bp,$i);
-    
-    # not all same and different number of positionals
-    return False
-      if nqp::islt_i($i,$elems)
-        && (!nqp::atpos($ap,$i).named || !nqp::atpos($bp,$i).named);
 
-    # create lookup table
-    my Int $j = $i = $i - 1;
-    my $lookup := nqp::hash;
-    while nqp::islt_i($j = nqp::add_i($j,1),$elems) {
-        my $p  := nqp::atpos($ap,$j);
-        my $nn := nqp::getattr($p,Parameter,'$!named_names');
-        my str $key =
-          nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
-        die "Found named parameter '{
-          nqp::chars($key) ?? $key !! '(unnamed)'
-        }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
-          if nqp::existskey($lookup,$key);
-        nqp::bindkey($lookup,$key,$p);
-    }
+    # not all matching positionals
+    if nqp::islt_i($i,$elems) {
 
-    # named variable mismatch
-    while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
-        my $p  := nqp::atpos($bp,$i);
-        my $nn := nqp::getattr($p,Parameter,'$!named_names');
-        my str $key = nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
-
-        # named param doesn't exist in other or is not equivalent
+        # not all same and different number of positionals
         return False
-          unless nqp::existskey($lookup,$key)
-            && $p eqv nqp::atkey($lookup,$key);
+          if (!nqp::atpos($ap,$i).named || !nqp::atpos($bp,$i).named);
+
+        # create lookup table
+        my int $j = $i = $i - 1;
+        my $lookup := nqp::hash;
+        while nqp::islt_i($j = nqp::add_i($j,1),$elems) {
+            my $p  := nqp::atpos($ap,$j);
+            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my str $key =
+              nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
+            die "Found named parameter '{
+              nqp::chars($key) ?? $key !! '(unnamed)'
+            }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
+              if nqp::existskey($lookup,$key);
+            nqp::bindkey($lookup,$key,$p);
+        }
+
+        # named variable mismatch
+        while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+            my $p  := nqp::atpos($bp,$i);
+            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my str $key = nqp::defined($nn) && nqp::elems($nn)
+              ?? nqp::atpos($nn,0)
+              !! '';
+
+            # named param doesn't exist in other or is not equivalent
+            return False
+              unless nqp::existskey($lookup,$key)
+                && $p eqv nqp::atkey($lookup,$key);
+        }
     }
 
     # it's a match

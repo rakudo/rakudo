@@ -347,11 +347,22 @@ multi sub infix:<eqv>(Parameter \a, Parameter \b) {
         nqp::getattr(b,Parameter,'$!flags')
       );
 
-    # not both named or not same name
+    # first is named
     if a.named {
+
+        # other is not named
+        return False unless b.named;
+
+        # not both actually have a name (e.g. *%_ doesn't)
+        my $anames := nqp::getattr(a.named_names,List,'$!reified');
+        my $bnames := nqp::getattr(b.named_names,List,'$!reified');
+        my int $adefined = nqp::defined($anames);
+        return False if nqp::isne_i($adefined,nqp::defined($bnames));
+
+        # not same basic name
         return False
-          unless b.named
-            && a.named_names.AT-POS(0) eq b.named_names.AT-POS(0);
+          if $adefined
+          && nqp::isne_s(nqp::atpos($anames,0),nqp::atpos($bnames,0));
     }
 
     # unnamed vs named

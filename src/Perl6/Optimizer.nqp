@@ -1567,7 +1567,8 @@ class Perl6::Optimizer {
                             || (nqp::istype($op[1], QAST::Op)
                                 && ($op[1].op eq 'callmethod'
                                     || ($op[1].op eq 'hllize'
-                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod'))) {
+                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod')
+                                    || $op[1].op eq 'call' || $op[1].op eq 'callstatic')) {
                             my str $assignop;
                             my $assignee;
                             my $assignee_var;

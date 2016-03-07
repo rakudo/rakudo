@@ -1165,6 +1165,9 @@ my class Rakudo::Internals {
         method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
             $!compiler.generate_accessor($name, package_type, $attr_name, type, $rw);
         }
+        method generate_buildplan_executor(Mu \object, Mu \buildplan) {
+            $!compiler.generate_buildplan_executor(object, buildplan);
+        }
     }
 }
 

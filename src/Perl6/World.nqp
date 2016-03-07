@@ -2739,6 +2739,80 @@ class Perl6::World is HLL::World {
 
             return $!w.create_code_object($block, 'Method', $sig);
         }
+
+        method generate_buildplan_executor($in_object, $in_build_plan) {
+            my $execution := QAST::Stmts.new();
+            my $block := QAST::Block.new(
+                :name<BUILDALL>, :blocktype<declaration_static>,
+                QAST::Stmts.new(
+                    QAST::Var.new(
+                        :decl<param>, :scope<local>, :name<self>
+                    ),
+                    # XXX not sure if those two could be local instead.
+                    QAST::Var.new(
+                        :decl<param>, :scope<var>, :name('@autovivs')
+                    ),
+                    QAST::Var.new(
+                        :decl<param>, :scope<var>, :name('%attrinit')
+                    )
+                ),
+                $execution);
+
+            my $object := nqp::decont($in_object);
+            my $build_plan := nqp::getattr(nqp::decont($in_build_plan), $*W.find_symbol(['List']), '$!reified');
+
+            my int $count := nqp::elems($build_plan);
+            my int $i     := -1;
+            while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
+                my $task := nqp::atpos($build_plan, $i);
+                my int $code := nqp::atpos($task, 0);
+                if nqp::iseq_i($code, 0) {
+                    my $reg := $block.unique('flattening_');
+
+                    $execution.push(QAST::Op.new(
+                        :op('callmethod'), :name('FLATTENABLE_LIST'),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($reg), :scope('local'), :decl('var') ),
+                            QAST::WVal.new( :value(nqp::atpos($task, 1)) )),
+                        :flat(1) ));
+
+                    $execution.push(
+                        QAST::Op.new( :op<call>,
+                            QAST::WVal.new( :value(nqp::atpos($task, 1)) ),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('FLATTENABLE_HASH'),
+                                QAST::Var.new( :name($reg), :scope('local') ),
+                                :flat(1), :named(1) )
+                            ));
+                } elsif nqp::iseq_i($code, 1) {
+                    $execution.push(
+                        QAST::Op.new( :op<if>,
+                            QAST::Op.new( :op<existskey>,
+                                QAST::Var.new( :name('%attrinit'), :scope<var> ),
+                                QAST::SVal.new( :value(nqp::atpos($task, 1)) ) ),
+                            QAST::Op.new( :op<assign>,
+                                QAST::Op.new( :op<getattr>,
+                                    QAST::Var.new( :name<self>, :scope<local> ),
+                                    QAST::WVal.new( :value( nqp::atpos($task, 2) ) ),
+                                    QAST::SVal.new( nqp::atpos($task, 3) ) ),
+                                QAST::Op.new( :op<callmethod>,
+                                    QAST::Var.new( :name('%attrinit'), :scope<var> ),
+                                    QAST::SVal.new( :value<AT-KEY> ),
+                                    QAST::Op.new( :op<p6box_s>,
+                                        QAST::SVal.new( :value( nqp::atpos($task, 2) ) )
+                                    )
+                                )
+                            )
+                        )
+                    );
+                } else {
+                    note("died upon seeing code $code in a BUILDALLPLAN for " ~ $object.HOW.name($object));
+                    return NQPMu;
+                }
+            }
+            note("HOORAY! BUILDALLPLAN for " ~ $object.HOW.name($object));
+        }
     }
     method get_compiler_services() {
         unless nqp::isconcrete($!compiler_services) {

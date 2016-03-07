@@ -147,10 +147,24 @@ class Perl6::Metamodel::ClassHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
-        
+
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
-        
+
+        unless nqp::isnull($compiler_services) {
+            my $meth;
+            try  {
+                $meth := nqp::findmethod($compiler_services, 'generate_buildplan_executor');
+            }
+            if $meth {
+                note("gonna give you up, er i mean call the method");
+                $meth($compiler_services, $obj, self.BUILDALLPLAN($obj));
+                note("hooray!");
+            }
+            #$meth.set_name("BUILDALL")
+            #self.add_method(
+        }
+
         # Compose the representation, provided this isn't an augment.
         unless $was_composed {
             self.compose_repr($obj);

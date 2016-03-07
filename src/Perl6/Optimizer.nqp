@@ -1557,7 +1557,7 @@ class Perl6::Optimizer {
         if +@($op) > 0 {
             # if we know we're directly calling the result, we can be smarter
             # about METAOPs
-            my $is_var := 0;
+            my int $is_var := 0;
             if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
                 if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
                     if nqp::istype($metaop[0], QAST::Var) {

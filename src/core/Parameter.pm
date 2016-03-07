@@ -252,7 +252,8 @@ my class Parameter { # declared in BOOTSTRAP
 
             # not same literal value
             return False
-              unless nqp::atpos($!post_constraints,0) eqv nqp::atpos($opc,0);
+              unless nqp::atpos($!post_constraints,0).ACCEPTS(
+                nqp::atpos($opc,0));
         }
 
         # we don't, other *does* have a post constraint

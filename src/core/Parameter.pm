@@ -183,7 +183,12 @@ my class Parameter { # declared in BOOTSTRAP
             # here is rw, or both is rw
               && nqp::isle_i(
                 nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
-                nqp::bitand_i($oflags,$SIG_ELEM_IS_RW));
+                nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
+
+            # here is part of MMD, or both are part of MMD
+              && nqp::isle_i(
+                nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
+                nqp::bitand_i($oflags,$SIG_ELEM_MULTI_INVOCANT));
         }
 
         # nominal type not same

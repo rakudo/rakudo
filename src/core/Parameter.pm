@@ -236,6 +236,30 @@ my class Parameter { # declared in BOOTSTRAP
             return False;
         }
 
+        # we have a post constraint
+        if nqp::islist($!post_constraints) {
+
+            # callable means runtime check, so no match
+            return False
+              if nqp::istype(nqp::atpos($!post_constraints,0),Callable);
+
+            # other doesn't have a post constraint
+            my Mu $opc := nqp::getattr(o,Parameter,'$!post_constraints');
+            return False unless nqp::islist($opc);
+
+            # other post constraint is a Callable, so runtime check, so no match
+            return False if nqp::istype(nqp::atpos($opc,0),Callable);
+
+            # not same literal value
+            return False
+              unless nqp::atpos($!post_constraints,0) eqv nqp::atpos($opc,0);
+        }
+
+        # we don't, other *does* have a post constraint
+        elsif nqp::islist(nqp::getattr(o,Parameter,'$!post_constraints')) {
+            return False;
+        }
+
         # it's a match!
         True;
     }

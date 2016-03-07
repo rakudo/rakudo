@@ -349,8 +349,12 @@ class Perl6::Compiler is HLL::Compiler {
     method eval($code, *@args, *%adverbs) {
         my $super := nqp::findmethod(HLL::Compiler, 'eval');
         if $!p6repl {
+            my $needs_more_input := 0;
+            %adverbs<needs_more_input> := sub () {
+                $needs_more_input := 1;
+            };
             my $result := $!p6repl.eval(self, $super, $code, @args, %adverbs);
-            if %adverbs<more_input> {
+            if $needs_more_input {
                 return self.needs-more-input();
             }
             return $result;

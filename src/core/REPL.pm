@@ -162,19 +162,18 @@ class REPL is export { # XXX no need for is export later
 
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
         try {
+            my &needs_more_input = adverbs<needs_more_input>;
             CATCH {
                 when X::Syntax::Missing {
                     if $!multi-line-enabled && .pos == code.chars {
-                        adverbs<more_input> = 1;
-                        return;
+                        return needs_more_input();
                     }
                     .throw;
                 }
 
                 when X::Comp::FailGoal {
                     if $!multi-line-enabled && .pos == code.chars {
-                        adverbs<more_input> = 1;
-                        return;
+                        return needs_more_input();
                     }
                     .throw;
                 }

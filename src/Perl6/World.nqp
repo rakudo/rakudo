@@ -3984,8 +3984,26 @@ class Perl6::World is HLL::World {
                     nqp::push(@result, safely_stringify($_));
                 }
                 return "(" ~ join(", ", @result) ~ ")";
+            } elsif nqp::ishash($target) {
+                my @result;
+                for $target -> $key {
+                    @result.push("\n") if +@result != 0;
+                    @result.push("        '" ~ $key ~ "'");
+                    @result.push(": ");
+                    @result.push(safely_stringify($target{$key}));
+                }
+                return join('', @result);
+            } elsif nqp::islist($target) {
+                my @result;
+                @result.push("(");
+                for $target -> $val {
+                    @result.push(",") if +@result != 1;
+                    @result.push(safely_stringify($val));
+                }
+                @result.push(")");
+                return join('', @result);
             } else {
-                return (try { ~$target} // '(unstringifiable object)' );
+                return (try { ~$target } // try { "(unstringifiable " ~ $target.HOW.name($target) ~ ")" } // '(unstringifiable object)' );
             }
         }
 

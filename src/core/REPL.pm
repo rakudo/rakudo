@@ -124,22 +124,27 @@ my role Completions {
     }
 }
 
-# XXX print warning when we can't load this file
-# XXX comment about method signatures
-# XXX prevent other methods from getting added
-class REPL is export { # XXX no need for is export later
+class REPL is export {
     also does Completions;
 
     has Mu $.compiler;
     has Bool $!multi-line-enabled;
 
-    # XXX print fallback messages
     method !load-line-editor() {
         my $readline = try require Readline;
+        my Bool $problem = False;
 
         if $readline.HOW ~~ Metamodel::ModuleHOW {
             self does ReadlineBehavior[$readline.WHO];
-            self.?init-line-editor();
+            try {
+                self.?init-line-editor();
+                CATCH {
+                    say "I ran into a problem trying to set up Readline: $_";
+                    say 'Falling back to Linenoise (if present)';
+
+                    $problem = True;
+                }
+            }
             return;
         }
 
@@ -147,9 +152,24 @@ class REPL is export { # XXX no need for is export later
 
         if $linenoise.HOW ~~ Metamodel::ModuleHOW {
             self does LinenoiseBehavior[$linenoise.WHO];
-            self.?init-line-editor();
+            try {
+                self.?init-line-editor();
+
+                CATCH {
+                    say "I ran into a problem while trying to set up Linenoise: $_";
+                    $problem = True;
+                }
+            }
             return;
         }
+
+        if $problem {
+            say 'Continuing without tab completions or line editor';
+            say 'You may want to consider using rlwrap for simple line editor functionality';
+        } else {
+            say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+        }
+        say '';
 
         self does FallbackBehavior;
     }

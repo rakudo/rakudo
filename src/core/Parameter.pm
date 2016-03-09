@@ -185,6 +185,26 @@ my class Parameter { # declared in BOOTSTRAP
                 nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
                 nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
 
+            # other is optional, or both are optional
+              && nqp::isle_i(
+                nqp::bitand_i($oflags,$SIG_ELEM_IS_OPTIONAL),
+                nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+
+            # other is slurpy positional, or both are slurpy positional
+              && nqp::isle_i(
+                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_POS),
+                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
+
+            # other is slurpy named, or both are slurpy named
+              && nqp::isle_i(
+                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_NAMED),
+                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
+
+            # other is slurpy one arg, or both are slurpy one arg
+              && nqp::isle_i(
+                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_ONEARG),
+                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+
             # here is part of MMD, or both are part of MMD
               && nqp::isle_i(
                 nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),

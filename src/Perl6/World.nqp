@@ -2737,7 +2737,9 @@ class Perl6::World is HLL::World {
                 $!acc_sig_cache_type := $package_type;
             }
 
-            return $!w.create_code_object($block, 'Method', $sig);
+            my $code := $!w.create_code_object($block, 'Method', $sig);
+            $code.set_rw() if $rw;
+            return $code;
         }
     }
     method get_compiler_services() {

@@ -169,46 +169,50 @@ my class Parameter { # declared in BOOTSTRAP
         if $!nominal_type.ACCEPTS(nqp::getattr(o,Parameter,'$!nominal_type')) {
             my $oflags := nqp::getattr(o,Parameter,'$!flags');
 
-            # here not defined only, or both defined only
-            return False
-              unless nqp::isle_i(
-                nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
-                nqp::bitand_i($oflags,$SIG_ELEM_DEFINED_ONLY))
+            # flags are not same, so we need to look more in depth
+            if nqp::isne_i($!flags,$oflags) {
 
-            # here not undefined only, or both undefined only
-              && nqp::isle_i(
-                nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
-                nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY))
+                # here not defined only, or both defined only
+                return False
+                  unless nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
+                    nqp::bitand_i($oflags,$SIG_ELEM_DEFINED_ONLY))
 
-            # here is rw, or both is rw
-              && nqp::isle_i(
-                nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
-                nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
+                # here not undefined only, or both undefined only
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
+                    nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY))
 
-            # other is optional, or both are optional
-              && nqp::isle_i(
-                nqp::bitand_i($oflags,$SIG_ELEM_IS_OPTIONAL),
-                nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+                # here is rw, or both is rw
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
+                    nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
 
-            # other is slurpy positional, or both are slurpy positional
-              && nqp::isle_i(
-                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_POS),
-                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
+                # other is optional, or both are optional
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_IS_OPTIONAL),
+                    nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
 
-            # other is slurpy named, or both are slurpy named
-              && nqp::isle_i(
-                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_NAMED),
-                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
+                # other is slurpy positional, or both are slurpy positional
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_POS),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
 
-            # other is slurpy one arg, or both are slurpy one arg
-              && nqp::isle_i(
-                nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_ONEARG),
-                nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+                # other is slurpy named, or both are slurpy named
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_NAMED),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
 
-            # here is part of MMD, or both are part of MMD
-              && nqp::isle_i(
-                nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
-                nqp::bitand_i($oflags,$SIG_ELEM_MULTI_INVOCANT));
+                # other is slurpy one arg, or both are slurpy one arg
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_ONEARG),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+
+                # here is part of MMD, or both are part of MMD
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
+                    nqp::bitand_i($oflags,$SIG_ELEM_MULTI_INVOCANT));
+            }
         }
 
         # nominal type not same

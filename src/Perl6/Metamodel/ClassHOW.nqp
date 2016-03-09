@@ -120,10 +120,10 @@ class Perl6::Metamodel::ClassHOW
             my $i := 0;
             my @mro := self.mro($obj);
             while $i < +@mro {
-                my %meths := @mro[$i].HOW.method_table(@mro[$i]);
-                if nqp::existskey(%meths, 'Bool') {
-                    last;
-                }
+                my $ptype := @mro[$i];
+                last if nqp::existskey($ptype.HOW.method_table($ptype), 'Bool');
+                last if nqp::can($ptype.HOW, 'submethod_table') &&
+                    nqp::existskey($ptype.HOW.submethod_table($ptype), 'Bool');
                 $i := $i + 1;
             }
             if $i + 1 == +@mro {

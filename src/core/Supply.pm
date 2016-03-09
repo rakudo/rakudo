@@ -576,7 +576,7 @@ my class Supply {
         self.sanitize.tap:
             -> \val { $c.send(val) },
             done => { $c.close },
-            quit => -> $ex { $c.quit($ex) };
+            quit => -> $ex { $c.fail($ex) };
         $c
     }
 

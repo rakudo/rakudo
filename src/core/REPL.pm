@@ -131,37 +131,44 @@ class REPL is export {
     has Bool $!multi-line-enabled;
 
     method !load-line-editor() {
-        my $readline = try require Readline;
         my Bool $problem = False;
-
-        if $readline.HOW ~~ Metamodel::ModuleHOW {
-            self does ReadlineBehavior[$readline.WHO];
-            try {
-                self.?init-line-editor();
-                CATCH {
+        my $loaded-readline = try {
+            CATCH {
+                when (X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Readline/ }) {
+                    # ignore it
+                }
+                default {
                     say "I ran into a problem trying to set up Readline: $_";
                     say 'Falling back to Linenoise (if present)';
 
                     $problem = True;
                 }
             }
-            return;
-        }
+            my $readline = do require Readline;
+            self does ReadlineBehavior[$readline.WHO]; # XXX how to back this out if we fail?
+            self.?init-line-editor();
+            True
+        };
 
-        my $linenoise = try require Linenoise;
+        return if $loaded-readline;
 
-        if $linenoise.HOW ~~ Metamodel::ModuleHOW {
-            self does LinenoiseBehavior[$linenoise.WHO];
-            try {
-                self.?init-line-editor();
-
-                CATCH {
+        my $loaded-linenoise = try {
+            CATCH {
+                when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Linenoise/ } {
+                    # ignore it
+                }
+                default {
                     say "I ran into a problem while trying to set up Linenoise: $_";
                     $problem = True;
                 }
             }
-            return;
+            my $linenoise = do require Linenoise;
+            self does LinenoiseBehavior[$linenoise.WHO]; # XXX how to back this out if we fail?
+            self.?init-line-editor();
+            True
         }
+
+        return if $loaded-linenoise;
 
         if $problem {
             say 'Continuing without tab completions or line editor';

@@ -1820,7 +1820,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $*SCOPE      := 'my';
 
             while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {
-                my $symbol := nqp::unbox_s($arg.Str());
+                my str $symbol := nqp::unbox_s($arg.Str());
                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
                     if $lexpad.symbol($symbol);
                 declare_variable($/, $past,

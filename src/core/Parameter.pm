@@ -196,19 +196,6 @@ my class Parameter { # declared in BOOTSTRAP
             return False;
         }
 
-        # we have sub sig and not the same
-        my $osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
-        if $!sub_signature {
-            return False
-              unless $osub_signature
-              && $!sub_signature.ACCEPTS($osub_signature);
-        }
-
-        # no sub sig, but other has one
-        elsif $osub_signature {
-            return False;
-        }
-
         # have nameds here
         my $onamed_names := nqp::getattr(o,Parameter,'$!named_names');
         if $!named_names {
@@ -238,6 +225,19 @@ my class Parameter { # declared in BOOTSTRAP
 
         # no nameds here, but we do there (implies not a subset)
         elsif $onamed_names {
+            return False;
+        }
+
+        # we have sub sig and not the same
+        my $osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
+        if $!sub_signature {
+            return False
+              unless $osub_signature
+              && $!sub_signature.ACCEPTS($osub_signature);
+        }
+
+        # no sub sig, but other has one
+        elsif $osub_signature {
             return False;
         }
 

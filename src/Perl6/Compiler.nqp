@@ -212,6 +212,8 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::say('');
         }
 
+        nqp::say("To exit type 'exit' or '^D'");
+
         $!completions := self.get-completions();
 
         my $*moreinput := sub ($cursor) {

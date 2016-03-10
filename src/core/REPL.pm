@@ -61,7 +61,13 @@ my role LinenoiseBehavior[$WHO] {
 
     method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
         self.update-completions;
-        linenoise(prompt) // nqp::null_s()
+        my $line = linenoise(prompt);
+
+        if $line.defined {
+            linenoiseHistoryAdd($line);
+        }
+
+        $line // nqp::null_s()
     }
 }
 

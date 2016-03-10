@@ -39,9 +39,17 @@ my sub sorted-set-insert(@values, $value) {
 }
 
 my role ReadlineBehavior[$WHO] {
+    my &readline    = $WHO<&readline>;
+    my &add_history = $WHO<&add_history>;
+
     method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
-        say 'readline';
-        nqp::null_s();
+        my $line = readline(prompt);
+
+        if $line.defined {
+            add_history($line);
+        }
+
+        $line // nqp::null_s()
     }
 }
 

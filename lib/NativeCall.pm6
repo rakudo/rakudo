@@ -22,13 +22,15 @@ my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Point
 my class native_callsite is repr('NativeCall') { }
 
 # Maps a chosen string encoding to a type recognized by the native call engine.
-sub string_encoding_to_nci_type($enc) {
-    given $enc {
-        when 'utf8'  { 'utf8str'  }
-        when 'utf16' { 'utf16str' }
-        when 'ascii' { 'asciistr' }
-        default      { die "Unknown string encoding for native call: $enc"; }
-    }
+sub string_encoding_to_nci_type(\encoding) {
+    my str $enc = encoding;
+    nqp::iseq_s($enc,"utf8")
+      ?? "utf8str"
+      !! nqp::iseq_s($enc,"ascii")
+        ?? "asciistr"
+        !! nqp::iseq_s($enc,"utf16")
+          ?? "utf16str"
+          !! die "Unknown string encoding for native call: $enc"
 }
 
 # Builds a hash of type information for the specified parameter.

@@ -159,7 +159,7 @@ class REPL is export {
                 }
             }
             my $readline = do require Readline;
-            my $rl-self = $self but ReadlineBehavior[$readline.WHO];
+            my $rl-self = $self but ReadlineBehavior[$readline.WHO<EXPORT>.WHO<ALL>.WHO];
             $rl-self.?init-line-editor();
             $self = $rl-self;
             True

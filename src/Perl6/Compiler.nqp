@@ -180,7 +180,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method load-p6-repl() {
-        my $repl := self.eval("use REPL; REPL.new", :outer_ctx(nqp::null()));
+        my $repl := self.eval("use REPL; REPL", :outer_ctx(nqp::null()));
         return $repl;
     }
 
@@ -223,8 +223,9 @@ class Perl6::Compiler is HLL::Compiler {
         $!completions := self.get-completions();
 
         try {
-            $!p6repl := self.load-p6-repl();
-            $!p6repl.interactive(self, %adverbs);
+            my $repl-class := self.load-p6-repl();
+            $!p6repl := $repl-class.new(self, %adverbs);
+
             CATCH {
                 say("couldn't load REPL.pm: $_");
                 $!p6repl := Mu;

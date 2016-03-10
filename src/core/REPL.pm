@@ -130,7 +130,7 @@ class REPL is export {
     has Mu $.compiler;
     has Bool $!multi-line-enabled;
 
-    method !load-line-editor() {
+    sub mixin-line-editor($self is copy) {
         my Bool $problem = False;
         my $loaded-readline = try {
             CATCH {
@@ -145,12 +145,13 @@ class REPL is export {
                 }
             }
             my $readline = do require Readline;
-            self does ReadlineBehavior[$readline.WHO]; # XXX how to back this out if we fail?
-            self.?init-line-editor();
+            my $rl-self = $self but ReadlineBehavior[$readline.WHO];
+            $rl-self.?init-line-editor();
+            $self = $rl-self;
             True
         };
 
-        return if $loaded-readline;
+        return $self if $loaded-readline;
 
         my $loaded-linenoise = try {
             CATCH {
@@ -163,12 +164,13 @@ class REPL is export {
                 }
             }
             my $linenoise = do require Linenoise;
-            self does LinenoiseBehavior[$linenoise.WHO]; # XXX how to back this out if we fail?
-            self.?init-line-editor();
+            my $ln-self = $self but LinenoiseBehavior[$linenoise.WHO];
+            $ln-self.?init-line-editor();
+            $self = $ln-self;
             True
         }
 
-        return if $loaded-linenoise;
+        return $self if $loaded-linenoise;
 
         if $problem {
             say 'Continuing without tab completions or line editor';
@@ -178,13 +180,21 @@ class REPL is export {
         }
         say '';
 
-        self does FallbackBehavior;
+        $self but FallbackBehavior
     }
 
-    method interactive(Mu \compiler, Mu \adverbs) {
-        $!multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
+    method new(Mu \compiler, Mu \adverbs) {
+        my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
+        my $self = self.bless();
+        $self.init(compiler, $multi-line-enabled);
+        $self = mixin-line-editor($self);
+
+        $self
+    }
+
+    method init(Mu \compiler, $multi-line-enabled) {
         $!compiler = compiler;
-        self!load-line-editor();
+        $!multi-line-enabled = $multi-line-enabled;
     }
 
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {

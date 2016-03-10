@@ -158,7 +158,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         do for ^self.elems { self.AT-POS($_) }
     }
 
-    multi method new(*@values) {
+    multi method new(@values) {
         nextsame unless @values;
         my $result := self.new();
         my int $n = @values.elems;
@@ -169,6 +169,10 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             $i = $i + 1;
         }
         $result;
+    }
+    
+    multi method new(*@values) {
+        self.new(@values);
     }
 }
 

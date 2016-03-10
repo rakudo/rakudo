@@ -58,14 +58,22 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
 
 # Builds the list of parameter information for a callback argument.
 sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
-    my Mu $arg_info := nqp::list();
-    my @params = $sig.params;
-    @params.pop if &r ~~ Method && @params[*-1].name eq '%_';
-    for @params -> $p {
-        nqp::push($arg_info, param_hash_for($p, :with-typeobj($with-typeobj)))
-    }
+    my $params   := nqp::getattr($sig.params,List,'$!reified');
+    my int $elems = nqp::elems($params);
 
-    $arg_info;
+    # not sending Method's default slurpy *%_ (which is always last)
+    --$elems
+      if nqp::istype(&r,Method)
+      && nqp::iseq_s(nqp::atpos($params,$elems - 1).name,'%_');
+
+    # build list
+    my $result := nqp::setelems(nqp::list,$elems);
+    my int $i   = -1;
+    nqp::bindpos($result,$i,
+      param_hash_for(nqp::atpos($params,$i),:$with-typeobj)
+    ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+    $result
 }
 
 # Builds a hash of type information for the specified return type.

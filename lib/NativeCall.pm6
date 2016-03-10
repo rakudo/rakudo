@@ -45,13 +45,13 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
         nqp::bindkey($result, 'free_str', nqp::unbox_i(1));
     }
     elsif $type ~~ Callable {
-        nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($p.type)));
+        nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
         my $info := param_list_for($p.sub_signature, :with-typeobj);
         nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
         nqp::bindkey($result, 'callback_args', $info);
     }
     else {
-        nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($p.type)));
+        nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
     }
     $result
 }

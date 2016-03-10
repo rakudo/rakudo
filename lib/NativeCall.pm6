@@ -89,55 +89,65 @@ my $signed_ints_by_size :=
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
 
 # Gets the NCI type code to use based on a given Perl 6 type.
-my %type_map =
-    'int8'     => 'char',
-    'bool'     => nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
-    'Bool'     => nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
-    'int16'    => 'short',
-    'int32'    => 'int',
-    'int64'    => 'longlong',
-    'long'     => 'long',
-    'int'      => 'long',
-    'longlong' => 'longlong',
-    'Int'      => 'longlong',
-    'uint8'    => 'uchar',
-    'uint16'   => 'ushort',
-    'uint32'   => 'uint',
-    'uint64'   => 'ulonglong',
-    'ulonglong' => 'ulonglong',
-    'ulong'    => 'ulong',
-    'uint'     => 'ulong',
-    'size_t'   => nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
-    'num32'    => 'float',
-    'num64'    => 'double',
-    'longdouble' => 'longdouble',
-    'num'      => 'double',
-    'Num'      => 'double',
-    'Callable' => 'callback';
+my $type_map := nqp::hash(
+  "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
+  "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
+  "Callable",   "callback",
+  "Int",        "longlong",
+  "int",        "long",
+  "int16",      "short",
+  "int32",      "int",
+  "int64",      "longlong",
+  "int8",       "char",
+  "long",       "long",
+  "longdouble", "longdouble",
+  "longlong",   "longlong",
+  "Num",        "double",
+  "num",        "double",
+  "num32",      "float",
+  "num64",      "double",
+  "size_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
+  "uint",       "ulong",
+  "uint16",     "ushort",
+  "uint32",     "uint",
+  "uint64",     "ulonglong",
+  "uint8",      "uchar",
+  "ulong",      "ulong",
+  "ulonglong",  "ulonglong",
+);
 
-my %repr_map =
-    'CStruct'   => 'cstruct',
-    'CPPStruct' => 'cppstruct',
-    'CPointer'  => 'cpointer',
-    'CArray'    => 'carray',
-    'CUnion'    => 'cunion',
-    'VMArray'   => 'vmarray',
-    ;
+my $repr_map := nqp::hash(
+  "CArray",    "carray",
+  "CPPStruct", "cppstruct",
+  "CPointer",  "cpointer",
+  "CStruct",   "cstruct",
+  "CUnion",    "cunion",
+  "VMArray",   "vmarray",
+);
+
 sub type_code_for(Mu ::T) {
-    my $shortname = T.^shortname;
-    return %type_map{$shortname}
-        if %type_map{$shortname}:exists;
-    if %repr_map{T.REPR} -> $mapped {
-        return $mapped;
+    if nqp::atkey($type_map,T.^shortname) -> $type {
+        $type
+    }
+    elsif nqp::atkey($repr_map,T.REPR) -> $type {
+        $type
     }
     # the REPR of a Buf or Blob type object is Uninstantiable, so
     # needs an extra special case here that isn't covered in the
     # hash lookup above.
-    return 'vmarray'  if T ~~ Blob;
-    return 'cpointer' if T ~~ Pointer;
-    die "Unknown type {T.^name} used in native call.\n" ~
-        "If you want to pass a struct, be sure to use the CStruct or CPPStruct representation.\n" ~
-        "If you want to pass an array, be sure to use the CArray type.";
+    elsif nqp::istype(T,Blob) {
+        "vmarray"
+    }
+    elsif nqp::istype(T,Pointer) {
+        "cpointer"
+    }
+    else {
+        die
+"Unknown type {T.^name} used in native call.\n" ~
+"If you want to pass a struct, be sure to use the CStruct or\n" ~
+"CPPStruct representation.\n" ~
+"If you want to pass an array, be sure to use the CArray type.";
+    }
 }
 
 sub gen_native_symbol(Routine $r, :$cpp-name-mangler) {
@@ -187,7 +197,7 @@ sub guess_library_name($lib) is export(:TEST) {
 sub check_routine_sanity(Routine $r) is export(:TEST) {
     #Maybe this should use the hash already existing?
     sub validnctype (Mu ::T) {
-      return True if %repr_map{T.REPR}:exists and T.REPR ne 'CArray' | 'CPointer';
+      return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
       return True if T.^name eq 'Str' | 'str' | 'Bool';
       return False if T.REPR eq 'P6opaque';
       return False if T.HOW.^can("nativesize") && T.^nativesize == 0; #to disting int and int32 for example

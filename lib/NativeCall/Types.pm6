@@ -158,6 +158,8 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         do for ^self.elems { self.AT-POS($_) }
     }
 
+    multi method new() { nqp::create(self) }
+    multi method new(*@values) { self.new(@values) }
     multi method new(@values) {
         nextsame unless @values;
         my $result := self.new();
@@ -169,10 +171,6 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             $i = $i + 1;
         }
         $result;
-    }
-    
-    multi method new(*@values) {
-        self.new(@values);
     }
 }
 

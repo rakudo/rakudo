@@ -7,7 +7,7 @@
     while $enviter {
         $envelem := nqp::shift($enviter);
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-        %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
+        %ENV{$key} = val(nqp::p6box_s(nqp::iterval($envelem)));
     }
     PROCESS::<%ENV> := %ENV;
 }

@@ -3,7 +3,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(2);
+plan(1);
 
 # RT #125140
 

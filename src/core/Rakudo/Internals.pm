@@ -900,9 +900,15 @@ my class Rakudo::Internals {
     }
 
     my $initializers := nqp::hash;
-    method REGISTER-DYNAMIC(Str:D \name, &code, Str \ver = '6.c' --> Nil) {
+#nqp::print("running mainline\n");
+#method INITIALIZERS() { $initializers }
+
+    method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
+#nqp::print("Registering ");
+#nqp::print(name);
+#nqp::print("\n");
         my str $name = nqp::unbox_s(name);
-        my str $ver  = nqp::unbox_s(ver);
+        my str $ver  = nqp::unbox_s($version);
         my str $with = $ver ~ "\0" ~ $name;
         nqp::existskey($initializers,$with)
           ?? die "Already have initializer for '$name' ('$ver')"
@@ -911,7 +917,9 @@ my class Rakudo::Internals {
           unless nqp::existskey($initializers,$name);
     }
     method INITIALIZE-DYNAMIC(str \name) {
-#print "Initializing {name}\n";
+#nqp::print("Initializing");
+#nqp::print(name);
+#nqp::print("\n");
         my str $ver  = nqp::getcomp('perl6').language_version;
         my str $with = $ver ~ "\0" ~ name;
         nqp::existskey($initializers,$with)
@@ -1167,5 +1175,21 @@ my class Rakudo::Internals {
         }
     }
 }
+
+# we need this to run *after* the mainline of Rakudo::Internals has run
+Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
+    PROCESS::<&EXIT> := sub exit($status) {
+        state $exit;
+        $exit = $status;
+
+        once {
+            Rakudo::Internals.THE_END();
+            nqp::exit(nqp::unbox_i($exit.Int));
+        }
+        $exit;
+    }
+}
+
+sub exit($status = 0) { &*EXIT($status) }
 
 # vim: ft=perl6 expandtab sw=4

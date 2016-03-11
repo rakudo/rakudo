@@ -239,17 +239,6 @@ multi sub EVALFILE($filename, :$lang = 'perl6') {
     EVAL slurp($filename), :$lang, :context(CALLER::);
 }
 
-sub exit($status = 0) {
-    state $exit;
-    $exit = $status;
-
-    once {
-        Rakudo::Internals.THE_END();
-        nqp::exit(nqp::unbox_i($exit.Int));
-    }
-    $exit;
-}
-
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 

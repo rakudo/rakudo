@@ -275,7 +275,7 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
         $!cpp-name-mangler  = %lib{$guessed_libname} //
             (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
         my Mu $arg_info := param_list_for($r.signature, $r);
-        my str $conv = self.?native_call_convention || '';
+        my $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,
             nqp::unbox_s($guessed_libname),                           # library name
             nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call

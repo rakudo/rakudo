@@ -774,12 +774,12 @@ my class IO::Handle does IO {
 
     multi method gist(IO::Handle:D:) {
         self.opened
-            ?? "IO::Handle<$!path>(opened, at octet {$.tell})"
-            !! "IO::Handle<$!path>(closed)"
+            ?? self.^name ~ "<$!path>(opened, at octet {$.tell})"
+            !! self.^name ~ "<$!path>(closed)"
     }
 
     multi method perl(IO::Handle:D:) {
-        "IO::Handle.new({:$!path.perl},{$!chomp ?? :$!chomp.perl !! ''})"
+        self.^name ~ ".new({:$!path.perl},{$!chomp ?? :$!chomp.perl !! ''})"
     }
 
 

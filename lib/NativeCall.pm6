@@ -238,7 +238,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
     }
 }
 
-my $lib2mangler;
+my $lib2mangler := nqp::hash();
 my @cpp-name-mangler =
     &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
     &NativeCall::Compiler::GNU::mangle_cpp_symbol,
@@ -270,8 +270,6 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has $!cpp-name-mangler;
     has int $!arity;
     has Pointer $!entry-point;
-
-    $lib2mangler := nqp::hash unless nqp::defined($lib2mangler);
 
     method !setup(--> Nil) {
         my str $name = guess_library_name($libname);

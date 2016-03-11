@@ -1,8 +1,6 @@
 use v6;
 
 # Checking that testing is sane: equality and inequality
-
-
 say '1..4';
 
 my $x = '0';

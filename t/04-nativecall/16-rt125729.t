@@ -1,3 +1,5 @@
+use v6;
+
 use nqp;
 use NQPHLL:from<NQP>;
 use NativeCall;

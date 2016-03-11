@@ -1,7 +1,6 @@
-# check array variables
-
 use v6;
 
+# check array variables
 say '1..11';
 
 my @a = (1, 2, 3);

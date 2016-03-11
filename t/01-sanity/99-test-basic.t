@@ -1,4 +1,5 @@
 use v6;
+
 use Test;
 # plan *;     # This does not test having a real plan.
 

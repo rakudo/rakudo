@@ -1,5 +1,7 @@
-use Test;
+use v6;
+
 use NativeCall :ALL;
+use Test;
 
 
 class A is repr('CStruct') {

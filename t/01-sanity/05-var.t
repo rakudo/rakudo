@@ -1,7 +1,6 @@
-# check variables
-
 use v6;
 
+# check variables
 say '1..12';
 
 my $o1 = 'ok 1'; say $o1;

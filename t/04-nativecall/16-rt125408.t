@@ -1,8 +1,9 @@
+use v6;
+
+use NativeCall;
 use Test;
 
 plan 1;
-
-use NativeCall;
 
 class Foo is repr("CStruct") {
    method foo(Mu:U $type, Int $a ) {

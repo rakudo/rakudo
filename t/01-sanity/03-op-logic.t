@@ -1,7 +1,6 @@
-# check logical ops
-
 use v6;
 
+# check logical ops
 say '1..16';
 
 1 and say 'ok 1';

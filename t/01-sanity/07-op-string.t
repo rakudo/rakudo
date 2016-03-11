@@ -1,7 +1,6 @@
-# check string ops
-
 use v6;
 
+# check string ops
 say '1..18';
 say 'ok ' ~ '1';
 say 'ok' ~ ' ' ~ '2';

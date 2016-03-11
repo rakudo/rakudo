@@ -1,7 +1,6 @@
-# check inplace math ops
-
 use v6;
 
+# check inplace math ops
 say '1..11';
 
 my $test_num = 1;

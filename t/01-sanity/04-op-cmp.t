@@ -1,7 +1,6 @@
-# check compare ops
-
 use v6;
 
+# check compare ops
 say '1..24';
 
 1 < 2 and say 'ok 1';

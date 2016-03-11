@@ -238,7 +238,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
     }
 }
 
-my $lib2mangler := nqp::hash();
+my %lib;
 my @cpp-name-mangler =
     &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
     &NativeCall::Compiler::GNU::mangle_cpp_symbol,
@@ -268,37 +268,35 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     has $!cpp-name-mangler;
-    has int $!arity;
     has Pointer $!entry-point;
 
-    method !setup(--> Nil) {
-        my str $name = guess_library_name($libname);
-        $!cpp-name-mangler = nqp::existskey($lib2mangler,$name)
-          ?? nqp::atkey($lib2mangler,$name)
-          !! nqp::bindkey($lib2mangler,$name,guess-name-mangler($r,$name));
-        my Mu $signature := $r.signature;
-        my Mu $arg_info  := param_list_for($signature, $r);
-        my str $conv      = self.?native_call_convention || '';
+    method !setup() {
+        my $guessed_libname = guess_library_name($libname);
+        $!cpp-name-mangler  = %lib{$guessed_libname} //
+            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        my Mu $arg_info := param_list_for($r.signature, $r);
+        my str $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,
-            $name,        # library name
+            nqp::unbox_s($guessed_libname),                           # library name
             nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
-            $conv,        # calling convention
+            nqp::unbox_s($conv),        # calling convention
             $arg_info,
-            return_hash_for($signature, $r, :$!entry-point));
+            return_hash_for($r.signature, $r, :$!entry-point));
+        $!setup = 1;
         $!rettype := nqp::decont(map_return_type($r.returns));
-        $!arity    = $signature.arity;
-        $!setup    = 1;
     }
 
     method CALL-ME(|args) {
         self!setup unless $!setup;
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '$!list');
-        X::TypeCheck::Argument.new(
-            :objname($.name),
-            :arguments(args.list.map(*.^name))
-            :signature("    Expected: " ~ try $r.signature.perl),
-        ).throw unless nqp::iseq_i(nqp::elems($args),$!arity);
+        if nqp::elems($args) != $r.signature.arity {
+            X::TypeCheck::Argument.new(
+                :objname($.name),
+                :arguments(args.list.map(*.^name))
+                :signature("    Expected: " ~ try $r.signature.perl),
+            ).throw
+        }
 
         nqp::nativecall($!rettype, self, $args)
     }

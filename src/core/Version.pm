@@ -25,7 +25,7 @@ class Version {
             once nqp::create(self)!SET-SELF(nqp::list("6"),0,"6")
         }
         elsif $s eq '6.c' {
-            once nqp::create(self)!SET-SELF(nqp::list("6","c"),0,"6c")
+            once nqp::create(self)!SET-SELF(nqp::list("6","c"),0,"6.c")
         }
 
         # something sensible given

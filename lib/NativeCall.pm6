@@ -77,10 +77,11 @@ sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
 }
 
 # Builds a hash of type information for the specified return type.
-sub return_hash_for(Signature $s, &r?, :$with-typeobj) {
+sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point) {
     my Mu $result := nqp::hash();
     my $returns := $s.returns;
-    nqp::bindkey($result, 'typeobj', nqp::decont($returns)) if $with-typeobj;
+    nqp::bindkey($result, 'typeobj',     nqp::decont($returns))     if $with-typeobj;
+    nqp::bindkey($result, 'entry_point', nqp::decont($entry-point)) if $entry-point;
     if $returns ~~ Str {
         my $enc := &r.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -268,6 +269,7 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has Mu $!rettype;
     has $!cpp-name-mangler;
     has int $!arity;
+    has Pointer $!entry-point;
 
     $lib2mangler := nqp::hash unless nqp::defined($lib2mangler);
 
@@ -284,7 +286,7 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
             nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
             $conv,        # calling convention
             $arg_info,
-            return_hash_for($signature, $r));
+            return_hash_for($signature, $r, :$!entry-point));
         $!rettype := nqp::decont(map_return_type($r.returns));
         $!arity    = $signature.arity;
         $!setup    = 1;
@@ -384,8 +386,16 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont(map_return_type($target-type)), nqp::decont($source));
+    if $target-type ~~ Callable {
+        my $target-clone := nqp::clone($target-type);
+        nqp::bindattr_i(nqp::decont($target-clone), $target-clone.WHAT, '$!setup', 0);
+        nqp::bindattr(nqp::decont($target-clone), $target-clone.WHAT, '$!entry-point', $source);
+        $target-clone
+    }
+    else {
+        nqp::nativecallcast(nqp::decont($target-type),
+            nqp::decont(map_return_type($target-type)), nqp::decont($source));
+    }
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {

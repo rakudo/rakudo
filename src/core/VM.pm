@@ -43,20 +43,20 @@ class VM does Systemic {
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
-        my $is-win = Rakudo::Internals.IS-WIN;
+        my int $is-win = Rakudo::Internals.IS-WIN;
 #?if !jvm
-        my $is-darwin = $*VM.config<osname> eq 'darwin';
+        my int $is-darwin = $*VM.config<osname> eq 'darwin';
 #?endif
 #?if jvm
-        my $is-darwin = $*VM.config<os.name> eq 'darwin';
+        my int $is-darwin = $*VM.config<os.name> eq 'darwin';
 #?endif
 
         my $basename  = $library.basename;
-        my $full-path = $library ne $basename;
+        my int $full-path = $library ne $basename;
         my $dirname   = $library.dirname;
 
         # OS X needs version before extension
-        $basename ~= ".$version" if $version.defined and $is-darwin;
+        $basename ~= ".$version" if $is-darwin && $version.defined;
 
 #?if moar
         my $dll = self.config<dll>;
@@ -67,10 +67,12 @@ class VM does Systemic {
         my $platform-name = "$prefix$basename.{self.config<nativecall.so>}";
 #?endif
 
-        $platform-name ~= '.' ~ $version.Str
-            if $version.defined and not $is-darwin and not $is-win;
+        $platform-name ~= '.' ~ $version
+            if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
-        $full-path ?? $dirname.IO.child($platform-name).abspath !! $platform-name.IO;
+        $full-path
+          ?? $dirname.IO.child($platform-name).abspath
+          !! $platform-name.IO
     }
 }
 

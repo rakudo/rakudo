@@ -48,6 +48,9 @@ class Perl6::Metamodel::ClassHOW
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.setup_mixin_cache($obj);
         nqp::setboolspec($obj, 5, nqp::null());
+#?if moar
+        nqp::setdebugtypename($obj, $name);
+#?endif
         $obj
     }
     

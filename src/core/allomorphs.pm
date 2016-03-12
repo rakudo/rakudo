@@ -133,12 +133,6 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         while nqp::isge_i($end, $pos)
            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end);
 
-    # Str.Numeric should handle blank string before val()
-    parse_fail "Empty string not properly caught before val()" if nqp::islt_i($end, $pos);
-
-    # Reset end-of-string after trimming
-    $eos = nqp::add_i($end, 1);
-
     # Fail all the way out when parse failures occur. Return the original
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
@@ -146,6 +140,12 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
           ?? fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
           !! return $MAYBEVAL
     }
+
+    # Str.Numeric should handle blank string before val()
+    parse_fail "Empty string not properly caught before val()" if nqp::islt_i($end, $pos);
+
+    # Reset end-of-string after trimming
+    $eos = nqp::add_i($end, 1);
 
     # return an appropriate type when we've found a number. Allomorphic unless
     # Str.Numeric is calling

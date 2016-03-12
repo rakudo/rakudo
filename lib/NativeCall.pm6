@@ -382,11 +382,12 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
 }
 
 sub nativecast($target-type, $source) is export(:DEFAULT) {
-    if $target-type ~~ Callable {
-        my $target-clone := nqp::clone($target-type);
-        nqp::bindattr_i(nqp::decont($target-clone), $target-clone.WHAT, '$!setup', 0);
-        nqp::bindattr(nqp::decont($target-clone), $target-clone.WHAT, '$!entry-point', $source);
-        $target-clone
+    if $target-type ~~ Signature {
+        my $r := sub { };
+        $r does Native[$r, Str];
+        nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
+        nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
+        $r
     }
     else {
         nqp::nativecallcast(nqp::decont($target-type),

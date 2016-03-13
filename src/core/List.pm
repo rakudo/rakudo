@@ -265,7 +265,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         list
     }
 
-    method !ensure-allocated() {
+    method !ensure-allocated(--> Nil) {
         $!reified := nqp::create(IterationBuffer) unless $!reified.DEFINITE;
     }
 

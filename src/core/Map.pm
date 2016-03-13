@@ -199,24 +199,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method STORE(\to_store) {
-        my \iter = to_store.iterator;
-        $!storage := nqp::hash();
-        until (my Mu $x := iter.pull-one) =:= IterationEnd {
-            if nqp::istype($x,Pair) {
-                self.STORE_AT_KEY($x.key, $x.value)
-            }
-            elsif nqp::istype($x, Map) and !nqp::iscont($x) {
-                for $x.list { self.STORE_AT_KEY(.key, .value) }
-            }
-            elsif !((my Mu $y := iter.pull-one) =:= IterationEnd) {
-                self.STORE_AT_KEY($x, $y)
-            }
-            else {
-                nqp::istype($x,Failure)
-                  ?? $x.throw
-                  !! X::Hash::Store::OddNumber.new.throw;
-            }
+        method !STORE_LIST(\x --> Nil) {
+            self.STORE_AT_KEY(.key,.value) for x.list;
         }
+
+        $!storage := nqp::hash();
+        my $iter  := to_store.iterator;
+        my Mu $x;
+        my Mu $y;
+
+        nqp::istype($x,Pair)
+          ?? self.STORE_AT_KEY($x.key, $x.value)
+          !! nqp::istype($x, Map) && !nqp::iscont($x)
+            ?? self!STORE_LIST($x)
+            !! (($y := $iter.pull-one) =:= IterationEnd)
+              ?? nqp::istype($x,Failure)
+                ?? $x.throw
+                !! X::Hash::Store::OddNumber.new.throw
+              !! self.STORE_AT_KEY($x,$y)
+                until ($x := $iter.pull-one) =:= IterationEnd;
         self
     }
 

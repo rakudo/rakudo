@@ -864,31 +864,35 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         permutations(self.elems).map: { self[@$_] }
     }
 
-    method join($separator = '') is nodal {
+    method join(List:D: $separator = '') is nodal {
         self!ensure-allocated;
-        my $infinite = False;
+
+        my int $infinite;
         if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            $infinite = !$!todo.fully-reified()
+            $!todo.reify-until-lazy;
+            $!todo.fully-reified
+              ?? ($!todo := Mu)
+              !! ($infinite = 1);
         }
-        my Mu $rsa := nqp::list_s();
-        unless $infinite {
-            nqp::setelems($rsa, nqp::unbox_i(self.elems));
-            nqp::setelems($rsa, 0);
-        }
+
+        my int $elems   = nqp::elems($!reified);
+        my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
+        my int $i     = -1;
+        my str $empty = '';
+
         my $tmp;
-        my int $i = 0;
-        my int $n = nqp::elems($!reified);
-        while $i < $n {
-            $tmp := nqp::ifnull(nqp::atpos($!reified, $i), Any);
-            # Not sure why this works 
-            nqp::push_s($rsa, nqp::unbox_s(nqp::istype($tmp, Str) && nqp::isconcrete($tmp) ?? 
-                        $tmp !! 
-                        nqp::can($tmp, 'Str') ?? $tmp.Str !! nqp::box_s($tmp, Str) ));
-            $i = $i + 1;
-        }
-        nqp::push_s($rsa, '...') if $infinite;
-        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
+        nqp::bindpos_s($strings,$i,nqp::isnull($tmp := nqp::atpos($!reified,$i))
+          ?? $empty
+          !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
+              ?? $tmp
+              !! nqp::can($tmp,'Str')
+                ?? $tmp.Str
+                !! nqp::box_s($tmp,Str)
+             )
+        ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+        nqp::bindpos_s($strings,$i,'...') if $infinite;
+        nqp::join(nqp::unbox_s($separator.Str),$strings)
     }
 
     method push(|) is nodal {

@@ -812,9 +812,14 @@ class Perl6::World is HLL::World {
             elsif $*PKGDECL {
                 self.throw($/, 'X::Package::UseLib', :what($*PKGDECL) );
             }
-            my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
-            for $arglist -> $arg {
-                $registry.use-repository($registry.repository-for-spec($arg));
+            if nqp::islist($arglist) {
+                my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
+                for $arglist -> $arg {
+                    $registry.use-repository($registry.repository-for-spec($arg));
+                }
+            }
+            else {
+                self.throw($/, 'X::LibNone');
             }
         }
         else {

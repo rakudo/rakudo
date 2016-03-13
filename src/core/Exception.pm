@@ -1677,6 +1677,9 @@ my class X::Match::Bool is Exception {
     method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }
 }
 
+my class X::LibNone does X::Comp {
+    method message { q/Must specify at least one repository.  Did you mean 'use lib "lib"' ?/ }
+}
 my class X::Package::UseLib does X::Comp {
     has $.what;
     method message { "Cannot 'use lib' inside a $.what" }

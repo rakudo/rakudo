@@ -134,6 +134,12 @@ my role Completions {
     }
 }
 
+# *** WARNING ***
+#
+# If you want to add new methods as hooks into Perl6::Compiler, you'll need to
+# add support for them to Perl6::Compiler itself.  See the readline and eval
+# methods both in this file and in Perl6::Compiler for guidance on how to do
+# that
 class REPL {
     also does Completions;
 

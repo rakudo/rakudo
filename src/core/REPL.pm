@@ -134,7 +134,7 @@ my role Completions {
     }
 }
 
-class REPL is export {
+class REPL {
     also does Completions;
 
     has Mu $.compiler;

@@ -217,6 +217,7 @@ J_CORE_SOURCES = \
   src/core/StrDistance.pm \
   src/core/Slang.pm \
   src/core/Metamodel/Primitives.pm \
+  src/core/REPL.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_JAR = perl6-debug.jar

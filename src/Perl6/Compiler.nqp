@@ -180,7 +180,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method load-p6-repl() {
-        my $repl := self.eval("use REPL; REPL", :outer_ctx(nqp::null()));
+        my $repl := self.eval('REPL', :outer_ctx(nqp::null()));
         return $repl;
     }
 

@@ -86,13 +86,9 @@ my role FallbackBehavior {
 }
 
 my role Completions {
-    has @!completions;
-
-    submethod BUILD {
-        @!completions = CORE::.keys.flatmap({
-            /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
-        }).sort;
-    }
+    has @!completions = CORE::.keys.flatmap({
+        /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
+    }).sort;
 
     method update-completions {
         my $context := self.compiler.context;

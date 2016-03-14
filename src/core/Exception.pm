@@ -2246,6 +2246,10 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   sub ($redispatcher) {
       X::NoDispatcher.new(:$redispatcher).throw;
   },
+  'X::Method::NotFound',
+  sub ($invocant, $method, $typename, $private = False) {
+      X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
+  },
   'X::Multi::Ambiguous',
   sub ($dispatcher, @ambiguous, $capture) {
       X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw

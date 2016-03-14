@@ -2860,21 +2860,32 @@ BEGIN {
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
-            if !nqp::isconcrete($self) && !nqp::can($self, 'CALL-ME') {
-                my $coercer_name := $self.HOW.name($self);
-                nqp::die("Cannot coerce to $coercer_name with named arguments")
-                  if +%named;
-                if +@pos == 1 {
-                    @pos[0]."$coercer_name"()
-                }
-                else {
-                    my $list := nqp::create(List);
-                    nqp::bindattr($list, List, '$!reified', @pos);
-                    $list."$coercer_name"()
-                }
+            if nqp::can($self, 'CALL-ME') {
+                $self.CALL-ME(|@pos, |%named)
             }
             else {
-                $self.CALL-ME(|@pos, |%named)
+                if !nqp::isconcrete($self) {
+                    my $coercer_name := $self.HOW.name($self);
+                    nqp::die("Cannot coerce to $coercer_name with named arguments")
+                      if +%named;
+                    if +@pos == 1 {
+                        @pos[0]."$coercer_name"()
+                    }
+                    else {
+                        my $list := nqp::create(List);
+                        nqp::bindattr($list, List, '$!reified', @pos);
+                        $list."$coercer_name"()
+                    }
+                }
+                else {
+                    my %ex := nqp::gethllsym('perl6', 'P6EX');
+                    if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Method::NotFound') {
+                        nqp::die("No such method 'CALL-ME' for invocant of type '" ~ $self.HOW.name($self) ~ "'");
+                    }
+                    else {
+                        nqp::atkey(%ex, 'X::Method::NotFound')($self, 'CALL-ME', $self.HOW.name($self))
+                    }
+                }
             }
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);

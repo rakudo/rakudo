@@ -45,7 +45,7 @@ class Version {
                 );
             }
 
-            nqp::create(self)!SET-SELF($parts,$s.ends-with("+"),@s.join("."))
+            nqp::create(self)!SET-SELF($parts,$s.ends-with("+"),nqp::join(".", $strings))
         }
 
         # "v+" sentinel

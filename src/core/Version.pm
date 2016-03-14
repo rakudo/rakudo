@@ -41,7 +41,7 @@ class Version {
                   ?? *
                   !! (my $numeric = $s.Numeric).defined
                     ?? nqp::decont($numeric)
-                    !! $s
+                    !! nqp::unbox_s($s)
                 );
             }
 

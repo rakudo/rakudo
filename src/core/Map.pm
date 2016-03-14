@@ -257,7 +257,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method hash() { self }
     method clone(Map:D: *%) is raw {
-        my \clone = self.WHAT.CREATE;
+        my \clone = nqp::create(self);
         nqp::bindattr(clone, Map, '$!storage', nqp::clone($!storage));
         clone
     }

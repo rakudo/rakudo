@@ -631,7 +631,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($equiv) ~ '>';
         trait_mod:<is>($r, equiv => ::(nm));
         return;
-    } 
+    }
     die "Routine given to equiv does not appear to be an operator";;
 }
 
@@ -640,7 +640,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($tighter) ~ '>';
         trait_mod:<is>($r, tighter => ::(nm));
         return;
-    } 
+    }
     die "Routine given to tighter does not appear to be an operator";;
 }
 
@@ -649,7 +649,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($looser) ~ '>';
         trait_mod:<is>($r, looser => ::(nm));
         return;
-    } 
+    }
     die "Routine given to looser does not appear to be an operator";;
 }
 
@@ -658,5 +658,38 @@ multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
 multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
 my &infix:<o> := &infix:<∘>;
+
+# needs native arrays
+sub permutations(int $n where $n > 0) {
+    Seq.new(
+        class :: does Iterator {
+            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+            has int $!n;
+            has     @!a;
+            submethod BUILD(:$n --> Nil) { $!n = $n } # cannot set native in sig
+            #method is-lazy { True }
+            method pull-one {
+                return (@!a = ^$!n).List unless @!a;
+                # Find the largest index k such that a[k] < a[k + 1].
+                # If no such index exists, the permutation is the last permutation.
+                my int $k = @!a.end - 1;
+                $k-- or return IterationEnd until @!a[$k] < @!a[$k + 1];
+
+                # Find the largest index l greater than k such that a[k] < a[l].
+                my int $l = @!a.end;
+                $l-- until @!a[$k] < @!a[$l];
+                # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
+                # @!a[$k, $l].=reverse
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k];
+
+                # @!a[$k+1 .. @!a.end].=reverse;
+                $l = $!n;
+                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
+                @!a.List;
+            }
+            method count-only { [*] 1 .. $!n }
+        }.new(:$n)
+    );
+}
 
 # vim: ft=perl6 expandtab sw=4

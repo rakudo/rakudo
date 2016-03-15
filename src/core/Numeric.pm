@@ -30,7 +30,7 @@ my role Numeric {
 }
 
 multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+    $a.WHAT === $b.WHAT && $a == $b
 }
 
 ## arithmetic operators

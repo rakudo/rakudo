@@ -10,6 +10,7 @@ my class array does Iterable is repr('VMArray') {
     multi method unshift(array:D: *@values) { self.unshift(@values) }
     multi method prepend(array:D: *@values) { self.prepend(@values) }
 
+#- start of generated part of intarray role -----------------------------------
     my role intarray[::T] does Positional[T] is array_type(T) {
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -31,12 +32,15 @@ my class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(intarray:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: Int $idx, Int:D $value) {
+        multi method ASSIGN-POS(intarray:D: Int:D $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(intarray:D: Any:D $idx, Any:D $value) {
+            nqp::bindpos_i(self, $idx.Int, $value.Int)
         }
         multi method ASSIGN-POS(intarray:D: Any $idx, Mu \value) {
             X::TypeCheck.new(
-                operation => 'assignment to array',
+                operation => "assignment to int array element #$idx",
                 got       => value,
                 expected  => T,
             ).throw;
@@ -52,23 +56,8 @@ my class array does Iterable is repr('VMArray') {
             my int $n = @values.elems;
             nqp::setelems(self, $n);
             while $i < $n {
-                nqp::bindpos_i(self, $i, nqp::unbox_i(@values.AT-POS($i)));
+                nqp::bindpos_i(self, $i, nqp::unbox_i(@values .AT-POS($i)));
                 $i = $i + 1;
-            }
-            self
-        }
-        multi method STORE(intarray:D: Range:D $range) {
-            my int $val = $range.min;
-            $val = $val + 1 if $range.excludes-min;
-            my int $max = $range.max;
-            $max = $max - 1 if $range.excludes-max;
-            nqp::setelems(self, $max - $val + 1);
-
-            my int $i;
-            while $val <= $max {
-                nqp::bindpos_i(self, $i, $val);
-                $val = $val + 1;
-                $i   = $i   + 1;
             }
             self
         }
@@ -77,13 +66,13 @@ my class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
-        multi method push(intarray:D: Int $value) {
+        multi method push(intarray:D: Int:D $value) {
             nqp::push_i(self, $value);
             self
         }
         multi method push(intarray:D: Mu \value) {
             X::TypeCheck.new(
-                operation => 'push to array',
+                operation => 'push to int array',
                 got       => value,
                 expected  => T,
             ).throw;
@@ -92,7 +81,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::push_i(self, $value);
             self
         }
-        multi method append(intarray:D: Int $value) {
+        multi method append(intarray:D: Int:D $value) {
             nqp::push_i(self, $value);
             self
         }
@@ -122,22 +111,22 @@ my class array does Iterable is repr('VMArray') {
             nqp::unshift_i(self, $value);
             self
         }
-        multi method unshift(intarray:D: Int $value) {
+        multi method unshift(intarray:D: Int:D $value) {
             nqp::unshift_i(self, $value);
             self
-        }
-        multi method unshift(intarray:D: Mu \value) {
-            X::TypeCheck.new(
-                operation => 'unshift to array',
-                got       => value,
-                expected  => T,
-            ).throw;
         }
         multi method unshift(intarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.is-lazy;
             nqp::unshift_i(self, @values.pop) while @values;
             self
+        }
+        multi method unshift(intarray:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'unshift to int array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
 
         multi method splice(intarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
@@ -233,14 +222,32 @@ my class array does Iterable is repr('VMArray') {
                 }
             }.new(self)
         }
+#- end of generated part of intarray role -------------------------------------
+
+        multi method STORE(intarray:D: Range:D $range) {
+            my int $val = $range.min;
+            $val = $val + 1 if $range.excludes-min;
+            my int $max = $range.max;
+            $max = $max - 1 if $range.excludes-max;
+            nqp::setelems(self, $max - $val + 1);
+
+            my int $i;
+            while $val <= $max {
+                nqp::bindpos_i(self, $i, $val);
+                $val = $val + 1;
+                $i   = $i   + 1;
+            }
+            self
+        }
     }
 
-    # please note that this role is mostly same as intarray but s/_i$/_n/
+#- start of generated part of numarray role -----------------------------------
     my role numarray[::T] does Positional[T] is array_type(T) {
+
         multi method AT-POS(numarray:D: int $idx) is raw {
             nqp::atposref_n(self, $idx)
         }
-        multi method AT-POS(numarray:D: Int $idx) is raw {
+        multi method AT-POS(numarray:D: Int:D $idx) is raw {
             nqp::atposref_n(self, $idx)
         }
 
@@ -250,14 +257,24 @@ my class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(numarray:D: Int:D $idx, num $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
+        multi method ASSIGN-POS(numarray:D: Any $idx, num $value) {
+            nqp::bindpos_n(self, $idx.Int, $value)
+        }
         multi method ASSIGN-POS(numarray:D: int $idx, Num:D $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Int:D $idx, Mu \value) {
-            nqp::bindpos_n(self, $idx, value)
+        multi method ASSIGN-POS(numarray:D: Int:D $idx, Num:D $value) {
+            nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Any:D $idx, Mu \value) {
-            nqp::bindpos_n(self, $idx.Int, value)
+        multi method ASSIGN-POS(numarray:D: Any:D $idx, Any:D $value) {
+            nqp::bindpos_n(self, $idx.Int, $value.Num)
+        }
+        multi method ASSIGN-POS(numarray:D: Any $idx, Mu \value) {
+            X::TypeCheck.new(
+                operation => "assignment to num array element #$idx",
+                got       => value,
+                expected  => T,
+            ).throw;
         }
 
         multi method STORE(numarray:D: $value) {
@@ -270,25 +287,8 @@ my class array does Iterable is repr('VMArray') {
             my int $n = @values.elems;
             nqp::setelems(self, $n);
             while $i < $n {
-                nqp::bindpos_n(self, $i, nqp::unbox_n(@values.AT-POS($i)));
+                nqp::bindpos_n(self, $i, nqp::unbox_n(@values .AT-POS($i)));
                 $i = $i + 1;
-            }
-            self
-        }
-        multi method STORE(numarray:D: Range:D $range) {
-            my num $val = $range.min;
-            $val = $val + 1 if $range.excludes-min;
-            my num $max = $range.max;
-            $max = $max - 1 if $range.excludes-max;
-            fail X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-              if $val == -Inf || $max == Inf;
-
-            nqp::setelems(self, ($max - $val + 1).Int );
-            my int $i;
-            while $val <= $max {
-                nqp::bindpos_n(self, $i, $val);
-                $val = $val + 1;
-                $i   = $i   + 1;
             }
             self
         }
@@ -297,9 +297,27 @@ my class array does Iterable is repr('VMArray') {
             nqp::push_n(self, $value);
             self
         }
-        multi method push(numarray:D: Num $value) {
+        multi method push(numarray:D: Num:D $value) {
             nqp::push_n(self, $value);
             self
+        }
+        multi method push(numarray:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to num array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+        multi method append(numarray:D: num $value) {
+            nqp::push_n(self, $value);
+            self
+        }
+        multi method append(numarray:D: Num:D $value) {
+            nqp::push_n(self, $value);
+            self
+        }
+        multi method append(numarray:D: num @values) {
+            nqp::splice(self,@values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
@@ -324,7 +342,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::unshift_n(self, $value);
             self
         }
-        multi method unshift(numarray:D: Num $value) {
+        multi method unshift(numarray:D: Num:D $value) {
             nqp::unshift_n(self, $value);
             self
         }
@@ -333,6 +351,13 @@ my class array does Iterable is repr('VMArray') {
               if @values.is-lazy;
             nqp::unshift_n(self, @values.pop) while @values;
             self
+        }
+        multi method unshift(numarray:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'unshift to num array',
+                got       => value,
+                expected  => T,
+            ).throw;
         }
 
         multi method splice(numarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
@@ -427,6 +452,25 @@ my class array does Iterable is repr('VMArray') {
                     IterationEnd
                 }
             }.new(self)
+        }
+#- end of generated part of numarray role -------------------------------------
+
+        multi method STORE(numarray:D: Range:D $range) {
+            my num $val = $range.min;
+            $val = $val + 1 if $range.excludes-min;
+            my num $max = $range.max;
+            $max = $max - 1 if $range.excludes-max;
+            fail X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+              if $val == -Inf || $max == Inf;
+
+            nqp::setelems(self, ($max - $val + 1).Int );
+            my int $i;
+            while $val <= $max {
+                nqp::bindpos_n(self, $i, $val);
+                $val = $val + 1;
+                $i   = $i   + 1;
+            }
+            self
         }
     }
 

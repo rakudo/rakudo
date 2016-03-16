@@ -11,6 +11,8 @@ my class array does Iterable is repr('VMArray') {
     multi method prepend(array:D: *@values) { self.prepend(@values) }
 
 #- start of generated part of intarray role -----------------------------------
+#- Generated on 2016-03-16T12:20:56+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role intarray[::T] does Positional[T] is array_type(T) {
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -222,6 +224,7 @@ my class array does Iterable is repr('VMArray') {
                 }
             }.new(self)
         }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
         multi method STORE(intarray:D: Range:D $range) {
@@ -242,6 +245,8 @@ my class array does Iterable is repr('VMArray') {
     }
 
 #- start of generated part of numarray role -----------------------------------
+#- Generated on 2016-03-16T12:20:56+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role numarray[::T] does Positional[T] is array_type(T) {
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -453,6 +458,7 @@ my class array does Iterable is repr('VMArray') {
                 }
             }.new(self)
         }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
         multi method STORE(numarray:D: Range:D $range) {

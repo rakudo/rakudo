@@ -2337,6 +2337,12 @@ my class X::TooLateForREPR is X::Comp  {
     }
 }
 
+my class X::MustBeParametric is Exception {
+    has $.type;
+    method message() {
+        "$!type.^name() *must* be parameterized";
+    }
+}
 my class X::NotParametric is Exception {
     has $.type;
     method message() {

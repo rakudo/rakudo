@@ -56,17 +56,11 @@ for $*IN.lines -> $line {
         multi method ASSIGN-POS(@PRE[]array:D: Int:D $idx, @type[] $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
-        multi method ASSIGN-POS(@PRE[]array:D: Any $idx, @type[] $value) {
-            nqp::bindpos_@POST[]self, $idx.Int, $value)
-        }
         multi method ASSIGN-POS(@PRE[]array:D: int $idx, @Type[]:D $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
         multi method ASSIGN-POS(@PRE[]array:D: Int:D $idx, @Type[]:D $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
-        }
-        multi method ASSIGN-POS(@PRE[]array:D: Any:D $idx, Any:D $value) {
-            nqp::bindpos_@POST[]self, $idx.Int, $value.@Type[])
         }
         multi method ASSIGN-POS(@PRE[]array:D: Any $idx, Mu \value) {
             X::TypeCheck.new(

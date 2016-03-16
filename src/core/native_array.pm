@@ -11,7 +11,7 @@ my class array does Iterable is repr('VMArray') {
     multi method prepend(array:D: *@values) { self.prepend(@values) }
 
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-03-16T12:20:56+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-16T12:42:48+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role intarray[::T] does Positional[T] is array_type(T) {
 
@@ -28,17 +28,11 @@ my class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(intarray:D: Int:D $idx, int $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: Any $idx, int $value) {
-            nqp::bindpos_i(self, $idx.Int, $value)
-        }
         multi method ASSIGN-POS(intarray:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
         }
         multi method ASSIGN-POS(intarray:D: Int:D $idx, Int:D $value) {
             nqp::bindpos_i(self, $idx, $value)
-        }
-        multi method ASSIGN-POS(intarray:D: Any:D $idx, Any:D $value) {
-            nqp::bindpos_i(self, $idx.Int, $value.Int)
         }
         multi method ASSIGN-POS(intarray:D: Any $idx, Mu \value) {
             X::TypeCheck.new(
@@ -245,7 +239,7 @@ my class array does Iterable is repr('VMArray') {
     }
 
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-03-16T12:20:56+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-16T12:42:48+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role numarray[::T] does Positional[T] is array_type(T) {
 
@@ -262,17 +256,11 @@ my class array does Iterable is repr('VMArray') {
         multi method ASSIGN-POS(numarray:D: Int:D $idx, num $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Any $idx, num $value) {
-            nqp::bindpos_n(self, $idx.Int, $value)
-        }
         multi method ASSIGN-POS(numarray:D: int $idx, Num:D $value) {
             nqp::bindpos_n(self, $idx, $value)
         }
         multi method ASSIGN-POS(numarray:D: Int:D $idx, Num:D $value) {
             nqp::bindpos_n(self, $idx, $value)
-        }
-        multi method ASSIGN-POS(numarray:D: Any:D $idx, Any:D $value) {
-            nqp::bindpos_n(self, $idx.Int, $value.Num)
         }
         multi method ASSIGN-POS(numarray:D: Any $idx, Mu \value) {
             X::TypeCheck.new(

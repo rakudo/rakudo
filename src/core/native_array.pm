@@ -1,6 +1,28 @@
+my class X::MustBeParametric  { ... }
 my class X::TooManyDimensions { ... }
 
 my class array does Iterable is repr('VMArray') {
+
+    multi method new(array:)      { self!create }
+    multi method new(array: @v)   { self!create.STORE(@v) }
+    multi method new(array: **@v) { self!create.STORE(@v) }
+
+    multi method new(array: :$shape!)       { self!create-ws($shape) }
+    multi method new(array: @v, :$shape!)   { self!create-ws($shape).STORE(@v) }
+    multi method new(array: **@v, :$shape!) { self!create-ws($shape).STORE(@v) }
+
+    method !create() {
+        nqp::isnull(nqp::typeparameterized(self))
+         ?? X::MustBeParametric.new(:type(self)).throw
+         !! nqp::create(self)
+    }
+    method !create-ws($shape) {
+        nqp::isnull(nqp::typeparameterized(self))
+          ?? X::MustBeParametric.new(:type(self)).throw
+          !! nqp::isconcrete($shape)
+            ?? self!shaped($shape)
+            !! nqp::create(self)
+    }
 
     proto method STORE(|) { * }
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -686,22 +708,6 @@ my class array does Iterable is repr('VMArray') {
         else {
             die "Can only parameterize array with a native type, not {t.^name}";
         }
-    }
-
-    multi method new(:$shape) {
-        self!create($shape)
-    }
-    multi method new(@values, :$shape) {
-        self!create($shape).STORE(@values)
-    }
-    multi method new(**@values, :$shape) {
-        self!create($shape).STORE(@values)
-    }
-
-    method !create($shape) {
-        nqp::isnull(nqp::typeparameterized(self)) &&
-            die "Must parameterize array[T] with a type before creating it";
-        nqp::isconcrete($shape) ?? self!shaped($shape) !! nqp::create(self)
     }
 
     method !shaped($shape) {

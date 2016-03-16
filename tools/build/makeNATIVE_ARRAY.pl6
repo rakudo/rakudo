@@ -71,18 +71,20 @@ for $*IN.lines -> $line {
         }
 
         multi method STORE(@PRE[]array:D: $value) {
-            nqp::setelems(self, 1);
             nqp::bindpos_@POST[]self, 0, nqp::unbox_@POST[]$value));
             self
         }
+        multi method STORE(@PRE[]array:D \SELF: @type[] @values[]) {
+            nqp::splice(self,@values[],0,0)
+        }
         multi method STORE(@PRE[]array:D: @values[]) {
-            my int $i = 0;
-            my int $n = @values[].elems;
-            nqp::setelems(self, $n);
-            while $i < $n {
-                nqp::bindpos_@POST[]self, $i, nqp::unbox_@POST[]@values[] .AT-POS(@i[])));
-                $i = $i + 1;
-            }
+            my int $elems = @values[].elems;
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::bindpos_@POST[]self, $i,
+              nqp::unbox_@POST[]@values[] .AT-POS(@i[])))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
             self
         }
 
@@ -113,7 +115,7 @@ for $*IN.lines -> $line {
             nqp::splice(self,@values[],nqp::elems(self),0)
         }
         multi method append(@PRE[]array:D: @values[]) {
-            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values[].is-lazy;
             nqp::push_@POST[]self, $_) for flat @values[];
             self

@@ -11,7 +11,7 @@ my class array does Iterable is repr('VMArray') {
     multi method prepend(array:D: *@values) { self.prepend(@values) }
 
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-03-16T12:42:48+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-16T13:55:55+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role intarray[::T] does Positional[T] is array_type(T) {
 
@@ -43,18 +43,20 @@ my class array does Iterable is repr('VMArray') {
         }
 
         multi method STORE(intarray:D: $value) {
-            nqp::setelems(self, 1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
+        multi method STORE(intarray:D \SELF: int @values) {
+            nqp::splice(self,@values,0,0)
+        }
         multi method STORE(intarray:D: @values) {
-            my int $i = 0;
-            my int $n = @values.elems;
-            nqp::setelems(self, $n);
-            while $i < $n {
-                nqp::bindpos_i(self, $i, nqp::unbox_i(@values .AT-POS($i)));
-                $i = $i + 1;
-            }
+            my int $elems = @values.elems;
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::bindpos_i(self, $i,
+              nqp::unbox_i(@values .AT-POS($i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
             self
         }
 
@@ -85,7 +87,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::splice(self,@values,nqp::elems(self),0)
         }
         multi method append(intarray:D: @values) {
-            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
             self
@@ -239,7 +241,7 @@ my class array does Iterable is repr('VMArray') {
     }
 
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-03-16T12:42:48+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-16T13:55:55+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role numarray[::T] does Positional[T] is array_type(T) {
 
@@ -271,18 +273,20 @@ my class array does Iterable is repr('VMArray') {
         }
 
         multi method STORE(numarray:D: $value) {
-            nqp::setelems(self, 1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
+        multi method STORE(numarray:D \SELF: num @values) {
+            nqp::splice(self,@values,0,0)
+        }
         multi method STORE(numarray:D: @values) {
-            my int $i = 0;
-            my int $n = @values.elems;
-            nqp::setelems(self, $n);
-            while $i < $n {
-                nqp::bindpos_n(self, $i, nqp::unbox_n(@values .AT-POS($i)));
-                $i = $i + 1;
-            }
+            my int $elems = @values.elems;
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::bindpos_n(self, $i,
+              nqp::unbox_n(@values .AT-POS($i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
             self
         }
 
@@ -313,7 +317,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::splice(self,@values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values) {
-            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;
             self

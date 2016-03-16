@@ -8,7 +8,7 @@ my class array does Iterable is repr('VMArray') {
     multi method push(array:D: *@values)  { self.append(@values) }
     multi method append(array:D: *@values)  { self.append(@values) }
     multi method unshift(array:D: *@values) { self.unshift(@values) }
-    multi method prepend(array:D: *@values) { self.prepend(@values) }
+    multi method prepend(array:D: *@values) { self.unshift(@values) }
 
 #- start of generated part of intarray role -----------------------------------
 #- Generated on 2016-03-16T13:55:55+01:00 by tools/build/makeNATIVE_ARRAY.pl6

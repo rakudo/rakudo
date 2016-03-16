@@ -136,7 +136,7 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
-                method count-only() { nqp::p6box_i($!n - $!i + 1) }
+                method count-only() { nqp::p6box_i($!n - $!i) }
                 method sink-all()   { $!i = $!n; IterationEnd }
             }.new($!min + $!excludes-min, $!max - $!excludes-max)
         }
@@ -192,7 +192,7 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                            IterationEnd
                        }
-                       method count-only() { nqp::p6box_i($!n - $!i + 1) }
+                       method count-only() { nqp::p6box_i($!n - $!i) }
                        method sink-all()   { $!i = $!n; IterationEnd }
                    }.new($min, $!excludes-max ?? $!max.pred !! $!max)
                 !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
@@ -269,6 +269,191 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method list(Range:D:) { List.from-iterator(self.iterator) }
     method flat(Range:D:) { Seq.new(self.iterator) }
+
+    method !reverse-iterator() {
+        # can use native ints
+        if $!is-int
+          && !nqp::isbig_I(nqp::decont($!min))
+          && !nqp::isbig_I(nqp::decont($!max)) {
+            class :: does Iterator {
+                has int $!i;
+                has int $!n;
+
+                method !SET-SELF(\i,\n) { $!i = i + 1; $!n = n; self }
+                method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
+
+                method pull-one() {
+                    ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd
+                }
+                method push-exactly($target, int $n) {
+                    my int $left = $!i - $!n - 1;
+                    if $n > $left {
+                        $target.push(nqp::p6box_i($!i))
+                          while ($!i = $!i - 1) >= $!n;
+                       IterationEnd
+                    }
+                    else {
+                        my int $end = $!i - 1 - $n;
+                        $target.push(nqp::p6box_i($!i))
+                          while ($!i = $!i - 1) > $end;
+                        $!i = $!i + 1; # did one too many
+                        $n
+                    }
+                }
+                method push-all($target) {
+                    my int $i = $!i;
+                    my int $n = $!n;
+                    $target.push(nqp::p6box_i($i)) while ($i = $i - 1) >= $n;
+                    $!i = $i;
+                    IterationEnd
+                }
+                method count-only() { nqp::p6box_i($!i - $!n) }
+                method sink-all()   { $!i = $!n; IterationEnd }
+            }.new($!max - $!excludes-max, $!min + $!excludes-min)
+        }
+
+        # doesn't make much sense, but there you go
+        elsif $!max === -Inf {
+            class :: does Iterator {
+                method new()      { nqp::create(self) }
+                method pull-one() { Inf }
+                method is-lazy()  { True  }
+            }.new
+        }
+
+        # Also something quick and easy for -Inf..42 style things
+        elsif nqp::istype($!min, Numeric) && $!min === -Inf {
+            class :: does Iterator {
+                has $!i;
+
+                method !SET-SELF(\i)  { $!i = i; self }
+                method new(\i)    { nqp::create(self)!SET-SELF(i) }
+                method pull-one() { $!i-- }
+                method is-lazy()  { True  }
+            }.new($!max - $!excludes-max)
+        }
+
+        # if we have (simple) char range
+        elsif nqp::istype($!min,Str) {
+            my $max = $!excludes-max ?? $!max.pred !! $!max;
+            $max before $!min
+              ?? ().iterator
+              !! $max.chars == 1 && nqp::istype($!min,Str) && $!min.chars == 1
+                ?? class :: does Iterator {
+                       has int $!i;
+                       has int $!n;
+
+                       method !SET-SELF(\from,\end) {
+                           $!i = nqp::ord(nqp::unbox_s(from)) + 1;
+                           $!n = nqp::ord(nqp::unbox_s(end));
+                           self
+                       }
+                       method new(\from,\end) {
+                           nqp::create(self)!SET-SELF(from,end)
+                       }
+                       method pull-one() {
+                           ( $!i = $!i - 1 ) >= $!n
+                             ?? nqp::chr($!i)
+                             !! IterationEnd
+                       }
+                       method push-all($target) {
+                           my int $i = $!i;
+                           my int $n = $!n;
+                           $target.push(nqp::chr($i)) while ($i = $i - 1) >= $n;
+                           $!i = $i;
+                           IterationEnd
+                       }
+                       method count-only() { nqp::p6box_i($!i - $!n) }
+                       method sink-all()   { $!i = $!n; IterationEnd }
+                   }.new($max, $!excludes-min ?? $!min.succ !! $!min)
+                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
+        }
+
+        # General case according to spec
+        else {
+            class :: does Iterator {
+                has $!i;
+                has $!e;
+                has int $!exclude;
+
+                method !SET-SELF(\i,\exclude,\e) {
+                    $!i       = i;
+                    $!exclude = exclude.Int;
+                    $!e       = e;
+                    self
+                }
+                method new(\i,\exclude,\e) {
+                    nqp::create(self)!SET-SELF(i,exclude,e)
+                }
+
+                method pull-one() {
+                    if $!exclude ?? $!i after $!e !! not $!i before $!e {
+                        my Mu $i = $!i;
+                        $!i = $i.pred;
+                        $i
+                    }
+                    else {
+                        IterationEnd
+                    }
+                }
+                method push-all($target) {
+                    my Mu $i = $!i;
+                    my Mu $e = $!e;
+                    if $!exclude {
+                        while $i after $e {
+                            $target.push(nqp::clone($i));
+                            $i = $i.pred;
+                        }
+                    }
+                    else {
+                        while not $i before $e {
+                            $target.push(nqp::clone($i));
+                            $i = $i.pred;
+                        }
+                    }
+                    IterationEnd
+                }
+                method count-only {
+                    my Mu $i = $!i;
+                    my Mu $e = $!e;
+                    my int $found;
+                    if $!exclude {
+                        while $i after $e {
+                            $found = $found + 1;
+                            $i     = $i.pred;
+                        }
+                    }
+                    else {
+                        while not $i before $e {
+                            $found = $found + 1;
+                            $i     = $i.pred;
+                        }
+                    }
+                    nqp::p6box_i($found)
+                }
+                method sink-all {
+                    $!i = $!e;
+                    IterationEnd
+                }
+            }.new($!excludes-max ?? $!max.pred !! $!max,$!excludes-min,$!min)
+        }
+    }
+    method reverse(Range:D:) { Seq.new(self!reverse-iterator) }
+    method first (|c) {
+        if c<end> {
+            my \res := self.reverse.first(|c, :!end);
+            if c<k> and nqp::istype(res, Numeric) {
+                self.elems - res - 1
+            }
+            elsif c<p> and nqp::istype(res, Pair) {
+                Pair.new(self.elems - res.key - 1, res.value)
+            }
+            else {
+                res
+            }
+        }
+        else { nextsame };
+    }
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
     method int-bounds() {

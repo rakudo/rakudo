@@ -774,8 +774,8 @@ my class IO::Handle does IO {
 
     multi method gist(IO::Handle:D:) {
         self.opened
-            ?? self.^name ~ "<$!path>(opened, at octet {$.tell})"
-            !! self.^name ~ "<$!path>(closed)"
+            ?? self.^name ~ "<$!path.gist()>(opened, at octet {$.tell})"
+            !! self.^name ~ "<$!path.gist()>(closed)"
     }
 
     multi method perl(IO::Handle:D:) {

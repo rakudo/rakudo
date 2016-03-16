@@ -345,6 +345,14 @@ multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
 sub sprintf(Cool $format, *@args) {
+    CATCH {
+        when X::Cannot::Lazy {
+            X::Cannot::Lazy.new(:action('(s)printf')).throw
+        }
+        default {
+            $_.throw
+        }
+    }
     Rakudo::Internals.initialize-sprintf-handler;
     @args.elems;
     nqp::p6box_s(

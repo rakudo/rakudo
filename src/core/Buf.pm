@@ -105,7 +105,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
     multi method perl(Blob:D:) {
-        self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
+        self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
     method subbuf(Blob:D: $from, $length?) {
@@ -179,6 +179,18 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           while nqp::islt_i($i = $i + 1,$elems);
 
         True
+    }
+
+    method join(Blob:D: $delim = '') {
+        my int $elems = nqp::elems(self);
+        my $list     := nqp::setelems(nqp::list_s,$elems);
+        my int $i     = -1;
+
+        nqp::bindpos_s($list,$i,
+          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i)))) 
+          while nqp::islt_i(++$i,$elems);
+
+        nqp::join($delim.Str,$list)
     }
 
     proto method unpack(|) { * }

@@ -122,6 +122,8 @@ my role Completions {
     }
 
     method completions-for-line(Str $line, int $cursor-index) {
+        return @!completions unless $line;
+
         # ignore $cursor-index until we have a backend that provides it
         my ( $prefix, $word-at-cursor ) = self.extract-last-word($line);
 

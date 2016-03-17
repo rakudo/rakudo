@@ -9,6 +9,10 @@ my class X::TypeCheck           { ... }
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     my int $bpe = (T.^nativesize / 8).Int;  # other then *8 not supported yet
 
+    multi method WHICH(Blob:D:) {
+        self.^name ~ '|' ~ nqp::sha1(self.join(","))
+    }
+
     multi method new(Blob:) { nqp::create(self) }
     multi method new(Blob: Blob:D $blob) {
         nqp::splice(nqp::create(self),$blob,0,0)
@@ -400,6 +404,9 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
+
+    multi method WHICH(Buf:D:) { self.Mu::WHICH }
+
     multi method AT-POS(Buf:D: int \pos) is raw {
         fail X::OutOfRange.new(
           :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)

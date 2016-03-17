@@ -245,7 +245,7 @@ my class array does Iterable is repr('VMArray') {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
 
-        multi method join(strarray:D: $delim = '') {
+        method join(strarray:D: $delim = '') {
             nqp::join($delim.Str,self)
         }
     }
@@ -463,7 +463,7 @@ my class array does Iterable is repr('VMArray') {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
-        multi method join(intarray:D: $delim = '') {
+        method join(intarray:D: $delim = '') {
             my int $elems = nqp::elems(self);
             my $list     := nqp::setelems(nqp::list_s,$elems);
             my int $i     = -1;

@@ -244,6 +244,10 @@ my class array does Iterable is repr('VMArray') {
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
+
+        multi method join(strarray:D: $delim = '') {
+            nqp::join($delim.Str,self)
+        }
     }
 
 #- start of generated part of intarray role -----------------------------------
@@ -459,19 +463,32 @@ my class array does Iterable is repr('VMArray') {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
+        multi method join(intarray:D: $delim = '') {
+            my int $elems = nqp::elems(self);
+            my $list     := nqp::setelems(nqp::list_s,$elems);
+            my int $i     = -1;
+
+            nqp::bindpos_s($list,$i,
+              nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
+              while nqp::islt_i(++$i,$elems);
+
+            nqp::join($delim.Str,$list)
+        }
+
         multi method STORE(intarray:D: Range:D $range) {
+            fail "Can only initialize an int array with an int Range"
+              unless $range.is-int;
+
             my int $val = $range.min;
             $val = $val + 1 if $range.excludes-min;
             my int $max = $range.max;
             $max = $max - 1 if $range.excludes-max;
             nqp::setelems(self, $max - $val + 1);
 
-            my int $i;
-            while $val <= $max {
-                nqp::bindpos_i(self, $i, $val);
-                $val = $val + 1;
-                $i   = $i   + 1;
-            }
+            my int $i = -1;
+            --$val;
+            nqp::bindpos_i(self,++$i,$val) while nqp::isle_i(++$val,$max);
+
             self
         }
     }

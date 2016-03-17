@@ -32,8 +32,222 @@ my class array does Iterable is repr('VMArray') {
     multi method unshift(array:D: **@values) { self.unshift(@values) }
     multi method prepend(array:D:  *@values) { self.unshift(@values) }
 
+#- start of generated part of strarray role -----------------------------------
+#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+    my role strarray[::T] does Positional[T] is array_type(T) {
+
+        multi method AT-POS(strarray:D: int $idx) is raw {
+            nqp::atposref_s(self, $idx)
+        }
+        multi method AT-POS(strarray:D: Int:D $idx) is raw {
+            nqp::atposref_s(self, $idx)
+        }
+
+        multi method ASSIGN-POS(strarray:D: int $idx, str $value) {
+            nqp::bindpos_s(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(strarray:D: Int:D $idx, str $value) {
+            nqp::bindpos_s(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(strarray:D: int $idx, Str:D $value) {
+            nqp::bindpos_s(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(strarray:D: Int:D $idx, Str:D $value) {
+            nqp::bindpos_s(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(strarray:D: Any $idx, Mu \value) {
+            X::TypeCheck.new(
+                operation => "assignment to str array element #$idx",
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+
+        multi method STORE(strarray:D: $value) {
+            nqp::bindpos_s(self, 0, nqp::unbox_s($value));
+            self
+        }
+        multi method STORE(strarray:D \SELF: str @values) {
+            nqp::splice(self,@values,0,0)
+        }
+        multi method STORE(strarray:D: @values) {
+            my int $elems = @values.elems;
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::bindpos_s(self, $i,
+              nqp::unbox_s(@values .AT-POS($i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            self
+        }
+
+        multi method push(strarray:D: str $value) {
+            nqp::push_s(self, $value);
+            self
+        }
+        multi method push(strarray:D: Str:D $value) {
+            nqp::push_s(self, $value);
+            self
+        }
+        multi method push(strarray:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'push to str array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+        multi method append(strarray:D: str $value) {
+            nqp::push_s(self, $value);
+            self
+        }
+        multi method append(strarray:D: Str:D $value) {
+            nqp::push_s(self, $value);
+            self
+        }
+        multi method append(strarray:D: str @values) {
+            nqp::splice(self,@values,nqp::elems(self),0)
+        }
+        multi method append(strarray:D: @values) {
+            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+              if @values.is-lazy;
+            nqp::push_s(self, $_) for flat @values;
+            self
+        }
+
+        method pop(strarray:D:) returns str {
+            nqp::elems(self) > 0
+              ?? nqp::pop_s(self)
+              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+        }
+
+        method shift(strarray:D:) returns str {
+            nqp::elems(self) > 0
+              ?? nqp::shift_s(self)
+              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+        }
+
+        multi method unshift(strarray:D: str $value) {
+            nqp::unshift_s(self, $value);
+            self
+        }
+        multi method unshift(strarray:D: Str:D $value) {
+            nqp::unshift_s(self, $value);
+            self
+        }
+        multi method unshift(strarray:D: @values) {
+            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+              if @values.is-lazy;
+            nqp::unshift_s(self, @values.pop) while @values;
+            self
+        }
+        multi method unshift(strarray:D: Mu \value) {
+            X::TypeCheck.new(
+                operation => 'unshift to str array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+
+        multi method splice(strarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+            fail X::Cannot::Lazy.new(:action('splice in'))
+              if @values.is-lazy;
+
+            my $elems = self.elems;
+            my int $o = nqp::istype($offset,Callable)
+              ?? $offset($elems)
+              !! nqp::istype($offset,Whatever)
+                ?? $elems
+                !! $offset.Int;
+            X::OutOfRange.new(
+              :what('Offset argument to splice'),
+              :got($o),
+              :range("0..$elems"),
+            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
+
+            my int $s = nqp::istype($size,Callable)
+              ?? $size($elems - $o)
+              !! !defined($size) || nqp::istype($size,Whatever)
+                 ?? $elems - ($o min $elems)
+                 !! $size.Int;
+            X::OutOfRange.new(
+              :what('Size argument to splice'),
+              :got($s),
+              :range("0..^{$elems - $o}"),
+            ).fail if $s < 0;
+
+            if $SINK {
+                my @splicees := nqp::create(self);
+                nqp::push_s(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                Nil;
+            }
+
+            else {
+                my @ret := nqp::create(self);
+                my int $i = $o;
+                my int $n = ($elems min $o + $s) - 1;
+                while $i <= $n {
+                    nqp::push_s(@ret, nqp::atpos_s(self, $i));
+                    $i = $i + 1;
+                }
+
+                my @splicees := nqp::create(self);
+                nqp::push_s(@splicees, @values.shift) while @values;
+                nqp::splice(self, @splicees, $o, $s);
+                @ret;
+            }
+        }
+
+        method iterator(strarray:D:) {
+            class :: does Iterator {
+                has int $!i;
+                has $!array;    # Native array we're iterating
+
+                method !SET-SELF(\array) {
+                    $!array := nqp::decont(array);
+                    $!i = -1;
+                    self
+                }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+                method pull-one() is raw {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                      ?? nqp::atposref_s($!array,$!i)
+                      !! IterationEnd
+                }
+                method push-exactly($target, int $n) {
+                    my int $elems = nqp::elems($!array);
+                    my int $left  = $elems - $!i - 1;
+                    if $n >= $left {
+                        $target.push(nqp::atposref_s($!array,$!i))
+                          while ($!i = $!i + 1) < $elems;
+                        IterationEnd
+                    }
+                    else {
+                        my int $end = $!i + 1 + $n;
+                        $target.push(nqp::atposref_s($!array,$!i))
+                          while ($!i = $!i + 1) < $end;
+                        $!i = $!i - 1; # did one too many
+                        $n
+                    }
+                }
+                method push-all($target) {
+                    my int $i     = $!i;
+                    my int $elems = nqp::elems($!array);
+                    $target.push(nqp::atposref_s($!array,$i))
+                      while ($i = $i + 1) < $elems;
+                    $!i = $i;
+                    IterationEnd
+                }
+            }.new(self)
+        }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of strarray role -------------------------------------
+    }
+
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-03-16T13:55:55+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role intarray[::T] does Positional[T] is array_type(T) {
 
@@ -263,7 +477,7 @@ my class array does Iterable is repr('VMArray') {
     }
 
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-03-16T13:55:55+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role numarray[::T] does Positional[T] is array_type(T) {
 
@@ -692,22 +906,23 @@ my class array does Iterable is repr('VMArray') {
     method ^parameterize(Mu:U \arr, Mu:U \t) {
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
+        my $what;
+
         if $kind == 1 {
-            my $what := arr.^mixin(intarray[$t]);
-            $what.^set_name("{arr.^name}[{t.^name}]");
-            $what;
+            $what := arr.^mixin(intarray[$t]);
         }
         elsif $kind == 2 {
-            my $what := arr.^mixin(numarray[$t]);
-            $what.^set_name("{arr.^name}[{t.^name}]");
-            $what;
+            $what := arr.^mixin(numarray[$t]);
         }
         elsif $kind == 3 {
-            X::NYI.new(feature => 'native string arrays').throw;
+            $what := arr.^mixin(strarray[$t]);
         }
         else {
             die "Can only parameterize array with a native type, not {t.^name}";
         }
+
+        $what.^set_name("{arr.^name}[{t.^name}]");
+        $what;
     }
 
     method !shaped($shape) {

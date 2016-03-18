@@ -18,13 +18,15 @@ my role Iterator {
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
-        my int $i = 0;
         my $pulled;
         my $no-sink;
-        while $i < $n && !(IterationEnd =:= ($pulled := self.pull-one())) {
-            $no-sink := $target.push($pulled); # we may not .sink $pulled here, since it can be a Seq
-            $i = $i + 1;
-        }
+        my int $i = -1;
+
+        # we may not .sink $pulled here, since it can be a Seq
+        $no-sink := $target.push($pulled)
+          while nqp::islt_i($i = nqp::add_i($i,1),$n)
+            && !(IterationEnd =:= ($pulled := self.pull-one));
+
         $pulled =:= IterationEnd
             ?? IterationEnd
             !! $i

@@ -80,10 +80,9 @@ Please refactor this code using the new Iterator / Seq interface.
         self.HOW.set_why($why);
     }
 
-    proto method Bool(|) {*}
-    multi method Bool() {
-        self.defined
-    }
+    proto method Bool() {*}
+    multi method Bool(Mu:U: --> False) { }
+    multi method Bool(Mu:D: --> True)  { }
 
     method so()  { self.Bool }
     method not() { self ?? False !! True }

@@ -216,6 +216,7 @@ class REPL {
     }
 
     method teardown {
+        self.?teardown-line-editor;
     }
 
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {

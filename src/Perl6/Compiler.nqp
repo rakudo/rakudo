@@ -87,7 +87,15 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         my $super := nqp::findmethod(HLL::Compiler, 'interactive');
-        $super(self, :interactive(1), |%adverbs);
+        my $result := $super(self, :interactive(1), |%adverbs);
+        self.teardown();
+        $result
+    }
+
+    method teardown() {
+        if $!p6repl {
+            $!p6repl.teardown();
+        }
     }
 
     method interactive_exception($ex) {

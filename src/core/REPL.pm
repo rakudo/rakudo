@@ -215,6 +215,9 @@ class REPL {
         $!multi-line-enabled = $multi-line-enabled;
     }
 
+    method teardown {
+    }
+
     method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
         try {
             my &needs_more_input = adverbs<needs_more_input>;

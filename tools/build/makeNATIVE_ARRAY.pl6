@@ -1,5 +1,5 @@
 # This script reads the native_array.pm file from STDIN, and generates the
-# @PRE[]array, numarray and strarray roles in it, and writes it to STDOUT.
+# intarray, numarray and strarray roles in it, and writes it to STDOUT.
 
 use v6;
 
@@ -32,7 +32,6 @@ for $*IN.lines -> $line {
     }
 
     # set up template values
-    my @PRE  = $type;
     my @POST = $type.substr(0,1) ~ '(';
     my @values = '@values';
     my @type = $type;
@@ -42,26 +41,26 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:a:to/SOURCE/.chomp;
 
-        multi method AT-POS(@PRE[]array:D: int $idx) is raw {
+        multi method AT-POS(@type[]array:D: int $idx) is raw {
             nqp::atposref_@POST[]self, $idx)
         }
-        multi method AT-POS(@PRE[]array:D: Int:D $idx) is raw {
+        multi method AT-POS(@type[]array:D: Int:D $idx) is raw {
             nqp::atposref_@POST[]self, $idx)
         }
 
-        multi method ASSIGN-POS(@PRE[]array:D: int $idx, @type[] $value) {
+        multi method ASSIGN-POS(@type[]array:D: int $idx, @type[] $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
-        multi method ASSIGN-POS(@PRE[]array:D: Int:D $idx, @type[] $value) {
+        multi method ASSIGN-POS(@type[]array:D: Int:D $idx, @type[] $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
-        multi method ASSIGN-POS(@PRE[]array:D: int $idx, @Type[]:D $value) {
+        multi method ASSIGN-POS(@type[]array:D: int $idx, @Type[]:D $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
-        multi method ASSIGN-POS(@PRE[]array:D: Int:D $idx, @Type[]:D $value) {
+        multi method ASSIGN-POS(@type[]array:D: Int:D $idx, @Type[]:D $value) {
             nqp::bindpos_@POST[]self, $idx, $value)
         }
-        multi method ASSIGN-POS(@PRE[]array:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(@type[]array:D: Any $idx, Mu \value) {
             X::TypeCheck.new(
                 operation => "assignment to @type[] array element #$idx",
                 got       => value,
@@ -69,14 +68,14 @@ for $*IN.lines -> $line {
             ).throw;
         }
 
-        multi method STORE(@PRE[]array:D: $value) {
+        multi method STORE(@type[]array:D: $value) {
             nqp::bindpos_@POST[]self, 0, nqp::unbox_@POST[]$value));
             self
         }
-        multi method STORE(@PRE[]array:D \SELF: @type[] @values[]) {
+        multi method STORE(@type[]array:D \SELF: @type[] @values[]) {
             nqp::splice(self,@values[],0,0)
         }
-        multi method STORE(@PRE[]array:D: @values[]) {
+        multi method STORE(@type[]array:D: @values[]) {
             my int $elems = @values[].elems;
             nqp::setelems(self, $elems);
 
@@ -87,66 +86,66 @@ for $*IN.lines -> $line {
             self
         }
 
-        multi method push(@PRE[]array:D: @type[] $value) {
+        multi method push(@type[]array:D: @type[] $value) {
             nqp::push_@POST[]self, $value);
             self
         }
-        multi method push(@PRE[]array:D: @Type[]:D $value) {
+        multi method push(@type[]array:D: @Type[]:D $value) {
             nqp::push_@POST[]self, $value);
             self
         }
-        multi method push(@PRE[]array:D: Mu \value) {
+        multi method push(@type[]array:D: Mu \value) {
             X::TypeCheck.new(
                 operation => 'push to @type[] array',
                 got       => value,
                 expected  => T,
             ).throw;
         }
-        multi method append(@PRE[]array:D: @type[] $value) {
+        multi method append(@type[]array:D: @type[] $value) {
             nqp::push_@POST[]self, $value);
             self
         }
-        multi method append(@PRE[]array:D: @Type[]:D $value) {
+        multi method append(@type[]array:D: @Type[]:D $value) {
             nqp::push_@POST[]self, $value);
             self
         }
-        multi method append(@PRE[]array:D: @type[] @values[]) {
+        multi method append(@type[]array:D: @type[] @values[]) {
             nqp::splice(self,@values[],nqp::elems(self),0)
         }
-        multi method append(@PRE[]array:D: @values[]) {
+        multi method append(@type[]array:D: @values[]) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values[].is-lazy;
             nqp::push_@POST[]self, $_) for flat @values[];
             self
         }
 
-        method pop(@PRE[]array:D:) returns @type[] {
+        method pop(@type[]array:D:) returns @type[] {
             nqp::elems(self) > 0
               ?? nqp::pop_@POST[]self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(@PRE[]array:D:) returns @type[] {
+        method shift(@type[]array:D:) returns @type[] {
             nqp::elems(self) > 0
               ?? nqp::shift_@POST[]self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(@PRE[]array:D: @type[] $value) {
+        multi method unshift(@type[]array:D: @type[] $value) {
             nqp::unshift_@POST[]self, $value);
             self
         }
-        multi method unshift(@PRE[]array:D: @Type[]:D $value) {
+        multi method unshift(@type[]array:D: @Type[]:D $value) {
             nqp::unshift_@POST[]self, $value);
             self
         }
-        multi method unshift(@PRE[]array:D: @values[]) {
+        multi method unshift(@type[]array:D: @values[]) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values[].is-lazy;
             nqp::unshift_@POST[]self, @values[].pop) while @values[];
             self
         }
-        multi method unshift(@PRE[]array:D: Mu \value) {
+        multi method unshift(@type[]array:D: Mu \value) {
             X::TypeCheck.new(
                 operation => 'unshift to @type[] array',
                 got       => value,
@@ -154,7 +153,7 @@ for $*IN.lines -> $line {
             ).throw;
         }
 
-        multi method splice(@PRE[]array:D: $offset=0, $size=Whatever, *@values[], :$SINK) {
+        multi method splice(@type[]array:D: $offset=0, $size=Whatever, *@values[], :$SINK) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values[].is-lazy;
 
@@ -204,7 +203,7 @@ for $*IN.lines -> $line {
             }
         }
 
-        method iterator(@PRE[]array:D:) {
+        method iterator(@type[]array:D:) {
             class :: does Iterator {
                 has int $!i;
                 has $!array;    # Native array we're iterating

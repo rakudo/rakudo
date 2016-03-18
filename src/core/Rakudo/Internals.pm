@@ -3,6 +3,9 @@ my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::Assignment::ToShaped { ... };
+my class X::Str::Sprintf::Directives::BadType { ... };
+my class X::Str::Sprintf::Directives::Count { ... };
+my class X::Str::Sprintf::Directives::Unsupported { ... };
 
 my class Rakudo::Internals {
 
@@ -1172,6 +1175,31 @@ my class Rakudo::Internals {
 
         method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
             $!compiler.generate_accessor($name, package_type, $attr_name, type, $rw);
+        }
+    }
+
+    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
+        my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');
+        my \payload := nqp::getpayload($vmex);
+        if nqp::elems(payload) == 1 {
+            if nqp::existskey(payload, 'BAD_TYPE_FOR_DIRECTIVE') {
+                X::Str::Sprintf::Directives::BadType.new(
+                    type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
+                    directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
+                ).throw
+            }
+            if nqp::existskey(payload, 'BAD_DIRECTIVE') {
+                X::Str::Sprintf::Directives::Unsupported.new(
+                    directive => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'DIRECTIVE'),
+                    sequence  => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'SEQUENCE'),
+                ).throw
+            }
+            if nqp::existskey(payload, 'DIRECTIVES_COUNT') {
+                X::Str::Sprintf::Directives::Count.new(
+                    args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
+                    args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
+                ).throw
+            }
         }
     }
 }

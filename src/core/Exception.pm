@@ -1749,6 +1749,36 @@ my class X::Str::Trans::InvalidArg is Exception {
     }
 }
 
+my class X::Str::Sprintf::Directives::Count is Exception {
+    has $.args-used;
+    has $.args-have;
+    method message() {
+        "Your printf-style directives specify "
+        ~ ($.args-used == 1 ?? "1 argument, but "
+                            !! "$.args-used arguments, but ")
+        ~ ($.args-have < 1      ?? "no argument was"
+            !! $.args-have == 1 ?? "1 argument was"
+                                !! "$.args-have arguments were")
+        ~ " supplied";
+    }
+}
+
+my class X::Str::Sprintf::Directives::Unsupported is Exception {
+    has $.directive;
+    has $.sequence;
+    method message() {
+        "Directive $.directive is not valid in sprintf format sequence $.sequence"
+    }
+}
+
+my class X::Str::Sprintf::Directives::BadType is Exception {
+    has $.type;
+    has $.directive;
+    method message() {
+        "Directive $.directive not applicable for type $.type"
+    }
+}
+
 my class X::Range::InvalidArg is Exception {
     has $.got is default(Nil);
     method message() {

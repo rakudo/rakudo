@@ -350,7 +350,7 @@ sub sprintf(Cool $format, *@args) {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
         }
         default {
-            $_.throw
+            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_).throw
         }
     }
     Rakudo::Internals.initialize-sprintf-handler;

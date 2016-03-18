@@ -72,7 +72,7 @@ for $*IN.lines -> $line {
             nqp::bindpos_@POST[]self, 0, nqp::unbox_@POST[]$value));
             self
         }
-        multi method STORE(@type[]array:D \SELF: @type[] @values[]) {
+        multi method STORE(@type[]array:D: @type[] @values[]) {
             nqp::splice(self,@values[],0,0)
         }
         multi method STORE(@type[]array:D: @values[]) {

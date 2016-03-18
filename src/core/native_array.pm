@@ -34,7 +34,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-18T23:18:57+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -68,7 +68,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::bindpos_s(self, 0, nqp::unbox_s($value));
             self
         }
-        multi method STORE(strarray:D \SELF: str @values) {
+        multi method STORE(strarray:D: str @values) {
             nqp::splice(self,@values,0,0)
         }
         multi method STORE(strarray:D: @values) {
@@ -236,7 +236,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-18T23:18:57+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -270,7 +270,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
-        multi method STORE(intarray:D \SELF: int @values) {
+        multi method STORE(intarray:D: int @values) {
             nqp::splice(self,@values,0,0)
         }
         multi method STORE(intarray:D: @values) {
@@ -463,7 +463,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-03-18T23:18:57+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -497,7 +497,7 @@ my class array does Iterable is repr('VMArray') {
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
-        multi method STORE(numarray:D \SELF: num @values) {
+        multi method STORE(numarray:D: num @values) {
             nqp::splice(self,@values,0,0)
         }
         multi method STORE(numarray:D: @values) {

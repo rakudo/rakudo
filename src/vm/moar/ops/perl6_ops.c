@@ -14,6 +14,10 @@
 #define MVM_spesh_get_and_use_facts MVM_spesh_get_facts
 #endif
 
+#ifndef MVM_gc_root_add_permanent_desc
+#define MVM_gc_root_add_permanent_desc(tc, obj_ref, description) MVM_gc_root_add_permanent(tc, obj_ref)
+#endif
+
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
@@ -101,7 +105,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
 #define get_type(tc, hash, name, varname) do { \
     MVMString *key = MVM_string_utf8_decode((tc), (tc)->instance->VMString, (name), strlen((name))); \
     (varname) = MVM_repr_at_key_o((tc), (hash), key); \
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&varname); \
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&varname, name); \
 } while (0)
 static MVMuint8 s_p6settypes[] = {
     MVM_operand_obj | MVM_operand_read_reg
@@ -125,7 +129,7 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     {
         MVMString *element;
         default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
-        MVM_gc_root_add_permanent(tc, (MVMCollectable **)&default_cont_desc);
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&default_cont_desc, "DefaultContainerDescriptor");
         element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
         MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
@@ -138,21 +142,21 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
 
     /* Strings. */
     str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_return);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_return, "RETURN");
     str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_dispatcher);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
     str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_vivify_for);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
     str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_perl6);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
     str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_p6ex);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
     str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
     str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xatcf);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xatcf, "X::TypeCheck::Assignment");
     str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_cfr);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_cfr, "X::ControlFlow::Return");
 }
 
 /* Boxing to Perl 6 types. */

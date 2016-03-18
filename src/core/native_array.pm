@@ -32,10 +32,10 @@ my class array does Iterable is repr('VMArray') {
     multi method unshift(array:D: **@values) { self.unshift(@values) }
     multi method prepend(array:D:  *@values) { self.unshift(@values) }
 
-#- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
-#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role strarray[::T] does Positional[T] is array_type(T) {
+#- start of generated part of strarray role -----------------------------------
+#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
             nqp::atposref_s(self, $idx)
@@ -234,10 +234,10 @@ my class array does Iterable is repr('VMArray') {
         }
     }
 
-#- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
-#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role intarray[::T] does Positional[T] is array_type(T) {
+#- start of generated part of intarray role -----------------------------------
+#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
             nqp::atposref_i(self, $idx)
@@ -461,10 +461,10 @@ my class array does Iterable is repr('VMArray') {
         }
     }
 
-#- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-03-17T10:04:13+01:00 by tools/build/makeNATIVE_ARRAY.pl6
-#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
     my role numarray[::T] does Positional[T] is array_type(T) {
+#- start of generated part of numarray role -----------------------------------
+#- Generated on 2016-03-18T14:34:26+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
             nqp::atposref_n(self, $idx)

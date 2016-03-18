@@ -41,7 +41,6 @@ for $*IN.lines -> $line {
 
     # spurt the role
     say Q:a:to/SOURCE/.chomp;
-    my role @PRE[]array[::T] does Positional[T] is array_type(T) {
 
         multi method AT-POS(@PRE[]array:D: int $idx) is raw {
             nqp::atposref_@POST[]self, $idx)

@@ -58,13 +58,22 @@ my role LinenoiseBehavior[$WHO] {
     my &linenoiseHistoryAdd            = $WHO<&linenoiseHistoryAdd>;
     my &linenoiseSetCompletionCallback = $WHO<&linenoiseSetCompletionCallback>;
     my &linenoiseAddCompletion         = $WHO<&linenoiseAddCompletion>;
+    my &linenoiseHistoryLoad           = $WHO<&linenoiseHistoryLoad>;
+    my &linenoiseHistorySave           = $WHO<&linenoiseHistorySave>;
 
     method completions-for-line(Str $line, int $cursor-index) { ... }
+
+    method history-file() returns Str { ... }
 
     method init-line-editor {
         linenoiseSetCompletionCallback(sub ($line, $c) {
             eager self.completions-for-line($line, $line.chars).map(&linenoiseAddCompletion.assuming($c));
         });
+        linenoiseHistoryLoad($.history-file);
+    }
+
+    method teardown-line-editor {
+        linenoiseHistorySave($.history-file);
     }
 
     method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {

@@ -82,7 +82,7 @@ Please refactor this code using the new Iterator / Seq interface.
 
     proto method Bool() {*}
     multi method Bool(Mu:U: --> False) { }
-    multi method Bool(Mu:D: --> True)  { }
+    multi method Bool(Mu:D:) { self.defined }
 
     method so()  { self.Bool }
     method not() { self ?? False !! True }

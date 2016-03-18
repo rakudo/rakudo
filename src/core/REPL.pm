@@ -240,4 +240,12 @@ class REPL {
             super.(SELF, code, |@(args), |%(adverbs))
         }
     }
+
+    method history-file returns Str {
+        if $*ENV<RAKUDO_HIST> {
+            $*ENV<RAKUDO_HIST>
+        } else {
+            $*HOME ~ '/.perl6/rakudo-history'
+        }
+    }
 }

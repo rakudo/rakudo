@@ -157,17 +157,6 @@ my role Baggy does QuantHash {
                   ?? nqp::iterval(nqp::shift($!iter))
                   !! IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink :=
-                      $target.push(nqp::iterval(nqp::shift($!iter)));
-                    $done = $done + 1;
-                }
-                $done
-            }
             method push-all($target) {
                 my $no-sink;
                 $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
@@ -182,17 +171,6 @@ my role Baggy does QuantHash {
                 $!iter
                   ?? nqp::iterval(nqp::shift($!iter)).key
                   !! IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink :=
-                      $target.push(nqp::iterval(nqp::shift($!iter)).key);
-                    $done = $done + 1;
-                }
-                $done
             }
             method push-all($target) {
                 my $no-sink;
@@ -222,30 +200,6 @@ my role Baggy does QuantHash {
                     IterationEnd
                 }
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                if $!value.DEFINITE {
-                    $no-sink := $target.push($!value);
-                    $!value := Mu;
-                    $done = $done + 1;
-                }
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    my \tmp =
-                      nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!key'));
-                    if ($done = $done + 1) < $n {
-                        $no-sink :=
-                          $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                        $done = $done + 1;
-                    }
-                    else {
-                        $!value := nqp::getattr(tmp,Pair,'$!value');
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 my $no-sink;
                 while $!iter {
@@ -266,17 +220,6 @@ my role Baggy does QuantHash {
                          nqp::iterval(nqp::shift($!iter))),Pair,'$!value')
                     !! IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink := $target.push(nqp::getattr(nqp::decont(
-                      nqp::iterval(nqp::shift($!iter))),Pair,'$!value'));
-                    $done = $done + 1;
-                }
-                $done
-            }
             method push-all($target) {
                 my $no-sink;
                 $no-sink := $target.push(nqp::getattr(nqp::decont(
@@ -296,17 +239,6 @@ my role Baggy does QuantHash {
                 else {
                     IterationEnd
                 }
-            }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $no-sink := $target.push(Pair.new(tmp.value, tmp.key));
-                    $done = $done + 1;
-                }
-                IterationEnd
             }
             method push-all($target) {
                 my $no-sink;

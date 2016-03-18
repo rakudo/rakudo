@@ -324,19 +324,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! nqp::p6box_i($!index = $!index + 1)
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($_ := $!iter.pull-one);
-                    $!index = $!index + 1;
-                    if $!test($_) {
-                        $target.push(nqp::p6box_i($!index));
-                        $done = $done + 1;
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
@@ -378,31 +365,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                 }
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                if $!value.DEFINITE {
-                    $no-sink := $target.push($!value);
-                    $!value  := Mu;
-                    $done = $done + 1;
-                }
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($_ := $!iter.pull-one);
-                    $!index = $!index + 1;
-                    if $!test($_) {
-                        $target.push(nqp::p6box_i($!index));
-                        if ($done = $done + 1) < $n {
-                            $no-sink := $target.push($_);
-                            $done = $done + 1;
-                        }
-                        else {
-                            $!value := $_;
-                        }
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 my $no-sink;
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
@@ -435,19 +397,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! Pair.new($!index = $!index + 1,$_)
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($_ := $!iter.pull-one);
-                    $!index = $!index + 1;
-                    if $!test($_) {
-                        $target.push(Pair.new($!index,$_));
-                        $done = $done + 1;
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
@@ -475,19 +424,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   || $_.match($!test);
                 $_
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($_ := $!iter.pull-one);
-                    if $_.match($!test) {
-                        $no-sink := $target.push($_);
-                        $done = $done + 1;
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 my $no-sink;
                 $no-sink := $target.push($_) if $_.match($!test)
@@ -505,19 +441,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                          Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                            || $!test($_);
                          $_
-                     }
-                     method push-exactly($target, int $n) {
-                         my int $done;
-                         my $no-sink;
-                         while $done < $n {
-                             return IterationEnd
-                               if IterationEnd =:= ($_ := $!iter.pull-one);
-                             if $!test($_) {
-                                 $no-sink := $target.push($_);
-                                 $done = $done + 1;
-                             }
-                         }
-                         $done
                      }
                      method push-all($target) {
                          my $no-sink;
@@ -562,19 +485,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                   || $!test.ACCEPTS($_);
                 $_
-            }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($_ := $!iter.pull-one);
-                    if $!test.ACCEPTS($_) {
-                        $no-sink := $target.push($_);
-                        $done = $done + 1;
-                    }
-                }
-                $done
             }
             method push-all($target) {
                 my $no-sink;
@@ -990,23 +900,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my str $needle;
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    $needle = nqp::unbox_s($value.WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                        $done = $done + 1;
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
@@ -1055,23 +948,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                 }
                 IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my str $needle;
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                        $done = $done + 1;
-                    }
-                }
-                $done
             }
             method push-all($target) {
                 my Mu $value;
@@ -1124,25 +1000,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my str $needle;
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    $needle = nqp::unbox_s($value.WHICH);
-                    if nqp::existskey($!seen, $needle) {
-                        $no-sink := $target.push($value);
-                        $done = $done + 1;
-                    }
-                    else {
-                        nqp::bindkey($!seen, $needle, 1);
-                    }
-                }
-                $done
-            }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
@@ -1188,25 +1045,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       !! nqp::bindkey($!seen, $needle, 1);
                 }
                 IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my Mu $value;
-                my str $needle;
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd
-                      if IterationEnd =:= ($value := $!iter.pull-one);
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    if nqp::existskey($!seen, $needle) {
-                        $no-sink := $target.push($value);
-                        $done = $done + 1;
-                    }
-                    else {
-                        nqp::bindkey($!seen, $needle, 1);
-                    }
-                }
-                $done
             }
             method push-all($target) {
                 my Mu $value;

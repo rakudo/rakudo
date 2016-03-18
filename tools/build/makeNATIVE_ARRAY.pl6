@@ -222,22 +222,6 @@ for $*IN.lines -> $line {
                       ?? nqp::atposref_@POST[]$!array,$!i)
                       !! IterationEnd
                 }
-                method push-exactly($target, int $n) {
-                    my int $elems = nqp::elems($!array);
-                    my int $left  = $elems - $!i - 1;
-                    if $n >= $left {
-                        $target.push(nqp::atposref_@POST[]$!array,$!i))
-                          while ($!i = $!i + 1) < $elems;
-                        IterationEnd
-                    }
-                    else {
-                        my int $end = $!i + 1 + $n;
-                        $target.push(nqp::atposref_@POST[]$!array,$!i))
-                          while ($!i = $!i + 1) < $end;
-                        $!i = $!i - 1; # did one too many
-                        $n
-                    }
-                }
                 method push-all($target) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);

@@ -1300,26 +1300,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
                 IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-
-                    $target.push(nqp::p6box_s(
-                      nqp::substr($!str, $!pos, $nextpos - $!pos)
-                    ));
-                    $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                      $!str, $nextpos, $!chars - $nextpos);
-
-                    $found = $found + 1;
-                    return nqp::p6box_i($found) if $found == $n;
-                }
-                $found ?? nqp::p6box_i($found) !! IterationEnd
-            }
             method push-all($target) {
                 my int $left;
                 my int $nextpos;

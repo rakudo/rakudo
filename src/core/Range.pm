@@ -114,21 +114,6 @@ my class Range is Cool does Iterable does Positional {
                 method pull-one() {
                     ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
                 }
-                method push-exactly($target, int $n) {
-                    my int $left = $!n - $!i - 1;
-                    if $n > $left {
-                        $target.push(nqp::p6box_i($!i))
-                          while ($!i = $!i + 1) <= $!n;
-                       IterationEnd
-                    }
-                    else {
-                        my int $end = $!i + 1 + $n;
-                        $target.push(nqp::p6box_i($!i))
-                          while ($!i = $!i + 1) < $end;
-                        $!i = $!i - 1; # did one too many
-                        $n
-                    }
-                }
                 method push-all($target) {
                     my int $i = $!i;
                     my int $n = $!n;
@@ -284,21 +269,6 @@ my class Range is Cool does Iterable does Positional {
 
                 method pull-one() {
                     ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd
-                }
-                method push-exactly($target, int $n) {
-                    my int $left = $!i - $!n - 1;
-                    if $n > $left {
-                        $target.push(nqp::p6box_i($!i))
-                          while ($!i = $!i - 1) >= $!n;
-                       IterationEnd
-                    }
-                    else {
-                        my int $end = $!i - 1 - $n;
-                        $target.push(nqp::p6box_i($!i))
-                          while ($!i = $!i - 1) > $end;
-                        $!i = $!i + 1; # did one too many
-                        $n
-                    }
                 }
                 method push-all($target) {
                     my int $i = $!i;

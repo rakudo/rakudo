@@ -38,6 +38,15 @@ my sub sorted-set-insert(@values, $value) {
     splice(@values, $insert_pos, 0, $value);
 }
 
+my sub mkpath(IO::Path $path) {
+    my ( :$directory, *% ) := $path.parts;
+    my @parts = $*SPEC.splitdir($directory);
+
+    for [\~] @parts.map(* ~ '/') -> $path {
+        mkdir $path;
+    }
+}
+
 my role ReadlineBehavior[$WHO] {
     my &readline    = $WHO<&readline>;
     my &add_history = $WHO<&add_history>;
@@ -252,10 +261,13 @@ class REPL {
     }
 
     method history-file returns Str {
-        if $*ENV<RAKUDO_HIST> {
-            $*ENV<RAKUDO_HIST>
-        } else {
-            $*HOME ~ '/.perl6/rakudo-history'
-        }
+        my $path = do
+            if $*ENV<RAKUDO_HIST> {
+                IO::Path.new($*ENV<RAKUDO_HIST>)
+            } else {
+                IO::Path.new($*HOME).child('.perl6').child('rakudo-history')
+            }
+        mkpath($path);
+        ~$path
     }
 }

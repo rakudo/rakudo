@@ -10,6 +10,8 @@ New in 2016.03
    + Calling .prepend on a native array no longer infiniloops
    + Blob.WHICH now indicates a value (immutable) type
    + Better error reporting for problems with sprintf()
+   + Some obscure unicode codepoints causing segfaults no longer segfault
+   + Directory listings now handle wrongly encoded data using utf8-c8
  + Additions:
    + Native str arrays (my str @a)
    + Buf.pop, Buf.shift and Buf.splice (similar to List.*)

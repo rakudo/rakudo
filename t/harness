@@ -41,7 +41,6 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = join ',', qw/ lib . /;
 
 my @slow;
 if ($list_file) {

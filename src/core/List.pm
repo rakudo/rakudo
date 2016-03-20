@@ -864,9 +864,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         permutations(self.elems).map: { self[@$_] }
     }
 
-    # for checking we have a native str array
-    constant $BOOTStrArray := nqp::list_s.WHAT;
-
     method join(List:D: $separator = '') is nodal {
         self!ensure-allocated;
 
@@ -878,33 +875,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               !! ($infinite = 1);
         }
 
-        # we already have a native str array
-        if nqp::iseq_i($infinite,0) && $!reified.WHAT =:= $BOOTStrArray {
-            nqp::join(nqp::unbox_s($separator.Str),$!reified)
-        }
+        my int $elems   = nqp::elems($!reified);
+        my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
+        my int $i     = -1;
+        my str $empty = '';
 
-        # we need to build a native str array
-        else {
-            my int $elems   = nqp::elems($!reified);
-            my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
-            my int $i     = -1;
-            my str $empty = '';
+        my $tmp;
+        nqp::bindpos_s($strings,$i,nqp::isnull($tmp := nqp::atpos($!reified,$i))
+          ?? $empty
+          !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
+              ?? $tmp
+              !! nqp::can($tmp,'Str')
+                ?? $tmp.Str
+                !! nqp::box_s($tmp,Str)
+             )
+        ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
 
-            my $tmp;
-            nqp::bindpos_s($strings,$i,
-              nqp::isnull($tmp := nqp::atpos($!reified,$i))
-                ?? $empty
-                !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
-                  ?? $tmp
-                  !! nqp::can($tmp,'Str')
-                    ?? $tmp.Str
-                    !! nqp::box_s($tmp,Str)
-                 )
-            ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-
-            nqp::bindpos_s($strings,$i,'...') if $infinite;
-            nqp::join(nqp::unbox_s($separator.Str),$strings)
-        }
+        nqp::bindpos_s($strings,$i,'...') if $infinite;
+        nqp::join(nqp::unbox_s($separator.Str),$strings)
     }
 
     method push(|) is nodal {

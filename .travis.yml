@@ -20,7 +20,7 @@ branches:
 notifications:
   irc:
     channels:
-      - "irc.freenode.net#perl6"
+      - "irc.freenode.net#p6dev"
     on_success: change
     on_failure: always
     template:

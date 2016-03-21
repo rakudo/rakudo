@@ -72,7 +72,7 @@ class Version {
         }
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
-        my $oparts := nqp::getattr($other,Version,'$!parts');
+        my $oparts := nqp::getattr(nqp::decont($other),Version,'$!parts');
         my $oelems  = nqp::isnull($oparts) ?? 0 !! nqp::elems($oparts);
 
         my int $elems = nqp::elems($!parts);

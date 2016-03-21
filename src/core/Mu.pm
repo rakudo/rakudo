@@ -259,7 +259,7 @@ Please refactor this code using the new Iterator / Seq interface.
                 nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
             }
             else {
-                die "Invalid BUILDALLPLAN";
+                die "Invalid BUILD_LEAST_DERIVED";
             }
         }
         self

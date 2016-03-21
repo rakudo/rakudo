@@ -537,6 +537,7 @@ S09-typed-arrays/native.t
 S09-typed-arrays/native-decl.t
 S09-typed-arrays/native-int.t
 S09-typed-arrays/native-num.t
+S09-typed-arrays/native-str.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t

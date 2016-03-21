@@ -230,6 +230,14 @@ my class array does Iterable is repr('VMArray') {
 #- end of generated part of strarray role -------------------------------------
 
         method join(strarray:D: $delim = '') {
+
+            my str $empty = "";
+            my int $elems = nqp::elems(self);
+            my int $i     = -1;
+            nqp::bindpos_s(self,$i,$empty)
+              if nqp::isnull_s(nqp::atposref_s(self,$i))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
             nqp::join($delim.Str,self)
         }
     }

@@ -36,7 +36,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method Stringy(Str:D:) { self }
     multi method DUMP(Str:D:) { self.perl }
 
-    method Int(Str:D:) { self.Numeric.Int; }
+    method Int(Str:D:) {
+        my str $s = self;
+        nqp::findnotcclass(nqp::const::CCLASS_NUMERIC, $s, 0, nqp::chars($s)) >= nqp::chars($s)
+            ?? nqp::atpos(nqp::radix_I(10, $s, 0, 0, Int), 0)
+            !! self.Numeric.Int
+    }
     method Num(Str:D:) { self.Numeric.Num; }
 
     multi method ACCEPTS(Str:D: Str:D \other) {

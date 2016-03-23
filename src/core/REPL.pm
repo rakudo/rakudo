@@ -175,6 +175,7 @@ do {
 
         has Mu $.compiler;
         has Bool $!multi-line-enabled;
+        has IO::Path $!history-file;
 
         sub mixin-line-editor($self is copy) {
             my Bool $problem = False;
@@ -271,14 +272,16 @@ do {
         }
 
         method history-file returns Str {
-            my $path = do
+            return ~$!history-file if $!history-file.defined;
+
+            $!history-file = do
                 if $*ENV<RAKUDO_HIST> {
                     IO::Path.new($*ENV<RAKUDO_HIST>)
                 } else {
                     IO::Path.new($*HOME).child('.perl6').child('rakudo-history')
                 }
             try {
-                mkpath($path);
+                mkpath($!history-file);
 
                 CATCH {
                     when X::AdHoc & ({ .Str ~~ m:s/Unable to mkpath/ }) {
@@ -287,7 +290,7 @@ do {
                     }
                 }
             }
-            ~$path
+            ~$!history-file
         }
     }
 }

@@ -59,8 +59,8 @@ class Perl6::Compiler is HLL::Compiler {
         }
     }
 
-    method load-p6-repl() {
-        my $repl := self.eval('REPL', :outer_ctx(nqp::null()));
+    method load-p6-repl(%adverbs) {
+        my $repl := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         return $repl;
     }
 
@@ -68,7 +68,7 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::say("To exit type 'exit' or '^D'");
 
         try {
-            my $repl-class := self.load-p6-repl();
+            my $repl-class := self.load-p6-repl(%adverbs);
             $!p6repl := $repl-class.new(self, %adverbs);
 
             CATCH {

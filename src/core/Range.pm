@@ -86,11 +86,11 @@ my class Range is Cool does Iterable does Positional {
           ~ $!max;
     }
     multi method EXISTS-POS(Range:D: int \pos) {
-        pos < self.elems;
+        0 <= pos < self.elems;
     }
 
     multi method EXISTS-POS(Range:D: Int \pos) {
-        pos < self.elems;
+        0 <= pos < self.elems;
     }
 
     method elems {
@@ -469,10 +469,20 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method AT-POS(Range:D: int \pos) {
-        self.list.AT-POS(pos);
+        $!is-int
+            ?? self.EXISTS-POS(pos)
+                ?? $!min + $!excludes-min + pos
+                !! Failure.new(X::OutOfRange.new(
+                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+            !! self.list.AT-POS(pos);
     }
     multi method AT-POS(Range:D: Int:D \pos) {
-        self.list.AT-POS(nqp::unbox_i(pos));
+        $!is-int
+            ?? self.EXISTS-POS(pos)
+                ?? $!min + $!excludes-min + pos
+                !! Failure.new(X::OutOfRange.new(
+                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+            !! self.list.AT-POS(nqp::unbox_i(pos));
     }
 
     multi method perl(Range:D:) {

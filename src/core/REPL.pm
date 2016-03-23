@@ -85,7 +85,11 @@ do {
         }
 
         method teardown-line-editor {
-            linenoiseHistorySave($.history-file);
+            my $err = linenoiseHistorySave($.history-file);
+
+            if $err {
+                note "Couldn't save your history to $.history-file";
+            }
         }
 
         method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {

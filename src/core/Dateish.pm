@@ -12,11 +12,11 @@ my role Dateish {
     multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
     multi method is-leap-year(Dateish: $y) { IS-LEAP-YEAR($y) }
 
-    my $days-in-month := nqp::list(
+    my $days-in-month := nqp::list_i(
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     method !DAYS-IN-MONTH(\year, \month) {
-        nqp::atpos($days-in-month,month) ||
+        nqp::atpos_i($days-in-month,month) ||
           ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
     proto method days-in-month(|) { * }
@@ -105,12 +105,12 @@ my role Dateish {
         ($!day - 1) div 7 + 1
     }
 
-    my $days-at-start-of-month := nqp::list(
+    my $days-at-start-of-month := nqp::list_i(
       0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
     );
     method day-of-year() {
         $!day
-          + nqp::atpos($days-at-start-of-month,$!month)
+          + nqp::atpos_i($days-at-start-of-month,$!month)
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 

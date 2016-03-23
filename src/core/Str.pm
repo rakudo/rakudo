@@ -2099,10 +2099,18 @@ sub chrs(*@c) returns Str:D {
     my $list     := nqp::getattr(@c,List,'$!reified');
     my int $i     = -1;
     my int $elems = nqp::elems($list);
-    my $result   := nqp::list;
+    my $result   := nqp::list_s;
     nqp::setelems($result,$elems);
-    nqp::bindpos($result,$i,nqp::chr(nqp::atpos($list,$i)))
-      while ($i = $i + 1) < $elems;
+
+    my $value;
+    nqp::istype(($value := nqp::atpos($list,$i)),Int)
+      ?? nqp::bindpos_s($result,$i,nqp::chr($value))
+      !! fail X::TypeCheck.new(
+        operation => "converting element #$i to .chr",
+        got       => $value,
+        expected  => Int)
+      while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
     nqp::join("",$result)
 }
 

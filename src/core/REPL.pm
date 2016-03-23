@@ -41,12 +41,15 @@ do {
         splice(@values, $insert_pos, 0, $value);
     }
 
-    my sub mkpath(IO::Path $path) {
-        my ( :$directory, *% ) := $path.parts;
+    my sub mkpath(IO::Path $full-path) {
+        my ( :$directory, *% ) := $full-path.parts;
         my @parts = $*SPEC.splitdir($directory);
 
         for [\~] @parts.map(* ~ '/') -> $path {
             mkdir $path;
+            unless $path.IO ~~ :d {
+                fail "Unable to mkpath '$full-path': $path is not a directory";
+            }
         }
     }
 
@@ -274,7 +277,16 @@ do {
                 } else {
                     IO::Path.new($*HOME).child('.perl6').child('rakudo-history')
                 }
-            mkpath($path);
+            try {
+                mkpath($path);
+
+                CATCH {
+                    when X::AdHoc & ({ .Str ~~ m:s/Unable to mkpath/ }) {
+                        note "I ran into a problem trying to set up history: $_";
+                        note 'Sorry, but history will not be saved at the end of your session';
+                    }
+                }
+            }
             ~$path
         }
     }

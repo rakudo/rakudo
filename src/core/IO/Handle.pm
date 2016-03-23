@@ -235,7 +235,7 @@ my class IO::Handle does IO {
                     $!done = 1;
                 }
                 else {
-                    $!strings := nqp::list();
+                    $!strings := nqp::list_s;
                     with $!regex {
                         my \matches   = $!str.match($!regex, :g);
                         $!elems = matches.elems;
@@ -248,7 +248,7 @@ my class IO::Handle does IO {
                             $match := matches[$i];
                             $from = $match.from;
                             $to   = $match.to;
-                            nqp::bindpos($!strings,$i,
+                            nqp::bindpos_s($!strings,$i,
                               nqp::substr($!str,$from,$to - $from));
                             $i = $i + 1;
                         }
@@ -259,7 +259,7 @@ my class IO::Handle does IO {
                         my int $found;
                         my int $extra = nqp::chars($!comber);
                         while ($found = nqp::index($!str,$!comber,$pos)) >= 0 {
-                            nqp::push($!strings,$!comber);
+                            nqp::push_s($!strings,$!comber);
                             $pos = $found + $extra;
                         }
                         $!left  = nqp::substr($!str,$pos);
@@ -271,13 +271,13 @@ my class IO::Handle does IO {
             method pull-one() {
                 if $!elems {
                     $!elems = $!elems - 1;
-                    nqp::p6box_s(nqp::shift($!strings));
+                    nqp::p6box_s(nqp::shift_s($!strings));
                 }
                 else {
                     self!next-chunk until $!elems || $!done;
                     if $!elems {
                         $!elems = $!elems - 1;
-                        nqp::p6box_s(nqp::shift($!strings));
+                        nqp::p6box_s(nqp::shift_s($!strings));
                     }
                     else {
                         $!handle.close if $!close;
@@ -288,7 +288,7 @@ my class IO::Handle does IO {
             method push-all($target) {
                 while $!elems {
                     while $!elems {
-                        $target.push(nqp::p6box_s(nqp::shift($!strings)));
+                        $target.push(nqp::p6box_s(nqp::shift_s($!strings)));
                         $!elems = $!elems - 1;
                     }
                     self!next-chunk until $!elems || $!done;

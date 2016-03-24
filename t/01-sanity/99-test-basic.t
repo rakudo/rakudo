@@ -1,5 +1,6 @@
 use v6;
 
+use lib <lib>;
 use Test;
 # plan *;     # This does not test having a real plan.
 

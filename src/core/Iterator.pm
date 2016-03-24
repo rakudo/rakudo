@@ -47,8 +47,12 @@ my role Iterator {
     # one call to it. Thus, overriding push-at-least or push-exactly is
     # sufficient; you needn't override this. Returns IterationEnd.
     method push-all($target) {
-        # Size chosen for when int is 32-bit
-        until self.push-at-least($target, 0x7FFFFFFF) =:= IterationEnd { }
+        my $pulled;
+        my $no-sink;
+
+        # we may not .sink $pulled here, since it can be a Seq
+        $no-sink := $target.push($pulled)
+          until IterationEnd =:= ($pulled := self.pull-one);
         IterationEnd
     }
 

@@ -1017,8 +1017,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my str $str       = nqp::unbox_s(self);
         my $positions    := nqp::list;
-        my $needles      := nqp::list;
-        my $needle-chars := nqp::list;
+        my $needles      := nqp::list_s;
+        my $needle-chars := nqp::list_i;
         my $sorted       := nqp::list;
         my int $found     = -1;
         my $needles-seen := nqp::hash;
@@ -1029,8 +1029,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         for @needles.kv -> $index, $needle {
             my str $need  = nqp::unbox_s($needle.DEFINITE ?? $needle.Str !! "");
             my int $chars = nqp::chars($need);
-            nqp::push($needles,$need);
-            nqp::push($needle-chars,$chars);
+            nqp::push_s($needles,$need);
+            nqp::push_i($needle-chars,$chars);
 
             # search for this needle if there is one, and not done before
             if $chars && !nqp::existskey($needles-seen,$need) {
@@ -1059,9 +1059,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # $a <=> $b || $b.chars <=> $a.chars, aka pos asc, length desc
             nqp::getattr(nqp::atpos($positions,$a),Pair,'$!key')
               <=> nqp::getattr(nqp::atpos($positions,$b),Pair,'$!key')
-                || nqp::atpos($needle-chars,
+                || nqp::atpos_i($needle-chars,
                      nqp::getattr(nqp::atpos($positions,$b),Pair,'$!value'))
-                       <=> nqp::atpos($needle-chars,
+                       <=> nqp::atpos_i($needle-chars,
                          nqp::getattr(nqp::atpos($positions,$a),Pair,'$!value'))
         }) if nqp::isgt_i($fired,1);
 
@@ -1078,7 +1078,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $from  = nqp::getattr($pair,Pair,'$!key');
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
                     nqp::push($limited,$index);
-                    $pos = $from + nqp::atpos(
+                    $pos = $from + nqp::atpos_i(
                       $needle-chars,nqp::getattr($pair,Pair,'$!value'));
                     $todo = $todo - 1;
                 }
@@ -1102,12 +1102,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       unless $skip && nqp::iseq_i($from,$pos);
                     nqp::push($result,$needle-index)
                       if $k || $kv;
-                    nqp::push($result,nqp::atpos($needles,$needle-index))
+                    nqp::push($result,nqp::atpos_s($needles,$needle-index))
                       if $v || $kv;
                     nqp::push($result,Pair.new(
-                      $needle-index,nqp::atpos($needles,$needle-index)))
+                      $needle-index,nqp::atpos_s($needles,$needle-index)))
                       if $p;
-                    $pos = $from + nqp::atpos($needle-chars,$needle-index);
+                    $pos = $from + nqp::atpos_i($needle-chars,$needle-index);
                 }
             }
         }
@@ -1118,7 +1118,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 if nqp::isge_i($from,$pos) { # not hidden by other needle
                     nqp::push($result,nqp::substr($str,$pos,$from - $pos))
                       unless $skip && nqp::iseq_i($from,$pos);
-                    $pos = $from + nqp::atpos(
+                    $pos = $from + nqp::atpos_i(
                       $needle-chars,nqp::getattr($pair,Pair,'$!value'));
                 }
             }

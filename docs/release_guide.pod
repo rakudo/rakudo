@@ -165,8 +165,8 @@ Make sure everything compiles and runs from a known clean state:
   $ make realclean
   $ perl Configure.pl --gen-moar --backends=ALL
   $ make
-  $ make test
   $ make install
+  $ make test
   $ (cd t/spec & git checkout master)     # test latest language spec
   $ make stresstest
   $ (cd t/spec & git checkout 6.c-errata) # test stable language spec

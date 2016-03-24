@@ -181,6 +181,9 @@ execute that last as
 where 4 is the number of CPU cores.  This should make the
 total time to execute all of the tests dramatically less.
 
+Note that any failures against the stable language spec must be
+fixed before a release can be made.
+
 Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best

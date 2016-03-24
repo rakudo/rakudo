@@ -2,49 +2,8 @@ use NQPP6QRegex;
 use QRegex;
 use Perl6::Optimizer;
 
-my sub sorted_set_insert(@values, $value) {
-    my $low        := 0;
-    my $high       := nqp::elems(@values) - 1;
-    my $insert_pos := 0;
-
-    while $low <= $high {
-        my $middle := nqp::floor_n($low + ($high - $low) / 2);
-
-        my $middle_elem := nqp::atpos(@values, $middle);
-
-        if $middle == nqp::elems(@values) - 1 {
-            if $value eq $middle_elem {
-                return;
-            } elsif $value lt $middle_elem {
-                $high := $middle - 1;
-            } else {
-                $insert_pos := nqp::elems(@values);
-                last;
-            }
-        } else {
-            my $middle_plus_one_elem := nqp::atpos(@values, $middle + 1);
-
-            if $value eq $middle_elem || $value eq $middle_plus_one_elem {
-                return;
-            } elsif $value lt $middle_elem {
-                $high := $middle - 1;
-            } elsif $value gt $middle_plus_one_elem {
-                $low := $middle + 1;
-            } else {
-                $insert_pos := $middle + 1;
-                last;
-            }
-        }
-    }
-
-    nqp::splice(@values, nqp::list($value), $insert_pos, 0);
-}
-
 class Perl6::Compiler is HLL::Compiler {
-    has $!readline;
-    has $!readline_add_history;
-    has $!completions;
-    has $!multi-line-enabled;
+    has $!p6repl;
 
     method compilation-id() {
         my class IDHolder { }
@@ -100,121 +59,23 @@ class Perl6::Compiler is HLL::Compiler {
         }
     }
 
-    method get-completions() {
-        my @completions := nqp::list();
-
-        my $core_keys := self.eval('CORE::.keys.list', :outer_ctx(nqp::null()));
-
-        my int $i := 0;
-        my $core_elems := $core_keys.elems();
-
-        while $i < $core_elems {
-            my $e := $core_keys.AT-POS($i);
-            $i := $i + 1;
-
-            my $m := $e ~~ /^ "&"? $<word>=[\w+] $/;
-            if $m {
-                my $word := $m<word>;
-                unless $word ~~ /^ "&" <.upper>+ $/ {
-                    sorted_set_insert(@completions, $word);
-                }
-            }
-        }
-
-        @completions
-    }
-
-    method try_load_linenoise() {
-        my @symbols;
-
-        try {
-            @symbols := self.eval("use nqp; use Linenoise; nqp::list(&linenoise, &linenoiseHistoryAdd, &linenoiseSetCompletionCallback, &linenoiseAddCompletion)", :outer_ctx(nqp::null()));
-
-            CATCH { } # it's ok if we can't load Linenoise
-        }
-
-        return 0 unless @symbols;
-
-        $!readline := @symbols[0];
-        $!readline_add_history := @symbols[1];
-
-        my $linenoise_set_completion_callback := @symbols[2];
-        my $linenoise_add_completion := @symbols[3];
-
-        $linenoise_set_completion_callback(sub ($line, $c) {
-            my $m := $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
-
-            my $prefix    := $m ?? ~$m<prefix>    !! '';
-            my $last_word := $m ?? ~$m<last_word> !! '';
-
-            my $it := nqp::iterator($!completions);
-
-            while $it {
-                my $k := nqp::shift($it);
-
-                if $k ~~ /^ $last_word / {
-                    $linenoise_add_completion($c, $prefix ~ $k);
-                }
-            }
-        });
-
-        return 1;
-    }
-
-    method try_load_readline() {
-        my @symbols;
-
-        try {
-            @symbols := self.eval("use nqp; use Readline; nqp::list(&readline, &add_history)", :outer_ctx(nqp::null()));
-
-            CATCH { } # it's ok if we can't load Readline
-        }
-
-        return 0 unless @symbols;
-
-        $!readline := @symbols[0];
-        $!readline_add_history := @symbols[1];
-
-        return 1;
+    method load-p6-repl(%adverbs) {
+        my $repl := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
+        return $repl;
     }
 
     method interactive(*%adverbs) {
-        $!multi-line-enabled := !nqp::atkey(nqp::getenvhash(), 'RAKUDO_DISABLE_MULTILINE');
-        my $readline_loaded := 0;
-        my $problem;
-
-        try {
-            $readline_loaded := $readline_loaded || self.try_load_readline();
-
-            CATCH {
-                nqp::say("I ran into a problem while trying to set up Readline: $_");
-                nqp::say('Falling back to Linenoise (if present)');
-                $problem := 1;
-            }
-        }
-
-        try {
-            $readline_loaded := $readline_loaded || self.try_load_linenoise();
-
-            CATCH {
-                nqp::say("I ran into a problem while trying to set up Linenoise: $_");
-                $problem := 1;
-            }
-        }
-
-        if !$readline_loaded {
-            if $problem {
-                nqp::say('Continuing without tab completions or line editor');
-                nqp::say('You may want to consider using rlwrap for simple line editor functionality');
-            } else {
-                nqp::say('You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor');
-            }
-            nqp::say('');
-        }
-
         nqp::say("To exit type 'exit' or '^D'");
 
-        $!completions := self.get-completions();
+        try {
+            my $repl-class := self.load-p6-repl(%adverbs);
+            $!p6repl := $repl-class.new(self, %adverbs);
+
+            CATCH {
+                say("couldn't load REPL.pm: $_");
+                $!p6repl := Mu;
+            }
+        }
 
         my $*moreinput := sub ($cursor) {
             my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
@@ -226,7 +87,15 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         my $super := nqp::findmethod(HLL::Compiler, 'interactive');
-        $super(self, :interactive(1), |%adverbs);
+        my $result := $super(self, :interactive(1), |%adverbs);
+        self.teardown();
+        $result
+    }
+
+    method teardown() {
+        if $!p6repl {
+            $!p6repl.teardown();
+        }
     }
 
     method interactive_exception($ex) {
@@ -278,87 +147,28 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method readline($stdin, $stdout, $prompt) {
-        my $line;
+        my $super := nqp::findmethod(HLL::Compiler, 'readline');
 
-        try {
-            my $ctx := self.context();
-            if $ctx {
-                my $pad := nqp::ctxlexpad($ctx);
-                my $it := nqp::iterator($pad);
-
-                while $it {
-                    my $e := nqp::shift($it);
-                    my $k := nqp::iterkey_s($e);
-                    my $m := $k ~~ /^ "&"? $<word>=[\w+] $/;
-                    if $m {
-                        my $word := $m<word>;
-                        unless $word ~~ /^ "&" <.upper>+ $/ {
-                            sorted_set_insert($!completions, $word);
-                        }
-                    }
-                }
-
-                my $our := nqp::getlexrel($ctx, '$?PACKAGE').WHO;
-                my $Map := self.eval('Map', :outer_ctx(nqp::null()));
-                my $storage := nqp::getattr($our, $Map, '$!storage');
-
-                $it := nqp::iterator($storage);
-
-                while $it {
-                    my $e := nqp::shift($it);
-                    my $k := nqp::iterkey_s($e);
-                    sorted_set_insert($!completions, $k);
-                }
-            }
-
-            $line := $!readline($prompt);
-            if $line.defined {
-                $!readline_add_history($line);
-                $line
-            } else {
-                $line := nqp::null_s()
-            }
-
-            CATCH {
-                my $super := nqp::findmethod(HLL::Compiler, 'readline');
-                $line := $super(self, $stdin, $stdout, $prompt);
-            }
+        if $!p6repl {
+            return $!p6repl.readline(self, $super, $stdin, $stdout, $prompt);
         }
-        $line;
+
+        return $super(self, $stdin, $stdout, $prompt);
     }
 
     method eval($code, *@args, *%adverbs) {
         my $super := nqp::findmethod(HLL::Compiler, 'eval');
-        unless $!multi-line-enabled {
-            return $super(self, $code, |@args, |%adverbs);
-        }
-
-        my $output := '';
-        my $ex;
-        try {
-            $output := $super(self, $code, |@args, |%adverbs);
-
-            CATCH {
-                if nqp::what($_).HOW.name(nqp::what($_)) eq 'BOOTException' {
-                    my $inner := nqp::getpayload(nqp::decont($_));
-
-                    if $inner {
-                        my $ex-type := nqp::what($inner).HOW.name(nqp::what($inner));
-                        if $ex-type eq 'X::Syntax::Missing' ||
-                           $ex-type eq 'X::Comp::FailGoal'
-                        {
-                            if $inner.pos() == nqp::chars($code) {
-                                return self.needs-more-input();
-                            }
-                        }
-                    }
-                }
-                $ex := $_;
+        if $!p6repl {
+            my $needs_more_input := 0;
+            %adverbs<needs_more_input> := sub () {
+                $needs_more_input := 1;
+            };
+            my $result := $!p6repl.eval(self, $super, $code, @args, %adverbs);
+            if $needs_more_input {
+                return self.needs-more-input();
             }
+            return $result;
         }
-        if $ex {
-            nqp::rethrow($ex);
-        }
-        $output;
+        return $super(self, $code, |@args, |%adverbs);
     }
 }

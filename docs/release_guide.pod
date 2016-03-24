@@ -167,9 +167,9 @@ Make sure everything compiles and runs from a known clean state:
   $ make
   $ make test
   $ make install
-  $ (cd t/spec & git checkout 6.c-errata) # test stable language spec
-  $ make stresstest
   $ (cd t/spec & git checkout master)     # test latest language spec
+  $ make stresstest
+  $ (cd t/spec & git checkout 6.c-errata) # test stable language spec
   $ make stresstest
 
 There are many tests to run for the stresstest target.  If
@@ -197,6 +197,9 @@ This will create a tarball file named C<rakudo-YYYY.MM.tar.gz>.
 
 B<Caution>: this step removes any untracked files in F<t/spec>.
 So please make a backup if you have any important data in there.
+
+Because we tested the stable language spec last, above, those
+are the tests that will end up in the release tarball.
 
 =item 12.
 

@@ -27,7 +27,7 @@ my class Signature { # declared in BOOTSTRAP
         while @spos {
             my $s;
             my $t;
-            last unless $t=@tpos.shift;
+            last unless @tpos && ($t = @tpos.shift);
             $s=@spos.shift;
             if $s.slurpy or $s.capture {
                 @spos=();

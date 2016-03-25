@@ -3,8 +3,19 @@ my class X::TypeCheck::Splice { ... }
 my class Supply { ... }
 my class Supplier { ... }
 
-my sub combinations(\n, \k) {
-    return ((),) if k < 1;
+my sub combinations(Int() $n, Int() $k) {
+    return ((),) if $n < 1 || $k < 1;
+
+    fail X::OutOfRange.new(
+      :what("First parameter"),
+      :got($n),
+      :range("1..2147483647"),
+    ) if nqp::isbig_I(nqp::decont($n));
+    fail X::OutOfRange.new(
+      :what("Second parameter"),
+      :got($k),
+      :range("1..2147483647"),
+    ) if nqp::isbig_I(nqp::decont($k));
 
     Seq.new(class :: does Iterator {
         has int $!n;
@@ -39,7 +50,7 @@ my sub combinations(\n, \k) {
             IterationEnd
         }
         method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
-    }.new(n, k))
+    }.new($n, $k))
 }
 
 sub find-reducer-for-op($op) {

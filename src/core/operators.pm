@@ -660,7 +660,9 @@ multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |ar
 my &infix:<o> := &infix:<∘>;
 
 # needs native arrays
-sub permutations(int $n where $n > 0) {
+sub permutations(Int() $n) {
+    return ((),) if $n < 1;
+
     Seq.new(
         class :: does Iterator {
             # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>

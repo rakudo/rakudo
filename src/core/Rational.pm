@@ -178,7 +178,7 @@ my role Rational[::NuT, ::DeT] does Real {
             !! self;
     }
 
-    method REDUCE-ME() {
+    method REDUCE-ME(--> Nil) {
         if $!denominator > 1 {
             my $gcd = $!denominator gcd $!numerator;
             if $gcd > 1 {

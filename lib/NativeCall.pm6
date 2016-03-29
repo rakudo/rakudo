@@ -202,7 +202,8 @@ sub guess_library_name($lib) is export(:TEST) {
     return '' unless $libname.DEFINITE;
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-    return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
+    my $pln = $*VM.platform-library-name($libname.IO, :version($apiversion || Version));
+    return $libname.IO.is-absolute ?? $pln.absolute !! $pln.relative;
 }
 
 sub check_routine_sanity(Routine $r) is export(:TEST) {
@@ -272,12 +273,11 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
 
     method !setup() {
         my $guessed_libname = guess_library_name($libname);
-        $!cpp-name-mangler  = %lib{$guessed_libname} //
-            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        $!cpp-name-mangler = %lib{$guessed_libname} //= guess-name-mangler($r, $guessed_libname);
         my Mu $arg_info := param_list_for($r.signature, $r);
         my $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,
-            nqp::unbox_s($guessed_libname),                           # library name
+            nqp::unbox_s($guessed_libname.?chars ?? $guessed_libname.IO.absolute !! $guessed_libname), # library name
             nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
             nqp::unbox_s($conv),        # calling convention
             $arg_info,
@@ -403,7 +403,7 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(
-                nqp::unbox_s(guess_library_name($libname)),
+                nqp::unbox_s(guess_library_name($libname).IO.absolute),
                 nqp::unbox_s($symbol),
                 nqp::decont($target-type),
                 nqp::decont(map_return_type($target-type)))

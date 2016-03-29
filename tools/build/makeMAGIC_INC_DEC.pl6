@@ -99,11 +99,15 @@ for $*IN.lines -> $line {
     }
 
     # generate the SUCC initialization
-    say '    method !INITIALIZE-SUCC(--> Nil) {';
+    print Q:to/SOURCE/;
+    method ENSURE-SUCC-INITIALIZED(--> Nil) {
+        unless nqp::chars($succ-look) {
+SOURCE
     print Q:c:to/SOURCE/;
-        $succ-look  = '{nqp::join('',$look)}';
-        $succ-chrs  = '{nqp::join('',$chrs)}';
-        $succ-spec := nqp::hash('{nqp::join("','",$spec)}');
+            $succ-look  = '{nqp::join('',$look)}';
+            $succ-chrs  = '{nqp::join('',$chrs)}';
+            $succ-spec := nqp::hash('{nqp::join("','",$spec)}');
+        }
     }
 
 SOURCE
@@ -111,21 +115,29 @@ SOURCE
     # initialize .pred data structures
     $look := nqp::list_s;
     $chrs := nqp::list_s;
+    $spec := nqp::list_s;
     for @ranges -> $range {
         for $range.kv -> int $i, int $ord {
-            nqp::push_s($look,nqp::chr($ord));
-            nqp::push_s($chrs,nqp::chr($i
-              ?? $ord - 1
-              !! $range.AT-POS($range.end))
-            );
+            if $i {
+                nqp::push_s($look,nqp::chr($ord));
+                nqp::push_s($chrs,nqp::chr($ord - 1));
+            }
+            else {
+                nqp::push_s($spec,nqp::chr($ord));
+            }
         }
     }
 
     # generate the PRED initialization
-    say '    method !INITIALIZE-PRED(--> Nil) {';
+    print Q:to/SOURCE/;
+    method ENSURE-PRED-INITIALIZED(--> Nil) {
+        unless nqp::chars($pred-look) {
+SOURCE
     print Q:c:to/SOURCE/;
-        $pred-look = '{nqp::join('',$look)}';
-        $pred-chrs = '{nqp::join('',$chrs)}';
+            $pred-look = '{nqp::join('',$look)}';
+            $pred-chrs = '{nqp::join('',$chrs)}';
+            $pred-spec = '{nqp::join('',$spec)}';
+        }
     }
 SOURCE
 

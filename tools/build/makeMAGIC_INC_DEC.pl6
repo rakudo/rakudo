@@ -43,20 +43,20 @@ my @ranges =
 ;
 
 # ranges that start with these, carry (aka "9".succ -> "10" instead of "00")
-my str $carrydigits = nqp::unbox_s((
-         '0',  # arabic
-   "\x00660",  # arabic-indic
-   "\x00966",  # devanagari
-   "\x009E6",  # bengali
-   "\x00A66",  # gurmukhi
-   "\x00AE6",  # gujarati
-   "\x00B66",  # oriya
-   "\x02070",  # superscripts XXX: should be treated as digit?
-   "\x02080",  # subscripts XXX: should be treated as digit?
-   "\x0FF10",  # fullwidth XXX: should be treated as digit?
-   "\x1F37A",  # beer mugs
-   "\x1F42A",  # camels
-).join);
+my str $carrydigits =
+           '0'  # arabic
+   ~ "\x00660"  # arabic-indic
+   ~ "\x00966"  # devanagari
+   ~ "\x009E6"  # bengali
+   ~ "\x00A66"  # gurmukhi
+   ~ "\x00AE6"  # gujarati
+   ~ "\x00B66"  # oriya
+   ~ "\x02070"  # superscripts XXX: should be treated as digit?
+   ~ "\x02080"  # subscripts XXX: should be treated as digit?
+   ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
+   ~ "\x1F37A"  # beer mugs
+   ~ "\x1F42A"  # camels
+;
 
 # for all the lines in the source that don't need special handling
 for $*IN.lines -> $line {
@@ -145,5 +145,3 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ " -----------------------------------------";
 }
-
-say "\n# vim: set ft=perl6 nomodifiable :";

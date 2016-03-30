@@ -124,6 +124,7 @@ SOURCE
             }
             else {
                 nqp::push_s($spec,nqp::chr($ord));
+                nqp::push_s($spec,nqp::chr($range.AT-POS($range.end)));
             }
         }
     }
@@ -134,9 +135,9 @@ SOURCE
         unless nqp::chars($pred-look) {
 SOURCE
     print Q:c:to/SOURCE/;
-            $pred-look = '{nqp::join('',$look)}';
-            $pred-chrs = '{nqp::join('',$chrs)}';
-            $pred-spec = '{nqp::join('',$spec)}';
+            $pred-look  = '{nqp::join('',$look)}';
+            $pred-chrs  = '{nqp::join('',$chrs)}';
+            $pred-spec := nqp::hash('{nqp::join("','",$spec)}');
         }
     }
 SOURCE

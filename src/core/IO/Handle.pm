@@ -650,7 +650,7 @@ my class IO::Handle does IO {
         $buf;
     }
 
-    method readchars(Int(Cool:D) $chars = 65536) { # optimize for ASCII
+    method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
 #?if jvm
         my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
         # a char = 2 bytes
@@ -662,7 +662,7 @@ my class IO::Handle does IO {
 #?endif
     }
 
-    method Supply(IO::Handle:D: :$size = 65536, :$bin --> Supply:D) {
+    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS, :$bin --> Supply:D) {
         if $bin {
             supply {
                 my $buf := self.read($size);
@@ -821,6 +821,10 @@ my class IO::Handle does IO {
     method native-descriptor(IO::Handle:D:) {
         nqp::filenofh($!PIO)
     }
+}
+
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
+    PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<DEFAULT_READ_ELEMS> // 65536;
 }
 
 # vim: ft=perl6 expandtab sw=4

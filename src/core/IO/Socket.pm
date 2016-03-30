@@ -12,7 +12,7 @@ my role IO::Socket does IO {
 
 #?if jvm
         if $!buffer.elems < $chars {
-            my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), 65536);
+            my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), $*DEFAULT-READ-ELEMS);
             $!buffer ~= $r;
         }
 

@@ -202,8 +202,7 @@ sub guess_library_name($lib) is export(:TEST) {
     return '' unless $libname.DEFINITE;
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-    my $pln = $*VM.platform-library-name($libname.IO, :version($apiversion || Version));
-    return $libname.IO.is-absolute ?? $pln.absolute !! $pln.relative;
+    $*VM.platform-library-name($libname.IO, :version($apiversion || Version));
 }
 
 sub check_routine_sanity(Routine $r) is export(:TEST) {

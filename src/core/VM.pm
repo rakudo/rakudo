@@ -68,7 +68,7 @@ class VM does Systemic {
             if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
         my $path = IO::Path.new($platform-name, :CWD($root));
-        ?$library.is-absolute ?? $path.absolute.IO !! $path;
+        ?$library.is-absolute ?? $path.absolute !! $path.relative;
     }
 }
 

@@ -7367,7 +7367,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method rx_adverbs($/) {
         my @pairs;
         for $<quotepair> {
-            nqp::push(@pairs, $_.ast);
+            nqp::push(@pairs, wanted($_.ast,'rx_adverbs'));
         }
         make @pairs;
     }

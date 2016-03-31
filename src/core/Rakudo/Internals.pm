@@ -1202,6 +1202,147 @@ my class Rakudo::Internals {
             }
         }
     }
+
+#- start of generated part of succ/pred ---------------------------------------
+#- Generated on 2016-03-31T13:19:02+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # normal increment magic chars & incremented char at same index
+    my $succ-nlook = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪';
+    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫'; 
+
+    # magic increment chars at boundary & incremented char at same index
+    my $succ-blook = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
+    my $succ-bchrs = '10AAaaΑΑααאאААаа١٠१०১০੧੦૧૦୧୦ⁱ⁰₁₀ⅠⅠⅰⅰ①①⑴⑴⒜⒜▁▁⚀⚀❶❶１０🍻🍺🐫🐪';
+
+    # normal decrement magic chars & incremented char at same index
+    my $pred-nlook = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫';
+    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪'; 
+
+    # magic decrement chars at boundary & incremented char at same index
+    my $pred-blook = '0AaΑαאАа٠०০੦૦୦⁰₀Ⅰⅰ①⑴⒜▁⚀❶０🍺🐪';
+    my $pred-bchrs = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of succ/pred -----------------------------------------
+
+    # number of chars that should be considered for magic .succ/.pred
+    method POSSIBLE-MAGIC-CHARS(str \string) {
+
+        # only look at stuff before the last period
+        my int $i = nqp::rindex(string,".");
+        nqp::iseq_i($i,-1) ?? nqp::chars(string) !! $i
+    }
+
+    # return -1 if string cannot support .succ, else index of last char
+    method CAN-SUCC-INDEX(str \string, int \chars) {
+        my int $i = chars;
+        Nil while nqp::isge_i($i = nqp::sub_i($i,1),0)
+          && nqp::iseq_i(nqp::index($succ-nlook,nqp::substr(string,$i,1)),-1)
+          && nqp::iseq_i(nqp::index($succ-blook,nqp::substr(string,$i,1)),-1);
+        $i
+    }
+
+    # next logical string frontend, hopefully inlineable (pos >= 0)
+    method SUCC(str \string, int \pos) {
+        my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
+        nqp::iseq_i($at,-1)
+          ?? SUCC-NOT-SO-SIMPLE(string,pos)
+          !! nqp::replace(string,pos,1,nqp::substr($succ-nchrs,$at,1))
+    }
+
+    # slow path for next logical string
+    sub SUCC-NOT-SO-SIMPLE(str \string, int \pos) {
+
+        # nothing magical going on
+        my int $at = nqp::index($succ-blook,nqp::substr(string,pos,1));
+        if nqp::iseq_i($at,-1) {
+            string
+        }
+
+        # we have a boundary
+        else {
+
+            # initial change
+            my int $i   = pos;
+            my str $str = nqp::replace(string,$i,1,
+              nqp::substr($succ-bchrs,nqp::add_i($at,$at),2));
+
+            # until we run out of chars to check
+            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+
+                # not an easy magical
+                $at = nqp::index($succ-nlook,nqp::substr($str,$i,1));
+                if nqp::iseq_i($at,-1) {
+
+                    # done if not a boundary magical either
+                    $at = nqp::index($succ-blook,nqp::substr($str,$i,1));
+                    return $str if nqp::iseq_i($at,-1);
+
+                    # eat first of last magical, and continue
+                    $str = nqp::replace($str,$i,2,
+                      nqp::substr($succ-bchrs,nqp::add_i($at,$at),2));
+                }
+
+                # normal magical, eat first of last magical, and we're done
+                else {
+                   return nqp::replace($str,$i,2,
+                     nqp::substr($succ-nchrs,$at,1));
+                }
+            }
+            $str
+        }
+    }
+
+    # previous logical string frontend, hopefully inlineable
+    method PRED(str \string, int \pos) {
+        my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
+        nqp::iseq_i($at,-1)
+          ?? PRED-NOT-SO-SIMPLE(string,pos)
+          !! nqp::replace(string,pos,1,nqp::substr($pred-nchrs,$at,1))
+    }
+
+    # slow path for previous logical string
+    sub PRED-NOT-SO-SIMPLE(str \string, int \pos) {
+
+        # nothing magical going on
+        my int $at = nqp::index($pred-blook,nqp::substr(string,pos,1));
+        if nqp::iseq_i($at,-1) {
+            string
+        }
+
+        # we have a boundary
+        else {
+
+            # initial change
+            my int $i   = pos;
+            my str $str = nqp::replace(string,$i,1,
+              nqp::substr($pred-bchrs,$at,1));
+
+            # until we run out of chars to check
+            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+
+                # not an easy magical
+                $at = nqp::index($pred-nlook,nqp::substr($str,$i,1));
+                if nqp::iseq_i($at,-1) {
+
+                    # not a boundary magical either
+                    $at = nqp::index($pred-blook,nqp::substr($str,$i,1));
+                    nqp::iseq_i($at,-1)
+                      ?? fail('Decrement out of range')
+                      !! ($str = nqp::replace($str,$i,1,
+                           nqp::substr($pred-bchrs,$at,1)))
+                }
+
+                # normal magical, update, and we're done
+                else {
+                    return nqp::replace($str,$i,1,
+                      nqp::substr($pred-nchrs,$at,1))
+                }
+            }
+            fail('Decrement out of range');
+        }
+    }
 }
 
 # we need this to run *after* the mainline of Rakudo::Internals has run

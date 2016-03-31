@@ -69,120 +69,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
     }
 
-    # chars used to handle ranges for pred/succ
-    my str $RANGECHAR =
-        "01234567890"                                # arabic digits
-        ~ "ABCDEFGHIJKLMNOPQRSTUVWXYZA"              # latin uppercase
-        ~ "abcdefghijklmnopqrstuvwxyza"              # latin lowercase
-        ~ "\x[391,392,393,394,395,396,397,398,399,39A,39B,39C,39D,39E,39F,3A0,3A1,3A3,3A4,3A5,3A6,3A7,3A8,3A9,391]" # greek uppercase
-        ~ "\x[3B1,3B2,3B3,3B4,3B5,3B6,3B7,3B8,3B9,3BA,3BB,3BC,3BD,3BE,3BF,3C0,3C1,3C3,3C4,3C5,3C6,3C7,3C8,3C9,3B1]" # greek lowercase
-        ~ "\x[5D0,5D1,5D2,5D3,5D4,5D5,5D6,5D7,5D8,5D9,5DA,5DB,5DC,5DD,5DE,5DF,5E0,5E1,5E2,5E3,5E4,5E5,5E6,5E7,5E8,5E9,5EA,5D0]" # hebrew
-        ~ "\x[410,411,412,413,414,415,416,417,418,419,41A,41B,41C,41D,41E,41F,420,421,422,423,424,425,426,427,428,429,42A,42B,42C,42D,42E,42F,410]" # cyrillic uppercase
-        ~ "\x[430,431,432,433,434,435,436,437,438,439,43A,43B,43C,43D,43E,43F,440,441,442,443,444,445,446,447,448,449,44A,44B,44C,44D,44E,44F,430]" # cyrillic lowercase
-        ~ "\x[660,661,662,663,664,665,666,667,668,669,660]" # arabic-indic digits
-        ~ "\x[966,967,968,969,96A,96B,96C,96D,96E,96F,966]" # devanagari digits
-        ~ "\x[9E6,9E7,9E8,9E9,9EA,9EB,9EC,9ED,9EE,9EF,9E6]" # bengali digits
-        ~ "\x[A66,A67,A68,A69,A6A,A6B,A6C,A6D,A6E,A6F,A66]" # gurmukhi digits
-        ~ "\x[AE6,AE7,AE8,AE9,AEA,AEB,AEC,AED,AEE,AEF,AE6]" # gujarati digits
-        ~ "\x[B66,B67,B68,B69,B6A,B6B,B6C,B6D,B6E,B6F,B66]" # oriya digits
-        ~ "\x[FF10,FF11,FF12,FF13,FF14,FF15,FF16,FF17,FF18,FF19,FF10]" # fullwidth digits
-        ~ "\x[2070,2071,00B2,00B3,2074,2075,2076,2077,2078,2079,2070]" # superscripts
-        ~ "\x[2080,2081,2082,2083,2084,2085,2086,2087,2088,2089,2080]" # subscripts
-        ~ "\x[2160,2161,2162,2163,2164,2165,2166,2167,2168,2169,216a,216b,2160]" # clock roman uc
-        ~ "\x[2170,2171,2172,2173,2174,2175,2176,2177,2178,2179,217a,217b,2170]" # clock roman lc
-        ~ "\x[2460,2461,2462,2463,2464,2465,2466,2467,2468,2469,246A,246B,246C,246D,246E,246F,2470,2471,2472,2473,2460]" # circled digits 1..20
-        ~ "\x[2474,2475,2476,2477,2478,2479,247A,247B,247C,247D,247E,247F,2480,2481,2482,2483,2484,2485,2486,2487,2474]" # parenthesized digits 1..20
-        ~ "\x[249C,249D,249E,249F,24A0,24A1,24A2,24A3,24A4,24A5,24A6,24A7,24A8,24A9,24AA,24AB,24AC,24AD,24AE,24AF,24B0,24B1,24B2,24B3,24B4,24B5,249C]" # parenthesized latin lc
-        ~ "\x[2581,2582,2583,2584,2585,2586,2587,2588,2581]" # lower blocks
-        ~ "\x[2680,2681,2682,2683,2684,2685,2680]" # die faces
-        ~ "\x[2776,2777,2778,2779,277A,277B,277C,277D,277E,277F,2776]" # dingbat negative circled 1..10
-        ~ "\x[1F37A,1F37B,1F37A]"  # beer mugs
-        ~ "\x[1F42A,1F42B,1F42A]"; # camels
-
-    # digit to extend the string with if carried past first rangechar position
-    my $carrydigit := nqp::hash(
-       '0',      '1',      # arabic
-       "\x0660", "\x0661", # arabic-indic
-       "\x0966", "\x0967", # devanagari
-       "\x09E6", "\x09E7", # bengali
-       "\x0A66", "\x0A67", # gurmukhi
-       "\x0AE6", "\x0AE7", # gujarati
-       "\x0B66", "\x0B67", # oriya
-       "\xFF10", "\xFF11", # fullwidth XXX: should be treated as digit?
-       "\x2070", "\x2071", # superscripts XXX: should be treated as digit?
-       "\x2080", "\x2081", # subscripts XXX: should be treated as digit?
-       "\x1F37A","\x1F37B",# beer mugs
-       "\x1F42A","\x1F42B",# camels
-    );
-    # calculate the beginning and ending positions of <!after '.'><rangechar+>
-    sub RANGEPOS(str $str, \pos, \end) {  # sadly, --> Nil doesn't work here
-        my int $pos = nqp::chars($str);
-        while $pos > 0 {
-            $pos = $pos - 1;
-            my str $ch = nqp::substr($str, $pos, 1);
-            if nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0) {
-                my int $end = $pos;
-                while $pos > 0 {
-                    $pos = $pos - 1;
-                    $ch = nqp::substr($str, $pos, 1);
-                    last if nqp::iseq_s($ch, '.');
-                    unless nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0) {
-                        pos = $pos + 1;
-                        end = $end;
-                        return;
-                    }
-                }
-                unless nqp::iseq_s($ch, '.') {
-                    pos = $pos;
-                    end = $end;
-                    return;
-                }
-            }
-        }
-        pos = 0;
-        end = -1;
-        return
-    }
-
     method pred(Str:D:) {
-        my str $str = self;
-        RANGEPOS($str, my Int $Ir0, my Int $Ir1);
-        my int $r0 = $Ir0;
-        my int $r1 = $Ir1;
-        while $r1 >= $r0 {
-            my str $ch0  = nqp::substr($str, $r1, 1);
-            my int $ipos = nqp::index($RANGECHAR, $ch0);
-            $ipos = $RANGECHAR.index($ch0, $ipos+1) // $ipos;
-            my str $ch1 = nqp::substr($RANGECHAR, $ipos-1, 1);
-            $str = nqp::replace($str, $r1, 1, $ch1);
-            # return if no carry
-            return $str if $ch0 gt $ch1;
-            # carry to previous position
-            $r1 = $r1 - 1;
-        }
-        # cannot carry beyond first rangechar position
-        fail('Decrement out of range');
+        (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
+          ?? Rakudo::Internals.PRED(self,$chars - 1)
+          !! self
     }
 
     method succ(Str:D:) {
-        my str $str = self;
-        RANGEPOS($str, my Int $Ir0, my Int $Ir1);
-        my int $r0 = $Ir0;
-        my int $r1 = $Ir1;
-        while $r1 >= $r0 {
-            my str $ch0  = nqp::substr($str, $r1, 1);
-            my int $ipos = nqp::index($RANGECHAR, $ch0);
-            my str $ch1  = nqp::substr($RANGECHAR, $ipos+1, 1);
-            $str = nqp::replace($str, $r1, 1, $ch1);
-            return $str if $ch1 gt $ch0;
-            # carry to previous position
-            $r1 = $r1 - 1;
-            # extend string if carried past first rangechar position
-            $str = nqp::replace($str, $r0, 0,
-              nqp::ifnull(nqp::atkey($carrydigit,$ch1),$ch1))
-                if $r1 < $r0;
-        }
-        $str;
+        (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
+          ?? Rakudo::Internals.SUCC(self,$chars - 1)
+          !! self
     }
 
     multi method Numeric(Str:D: :$strict = True) {

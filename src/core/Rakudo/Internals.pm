@@ -1230,7 +1230,7 @@ my class Rakudo::Internals {
     method POSSIBLE-MAGIC-CHARS(str \string) {
 
         # only look at stuff before the last period
-        my int $i = nqp::rindex(string,".");
+        my int $i = nqp::index(string,".");
         nqp::iseq_i($i,-1) ?? nqp::chars(string) !! $i
     }
 

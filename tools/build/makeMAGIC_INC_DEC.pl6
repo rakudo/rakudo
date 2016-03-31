@@ -58,6 +58,12 @@ my str $carrydigits =
    ~ "\x1F42A"  # camels
 ;
 
+# holes in otherwise contiguous ranges
+my str $holes =
+     "\x003A2"  # <reserved>
+   ~ "\x003C2"  # GREEK SMALL LETTER FINAL SIGMA
+;
+
 # for all the lines in the source that don't need special handling
 for $*IN.lines -> $line {
 
@@ -78,68 +84,78 @@ for $*IN.lines -> $line {
     }
 
     # initialize .succ data structures
-    my $look := nqp::list_s;
-    my $chrs := nqp::list_s;
-    my $spec := nqp::list_s;
+    my $nlook := nqp::list_s;
+    my $nchrs := nqp::list_s;
+    my $blook := nqp::list_s;
+    my $bchrs := nqp::list_s;
     for @ranges -> $range {
         my int $first = $range.AT-POS(0);
         my int $carry = nqp::index($carrydigits,nqp::chr($first)) > -1;
         my int $end   = $range.end;
+        my str $char;
 
         for $range.kv -> int $i, int $ord {
             if $i < $end {
-                nqp::push_s($look,nqp::chr($ord));
-                nqp::push_s($chrs,nqp::chr($ord + 1));
+                $char = nqp::chr($ord);
+                nqp::push_s($nlook,$char)
+                  if nqp::iseq_i(nqp::index($holes,$char),-1);
+                $char = nqp::chr($ord + 1);
+                nqp::push_s($nchrs,$char)
+                  if nqp::iseq_i(nqp::index($holes,$char),-1);
             }
             else {
-                nqp::push_s($spec,nqp::chr($ord));
-                nqp::push_s($spec,nqp::chr($first+$carry) ~ nqp::chr($first));
+                nqp::push_s($blook,nqp::chr($ord));
+                nqp::push_s($bchrs,nqp::chr($first+$carry) ~ nqp::chr($first));
             }
         }
     }
 
     # generate the SUCC initialization
-    print Q:to/SOURCE/;
-    method ENSURE-SUCC-INITIALIZED(--> Nil) {
-        unless nqp::chars($succ-look) {
-SOURCE
     print Q:c:to/SOURCE/;
-            $succ-look  = '{nqp::join('',$look)}';
-            $succ-chrs  = '{nqp::join('',$chrs)}';
-            $succ-spec := nqp::hash('{nqp::join("','",$spec)}');
-        }
-    }
+
+    # normal increment magic chars & incremented char at same index
+    my $succ-nlook = '{nqp::join('',$nlook)}';
+    my $succ-nchrs = '{nqp::join('',$nchrs)}'; 
+
+    # magic increment chars at boundary & incremented char at same index
+    my $succ-blook = '{nqp::join('',$blook)}';
+    my $succ-bchrs = '{nqp::join('',$bchrs)}';
 
 SOURCE
 
     # initialize .pred data structures
-    $look := nqp::list_s;
-    $chrs := nqp::list_s;
-    $spec := nqp::list_s;
+    $nlook := nqp::list_s;
+    $nchrs := nqp::list_s;
+    $blook := nqp::list_s;
+    $bchrs := nqp::list_s;
     for @ranges -> $range {
+        my str $char;
         for $range.kv -> int $i, int $ord {
             if $i {
-                nqp::push_s($look,nqp::chr($ord));
-                nqp::push_s($chrs,nqp::chr($ord - 1));
+                $char = nqp::chr($ord);
+                nqp::push_s($nlook,$char)
+                  if nqp::iseq_i(nqp::index($holes,$char),-1);
+                $char = nqp::chr($ord - 1);
+                nqp::push_s($nchrs,$char)
+                  if nqp::iseq_i(nqp::index($holes,$char),-1);
             }
             else {
-                nqp::push_s($spec,nqp::chr($ord));
-                nqp::push_s($spec,nqp::chr($range.AT-POS($range.end)));
+                nqp::push_s($blook,nqp::chr($ord));
+                nqp::push_s($bchrs,nqp::chr($range.AT-POS($range.end)));
             }
         }
     }
 
     # generate the PRED initialization
-    print Q:to/SOURCE/;
-    method ENSURE-PRED-INITIALIZED(--> Nil) {
-        unless nqp::chars($pred-look) {
-SOURCE
     print Q:c:to/SOURCE/;
-            $pred-look  = '{nqp::join('',$look)}';
-            $pred-chrs  = '{nqp::join('',$chrs)}';
-            $pred-spec := nqp::hash('{nqp::join("','",$spec)}');
-        }
-    }
+    # normal decrement magic chars & incremented char at same index
+    my $pred-nlook = '{nqp::join('',$nlook)}';
+    my $pred-nchrs = '{nqp::join('',$nchrs)}'; 
+
+    # magic decrement chars at boundary & incremented char at same index
+    my $pred-blook = '{nqp::join('',$blook)}';
+    my $pred-bchrs = '{nqp::join('',$bchrs)}';
+
 SOURCE
 
     # we're done for this role

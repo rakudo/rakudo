@@ -62,17 +62,6 @@ my class Match is Capture is Cool {
         }
     }
 
-    multi sub infix:<eqv>(Match:D $a, Match:D $b) {
-        [&&] (
-            $a.to   eqv $b.to,
-            $a.from eqv $b.from,
-            $a.orig eqv $b.orig,
-            $a.made eqv $b.made,
-            $a.list eqv $b.list,
-            $a.hash eqv $b.hash
-        );
-    }
-
     multi method perl(Match:D:) {
         my %attrs;
         %attrs.ASSIGN-KEY("orig", self.orig.perl);
@@ -106,6 +95,18 @@ my class Match is Capture is Cool {
         );
     }
 }
+
+multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+	[&&] (
+		$a.to   eqv $b.to,
+		$a.from eqv $b.from,
+		$a.orig eqv $b.orig,
+		$a.made eqv $b.made,
+		$a.list eqv $b.list,
+		$a.hash eqv $b.hash
+	);
+}
+
 
 sub make(Mu \made) {
     my $slash := nqp::getlexcaller('$/');

@@ -1389,7 +1389,8 @@ class Perl6::Optimizer {
                     my str $op_txt := nqp::escape($op.node.Str);
                     my str $expr   := nqp::escape(widen($op.node));
                     unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0 {
-                        unless nqp::substr($expr, 0, 1) eq '*' || nqp::substr($expr, nqp::chars($expr)-1, 1) eq '*' {
+                        my $whatever_index := nqp::index($expr, '*');
+                        unless $whatever_index == 0 || $whatever_index == (nqp::chars($expr)-1) {
                             my $warning := qq[Useless use of "$op_txt" in expression "$expr" in sink context];
                             note($warning) if $!debug;
                             $!problems.add_worry($op, $warning);

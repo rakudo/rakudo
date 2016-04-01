@@ -508,7 +508,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     value
                 }
                 elsif %a<kv> {
-                    (index,value).Seq
+                    index,value
                 }
                 else {
                     my $k = %a.keys[0];

@@ -507,9 +507,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 elsif %a<v> {
                     value
                 }
+                elsif %a<v> {
+                    (index,value)
+                }
                 else {
                     my $k = %a.keys[0];
-                    if $k eq 'k' || $k eq 'p' {
+                    if $k eq 'k' || $k eq 'p' || $k eq 'kv' {
                         value
                     }
                     elsif $k eq 'v' {

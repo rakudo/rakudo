@@ -4,6 +4,7 @@ my class Supply { ... }
 my class Supplier { ... }
 
 my sub combinations(Int() $n, Int() $k) {
+    return () if $k < 0;
     return ((),) if $n < 1 || $k < 1;
 
     fail X::OutOfRange.new(
@@ -863,11 +864,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         combinations(self.elems, $of).map: { self[@$_] }
     }
     multi method combinations( Range $ofrange = 0 .. * ) {
-        gather for $ofrange.min .. ($ofrange.max min self.elems) -> $of {
-            for combinations(self.elems, $of) {
-                take self[@$_]
-            }
-        }
+        my $over := ($ofrange.first max 0)
+                 .. (($ofrange.first(:end) // -1) min self.elems);
+
+        $over.map: { |combinations(self.elems, $_).map: { self[@$_] } }
     }
 
     proto method permutations(|) is nodal {*}

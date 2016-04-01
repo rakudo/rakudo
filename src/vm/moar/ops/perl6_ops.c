@@ -581,8 +581,10 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                     MVMROOT(tc, dispatcher, {
                         ctx_ref = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
                         ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
+                        MVMROOT(tc, ctx_ref, {
+                            capture = MVM_args_use_capture(tc, ctx);
+                        });
                     });
-                    capture = MVM_args_use_capture(tc, ctx);
                     p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
 
                     /* Lookup method, invoke it, and set up callback to ensure it

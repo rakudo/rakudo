@@ -177,9 +177,8 @@ do {
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
 
-        sub mixin-line-editor($self is copy) {
-            my Bool $problem = False;
-            my $loaded-readline = try {
+        sub mixin-readline($self, Bool $problem is rw) {
+            try {
                 CATCH {
                     when (X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Readline/ }) {
                         # ignore it
@@ -194,13 +193,14 @@ do {
                 my $readline = do require Readline;
                 my $rl-self = $self but ReadlineBehavior[$readline.WHO<EXPORT>.WHO<ALL>.WHO];
                 $rl-self.?init-line-editor();
-                $self = $rl-self;
-                True
-            };
+                return $rl-self;
+            }
 
-            return $self if $loaded-readline;
+            Any
+        }
 
-            my $loaded-linenoise = try {
+        sub mixin-linenoise($self, Bool $problem is rw) {
+            try {
                 CATCH {
                     when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Linenoise/ } {
                         # ignore it
@@ -213,11 +213,23 @@ do {
                 my $linenoise = do require Linenoise;
                 my $ln-self = $self but LinenoiseBehavior[$linenoise.WHO];
                 $ln-self.?init-line-editor();
-                $self = $ln-self;
-                True
+                return $ln-self;
             }
 
-            return $self if $loaded-linenoise;
+            Any
+        }
+
+        sub mixin-line-editor($self) {
+            my $new-self;
+            my Bool $problem;
+
+            $new-self = mixin-readline($self, $problem);
+
+            return $new-self if $new-self;
+
+            $new-self = mixin-linenoise($self, $problem);
+
+            return $new-self if $new-self;
 
             if $problem {
                 say 'Continuing without tab completions or line editor';

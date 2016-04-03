@@ -96,7 +96,7 @@ my sub MAIN_HELPER($retval = 0) {
                     $argument = "[$argument]"     if $param.optional;
                     @positional.push($argument);
                 }
-                @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.where:{ .key eq $argument}) == Empty;  # Use first defined
+                @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
@@ -116,8 +116,8 @@ my sub MAIN_HELPER($retval = 0) {
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
-        my @named-params = $signature.params.where: *.named;
-        return False if @named-params.where: *.slurpy;
+        my @named-params = $signature.params.grep: *.named;
+        return False if @named-params.grep: *.slurpy;
 
         my %accepts-argument = @named-params.map({ .named_names.Slip }) Z=> 1 xx *;
         for %named-arguments.keys -> $name {
@@ -140,7 +140,7 @@ my sub MAIN_HELPER($retval = 0) {
     # Get a list of candidates that match according to the dispatcher
     my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));
     # Sort out all that would fail due to binding
-    @matching_candidates .=where: {!has-unexpected-named-arguments($_.signature, $n)};
+    @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN
     if +@matching_candidates {
         $m(|@($p), |%($n));

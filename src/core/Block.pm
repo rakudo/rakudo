@@ -195,7 +195,7 @@ my class Block { # declared in BOOTSTRAP
         my $need_cap = $sig.count == Inf and not ($slurp_p and $slurp_n);
         if $need_cap {
             $need_cap = False;
-            for $sig.params.where(*.capture) {
+            for $sig.params.grep(*.capture) {
                 $need_cap = True;
                 last;
             }
@@ -209,7 +209,7 @@ my class Block { # declared in BOOTSTRAP
         }
         # Normal Positionals
         my Int $idx = -1;
-        for $sig.params.where(*.positional) -> $parm {
+        for $sig.params.grep(*.positional) -> $parm {
             $idx++;
             unless $idx < primers.list.elems {
                 @plist.push($parm);
@@ -275,8 +275,8 @@ my class Block { # declared in BOOTSTRAP
         # So we will care for ordering of the named parameters in the
         # user-facing signature as well, for introspection purposes.
         my %ahash = primers.hash;
-        my @phash = $sig.params.where: *.named;
-        my @thash = $sig.params.where: {
+        my @phash = $sig.params.grep: *.named;
+        my @thash = $sig.params.grep: {
             .named and (
                 .slurpy or
                 any(%ahash.keys) eq any(.named_names.list)

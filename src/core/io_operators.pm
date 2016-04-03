@@ -219,7 +219,7 @@ sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
     }
     @ok;
-#    @filenames.where( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
 }
 sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
     my @ok;
@@ -227,7 +227,7 @@ sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
         @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
     }
     @ok;
-#    @filenames.where( *.IO(:$SPEC,:$CWD).unlink ).eager;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
 }
 sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my @ok;
@@ -235,12 +235,12 @@ sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
     }
     @ok;
-#    @filenames.where( *.IO(:$SPEC,:$CWD).rmdir ).eager;
+#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
 
 proto sub mkdir(|) { * }
 multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.where( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
+    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
 }
 multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();

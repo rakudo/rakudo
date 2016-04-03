@@ -205,7 +205,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 $c = @tail[2];
             }
             if $code.defined { }
-            elsif @tail.where(Real).elems != @tail.elems {
+            elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
                     if @tail[*-1].WHAT === $endpoint.WHAT {
                         $code = succpred(@tail[*-1], $endpoint);

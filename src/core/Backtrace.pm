@@ -209,7 +209,7 @@ my class Backtrace {
                     @frames.push: $prev;
                 } else {
                     my @outer_callers := self.outer-caller-idx($i);
-                    my $target_idx = @outer_callers.keys.where({self.AT-POS($i).code.^isa(Routine)})[0];
+                    my $target_idx = @outer_callers.keys.grep({self.AT-POS($i).code.^isa(Routine)})[0];
                     $target_idx    ||= @outer_callers[0] || $i;
                     my $current = self.AT-POS($target_idx);
                     @frames.append: $current.clone(line => $prev.line);
@@ -255,13 +255,13 @@ my class Backtrace {
     }
 
     method concise(Backtrace:D:) {
-        (self.where({ !.is-hidden && .is-routine && !.is-setting }) // "\n").join;
+        (self.grep({ !.is-hidden && .is-routine && !.is-setting }) // "\n").join;
     }
 
     method full(Backtrace:D:) { self.list.join }
 
     method summary(Backtrace:D:) {
-        (self.where({ !.is-hidden && (.is-routine || !.is-setting)}) // "\n").join;
+        (self.grep({ !.is-hidden && (.is-routine || !.is-setting)}) // "\n").join;
     }
 
     method is-runtime (Backtrace:D:) {

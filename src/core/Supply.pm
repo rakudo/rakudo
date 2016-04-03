@@ -267,9 +267,7 @@ my class Supply {
         }.new(source => self.sanitize, :&mapper))
     }
 
-    method grep(Supply:D: Mu $test) { self.where($test) }
-
-    method where(Supply:D: Mu $test) {
+    method grep(Supply:D: Mu $test) {
         Supply.new(class :: does SimpleOpTappable {
             has Mu $!test;
 

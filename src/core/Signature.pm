@@ -50,15 +50,15 @@ my class Signature { # declared in BOOTSTRAP
             return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
         }
 
-        for flat ($sclass{True} // ()).where({!.optional and !.slurpy}) -> $this {
+        for flat ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
             my $other;
-            return False unless $other=($tclass{True} // ()).where(
+            return False unless $other=($tclass{True} // ()).grep(
                 {!.optional and $_ ~~ $this });
             return False unless +$other == 1;
         }
 
         my $here=$sclass{True}.SetHash;
-        my $hasslurpy=($sclass{True} // ()).where({.slurpy});
+        my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
         $here{@$hasslurpy} :delete;
         $hasslurpy .= Bool;
         for flat @($tclass{True} // ()) -> $other {
@@ -68,7 +68,7 @@ my class Signature { # declared in BOOTSTRAP
                 return False if any($here.keys) ~~ -> Any $_ { !(.type =:= Mu) };
                 return $hasslurpy;
             }
-            if $this=$here.keys.where( -> $t { $other ~~ $t }) {
+            if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
                 $here{$this[0]} :delete;
             }
             else {

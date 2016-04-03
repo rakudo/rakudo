@@ -8,7 +8,7 @@ my enum Signal ( :SIGHUP(1), :SIGINT(2), :SIGQUIT(3), :SIGILL(4), :SIGTRAP(5),
 
 sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
 
-    if @signals.where( { !nqp::istype($_,Signal) } ).list -> @invalid {
+    if @signals.grep( { !nqp::istype($_,Signal) } ).list -> @invalid {
         die "Found invalid signals: {@invalid}";
     }
     @signals.unshift: $signal;

@@ -214,7 +214,7 @@ my class IO::Path is Cool {
             );
         }
         elsif $.dirname eq $curdir && $.basename eq $updir
-           or !where({$_ ne $updir}, $!SPEC.splitdir($.dirname)) {
+           or !grep({$_ ne $updir}, $!SPEC.splitdir($.dirname)) {
             return self.bless(    # If all updirs, then add one more
               :path($!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename)),
               :$!SPEC,

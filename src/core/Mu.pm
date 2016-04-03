@@ -349,7 +349,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method perl(Mu:D:) {
         self.perlseen(self.^name, {
             my @attrs;
-            for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+            for self.^attributes().flat.where: { .has_accessor } -> $attr {
                 my $name := substr($attr.Str,2);
                 @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
             }
@@ -597,7 +597,7 @@ my class Mu { # declared in BOOTSTRAP
                 my @new_search_list;
                 for @search_list -> $current {
                     for flat $current.^parents(:local) -> $next {
-                        unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
+                        unless @new_search_list.where({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
                     }
@@ -606,7 +606,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         } elsif $ascendant | $preorder {
             sub build_ascendent(Mu $class) {
-                unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
+                unless @classes.where({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
                     for flat $class.^parents(:local) {
                         build_ascendent($^parent);
@@ -616,7 +616,7 @@ my class Mu { # declared in BOOTSTRAP
             build_ascendent(self.WHAT);
         } elsif $descendant {
             sub build_descendent(Mu $class) {
-                unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
+                unless @classes.where({ $^c.WHAT =:= $class.WHAT }) {
                     for flat $class.^parents(:local) {
                         build_descendent($^parent);
                     }

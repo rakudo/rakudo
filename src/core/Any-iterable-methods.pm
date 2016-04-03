@@ -305,7 +305,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         self.map(&block, :$label).flat
     }
 
-    method !grep-k(Callable:D $test) {
+    method !where-k(Callable:D $test) {
         Seq.new(class :: does Iterator {
             has  Mu $!iter;
             has  Mu $!test;
@@ -333,7 +333,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
         }.new(self, $test))
     }
-    method !grep-kv(Callable:D $test) {
+    method !where-kv(Callable:D $test) {
         Seq.new(class :: does Iterator {
             has  Mu $!iter;
             has  Mu $!test;
@@ -378,7 +378,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
         }.new(self, $test))
     }
-    method !grep-p(Callable:D $test) {
+    method !where-p(Callable:D $test) {
         Seq.new(class :: does Iterator {
             has  Mu $!iter;
             has  Mu $!test;
@@ -407,7 +407,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self, $test))
     }
 
-    role Grepper does Iterator {
+    role Wheretor does Iterator {
         has Mu $!iter;
         has Mu $!test;
         method !SET-SELF(\list,Mu \test) {
@@ -417,8 +417,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
     }
-    method !grep-regex(Regex:D $test) {
-        Seq.new(class :: does Grepper {
+    method !where-regex(Regex:D $test) {
+        Seq.new(class :: does Wheretor {
             method pull-one() is raw {
                 Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                   || $_.match($!test);
@@ -432,11 +432,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
         }.new(self, $test))
     }
-    method !grep-callable(Callable:D $test) {
+    method !where-callable(Callable:D $test) {
         if ($test.count == 1) {
             $test.?has-phasers
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
-              !! Seq.new(class :: does Grepper {
+              !! Seq.new(class :: does Wheretor {
                      method pull-one() is raw {
                          Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                            || $!test($_);
@@ -479,8 +479,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             self.map(&tester);
         }
     }
-    method !grep-accepts(Mu $test) {
-        Seq.new(class :: does Grepper {
+    method !where-accepts(Mu $test) {
+        Seq.new(class :: does Wheretor {
             method pull-one() is raw {
                 Nil until ($_ := $!iter.pull-one) =:= IterationEnd
                   || $!test.ACCEPTS($_);
@@ -530,8 +530,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 fail X::Adverb.new(
                   :$what,
                   :source(try { self.VAR.name } // self.WHAT.perl),
-                  :nogo(%a.keys.grep: /k|v|p/)
-                  :unexpected(%a.keys.grep: { !.match(/k|v|p/) } ))
+                  :nogo(%a.keys.where: /k|v|p/)
+                  :unexpected(%a.keys.where: { !.match(/k|v|p/) } ))
             }
         }
         else {
@@ -539,61 +539,63 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    proto method grep(|) is nodal { * }
-    multi method grep(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.grep' );
+    proto method grep(|c) is nodal { self.where(|c) }
+
+    proto method where(|) is nodal { * }
+    multi method where(Bool:D $t) {
+        fail X::Match::Bool.new( type => '.where' );
     }
-    multi method grep(Mu $t) {
+    multi method where(Mu $t) {
         if %_ == 0 {
             nqp::istype($t,Regex:D)
-              ?? self!grep-regex: $t
+              ?? self!where-regex: $t
               !! nqp::istype($t,Callable:D)
-                   ?? self!grep-callable: $t
-                   !! self!grep-accepts: $t
+                   ?? self!where-callable: $t
+                   !! self!where-accepts: $t
         }
         elsif %_ == 1 {
             if %_<k> {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-k: { $_.match($t) }
+                  ?? self!where-k: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-k: $t
-                       !! self!grep-k: { $t.ACCEPTS($_) }
+                       ?? self!where-k: $t
+                       !! self!where-k: { $t.ACCEPTS($_) }
             }
             elsif %_<kv> {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-kv: { $_.match($t) }
+                  ?? self!where-kv: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-kv: $t
-                       !! self!grep-kv: { $t.ACCEPTS($_) }
+                       ?? self!where-kv: $t
+                       !! self!where-kv: { $t.ACCEPTS($_) }
             }
             elsif %_<p> {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-p: { $_.match($t) }
+                  ?? self!where-p: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-p: $t
-                       !! self!grep-p: { $t.ACCEPTS($_) }
+                       ?? self!where-p: $t
+                       !! self!where-p: { $t.ACCEPTS($_) }
             }
             elsif %_<v> {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-regex: $t
+                  ?? self!where-regex: $t
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-callable: $t
-                       !! self!grep-accepts: $t
+                       ?? self!where-callable: $t
+                       !! self!where-accepts: $t
             }
             else {
                 my $k = %_.keys[0];
                 if $k eq 'k' || $k eq 'kv' || $k eq 'p' {
                     nqp::istype($t,Regex:D)
-                      ?? self!grep-regex: $t
+                      ?? self!where-regex: $t
                       !! nqp::istype($t,Callable:D)
-                           ?? self!grep-callable: $t
-                           !! self!grep-accepts: $t
+                           ?? self!where-callable: $t
+                           !! self!where-accepts: $t
                 }
                 else {
                     $k eq 'v'
                       ?? fail "Doesn't make sense to specify a negated :v adverb"
                       !! fail X::Adverb.new(
-                           :what<grep>,
+                           :what<where>,
                            :source(try { self.VAR.name } // self.WHAT.perl),
                            :unexpected($k))
                 }
@@ -601,10 +603,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
         else {
             fail X::Adverb.new(
-              :what<grep>,
+              :what<where>,
               :source(try { self.VAR.name } // self.WHAT.perl),
-              :nogo(%_.keys.grep: /k|v|kv|p/)
-              :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } ))
+              :nogo(%_.keys.where: /k|v|kv|p/)
+              :unexpected(%_.keys.where: { !.match(/k|v|kv|p/) } ))
         }
     }
 
@@ -1303,12 +1305,14 @@ sub minmax(+args, :&by = &infix:<cmp>) { args.minmax(&by) }
 proto sub map(|) {*}
 multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }
 
-proto sub grep(|) {*}
-multi sub grep(Mu $test, +values, *%a) {
+proto sub grep(|c) { where(|c) }
+
+proto sub where(|) {*}
+multi sub where(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
-    values.grep($test,|%a).lazy-if($laze)
+    values.where($test,|%a).lazy-if($laze)
 }
-multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
+multi sub where(Bool:D $t, |) { fail X::Match::Bool.new( type => 'where' ) }
 
 proto sub first(|) {*}
 multi sub first(Bool:D $t, |) { fail X::Match::Bool.new( type => 'first' ) }

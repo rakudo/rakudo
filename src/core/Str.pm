@@ -348,7 +348,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 @matches := ();
             }
 
-            # Just "list $matches.grep", once we have True.last
+            # Just "list $matches.where", once we have True.last
             @matches := (gather do for $matches -> $m {
                 state $i = 0;
                 state $took = 0;
@@ -597,7 +597,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
-          nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).map(*.key),
+          nogo   => (:v(v),:k(k),:kv(kv),:p(p)).where(*.value).map(*.key),
         ).throw if $any > 1;
 
         $any
@@ -1705,7 +1705,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
 
         # Figure out the amount * should de-indent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        my $common-prefix = min @lines.where({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
         # Set the actual de-indent amount here

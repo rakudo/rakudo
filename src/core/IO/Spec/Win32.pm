@@ -58,7 +58,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method path {
        (".",
          split(';', %*ENV<PATH> // %*ENV<Path> // '').map( {
-           .subst(:global, q/"/, '') } ).grep: *.chars );
+           .subst(:global, q/"/, '') } ).where: *.chars );
    }
 
     method is-absolute ($path) {

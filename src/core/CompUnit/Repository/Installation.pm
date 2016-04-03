@@ -41,7 +41,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     shift @*ARGS if $auth;
     shift @*ARGS if $ver;
     $name //= \'#dist-name#\';
-    my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
+    my @installations = $*REPO.repo-chain.where(CompUnit::Repository::Installable);
     my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
         @binaries = flat @installations.map: { .files(\'bin/#name#\') };
@@ -261,7 +261,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $dist-dir      = self.prefix.child('dist');
 
         self!remove-dist-from-short-name-lookup-files($dist);
-        $bin-dir.child($_.value).unlink for %files.grep: {$_.key ~~ /^bin\//};
+        $bin-dir.child($_.value).unlink for %files.where: {$_.key ~~ /^bin\//};
         $sources-dir.child($_).unlink for %provides.map(*.value<pm><file>);
         $resources-dir.child($_).unlink for %files.values;
         $dist-dir.child($dist.id).unlink;
@@ -304,7 +304,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 my $dist-dir = $.prefix.child('dist');
                 my @dists = $lookup.lines.unique.map({
                     $_ => from-json($dist-dir.child($_).slurp)
-                }).grep({
+                }).where({
                     $_.value<auth> ~~ $spec.auth-matcher
                     and Version.new(~$_.value<ver> || '0') ~~ $spec.version-matcher
                     and $_.value<provides>{$spec.short-name}:exists

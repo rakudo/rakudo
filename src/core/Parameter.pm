@@ -340,7 +340,7 @@ my class Parameter { # declared in BOOTSTRAP
             if @(self.named_names).first({$_ && $_ eq $name1}) {
                 $name = ':' ~ $name;
             }
-            for @(self.named_names).grep({$_ && $_ ne $name1}) {
+            for @(self.named_names).where({$_ && $_ ne $name1}) {
                 $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
             }
             $name ~= '!' unless self.optional;

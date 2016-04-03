@@ -177,7 +177,8 @@ do {
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
 
-        sub do-mixin($self, Str $module-name, $behavior, Bool $problem is rw) {
+        sub do-mixin($self, Str $module-name, $behavior) {
+            my Bool $problem = False;
             try {
                 CATCH {
                     when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /"$module-name"/ } {
@@ -193,29 +194,29 @@ do {
                 my $module = do require ::($module-name);
                 my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
                 $new-self.?init-line-editor();
-                return $new-self;
+                return ( $new-self, False );
             }
 
-            Any
+            ( Any, $problem )
         }
 
-        sub mixin-readline($self, Bool $problem is rw) {
-            do-mixin($self, 'Readline', ReadlineBehavior, $problem)
+        sub mixin-readline($self) {
+            do-mixin($self, 'Readline', ReadlineBehavior)
         }
 
-        sub mixin-linenoise($self, Bool $problem is rw) {
-            do-mixin($self, 'Linenoise', LinenoiseBehavior, $problem)
+        sub mixin-linenoise($self) {
+            do-mixin($self, 'Linenoise', LinenoiseBehavior)
         }
 
         sub mixin-line-editor($self) {
             my $new-self;
             my Bool $problem;
 
-            $new-self = mixin-readline($self, $problem);
+            ( $new-self, $problem ) = mixin-readline($self);
 
             return $new-self if $new-self;
 
-            $new-self = mixin-linenoise($self, $problem);
+            ( $new-self, $problem ) = mixin-linenoise($self);
 
             return $new-self if $new-self;
 

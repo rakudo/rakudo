@@ -177,46 +177,34 @@ do {
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
 
-        sub mixin-readline($self, Bool $problem is rw) {
+        sub do-mixin($self, Str $module-name, $behavior, Bool $problem is rw) {
             try {
                 CATCH {
-                    when (X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Readline/ }) {
+                    when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /"$module-name"/ } {
                         # ignore it
                     }
                     default {
-                        say "I ran into a problem trying to set up Readline: $_";
-                        say 'Falling back to Linenoise (if present)';
-
+                        say "I ran into a problem while trying to set up $module-name: $_";
+                        # XXX fallback message
                         $problem = True;
                     }
                 }
-                my $readline = do require Readline;
-                my $rl-self = $self but ReadlineBehavior[$readline.WHO<EXPORT>.WHO<ALL>.WHO];
-                $rl-self.?init-line-editor();
-                return $rl-self;
+
+                my $module = do require ::($module-name);
+                my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
+                $new-self.?init-line-editor();
+                return $new-self;
             }
 
             Any
         }
 
-        sub mixin-linenoise($self, Bool $problem is rw) {
-            try {
-                CATCH {
-                    when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Linenoise/ } {
-                        # ignore it
-                    }
-                    default {
-                        say "I ran into a problem while trying to set up Linenoise: $_";
-                        $problem = True;
-                    }
-                }
-                my $linenoise = do require Linenoise;
-                my $ln-self = $self but LinenoiseBehavior[$linenoise.WHO];
-                $ln-self.?init-line-editor();
-                return $ln-self;
-            }
+        sub mixin-readline($self, Bool $problem is rw) {
+            do-mixin($self, 'Readline', ReadlineBehavior, $problem)
+        }
 
-            Any
+        sub mixin-linenoise($self, Bool $problem is rw) {
+            do-mixin($self, 'Linenoise', LinenoiseBehavior, $problem)
         }
 
         sub mixin-line-editor($self) {

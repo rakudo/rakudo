@@ -50,15 +50,6 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
-    method interactive_result($value) {
-        CATCH { nqp::say($_) }
-        if nqp::can($value, 'gist') {
-            nqp::say(nqp::unbox_s($value.gist));
-        } else {
-            nqp::say(~$value);
-        }
-    }
-
     method load-p6-repl(%adverbs) {
         my $repl := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         return $repl;
@@ -77,36 +68,14 @@ class Perl6::Compiler is HLL::Compiler {
             }
         }
 
-        my $*moreinput := sub ($cursor) {
-            my str $more := self.readline(nqp::getstdin(), nqp::getstdout(), '* ');
-            if nqp::isnull_s($more) || $more eq '' {
-                $more := ';';
-            }
-
-            $cursor."!APPEND_TO_ORIG"($more);
+        my $stdin    := nqp::getstdin();
+        my $encoding := ~%adverbs<encoding>;
+        if $encoding && $encoding ne 'fixed_8' {
+            nqp::setencoding($stdin, $encoding);
         }
 
-        my $super := nqp::findmethod(HLL::Compiler, 'interactive');
-        my $result := $super(self, :interactive(1), |%adverbs);
-        self.teardown();
+        my $result := $!p6repl.repl-loop(:interactive(1), |%adverbs);
         $result
-    }
-
-    method teardown() {
-        if $!p6repl {
-            $!p6repl.teardown();
-        }
-    }
-
-    method interactive_exception($ex) {
-        my $payload := nqp::getpayload($ex);
-        if nqp::can($payload, 'gist') {
-            nqp::say(nqp::unbox_s($payload.gist));
-        }
-        else {
-            nqp::say(~$ex)
-        }
-        CATCH { nqp::say(~$ex) }
     }
 
     method usage($name?) {
@@ -144,31 +113,5 @@ class Perl6::Compiler is HLL::Compiler {
 
         For more information, see the perl6(1) man page.\n");
         nqp::exit(0);
-    }
-
-    method readline($stdin, $stdout, $prompt) {
-        my $super := nqp::findmethod(HLL::Compiler, 'readline');
-
-        if $!p6repl {
-            return $!p6repl.readline(self, $super, $stdin, $stdout, $prompt);
-        }
-
-        return $super(self, $stdin, $stdout, $prompt);
-    }
-
-    method eval($code, *@args, *%adverbs) {
-        my $super := nqp::findmethod(HLL::Compiler, 'eval');
-        if $!p6repl {
-            my $needs_more_input := 0;
-            %adverbs<needs_more_input> := sub () {
-                $needs_more_input := 1;
-            };
-            my $result := $!p6repl.eval(self, $super, $code, @args, %adverbs);
-            if $needs_more_input {
-                return self.needs-more-input();
-            }
-            return $result;
-        }
-        return $super(self, $code, |@args, |%adverbs);
     }
 }

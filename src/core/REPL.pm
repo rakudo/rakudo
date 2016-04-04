@@ -214,21 +214,44 @@ do {
             my $new-self;
             my Bool $problem;
 
-            ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
+            if %*ENV<RAKUDO_LINE_EDITOR> -> $_ {
+                when 'Linenoise' {
+                    ( $new-self, $problem ) = mixin-linenoise($self);
 
-            return $new-self if $new-self;
+                    # XXX check $new-self, $problem
 
-            ( $new-self, $problem ) = mixin-linenoise($self);
+                    return $new-self;
+                }
+                when 'Readline' {
+                    ( $new-self, $problem ) = mixin-readline($self);
 
-            return $new-self if $new-self;
+                    # XXX check $new-self, $problem
 
-            if $problem {
-                say 'Continuing without tab completions or line editor';
-                say 'You may want to consider using rlwrap for simple line editor functionality';
+                    return $new-self;
+                }
+                when 'none' {
+                    return $self but FallbackBehavior;
+                }
+                default {
+                    return $self but FallbackBehavior;
+                }
             } else {
-                say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+                ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
+
+                return $new-self if $new-self;
+
+                ( $new-self, $problem ) = mixin-linenoise($self);
+
+                return $new-self if $new-self;
+
+                if $problem {
+                    say 'Continuing without tab completions or line editor';
+                    say 'You may want to consider using rlwrap for simple line editor functionality';
+                } else {
+                    say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+                }
+                say '';
             }
-            say '';
 
             $self but FallbackBehavior
         }

@@ -177,7 +177,7 @@ do {
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
 
-        sub do-mixin($self, Str $module-name, $behavior) {
+        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
             my Bool $problem = False;
             try {
                 CATCH {
@@ -186,7 +186,9 @@ do {
                     }
                     default {
                         say "I ran into a problem while trying to set up $module-name: $_";
-                        # XXX fallback message
+                        if $fallback {
+                            say "Falling back to $fallback (if present)";
+                        }
                         $problem = True;
                     }
                 }
@@ -200,19 +202,19 @@ do {
             ( Any, $problem )
         }
 
-        sub mixin-readline($self) {
-            do-mixin($self, 'Readline', ReadlineBehavior)
+        sub mixin-readline($self, |c) {
+            do-mixin($self, 'Readline', ReadlineBehavior, |c)
         }
 
-        sub mixin-linenoise($self) {
-            do-mixin($self, 'Linenoise', LinenoiseBehavior)
+        sub mixin-linenoise($self, |c) {
+            do-mixin($self, 'Linenoise', LinenoiseBehavior, |c)
         }
 
         sub mixin-line-editor($self) {
             my $new-self;
             my Bool $problem;
 
-            ( $new-self, $problem ) = mixin-readline($self);
+            ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
 
             return $new-self if $new-self;
 

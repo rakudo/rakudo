@@ -214,25 +214,18 @@ do {
             my $new-self;
             my Bool $problem;
 
-            if %*ENV<RAKUDO_LINE_EDITOR> -> $_ {
-                when 'Linenoise' {
-                    ( $new-self, $problem ) = mixin-linenoise($self);
+            my %editor-to-mixin = (
+                :Linenoise(&mixin-linenoise),
+                :Readline(&mixin-readline),
+                :none(-> $self { ( $self but FallbackBehavior, False ) }),
+            );
 
+            if %*ENV<RAKUDO_LINE_EDITOR> -> $line-editor {
+                if %editor-to-mixin{$line-editor} -> $mixin {
+                    ( $new-self, $problem ) = $mixin($self);
                     # XXX check $new-self, $problem
-
-                    return $new-self;
-                }
-                when 'Readline' {
-                    ( $new-self, $problem ) = mixin-readline($self);
-
-                    # XXX check $new-self, $problem
-
-                    return $new-self;
-                }
-                when 'none' {
-                    return $self but FallbackBehavior;
-                }
-                default {
+                } else {
+                    say "Unrecognized line editor '$line-editor'";
                     return $self but FallbackBehavior;
                 }
             } else {

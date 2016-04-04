@@ -222,8 +222,13 @@ do {
 
             if %*ENV<RAKUDO_LINE_EDITOR> -> $line-editor {
                 if %editor-to-mixin{$line-editor} -> $mixin {
-                    ( $new-self, $problem ) = $mixin($self);
-                    # XXX check $new-self, $problem
+                    ( $new-self, $ ) = $mixin($self);
+
+                    if $new-self {
+                        return $new-self;
+                    } else {
+                        return $self but FallbackBehavior;
+                    }
                 } else {
                     say "Unrecognized line editor '$line-editor'";
                     return $self but FallbackBehavior;

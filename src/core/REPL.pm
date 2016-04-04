@@ -222,11 +222,14 @@ do {
 
             if %*ENV<RAKUDO_LINE_EDITOR> -> $line-editor {
                 if %editor-to-mixin{$line-editor} -> $mixin {
-                    ( $new-self, $ ) = $mixin($self);
+                    ( $new-self, $problem ) = $mixin($self);
 
                     if $new-self {
                         return $new-self;
                     } else {
+                        unless $problem {
+                            say "Could not find $line-editor module";
+                        }
                         return $self but FallbackBehavior;
                     }
                 } else {

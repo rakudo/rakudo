@@ -58,7 +58,7 @@ MAIN: {
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     my $prefix         = $options{'prefix'};
-    my @known_backends = qw/moar jvm/;
+    my @known_backends = qw/moar jvm js/;
     my %known_backends = map { $_, 1; } @known_backends;
     my %letter_to_backend;
     my $default_backend;
@@ -270,6 +270,12 @@ MAIN: {
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }
+    }
+    
+    if ($backends{js}) {
+        my %nqp_config;
+        system("nqp-m tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
+        fill_template_file('gen/js/Makefile-JS.in', $MAKEFILE, %config, %nqp_config);
     }
 
     if ($errors{jvm}{'no gen-nqp'} || $errors{moar}{'no gen-nqp'}) {

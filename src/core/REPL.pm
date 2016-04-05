@@ -258,6 +258,8 @@ do {
         }
 
         method new(Mu \compiler, Mu \adverbs) {
+            return if $*VM.name eq 'jvm';
+
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);

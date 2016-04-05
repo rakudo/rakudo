@@ -103,13 +103,15 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method gist(Hash:D:) {
         self.gistseen('Hash', {
+            '{' ~
             self.pairs.sort.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
                     default  { $elem.gist }
                 }
-            } ).join: ', '
+            } ).join(', ')
+            ~ '}'
         })
     }
 

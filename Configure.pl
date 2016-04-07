@@ -59,11 +59,14 @@ MAIN: {
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     my $prefix         = $options{'prefix'};
     my @known_backends = qw/moar jvm js/;
+
+    my %backend_prefix = (jvm => 'j', moar => 'm', js  => 'js');
+
     my %known_backends = map { $_, 1; } @known_backends;
     my %letter_to_backend;
     my $default_backend;
     for (keys %known_backends) {
-        $letter_to_backend{ substr($_, 0, 1) } = $_;
+        $letter_to_backend{ $backend_prefix{$_} } = $_;
     }
     my @backends;
     my %backends;
@@ -170,9 +173,9 @@ MAIN: {
 
     fill_template_file('tools/build/Makefile-common-macros.in', $MAKEFILE, %config);
 
-    my @prefixes = map substr($_, 0, 1), @backends;
+    my @prefixes = map $backend_prefix{$_}, @backends;
 
-    my $launcher = substr($default_backend, 0, 1) . '-runner-default';
+    my $launcher = $backend_prefix{$default_backend} . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
 
@@ -296,7 +299,7 @@ MAIN: {
     }
     sorry(@errors) if @errors;
 
-    my $l = uc substr($default_backend, 0, 1);
+    my $l = uc $backend_prefix{$default_backend};
     print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS_WITH_FUDGE) --verbosity=1 \$\@\n];
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";

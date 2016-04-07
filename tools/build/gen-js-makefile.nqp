@@ -27,20 +27,10 @@ sub rule($target, $source, *@actions) {
     $target;
 }
 
-sub nqp($prefix, $file, $stage, :$source=$prefix ~ '/' ~ $file ~ '.nqp', :$deps=[]) {
-    my $path := stage_path($stage);
-    my $mbc := $path ~ $file ~ '.moarvm';
-
-    my $installed_pbc := 'gen/moar/stage2/' ~ $file ~ '.moarvm';
-
-    nqp::unshift($deps, $source);
-
-    rule($mbc, nqp::join(' ', $deps),
-        make_parents($mbc),
-        "\$(JS_NQP) --module-path=\$(JS_STAGE1) --target=mbc --output=$mbc $source",
-        # HACK - workaround for not being able to supply multiple directories to --module-path
-        make_parents($installed_pbc),
-        "\$(CP) $mbc $installed_pbc"
+sub nqp($file, $output, :$deps=[]) {
+    rule($output, nqp::join(' ', $deps),
+        make_parents($output),
+        "./nqp-js --target=js --module-path blib --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -49,6 +39,9 @@ sub deps($target, *@deps) {
 }
 
 my $build_dir := 'gen/js/';
+
+my $blib := 'node_modules';
+
 # TODO is the version regenerated as often as it should
 sub combine(:$sources, :$file) {
 
@@ -68,7 +61,23 @@ sub combine(:$sources, :$file) {
 
 my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<js-ModuleLoader.nqp>);
 
-say("js-all: $ModuleLoader-nqp\n");
+
+my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6/ModuleLoader.js");
+my $Perl6-Ops := nqp('src/vm/js/Perl6/Ops.nqp', "$blib/Perl6/Ops.js");
+my $Perl6-Pod := nqp('src/Perl6/Pod.nqp', "$blib/Perl6/Pod.js");
+my $Perl6-World := nqp('src/Perl6/World.nqp', "blib/Perl6/World.js", :deps([$Perl6-Ops, $Perl6-Pod, $Perl6-ModuleLoader]));
+my $Perl6-Actions := nqp('src/Perl6/Actions.nqp', "$blib/Perl6/Action.js", :deps([$Perl6-Ops, $Perl6-World]));
+my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6/Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
+
+my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<m-Perl6-Optimizer.nqp>);
+
+my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6/Optimizer.js", :deps([$Perl6-Ops]));
+
+my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6/Compiler.js");
+
+say("js-all: $ModuleLoader-nqp $Perl6-Ops $Perl6-Pod $Perl6-World\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp");
 
+# Stub
+say("js-runner-default:")

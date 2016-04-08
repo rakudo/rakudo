@@ -89,7 +89,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $path {
             my $modified = $path.modified;
             if (not $since or $modified > $since) and self!load-dependencies($path, $modified) {
-                %!loaded{$id} //= self!load-handle-for-path($path)
+                with %!loaded{$id} {
+                    self.store.unlock;
+                    $_
+                }
+                else {
+                    %!loaded{$id} = self!load-handle-for-path($path)
+                }
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {

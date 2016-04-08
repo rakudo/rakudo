@@ -1288,6 +1288,40 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
         }.new(self,$n))
     }
+
+    proto method minpairs(|) { * }
+    multi method minpairs(Any:D:) {
+        my @found;
+        my $min = Inf;
+        my $value;
+        for self.pairs {
+            if ($value := .value) < $min {
+                @found = $_;
+                $min   = $value;
+            }
+            elsif $value == $min {
+                @found.push: $_;
+            }
+        }
+        @found
+    }
+
+    proto method maxpairs(|) { * }
+    multi method maxpairs(Any:D:) {
+        my @found;
+        my $max = -Inf;
+        my $value;
+        for self.pairs {
+            if ($value := .value) > $max {
+                @found = $_;
+                $max   = $value;
+            }
+            elsif $value == $max {
+                @found.push: $_;
+            }
+        }
+        @found
+    }
 }
 
 BEGIN Attribute.^compose;

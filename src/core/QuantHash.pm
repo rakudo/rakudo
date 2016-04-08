@@ -6,38 +6,6 @@ my role QuantHash does Associative {
 
     method list() { self.pairs.cache }
 
-    method minpairs {
-        my @found;
-        my $min = Inf;
-        my $value;
-        for self.pairs {
-            if ($value := .value) < $min {
-                @found = $_;
-                $min   = $value;
-            }
-            elsif $value == $min {
-                @found.push: $_;
-            }
-        }
-        @found
-    }
-
-    method maxpairs {
-        my @found;
-        my $max = -Inf;
-        my $value;
-        for self.pairs {
-            if ($value := .value) > $max {
-                @found = $_;
-                $max   = $value;
-            }
-            elsif $value == $max {
-                @found.push: $_;
-            }
-        }
-        @found
-    }
-
     method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)

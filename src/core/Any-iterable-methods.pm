@@ -819,7 +819,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   :excludes-max($excludes-max));
     }
 
-    method sort(&by = &infix:<cmp>) is nodal {
+    method sort(&by?) is nodal {
+
         # Obtain all the things to sort.
         my \iter = self.iterator;
         my \sort-buffer = IterationBuffer.new;
@@ -827,43 +828,51 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             fail X::Cannot::Lazy.new(:action<sort>);
         }
 
-        # Apply any transform.
-        my $transform = (&by.?count // 2) < 2;
-        my $transform-buffer;
-        if $transform {
-            $transform-buffer := IterationBuffer.new;
-            my \to-map = nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-                sort-buffer);
-            to-map.map(&by).iterator.push-all($transform-buffer);
-        }
-
         # Instead of sorting elements directly, we sort a list of
         # indices from 0..^$list.elems, then use that list as
         # a slice into self. The JVM implementation uses a Java
         # collection sort. MoarVM has its sort algorithm implemented
         # in NQP.
-        my int $i = -1;
-        my int $n = sort-buffer.elems;
-        my $indices := nqp::list;
-        nqp::setelems($indices,$n);
-        nqp::bindpos($indices,$i,nqp::decont($i)) while ++$i < $n;
+        my int $elems = sort-buffer.elems;
+        my \indices  := nqp::setelems(nqp::list,$elems);
+        my int $i;   # don't need to initialize 0th element
+        nqp::bindpos(indices,$i,nqp::decont($i))
+          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
 
-        nqp::p6sort($indices, $transform
-            ?? (-> int $a, int $b {
-                    nqp::atpos($transform-buffer, $a) cmp nqp::atpos($transform-buffer, $b)
-                        || $a <=> $b
-                })
-            !! (-> int $a, int $b {
-                    &by(nqp::atpos(sort-buffer, $a), nqp::atpos(sort-buffer, $b))
-                        || $a <=> $b
-                }));
+        # Need to transform
+        if &by && (&by.?count // 2) < 2 {
+            my \transformed := nqp::setelems(nqp::list,$elems);
+            $i = -1;
+            nqp::bindpos(transformed,$i,by(nqp::atpos(sort-buffer,$i)))
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
 
+            nqp::p6sort(indices,-> int $a, int $b {
+                nqp::atpos(transformed,$a) cmp nqp::atpos(transformed,$b)
+                  || nqp::cmp_i($a,$b)
+            });
+        }
+
+        # Already have the data to sort
+        else {
+            nqp::p6sort(indices, &by
+              ?? (-> int $a, int $b {
+                    by(nqp::atpos(sort-buffer,$a),nqp::atpos(sort-buffer,$b))
+                      || nqp::cmp_i($a,$b)
+                  })
+              !! (-> int $a, int $b {
+                    nqp::atpos(sort-buffer,$a) cmp nqp::atpos(sort-buffer,$b)
+                      || nqp::cmp_i($a,$b)
+                  })
+            );
+        }
+
+        # map the result back
+        my \result := nqp::setelems(nqp::list,$elems);
         $i = -1;
-        my $result := nqp::list;
-        nqp::setelems($result,$n);
-        nqp::bindpos($result,$i,nqp::atpos(sort-buffer,nqp::atpos($indices,$i)))
-          while ++$i < $n;
-        $result
+        nqp::bindpos(result,$i,nqp::atpos(sort-buffer,nqp::atpos(indices,$i)))
+          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+        result
     }
 
     proto method reduce(|) { * }

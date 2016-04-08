@@ -1,3 +1,16 @@
+New in 2016.04
+ + Fixes:
+   + .combinations cleanup
+   + "magic" inc/dec cleanup
+ + Additions:
+   + Improved REPL
+   + Add :kv to .first
+   + Add provisional $*DEFAULT-READ-ELEMS
+ + Efficiency:
+   + Removed leaks associated with EVAL
+   + Speed up .minpairs/.maxpairs
+   + Speed up Object:D cmp Object:D
+
 New in 2016.03
  + Fixes:
    + Buf.push|append|unshift|prepend now can take int arrays

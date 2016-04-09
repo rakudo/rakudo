@@ -409,10 +409,9 @@ my class Rakudo::Internals {
             nqp::push($keys, type-key);
             nqp::push_i($dims, $dim);
         }
-        my $storage :=
-          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys));
-        nqp::setdimensions($storage, $dims);
-        $storage
+
+        nqp::setdimensions(
+          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys)),$dims);
     }
 
     our role ShapedArrayCommon {

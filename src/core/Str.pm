@@ -44,7 +44,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? nqp::atpos(nqp::radix_I(10,$s,0,0,Int),0)
 #?if moar
             !! nqp::iseq_i($chars,1)
-              ?? unival(nqp::ord($s)) // self.Numeric.Int
+              ?? (unival(nqp::ord($s)) // self.Numeric).Int
               !! self.Numeric.Int
 #?endif
 #?if !moar

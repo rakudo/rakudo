@@ -90,11 +90,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self
     }
 
-    multi method Numeric(Str:D: :$strict = True) {
+    multi method Numeric(Str:D:) {
         # Handle special empty string
-        return 0 if self.trim eq "";
-
-        val(self, :val-or-fail);
+        self.trim eq ""
+          ?? 0
+          !! val(self, :val-or-fail)
     }
 
     multi method gist(Str:D:) { self }

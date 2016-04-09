@@ -2444,6 +2444,13 @@ my class X::TooManyDimensions is Exception {
     }
 }
 
+my class X::IllegalDimensionInShape is Exception {
+    has $.dim;
+    method message() {
+        "Illegal dimension in shape: $.dim. All dimensions must be integers bigger than 0"
+    }
+}
+
 my class X::Assignment::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;

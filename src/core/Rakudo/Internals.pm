@@ -397,20 +397,20 @@ my class Rakudo::Internals {
     }
 
     method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
-        my $key := nqp::list(meta-obj);
-        my $dims := nqp::list_i();
+        my $keys := nqp::list(meta-obj);
+        my $dims := nqp::list_i;
         for @dims {
-            if nqp::istype($_, Whatever) {
-                X::NYI.new(feature => 'Jagged array shapes');
-            }
-            my $dim = $_.Int;
-            if $dim <= 0 {
-                X::IllegalDimensionInShape.new(dim => $dim).throw;
-            }
-            nqp::push($key, type-key);
+            X::NYI.new(feature => 'Jagged array shapes').throw
+              if nqp::istype($_,Whatever);
+            my int $dim = $_.Int;
+            X::IllegalDimensionInShape.new(:$dim).throw
+              if nqp::isle_i($dim,0);
+
+            nqp::push($keys, type-key);
             nqp::push_i($dims, $dim);
         }
-        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
+        my $storage :=
+          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys));
         nqp::setdimensions($storage, $dims);
         $storage
     }

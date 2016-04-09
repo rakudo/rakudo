@@ -6,6 +6,7 @@ my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
 my class X::Str::Sprintf::Directives::Count { ... };
 my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
@@ -402,8 +403,12 @@ my class Rakudo::Internals {
             if nqp::istype($_, Whatever) {
                 X::NYI.new(feature => 'Jagged array shapes');
             }
+            my $dim = $_.Int;
+            if $dim <= 0 {
+                X::IllegalDimensionInShape.new(dim => $dim).throw;
+            }
             nqp::push($key, type-key);
-            nqp::push_i($dims, $_.Int);
+            nqp::push_i($dims, $dim);
         }
         my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
         nqp::setdimensions($storage, $dims);

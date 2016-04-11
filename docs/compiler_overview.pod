@@ -2,6 +2,9 @@
 
 =head1 RAKUDO COMPILER OVERVIEW
 
+F<Please note: Parts of this overview are outdated since Rakudo does
+no longer run on the Parrot Virtual Machine.>
+
 =head2 How the Rakudo Perl 6 compiler works
 
 This document describes the architecture and operation of the Rakudo

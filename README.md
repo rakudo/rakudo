@@ -138,10 +138,6 @@ Linenoise is via [panda](https://github.com/tadzik/panda):
 
 An alternative is to use a third-party program such as [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap).
 
-## How the compiler works
-
-See `docs/compiler_overview.pod`.
-
 ## AUTHOR
 
 Jonathan Worthington is the current pumpking for Rakudo Perl 6.

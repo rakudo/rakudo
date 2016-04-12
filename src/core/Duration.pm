@@ -4,12 +4,15 @@ my class Duration is Cool does Real {
 
     method new($tai) { self.bless: tai => $tai.Rat }
 
-    method Bridge(Duration:D:) { $!tai.Num }
-    method Rat(Duration:D:)    { $!tai     }
+    method Bridge(Duration:D:) { $!tai.Bridge }
+    method Rat(Duration:D:)    { $!tai }
     method Num(Duration:D:)    { $!tai.Num }
     method narrow(Duration:D:) { $!tai.narrow }
 
     multi method Str(Duration:D:) { ~$.tai }
+    multi method Numeric() { $!tai }
+
+    multi method WHICH(Duration:D:) { self.^name ~ '|' ~ $!tai.WHICH }
 
     multi method perl(Duration:D:) { "Duration.new({$.tai.perl})" }
 }

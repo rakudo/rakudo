@@ -28,6 +28,10 @@ my class Instant is Cool does Real {
         Rakudo::Internals.posix-from-tai($!tai)
     }
 
+    multi method WHICH (Instant:D:) {
+        self.^name ~ '|' ~ $!tai.WHICH
+    }
+
     multi method Str(Instant:D:) {
         'Instant:' ~ $!tai
     }

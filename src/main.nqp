@@ -39,6 +39,9 @@ sub MAIN(*@ARGS) {
 #?if moar
 sub MAIN(@ARGS) {
 #?endif
+#?if js
+sub MAIN(*@ARGS) {
+#?endif
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
 

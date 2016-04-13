@@ -21,8 +21,8 @@ subtest {
     nok($ok, $message);
 }, "check behaviour of 'large' numbers";
 
-# "normal" numbers
-subtest {
+# "normal" numbers; also test subtest(Desc, Code) multi
+subtest "check behaviour of 'normal' numbers", {
     my $eulers_constant = 2.71828182;
     my $not_quite_ec = 2.71828;
 
@@ -36,10 +36,10 @@ subtest {
     todo $message;
     my $ok = is-approx($not_quite_ec, $eulers_constant, $message);
     nok($ok, $message);
-}, "check behaviour of 'normal' numbers";
+};
 
-# "small" numbers
-subtest {
+# "small" numbers; also test subtest(Pair[desc,code]) multi
+subtest "check behaviour of 'small' numbers" => {
     my $plancks_constant = 6.62609657e-34;
     my $not_quite_pc = 6.62609e-34;
 
@@ -72,7 +72,7 @@ subtest {
     todo $message;
     $ok = is-approx($not_quite_pc, $plancks_constant, 1e-7, $message);
     nok($ok, $message);
-}, "check behaviour of 'small' numbers";
+};
 
 # check tolerance input
 subtest {

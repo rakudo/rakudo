@@ -103,6 +103,9 @@ multi sub infix:<->(Instant:D $a, Instant:D $b) {
 multi sub infix:<->(Instant:D $a, Real:D $b) {
     nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
 }
+multi sub infix:<->(Instant:D $a, Duration:D $b) {
+    nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
+}
 
 sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 sub term:<now>() {

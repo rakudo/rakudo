@@ -77,10 +77,10 @@ subtest "check behaviour of 'small' numbers" => {
 # check tolerance input
 subtest {
     my $message = "should fail; cannot use negative tolerance values";
-    dies_ok { is-approx(1, 1, -1, $message) }, $message;
+    dies-ok { is-approx(1, 1, -1, $message) }, $message;
 
     $message = "should fail; cannot use a zero tolerance value";
-    dies_ok { is-approx(1, 1, 0, $message) }, $message;
+    dies-ok { is-approx(1, 1, 0, $message) }, $message;
 }, "check tolerance input";
 
 # expected value is zero

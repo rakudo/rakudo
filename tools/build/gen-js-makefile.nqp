@@ -70,7 +70,7 @@ my $Perl6-World := nqp('src/Perl6/World.nqp', "$blib/Perl6/World.js", :deps([$Pe
 my $Perl6-Actions := nqp('src/Perl6/Actions.nqp', "$blib/Perl6/Actions.js", :deps([$Perl6-Ops, $Perl6-World]));
 my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6/Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
 
-my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<m-Perl6-Optimizer.nqp>);
+my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<js-Perl6-Optimizer.nqp>);
 
 my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6/Optimizer.js", :deps([$Perl6-Ops]));
 

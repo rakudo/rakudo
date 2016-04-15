@@ -2,6 +2,8 @@ New in 2016.04
  + Fixes:
    + .combinations cleanup
    + "magic" inc/dec cleanup
+   + utf8-c8 encoding crashes on random data
+   + fix missing pre-comp store unlock
  + Additions:
    + Improved REPL
    + Add :kv to .first
@@ -10,6 +12,7 @@ New in 2016.04
    + Removed leaks associated with EVAL
    + Speed up .minpairs/.maxpairs
    + Speed up Object:D cmp Object:D
+   + Speed up sort 3-15%
 
 New in 2016.03
  + Fixes:

@@ -4,6 +4,7 @@ New in 2016.04
    + "magic" inc/dec cleanup
    + utf8-c8 encoding crashes on random data
    + fix missing pre-comp store unlock
+   + missing module error mentions line number
  + Additions:
    + Improved REPL
    + Add :kv to .first

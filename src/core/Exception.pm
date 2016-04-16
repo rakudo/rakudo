@@ -2496,9 +2496,10 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     method message() {
         my $name = $.specification.short-name;
+        my $line = $.specification.line;
         is-core($name)
             ?? "{$name} is a builtin type. You can use it without loading a module."
-            !! "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+            !! "Could not find $.specification at line $line in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
     }
 }
 

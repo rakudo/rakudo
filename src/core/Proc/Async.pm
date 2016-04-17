@@ -87,8 +87,8 @@ my class Proc::Async {
         my $vow = $promise.vow;
         my $ss = Rakudo::Internals::SupplySequencer.new(
             on-data-ready => -> \data { the-supply.emit(data) },
-            on-completed  => -> { $vow.keep(the-supply) },
-            on-error      => -> \err { $vow.keep((the-supply,err)) });
+            on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
+            on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
         nqp::bindkey(callbacks,
             std ~ ( type ?? '_chars' !! '_bytes' ),
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });

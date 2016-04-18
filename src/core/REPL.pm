@@ -324,6 +324,8 @@ do {
 
                 my $newcode = self.repl-read(~$prompt);
 
+                my $initial_out_position = $*OUT.tell;
+
                 # An undef $newcode implies ^D or similar
                 if !$newcode.defined {
                     last;
@@ -368,7 +370,10 @@ do {
                 $code = "";
                 $prompt = self.interactive_prompt;
 
-                self.repl-print($output);
+                # Only print the result if there wasn't some other output
+                if $initial_out_position == $*OUT.tell {
+                  self.repl-print($output);
+                }
             }
 
             self.teardown;

@@ -96,6 +96,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 }
                 my $file;
                 my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $id); $file.e });
+                $RMD("Could not find $spec") if $RMD and not $store;
                 return False unless $store;
                 my $modified = $file.modified;
                 $RMD("$file\nspec: $spec\nmtime: $modified\nsince: $since\n  src: {$src.IO.modified}")
@@ -123,7 +124,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
         for @precomp-stores -> $store {
-            $RMD("Trying to load $id from $store.prefix()") if $RMD;
+            $RMD("Trying to load $id from $store.prefix() ") if $RMD;
             my $path = $store.load($compiler-id, $id);
             if $path {
                 my $modified = $path.modified;
@@ -225,9 +226,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("id: $dependency-id, src: $dependency-src, spec: $dependency-spec") if $RMD;
             my $path = self.store.path($compiler-id, $dependency-id);
             if $path.e {
-                $dependencies ~= "$dependency\n";
                 spurt($path ~ '.rev-deps', "$id\n", :append);
             }
+            $dependencies ~= "$dependency\n";
         }
         $RMD("Writing $dependencies to {$io}.deps") if $RMD;
         spurt($io ~ '.deps', $*REPO.id ~ "\n" ~ $dependencies);

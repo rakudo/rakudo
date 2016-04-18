@@ -64,11 +64,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new,
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
-        push @precomp-stores, self!precomp-store;
         my ($base, $file) = self!matching-file($spec);
         if $base {
             my $name = $spec.short-name;
@@ -144,7 +143,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $.prefix.parent.child('resources').child($key);
     }
 
-    method !precomp-store() returns CompUnit::PrecompilationStore {
+    method precomp-store() returns CompUnit::PrecompilationStore {
         CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('.precomp')),
         )
@@ -152,7 +151,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(self!precomp-store),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

@@ -382,11 +382,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new,
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
-        push @precomp-stores, self!precomp-store;
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             note("Found $spec in {self}") if $verbose;
@@ -442,7 +441,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
-    method !precomp-store() returns CompUnit::PrecompilationStore {
+    method precomp-store() returns CompUnit::PrecompilationStore {
         CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('precomp')),
         )
@@ -450,7 +449,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(self!precomp-store),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

@@ -44,6 +44,10 @@ role CompUnit::Repository {
         returns Str
         { ... }
 
+    method precomp-store()
+        returns CompUnit::PrecompilationStore
+        { CompUnit::PrecompilationStore }
+
     method precomp-repository()
         returns CompUnit::PrecompilationRepository
         { CompUnit::PrecompilationRepository::None }

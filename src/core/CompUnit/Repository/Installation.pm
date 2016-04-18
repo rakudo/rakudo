@@ -266,7 +266,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 %done{$id} = 1;
                 for @rev-deps -> $rev-dep-id {
                     if %done{$rev-dep-id} {
-                        note "(Already did $rev-dep-id)" if $verbose;
+                        note "(Already did rev-dep $rev-dep-id)" if $verbose;
                         next;
                     }
                     note("Precompiling rev-dep $rev-dep-id") if $verbose;
@@ -389,6 +389,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         push @precomp-stores, self!precomp-store;
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
+            note("Found $spec in {self}") if $verbose;
             return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
 
             my $loader = $.prefix.child('sources').child(

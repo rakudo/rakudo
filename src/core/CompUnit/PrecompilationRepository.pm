@@ -175,8 +175,18 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        $RMD("Precompiling $path into $io") if $RMD;
-        my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
+        $RMD("Precompiling $source-name into $io") if $RMD;
+        my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6').subst('perl6-gdb', 'perl6'); # debugger would try to precompile it's UI
+        $RMD("RAKUDO_PRECOMP_WITH=%ENV<RAKUDO_PRECOMP_WITH>, RAKUDO_PRECOMP_LOADING=%ENV<RAKUDO_PRECOMP_LOADING>, RAKUDO_PRECOMP_DIST=%ENV<RAKUDO_PRECOMP_DIST>") if $RMD;
+        $RMD(join ' ',
+          $perl6,
+          $lle,
+          $profile,
+          "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
+          "--output=$io",
+          "--source-name=$source-name",
+          $path,
+        ) if $RMD;
         my $proc = run(
           $perl6,
           $lle,
@@ -186,7 +196,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           "--source-name=$source-name",
           $path,
           :out,
-          :err,
+          #:err,
         );
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
@@ -195,15 +205,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my @result = $proc.out.lines.unique;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
-            $RMD("Precomping $path failed: $proc.status()") if $RMD;
+            $RMD("Precomping $source-name failed: {@result}") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $proc.err.slurp-rest;
+            #die $proc.err.slurp-rest;
+            die "precomp $source-name failed";
         }
 
-        if $proc.err.slurp-rest -> $warnings {
-            $*ERR.print($warnings);
-        }
-        $RMD("Precompiled $path into $io") if $RMD;
+        #if $proc.err.slurp-rest -> $warnings {
+        #    $*ERR.print($warnings);
+        #}
+        $RMD("Precompiled $source-name into $io") if $RMD;
         my str $dependencies = '';
         for @result -> $dependency {
             #unless $dependency ~~ /^<[A..Z0..9]> ** 40 \s .+/ {

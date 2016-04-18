@@ -451,8 +451,11 @@ static void p6getouterctx(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
     if (outer) {
-        MVMObject *ctx = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-        ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
+        MVMObject *ctx;
+        MVMROOT(tc, outer, {
+            ctx = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
+        });
+        MVM_ASSIGN_REF(tc, &(ctx->header), ((MVMContext *)ctx)->body.context, outer);
         GET_REG(tc, 0).o = ctx;
     }
     else {
@@ -480,9 +483,7 @@ static void p6captureouters(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
-            if (outer->outer)
-                MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, new_outer);
+            MVM_ASSIGN_REF(tc, &(outer->header), outer->outer, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
@@ -582,11 +583,14 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                     MVMObject *meth, *p6sub, *ctx_ref, *capture;
                     MVMRegister *res_reg = &GET_REG(tc, 0);
                     MVMROOT(tc, dispatcher, {
+                    MVMROOT(tc, ctx, {
                         ctx_ref = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-                        ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
+                        MVM_ASSIGN_REF(tc, &(ctx_ref->header),
+                                ((MVMContext *)ctx_ref)->body.context, ctx);
                         MVMROOT(tc, ctx_ref, {
                             capture = MVM_args_use_capture(tc, ctx);
                         });
+                    });
                     });
                     p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
 

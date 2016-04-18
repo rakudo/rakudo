@@ -211,7 +211,16 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     }
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
-    my $compiled := $compiler.compile($code.Stringy, :outer_ctx($eval_ctx), :global(GLOBAL));
+    my \mast_frames := nqp::hash();
+    my $compiled := $compiler.compile(
+        $code.Stringy,
+        :outer_ctx($eval_ctx),
+        :global(GLOBAL),
+        :mast_frames(mast_frames),
+    );
+    if $*W and $*W.is_precompilation_mode() { # we are still compiling
+        $*W.add_additional_frames(mast_frames);
+    }
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }

@@ -249,6 +249,29 @@ class Perl6::World is HLL::World {
         %!magical_cds := {};
     }
 
+    method create_nested() {
+        my $new := Perl6::World.new(:handle(self.handle), :context(self.context));
+        for [
+            '%!sub_id_to_code_object',
+            '%!sub_id_to_cloned_code_objects',
+            '%!sub_id_to_sc_idx',
+            '@!BLOCKS',
+            '@!CODES',
+            '@!stub_check',
+            '@!protos_to_sort',
+            '%!const_cache',
+            '$!the_whatever',
+            '$!the_hyper_whatever',
+            '@!CHECKs',
+            '@!cleanup_tasks',
+            '%!magical_cds',
+            # '%!code_object_fixup_list', # doesn't need to be shared - is used for BEGIN blocks
+        ] {
+            nqp::bindattr($new, Perl6::World, $_, nqp::getattr(self, Perl6::World, $_));
+        }
+        $new
+    }
+
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
             $!RAKUDO_MODULE_DEBUG
@@ -2041,7 +2064,7 @@ class Perl6::World is HLL::World {
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.
         unless $*PKGDECL eq 'role' {
-            unless self.is_precompilation_mode() {
+            unless self.is_precompilation_mode() || self.is_nested() {
                 $fixups.push(self.set_attribute($code, $code_type, '$!do',
                     QAST::BVal.new( :value($code_past) )));
 
@@ -2093,7 +2116,12 @@ class Perl6::World is HLL::World {
             nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
 
-        self.add_fixup_task(:deserialize_ast($des), :fixup_ast($fixups));
+        if self.is_nested() {
+            $compiler_thunk();
+        }
+        else {
+            self.add_fixup_task(:deserialize_ast($des), :fixup_ast($fixups));
+        }
         $code;
     }
 
@@ -2268,7 +2296,11 @@ class Perl6::World is HLL::World {
             my %symbols := $cur_block.symtable();
             for %symbols {
                 my str $name := $_.key;
-                unless %seen{$name} {
+                # For now, EVALed code run during precomp will not get the
+                # outer lexical context's symbols as those may contain or
+                # reference unserializable objects leading to compilation
+                # failures. Needs a smarter approach as noted above.
+                unless self.is_nested() || %seen{$name} {
                     # Add symbol.
                     my %sym   := $_.value;
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
@@ -4052,6 +4084,20 @@ class Perl6::World is HLL::World {
             $hash := $hash.FLATTENABLE_HASH();
         }
         $hash
+    }
+
+    method add_additional_frames($frames) {
+        if %*COMPILING<%?OPTIONS><mast_frames> {
+            my %existing := %*COMPILING<%?OPTIONS><mast_frames>;
+            my $iterator := nqp::iterator($frames);
+            while $iterator {
+                my $pair := nqp::shift($iterator);
+                %existing{nqp::iterkey_s($pair)} := nqp::iterval($pair);
+            }
+        }
+        else {
+            %*COMPILING<%?OPTIONS><mast_frames> := $frames;
+        }
     }
 
     method ex-handle($/, $code) {

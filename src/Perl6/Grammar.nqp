@@ -440,10 +440,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
                 ?? self.target() ~ $sc_id++
                 !! self.target());
-        my $*W := nqp::isnull($file) ??
-            Perl6::World.new(:handle($source_id)) !!
-            Perl6::World.new(:handle($source_id), :description($file));
-        $*W.add_initializations();
+        my $outer_world := nqp::getlexdyn('$*W');
+        my $is_nested := (
+            $outer_world
+            && nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+            && $outer_world.is_precompilation_mode()
+        );
+
+        my $*W := $is_nested
+            ?? $outer_world.create_nested()
+            !! nqp::isnull($file)
+                ?? Perl6::World.new(:handle($source_id))
+                !! Perl6::World.new(:handle($source_id), :description($file));
+
+        unless $is_nested {
+            $*W.add_initializations();
+        }
 
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT

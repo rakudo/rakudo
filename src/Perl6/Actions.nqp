@@ -773,6 +773,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :compilation_mode($*W.is_precompilation_mode()),
             :pre_deserialize($*W.load_dependency_tasks()),
             :post_deserialize($*W.fixup_tasks()),
+            :is_nested($*W.is_nested()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )

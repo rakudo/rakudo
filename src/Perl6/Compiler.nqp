@@ -3,8 +3,6 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!p6repl;
-
     method compilation-id() {
         my class IDHolder { }
         BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
@@ -50,21 +48,16 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
-    method load-p6-repl(%adverbs) {
-        my $repl := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
-        return $repl;
-    }
-
     method interactive(*%adverbs) {
         nqp::say("To exit type 'exit' or '^D'");
+        my $p6repl;
 
         try {
-            my $repl-class := self.load-p6-repl(%adverbs);
-            $!p6repl := $repl-class.new(self, %adverbs);
+            my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
+            $p6repl := $repl-class.new(self, %adverbs);
 
             CATCH {
-                say("couldn't load REPL.pm: $_");
-                $!p6repl := Mu;
+                nqp::die("couldn't load REPL.pm: $_");
             }
         }
 
@@ -74,7 +67,7 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::setencoding($stdin, $encoding);
         }
 
-        my $result := $!p6repl.repl-loop(:interactive(1), |%adverbs);
+        my $result := $p6repl.repl-loop(:interactive(1), |%adverbs);
         $result
     }
 

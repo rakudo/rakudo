@@ -69,6 +69,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $handle
     }
 
+    method !deserialize-spec($spec) {
+        EVAL $spec
+    }
+
     method !load-dependencies(IO::Path $path, Instant $since, @precomp-stores) {
         my $compiler-id = $*PERL.compiler.id;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
@@ -86,7 +90,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             my ($id, $src, $spec) = $dependency.split("\0", 3);
             unless %!loaded{$id}:exists {
                 if $resolve {
-                    my $comp-unit = $repo.resolve(EVAL $spec);
+                    my $comp-unit = $repo.resolve(self!deserialize-spec($spec));
                     $RMD("Old id: $id, new id: {$comp-unit.repo-id}") if $RMD;
                     return False unless $comp-unit and $comp-unit.repo-id eq $id;
                 }
@@ -150,7 +154,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
-            $RMD("$path\nalready precompiled into\n$io") if $RMD;
+            $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
             self.store.unlock;
             return True;
         }
@@ -202,10 +206,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $RMD("Precompiled $path into $io") if $RMD;
         my str $dependencies = '';
         for @result -> $dependency {
-            unless $dependency ~~ /^<[A..Z0..9]> ** 40 \s .+/ {
-                say $dependency;
-                next
-            }
+            #unless $dependency ~~ /^<[A..Z0..9]> ** 40 \s .+/ {
+            #    say $dependency;
+            #    next
+            #}
             my ($dependency-id, $dependency-src, $dependency-spec) = $dependency.split("\0", 3);
             $RMD("id: $dependency-id, src: $dependency-src, spec: $dependency-spec") if $RMD;
             my $path = self.store.path($compiler-id, $dependency-id);
@@ -214,7 +218,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 spurt($path ~ '.rev-deps', "$id\n", :append);
             }
         }
-        spurt($io ~ '.deps', $dependencies);
+        $RMD("Writing $dependencies to {$io}.deps") if $RMD;
+        spurt($io ~ '.deps', $*REPO.id ~ "\n" ~ $dependencies);
         self.store.unlock;
         True
     }

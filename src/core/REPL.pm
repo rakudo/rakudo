@@ -66,7 +66,7 @@ do {
                 add_history($line);
             }
 
-            $line;
+            $line
         }
     }
 
@@ -105,14 +105,14 @@ do {
                 linenoiseHistoryAdd($line);
             }
 
-            $line;
+            $line
         }
     }
 
     my role FallbackBehavior {
         method repl-read(Mu \prompt) {
             print prompt;
-            get;
+            get
         }
     }
 
@@ -149,7 +149,7 @@ do {
         method extract-last-word(Str $line) {
             my $m = $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
-            return ( ~$m<prefix>, ~$m<last_word> );
+            ( ~$m<prefix>, ~$m<last_word> )
         }
 
         method completions-for-line(Str $line, int $cursor-index) {
@@ -167,12 +167,6 @@ do {
         }
     }
 
-    # *** WARNING ***
-    #
-    # If you want to add new methods as hooks into Perl6::Compiler, you'll need to
-    # add support for them to Perl6::Compiler itself.  See the readline and eval
-    # methods both in this file and in Perl6::Compiler for guidance on how to do
-    # that
     class REPL {
         also does Completions;
 
@@ -304,9 +298,7 @@ do {
 
             }
 
-            my $result := self.compiler.eval(code, |%(adverbs));
-
-            return $result;
+            self.compiler.eval(code, |%(adverbs))
         }
 
         method repl-eval($code, *%adverbs) {
@@ -318,7 +310,7 @@ do {
             if $needs_more_input {
                 return $more-code-sentinel;
             }
-            return $result;
+            $result
         }
 
         method interactive_prompt() { '> ' }
@@ -379,7 +371,7 @@ do {
                 self.repl-print($output);
             }
 
-            self.teardown();
+            self.teardown;
         }
 
         # Inside of the EVAL it does like caller.ctxsave
@@ -389,7 +381,7 @@ do {
         }
 
         method input-incomplete($value) {
-            $value.WHERE == $more-code-sentinel.WHERE;
+            $value.WHERE == $more-code-sentinel.WHERE
         }
 
         method repl-print($value) {

@@ -31,17 +31,17 @@ environment:
     - RAKUDO_OPTIONS: --backends=moar --gen-nqp        --gen-moar
     - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar
     - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar=master
-    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
-    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
+#    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
+#    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
 
 # Allow failures from certain build configuration
 matrix:
   fast_finish: true
-  allow_failures:
-    - platform: x64
-      RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
-    - platform: x64
-      RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
+#  allow_failures:
+#    - platform: x64
+#      RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
+#    - platform: x64
+#      RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
 
 # Installation
 install:

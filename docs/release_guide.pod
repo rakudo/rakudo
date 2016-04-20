@@ -377,7 +377,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-02-02   2016.01.1                       (Coke)
   2016-02-21   Rakudo #96 "2016.02"            (Coke)
   2016-03-23   Rakudo #97 "2016.03"            (Coke)
-  2016-04-16   Rakudo #98 "2016.04"            (Coke)
+  2016-04-19   Rakudo #98 "2016.04"            (Coke)
 
 =head1 COPYRIGHT
 

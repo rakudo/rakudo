@@ -651,7 +651,10 @@ static void p6argsfordispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have the dispatcher we're looking for? */
-        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        MVMRegister *disp_lex;
+        MVMROOT(tc, ctx, {
+            disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        });
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
             MVMObject *disp             = GET_REG(tc, 2).o;

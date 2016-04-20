@@ -225,6 +225,8 @@ are the tests that will end up in the release tarball.
 
 Unpack the tar file into another area, and test that it
 builds and runs properly using the same process in steps 10-12.
+For step 12, just run "make stresstest"; you're only testing
+the official spec tests here, and cannot switch between branches.
 If there are any problems, fix them and go back to step 10.
 
 =item 15.

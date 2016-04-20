@@ -168,6 +168,22 @@ Make sure everything compiles and runs from a known clean state:
   $ make
   $ make install
   $ make test
+
+=item 11.
+
+Install Inline::Perl5 so stresstest can use it.
+
+  $ git clone git@github.com:tadzik/panda.git
+  $ export PATH=`pwd`/install/bin:$PATH
+  $ cd panda; perl6 bootstrap.pl
+  $ cd ..
+  $ export PATH=`pwd`/share/perl6/site/bin:$PATH
+  $ panda install Inline::Perl5
+
+=item 12.
+
+Now run the stresstests for stable and lastest specs.
+
   $ (cd t/spec && git checkout master)     # test latest language spec
   $ make stresstest
   $ (cd t/spec && git checkout 6.c-errata) # test stable language spec
@@ -182,7 +198,7 @@ execute that last as
 where 4 is the number of CPU cores.  This should make the
 total time to execute all of the tests dramatically less.
 
-Note that any failures against the stable language spec must be
+Note that any failures against the stable language spec B<must> be
 fixed before a release can be made.
 
 Continue adjusting things until make stresstest passes as expected.
@@ -190,7 +206,7 @@ Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
 
-=item 11.
+=item 13.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
@@ -202,13 +218,13 @@ So please make a backup if you have any important data in there.
 Because we tested the stable language spec last, above, those
 are the tests that will end up in the release tarball.
 
-=item 12.
+=item 14.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 10.
+builds and runs properly using the same process in steps 10-12.
 If there are any problems, fix them and go back to step 10.
 
-=item 13.
+=item 15.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
@@ -222,13 +238,13 @@ If you have no PGP key, you might need to
 L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
 that prove impossible, you can omit the C<-s> from the command line.
 
-=item 14.
+=item 16.
 
 Sign the tarball with your PGP key:
 
     $ gpg -b --armor rakudo-YYYY-MM.tar.gz
 
-=item 15.
+=item 17.
 
 Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
 
@@ -239,7 +255,7 @@ If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam/perlpilot,  [Coke], lizmat, timotimo, fsergot))
 on #perl6 to do it for you.
 
-=item 16.
+=item 18.
 
 To avoid public confusion with Rakudo Star releases, we now publish
 compiler release announcements ONLY to perl6-compiler@perl.org.
@@ -250,11 +266,11 @@ announcement for both.)
 Don’t send out any announcements until the files are actually available
 per step 14 above.
 
-=item 17.
+=item 19.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 18.
+=item 20.
 
 You’re done!  Celebrate with the appropriate amount of fun.
 

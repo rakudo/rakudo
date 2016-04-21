@@ -98,7 +98,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !add-short-name($name, $dist) {
         my $short-dir = $.prefix.child('short');
-        $short-dir.mkdir unless $short-dir.e;
         my $id = nqp::sha1($name);
         my $lookup = $short-dir.child($id);
         $lookup.mkdir;
@@ -141,9 +140,16 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !upgrade-repository(Int $version) {
+        my $short-dir = $.prefix.child('short');
+        mkdir $short-dir unless $short-dir.e;
+        my $precomp-dir = $.prefix.child('precomp');
+        mkdir $precomp-dir unless $precomp-dir.e;
+        self!sources-dir;
+        self!resources-dir;
+        self!dist-dir;
+        self!bin-dir;
         if ($version < 1) {
             $.prefix.child('version').spurt('1');
-            my $short-dir = $.prefix.child('short');
             for $short-dir.dir -> $file {
                 my @ids = $file.lines.unique;
                 $file.unlink;

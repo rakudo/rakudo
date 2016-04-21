@@ -146,8 +146,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture $a, Capture $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+multi sub infix:<eqv>(Capture \a, Capture \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.list eqv b.list && a.hash eqv b.hash)
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

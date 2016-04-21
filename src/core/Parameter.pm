@@ -388,6 +388,9 @@ multi sub infix:<eqv>(Parameter \a, Parameter \b) {
     # we're us
     return True if a =:= b;
 
+    # different container type
+    return False unless a.WHAT =:= b.WHAT;
+
     # different nominal or coerce type
     return False
       unless nqp::iseq_s(

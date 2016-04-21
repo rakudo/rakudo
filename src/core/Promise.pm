@@ -223,8 +223,8 @@ my class Promise {
     method Numeric(Promise:D:) { self.result.Numeric }
 }
 
-multi sub infix:<eqv>(Promise:D $a, Promise:D $b) {
-    infix:<eqv>($a.result, $b.result);
+multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
+    a =:= b || a.result eqv b.result
 }
 
 # vim: ft=perl6 expandtab sw=4

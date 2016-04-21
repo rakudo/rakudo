@@ -29,8 +29,8 @@ my role Numeric {
     method pred() { self - 1 }
 }
 
-multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
-    $a.WHAT === $b.WHAT && $a == $b
+multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
+    nqp::p6bool(a =:= b || (a.WHAT =:= b.WHAT && a == b)) # RT #127951
 }
 
 ## arithmetic operators

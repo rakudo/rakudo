@@ -106,8 +106,8 @@ class Version {
 }
 
 
-multi sub infix:<eqv>(Version:D $a, Version:D $b) {
-    $a.WHAT === $b.WHAT && $a.Str eq $b.Str
+multi sub infix:<eqv>(Version:D \a, Version:D \b) {
+    a =:= b || (a.WHAT =:= b.WHAT && a.Str eq b.Str)
 }
 
 

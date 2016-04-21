@@ -721,10 +721,12 @@ sub prefix:<^>($max) is pure {
 }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {
-       a.min eqv b.min
-    && a.max eqv b.max
-    && a.excludes-min eqv b.excludes-min
-    && a.excludes-max eqv b.excludes-max
+    a =:= b
+      || (a.WHAT =:= b.WHAT
+        && a.min eqv b.min
+        && a.max eqv b.max
+        && a.excludes-min eqv b.excludes-min
+        && a.excludes-max eqv b.excludes-max)
 }
 
 multi sub infix:<+>(Range:D \a, Real:D \b) { a.clone-with-op(&[+], b) }

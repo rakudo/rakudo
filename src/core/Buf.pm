@@ -760,11 +760,7 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    a =:= b
-      ?? True
-      !! a.WHAT === b.WHAT
-        ?? a.SAME(b)
-        !! False
+    nqp::p6bool(nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b)))
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }

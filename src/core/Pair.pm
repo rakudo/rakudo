@@ -77,8 +77,8 @@ my class Pair does Associative {
     method FLATTENABLE_HASH() { nqp::hash($!key.Str, $!value) }
 }
 
-multi sub infix:<eqv>(Pair:D $a, Pair:D $b) {
-    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
+multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
+    a =:= b || (a.WHAT =:= b.WHAT && a.key eqv b.key && a.value eqv b.value)
 }
 
 multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {

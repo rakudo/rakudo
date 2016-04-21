@@ -1858,7 +1858,10 @@ multi sub infix:<cmp>(str $a, str $b) returns Order:D {
 }
 
 multi sub infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a.WHAT,b.WHAT)
+      && nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b))
+    )
 }
 multi sub infix:<===>(str $a, str $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_s($a, $b))

@@ -28,6 +28,10 @@ my class Instant is Cool does Real {
         Rakudo::Internals.posix-from-tai($!tai)
     }
 
+    multi method WHICH (Instant:D:) {
+        self.^name ~ '|' ~ $!tai.WHICH
+    }
+
     multi method Str(Instant:D:) {
         'Instant:' ~ $!tai
     }
@@ -97,6 +101,9 @@ multi sub infix:<->(Instant:D $a, Instant:D $b) {
     Duration.new: $a.tai - $b.tai;
 }
 multi sub infix:<->(Instant:D $a, Real:D $b) {
+    nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
+}
+multi sub infix:<->(Instant:D $a, Duration:D $b) {
     nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
 }
 

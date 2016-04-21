@@ -1,12 +1,12 @@
 # Copyright (C) 2015 The Perl Foundation
 
 PERL5   = @perl@
-MKPATH  = $(PERL5) -MExtUtils::Command -e mkpath
-CHMOD   = $(PERL5) -MExtUtils::Command -e chmod
-CP      = $(PERL5) -MExtUtils::Command -e cp
-RM_F    = $(PERL5) -MExtUtils::Command -e rm_f
-RM_RF   = $(PERL5) -MExtUtils::Command -e rm_rf
-TEST_F  = $(PERL5) -MExtUtils::Command -e test_f
+MKPATH  = @mkpath@
+CHMOD   = @chmod@
+CP      = @cp@
+RM_F    = @rm_f@
+RM_RF   = @rm_rf@
+TEST_F  = @test_f@
 SHELL   = @shell@
 
 SYSROOT= @sysroot@

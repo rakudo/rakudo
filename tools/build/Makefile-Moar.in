@@ -68,7 +68,6 @@ M_CLEANUPS = \
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
   rakudo_test_run.tar.gz \
-  $(M_BUILD_DIR) \
   $(M_RUNNER) \
   $(M_PERL6_OPS_DLL) \
   $(M_PERL6_OPS_OBJ) \
@@ -76,6 +75,7 @@ M_CLEANUPS = \
   $(M_PERL6_OPS_DLL) \
   $(PERL6_DEBUG_MOAR) \
   $(M_DEBUG_RUNNER) \
+  $(M_BUILD_DIR)@slash@*.* \
 @m_cleanups@
 
 M_HARNESS_WITH_FUDGE = $(PERL5) t/harness --fudge --moar --keep-exit-code

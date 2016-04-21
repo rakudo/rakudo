@@ -15,7 +15,8 @@ my sub MAIN_HELPER($retval = 0) {
 
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
-        my (@positional-arguments, %named-arguments);
+        my @positional-arguments;
+        my %named-arguments;
         my $stopped = False;
         while +@args {
             my $passed-value = @args.shift;
@@ -65,7 +66,12 @@ my sub MAIN_HELPER($retval = 0) {
           !! strip_path_prefix($*PROGRAM-NAME);
         for $m.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
-            my (@required-named, @optional-named, @positional, $docs);
+
+            my @required-named;
+            my @optional-named;
+            my @positional;
+            my $docs;
+
             for $sub.signature.params -> $param {
                 my $argument;
                 if $param.named {

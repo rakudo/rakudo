@@ -488,7 +488,7 @@ sub eval_exception($code) {
     $!;
 }
 
-sub proclaim($cond, $desc) {
+sub proclaim($cond, $desc is copy ) {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -500,9 +500,12 @@ sub proclaim($cond, $desc) {
             $num_of_tests_failed = $num_of_tests_failed + 1
         }
     }
+
+    # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+    $desc = $desc ?? $desc.subst(/<[\\\#]>/, { "\\$_" }, :g) !! '';
+
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        $tap ~= "ok $num_of_tests_run - " ~ $desc.subst('#', '', :g) ~ $todo_reason;
+        $tap ~= "ok $num_of_tests_run - $desc$todo_reason";
     }
     else {
         $tap ~= "ok $num_of_tests_run - $desc";

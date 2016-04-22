@@ -198,8 +198,7 @@ my sub MAIN_HELPER($retval = 0) {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*MAIN-ALLOW-NAMED-ANYWHERE', {
-    PROCESS::<$MAIN-ALLOW-NAMED-ANYWHERE> :=
-      %*ENV<RAKUDO_MAIN_ALLOW_NAMED_ANYWHERE> // 0;
+    PROCESS::<$MAIN-ALLOW-NAMED-ANYWHERE> := 0;
 }
 
 # vim: ft=perl6 expandtab sw=4

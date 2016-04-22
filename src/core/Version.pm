@@ -111,19 +111,38 @@ multi sub infix:<eqv>(Version:D \a, Version:D \b) {
 }
 
 
-multi sub infix:<cmp>(Version:D $a, Version:D $b) {
+multi sub infix:<cmp>(Version:D \a, Version:D \b) {
     proto vnumcmp(|) { * }
     multi vnumcmp(Str, Int) { Order::Less }
     multi vnumcmp(Int, Str) { Order::More }
     multi vnumcmp($av, $bv) { $av cmp $bv }
 
-    my @av = $a.parts.values;
-    my @bv = $b.parts.values;
-    while @av || @bv {
-       my $cmp = vnumcmp(@av.shift // 0, @bv.shift // 0);
-       return $cmp if $cmp != Order::Same;
+    # we're us
+    if a =:= b {
+        Same
     }
-    $a.plus cmp $b.plus;
+
+    # need to check
+    else {
+        my \ia := nqp::iterator(nqp::getattr(nqp::decont(a),Version,'$!parts'));
+        my \ib := nqp::iterator(nqp::getattr(nqp::decont(b),Version,'$!parts'));
+
+        # check from left
+        while ia {
+            if vnumcmp(nqp::shift(ia), ib ?? nqp::shift(ib) !! 0) -> $cmp {
+                return $cmp;
+            }
+        }
+
+        # check from right
+        while ib {
+            if vnumcmp(0, nqp::shift(ib)) -> $cmp {
+                return $cmp;
+            }
+        }
+
+        a.plus cmp b.plus
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

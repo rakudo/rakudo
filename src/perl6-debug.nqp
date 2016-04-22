@@ -479,12 +479,19 @@ sub MAIN(*@ARGS) {
 
     # Force loading of the debugger module.
     my $debugger;
-    if @ARGS[1] ~~ /^\-D/ {
-	$debugger := "-M" ~ nqp::substr(@ARGS[1], 2);
-	@ARGS.shift();
-    } else {
+    my $i := 1;
+    while @ARGS[$i] ~~ /^\-/ {
+	if @ARGS[$i] ~~ /^\-D/ {
+	    $debugger := "-M" ~ nqp::substr(@ARGS[$i], 2);
+	    nqp::splice(@ARGS, [], $i, 1);
+	}
+	$i++;
+    }
+
+    if !(nqp::defined($debugger)) {
 	$debugger := '-MDebugger::UI::CommandLine';
     }
+
     my $pname := @ARGS.shift();
     @ARGS.unshift('-Ilib');
     @ARGS.unshift($debugger);

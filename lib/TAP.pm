@@ -167,7 +167,7 @@ grammar Grammar {
 	token sp { <[\s] - [\n]> }
 	token num { <[0..9]>+ }
 	token line {
-		^^ [ <plan> | <test> | <bailout> | <version> | <comment> | <yaml> | <sub-test> || <unknown> ] \n
+		^^ [ <plan> | <test> | <bailout> | <version> | <comment> || <unknown> ] \n
 	}
 	token plan {
 		'1..' <count=.num> <.sp>* [ '#' <.sp>* $<directive>=[:i 'SKIP'] <.alnum>* [ <.sp>+ $<explanation>=[\N*] ]? ]?
@@ -207,14 +207,7 @@ grammar Grammar {
 		<.indent($indent)> <test>
 	}
 	token unknown {
-		<unknown-simple> | <invalid-subtest>
-	}
-	token unknown-simple {
-		<!before '    '> \N*
-	}
-	token invalid-subtest {
-		[ '    ' \N* ]+ % \n
-		\n <unknown-simple>
+		\N*
 	}
 	class Actions {
 		method TOP($/) {

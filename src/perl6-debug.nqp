@@ -484,6 +484,7 @@ sub MAIN(*@ARGS) {
 	if @ARGS[$i] ~~ /^\-D/ {
 	    $debugger := "-M" ~ nqp::substr(@ARGS[$i], 2);
 	    nqp::splice(@ARGS, [], $i, 1);
+	    last;
 	}
 	$i++;
     }

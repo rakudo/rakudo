@@ -496,20 +496,17 @@ sub proclaim($cond, $desc is copy ) {
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
-        unless  $num_of_tests_run <= $todo_upto_test_num {
-            $num_of_tests_failed = $num_of_tests_failed + 1
-        }
+        $num_of_tests_failed = $num_of_tests_failed + 1
+          unless  $num_of_tests_run <= $todo_upto_test_num;
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
     $desc = $desc ?? $desc.subst(/<[\\\#]>/, { "\\$_" }, :g) !! '';
 
-    if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        $tap ~= "ok $num_of_tests_run - $desc$todo_reason";
-    }
-    else {
-        $tap ~= "ok $num_of_tests_run - $desc";
-    }
+    $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
+      ?? "ok $num_of_tests_run - $desc$todo_reason"
+      !! "ok $num_of_tests_run - $desc";
+
     $output.say: $tap;
     $output.say: $indents
       ~ "# t="
@@ -522,19 +519,19 @@ sub proclaim($cond, $desc is copy ) {
         repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
-        if $desc ne '' {
-            diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
-        } else {
-            diag "\nFailed test at {$caller.file} line {$caller.line}";
-        }
+
+        diag $desc
+          ?? "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}"
+          !! "\nFailed test at {$caller.file} line {$caller.line}";
     }
 
-    if !$cond && $die_on_fail && !$todo_reason {
-        die "Test failed.  Stopping test";
-    }
+    die "Test failed.  Stopping test"
+      if !$cond && $die_on_fail && !$todo_reason;
+
     # must clear this between tests
-    if $todo_upto_test_num == $num_of_tests_run { $todo_reason = '' }
-    $cond;
+    $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
+
+    $cond
 }
 
 sub done-testing() is export {
@@ -546,12 +543,16 @@ sub done-testing() is export {
         $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
-    if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
-        diag("Looks like you planned $num_of_tests_planned test{ $num_of_tests_planned == 1 ?? '' !! 's'}, but ran $num_of_tests_run");
-    }
-    if ($num_of_tests_failed) {
-        diag("Looks like you failed $num_of_tests_failed test{ $num_of_tests_failed == 1 ?? '' !! 's'} of $num_of_tests_run");
-    }
+    # Wrong quantity of tests
+    diag("Looks like you planned $num_of_tests_planned test{
+        $num_of_tests_planned == 1 ?? '' !! 's'
+    }, but ran $num_of_tests_run")
+      if ($num_of_tests_planned or $num_of_tests_run)
+      && ($num_of_tests_planned != $num_of_tests_run);
+
+    diag("Looks like you failed $num_of_tests_failed test{
+        $num_of_tests_failed == 1 ?? '' !! 's'
+    } of $num_of_tests_run") if $num_of_tests_failed;
 }
 
 sub _init_vars {
@@ -600,22 +601,17 @@ sub _pop_vars {
 END {
     ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
-    if !$done_testing_has_been_run && !$no_plan {
-        done-testing;
-    }
+    done-testing if !$done_testing_has_been_run && !$no_plan;
 
-    for $output, $failure_output, $todo_output -> $handle {
-        next if $handle === ($*ERR|$*OUT);
+    .?close unless $_ === $*OUT || $_ === $*ERR
+      for $output, $failure_output, $todo_output;
 
-        $handle.?close;
-    }
+    exit($num_of_tests_failed min 254) if $num_of_tests_failed > 0;
 
-    if $num_of_tests_failed and $num_of_tests_failed > 0 {
-        exit($num_of_tests_failed min 254);
-    }
-    elsif !$no_plan && ($num_of_tests_planned or $num_of_tests_run) && $num_of_tests_planned != $num_of_tests_run {
-        exit(255);
-    }
+    exit(255)
+      if !$no_plan
+      && ($num_of_tests_planned or $num_of_tests_run)
+      &&  $num_of_tests_planned != $num_of_tests_run;
 }
 
 =begin pod

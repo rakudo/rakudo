@@ -13,32 +13,56 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
+    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE; 
+
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
-        my @positional-arguments;
-        my %named-arguments;
-        my $stopped = False;
-        while +@args {
-            my $passed-value = @args.shift;
-            $stopped = $passed-value eq '--';
-            if !$stopped && $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
-                my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
+        my $positional := nqp::list;
+        my %named;
 
-                with $arg.index('=') {
-                    my ($name, $value) = $arg.split('=', 2);
-                    $value = val($value);
-                    $value = $value but False if $negate;
-                    %named-arguments.push: $name => $value;
-                } else {
-                    %named-arguments.push: $arg => !$negate;
-                }
-            } else {
-                @args.unshift($passed-value) unless $passed-value eq '--';
-                @positional-arguments.append: @args.map: &val;
+        while ?@args {
+            my str $passed-value = @args.shift;
+
+            # rest considered to be non-parsed
+            if nqp::iseq_s($passed-value,'--') {
+                nqp::push($positional, val($_)) for @args;
                 last;
             }
+
+            # no longer accepting nameds
+            elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
+                nqp::push($positional, val($passed-value));
+            }
+
+            # named
+            elsif $passed-value
+              ~~ /^ [ '--' | '-' | ':' ] ('/'?) (<-[0..9\.]> .*) $/ {  # 'hlfix
+                my str $arg = $1.Str;
+                my $split  := nqp::split("=",$arg);
+
+                # explicit value
+                if nqp::isgt_i(nqp::elems($split),1) {
+                    my str $name = nqp::shift($split);
+                    %named.push: $name => $0.chars
+                      ?? val(nqp::join("=",$split)) but False
+                      !! val(nqp::join("=",$split));
+                }
+                
+                # implicit value
+                else {
+                    %named.push: $arg => !($0.chars);
+                }
+            }
+
+            # positional
+            else {
+                nqp::push($positional, val($passed-value));
+            }
         }
-        @positional-arguments, %named-arguments;
+
+        nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',$positional
+        ),%named;
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -171,6 +195,11 @@ my sub MAIN_HELPER($retval = 0) {
         $*ERR.say($?USAGE);
         exit 2;
     }
+}
+
+Rakudo::Internals.REGISTER-DYNAMIC: '$*MAIN-ALLOW-NAMED-ANYWHERE', {
+    PROCESS::<$MAIN-ALLOW-NAMED-ANYWHERE> :=
+      %*ENV<MAIN_ALLOW_NAMED_ANYWHERE> // 0;
 }
 
 # vim: ft=perl6 expandtab sw=4

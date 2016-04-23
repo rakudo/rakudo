@@ -108,7 +108,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $path = $!prefix.child($file);
 
             if $path.f {
-                return %!loaded{$file} = %seen{$path} = CompUnit.new(
+                return %!loaded{$file.Str} //= %seen{$path.Str} = CompUnit.new(
                     :handle(
                         $precompiled
                             ?? CompUnit::Loader.load-precompilation-file($path)

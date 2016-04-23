@@ -1836,9 +1836,17 @@ multi sub prefix:<~>(Str:D \a)  returns Str:D { a }
 multi sub prefix:<~>(str $a)    returns str   { $a }
 
 multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
-    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
+    my int $size = nqp::chars(a) + nqp::chars(b);
+    ($size >= 2**32 || $size < 0)
+        ?? fail "strings too big to concatenate"
+        !! nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)));
 }
-multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
+multi sub infix:<~>(str $a, str $b) returns str {
+    my int $size = nqp::chars($a) + nqp::chars($b);
+    ($size >= 2**32 || $size < 0)
+        ?? fail "strings too big to concatenate"
+        !! nqp::concat($a, $b)
+}
 multi sub infix:<~>(*@args) returns Str:D { @args.join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {

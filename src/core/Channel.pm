@@ -129,7 +129,15 @@ my class Channel {
     }
 
     multi method list(Channel:D:) {
-        self.Supply.list
+        Seq.new( class :: does Iterator {
+            has $!channel;
+            method !SET-SELF($!channel) { self }
+            method new(\c) { nqp::create(self)!SET-SELF(c) }
+            method pull-one() {
+                my Mu \got = $!channel.poll;
+                nqp::eqaddr(got, Nil) ?? IterationEnd !! got
+            }
+        }.new(self))
     }
 
     method close() {

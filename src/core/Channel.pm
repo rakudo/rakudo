@@ -46,20 +46,27 @@ my class Channel {
         Nil
     }
 
-    method receive(Channel:D:) {
+    method !receive(Channel:D: $fail-on-close) {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new(channel => self).throw
+              if $fail-on-close;
+            Nil
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
             die msg.error;
         }
-        msg
+        else {
+            msg
+        }
     }
+
+    method receive(Channel:D:)              { self!receive(1) }
+    method receive-nil-on-close(Channel:D:) { self!receive(0) }
 
     method poll(Channel:D:) {
         my \msg := nqp::queuepoll($!queue);
@@ -128,9 +135,20 @@ my class Channel {
         }
     }
 
-    multi method list(Channel:D:) {
-        self.Supply.list
+    method iterator(Channel:D:) {
+        class :: does Iterator {
+            has $!channel;
+            method !SET-SELF($!channel) { self }
+            method new(\c) { nqp::create(self)!SET-SELF(c) }
+            method pull-one() {
+                my Mu \got = $!channel.receive-nil-on-close;
+                nqp::eqaddr(got, Nil) ?? IterationEnd !! got
+            }
+        }.new(self)
     }
+
+    method Seq(Channel:D:)  { Seq.new(self.iterator) }
+    method list(Channel:D:) { self.Seq.list }
 
     method close() {
         $!closed = 1;

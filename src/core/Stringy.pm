@@ -2,8 +2,8 @@ my class X::NYI { ... }
 
 my role Stringy { }
 
-multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b) {
+    a =:= b || (a.WHAT =:= b.WHAT && (a cmp b) == 0)
 }
 
 proto sub prefix:<~>($) is pure { * }

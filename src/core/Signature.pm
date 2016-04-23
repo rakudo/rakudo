@@ -141,6 +141,9 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
     # we're us
     return True if a =:= b;
 
+    # different container type
+    return False unless a.WHAT =:= b.WHAT;
+
     # arity or count mismatch
     return False if a.arity != b.arity || a.count != b.count;
 

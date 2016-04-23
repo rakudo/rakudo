@@ -1,23 +1,23 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2015 The Perl Foundation.
+# Copyright (C) 2007 - 2016 The Perl Foundation.
 
 # settable from outside
-my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
+my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
 
 # global state
 my @vars;
 my $indents = "";
 
 # variables to keep track of our tests
-my $num_of_tests_run;
-my $num_of_tests_failed;
-my $todo_upto_test_num;
+my int $num_of_tests_run;
+my int $num_of_tests_failed;
+my int $todo_upto_test_num;
 my $todo_reason;
 my $num_of_tests_planned;
-my $no_plan;
-my $die_on_fail;
+my int $no_plan;
+my int $die_on_fail;
 my num $time_before;
 my num $time_after;
 
@@ -29,7 +29,7 @@ my $todo_output;
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
 ## plans and don't call done_testing.
-my $done_testing_has_been_run = 0;
+my int $done_testing_has_been_run = 0;
 
 # make sure we have initializations
 _init_vars();
@@ -57,7 +57,7 @@ our sub todo_output is rw {
 }
 
 # you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
-sub die_on_fail($fail=1) {
+sub die_on_fail(int $fail=1) {
     $die_on_fail = $fail;
 }
 
@@ -84,7 +84,7 @@ multi sub plan($number_of_tests) is export {
     $output.say: $indents
       ~ '# between two timestamps '
       ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
-        if $perl6_test_times;
+        if nqp::iseq_i($perl6_test_times,1);
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::time_n;
 }
@@ -284,7 +284,8 @@ multi sub skip($reason, $count = 1) is export {
 
 sub skip-rest($reason = '<unknown>') is export {
     $time_after = nqp::time_n;
-    die "A plan is required in order to use skip-rest" if $no_plan;
+    die "A plan is required in order to use skip-rest"
+      if nqp::iseq_i($no_plan,1);
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::time_n;
 }
@@ -294,7 +295,7 @@ sub subtest(&subtests, $desc = '') is export {
     _init_vars();
     $indents ~= "    ";
     subtests();
-    done-testing() if !$done_testing_has_been_run;
+    done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
@@ -488,7 +489,7 @@ sub eval_exception($code) {
     $!;
 }
 
-sub proclaim($cond, $desc) {
+sub proclaim($cond, $desc is copy ) {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -496,59 +497,65 @@ sub proclaim($cond, $desc) {
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
-        unless  $num_of_tests_run <= $todo_upto_test_num {
-            $num_of_tests_failed = $num_of_tests_failed + 1
-        }
+        $num_of_tests_failed = $num_of_tests_failed + 1
+          unless  $num_of_tests_run <= $todo_upto_test_num;
     }
-    if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        $tap ~= "ok $num_of_tests_run - " ~ $desc.subst('#', '', :g) ~ $todo_reason;
-    }
-    else {
-        $tap ~= "ok $num_of_tests_run - $desc";
-    }
+
+    # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+    $desc = $desc ?? $desc.subst(/<[\\\#]>/, { "\\$_" }, :g) !! '';
+
+    $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
+        ?? "ok $num_of_tests_run - $desc$todo_reason"
+        !! "ok $num_of_tests_run - $desc";
+
     $output.say: $tap;
     $output.say: $indents
       ~ "# t="
       ~ ceiling(($time_after-$time_before)*1_000_000)
-        if $perl6_test_times;
+        if nqp::iseq_i($perl6_test_times,1);
 
     unless $cond {
         my $caller;
-        my $level = 2; # sub proclaim is not called directly, so 2 is minimum level
+        # sub proclaim is not called directly, so 2 is minimum level
+        my int $level = 2;
+
         repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
-        if $desc ne '' {
-            diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
-        } else {
-            diag "\nFailed test at {$caller.file} line {$caller.line}";
-        }
+
+        diag $desc
+          ?? "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}"
+          !! "\nFailed test at {$caller.file} line {$caller.line}";
     }
 
-    if !$cond && $die_on_fail && !$todo_reason {
-        die "Test failed.  Stopping test";
-    }
+    die "Test failed.  Stopping test"
+      if !$cond && nqp::iseq_i($die_on_fail,1) && !$todo_reason;
+
     # must clear this between tests
-    if $todo_upto_test_num == $num_of_tests_run { $todo_reason = '' }
-    $cond;
+    $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
+
+    $cond
 }
 
 sub done-testing() is export {
     _init_io() unless $output;
     $done_testing_has_been_run = 1;
 
-    if $no_plan {
+    if nqp::iseq_i($no_plan,1) {
         $num_of_tests_planned = $num_of_tests_run;
         $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
-    if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
-        diag("Looks like you planned $num_of_tests_planned test{ $num_of_tests_planned == 1 ?? '' !! 's'}, but ran $num_of_tests_run");
-    }
-    if ($num_of_tests_failed) {
-        diag("Looks like you failed $num_of_tests_failed test{ $num_of_tests_failed == 1 ?? '' !! 's'} of $num_of_tests_run");
-    }
+    # Wrong quantity of tests
+    diag("Looks like you planned $num_of_tests_planned test{
+        $num_of_tests_planned == 1 ?? '' !! 's'
+    }, but ran $num_of_tests_run")
+      if ($num_of_tests_planned or $num_of_tests_run)
+      && ($num_of_tests_planned != $num_of_tests_run);
+
+    diag("Looks like you failed $num_of_tests_failed test{
+        $num_of_tests_failed == 1 ?? '' !! 's'
+    } of $num_of_tests_run") if $num_of_tests_failed;
 }
 
 sub _init_vars {
@@ -558,7 +565,7 @@ sub _init_vars {
     $todo_reason          = '';
     $num_of_tests_planned = Any;
     $no_plan              = 1;
-    $die_on_fail          = Any;
+    $die_on_fail          = 0;
     $time_before          = NaN;
     $time_after           = NaN;
     $done_testing_has_been_run = 0;
@@ -597,22 +604,19 @@ sub _pop_vars {
 END {
     ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
-    if !$done_testing_has_been_run && !$no_plan {
-        done-testing;
-    }
+    done-testing
+      if nqp::iseq_i($done_testing_has_been_run,0)
+      && nqp::iseq_i($no_plan,0);
 
-    for $output, $failure_output, $todo_output -> $handle {
-        next if $handle === ($*ERR|$*OUT);
+    .?close unless $_ === $*OUT || $_ === $*ERR
+      for $output, $failure_output, $todo_output;
 
-        $handle.?close;
-    }
+    exit($num_of_tests_failed min 254) if $num_of_tests_failed > 0;
 
-    if $num_of_tests_failed and $num_of_tests_failed > 0 {
-        exit($num_of_tests_failed min 254);
-    }
-    elsif !$no_plan && ($num_of_tests_planned or $num_of_tests_run) && $num_of_tests_planned != $num_of_tests_run {
-        exit(255);
-    }
+    exit(255)
+      if nqp::iseq_i($no_plan,0)
+      && ($num_of_tests_planned or $num_of_tests_run)
+      &&  $num_of_tests_planned != $num_of_tests_run;
 }
 
 =begin pod

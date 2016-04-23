@@ -674,16 +674,17 @@ multi sub infix:<eqv>(Any $a, Any $b) {
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    if @a.WHAT === @b.WHAT && (my int $n = @a.elems) == @b.elems {
-        my int $i;
-        while $i < $n {
-            return Bool::False unless @a.AT-POS($i) eqv @b.AT-POS($i);
-            $i = $i + 1;
-        }
-        Bool::True
+    if @a =:= @b {
+        True
+    }
+    elsif @a.WHAT =:= @b.WHAT && (my int $n = @a.elems) == @b.elems {
+        my int $i = -1;
+        return False unless @a.AT-POS($i) eqv @b.AT-POS($i)
+          while nqp::islt_i($i = nqp::add_i($i,1),$n);
+        True
     }
     else {
-        Bool::False;
+        False
     }
 }
 

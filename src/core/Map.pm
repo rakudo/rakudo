@@ -263,14 +263,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Map:D $a, Map:D $b) {
-    if +$a != +$b { return Bool::False }
-    for $a.kv -> $k, $v {
-        unless $b.EXISTS-KEY($k) && $b{$k} eqv $v {
-            return Bool::False;
-        }
+multi sub infix:<eqv>(Map:D \a, Map:D \b) {
+    if a =:= b {
+        True
     }
-    Bool::True;
+    elsif a.WHAT =:= b.WHAT && a.elems == b.elems {
+        return False
+          unless b.EXISTS-KEY($_) && a.AT-KEY($_) eqv b.AT-KEY($_)
+          for a.keys;
+        True
+    }
+    else {
+        False
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

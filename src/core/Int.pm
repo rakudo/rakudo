@@ -284,7 +284,10 @@ multi sub infix:<gcd>(int $a, int $b) returns int {
 }
 
 multi sub infix:<===>(Int:D \a, Int:D \b) {
-    a.WHAT =:= b.WHAT && nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a.WHAT,b.WHAT)
+      && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
+    )
 }
 multi sub infix:<===>(int $a, int $b) {
     # hey, the optimizer is smart enough to figure that one out for us, no?

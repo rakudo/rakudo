@@ -424,16 +424,26 @@ sub GATHER(&block) {
     }.new(&block))
 }
 
-multi sub infix:<eqv>(Seq:D $a, Seq:D $b) {
-    return False unless $a.WHAT === $b.WHAT;
-    my \ia := $a.iterator;
-    my \ib := $b.iterator;
-    loop {
-        my \va := ia.pull-one;
-        my \vb := ib.pull-one;
-        return Bool::True if va =:= IterationEnd && vb =:= IterationEnd;
-        return Bool::False if va =:= IterationEnd or vb =:= IterationEnd or not va eqv vb;
-    }
+multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
+
+    # we're us
+    return True  if a =:= b;
+
+    # not same container type
+    return False unless a.WHAT =:= b.WHAT;
+
+    my \ia := a.iterator;
+    my \ib := b.iterator;
+    my $va;
+    my $vb;
+
+    # same until a-list exhausted
+    return False
+      if    ($vb := ib.pull-one) =:= IterationEnd || !($va eqv $vb)
+      until ($va := ia.pull-one) =:= IterationEnd;
+
+    # b-list also exhausted?
+    ib.pull-one =:= IterationEnd
 }
 
 # vim: ft=perl6 expandtab sw=4

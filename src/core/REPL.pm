@@ -257,18 +257,15 @@ do {
         }
 
         method new(Mu \compiler, Mu \adverbs) {
-            return if $*VM.name eq 'jvm';
-
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);
             $self = mixin-line-editor($self);
-
             $self
         }
 
         method init(Mu \compiler, $multi-line-enabled) {
-            $!compiler = compiler;
+            $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
         }
 

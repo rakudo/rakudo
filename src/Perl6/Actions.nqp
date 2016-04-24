@@ -4651,6 +4651,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 );
             }
         }
+        if $<post_constraint> {
+            my $iter := nqp::iterator($<post_constraint>);
+            my $src := nqp::shift($iter);
+            while $iter {
+                $src := $src ~ nqp::shift($iter);
+            }
+            %*PARAM_INFO<post_constraints_src> := $src;
+        }
 
         # Result is the parameter info hash.
         make %*PARAM_INFO;

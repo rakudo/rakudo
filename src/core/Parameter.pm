@@ -6,6 +6,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has int $!flags
     #     has Mu $!nominal_type
     #     has Mu $!post_constraints
+    #     has Mu $!post_constraints_src
     #     has Mu $!coerce_type
     #     has str $!coerce_method
     #     has Mu $!sub_signature
@@ -48,9 +49,9 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
     method usage-name() {
-        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+        (nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
           ?? $!variable_name
-          !! nqp::substr($!variable_name,1)
+          !! nqp::substr($!variable_name,1)) ~ " " ~ self.post_constraints_src
     }
 
     method sigil() {
@@ -380,6 +381,10 @@ my class Parameter { # declared in BOOTSTRAP
 
     method set_why($why) {
         $!why := $why;
+    }
+
+    method post_constraints_src {
+        $!post_constraints_src
     }
 }
 

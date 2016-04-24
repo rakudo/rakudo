@@ -1898,10 +1898,10 @@ my class X::TypeCheck::Binding is X::TypeCheck {
 }
 my class X::TypeCheck::Binding::Constraint is X::TypeCheck::Binding {
     # TODO: actually (1) get the code of the constraint, (2) the failed value and (3) display it in the message
-    # has $.constraint;
-    # has $.value;
-    method message { "Constraint type check failed for parameter '$.symbol'"
-        # ~ "value $.value does not satisfy $.constraints" # or so, subject to rewording
+    has $.constraint;
+    has $.value;
+    method message { "Constraint type check failed for parameter '$.symbol'\n"
+        ~ "value $.value does not satisfy $.constraint"
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
@@ -2261,8 +2261,8 @@ my class X::PhaserExceptions is Exception {
 
 nqp::bindcurhllsym('P6EX', nqp::hash(
   'X::TypeCheck::Binding::Constraint',
-  sub (Mu $symbol #`[[, $value, $constraint ]]) {
-      X::TypeCheck::Binding::Constraint.new(:$symbol #`[[, :$value, :$constraint ]]).throw;
+  sub (Mu $symbol, Mu $value, Mu $constraint) {
+      X::TypeCheck::Binding::Constraint.new(:$symbol, :$value, :$constraint).throw;
   },
   'X::TypeCheck::Binding',
   sub (Mu $got, Mu $expected, $symbol?) {

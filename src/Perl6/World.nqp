@@ -1888,6 +1888,11 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'coerce_type') {
             $parameter.set_coercion(%param_info<coerce_type>);
         }
+        if nqp::existskey(%param_info, 'post_constraints_src') {
+            my str $src := %param_info<post_constraints_src>;
+            $src := nqp::box_s($src, self.find_symbol(['Str']));
+            nqp::bindattr($parameter, $par_type, '$!post_constraints_src', $src);
+        }
 
         if nqp::existskey(%param_info, 'dummy') {
             my $dummy := %param_info<dummy>;

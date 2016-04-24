@@ -474,6 +474,7 @@ my class Binder {
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
+        my $post_cons_src := nqp::getattr($param, Parameter, '$!post_constraints_src');
         unless nqp::isnull($post_cons) {
             my int $n := nqp::elems($post_cons);
             my int $i := 0;
@@ -484,17 +485,22 @@ my class Binder {
                     $cons_type := nqp::p6capturelexwhere($cons_type.clone());
                 }
                 my $result;
+                my $value;
                 if $got_native == 0 {
                     $result := $cons_type.ACCEPTS($oval);
+                    $value := $oval;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
+                    $value := $ival;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $result := $cons_type.ACCEPTS($nval);
+                    $value := $nval;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
                     $result := $cons_type.ACCEPTS($sval);
+                    $value := $sval;
                 }
                 unless $result {
                     if nqp::defined($error) {
@@ -502,8 +508,8 @@ my class Binder {
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Constraint') {
                             $error[0] := "Constraint type check failed for parameter '$varname'";
                         } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Constraint')($varname
-                                #, $value, $constraint # TODO: see core/Execption X::TypeCheck::Binding::Constraint
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Constraint')($varname,
+                                $value, $post_cons_src # TODO: see core/Execption X::TypeCheck::Binding::Constraint
                             ) };
                         }
                     }
@@ -1463,6 +1469,7 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints_src>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu), :package(Parameter)));

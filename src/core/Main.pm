@@ -116,10 +116,9 @@ my sub MAIN_HELPER($retval = 0) {
                     }
                 }
                 else {
-                    my $constraints  = $param.constraint_list.map(*.gist).join(' ');
-                    my $simple-const = $constraints && $constraints !~~ /^_block/;
-                    $argument = $param.name   ?? "<$param.usage-name()>" !!
-                                $simple-const ??       $constraints                !!
+                    my $constraints  = $param.post_constraints_src;
+                    $argument = $param.name  ?? "<$param.usage-name()>" !!
+                                $constraints ?? " " ~ $constraints      !!
                                                  '<' ~ $param.type.^name     ~ '>' ;
 
                     $argument = "[$argument ...]" if $param.slurpy;

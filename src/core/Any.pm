@@ -544,7 +544,7 @@ sub dd(|) {
             my $name := try $var.VAR.?name;
             my $type := $var.WHAT.^name;
             my $what := $var.?is-lazy
-              ?? $var[^10].perl.chop ~ "...Inf)"
+              ?? $var[^10].perl.chop ~ "... (lazy list)"
               !! $var.perl;
             note $name ?? "$type $name = $what" !! $what;
         }

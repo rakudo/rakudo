@@ -734,9 +734,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $unit.name('<unit>');
         $outer.name('<unit-outer>');
 
-        # Load the needed libraries.
-        $*W.add_libs($unit);
-
         # If the unit defines &MAIN, and this is in the mainline,
         # add a &MAIN_HELPER.
         if !$*W.is_precompilation_mode && +(@*MODULES // []) == 0 && $unit.symbol('&MAIN') {

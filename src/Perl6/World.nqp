@@ -2254,7 +2254,6 @@ class Perl6::World is HLL::World {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
-        self.add_libs($wrapper);
 
         # Create outer lexical contexts with all symbols visible. Maybe
         # we can be a bit smarter here some day. But for now we just make a
@@ -3096,17 +3095,6 @@ class Perl6::World is HLL::World {
     # Does any cleanups needed after compilation.
     method cleanup() {
         for @!cleanup_tasks { $_() }
-    }
-
-    # Adds required libraries to a compilation unit.
-    method add_libs($comp_unit) {
-        $comp_unit.push(QAST::VM.new(
-            loadlibs => ['nqp_group', 'nqp_ops', 'perl6_ops',
-                         'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                         'obscure_ops', 'os', 'file', 'sys_ops',
-                         'nqp_bigint_ops', 'nqp_dyncall_ops' ],
-            jvm => QAST::Op.new( :op('null') ),
-            moar => QAST::Op.new( :op('null') )));
     }
 
     # Represents a longname after having parsed it.

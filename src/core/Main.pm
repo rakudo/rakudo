@@ -178,9 +178,9 @@ my sub MAIN_HELPER($retval = 0) {
         CATCH {
             when X::AdHoc {
                 if .backtrace[0].defined
-                and .backtrace[0].subname eq 'MAIN'
-                and .message.index('Constraint type check failed '
-                                 ~ 'for parameter') == 0 {
+                && .backtrace[0].subname eq 'MAIN'
+                && .message.starts-with('Constraint type check failed '
+                                      ~ 'for parameter') {
                     # looks like a regular failed MAIN signature match,
                     # let's handle it and just print USAGE
                     # instead of dying

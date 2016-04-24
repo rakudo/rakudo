@@ -6,7 +6,7 @@ class Version {
     method !SET-SELF(\parts,\plus,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
         $!plus   = plus;
-        $!string = $!plus ?? nqp::concat(string,"+") !! string;
+        $!string = string;
         self
     }
 
@@ -48,7 +48,12 @@ class Version {
                 );
             }
 
-            nqp::create(self)!SET-SELF($parts,$s.ends-with("+"),nqp::join(".", $strings))
+            my str $string = nqp::join(".", $strings);
+            my int $plus   = $s.ends-with("+");
+            nqp::create(self)!SET-SELF($parts,$plus,$plus
+              ?? nqp::concat($string,"+")
+              !! $string
+            )
         }
 
         # "v+" sentinel

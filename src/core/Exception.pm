@@ -2262,7 +2262,7 @@ my class X::PhaserExceptions is Exception {
 nqp::bindcurhllsym('P6EX', nqp::hash(
   'X::TypeCheck::Binding::Constraint',
   sub (Mu $symbol #`[[, $value, $constraint ]]) {
-      X::TypeCheck::Argument::Constraint.new(:$symbol #`[[, :$value, :$constraint ]]).throw;
+      X::TypeCheck::Binding::Constraint.new(:$symbol #`[[, :$value, :$constraint ]]).throw;
   },
   'X::TypeCheck::Binding',
   sub (Mu $got, Mu $expected, $symbol?) {

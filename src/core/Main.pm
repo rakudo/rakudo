@@ -175,6 +175,21 @@ my sub MAIN_HELPER($retval = 0) {
     if +@matching_candidates {
         $m(|@($p), |%($n));
         return;
+        CATCH {
+            when X::AdHoc {
+                if .backtrace[0].defined
+                and .backtrace[0].subname eq 'MAIN'
+                and .message.index('Constraint type check failed '
+                                 ~ 'for parameter') == 0 {
+                    # looks like a regular failed MAIN signature match,
+                    # let's handle it and just print USAGE
+                    # instead of dying
+                }
+                else {
+                    .rethrow;
+                }
+            }
+        }
     }
 
     # We could not find the correct MAIN to dispatch to!

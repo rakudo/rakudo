@@ -18,6 +18,9 @@ class Version {
         # "v*" sentinel
         once nqp::create(self)!SET-SELF(nqp::list(*),0,"*")
     }
+    multi method new(Version: @parts, Str:D $string) {
+        nqp::create(self)!SET-SELF(@parts,0,$string)
+    }
     multi method new(Version: Str() $s) {
 
         # sentinel most common

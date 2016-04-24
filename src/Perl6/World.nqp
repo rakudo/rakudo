@@ -2954,16 +2954,36 @@ class Perl6::World is HLL::World {
                     ),
                     # XXX not sure if those two could be local instead.
                     QAST::Var.new(
-                        :decl<param>, :scope<var>, :name('@autovivs')
+                        :decl<param>, :scope<local>, :name('@autovivs')
                     ),
                     QAST::Var.new(
-                        :decl<param>, :scope<var>, :name('%attrinit')
+                        :decl<param>, :scope<local>, :name('%attrinit')
+                    ),
+                    QAST::Var.new(
+                        :decl<var>,   :scope<local>, :name<init>
                     )
                 ),
                 $execution);
 
             my $object := nqp::decont($in_object);
-            my $build_plan := nqp::getattr(nqp::decont($in_build_plan), $*W.find_symbol(['List']), '$!reified');
+
+            my $build_plan := nqp::getattr(nqp::decont($in_build_plan), $!w.find_symbol(['List']), '$!reified');
+
+            my $initvar := QAST::Var.new(
+                :scope<local>, :name<init>
+            );
+
+            #$execution.push(QAST::Op.new( :op('sayfh'), QAST::Op.new( :op('getstderr') ), QAST::SVal.new( :value("Running custom buildplan for something") )));
+            #$execution.push(QAST::Op.new( :op('callmethod'),, :name('say'), QAST::Op.new( :op('callmethod'), QAST::SVal.new( :value<perl> ), QAST::Var.new( :scope<local>, :name('self') ) )));
+
+            $execution.push(QAST::Op.new(
+                :op('bind'),
+                $initvar,
+                QAST::Op.new(
+                    :op('getattr'),
+                    QAST::Var.new( :scope<local>, :name('%attrinit') ),
+                    QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
+                    QAST::SVal.new( :value('$!storage') )) ));
 
             my int $count := nqp::elems($build_plan);
             my int $i     := -1;
@@ -2981,6 +3001,8 @@ class Perl6::World is HLL::World {
                             QAST::WVal.new( :value(nqp::atpos($task, 1)) )),
                         :flat(1) ));
 
+                    $!w.add_object(nqp::atpos($task, 1));
+
                     $execution.push(
                         QAST::Op.new( :op<call>,
                             QAST::WVal.new( :value(nqp::atpos($task, 1)) ),
@@ -2990,18 +3012,22 @@ class Perl6::World is HLL::World {
                                 :flat(1), :named(1) )
                             ));
                 } elsif nqp::iseq_i($code, 1) {
+                    my $existskeyop := QAST::Op.new(
+                                :op("existskey"),
+                                $initvar,
+                                QAST::SVal.new( :value(nqp::atpos($task, 2)) ) );
+                    my $getattrop := QAST::Op.new(
+                                    :op<getattr>,
+                                    QAST::Var.new( :name<self>, :scope<local> ),
+                                    QAST::SVal.new( :value( nqp::atpos($task, 2) ) ),
+                                    QAST::SVal.new( :value( nqp::atpos($task, 3) ) ) );
                     $execution.push(
                         QAST::Op.new( :op<if>,
-                            QAST::Op.new( :op<existskey>,
-                                QAST::Var.new( :name('%attrinit'), :scope<var> ),
-                                QAST::SVal.new( :value(nqp::atpos($task, 1)) ) ),
+                            $existskeyop,
                             QAST::Op.new( :op<assign>,
-                                QAST::Op.new( :op<getattr>,
-                                    QAST::Var.new( :name<self>, :scope<local> ),
-                                    QAST::WVal.new( :value( nqp::atpos($task, 2) ) ),
-                                    QAST::SVal.new( nqp::atpos($task, 3) ) ),
+                                $getattrop,
                                 QAST::Op.new( :op<callmethod>,
-                                    QAST::Var.new( :name('%attrinit'), :scope<var> ),
+                                    $initvar,
                                     QAST::SVal.new( :value<AT-KEY> ),
                                     QAST::Op.new( :op<p6box_s>,
                                         QAST::SVal.new( :value( nqp::atpos($task, 2) ) )
@@ -3010,12 +3036,34 @@ class Perl6::World is HLL::World {
                             )
                         )
                     );
+                } elsif nqp::iseq_i($code, 13) {
+                    # do nothing
                 } else {
-                    note("died upon seeing code $code in a BUILDALLPLAN for " ~ $object.HOW.name($object));
+                    #note("");
+                    #note("UNIMPLEMENTED STEP:    $code");
+                    #note("  for object of type" ~ $object.HOW.name($object));
+                    #note("");
+                    #note("  steps after that: ");
+                    #while (nqp::islt_i($i := nqp::add_i($i, 1), $count)) {
+                        #note("  - " ~ nqp::atpos(nqp::atpos($build_plan, $i), 0));
+                    #}
+                    #note("");
                     return NQPMu;
                 }
             }
-            note("HOORAY! BUILDALLPLAN for " ~ $object.HOW.name($object));
+            #note("HOORAY! BUILDALLPLAN for " ~ $object.HOW.name($object) ~ " with $count steps");
+
+            $!w.cur_lexpad()[0].push($block);
+
+            my %sig_info := nqp::hash('parameters', [
+                    nqp::hash('variable_name', '@autovivs'),
+                    nqp::hash('variable_name', '%attrinit')
+                ]);
+            my $sig := $!w.create_signature_and_params(NQPMu, %sig_info,
+                $block, 'Any', :method, invocant_type => $in_object);
+            my $code := $!w.create_code_object($block, 'Method', $sig);
+
+            return $code;
         }
     }
     method get_compiler_services() {

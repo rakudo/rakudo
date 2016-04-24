@@ -22,8 +22,8 @@ GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
-    'jobs:1'            => \my $jobs,
-    'long:1'            => \my $do_long,
+    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 1),
+    'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'jvm'               => \my $jvm,
@@ -33,10 +33,6 @@ GetOptions(
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
-$do_long = 1 unless defined $do_long;
-$do_stress = 0 unless defined $do_stress;
-$jobs = $jobs || $ENV{TEST_JOBS} || 1;
- 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
@@ -59,7 +55,7 @@ if ($list_file) {
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
             next if ($fudgespec =~ m/perl5/)  && !$perl5;
-            next if ($fudgespec =~ m/long/)   && !$do_long;
+            next if ($fudgespec =~ m/long/)   && $do_quick;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
             next if ($fudgespec =~ m/jvm/)    && !$jvm;
             next if ($fudgespec =~ m/moar/)   && !$moar;

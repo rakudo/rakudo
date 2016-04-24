@@ -153,16 +153,17 @@ class Perl6::Metamodel::ClassHOW
 
         unless nqp::isnull($compiler_services) {
             my $meth;
+            my $result;
             try  {
                 $meth := nqp::findmethod($compiler_services, 'generate_buildplan_executor');
             }
             if $meth {
-                note("gonna give you up, er i mean call the method");
-                $meth($compiler_services, $obj, self.BUILDALLPLAN($obj));
-                note("hooray!");
+                $result := $meth($compiler_services, $obj, self.BUILDALLPLAN($obj));
+                unless $result =:= NQPMu {
+                    $result.set_name("BUILDALL");
+                    self.add_method($obj, 'BUILDALL', $result);
+                }
             }
-            #$meth.set_name("BUILDALL")
-            #self.add_method(
         }
 
         # Compose the representation, provided this isn't an augment.

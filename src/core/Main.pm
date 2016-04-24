@@ -177,17 +177,9 @@ my sub MAIN_HELPER($retval = 0) {
         return;
         CATCH {
             when X::TypeCheck::Binding::Constraint {
-                if .backtrace[0].defined
-                && .backtrace[0].subname eq 'MAIN'
-                && .message.starts-with('Constraint type check failed '
-                                      ~ 'for parameter') {
-                    # looks like a regular failed MAIN signature match,
-                    # let's handle it and just print USAGE
-                    # instead of dying
-                }
-                else {
-                    .rethrow;
-                }
+                # looks like a regular failed MAIN signature match,
+                # let's handle it and just print USAGE
+                # instead of dying
             }
         }
     }

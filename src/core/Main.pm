@@ -176,7 +176,7 @@ my sub MAIN_HELPER($retval = 0) {
         $m(|@($p), |%($n));
         return;
         CATCH {
-            when X::AdHoc {
+            when X::TypeCheck::Binding::Constraint {
                 if .backtrace[0].defined
                 && .backtrace[0].subname eq 'MAIN'
                 && .message.starts-with('Constraint type check failed '

@@ -498,7 +498,14 @@ my class Binder {
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        $error[0] := "Constraint type check failed for parameter '$varname'";
+                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
+                            $error[0] := "Constraint type check failed for parameter '$varname'";
+                        } else {
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Constraint')($varname
+                                #, $value, $constraint # TODO: see core/Execption X::TypeCheck::Binding::Constraint
+                            ) };
+                        }
                     }
                     return $BIND_RESULT_FAIL;
                 }

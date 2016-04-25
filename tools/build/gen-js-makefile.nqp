@@ -91,11 +91,11 @@ rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
     "nqp-m tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
 ); 
 
-my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<js-Perl6-Bootstrap.nqp>);
+my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<js-Perl6-BOOTSTRAP.nqp>);
 
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6/Metamodel.js",  :deps([$Perl6-Ops]));
 
-my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6/Bootstrap.js",  :deps([$Perl6-Metamodel]));
+my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6/BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
 
 #$(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
 

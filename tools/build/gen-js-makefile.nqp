@@ -83,7 +83,7 @@ rule($main-version, '', "\$(PERL) tools/build/gen-version.pl > $main-version");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<js-main.nqp>);
 
-my $Perl6-main := nqp($main-nqp, 'main.js', :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
+my $Perl6-main := nqp($main-nqp, 'rakudo.js', :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
 
 
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";

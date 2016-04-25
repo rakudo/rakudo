@@ -387,7 +387,7 @@ do {
         }
 
         method repl-print($value) {
-            say $value unless $value eq '';
+            say $value unless $value.gist eq '';
         }
 
         method history-file returns Str {

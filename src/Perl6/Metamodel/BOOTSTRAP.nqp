@@ -1286,6 +1286,9 @@ BEGIN {
             $ins
         }));
     Attribute.HOW.compose_repr(Attribute);
+#if js
+    Attribute.HOW.cheating_publish_method_cache(Attribute);
+#endif
     
     # class Scalar is Any {
     #     has Mu $!descriptor;
@@ -2900,6 +2903,9 @@ BEGIN {
         nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
     }
 
+#if js
+    Bool.HOW.cheating_publish_method_cache(Bool);
+#endif
     # Bool::False and Bool::True.
     my $false := nqp::box_i(0, Bool);
     nqp::bindattr_s($false, Bool, '$!key', 'False');

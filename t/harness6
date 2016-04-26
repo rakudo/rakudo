@@ -8,127 +8,127 @@ use TAP;
 my $vm = $*VM.name;
 
 multi sub MAIN(
-	Str  :$tests-from-file = Str,
-	Bool :$fudge = False,
-	Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
-	Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
-	Bool :$quick = False,
-	Bool :$stress = False,
-	Bool :$randomize = False,
-	Bool :$no-mix-slow = $*DISTRO.is-win || $jobs == 1,
-	Str  :$perlpath = ~$*EXECUTABLE,
-	Str  :$perl5path = 'perl',
-	*@files,
+    Str  :$tests-from-file = Str,
+    Bool :$fudge = False,
+    Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
+    Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
+    Bool :$quick = False,
+    Bool :$stress = False,
+    Bool :$randomize = False,
+    Bool :$no-mix-slow = $*DISTRO.is-win || $jobs == 1,
+    Str  :$perlpath = ~$*EXECUTABLE,
+    Str  :$perl5path = 'perl',
+    *@files,
 ) {
-	my @slow;
-	with ($tests-from-file) {
-		my $perl5 = not run($perlpath, '-e', 'exit !try { require Inline::Perl5 }');
-		say "Inline::Perl5 not installed: not running Perl 5 integration tests" if !$perl5;
+    my @slow;
+    with ($tests-from-file) {
+        my $perl5 = not run($perlpath, '-e', 'exit !try { require Inline::Perl5 }');
+        say "Inline::Perl5 not installed: not running Perl 5 integration tests" if !$perl5;
 
-		my %traits = :$perl5, :long(!$quick), :$stress, :slow,
-					:jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
-					:conc(?($vm eq any("jvm","moar")));
-		my $recode-path = $*SPEC !~~ IO::Spec::Unix;
-		for $tests-from-file.IO.lines {
-			next if / ^ \s* '#' / or not m/ \S /;
-			my ($fn, $fudgespec) = .trim.split(/ \s+ '#' \s* /);
-			my @specs = $fudgespec ?? $fudgespec.words !! ();
-			next if not all(%traits{@specs});
+        my %traits = :$perl5, :long(!$quick), :$stress, :slow,
+                    :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
+                    :conc(?($vm eq any("jvm","moar")));
+        my $recode-path = $*SPEC !~~ IO::Spec::Unix;
+        for $tests-from-file.IO.lines {
+            next if / ^ \s* '#' / or not m/ \S /;
+            my ($fn, $fudgespec) = .trim.split(/ \s+ '#' \s* /);
+            my @specs = $fudgespec ?? $fudgespec.words !! ();
+            next if not all(%traits{@specs});
 
-			$fn ~~ s{ ^ <!before "t/spec/"> } = "t/spec/";
-			$fn = $*SPEC.catdir($fn.split('/')) if $recode-path;
-			if $fn.IO ~~ :r {
-				if not $no-mix-slow and any(@specs) eq 'slow' {
-					push @slow, $fn;
-				}
-				else {
-					push @files, $fn;
-				}
-			} else {
-				warn "Missing test file: $fn\n";
-			}
-		}
-	}
+            $fn ~~ s{ ^ <!before "t/spec/"> } = "t/spec/";
+            $fn = $*SPEC.catdir($fn.split('/')) if $recode-path;
+            if $fn.IO ~~ :r {
+                if not $no-mix-slow and any(@specs) eq 'slow' {
+                    push @slow, $fn;
+                }
+                else {
+                    push @files, $fn;
+                }
+            } else {
+                warn "Missing test file: $fn\n";
+            }
+        }
+    }
 
-	my @tfiles = $randomize ?? @files.flatmap(&all-in).pick(*) !! @files.flatmap(&all-in).sort;
+    my @tfiles = $randomize ?? @files.flatmap(&all-in).pick(*) !! @files.flatmap(&all-in).sort;
 
-	if (@slow) {
-		@slow.=flatmap(&all-in);
-		@tfiles = (@slow Z batch(@tfiles / @slow, @tfiles)).flatmap({ .map(|*) })
-	}
+    if (@slow) {
+        @slow.=flatmap(&all-in);
+        @tfiles = (@slow Z batch(@tfiles / @slow, @tfiles)).flatmap({ .map(|*) })
+    }
 
-	if $fudge {
-		@tfiles = batch(200, @tfiles).flatmap(&fudge);
-	}
+    if $fudge {
+        @tfiles = batch(200, @tfiles).flatmap(&fudge);
+    }
 
-	my $harness = TAP::Harness.new(
-			:handlers[get-handler($vm, :$perlpath)],
-			:ignore-exit,
-#			:trap,
-			:$jobs,
-			:$verbosity,
-			:err('ignore'),
-	);
-	await $harness.run(@tfiles).waiter;
+    my $harness = TAP::Harness.new(
+            :handlers[get-handler($vm, :$perlpath)],
+            :ignore-exit,
+#            :trap,
+            :$jobs,
+            :$verbosity,
+            :err('ignore'),
+    );
+    await $harness.run(@tfiles).waiter;
 
-	sub batch(Int(Real) $size, @files) {
-		gather {
-			while @files {
-				my @batch = @files.splice: 0, $size;
-				take @batch;
-			}
-		}
-	}
+    sub batch(Int(Real) $size, @files) {
+        gather {
+            while @files {
+                my @batch = @files.splice: 0, $size;
+                take @batch;
+            }
+        }
+    }
 
-	multi all-in(Str $start) {
-		return all-in($start.IO);
-	}
-	multi all-in(IO::Path $start) {
-		return ~$start unless $start.d;
+    multi all-in(Str $start) {
+        return all-in($start.IO);
+    }
+    multi all-in(IO::Path $start) {
+        return ~$start unless $start.d;
 
-		return gather {
-			listdir($start);
-		}
+        return gather {
+            listdir($start);
+        }
 
-		sub listdir(IO::Path $start) {
-			state $test = none($*SPEC.updir, $*SPEC.curdir, '.git');
-			for $start.dir(:$test) -> $file {
-				if $file.d {
-					listdir($file);
-				}
-				elsif $file ~~ / \. t $ / {
-					take ~$file;
-				}
-			}
-		}
-	}
+        sub listdir(IO::Path $start) {
+            state $test = none($*SPEC.updir, $*SPEC.curdir, '.git');
+            for $start.dir(:$test) -> $file {
+                if $file.d {
+                    listdir($file);
+                }
+                elsif $file ~~ / \. t $ / {
+                    take ~$file;
+                }
+            }
+        }
+    }
 
-	sub fudge(@files) {
-		my $cmd = run($perl5path, 't/spec/fudgeall', '--keep-exit-code', "rakudo.$vm", |@files, :out);
-		return $cmd.out.slurp-rest.split(' ');
-	}
+    sub fudge(@files) {
+        my $cmd = run($perl5path, 't/spec/fudgeall', '--keep-exit-code', "rakudo.$vm", |@files, :out);
+        return $cmd.out.slurp-rest.split(' ');
+    }
 
-#	multi sub get-handler('jvm') {
-#		unlink 'TESTTOKEN';
-#		state $server = run ".".IO.child("perl6-eval-server"), <-bind-stdin -cookie TESTTOKEN -app perl6.jar>, :in;
-#		sleep 1;
-#		TAP::Harness::SourceHandler::Exec.new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
-#	}
-	multi sub get-handler(Any, :$perlpath) {
-		TAP::Harness::SourceHandler::Perl6.new(:incdirs['lib'], :path($perlpath));
-	}
+#    multi sub get-handler('jvm') {
+#        unlink 'TESTTOKEN';
+#        state $server = run ".".IO.child("perl6-eval-server"), <-bind-stdin -cookie TESTTOKEN -app perl6.jar>, :in;
+#        sleep 1;
+#        TAP::Harness::SourceHandler::Exec.new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
+#    }
+    multi sub get-handler(Any, :$perlpath) {
+        TAP::Harness::SourceHandler::Perl6.new(:incdirs['lib'], :path($perlpath));
+    }
 }
 multi sub MAIN(Bool :$help!) {
-	require Pod::To::Text;
-	my $text = ::('Pod::To::Text').render($=pod[0]);
-	with %*ENV<PERLDOC_PAGER> // %*ENV<PAGER> -> $pager {
-		my $proc = shell($pager, :in);
-		$proc.in.print($text);
-		$proc.in.close;
-	}
-	else {
-		say $text;
-	}
+    require Pod::To::Text;
+    my $text = ::('Pod::To::Text').render($=pod[0]);
+    with %*ENV<PERLDOC_PAGER> // %*ENV<PAGER> -> $pager {
+        my $proc = shell($pager, :in);
+        $proc.in.print($text);
+        $proc.in.close;
+    }
+    else {
+        say $text;
+    }
 }
 
 =begin pod

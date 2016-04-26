@@ -1,4 +1,5 @@
 my %provides = 
+    "TAP"                        => "lib/TAP.pm6",
     "Test"                       => "lib/Test.pm6",
     "NativeCall"                 => "lib/NativeCall.pm6",
     "NativeCall::Types"          => "lib/NativeCall/Types.pm6",

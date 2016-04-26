@@ -772,7 +772,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :post_deserialize($*W.fixup_tasks()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
+                $*W.is_null_setting ?? QAST::Op.new(:op<null>) !! QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
             )),
 
             # If this unit is loaded as a module, we want it to automatically
@@ -5747,7 +5747,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
-        my $Pair := $*W.find_symbol(['Pair']);
+        my class LackingPairClass {}
+        my $Pair := $*W.is_null_setting ?? LackingPairClass !! $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {

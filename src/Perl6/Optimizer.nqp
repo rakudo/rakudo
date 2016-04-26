@@ -173,7 +173,9 @@ my class Symbols {
                 return self.force_value(%sym, $name, 1);
             }
         }
-        nqp::die("Optimizer: No lexical $name found");
+        nqp::say("//Optimizer: No lexical $name found");
+        my class NoSuch {}
+        return NoSuch;
     }
 
     method find_lexical_symbol($name) {

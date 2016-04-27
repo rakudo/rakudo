@@ -1,22 +1,28 @@
-#! perl6
+#!/usr/bin/perl
 # Copyright (C) 2013, The Perl Foundation.
 
-use v6;
+use strict;
+use warnings;
+use 5.008;
+use File::Spec;
 
-my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, @libpaths) = @*ARGS;
-$p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
+my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, @libpaths) = @ARGV;
+$p6_mbc_path = File::Spec->rel2abs($p6_mbc_path || '.');
 
-if ($*DISTRO eq 'MSWin32') {
+if ($^O eq 'MSWin32') {
     exit if $toolchain;
-    $install_to ~= '.bat';
-    my $fh = open $install_to, :w;
-    $fh.print(sprintf(qq[@ "%s" --execname="%%~dpf0" --libpath="%s" %s\\%s %%*\n],
-            $moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc));
-    $fh.close;
+    $install_to .= '.bat';
+    open my $fh, ">", $install_to
+        or die "Could not open $install_to: $!";
+    printf $fh q[@ "%s" --execname="%%~dpf0" --libpath="%s" %s\\%s %%*] . "\n",
+            $moar, join('" --libpath="', @libpaths), $p6_mbc_path, $mbc;
+    close $fh
+        or die "Could not close $install_to: $!";
 }
 elsif ($toolchain eq 'gdb') {
-    my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, ($moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc) xx 2));
+    open my $fh, ">", $install_to
+        or die "Could not open $install_to: $!";
+    printf $fh <<'EOS', ($moar, join('" --libpath="', @libpaths), $p6_mbc_path, $mbc) x 2;
 #!/bin/sh
 %s --execname="$0" --libpath="%s" %s/%s -e '
 say "=" x 96;
@@ -33,12 +39,14 @@ say "Type `bt full` to generate a backtrace if applicable, type `q` to quite or 
 say "-" x 96;'
 gdb --quiet --ex=run --args %s --execname="$0" --libpath="%s" %s/%s "$@"
 EOS
-    $fh.close;
-    chmod(0o755, $install_to);
+    close $fh
+        or die "Could not close $install_to: $!";
+    chmod 0755, $install_to;
 }
 elsif ($toolchain eq 'valgrind') {
-    my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, ($moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc) xx 2));
+    open my $fh, ">", $install_to
+        or die "Could not open $install_to: $!";
+    printf $fh <<'EOS', ($moar, join('" --libpath="', @libpaths), $p6_mbc_path, $mbc) x 2;
 #!/bin/sh
 %s --execname="$0" --libpath="%s" %s/%s -e '
 say "=" x 96;
@@ -51,15 +59,18 @@ say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 say "-" x 96;'
 valgrind %s --execname="$0" --libpath="%s" %s/%s "$@"
 EOS
-    $fh.close;
-    chmod(0o755, $install_to);
+    close $fh
+        or die "Could not close $install_to: $!";
+    chmod 0755, $install_to;
 }
 else {
-    my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, $moar, join('" --libpath="', @libpaths), $p6_mbc_path, $mbc));
+    open my $fh, ">", $install_to
+        or die "Could not open $install_to: $!";
+    printf $fh <<'EOS', $moar, join('" --libpath="', @libpaths), $p6_mbc_path, $mbc;
 #!/bin/sh
 exec %s  --execname="$0" --libpath="%s" %s/%s "$@"
 EOS
-    $fh.close;
-    chmod(0o755, $install_to);
+    close $fh
+        or die "Could not close $install_to: $!";
+    chmod 0755, $install_to;
 }

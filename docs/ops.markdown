@@ -116,6 +116,8 @@ Box a native uint into a Perl 6 UInt.
 ## p6clearpre
 * p6clearpre()
 
+Clears the "pre" flag in the current frame.
+
 ## p6configposbindfailover
 * p6configposbindfailover(Mu $type, Mu $failover-type)
 
@@ -145,6 +147,8 @@ Initializes the GlobalContext extensions for Perl 6.
 
 ## p6inpre
 * p6inpre()
+
+Checks for the "pre" flag on the current frame, returns it, and clears it if it was set.
 
 ## p6invokeflat
 * p6invokeflat(Mu $block, Mu $value-buffer)
@@ -186,14 +190,22 @@ Returns the name of the REPR underlying $obj.
 ## p6setautothreader
 * p6setautothreader(Mu $auto-threader)
 
+Registers a callable that handles the case where a call didn't succeed because it contained Junction arguments.
+
 ## p6setbinder
 * p6setbinder(Mu $binder)
+
+Register the class that handles binding. Its methods `bind`, `bind_sig`, `is_bindable`, and `trial_bind` are used throughout the rakudo codebase.
 
 ## p6setfirstflag
 * p6setfirstflag(Mu $coderef)
 
+Sets the "first" flag on a code object, then returns that code object. Used to handle FIRST phaser blocks.
+
 ## p6setpre
 * p6setpre()
+
+Sets the "pre" flag on the current frame.
 
 ## p6settypes
 * p6settypes(Mu $stash)
@@ -214,7 +226,9 @@ Returns the name of the REPR underlying $obj.
 * p6store(Mu $container, Mu $value)
 
 ## p6takefirstflag
-* p6takefirstflag()
+* p6takefirstflag(Mu $coderef)
+
+Returns the value of the "first" flag of a code object and clears it. Used to handle FIRST phaser blocks.
 
 ## p6trialbind
 * p6trialbind(Mu $signature, Mu @types, Mu @flags)

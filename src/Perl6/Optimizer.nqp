@@ -614,6 +614,9 @@ my class BlockVarOptimizer {
     }
 
     method lexical_vars_to_locals($block) {
+#if js
+        return 0;
+#endif
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {

@@ -2481,8 +2481,13 @@ class Perl6::World is HLL::World {
     # Adds the result of a constant folding operation to the SC and
     # returns a reference to it.
     method add_constant_folded_result($r) {
-        self.add_object_if_no_sc($r);
-        QAST::WVal.new( :value($r) )
+        if nqp::isnull($r) {
+            QAST::Op.new( :op<null> )
+        }
+        else {
+            self.add_object_if_no_sc($r);
+            QAST::WVal.new( :value($r) )
+        }
     }
 
     # Takes a data structure of non-Perl 6 objects and wraps them up

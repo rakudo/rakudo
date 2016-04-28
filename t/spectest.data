@@ -159,6 +159,7 @@ S02-types/type.t
 S02-types/undefined-types.t
 S02-types/unicode.t
 S02-types/version.t
+S02-types/version-stress.t   # stress
 S02-types/whatever.t
 S02-types/WHICH.t
 S03-binding/arrays.t

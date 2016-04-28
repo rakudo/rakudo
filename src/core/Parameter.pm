@@ -404,8 +404,8 @@ multi sub infix:<eqv>(Parameter \a, Parameter \b) {
     # different flags
     return False
       if nqp::isne_i(
-        nqp::getattr_i(a,Parameter,'$!flags'),
-        nqp::getattr_i(b,Parameter,'$!flags')
+        nqp::getattr(a,Parameter,'$!flags'),
+        nqp::getattr(b,Parameter,'$!flags')
       );
 
     # first is named

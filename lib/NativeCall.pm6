@@ -12,6 +12,7 @@ my constant ulong         is export(:types, :DEFAULT) = NativeCall::Types::ulong
 my constant ulonglong     is export(:types, :DEFAULT) = NativeCall::Types::ulonglong;
 my constant bool          is export(:types, :DEFAULT) = NativeCall::Types::bool;
 my constant size_t        is export(:types, :DEFAULT) = NativeCall::Types::size_t;
+my constant ssize_t        is export(:types, :DEFAULT) = NativeCall::Types::ssize_t;
 my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;

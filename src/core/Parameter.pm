@@ -392,14 +392,16 @@ multi sub infix:<eqv>(Parameter \a, Parameter \b) {
     return False unless a.WHAT =:= b.WHAT;
 
     # different nominal or coerce type
+    my $acoerce := nqp::getattr(a,Parameter,'$!coerce_type');
+    my $bcoerce := nqp::getattr(b,Parameter,'$!coerce_type');
     return False
       unless nqp::iseq_s(
           nqp::getattr(a,Parameter,'$!nominal_type').^name,
           nqp::getattr(b,Parameter,'$!nominal_type').^name
         )
       && nqp::iseq_s(
-          nqp::getattr(a,Parameter,'$!coerce_type').^name,
-          nqp::getattr(b,Parameter,'$!coerce_type').^name
+          nqp::isnull($acoerce) ?? "" !! $acoerce.^name,
+          nqp::isnull($bcoerce) ?? "" !! $bcoerce.^name
         );
 
     # different flags

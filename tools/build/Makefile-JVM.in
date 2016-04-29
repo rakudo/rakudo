@@ -190,6 +190,7 @@ J_CORE_SOURCES = \
   src/core/Systemic.pm \
   src/core/VM.pm \
   src/core/Distro.pm \
+  src/core/signals.pm \
   src/core/Kernel.pm \
   src/core/Compiler.pm \
   src/core/Perl.pm \

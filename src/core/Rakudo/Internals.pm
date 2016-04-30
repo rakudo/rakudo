@@ -621,7 +621,7 @@ my class Rakudo::Internals {
           :range("0.." ~ max),
           :comment( nqp::istype(from, Callable) || -from > max
             ?? ''
-            !! "use *{from} if you want to index relative to the end"),
+            !! "use *-{abs from} if you want to index relative to the end"),
         );
     }
     method SUBSTR-CHARS-OOR(\chars) {
@@ -629,7 +629,7 @@ my class Rakudo::Internals {
           :what('Number of characters argument to substr'),
           :got(chars.gist),
           :range("0..Inf"),
-          :comment("use *{chars} if you want to index relative to the end"),
+          :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }
     method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {

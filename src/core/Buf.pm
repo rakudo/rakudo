@@ -141,7 +141,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           what    => 'From argument to subbuf',
           got     => $from.gist,
           range   => "0..$elems",
-          comment => "use *{$pos} if you want to index relative to the end",
+          comment => "use *-{abs $pos} if you want to index relative to the end",
         ).fail if $pos < 0;
         X::OutOfRange.new(
           what => 'From argument to subbuf',

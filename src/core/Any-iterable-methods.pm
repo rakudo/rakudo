@@ -777,8 +777,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         my $min;
         my $max;
-        my $excludes-min = Bool::False;
-        my $excludes-max = Bool::False;
+        my int $excludes-min;
+        my int $excludes-max;
 
         self.map: {
             .defined or next;
@@ -805,18 +805,15 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             } else {
                 if !$min.defined || $cmp($_, $min) < 0 {
                     $min = $_;
-                    $excludes-min = Bool::False;
+                    $excludes-min = 0;
                 }
                 if !$max.defined || $cmp($_, $max) > 0 {
                     $max = $_;
-                    $excludes-max = Bool::False;
+                    $excludes-max = 0;
                 }
             }
         }
-        Range.new($min // Inf,
-                  $max // -Inf,
-                  :excludes-min($excludes-min),
-                  :excludes-max($excludes-max));
+        Range.new($min // Inf, $max // -Inf, :$excludes-min, :$excludes-max)
     }
 
     method sort(&by?) is nodal {

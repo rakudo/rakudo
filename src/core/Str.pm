@@ -2061,11 +2061,11 @@ multi sub substr(Str() $what, \start, $want?) {
 
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
-    $r.defined
-      ?? nqp::p6box_s(nqp::substr(
+    nqp::istype($r,Failure)
+      ?? $r
+      !! nqp::p6box_s(nqp::substr(
            nqp::unbox_s($what),nqp::unbox_i($from),nqp::unbox_i($chars)
          ))
-      !! $r;
 }
 
 sub substr-rw(\what, \start, $want?) is rw {
@@ -2073,8 +2073,9 @@ sub substr-rw(\what, \start, $want?) is rw {
 
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
-    $r.defined
-      ?? Proxy.new(
+    nqp::istype($r,Failure)
+      ?? $r
+      !! Proxy.new(
            FETCH => sub ($) {
                nqp::p6box_s(nqp::substr(
                  nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
@@ -2093,7 +2094,6 @@ sub substr-rw(\what, \start, $want?) is rw {
                );
            },
          )
-      !! $r;
 }
 
 proto sub samemark(|) {*}

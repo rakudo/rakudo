@@ -1356,7 +1356,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
-      '$.'  => "the filehandle's .ins method",
+      '$.'  => "the .kv method on e.g. .lines",
       '$/'  => "the filehandle's .nl-in attribute",
       '$\\' => "the filehandle's .nl-out attribute",
       '$|'  => ':autoflush on open',

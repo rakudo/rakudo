@@ -781,7 +781,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my int $excludes-max;
 
         for self.list {
-            if nqp::defined($_) {
+            if nqp::istype($_,Failure) {
+                .throw;  # XXX or just ignore ???
+            }
+            elsif .defined {
                 if nqp::istype($_,Range) {
                     if !$min.defined || $cmp($_.min, $min) < 0 {
                         $min = .min;

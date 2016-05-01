@@ -777,6 +777,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         my $min;
         my $max;
+        my int $initialized;
         my int $excludes-min;
         my int $excludes-max;
 
@@ -784,42 +785,64 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             if nqp::istype($_,Failure) {
                 .throw;  # XXX or just ignore ???
             }
+
+            # something to check
             elsif .defined {
-                if nqp::istype($_,Range) {
-                    if !$min.defined || $cmp($_.min, $min) < 0 {
-                        $min = .min;
-                        $excludes-min = $_.excludes-min;
+                if nqp::iseq_i($initialized,1) {
+                    if nqp::istype($_,Range) {
+                        if $cmp(.min, $min) < 0 {
+                            $min          = .min;
+                            $excludes-min = .excludes-min;
+                        }
+                        if $cmp($_.max, $max) > 0 {
+                            $max          = .max;
+                            $excludes-max = .excludes-max;
+                        }
                     }
-                    if !$max.defined || $cmp($_.max, $max) > 0 {
-                        $max = .max;
-                        $excludes-max = $_.excludes-max;
+                    elsif nqp::istype($_,Positional) {
+                        my $mm = .minmax(&by);
+                        if $cmp($mm.min, $min) < 0 {
+                            $min          = $mm.min;
+                            $excludes-min = $mm.excludes-min;
+                        }
+                        if $cmp($mm.max, $max) > 0 {
+                            $max          = $mm.max;
+                            $excludes-max = $mm.excludes-max;
+                        }
+                    }
+                    else {
+                        $cmp($_, $min) < 0
+                          ?? ($min = $_)
+                          !! $cmp($_, $max) > 0
+                            ?? ($max = $_)
+                            !! Nil;
                     }
                 }
-                elsif nqp::istype($_,Positional) {
+                elsif nqp::istype($_,Range) { # and not initialized
+                    $min          = .min;
+                    $excludes-min = .excludes-min;
+                    $max          = .max;
+                    $excludes-max = .excludes-max;
+                    $initialized = 1;
+                }
+                elsif nqp::istype($_,Positional) { # and not initialized
                     my $mm = .minmax(&by);
-                    if !$min.defined || $cmp($mm.min, $min) < 0 {
-                        $min = $mm.min;
-                        $excludes-min = $mm.excludes-min;
-                    }
-                    if !$max.defined || $cmp($mm.max, $max) > 0 {
-                        $max = $mm.max;
-                        $excludes-max = $mm.excludes-max;
-                    }
+                    $min          = $mm.min;
+                    $excludes-min = $mm.excludes-min;
+                    $max          = $mm.max;
+                    $excludes-max = $mm.excludes-max;
+                    $initialized = 1;
                 }
-                else {
-                    if !$min.defined || $cmp($_, $min) < 0 {
-                        $min = $_;
-                        $excludes-min = 0;
-                    }
-                    if !$max.defined || $cmp($_, $max) > 0 {
-                        $max = $_;
-                        $excludes-max = 0;
-                    }
+                else { # not initialized
+                    $min = $max = $_;
+                    $initialized = 1;
                 }
             }
         }
 
-        Range.new($min // Inf, $max // -Inf, :$excludes-min, :$excludes-max)
+        $initialized
+          ?? Range.new($min, $max, :$excludes-min, :$excludes-max)
+          !! Range.new(Inf, -Inf)
     }
 
     method sort(&by?) is nodal {

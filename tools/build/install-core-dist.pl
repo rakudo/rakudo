@@ -10,6 +10,7 @@ my %provides =
     "experimental"               => "lib/experimental.pm6",
 ;
 
+$*REPO; # init repo chain so AbsolutePath and NQP repos are available during precomp
 PROCESS::<$REPO> := CompUnit::RepositoryRegistry.repository-for-spec("inst#@*ARGS[0]");
 $*REPO.install(
     Distribution.new(

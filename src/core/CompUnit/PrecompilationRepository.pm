@@ -32,6 +32,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     ) returns CompUnit::Handle {
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         $RMD("try-load $id: $source-name") if $RMD;
+
+        # Even if we may no longer precompile, we should use already loaded files
+        return %!loaded{$id} if %!loaded{$id}:exists;
+
         my $handle = (
             self.may-precomp and (
                 self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?

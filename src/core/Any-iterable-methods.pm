@@ -681,7 +681,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    method !first-concrete($what,\i,\todo,\found --> Nil) {
+    method !first-concrete($what,\i,\todo) {
         my $elems = self.cache.elems;
         die "Cannot $what on an infinite list" if $elems == Inf;
 
@@ -689,18 +689,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         todo = $elems;
         my $value;
 
-        while nqp::islt_i(++i,todo) {
-            $value := self.AT-POS(i);
-            if nqp::isconcrete($value) {
-                found = $value;
-                return;
-            }
-        }
+        return $value
+          if nqp::isconcrete($value := self.AT-POS(i))
+            while nqp::islt_i(++i,todo);
+
+        $value
     }
 
     proto method min (|) is nodal { * }
     multi method min() {
-        self!first-concrete(".min", my int $index, my int $todo, my $min);
+        my $min = self!first-concrete(".min", my int $index, my int $todo);
 
         my $value;
         while nqp::islt_i(++$index,$todo) {
@@ -712,7 +710,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method min(&by) {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        self!first-concrete(".min", my int $index, my int $todo, my $min);
+        my $min = self!first-concrete(".min", my int $index, my int $todo);
 
         my $value;
         while nqp::islt_i(++$index,$todo) {
@@ -725,7 +723,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method max (|) is nodal { * }
     multi method max() {
-        self!first-concrete(".max", my int $index, my int $todo, my $max);
+        my $max = self!first-concrete(".max", my int $index, my int $todo);
 
         my $value;
         while nqp::islt_i(++$index,$todo) {
@@ -737,7 +735,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method max(&by) {
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        self!first-concrete(".max", my int $index, my int $todo, my $max);
+        my $max = self!first-concrete(".max", my int $index, my int $todo);
 
         my $value;
         while nqp::islt_i(++$index,$todo) {

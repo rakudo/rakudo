@@ -780,39 +780,42 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my int $excludes-min;
         my int $excludes-max;
 
-        self.map: {
-            .defined or next;
-
-            if .isa(Range) {
-                if !$min.defined || $cmp($_.min, $min) < 0 {
-                    $min = .min;
-                    $excludes-min = $_.excludes-min;
+        for self.list {
+            if nqp::defined($_) {
+                if nqp::istype($_,Range) {
+                    if !$min.defined || $cmp($_.min, $min) < 0 {
+                        $min = .min;
+                        $excludes-min = $_.excludes-min;
+                    }
+                    if !$max.defined || $cmp($_.max, $max) > 0 {
+                        $max = .max;
+                        $excludes-max = $_.excludes-max;
+                    }
                 }
-                if !$max.defined || $cmp($_.max, $max) > 0 {
-                    $max = .max;
-                    $excludes-max = $_.excludes-max;
+                elsif nqp::istype($_,Positional) {
+                    my $mm = .minmax(&by);
+                    if !$min.defined || $cmp($mm.min, $min) < 0 {
+                        $min = $mm.min;
+                        $excludes-min = $mm.excludes-min;
+                    }
+                    if !$max.defined || $cmp($mm.max, $max) > 0 {
+                        $max = $mm.max;
+                        $excludes-max = $mm.excludes-max;
+                    }
                 }
-            } elsif Positional.ACCEPTS($_) {
-                my $mm = .minmax(&by);
-                if !$min.defined || $cmp($mm.min, $min) < 0 {
-                    $min = $mm.min;
-                    $excludes-min = $mm.excludes-min;
-                }
-                if !$max.defined || $cmp($mm.max, $max) > 0 {
-                    $max = $mm.max;
-                    $excludes-max = $mm.excludes-max;
-                }
-            } else {
-                if !$min.defined || $cmp($_, $min) < 0 {
-                    $min = $_;
-                    $excludes-min = 0;
-                }
-                if !$max.defined || $cmp($_, $max) > 0 {
-                    $max = $_;
-                    $excludes-max = 0;
+                else {
+                    if !$min.defined || $cmp($_, $min) < 0 {
+                        $min = $_;
+                        $excludes-min = 0;
+                    }
+                    if !$max.defined || $cmp($_, $max) > 0 {
+                        $max = $_;
+                        $excludes-max = 0;
+                    }
                 }
             }
         }
+
         Range.new($min // Inf, $max // -Inf, :$excludes-min, :$excludes-max)
     }
 

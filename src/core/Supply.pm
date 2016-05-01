@@ -1061,7 +1061,7 @@ my class Supply {
             my $min;
             my $max;
             whenever self -> \val {
-                if val.defined {
+                if nqp::defined(val) {
                     if !$min.defined {
                         emit( Range.new($min = val, $max = val) );
                     }

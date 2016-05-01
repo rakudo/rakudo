@@ -681,51 +681,42 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    method !first-concrete(\i,\todo,\found) {
+    method !first-concrete($what,\i,\todo,\found --> Nil) {
+        my $elems = self.cache.elems;
+        die "Cannot $what on an infinite list" if $elems == Inf;
+
+        i    = -1;
+        todo = $elems;
         my $value;
-        while nqp::islt_i(i,todo) {
+
+        while nqp::islt_i(++i,todo) {
             $value := self.AT-POS(i);
-            i = i + 1;
             if nqp::isconcrete($value) {
                 found = $value;
-                last;
+                return;
             }
         }
     }
 
     proto method min (|) is nodal { * }
     multi method min() {
-        my $elems = self.cache.elems;
-        die "Cannot .min on an infinite list" if $elems == Inf;
+        self!first-concrete(".min", my int $index, my int $todo, my $min);
 
         my $value;
-        my $min;
-        my int $todo = $elems;
-        my int $index;
-
-        self!first-concrete($index,$todo,$min);
-        while nqp::islt_i($index,$todo) {
+        while nqp::islt_i(++$index,$todo) {
             $value := self.AT-POS($index);
-            $index  = $index + 1;
             $min    = $value
               if nqp::isconcrete($value) && $value cmp $min < 0;
         }
         $min // Inf;
     }
     multi method min(&by) {
-        my $elems = self.cache.elems;
-        die "Cannot .min on an infinite list" if $elems == Inf;
-
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $value;
-        my $min;
-        my int $todo = $elems;
-        my int $index;
+        self!first-concrete(".min", my int $index, my int $todo, my $min);
 
-        self!first-concrete($index,$todo,$min);
-        while nqp::islt_i($index,$todo) {
+        my $value;
+        while nqp::islt_i(++$index,$todo) {
             $value := self.AT-POS($index);
-            $index  = $index + 1;
             $min    = $value
               if nqp::isconcrete($value) && $cmp($value,$min) < 0;
         }
@@ -734,37 +725,23 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method max (|) is nodal { * }
     multi method max() {
-        my $elems = self.cache.elems;
-        die "Cannot .max on an infinite list" if $elems == Inf;
+        self!first-concrete(".max", my int $index, my int $todo, my $max);
 
         my $value;
-        my $max;
-        my int $todo = $elems;
-        my int $index;
-
-        self!first-concrete($index,$todo,$max);
-        while nqp::islt_i($index,$todo) {
+        while nqp::islt_i(++$index,$todo) {
             $value := self.AT-POS($index);
-            $index  = $index + 1;
             $max    = $value
               if nqp::isconcrete($value) && $value cmp $max > 0;
         }
         $max // -Inf;
     }
     multi method max(&by) {
-        my $elems = self.cache.elems;
-        die "Cannot .max on an infinite list" if $elems == Inf;
-
         my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $value;
-        my $max;
-        my int $todo = $elems;
-        my int $index;
+        self!first-concrete(".max", my int $index, my int $todo, my $max);
 
-        self!first-concrete($index,$todo,$max);
-        while nqp::islt_i($index,$todo) {
+        my $value;
+        while nqp::islt_i(++$index,$todo) {
             $value := self.AT-POS($index);
-            $index  = $index + 1;
             $max    = $value
               if nqp::isconcrete($value) && $cmp($value,$max) > 0;
         }

@@ -351,13 +351,13 @@ do {
         }
         my $label = $type +& nqp::const::CONTROL_LABELED ?? "labeled " !! "";
         if $type +& nqp::const::CONTROL_LAST {
-            X::ControlFlow.new(illegal => "{$labeled}last", enclosing => 'loop construct', :$backtrace).throw;
+            X::ControlFlow.new(illegal => "{$label}last", enclosing => 'loop construct', :$backtrace).throw;
         }
         elsif $type +& nqp::const::CONTROL_NEXT {
-            X::ControlFlow.new(illegal => "{$labeled}next", enclosing => 'loop construct', :$backtrace).throw;
+            X::ControlFlow.new(illegal => "{$label}next", enclosing => 'loop construct', :$backtrace).throw;
         }
         elsif $type +& nqp::const::CONTROL_REDO {
-            X::ControlFlow.new(illegal => "{$labeled}redo", enclosing => 'loop construct', :$backtrace).throw;
+            X::ControlFlow.new(illegal => "{$label}redo", enclosing => 'loop construct', :$backtrace).throw;
         }
         elsif $type +& nqp::const::CONTROL_PROCEED {
             X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;

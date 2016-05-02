@@ -40,11 +40,9 @@ my class Num does Real { # declared in BOOTSTRAP
           if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;
-        my Int $signum = $num < 0 ?? -1 !! 1;
-        $num = -$num if $signum == -1;
+        $num = -$num if (my int $signum = $num < 0);
 
         # Find convergents of the continued fraction.
-
         my Int $q = nqp::fromnum_I($num, Int);
         my num $r = $num - floor($num);
         my Int $a = 1;
@@ -70,7 +68,9 @@ my class Num does Real { # declared in BOOTSTRAP
         # smaller denominator but it is not (necessarily) the Rational
         # with the smallest denominator that has less than $epsilon error.
         # However, to find that Rational would take more processing.
-        $fat ?? FatRat.new($signum * $b, $d) !! ($signum * $b) / $d;
+        $fat
+          ?? FatRat.new($signum ?? -$b !! $b, $d)
+          !!    Rat.new($signum ?? -$b !! $b, $d);
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
         self.Rat($epsilon, :fat);

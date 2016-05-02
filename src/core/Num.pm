@@ -18,9 +18,9 @@ my class Num does Real { # declared in BOOTSTRAP
     method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {
-        nqp::isnanorinf(nqp::unbox_n(self)) ??
-            fail("Cannot coerce Inf or NaN to an Int") !!
-            nqp::fromnum_I(nqp::unbox_n(self), Int);
+        nqp::isnanorinf(nqp::unbox_n(self))
+          ?? fail("Cannot coerce {self} to an Int")
+          !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
     multi method new() { nqp::box_n(0e0, self) }

@@ -36,7 +36,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        fail("Cannot coerce {self} to a Rat")
+        fail("Cannot coerce {self} to a {$fat ?? 'FatRat' !! 'Rat'}")
           if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;

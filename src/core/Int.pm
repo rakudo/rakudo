@@ -86,21 +86,33 @@ my class Int does Real { # declared in BOOTSTRAP
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
     # If do-not-want, user should cast invocant to proper domain.
     method polymod(Int:D: +@mods) {
-        my $more = self;
-        my $inf = @mods.is-lazy;
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => $more, range => "0..*"
-        ) if $more < 0;
+          what => 'invocant to polymod', got => self, range => "0..*"
+        ) if self < 0;
+
         gather {
-            for @mods -> $mod {
-                last if $inf and not $more;
-                fail X::Numeric::DivideByZero.new(
-                  using => 'polymod', numerator => $more
-                ) unless $mod;
-                take $more mod $mod;
-                $more div= $mod;
+            my $more = self;
+            if @mods.is-lazy {
+                for @mods -> $mod {
+                    $more
+                      ?? $mod
+                        ?? take $more mod $mod
+                        !! fail X::Numeric::DivideByZero.new(
+                             using => 'polymod', numerator => $more)
+                      !! last;
+                    $more = $more div $mod;
+                }
             }
-            take $more unless $inf;
+            else {
+                for @mods -> $mod {
+                    $mod
+                      ?? take $more mod $mod
+                      !! fail X::Numeric::DivideByZero.new(
+                           using => 'polymod', numerator => $more);
+                    $more = $more div $mod;
+                }
+                take $more;
+            }
         }
     }
 

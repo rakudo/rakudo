@@ -59,15 +59,28 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    method base(Int:D: Cool $base, $digits = 0) {
+    proto method base(|) { * }
+    multi method base(Int:D: Int:D $base) {
+         2 <= $base <= 36
+           ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+           !! fail X::OutOfRange.new(
+                what => "base argument to base", got => $base, range => "2..36")
+    }
+    multi method base(Int:D: Int(Cool) $base, $digits?) {
         fail X::OutOfRange.new(
           what => "base argument to base", got => $base, range => "2..36"
         ) unless 2 <= $base <= 36;
-        fail X::OutOfRange.new(
-          what => 'digits argument to base', got => $digits, range => "0..*"
-        ) if $digits.defined and $digits < 0;
-        my int $b = nqp::unbox_i($base.Int);
-        nqp::p6box_s(nqp::base_I(self, $b)) ~ ($digits ?? '.' ~ '0' x $digits !! '');
+        if $digits {
+            fail X::OutOfRange.new(
+              what => 'digits argument to base', got => $digits, range => "0..*"
+            ) if $digits < 0;
+            nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+              ~ '.'
+              ~ '0' x $digits
+        }
+        else {
+            nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+        }
     }
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)

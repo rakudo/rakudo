@@ -46,8 +46,8 @@ my class Num does Real { # declared in BOOTSTRAP
         # basically have an Int
         if nqp::iseq_n($r,0e0) {
             $fat
-              ?? FatRat.new(nqp::fromnum_I(self,Int))
-              !!    Rat.new(nqp::fromnum_I(self,Int))
+              ?? FatRat.new(nqp::fromnum_I(self,Int),1)
+              !!    Rat.new(nqp::fromnum_I(self,Int),1)
         }
 
         # find convergents of the continued fraction.

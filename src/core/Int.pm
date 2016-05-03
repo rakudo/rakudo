@@ -266,8 +266,7 @@ multi sub infix:<*>(int $a, int $b) returns int {
 multi sub infix:<div>(Int:D \a, Int:D \b) {
     b
       ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
-      !! fail X::Numeric::DivideByZero.new(
-           using => 'div', numerator => a)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator(a)))
 }
 multi sub infix:<div>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0
@@ -277,8 +276,7 @@ multi sub infix:<div>(int $a, int $b) returns int {
 multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
     b
       ?? nqp::mod_I(nqp::decont(a), nqp::decont(b), Int)
-      !! fail X::Numeric::DivideByZero.new(
-           using => 'infix:<%>', numerator => a)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
 multi sub infix:<%>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0

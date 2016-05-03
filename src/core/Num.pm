@@ -41,36 +41,45 @@ my class Num does Real { # declared in BOOTSTRAP
 
         my Num $num = self;
         $num = -$num if (my int $signum = $num < 0);
-
-        # Find convergents of the continued fraction.
-        my Int $q = nqp::fromnum_I($num, Int);
         my num $r = $num - floor($num);
-        my Int $a = 1;
-        my Int $b = $q;
-        my Int $c = 0;
-        my Int $d = 1;
 
-        while $r != 0e0 && abs($num - ($b / $d)) > $epsilon {
-            my num $modf_arg = 1e0 / $r;
-            $q = nqp::fromnum_I($modf_arg, Int);
-            $r = $modf_arg - floor($modf_arg);
-
-            my $orig_b = $b;
-            $b = $q * $b + $a;
-            $a = $orig_b;
-
-            my $orig_d = $d;
-            $d = $q * $d + $c;
-            $c = $orig_d;
+        # basically have an Int
+        if nqp::iseq_n($r,0e0) {
+            $fat
+              ?? FatRat.new(nqp::fromnum_I(self,Int))
+              !!    Rat.new(nqp::fromnum_I(self,Int))
         }
 
-        # Note that this result has less error than any Rational with a
-        # smaller denominator but it is not (necessarily) the Rational
-        # with the smallest denominator that has less than $epsilon error.
-        # However, to find that Rational would take more processing.
-        $fat
-          ?? FatRat.new($signum ?? -$b !! $b, $d)
-          !!    Rat.new($signum ?? -$b !! $b, $d);
+        # find convergents of the continued fraction.
+        else {
+            my Int $q = nqp::fromnum_I($num, Int);
+            my Int $a = 1;
+            my Int $b = $q;
+            my Int $c = 0;
+            my Int $d = 1;
+
+            while nqp::isne_n($r,0e0) && abs($num - ($b / $d)) > $epsilon {
+                my num $modf_arg = 1e0 / $r;
+                $q = nqp::fromnum_I($modf_arg, Int);
+                $r = $modf_arg - floor($modf_arg);
+
+                my $orig_b = $b;
+                $b = $q * $b + $a;
+                $a = $orig_b;
+
+                my $orig_d = $d;
+                $d = $q * $d + $c;
+                $c = $orig_d;
+            }
+
+            # Note that this result has less error than any Rational with a
+            # smaller denominator but it is not (necessarily) the Rational
+            # with the smallest denominator that has less than $epsilon error.
+            # However, to find that Rational would take more processing.
+            $fat
+              ?? FatRat.new($signum ?? -$b !! $b, $d)
+              !!    Rat.new($signum ?? -$b !! $b, $d)
+        }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
         self.Rat($epsilon, :fat);

@@ -516,22 +516,22 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         value
                     }
                     elsif $k eq 'v' {
-                        fail "Doesn't make sense to specify a negated :v adverb"
+                        Failure.new("Doesn't make sense to specify a negated :v adverb")
                     }
                     else {
-                        fail X::Adverb.new(
+                        Failure.new(X::Adverb.new(
                           :$what,
                           :source(try { self.VAR.name } // self.WHAT.perl),
-                          :unexpected(%a.keys))
+                          :unexpected(%a.keys)))
                     }
                 }
             }
             else {
-                fail X::Adverb.new(
+                Failure.new(X::Adverb.new(
                   :$what,
                   :source(try { self.VAR.name } // self.WHAT.perl),
                   :nogo(%a.keys.grep: /k|v|p/)
-                  :unexpected(%a.keys.grep: { !.match(/k|v|p/) } ))
+                  :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             }
         }
         else {
@@ -541,7 +541,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.grep' );
+        Failure.new(X::Match::Bool.new( type => '.grep' ))
     }
     multi method grep(Mu $t) {
         if %_ == 0 {
@@ -591,20 +591,20 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 else {
                     $k eq 'v'
-                      ?? fail "Doesn't make sense to specify a negated :v adverb"
-                      !! fail X::Adverb.new(
+                      ?? Failure.new("Doesn't make sense to specify a negated :v adverb")
+                      !! Failure.new(X::Adverb.new(
                            :what<grep>,
                            :source(try { self.VAR.name } // self.WHAT.perl),
-                           :unexpected($k))
+                           :unexpected($k)))
                 }
             }
         }
         else {
-            fail X::Adverb.new(
+            Failure.new(X::Adverb.new(
               :what<grep>,
               :source(try { self.VAR.name } // self.WHAT.perl),
               :nogo(%_.keys.grep: /k|v|kv|p/)
-              :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } ))
+              :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )))
         }
     }
 
@@ -615,7 +615,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
     }
     multi method first(Bool:D $t) {
-        fail X::Match::Bool.new( type => '.first' );
+        Failure.new(X::Match::Bool.new( type => '.first' ))
     }
     multi method first(Regex:D $test, :$end, *%a) is raw {
         if $end {
@@ -1378,10 +1378,10 @@ multi sub grep(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
     values.grep($test,|%a).lazy-if($laze)
 }
-multi sub grep(Bool:D $t, |) { fail X::Match::Bool.new( type => 'grep' ) }
+multi sub grep(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<grep>)) }
 
 proto sub first(|) {*}
-multi sub first(Bool:D $t, |) { fail X::Match::Bool.new( type => 'first' ) }
+multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
 multi sub first(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
     values.first($test,|%a).lazy-if($laze)

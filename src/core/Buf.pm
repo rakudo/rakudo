@@ -25,7 +25,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(Blob: @values) {
         @values.is-lazy
-          ?? fail X::Cannot::Lazy.new(:action<new>,:what(self.^name))
+          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
           !! self!push-list("initializ",nqp::create(self),@values)
     }
     multi method new(Blob: *@values) { self.new(@values) }
@@ -347,21 +347,21 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         to
     }
     method !fail-range($got) {
-        fail X::OutOfRange.new(
+        Failure.new(X::OutOfRange.new(
           :what($*INDEX // 'Index'),
           :$got,
           :range("0..{nqp::elems(self)-1}")
-        );
+        ))
     }
     method !fail-typecheck-element(\action,\i,\got) {
         self!fail-typecheck(action ~ "ing element #" ~ i,got);
     }
     method !fail-typecheck($action,$got) {
-        fail X::TypeCheck.new(
+        Failure.new(X::TypeCheck.new(
           operation => $action ~ " to " ~ self.^name,
           got       => $got,
           expected  => T,
-        );
+        ))
     }
 }
 
@@ -411,31 +411,31 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method WHICH(Buf:D:) { self.Mu::WHICH }
 
     multi method AT-POS(Buf:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::atposref_i(self, pos);
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::atposref_i(self, pos)
     }
     multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::atposref_i(self,$pos);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::atposref_i(self,$pos)
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::bindpos_i(self,\pos,assignee)
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::bindpos_i(self,\pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::bindpos_i(self,$pos,assignee)
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::bindpos_i(self,$pos,assignee)
     }
 
     multi method list(Buf:D:) {
@@ -451,12 +451,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
-          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name))
+          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
-          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
+          !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
     }
 
     method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
@@ -558,7 +558,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method !pend(Buf:D: @values, $action) {
         @values.is-lazy
-          ?? fail X::Cannot::Lazy.new(:$action,:what(self.^name))
+          ?? Failure.new(X::Cannot::Lazy.new(:$action,:what(self.^name)))
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)

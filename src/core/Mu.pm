@@ -274,7 +274,7 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        self.^name ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
+        self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
     }
 
     proto method Stringy(|) { * }

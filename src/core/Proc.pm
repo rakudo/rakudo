@@ -162,8 +162,9 @@ sub QX($cmd, :$cwd = $*CWD, :$env) {
         $result = nqp::p6box_s(nqp::readallfh($pio));
         $status := nqp::closefh_i($pio);
     }
-    fail "Unable to read from '$cmd'" unless $result.DEFINITE;
-    $result;
+    $result.DEFINITE
+      ?? $result
+      !! Failure.new("Unable to read from '$cmd'")
 }
 
 # vim: ft=perl6 expandtab sw=4

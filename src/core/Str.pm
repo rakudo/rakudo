@@ -1932,7 +1932,7 @@ multi sub infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
 multi sub infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
 
 multi sub prefix:<~^>(Str \a) {
-    fail "prefix:<~^> NYI";   # XXX
+    Failure.new("prefix:<~^> NYI")   # XXX
 }
 
 # XXX: String-wise shifts NYI

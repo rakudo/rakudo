@@ -319,15 +319,17 @@ my class Cursor does NQPCursorRole {
     }
 
     method DYNQUANT_LIMITS($mm) {
-        if nqp::istype($mm,Range) {
-            die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
-            die 'Range maximum in quantifier (**) cannot be -Inf' if $mm.max == -Inf;
-            nqp::list_i($mm.min < 0 ?? 0 !! $mm.min.Int, $mm.max == Inf ?? -1 !! $mm.max.Int)
-        }
-        else {
-            fail 'Fixed quantifier cannot be infinite' if $mm == -Inf || $mm == Inf;
-            nqp::list_i($mm.Int, $mm.Int)
-        }
+        nqp::istype($mm,Range)
+          ?? $mm.min == Inf
+            ?? die 'Range minimum in quantifier (**) cannot be +Inf'
+            !! $mm.max == -Inf
+              ?? die 'Range maximum in quantifier (**) cannot be -Inf'
+              !! nqp::list_i(
+                   $mm.min  <   0 ??  0 !! $mm.min.Int,
+                   $mm.max == Inf ?? -1 !! $mm.max.Int)
+          !! $mm == -Inf || $mm == Inf
+            ?? Failure.new('Fixed quantifier cannot be infinite')
+            !! nqp::list_i($mm.Int, $mm.Int)
     }
 
     method OTHERGRAMMAR($grammar, $name, |) {

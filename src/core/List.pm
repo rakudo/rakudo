@@ -313,12 +313,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self!ensure-allocated;
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy();
-            if $!todo.fully-reified {
-                $!todo := Mu;
-            }
-            else {
-                fail X::Cannot::Lazy.new(:action('.elems'));
-            }
+            $!todo.fully-reified
+              ?? ($!todo := Mu)
+              !! fail X::Cannot::Lazy.new(:action('.elems'));
         }
         nqp::elems($!reified)
     }
@@ -339,32 +336,32 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method !AT-POS-SLOWPATH(int $pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)
-            if $pos < 0;
-        $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
+        $pos < 0
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>))
+          !! $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
             ?? nqp::atpos($!reified, $pos)
             !! Nil
     }
 
     method BIND-POS(List:D: Int \pos, \what) is raw {
-        X::Bind.new.throw unless nqp::iscont(self.AT-POS(pos));
-        nqp::bindpos(nqp::getattr(self,List,'$!reified'),nqp::unbox_i(pos),what)
+        nqp::iscont(self.AT-POS(pos))
+          ?? nqp::bindpos(
+               nqp::getattr(self,List,'$!reified'),nqp::unbox_i(pos),what)
+          !! X::Bind.new.throw
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
         self!ensure-allocated;
         $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
-        nqp::islt_i($pos, 0) || nqp::isnull(nqp::atpos($!reified, $pos))
-            ?? False
-            !! True
+        nqp::p6bool(nqp::not_i(
+          nqp::islt_i($pos, 0) || nqp::isnull(nqp::atpos($!reified, $pos))))
     }
     multi method EXISTS-POS(List:D: Int:D $pos) {
         self!ensure-allocated;
         $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
-        $pos < 0 || nqp::isnull(nqp::atpos($!reified, $pos))
-            ?? False
-            !! True
+        nqp::p6bool(nqp::not_i(
+          $pos < 0 || nqp::isnull(nqp::atpos($!reified, $pos))))
     }
 
     method reification-target(List:D:) {
@@ -680,10 +677,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method pick(|) is nodal { * }
     multi method pick(List:D:) {
-        fail X::Cannot::Lazy.new(:action('.pick from'))
-            if self.is-lazy;
-        my $elems = self.elems;
-        $elems ?? nqp::atpos($!reified, $elems.rand.floor) !! Nil;
+        self.is-lazy
+         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         !! (my Int $elems = self.elems)
+           ?? nqp::atpos($!reified, $elems.rand.floor)
+           !! Nil
     }
     multi method pick(List:D: $number is copy) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
@@ -736,54 +734,49 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method roll(|) is nodal { * }
     multi method roll() {
-        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
-        my $elems = self.elems;
-        $elems
-          ?? nqp::atpos($!reified, $elems.rand.floor)
-          !! Nil;
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+          !! (my Int $elems = self.elems)
+            ?? nqp::atpos($!reified, $elems.rand.floor)
+            !! Nil
     }
     multi method roll(Whatever) {
-        fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
-        my $elems = self.elems;
-        $elems
-          ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
-          !! ()
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+          !! (my Int $elems = self.elems)
+            ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
+            !! ()
     }
     multi method roll(\number) {
-        if number == Inf {
-            self.roll(*)
-        }
-        else {
-            fail X::Cannot::Lazy.new(:action('.roll from')) if self.is-lazy;
-            if self.elems {  # this allocates/reifies
-                Seq.new(class :: does Iterator {
-                    has $!list;
-                    has Int $!elems;
-                    has int $!todo;
-                    method !SET-SELF(\list,\todo) {
-                        $!list := nqp::getattr(list,List,'$!reified');
-                        $!elems = nqp::elems($!list);
-                        $!todo  = todo;
-                        self
-                    }
-                    method new(\list,\todo) {
-                        nqp::create(self)!SET-SELF(list,todo)
-                    }
-                    method pull-one() is raw {
-                        if $!todo {
-                            $!todo = $!todo - 1;
-                            nqp::atpos($!list,$!elems.rand.floor)
-                        }
-                        else {
-                            IterationEnd
-                        }
-                    }
-                }.new(self,number.Int))
-            }
-            else {
-                ()
-            }
-        }
+        number == Inf
+          ?? self.roll(*)
+          !! self.is-lazy
+            ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+            !! self.elems   # this allocates/reifies
+              ?? Seq.new(class :: does Iterator {
+                     has $!list;
+                     has Int $!elems;
+                     has int $!todo;
+                     method !SET-SELF(\list,\todo) {
+                         $!list := nqp::getattr(list,List,'$!reified');
+                         $!elems = nqp::elems($!list);
+                         $!todo  = todo;
+                         self
+                     }
+                     method new(\list,\todo) {
+                         nqp::create(self)!SET-SELF(list,todo)
+                     }
+                     method pull-one() is raw {
+                         if $!todo {
+                             $!todo = $!todo - 1;
+                             nqp::atpos($!list,$!elems.rand.floor)
+                         }
+                         else {
+                             IterationEnd
+                         }
+                     }
+                 }.new(self,number.Int))
+              !! ()
     }
 
     method reverse() is nodal {
@@ -977,7 +970,7 @@ role XX-Whatever does Iterator {
 }
 
 proto sub infix:<xx>(Mu $, $, *%) { * }
-multi sub infix:<xx>()      { fail "No zero-arg meaning for infix:<xx>" }
+multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);

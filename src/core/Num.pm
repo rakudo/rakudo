@@ -19,7 +19,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self))
-          ?? fail("Cannot coerce {self} to an Int")
+          ?? Failure.new("Cannot coerce {self} to an Int")
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
@@ -331,39 +331,39 @@ multi sub infix:<*>(num $a, num $b) {
 }
 
 multi sub infix:</>(Num:D \a, Num:D \b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '/', numerator => a
-    ) unless b;
-    nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    b
+      ?? nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator(a)))
 }
 multi sub infix:</>(num $a, num $b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '/', numerator => $a
-    ) unless $b;
-    nqp::div_n($a, $b)
+    $b
+      ?? nqp::div_n($a, $b)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator($a)))
 }
 
 multi sub infix:<%>(Num:D \a, Num:D \b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '%', numerator => a
-    ) unless b;
-    nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    b
+      ?? nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
 multi sub infix:<%>(num $a, num $b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '%', numerator => $a
-    ) unless $b;
-    nqp::mod_n($a, $b)
+    $b
+      ?? nqp::mod_n($a, $b)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
 multi sub infix:<**>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
-        or a == 0e0 || b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
+      or a == 0e0 || b.abs == Inf
+        ?? 0e0
+        !! Failure.new(X::Numeric::Underflow.new)
 }
 multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
-        or $a == 0e0 || $b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
+      or $a == 0e0 || $b.abs == Inf
+        ?? 0e0
+        !! Failure.new(X::Numeric::Underflow.new)
 }
 
 # Here we sort NaN in with string "NaN"

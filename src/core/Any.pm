@@ -30,13 +30,13 @@ my class Any { # declared in BOOTSTRAP
     proto method DELETE-KEY(|) is nodal { * }
     multi method DELETE-KEY(Any:U: $) { Nil }
     multi method DELETE-KEY(Any:D: $) {
-        fail "Can not remove values from a {self.^name}";
+        Failure.new("Can not remove values from a {self.^name}")
     }
 
     proto method DELETE-POS(|) is nodal { * }
     multi method DELETE-POS(Any:U: $pos) { Nil }
     multi method DELETE-POS(Any:D: $pos) {
-        fail "Can not remove elements from a {self.^name}";
+        Failure.new("Can not remove elements from a {self.^name}")
     }
     multi method DELETE-POS(**@indices) {
         my $final := @indices.pop;
@@ -228,9 +228,7 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(**@indices) {
         my $final := @indices.pop;
         my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
+        $target := $target.AT-POS($_) for @indices;
         $target.EXISTS-POS($final);
     }
 
@@ -248,30 +246,30 @@ my class Any { # declared in BOOTSTRAP
         $v
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int));
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:U: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
     multi method AT-POS(Any:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
-            unless nqp::not_i(pos);
-        self;
+        pos
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
+          !! self
     }
     multi method AT-POS(Any:D: Int:D \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
-            if pos != 0;
-        self;
+        pos
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
+          !! self
     }
     multi method AT-POS(Any:D: Num:D \pos) is raw {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int));
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:D: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
@@ -281,29 +279,27 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method AT-POS(**@indices) is raw {
         my $result := self;
-        for @indices {
-            $result := $result.AT-POS($_);
-        }
+        $result := $result.AT-POS($_) for @indices;
         $result
     }
 
     proto method ZEN-POS(|) { * }
     multi method ZEN-POS(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb.new(
+          ?? Failure.new(X::Adverb.new(
                :what('[] slice'),
                :source(try { self.VAR.name } // self.WHAT.perl),
-               :unexpected(%unexpected.keys))
+               :unexpected(%unexpected.keys)))
           !! self
     }
 
     proto method ZEN-KEY(|) { * }
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb.new(
+          ?? Failure.new(X::Adverb.new(
                :what('{} slice'),
                :source(try { self.VAR.name } // self.WHAT.perl),
-               :unexpected(%unexpected.keys))
+               :unexpected(%unexpected.keys)))
           !! self
     }
 
@@ -319,9 +315,9 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(pos) = assignee;                    # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
         self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
@@ -333,23 +329,19 @@ my class Any { # declared in BOOTSTRAP
         my \value := @indices.pop;
         my $final := @indices.pop;
         my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
+        $target := $target.AT-POS($_) for @indices;
         $target.ASSIGN-POS($final, value)
     }
 
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
         my int $elems = @indices.elems;
-        my \value := @indices.AT-POS($elems - 1);
-        my $final := @indices.AT-POS($elems - 2);
+        my \value  := @indices.AT-POS(--$elems);
+        my $final  := @indices.AT-POS(--$elems);
         my $target := self;
-        my int $i = 0;
-        while $i < $elems - 2 {
-            $target := $target.AT-POS(@indices.AT-POS($i));
-            $i = $i + 1;
-        }
+        my int $i = -1;
+        $target := $target.AT-POS(@indices.AT-POS($i))
+          while nqp::islt_i(++$i,$elems);
         $target.BIND-POS($final, value)
     }
 
@@ -361,12 +353,10 @@ my class Any { # declared in BOOTSTRAP
     # internals
     proto method AT-KEY(|) is nodal { * }
     multi method AT-KEY(Any:D: $key) is raw {
-        if self ~~ Associative {
-            fail "Associative indexing implementation missing from type {self.WHAT.perl}";
-        }
-        else {
-            fail "Type {self.WHAT.perl} does not support associative indexing.";
-        }
+        Failure.new( self ~~ Associative
+          ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
+          !! "Type {self.WHAT.perl} does not support associative indexing."
+        )
     }
     multi method AT-KEY(Any:U \SELF: $key) is raw {
         nqp::bindattr(my $v, Scalar, '$!whence',
@@ -377,7 +367,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method BIND-KEY(|) is nodal { * }
     multi method BIND-KEY(Any:D: \k, \v) is raw {
-        fail X::Bind.new(target => self.^name);
+        Failure.new(X::Bind.new(target => self.^name))
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
         SELF = Hash.new;
@@ -517,12 +507,12 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
         }
     }
 
-    fail X::Adverb.new(
+    Failure.new(X::Adverb.new(
       :what<slice>,
       :source(try { SELF.VAR.name } // SELF.WHAT.perl),
       :unexpected(%d.keys),
       :nogo(@nogo),
-    );
+    ))
 } #SLICE_HUH
 
 sub DELETEKEY(Mu \d, str $key) {

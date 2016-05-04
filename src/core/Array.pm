@@ -489,8 +489,9 @@ my class Array { # declared in BOOTSTRAP
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-        self!append-list(value);
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          !! self!append-list(value)
     }
     multi method push(Array:D: \value) {
         self!ensure-allocated();
@@ -504,14 +505,17 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-        self!append-list(@values)
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+        if self.is-lazy {
+            Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+        }
+        elsif nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             nqp::push(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -524,18 +528,18 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
-        self!append-list(@values)
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+          !! self!append-list(@values)
     }
     method !append-list(@values) {
         my \values-iter = @values.iterator;
         my \reified := nqp::getattr(self, List, '$!reified');
         my \target := ArrayReificationTarget.new(reified,
             nqp::decont($!descriptor));
-        unless values-iter.push-until-lazy(target) =:= IterationEnd {
-            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name));
-        }
-        self
+        values-iter.push-until-lazy(target) =:= IterationEnd
+          ?? self
+          !! Failure.new(X::Cannot::Lazy.new(:action<push>, :what(self.^name)))
     }
 
     multi method unshift(Array:D: Slip \value) {
@@ -592,8 +596,8 @@ my class Array { # declared in BOOTSTRAP
 
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::elems($reified)
-            ?? nqp::pop($reified)
-            !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+          ?? nqp::pop($reified)
+          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
 
     method shift(Array:D:) is raw is nodal {
@@ -602,10 +606,10 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
-            ?? nqp::shift($reified)
-            !! nqp::elems($reified)  # is it actually just sparse?
-                ?? STATEMENT_LIST(nqp::shift($reified); Nil)
-                !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+          ?? nqp::shift($reified)
+          !! nqp::elems($reified)  # is it actually just sparse?
+            ?? STATEMENT_LIST(nqp::shift($reified); Nil)
+            !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
     }
 
     proto method splice(|) is nodal { * }
@@ -694,20 +698,16 @@ my class Array { # declared in BOOTSTRAP
 
     # introspection
     method name() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! $d.name()
+        nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
     method of() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
     method default() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Any !! $d.default;
+        nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! so $d.dynamic;
+        nqp::isnull($!descriptor) ?? Nil !! so $!descriptor.dynamic
     }
     multi method perl(Array:D \SELF:) {
         SELF.perlseen('Array', {

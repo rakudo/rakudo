@@ -39,10 +39,8 @@ my class Any { # declared in BOOTSTRAP
         Failure.new("Can not remove elements from a {self.^name}")
     }
     multi method DELETE-POS(**@indices) {
-        my $final  := @indices.pop;
-        my $target := self;
-        $target := $target.AT-POS($_) for @indices;
-        $target.DELETE-POS($final);
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-POS(self,@indices).DELETE-POS($final)
     }
 
     method cache() { self.list }
@@ -225,9 +223,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method EXISTS-POS(**@indices) {
         my $final := @indices.pop;
-        my $target := self;
-        $target := $target.AT-POS($_) for @indices;
-        $target.EXISTS-POS($final);
+        Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
     }
 
     proto method AT-POS(|) is nodal {*}
@@ -276,9 +272,8 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
     multi method AT-POS(**@indices) is raw {
-        my $result := self;
-        $result := $result.AT-POS($_) for @indices;
-        $result
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
 
     proto method ZEN-POS(|) { * }
@@ -326,13 +321,16 @@ my class Any { # declared in BOOTSTRAP
     multi method ASSIGN-POS(**@indices) {
         my \value := @indices.pop;
         my $final := @indices.pop;
-        my $target := self;
-        $target := $target.AT-POS($_) for @indices;
-        $target.ASSIGN-POS($final, value)
+        Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
     }
 
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
+# looks like Array.pop doesn't really return a bindable container
+#        my \value := @indices.pop;
+#        my $final := @indices.pop;
+#        Rakudo::Internals.WALK-AT-POS(self,@indices).BIND-POS($final,value)
+
         my int $elems = @indices.elems;
         my \value  := @indices.AT-POS(--$elems);
         my $final  := @indices.AT-POS(--$elems);

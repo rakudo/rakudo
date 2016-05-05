@@ -1359,6 +1359,16 @@ my class Rakudo::Internals {
             Failure.new('Decrement out of range')
         }
     }
+
+    method WALK-AT-POS(\target,\indices) is raw {
+        my $target   := target;
+        my $indices  := nqp::getattr(indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        $target := $target.AT-POS(nqp::atpos($indices,$i))
+          while nqp::islt_i(++$i,$elems);
+        $target
+    }
 }
 
 # we need this to run *after* the mainline of Rakudo::Internals has run

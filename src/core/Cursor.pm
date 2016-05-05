@@ -63,7 +63,7 @@ my class Cursor does NQPCursorRole {
             elsif $namecount == 1 && $onlyname ne '' && nqp::eqat($onlyname,'$!',0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
-                my int $csi;
+                my int $csi = -1;
                 my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
@@ -73,20 +73,19 @@ my class Cursor does NQPCursorRole {
                 else {
                     $dest := nqp::atkey($hash, $onlyname);
                 }
-                while $csi < $cselems {
+                while nqp::islt_i(++$csi,$cselems) {
                     my $subcur := nqp::atpos($cs, $csi);
                     my $name := nqp::getattr($subcur, $?CLASS, '$!name');
                     if !nqp::isnull($name) && nqp::defined($name) {
                         my $submatch := $subcur.MATCH();
                         nqp::push($dest, $submatch);
                     }
-                    $csi = nqp::add_i($csi, 1);
                 }
             }
             else {
                 my int $cselems = nqp::elems($cs);
-                my int $csi     = 0;
-                while $csi < $cselems {
+                my int $csi     = -1;
+                while nqp::islt_i(++$csi,$cselems) {
                     my Mu $subcur   := nqp::atpos($cs, $csi);
                     my Mu $name     := nqp::getattr($subcur, $?CLASS, '$!name');
                     if !nqp::isnull($name) && nqp::defined($name) && $name ne '' {
@@ -144,7 +143,6 @@ my class Cursor does NQPCursorRole {
                             }
                         }
                     }
-                    $csi = nqp::add_i($csi, 1);
                 }
             }
         }

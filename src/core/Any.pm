@@ -39,11 +39,9 @@ my class Any { # declared in BOOTSTRAP
         Failure.new("Can not remove elements from a {self.^name}")
     }
     multi method DELETE-POS(**@indices) {
-        my $final := @indices.pop;
+        my $final  := @indices.pop;
         my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
+        $target := $target.AT-POS($_) for @indices;
         $target.DELETE-POS($final);
     }
 

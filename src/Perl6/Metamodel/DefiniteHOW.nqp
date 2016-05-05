@@ -47,7 +47,7 @@ class Perl6::Metamodel::DefiniteHOW
     }
 
     method shortname($definite_type) {
-	if nqp::isnull(nqp::typeparameterized($definite_type)) {
+        if nqp::isnull(nqp::typeparameterized($definite_type)) {
             '?:?'
         }
         else {

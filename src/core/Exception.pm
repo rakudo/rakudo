@@ -15,7 +15,7 @@ my class Exception {
 
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {
-	nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+        nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
     }
     method reset-backtrace(Exception:D:) {
         nqp::bindattr(self, Exception, '$!ex', Nil)

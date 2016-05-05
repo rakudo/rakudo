@@ -481,16 +481,16 @@ sub MAIN(*@ARGS) {
     my $debugger;
     my $i := 1;
     while @ARGS[$i] ~~ /^\-/ {
-	if @ARGS[$i] ~~ /^\-D/ {
-	    $debugger := "-M" ~ nqp::substr(@ARGS[$i], 2);
-	    nqp::splice(@ARGS, [], $i, 1);
-	    last;
-	}
-	$i++;
+        if @ARGS[$i] ~~ /^\-D/ {
+            $debugger := "-M" ~ nqp::substr(@ARGS[$i], 2);
+            nqp::splice(@ARGS, [], $i, 1);
+            last;
+        }
+        $i++;
     }
 
     if !(nqp::defined($debugger)) {
-	$debugger := '-MDebugger::UI::CommandLine';
+        $debugger := '-MDebugger::UI::CommandLine';
     }
 
     my $pname := @ARGS.shift();

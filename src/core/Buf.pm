@@ -38,7 +38,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $elems = $elements;
         my $blob     := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i($i = $i + 1,$elems);
+        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
         $blob;
     }
     multi method allocate(Blob:U: Int $elements, Int \value) {
@@ -101,7 +101,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method list(Blob:D:) {
         Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
             method pull-one() is raw {
-                nqp::islt_i($!i = $!i + 1,$!elems)
+                nqp::islt_i(++$!i,$!elems)
                   ?? nqp::atpos_i($!blob,$!i)
                   !! IterationEnd
             }
@@ -153,9 +153,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if $todo {
             nqp::setelems($subbuf, $todo);
             my int $i = -1;
-            $pos = $pos - 1;
-            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,($pos = $pos + 1)))
-              while ($i = $i + 1) < $todo;
+            --$pos;
+            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,++$pos))
+              while nqp::islt_i(++$i,$todo);
         }
         $subbuf
     }
@@ -170,7 +170,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             my int $i = -1;
             return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
               if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              while nqp::islt_i($i = $i + 1,$elems);
+              while nqp::islt_i(++$i,$elems);
             0
         }
     }
@@ -183,7 +183,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $i = -1;
         return False
           unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-          while nqp::islt_i($i = $i + 1,$elems);
+          while nqp::islt_i(++$i,$elems);
 
         True
     }
@@ -297,7 +297,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype(($got := nqp::atpos($from,$i)),Int)
                   ?? nqp::bindpos_i(to,$j++,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
-                  while nqp::islt_i($i = $i + 1,$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
         else {
@@ -308,7 +308,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype($got,Int)
                   ?? nqp::push_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw;
-                $i = $i + 1;
+                ++$i;
             }
         }
         to
@@ -337,11 +337,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
               while nqp::isle_i($i = $i + $values,$elems);
 
             if nqp::isgt_i($i,$elems) {  # something left to init
-                $i     = $i - 1;         # went one too far
+                --$i;                    # went one too far
                 $elems = $elems + $values;
                 my int $j = -1;
                 nqp::bindpos_i(to,$i,nqp::atpos_i(from,$j = ($j + 1) % $values))
-                  while nqp::islt_i($i = $i + 1,$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
         to
@@ -441,7 +441,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method list(Buf:D:) {
         Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
             method pull-one() is raw {
-                nqp::islt_i($!i = $!i + 1,$!elems)
+                nqp::islt_i(++$!i,$!elems)
                   ?? nqp::atposref_i($!blob,$!i)
                   !! IterationEnd
             }
@@ -684,7 +684,7 @@ multi sub prefix:<~^>(Blob:D \a) {
     my int $i    = -1;
     my int $mask = 0xFFFFFFFFFFFFFFFF;
     nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
-      while nqp::islt_i($i = $i + 1,$elems);
+      while nqp::islt_i(++$i,$elems);
 
     $r
 }
@@ -703,10 +703,10 @@ multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitand_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
-    $i = $i - 1;    # went one too far
-    nqp::bindpos_i($r,$i,0) while nqp::islt_i($i = $i + 1,$max);
+    --$i;    # went one too far
+    nqp::bindpos_i($r,$i,0) while nqp::islt_i(++$i,$max);
 
     $r
 }
@@ -726,11 +726,11 @@ multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
     $i = $i - 1;    # went one too far
     nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
-      while nqp::islt_i($i = $i + 1,$max);
+      while nqp::islt_i(++$i,$max);
 
     $r
 }
@@ -750,11 +750,11 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitxor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
-    $i = $i - 1;    # went one too far
+    --$i;    # went one too far
     nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
-      while nqp::islt_i($i = $i + 1,$max);
+      while nqp::islt_i(++$i,$max);
 
     $r
 }

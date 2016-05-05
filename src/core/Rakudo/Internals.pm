@@ -51,7 +51,7 @@ my class Rakudo::Internals {
             my int $i      = $!i;
             my int $elems  = $!elems;
             $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             IterationEnd
         }
         method count-only() {

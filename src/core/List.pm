@@ -893,7 +893,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ?? $tmp.Str
                 !! nqp::box_s($tmp,Str)
              )
-        ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+        ) while nqp::islt_i(++$i,$elems);
 
         nqp::bindpos_s($strings,$i,'...') if $infinite;
         nqp::join(nqp::unbox_s($separator.Str),$strings)

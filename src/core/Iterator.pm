@@ -24,7 +24,7 @@ my role Iterator {
 
         # we may not .sink $pulled here, since it can be a Seq
         $no-sink := $target.push($pulled)
-          while nqp::islt_i($i = nqp::add_i($i,1),$n)
+          while nqp::islt_i(++$i,$n)
             && !(IterationEnd =:= ($pulled := self.pull-one));
 
         $pulled =:= IterationEnd

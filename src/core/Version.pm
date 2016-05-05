@@ -38,7 +38,7 @@ class Version {
             my $parts    := nqp::setelems(nqp::list,$elems);
 
             my int $i = -1;
-            while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+            while nqp::islt_i(++$i,$elems) {
                 my str $s = nqp::atpos($strings,$i);
                 nqp::bindpos($parts,$i, nqp::iseq_s($s,"*")
                   ?? *
@@ -85,7 +85,7 @@ class Version {
 
         my int $elems = nqp::elems($!parts);
         my int $i     = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+        while nqp::islt_i(++$i,$elems) {
             my $v := nqp::atpos($!parts,$i);
 
             # if whatever here, no more check this iteration

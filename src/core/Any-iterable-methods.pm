@@ -854,14 +854,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my \indices  := nqp::setelems(nqp::list,$elems);
         my int $i = -1;   # need to initialize 0th element for rakudo-j
         nqp::bindpos(indices,$i,nqp::decont($i))
-          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+          while nqp::islt_i(++$i,$elems);
 
         # Need to transform
         if &by && (&by.?count // 2) < 2 {
             my \transformed := nqp::setelems(nqp::list,$elems);
             $i = -1;
             nqp::bindpos(transformed,$i,by(nqp::atpos(sort-buffer,$i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
 
             nqp::p6sort(indices,-> int $a, int $b {
                 nqp::atpos(transformed,$a) cmp nqp::atpos(transformed,$b)
@@ -887,7 +887,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my \result := nqp::setelems(nqp::list,$elems);
         $i = -1;
         nqp::bindpos(result,$i,nqp::atpos(sort-buffer,nqp::atpos(indices,$i)))
-          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+          while nqp::islt_i(++$i,$elems);
 
         result
     }

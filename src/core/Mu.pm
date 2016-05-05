@@ -107,7 +107,7 @@ my class Mu { # declared in BOOTSTRAP
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
+        while nqp::islt_i(++$i,$count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
             if nqp::iseq_i($code, 0) {
@@ -196,7 +196,7 @@ my class Mu { # declared in BOOTSTRAP
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
+        while nqp::islt_i(++$i,$count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
             if nqp::iseq_i($code, 0) {
@@ -680,7 +680,7 @@ multi sub infix:<eqv>(@a, @b) {
     elsif @a.WHAT =:= @b.WHAT && (my int $n = @a.elems) == @b.elems {
         my int $i = -1;
         return False unless @a.AT-POS($i) eqv @b.AT-POS($i)
-          while nqp::islt_i($i = nqp::add_i($i,1),$n);
+          while nqp::islt_i(++$i,$n);
         True
     }
     else {

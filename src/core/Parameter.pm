@@ -236,14 +236,14 @@ my class Parameter { # declared in BOOTSTRAP
                 my $lookup := nqp::hash;
                 my int $i   = -1;
                 nqp::bindkey($lookup,nqp::atpos($!named_names,$i),1)
-                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+                  while nqp::islt_i(++$i,$elems);
 
                 # make sure the other nameds are all here
                 $elems = nqp::elems($onamed_names);
                 $i     = -1;
                 return False unless
                   nqp::existskey($lookup,nqp::atpos($onamed_names,$i))
-                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
 

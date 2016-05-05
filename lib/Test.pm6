@@ -245,14 +245,14 @@ multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') i
 
 multi sub is-approx(Numeric $got, Numeric $expected,
                     Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
-		    :$desc = '') is export {
+                    :$desc = '') is export {
     $time_after = nqp::time_n;
     die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
     die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
     my $abs-diff = ($got - $expected).abs;
     my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
-	       ($abs-diff <= ($rel_tol * $got).abs) ||
-	       ($abs-diff <= $abs_tol));
+        ($abs-diff <= ($rel_tol * $got).abs) ||
+        ($abs-diff <= $abs_tol));
     my $ok = proclaim(?$test, $desc);
     unless $test {
         diag("expected: $expected");
@@ -374,7 +374,7 @@ multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
 multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
     $time_after = nqp::time_n;
     try {
-	EVAL ( "use $code" );
+        EVAL ( "use $code" );
     }
     my $ok = proclaim((not defined $!), $msg) or diag($!);
     $time_before = nqp::time_n;

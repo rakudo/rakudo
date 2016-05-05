@@ -424,7 +424,10 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
-        MVMFrame *find = tc->cur_frame;
+        MVMFrame *find;
+        MVMROOT(tc, vm_code_obj, {
+            find = MVM_frame_force_to_heap(tc, tc->cur_frame);
+        });
         while (find) {
             if (((MVMCode *)vm_code_obj)->body.sf->body.outer == find->static_info) {
                 MVMFrame *orig = tc->cur_frame;
@@ -450,17 +453,10 @@ static void p6getouterctx(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
-    if (outer) {
-        MVMObject *ctx;
-        MVMROOT(tc, outer, {
-            ctx = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-        });
-        MVM_ASSIGN_REF(tc, &(ctx->header), ((MVMContext *)ctx)->body.context, outer);
-        GET_REG(tc, 0).o = ctx;
-    }
-    else {
+    if (outer)
+        GET_REG(tc, 0).o = MVM_frame_context_wrapper(tc, outer);
+    else
         MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
-    }
 }
 
 static MVMuint8 s_p6captureouters[] = {
@@ -569,7 +565,7 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
     free(srd);
 }
 static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMFrame  *ctx = tc->cur_frame;
+    MVMFrame *ctx = MVM_frame_force_to_heap(tc, tc->cur_frame);
     while (ctx) {
         /* Do we have a dispatcher here? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);

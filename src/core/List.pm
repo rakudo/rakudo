@@ -240,9 +240,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method from-slurpy-flat(|) {
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
         my \future = nqp::create(IterationBuffer);
-        my int $i = 0;
+        my int $i = -1;
         my int $n = nqp::elems(vm-tuple);
-        while $i < $n {
+        while nqp::islt_i(++$i,$n) {
             my \consider = nqp::atpos(vm-tuple, $i);
             my $no-sink := nqp::push(future, nqp::iscont(consider)
                 ?? consider
@@ -252,7 +252,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                             !! consider
                         ).flat.Slip
                     !! consider);
-            $i = $i + 1;
         }
 
         my \result := nqp::create(self);
@@ -301,7 +300,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $sum = 0;
         my int $i = -1;
         $sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0)
-          while ($i = $i + 1) < $elems;
+          while nqp::islt_i(++$i,$elems);
         $sum
     }
 
@@ -640,14 +639,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \positional := nqp::create(IterationBuffer);
         my Mu $hash := nqp::hash();
         my int $c = nqp::elems($!reified);
-        my int $i = 0;
-        while $i < $c {
-            my $v := nqp::atpos($!reified, $i);
-            nqp::istype($v, Pair)
-                ??  nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
-                !!  positional.push($v);
-            $i = $i + 1;
-        }
+        my int $i = -1;
+        my $v;
+        nqp::istype(($v := nqp::atpos($!reified, $i)),Pair)
+          ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
+          !! positional.push($v)
+          while nqp::islt_i(++$i,$c);
         nqp::bindattr($cap, Capture, '$!list', positional);
         nqp::bindattr($cap, Capture, '$!hash', $hash);
         $cap

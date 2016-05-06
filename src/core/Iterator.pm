@@ -76,7 +76,7 @@ my role Iterator {
     # lines.
     method count-only() {
         my int $i = 0;
-        $i = $i + 1 until self.pull-one() =:= IterationEnd;
+        ++$i until self.pull-one() =:= IterationEnd;
         $i
     }
 

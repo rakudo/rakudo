@@ -41,9 +41,12 @@ my class Junction { # declared in BOOTSTRAP
         STATEMENT_LIST($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
             if nqp::iseq_s($!type, 'none');
         # 'one' junction
-        my $count = 0;
-        $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).sink;
-        $count == 1;
+        my int $count;
+        $!storage.map({
+            ++$count if $_.ACCEPTS(topic);
+            return False if $count > 1;
+        }).sink;
+        $count == 1
     }
 
     multi method gist(Junction:D:) {

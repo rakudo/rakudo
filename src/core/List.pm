@@ -173,7 +173,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method fully-reified() {
-            !$!current-iter.DEFINITE && !$!future.DEFINITE
+            !($!current-iter.DEFINITE || $!future.DEFINITE)
         }
 
         method is-lazy() {

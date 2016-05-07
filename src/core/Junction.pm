@@ -116,7 +116,6 @@ my class Junction { # declared in BOOTSTRAP
             if nqp::istype($v, Junction) {
                 my Mu $nam_hash := nqp::getattr(nqp::decont(args), Capture, '$!hash');
                 my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
-                my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
                 @states.map: -> \st --> Nil {
                     nqp::bindkey($nam_hash, $k, st);

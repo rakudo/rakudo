@@ -3,11 +3,22 @@ my class Junction { # declared in BOOTSTRAP
     #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
 
-    multi method new(\values, Str :$type!) {
-        my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', values.eager.list);
-        nqp::bindattr($junc, Junction, '$!type', $type);
-        $junc
+    method !SET-SELF(\type,\values) {
+        $!type = type;
+        fail "Junction Can only have 'any', 'all', 'none', 'one' type"
+          unless nqp::iseq_s($!type,"any")
+              || nqp::iseq_s($!type,"all") 
+              || nqp::iseq_s($!type,"none") 
+              || nqp::iseq_s($!type,"one");
+        $!storage := values.eager.list;
+        self
+    }
+
+    multi method new(Junction: \values, Str :$type!) {
+        nqp::create(Junction)!SET-SELF($type,values)
+    }
+    multi method new(Junction: Str:D \type, \values) {
+        nqp::create(Junction)!SET-SELF(type,values)
     }
 
     multi method Bool(Junction:D:) {

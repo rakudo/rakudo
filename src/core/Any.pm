@@ -341,10 +341,10 @@ my class Any { # declared in BOOTSTRAP
         $target.BIND-POS($final, value)
     }
 
-    method all() is nodal { Junction.new(self.list, :type<all>) }
-    method any() is nodal { Junction.new(self.list, :type<any>) }
-    method one() is nodal { Junction.new(self.list, :type<one>) }
-    method none() is nodal { Junction.new(self.list, :type<none>) }
+    method all()  is nodal { Junction.new("all", self) }
+    method any()  is nodal { Junction.new("any", self) }
+    method one()  is nodal { Junction.new("one", self) }
+    method none() is nodal { Junction.new("none",self) }
 
     # internals
     proto method AT-KEY(|) is nodal { * }

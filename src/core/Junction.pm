@@ -71,7 +71,6 @@ my class Junction { # declared in BOOTSTRAP
         my Mu $pos_rpa := nqp::getattr(nqp::decont(args), Capture, '$!list');
         sub thread_junction(int $i) {
             my Junction $arg := nqp::atpos($pos_rpa, $i);
-            my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
             my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();

@@ -22,16 +22,31 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Bool(Junction:D:) {
-        STATEMENT_LIST($!storage.map({return True if $_}).sink; return False)
-            if nqp::iseq_s($!type, 'any');
-        STATEMENT_LIST($!storage.map({return False unless $_}).sink; return True)
-            if nqp::iseq_s($!type, 'all');
-        STATEMENT_LIST($!storage.map({return False if $_}).sink; return True)
-            if nqp::iseq_s($!type, 'none');
-        # 'one' junction
-        my int $count;
-        $!storage.map({ return False if $_ && ++$count > 1 }).sink;
-        $count == 1;
+        my $states   := nqp::getattr($!storage,List,'$!reified');
+        my int $elems = nqp::elems($states);
+        my int $i     = -1;
+
+        if nqp::iseq_s($!type,'any') {
+            return True if nqp::atpos($states,$i)
+              while nqp::islt_i(++$i,$elems);
+            False
+        }
+        elsif nqp::iseq_s($!type,'all') {
+            return False unless nqp::atpos($states,$i)
+              while nqp::islt_i(++$i,$elems);
+            True
+        }
+        elsif nqp::iseq_s($!type,'none') {
+            return False if nqp::atpos($states,$i)
+              while nqp::islt_i(++$i,$elems);
+            True
+        }
+        else {
+            my int $seen;
+            return False if nqp::atpos($states,$i) && nqp::isgt_i(++$seen,1)
+              while nqp::islt_i(++$i,$elems);
+            nqp::p6bool(nqp::iseq_i($seen,1))
+        }
     }
 
     multi method Str(Junction:D:) {
@@ -45,16 +60,32 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        STATEMENT_LIST($!storage.map({return True if $_.ACCEPTS(topic)}).sink; return False)
-            if nqp::iseq_s($!type, 'any');
-        STATEMENT_LIST($!storage.map({return False unless $_.ACCEPTS(topic)}).sink; return True)
-            if nqp::iseq_s($!type, 'all');
-        STATEMENT_LIST($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
-            if nqp::iseq_s($!type, 'none');
-        # 'one' junction
-        my int $count;
-        $!storage.map({ return False if $_.ACCEPTS(topic) && ++$count > 1 }).sink;
-        $count == 1
+        my $states   := nqp::getattr($!storage,List,'$!reified');
+        my int $elems = nqp::elems($states);
+        my int $i     = -1;
+
+        if nqp::iseq_s($!type,'any') {
+            return True if nqp::atpos($states,$i).ACCEPTS(topic)
+              while nqp::islt_i(++$i,$elems);
+            False
+        }
+        elsif nqp::iseq_s($!type,'all') {
+            return False unless nqp::atpos($states,$i).ACCEPTS(topic)
+              while nqp::islt_i(++$i,$elems);
+            True
+        }
+        elsif nqp::iseq_s($!type,'none') {
+            return False if nqp::atpos($states,$i).ACCEPTS(topic)
+              while nqp::islt_i(++$i,$elems);
+            True
+        }
+        else {
+            my int $seen;
+            return False if nqp::atpos($states,$i).ACCEPTS(topic)
+              && nqp::isgt_i(++$seen,1)
+              while nqp::islt_i(++$i,$elems);
+            nqp::p6bool(nqp::iseq_i($seen,1))
+        }
     }
 
     multi method gist(Junction:D:) {

@@ -141,6 +141,7 @@ src/core/Kernel.pm
 src/core/Compiler.pm
 src/core/Perl.pm
 src/core/OS.pm
+src/core/Rakudo/Internals/JSON.pm
 src/core/JSON/Pretty.pm
 src/core/Distribution.pm
 src/core/CompUnit/DependencySpecification.pm

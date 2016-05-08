@@ -24,7 +24,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             # pick a META6.json if it is there
             if (my $meta = $!prefix.child('META6.json')) && $meta.f {
                 try {
-                    my $json = from-json $meta.slurp;
+                    my $json = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     if $json<provides>{$name} -> $file {
                         my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
                         $found = $path if $path.f;

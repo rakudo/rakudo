@@ -127,7 +127,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !read-dist($id) {
-        my $dist = from-json($.prefix.child('dist').child($id).slurp);
+        my $dist = Rakudo::Internals::JSON.from-json($.prefix.child('dist').child($id).slurp);
         $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
         $dist
     }
@@ -236,7 +236,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             copy($file, $destination);
         }
 
-        $dist-dir.child($dist-id).spurt: to-json($dist.Hash);
+        $dist-dir.child($dist-id).spurt: Raudo::Internals::JSON.to-json($dist.Hash);
 
         # reset cached id so it's generated again on next access.
         # identity changes with every installation of a dist.
@@ -429,7 +429,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method resource($dist-id, $key) {
-        my $dist = from-json(self!dist-dir.child($dist-id).slurp);
+        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
         self!resources-dir.child($dist<files>{$key})
     }
 

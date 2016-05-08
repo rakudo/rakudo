@@ -176,7 +176,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
-        %ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
+        %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: @*MODULES // [];
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 

@@ -89,11 +89,23 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method gist(Junction:D:) {
-        $!type ~ '(' ~ $!storage.map({$_.gist}).join(', ') ~ ')'
+        my $states   := nqp::getattr($!storage,List,'$!reified');
+        my int $elems = nqp::elems($states);
+        my int $i     = -1;
+        my $gists    := nqp::setelems(nqp::list_s,$elems);
+        nqp::bindpos_s($gists,$i,nqp::atpos($states,$i).gist)
+          while nqp::islt_i(++$i,$elems);
+        $!type ~ '(' ~ nqp::join(', ',$gists) ~ ')'
     }
 
     multi method perl(Junction:D:) {
-        $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
+        my $states   := nqp::getattr($!storage,List,'$!reified');
+        my int $elems = nqp::elems($states);
+        my int $i     = -1;
+        my $perls    := nqp::setelems(nqp::list_s,$elems);
+        nqp::bindpos_s($perls,$i,nqp::atpos($states,$i).perl)
+          while nqp::islt_i(++$i,$elems);
+        $!type ~ '(' ~ nqp::join(', ',$perls) ~ ')'
     }
 
     method CALL-ME(|c) {
@@ -103,7 +115,10 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method sink(Junction:D: --> Nil) {
-        .?sink for $!storage.list;
+        my $states   := nqp::getattr($!storage,List,'$!reified');
+        my int $elems = nqp::elems($states);
+        my int $i     = -1;
+        nqp::atpos($states,$i).?sink while nqp::islt_i(++$i,$elems);
     }
 
     method AUTOTHREAD(&call, |args) {

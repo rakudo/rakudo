@@ -236,7 +236,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             copy($file, $destination);
         }
 
-        $dist-dir.child($dist-id).spurt: Raudo::Internals::JSON.to-json($dist.Hash);
+        $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json($dist.Hash);
 
         # reset cached id so it's generated again on next access.
         # identity changes with every installation of a dist.

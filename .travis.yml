@@ -10,7 +10,7 @@ fast_finish: true
 
 install: "echo"
 
-script: "perl Configure.pl $RAKUDO_OPTIONS; make test"
+script: - "perl Configure.pl $RAKUDO_OPTIONS && make test"
 
 branches:
    only:

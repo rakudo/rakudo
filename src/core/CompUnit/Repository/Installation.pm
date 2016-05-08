@@ -307,7 +307,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $dist-dir.child($dist.id).unlink;
     }
 
-    method files($file, :$name, :$auth, :$ver) {
+    method files($file, :$name!, :$auth, :$ver) {
         my @candi;
         my $prefix = self.prefix;
         my $lookup = $prefix.child('short').child(nqp::sha1($name));

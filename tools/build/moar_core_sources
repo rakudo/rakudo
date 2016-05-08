@@ -147,6 +147,7 @@ src/core/Distribution.pm
 src/core/CompUnit/DependencySpecification.pm
 src/core/CompUnit/Handle.pm
 src/core/CompUnit/Loader.pm
+src/core/CompUnit/PrecompilationUnit.pm
 src/core/CompUnit/PrecompilationStore.pm
 src/core/CompUnit/PrecompilationStore/File.pm
 src/core/CompUnit/PrecompilationRepository.pm

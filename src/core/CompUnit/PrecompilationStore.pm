@@ -1,6 +1,3 @@
-subset CompUnit::PrecompilationId of Str:D
-    where { 2 < .chars < 64 && $_ ~~ /^<[A..Za..z0..9._-]>+$/ };
-
 role CompUnit::PrecompilationStore {
     # Load the precompilation identified by the pairing of the specified
     # compiler and precompilation ID.

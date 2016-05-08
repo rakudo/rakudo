@@ -73,27 +73,27 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     method !load-file(
         CompUnit::PrecompilationStore @precomp-stores,
         CompUnit::PrecompilationId $id,
-        Str $extension = '',
+        :$repo-id,
     ) {
         my $compiler-id = $*PERL.compiler.id;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         for @precomp-stores -> $store {
-            $RMD("Trying to load $id$extension from $store.prefix()") if $RMD;
-            my $file = $store.load($compiler-id, $id, :$extension);
+            $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
+            my $file = $repo-id
+                ?? $store.load-repo-id($compiler-id, $id)
+                !! $store.load($compiler-id, $id);
             return $file if $file;
         }
-        CompUnit::PrecompilationUnit;
+        Nil
     }
 
-    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores) {
+    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores, Str :$repo-id) {
         my $compiler-id = $*PERL.compiler.id;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
         my $repo = $*REPO;
-        $precomp-unit.open;
-        my $dependency = $precomp-unit.file.get(); # TODO move repo-id into its own file
-        if $dependency ne $repo.id {
-            $RMD("Repo changed: $dependency ne {$repo.id}. Need to re-check dependencies.") if $RMD;
+        if $repo-id ne $repo.id {
+            $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
         }
         for $precomp-unit.dependencies -> $dependency {
@@ -117,8 +117,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 return False if not $srcIO.e or $modified <= $srcIO.modified;
 
                 my $dependency-precomp = $store.load($compiler-id, $dependency.id);
-                $dependency-precomp.open(:r);
-                $dependency-precomp.file.get(); # TODO move repo-id into its own file
                 %!loaded{$dependency.id} = self!load-handle-for-path($dependency-precomp);
             }
 
@@ -136,11 +134,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         return %!loaded{$id} if %!loaded{$id}:exists;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
+        my $repo-id = self!load-file(@precomp-stores, $id, :repo-id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             my $modified = $unit.modified;
             if (not $since or $modified > $since)
-                and self!load-dependencies($unit, $modified, @precomp-stores)
+                and self!load-dependencies($unit, $modified, @precomp-stores, :$repo-id)
             {
                 return %!loaded{$id} = self!load-handle-for-path($unit)
             }
@@ -181,14 +180,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        $RMD("Precompiling $path into $io.tmp") if $RMD;
+        $RMD("Precompiling $path into $io.bc") if $RMD;
         my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
         my $proc = run(
           $perl6,
           $lle,
           $profile,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-          "--output=$io.tmp",
+          "--output=$io.bc",
           "--source-name=$source-name",
           $path,
           :out,
@@ -209,7 +208,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $proc.err.slurp-rest -> $warnings {
             $*ERR.print($warnings);
         }
-        $RMD("Precompiled $path into $io.tmp") if $RMD;
+        $RMD("Precompiled $path into $io.bc") if $RMD;
         my str $dependencies = '';
         for @result -> $dependency {
             unless $dependency ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
@@ -224,12 +223,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             $dependencies ~= "$dependency\n";
         }
-        $RMD("Writing dependencies and byte code to $io") if $RMD;
-        my $precomp-file = $io.open(:w);
-        $precomp-file.print($*REPO.id ~ "\n" ~ $dependencies ~ "\n");
-        $RMD("$io.tmp exists: " ~ ("$io.tmp".IO.e)) if $RMD;
-        $precomp-file.write("$io.tmp".IO.slurp(:bin));
+        $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;
+        my $precomp-file = ($io ~ '.tmp').IO.open(:w);
+        $precomp-file.print($dependencies ~ "\n");
+        $precomp-file.write("$io.bc".IO.slurp(:bin));
         $precomp-file.close;
+        self.store.store($compiler-id, $id, $precomp-file.path);
+        self.store.store($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;
         True
     }

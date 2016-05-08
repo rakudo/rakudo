@@ -1,7 +1,7 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         has IO::Path $.path;
-        has IO::Handle $.file;
+        has IO::Handle $!file;
         has CompUnit::PrecompilationDependency @!dependencies;
         has $!initialized = False;
 
@@ -90,15 +90,26 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     }
 
     method load(CompUnit::PrecompilationId $compiler-id,
-                CompUnit::PrecompilationId $precomp-id,
-                Str :$extension = '')
+                CompUnit::PrecompilationId $precomp-id)
     {
         my $path = self.path($compiler-id, $precomp-id);
         if $path ~~ :e {
             CompUnit::PrecompilationUnit::File.new(:$path);
         }
         else {
-            CompUnit::PrecompilationUnit::File
+            Nil
+        }
+    }
+
+    method load-repo-id(CompUnit::PrecompilationId $compiler-id,
+                CompUnit::PrecompilationId $precomp-id)
+    {
+        my $path = self.path($compiler-id, $precomp-id, :extension<.repo-id>);
+        if $path ~~ :e {
+            $path.slurp
+        }
+        else {
+            Nil
         }
     }
 
@@ -115,12 +126,22 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $dest.child(($precomp-id ~ $extension).IO)
     }
 
-    method store(CompUnit::PrecompilationId $compiler-id,
+    proto method store(|) { * }
+
+    multi method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  IO::Path:D $path,
-                 Str :$extension = '')
+                 :$extension = '')
     {
-        $path.copy(self.destination($compiler-id, $precomp-id, $extension));
+        $path.copy(self.destination($compiler-id, $precomp-id, :$extension));
+        self.unlock;
+    }
+
+    multi method store(CompUnit::PrecompilationId $compiler-id,
+                 CompUnit::PrecompilationId $precomp-id,
+                 :$repo-id!)
+    {
+        self.destination($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
         self.unlock;
     }
 

@@ -294,12 +294,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
 
-    method sum() {
+    method sum(--> Numeric) {
         my int $elems = self.elems;
         my $list := nqp::getattr(self,List,'$!reified');
-        my $sum = 0;
+        my Numeric $sum = 0;
         my int $i = -1;
-        $sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0)
+        $sum += nqp::ifnull(nqp::atpos($list,$i),0)
           while nqp::islt_i(++$i,$elems);
         $sum
     }

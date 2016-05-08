@@ -40,13 +40,13 @@ my sub combinations(Int() $n, Int() $k) {
                 my int $index = $elems - 1;
                 my int $value = nqp::pop_i($!stack);
 
-                while $value < $n && $index < $k {
+                while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
                     nqp::bindpos($!combination, $index, +$value);
-                    $index = $index + 1;
-                    $value = $value + 1;
+                    $index++;
+                    $value++;
                     nqp::push_i($!stack, $value);
                 }
-                return nqp::clone($!combination) if $index == $k;
+                return nqp::clone($!combination) if nqp::iseq_i($index, $k);
             }
             IterationEnd
         }

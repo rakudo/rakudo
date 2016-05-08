@@ -41,7 +41,11 @@ class CompUnit::Loader is repr('Uninstantiable') {
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
     method load-precompilation(Buf:D $bytes) returns CompUnit::Handle {
-        ... # XXX this one needs MoarVM/JVM backends to expose a new API
+        my $*CTXSAVE := self;
+        my %*COMPILING := nqp::hash();
+        my Mu $*MAIN_CTX;
+        nqp::loadbytecodebuffer($bytes);
+        CompUnit::Handle.new($*MAIN_CTX)
     }
 
     method ctxsave() {

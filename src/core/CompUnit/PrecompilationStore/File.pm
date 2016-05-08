@@ -1,4 +1,57 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
+    my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
+        has IO::Path $.path;
+        has IO::Handle $.file;
+        has CompUnit::PrecompilationDependency @!dependencies;
+        has $!initialized = False;
+
+        my class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
+            has CompUnit::PrecompilationId $.id;
+            has Str $.src;
+            has CompUnit::DependencySpecification $.spec;
+
+            method deserialize(Str $str) {
+                use MONKEY-SEE-NO-EVAL;
+                my ($id, $src, $spec) = $str.split("\0", 3);
+                self.new(:$id, :$src, :spec(EVAL $spec));
+            }
+
+            method serialize(--> Str) {
+                "$.id\0$.src\0{$.spec.perl}"
+            }
+        }
+
+        method open() {
+            $!file = $!path.open(:r);
+        }
+
+        method modified(--> Instant) {
+            $!path.modified
+        }
+
+        method !read-dependencies() {
+            return if $!initialized;
+            self.open(:r) unless $!file;
+
+            my $dependency = $!file.get();
+            while $dependency {
+                @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
+                $dependency = $!file.get();
+            }
+            $!initialized = True;
+        }
+
+        method dependencies(--> Array[CompUnit::PrecompilationDependency]) {
+            self!read-dependencies;
+            @!dependencies
+        }
+
+        method bytecode(--> Buf) {
+            self!read-dependencies;
+            $!file.slurp-rest(:bin)
+        }
+    }
+
     has IO::Path $.prefix is required;
     has IO::Handle $!lock;
     has int $!lock-count = 0;
@@ -16,9 +69,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     }
 
     method path(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id)
+                 CompUnit::PrecompilationId $precomp-id,
+                 Str :$extension = '')
     {
-        self!dir($compiler-id, $precomp-id).child($precomp-id.IO)
+        self!dir($compiler-id, $precomp-id).child(($precomp-id ~ $extension).IO)
     }
 
     method !lock() {
@@ -36,20 +90,21 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     }
 
     method load(CompUnit::PrecompilationId $compiler-id,
-                CompUnit::PrecompilationId $precomp-id)
+                CompUnit::PrecompilationId $precomp-id,
+                Str :$extension = '')
     {
-        self!lock();
         my $path = self.path($compiler-id, $precomp-id);
         if $path ~~ :e {
-            $path
+            CompUnit::PrecompilationUnit::File.new(:$path);
         }
         else {
-             IO::Path
+            CompUnit::PrecompilationUnit::File
         }
     }
 
     method destination(CompUnit::PrecompilationId $compiler-id,
-                       CompUnit::PrecompilationId $precomp-id)
+                       CompUnit::PrecompilationId $precomp-id,
+                       Str :$extension = '')
         returns IO::Path
     {
         self!lock();
@@ -57,20 +112,24 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
-        $dest.child($precomp-id.IO)
+        $dest.child(($precomp-id ~ $extension).IO)
     }
 
     method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
-                 IO::Path:D $path)
+                 IO::Path:D $path,
+                 Str :$extension = '')
     {
-        $path.copy(self.destination($compiler-id, $precomp-id));
+        $path.copy(self.destination($compiler-id, $precomp-id, $extension));
         self.unlock;
     }
 
-    method delete(CompUnit::PrecompilationId $compiler-id, CompUnit::PrecompilationId $precomp-id)
+    method delete(
+        CompUnit::PrecompilationId $compiler-id,
+        CompUnit::PrecompilationId $precomp-id,
+        Str :$extension = '')
     {
-        self.path($compiler-id, $precomp-id).unlink;
+        self.path($compiler-id, $precomp-id, :$extension).unlink;
     }
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)

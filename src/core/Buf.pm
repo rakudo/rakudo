@@ -321,7 +321,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype((my $got := nqp::atpos($from,$i)),Int)
                   ?? nqp::unshift_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
-                  while nqp::isge_i($i = $i - 1,0);
+                  while nqp::isge_i(--$i,0);
             }
             to
         }

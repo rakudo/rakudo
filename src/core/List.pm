@@ -42,8 +42,8 @@ my sub combinations(Int() $n, Int() $k) {
 
                 while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
                     nqp::bindpos($!combination, $index, +$value);
-                    $index++;
-                    $value++;
+                    ++$index;
+                    ++$value;
                     nqp::push_i($!stack, $value);
                 }
                 return nqp::clone($!combination) if nqp::iseq_i($index, $k);
@@ -392,7 +392,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
             method !reify-and-pull-one() is raw {
                 $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
+                    ?? nqp::ifnull(nqp::atpos($!reified,++$!i - 1), $!oftype)
                     !! IterationEnd
             }
 

@@ -88,11 +88,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Nil
     }
 
-    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores, Str :$repo-id) {
+    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores) {
         my $compiler-id = $*PERL.compiler.id;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
         my $repo = $*REPO;
+        my $repo-id = self!load-file(@precomp-stores, $precomp-unit.id, :repo-id);
         if $repo-id ne $repo.id {
             $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
@@ -124,6 +125,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             # report back id and source location of dependency to dependant
             say $dependency.serialize if $*W and $*W.is_precompilation_mode;
         }
+
+        if $resolve {
+            self.store.store($compiler-id, $precomp-unit.id, :repo-id($repo.id));
+        }
         True
     }
 
@@ -135,12 +140,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         return %!loaded{$id} if %!loaded{$id}:exists;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
-        my $repo-id = self!load-file(@precomp-stores, $id, :repo-id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             my $modified = $unit.modified;
             if (not $since or $modified > $since)
-                and self!load-dependencies($unit, $modified, @precomp-stores, :$repo-id)
+                and self!load-dependencies($unit, $modified, @precomp-stores)
             {
                 return %!loaded{$id} = self!load-handle-for-path($unit)
             }

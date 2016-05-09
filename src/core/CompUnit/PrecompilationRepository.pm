@@ -39,7 +39,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $handle = (
             self.may-precomp and (
                 self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :$source-name) and self.load($id, :@precomp-stores) # if not do it now
+                or self.precompile($source, $id, :$source-name, :since($source.modified))
+                    and self.load($id, :@precomp-stores) # if not do it now
             )
         );
         my $precompiled = ?$handle;
@@ -145,20 +146,24 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Removing precompiled $unit\nmtime: $modified\nsince: $since")
+                    $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
                 }
-                # remove outdated file so we precompile again
-                # $store.delete($compiler-id, $id); # FIXME bring this back
             }
         }
         CompUnit::Handle
     }
 
-    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False, :$source-name) {
+    method precompile(
+        IO::Path:D $path,
+        CompUnit::PrecompilationId $id,
+        Bool :$force = False,
+        Instant :$since,
+        :$source-name
+    ) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if not $force and $io.e and $io.s {
+        if not $force and $io.e and $io.s and (not $since or $io.modified > $since) {
             $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
             self.store.unlock;
             return True;

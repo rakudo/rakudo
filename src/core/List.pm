@@ -385,16 +385,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             method new(\list) { nqp::create(self)!SET-SELF(list,list.of) }
 
             method pull-one() is raw {
-                my int $i = $!i;
-                $i < nqp::elems($!reified)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
+                nqp::islt_i($!i, nqp::elems($!reified))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
                     !! self!reify-and-pull-one()
             }
 
             method !reify-and-pull-one() is raw {
-                my int $i = $!i;
-                $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
+                $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
                     !! IterationEnd
             }
 

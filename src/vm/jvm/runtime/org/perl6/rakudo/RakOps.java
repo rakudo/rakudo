@@ -621,7 +621,7 @@ public final class RakOps {
         GlobalExt gcx = key.getGC(tc);
         ThreadExt tcx = key.getTC(tc);
         tcx.firstPhaserCodeBlock = codeObj.get_attribute_boxed(tc,
-            gcx.Code, "$!do", STable.NO_HINT);
+            gcx.Code, "$!do", HINT_CODE_DO);
         return codeObj;
     }
     

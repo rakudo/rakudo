@@ -228,6 +228,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $precomp-file.print($dependencies ~ "\n");
         $precomp-file.write("$io.bc".IO.slurp(:bin));
         $precomp-file.close;
+        "$io.bc".IO.unlink;
         self.store.store($compiler-id, $id, $precomp-file.path);
         self.store.store($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;

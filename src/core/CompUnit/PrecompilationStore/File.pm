@@ -133,7 +133,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  IO::Path:D $path,
                  :$extension = '')
     {
-        $path.copy(self.destination($compiler-id, $precomp-id, :$extension));
+        $path.rename(self.destination($compiler-id, $precomp-id, :$extension));
         self.unlock;
     }
 

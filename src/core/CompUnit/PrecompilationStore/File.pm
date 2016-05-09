@@ -1,5 +1,6 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
+        has CompUnit::PrecompilationId $.id;
         has IO::Path $.path;
         has IO::Handle $!file;
         has CompUnit::PrecompilationDependency @!dependencies;
@@ -50,6 +51,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             self!read-dependencies;
             $!file.slurp-rest(:bin)
         }
+
+        method Str(--> Str) {
+            self.path.Str
+        }
     }
 
     has IO::Path $.prefix is required;
@@ -94,7 +99,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     {
         my $path = self.path($compiler-id, $precomp-id);
         if $path ~~ :e {
-            CompUnit::PrecompilationUnit::File.new(:$path);
+            CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path);
         }
         else {
             Nil

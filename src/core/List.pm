@@ -40,13 +40,13 @@ my sub combinations(Int() $n, Int() $k) {
                 my int $index = $elems - 1;
                 my int $value = nqp::pop_i($!stack);
 
-                while $value < $n && $index < $k {
+                while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
                     nqp::bindpos($!combination, $index, +$value);
-                    $index = $index + 1;
-                    $value = $value + 1;
+                    $index++;
+                    $value++;
                     nqp::push_i($!stack, $value);
                 }
-                return nqp::clone($!combination) if $index == $k;
+                return nqp::clone($!combination) if nqp::iseq_i($index, $k);
             }
             IterationEnd
         }
@@ -294,12 +294,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
 
-    method sum() {
+    method sum(--> Numeric) {
         my int $elems = self.elems;
         my $list := nqp::getattr(self,List,'$!reified');
-        my $sum = 0;
+        my Numeric $sum = 0;
         my int $i = -1;
-        $sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0)
+        $sum += nqp::ifnull(nqp::atpos($list,$i),0)
           while nqp::islt_i(++$i,$elems);
         $sum
     }
@@ -322,23 +322,23 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method AT-POS(List:D: Int $pos) is raw {
         self!ensure-allocated;
         my int $ipos = nqp::unbox_i($pos);
-        $ipos < nqp::elems($!reified) && $ipos >= 0
+        nqp::islt_i($ipos, nqp::elems($!reified)) && nqp::isge_i($ipos, 0)
             ?? nqp::atpos($!reified, $ipos)
             !! self!AT-POS-SLOWPATH($ipos);
     }
 
     multi method AT-POS(List:D: int $pos) is raw {
         self!ensure-allocated;
-        $pos < nqp::elems($!reified) && $pos >= 0
+        nqp::islt_i($pos, nqp::elems($!reified)) && nqp::isge_i($pos, 0)
             ?? nqp::atpos($!reified, $pos)
             !! self!AT-POS-SLOWPATH($pos);
     }
 
     method !AT-POS-SLOWPATH(int $pos) is raw {
-        $pos < 0
+        nqp::islt_i($pos, 0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>))
-          !! $!todo.DEFINITE && $!todo.reify-at-least($pos + 1) > $pos
+          !! $!todo.DEFINITE && nqp::isgt_i($!todo.reify-at-least($pos + 1), $pos)
             ?? nqp::atpos($!reified, $pos)
             !! Nil
     }
@@ -385,16 +385,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             method new(\list) { nqp::create(self)!SET-SELF(list,list.of) }
 
             method pull-one() is raw {
-                my int $i = $!i;
-                $i < nqp::elems($!reified)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
+                nqp::islt_i($!i, nqp::elems($!reified))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
                     !! self!reify-and-pull-one()
             }
 
             method !reify-and-pull-one() is raw {
-                my int $i = $!i;
-                $!todo.DEFINITE && $i < $!todo.reify-at-least($i + 1)
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i = $i + 1) - 1), $!oftype)
+                $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
                     !! IterationEnd
             }
 

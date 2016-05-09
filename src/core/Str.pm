@@ -646,21 +646,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::push($result,
                       nqp::substr($str,$pos,$chars));
                 }
-                if $any {
-                    if $v {
-                        nqp::push($result,$match);
-                    }
-                    elsif $k {
-                        nqp::push($result,0);
-                    }
-                    elsif $kv {
-                        nqp::push($result,0);
-                        nqp::push($result,$match);
-                    }
-                    else {  # $p
-                        nqp::push($result, Pair.new(0,$match));
-                    }
-                }
+                $v
+                  ?? nqp::push($result,$match)                  # v
+                  !! $k
+                    ?? nqp::push($result,0)                     # k
+                    !! $kv
+                      ?? STATEMENT_LIST(                        # kv
+                           nqp::push($result,0);
+                           nqp::push($result,$match))
+                      !! nqp::push($result, Pair.new(0,$match)) # $p
+                  if $any;
                 $pos = $next;
             }
             nqp::push($result,nqp::substr($str,$pos))

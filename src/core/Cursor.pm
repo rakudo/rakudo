@@ -67,19 +67,15 @@ my class Cursor does NQPCursorRole {
                 my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
-                if nqp::ord($onlyname) < 58 {
-                    $dest := nqp::atpos($list, $onlyname);
-                }
-                else {
-                    $dest := nqp::atkey($hash, $onlyname);
-                }
+                $dest := nqp::islt_i(nqp::ord($onlyname),58)
+                  ?? nqp::atpos($list, $onlyname)
+                  !! nqp::atkey($hash, $onlyname);
+
                 while nqp::islt_i(++$csi,$cselems) {
                     my $subcur := nqp::atpos($cs, $csi);
-                    my $name := nqp::getattr($subcur, $?CLASS, '$!name');
-                    if !nqp::isnull($name) && nqp::defined($name) {
-                        my $submatch := $subcur.MATCH();
-                        nqp::push($dest, $submatch);
-                    }
+                    my $name   := nqp::getattr($subcur, $?CLASS, '$!name');
+                    nqp::push($dest,$subcur.MATCH())
+                      if !nqp::isnull($name) && nqp::defined($name);
                 }
             }
             else {

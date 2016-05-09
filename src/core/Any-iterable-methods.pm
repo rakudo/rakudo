@@ -752,9 +752,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         ma   = $value.max;
         exma = $value.excludes-max;
     }
-    method !minmax-init($value,\mi,\ma --> Nil) {
-        mi = ma = $value;
-    }
     method !minmax-range-check($value,$cmp,\mi,\exmi,\ma,\exma --> Nil) {
         if $cmp($value.min,mi) < 0 {
             mi   = $value.min;
@@ -785,7 +782,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               !! nqp::istype($value,Positional)
                 ?? self!minmax-range-init($value.minmax(&by),
                      $min,$excludes-min,$max,$excludes-max)
-                !! self!minmax-init($value,$min,$max)
+                !! ($min = $max = $value)
             !! return Range.new(Inf,-Inf);
 
         # special comparison needed

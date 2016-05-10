@@ -5,24 +5,13 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has IO::Handle $!file;
         has CompUnit::PrecompilationDependency @!dependencies;
         has $!initialized = False;
+        has $!bytecode;
 
-        my class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
-            has CompUnit::PrecompilationId $.id;
-            has Str $.src;
-            has CompUnit::DependencySpecification $.spec;
-
-            method deserialize(Str $str) {
-                use MONKEY-SEE-NO-EVAL;
-                my ($id, $src, $spec) = $str.split("\0", 3);
-                self.new(:$id, :$src, :spec(EVAL $spec));
-            }
-
-            method serialize(--> Str) {
-                "$.id\0$.src\0{$.spec.perl}"
-            }
+        method BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode) {
+            $!initialized = True if $!bytecode;
         }
 
-        method open() {
+        method !open() {
             $!file = $!path.open(:r);
         }
 
@@ -32,7 +21,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method !read-dependencies() {
             return if $!initialized;
-            self.open(:r) unless $!file;
+            self!open(:r) unless $!file;
 
             my $dependency = $!file.get();
             while $dependency {
@@ -49,7 +38,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method bytecode(--> Buf) {
             self!read-dependencies;
-            $!file.slurp-rest(:bin)
+            $!bytecode //= $!file.slurp-rest(:bin)
         }
 
         method bytecode-handle(--> IO::Handle) {
@@ -60,6 +49,15 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         method Str(--> Str) {
             self.path.Str
         }
+
+        method save-to(IO::Path $precomp-file) {
+            my $handle = $precomp-file.open(:w);
+            $handle.print($_.serialize ~ "\n") for @!dependencies;
+            $handle.print("\n");
+            $handle.write($!bytecode);
+            $handle.close;
+            $!path = $precomp-file;
+        }
     }
 
     has IO::Path $.prefix is required;
@@ -68,6 +66,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
         $!prefix.mkdir unless $!prefix.e;
+    }
+
+    method new-unit(|c) {
+        CompUnit::PrecompilationUnit::File.new(|c)
     }
 
     method !dir(CompUnit::PrecompilationId $compiler-id,
@@ -129,6 +131,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         returns IO::Path
     {
         self!lock();
+        self!file($compiler-id, $precomp-id, :$extension);
+    }
+
+    method !file(CompUnit::PrecompilationId $compiler-id,
+                 CompUnit::PrecompilationId $precomp-id,
+                 Str :$extension = '')
+        returns IO::Path
+    {
         my $compiler-dir = self.prefix.child($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);
@@ -143,16 +153,23 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  IO::Path:D $path,
                  :$extension = '')
     {
-        $path.rename(self.destination($compiler-id, $precomp-id, :$extension));
-        self.unlock;
+        $path.rename(self!file($compiler-id, $precomp-id, :$extension));
+    }
+
+    multi method store(CompUnit::PrecompilationId $compiler-id,
+                 CompUnit::PrecompilationId $precomp-id,
+                 CompUnit::PrecompilationUnit $unit)
+    {
+        my $precomp-file = self!file($compiler-id, $precomp-id, :extension<.tmp>);
+        $unit.save-to($precomp-file);
+        $precomp-file.rename(self!file($compiler-id, $precomp-id));
     }
 
     multi method store(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  :$repo-id!)
     {
-        self.destination($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
-        self.unlock;
+        self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
     }
 
     method delete(

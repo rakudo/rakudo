@@ -219,26 +219,27 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
         $RMD("Precompiled $path into $io.bc") if $RMD;
         my str $dependencies = '';
-        for @result -> $dependency {
-            unless $dependency ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
-                say $dependency;
+        my CompUnit::PrecompilationDependency::File @dependencies;
+        for @result -> $dependency-str {
+            unless $dependency-str ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
+                say $dependency-str;
                 next
             }
-            my ($dependency-id, $dependency-src, $dependency-spec) = $dependency.split("\0", 3);
-            $RMD("id: $dependency-id, src: $dependency-src, spec: $dependency-spec") if $RMD;
-            my $path = self.store.path($compiler-id, $dependency-id);
+            my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
+            $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
+            my $path = self.store.path($compiler-id, $dependency.id);
             if $path.e {
-                spurt($path ~ '.rev-deps', "$id\n", :append);
+                spurt($path ~ '.rev-deps', "$dependency.id()\n", :append);
             }
-            $dependencies ~= "$dependency\n";
+            @dependencies.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;
-        my $precomp-file = ($io ~ '.tmp').IO.open(:w);
-        $precomp-file.print($dependencies ~ "\n");
-        $precomp-file.write("$io.bc".IO.slurp(:bin));
-        $precomp-file.close;
+        self.store.store(
+            $compiler-id,
+            $id,
+            self.store.new-unit(:$id, :@dependencies, :bytecode("$io.bc".IO.slurp(:bin))),
+        );
         "$io.bc".IO.unlink;
-        self.store.store($compiler-id, $id, $precomp-file.path);
         self.store.store($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;
         True

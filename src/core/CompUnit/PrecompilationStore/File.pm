@@ -52,6 +52,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!file.slurp-rest(:bin)
         }
 
+        method bytecode-handle(--> IO::Handle) {
+            self!read-dependencies;
+            $!file
+        }
+
         method Str(--> Str) {
             self.path.Str
         }

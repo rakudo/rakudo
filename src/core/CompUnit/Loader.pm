@@ -30,11 +30,20 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Load a pre-compiled file
-    method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
+    proto method load-precompilation-file(|) { * }
+    multi method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
         my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;
         nqp::loadbytecode($path.Str);
+        CompUnit::Handle.new($*MAIN_CTX)
+    }
+
+    multi method load-precompilation-file(IO::Handle $handle) returns CompUnit::Handle {
+        my $*CTXSAVE := self;
+        my %*COMPILING := nqp::hash();
+        my Mu $*MAIN_CTX;
+        nqp::loadbytecodefh(nqp::getattr($handle, IO::Handle, '$!PIO'), $handle.path.Str);
         CompUnit::Handle.new($*MAIN_CTX)
     }
 

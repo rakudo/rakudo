@@ -167,7 +167,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!lock.protect( {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
-        my $lock //= $.prefix.child('repo.lock').open(:create, :w);
+        my $lock = $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
 
         my $version = self!repository-version;

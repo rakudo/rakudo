@@ -18,6 +18,7 @@ role CompUnit::PrecompilationUnit {
     method modified(--> Instant) { ... }
     method dependencies(--> Array[CompUnit::PrecompilationDependency]) { ... }
     method bytecode(--> Buf) { ... }
+    method bytecode-handle(--> IO::Handle) { ... }
 }
 
 # vim: ft=perl6 expandtab sw=4

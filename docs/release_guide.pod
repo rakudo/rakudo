@@ -13,9 +13,9 @@ end of this document.
 
 =head2 Planned future releases
 
-Note that we are trying very hard to insure there are no backward
+Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
-some releases to insure any compatibility issues are resolved.
+some releases to ensure any compatibility issues are resolved.
 
   2016-05-21   Rakudo #99  hoelzro
   2016-06-18   Rakudo #100 ZoffixW
@@ -135,7 +135,7 @@ you find any steps that are missing.
 
 =item 6.
 
-Insure that a monthly MoarVM release has been completed. Those
+Ensure that a monthly MoarVM release has been completed. Those
 releases are typically handled by a separate team.
 
 =item 7.

@@ -42,8 +42,15 @@ my sub combinations(Int() $n, Int() $k) {
 
                 while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
                     nqp::bindpos($!combination, $index, +$value);
+#?if jvm
+# temporary fix for RT #128123
+                    $index++;
+                    $value++;
+#?endif
+#?if !jvm
                     ++$index;
                     ++$value;
+#?endif
                     nqp::push_i($!stack, $value);
                 }
                 return nqp::clone($!combination) if nqp::iseq_i($index, $k);

@@ -101,7 +101,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $!lock && $!lock-count == 0 ?? $!lock.unlock !! True;
     }
 
-    method load(CompUnit::PrecompilationId $compiler-id,
+    method load-unit(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
         my $path = self.path($compiler-id, $precomp-id);
@@ -146,9 +146,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $dest.child(($precomp-id ~ $extension).IO)
     }
 
-    proto method store(|) { * }
-
-    multi method store(CompUnit::PrecompilationId $compiler-id,
+    method store-file(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  IO::Path:D $path,
                  :$extension = '')
@@ -156,7 +154,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $path.rename(self!file($compiler-id, $precomp-id, :$extension));
     }
 
-    multi method store(CompUnit::PrecompilationId $compiler-id,
+    method store-unit(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  CompUnit::PrecompilationUnit $unit)
     {
@@ -165,7 +163,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
     }
 
-    multi method store(CompUnit::PrecompilationId $compiler-id,
+    method store-repo-id(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  :$repo-id!)
     {

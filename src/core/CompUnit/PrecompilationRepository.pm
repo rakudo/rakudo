@@ -172,6 +172,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             return True;
         }
+        my $bc = "$io.bc".IO;
 
         my $rev-deps = ($io ~ '.rev-deps').IO;
         if $rev-deps.e {
@@ -189,14 +190,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        $RMD("Precompiling $path into $io.bc") if $RMD;
+        $RMD("Precompiling $path into $bc") if $RMD;
         my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
         my $proc = run(
           $perl6,
           $lle,
           $profile,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-          "--output=$io.bc",
+          "--output=$bc",
           "--source-name=$source-name",
           $path,
           :out,
@@ -217,7 +218,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $proc.err.slurp-rest -> $warnings {
             $*ERR.print($warnings);
         }
-        $RMD("Precompiled $path into $io.bc") if $RMD;
+        unless $bc.e {
+            $RMD("$path aborted precompilation without failure") if $RMD;
+            self.store.unlock;
+            return True;
+        }
+        $RMD("Precompiled $path into $bc") if $RMD;
         my str $dependencies = '';
         my CompUnit::PrecompilationDependency::File @dependencies;
         for @result -> $dependency-str {
@@ -237,9 +243,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         self.store.store-unit(
             $compiler-id,
             $id,
-            self.store.new-unit(:$id, :@dependencies, :bytecode("$io.bc".IO.slurp(:bin))),
+            self.store.new-unit(:$id, :@dependencies, :bytecode($bc.slurp(:bin))),
         );
-        "$io.bc".IO.unlink;
+        $bc.unlink;
         self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;
         True

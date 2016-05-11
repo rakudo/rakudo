@@ -82,7 +82,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
             my $file = $repo-id
                 ?? $store.load-repo-id($compiler-id, $id)
-                !! $store.load($compiler-id, $id);
+                !! $store.load-unit($compiler-id, $id);
             return $file if $file;
         }
         Nil
@@ -118,7 +118,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 my $srcIO = $dependency.src.IO;
                 return False if not $srcIO.e or $modified <= $srcIO.modified;
 
-                my $dependency-precomp = $store.load($compiler-id, $dependency.id);
+                my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
                 %!loaded{$dependency.id} = self!load-handle-for-path($dependency-precomp);
             }
 
@@ -127,7 +127,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         if $resolve {
-            self.store.store($compiler-id, $precomp-unit.id, :repo-id($repo.id));
+            self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
         }
         True
     }
@@ -234,13 +234,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             @dependencies.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;
-        self.store.store(
+        self.store.store-unit(
             $compiler-id,
             $id,
             self.store.new-unit(:$id, :@dependencies, :bytecode("$io.bc".IO.slurp(:bin))),
         );
         "$io.bc".IO.unlink;
-        self.store.store($compiler-id, $id, :repo-id($*REPO.id));
+        self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;
         True
     }

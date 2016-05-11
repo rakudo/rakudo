@@ -34,11 +34,11 @@ my class Pair does Associative {
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 
-    multi method keys(Pair:D:)      { ($!key,).list }
+    multi method keys(Pair:D:)      { ($!key,) }
     multi method kv(Pair:D:)        { $!key, $!value }
-    multi method values(Pair:D:)    { ($!value,).list }
-    multi method pairs(Pair:D:)     { (self,).list }
-    multi method antipairs(Pair:D:) { self.new(key => $!value, value => $!key) }
+    multi method values(Pair:D:)    { ($!value,) }
+    multi method pairs(Pair:D:)     { (self,) }
+    multi method antipairs(Pair:D:) { (self.new($!value,$!key),) }
     multi method invert(Pair:D:)    { $!value »=>» $!key }
 
     multi method Str(Pair:D:) { $!key ~ "\t" ~ $!value }

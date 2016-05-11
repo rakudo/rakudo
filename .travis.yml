@@ -10,7 +10,9 @@ fast_finish: true
 
 install: "echo"
 
-script: - "perl Configure.pl $RAKUDO_OPTIONS && make test"
+script: 
+    - "perl Configure.pl $RAKUDO_OPTIONS ; make test"
+    - "make install"
 
 branches:
    only:
@@ -28,12 +30,13 @@ notifications:
       - "%{build_url} %{compare_url}"
 
 env:
-    - RAKUDO_OPTIONS="--backends=moar --gen-nqp        --gen-moar        --make-install"
-    - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar        --make-install"
-    - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar=master --make-install"
-    - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp                          --make-install"
-    - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master                   --make-install"
+    - RAKUDO_OPTIONS="--backends=moar --gen-nqp        --gen-moar"
+    - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar"
+    - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar=master"
+    - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
+    - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"
+
 matrix:
   allow_failures:
-    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp                          --make-install"
-    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master                   --make-install"
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"

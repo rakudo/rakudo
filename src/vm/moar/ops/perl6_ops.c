@@ -442,7 +442,7 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     else {
         MVM_exception_throw_adhoc(tc, "p6capturelexwhere got non-code object");
     }
-    GET_REG(tc, 0).o = p6_code_obj;
+    GET_REG(tc, 0).o = GET_REG(tc, 2).o;
 }
 
 static MVMuint8 s_p6getouterctx[] = {

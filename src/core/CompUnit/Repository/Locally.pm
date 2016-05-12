@@ -26,6 +26,10 @@ role CompUnit::Repository::Locally {
         self.short-id ~ '#' ~ $!prefix.abspath;
     }
 
+    method source-file(Str $name --> IO::Path) {
+        self.prefix.child($name)
+    }
+
     method prefix { "{$!prefix}".IO }
 
     method id() {

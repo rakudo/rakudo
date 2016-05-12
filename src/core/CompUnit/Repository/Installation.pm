@@ -403,10 +403,12 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $id = $loader.basename;
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
-                $id,
-                $loader,
-                :source-name("$repo-prefix$loader.relative($.prefix) ($spec.short-name())"),
-                :$spec,
+                CompUnit::PrecompilationDependency::File.new(
+                    :$id,
+                    :src($repo-prefix ~ $loader.relative($.prefix)),
+                    :$spec,
+                ),
+                :source($loader),
                 :@precomp-stores,
             );
             my $precompiled = defined $handle;

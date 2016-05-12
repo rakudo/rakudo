@@ -24,7 +24,12 @@ role CompUnit::PrecompilationUnit {
 class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
     has CompUnit::PrecompilationId $.id;
     has Str $.src;
+    has Str $.repo-id;
     has CompUnit::DependencySpecification $.spec;
+
+    method source-name() {
+        "$.src ($.spec.short-name())"
+    }
 
     method deserialize(Str $str) {
         use MONKEY-SEE-NO-EVAL;

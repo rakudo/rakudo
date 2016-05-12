@@ -24,14 +24,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     my $profile;
 
     method try-load(
-        CompUnit::PrecompilationId $id,
-        IO::Path $source,
-        :$source-name,
-        CompUnit::DependencySpecification :$spec,
+        CompUnit::PrecompilationDependency::File $dependency,
+        IO::Path :$source = $dependency.src.IO,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) returns CompUnit::Handle {
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        $RMD("try-load $id: $source-name") if $RMD;
+        my $id = $dependency.id;
+        $RMD("try-load $id: $source") if $RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
         return %!loaded{$id} if %!loaded{$id}:exists;
@@ -39,7 +38,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $handle = (
             self.may-precomp and (
                 self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :$source-name, :since($source.modified))
+                or self.precompile($source, $id, :source-name($dependency.source-name), :since($source.modified))
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
@@ -47,7 +46,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         if $*W and $*W.is_precompilation_mode {
             if $precompiled {
-                say "$id\0$source\0{$spec.perl}";
+                say $dependency.serialize;
             }
             else {
                 nqp::exit(0);
@@ -116,11 +115,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 $RMD("Could not find $dependency.spec()") if $RMD and not $store;
                 return False unless $store;
                 my $modified = $file.modified;
-                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since\n  src: {$dependency.src.IO.modified}")
+                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since}")
                   if $RMD;
 
                 return False if $modified > $since;
-                my $srcIO = $dependency.src.IO;
+                my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
+                $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD;
                 return False if not $srcIO.e or $modified <= $srcIO.modified;
 
                 my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);

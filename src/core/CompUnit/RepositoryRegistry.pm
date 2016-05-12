@@ -199,6 +199,15 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
+    method file-for-spec(Str $spec) {
+        my @parts = $spec.split('#', 2);
+        if @parts.elems == 2 {
+            my $repo = self.repository-for-name(@parts[0]);
+            return $repo.source-file(@parts[1]) if $repo.can('source-file');
+        }
+        Nil
+    }
+
     method head() { # mostly usefull for access from NQP
         $*REPO
     }

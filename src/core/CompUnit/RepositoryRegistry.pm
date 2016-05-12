@@ -151,8 +151,13 @@ class CompUnit::RepositoryRegistry {
         $iter := nqp::iterator($custom-lib);
         while $iter {
             my \pair = nqp::shift($iter);
-            nqp::bindkey($custom-lib,nqp::iterkey_s(pair),
-              nqp::atkey($repos,normalize(nqp::iterval(pair))));
+            my $repo := nqp::atkey($repos, normalize(nqp::iterval(pair)));
+            if nqp::isnull($repo) {
+                nqp::deletekey($custom-lib, nqp::iterkey_s(pair));
+            }
+            else {
+                nqp::bindkey($custom-lib, nqp::iterkey_s(pair), $repo);
+            }
         }
 
         $next-repo

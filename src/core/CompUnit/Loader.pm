@@ -43,7 +43,9 @@ class CompUnit::Loader is repr('Uninstantiable') {
         my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;
+#?if moar
         nqp::loadbytecodefh(nqp::getattr($handle, IO::Handle, '$!PIO'), $handle.path.Str);
+#?endif
         CompUnit::Handle.new($*MAIN_CTX)
     }
 

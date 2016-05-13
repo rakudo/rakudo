@@ -11,7 +11,10 @@ my %provides =
 ;
 
 $*REPO; # init repo chain so AbsolutePath and NQP repos are available during precomp
-PROCESS::<$REPO> := CompUnit::RepositoryRegistry.repository-for-spec("inst#@*ARGS[0]");
+PROCESS::<$REPO> := CompUnit::RepositoryRegistry.repository-for-spec(
+    "inst#@*ARGS[0]",
+    :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl').next-repo),
+);
 $*REPO.install(
     Distribution.new(
         name     => "CORE",

@@ -66,18 +66,6 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
 }
 
 {
-    class IdName {
-        has Int $!id;
-        has Str $!name;
-
-        method !SET-SELF($!id,$!name) { self }
-        method new(\id,\name) { nqp::create(self)!SET-SELF(id,name) }
-
-        multi method Numeric(IdName:D:) { $!id }
-        multi method Str(IdName:D:)     { $!name }
-        multi method gist(IdName:D:)    { "$!name ($!id)" }
-    }
-
     sub fetch($what) {
         once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
             if $id ~~ m/^
@@ -87,8 +75,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
               [ gid "=" $<gid>=(\d+) ]
               [ "(" $<group>=(<-[ ) ]>+) ")" ]
             / {
-                PROCESS::<$USER>  := IdName.new(+$<uid>,~$<user>);
-                PROCESS::<$GROUP> := IdName.new(+$<gid>,~$<group>);
+                PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
+                PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
             }
 
             # alas, no support yet

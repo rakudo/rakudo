@@ -70,54 +70,38 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
         has Int $!id;
         has Str $!name;
 
-        submethod BUILD(:$!id, :$!name --> Nil) { }
+        method !SET-SELF($!id,$!name) { self }
+        method new(\id,\name) { nqp::create(self)!SET-SELF(id,name) }
 
         multi method Numeric(IdName:D:) { $!id }
         multi method Str(IdName:D:)     { $!name }
         multi method gist(IdName:D:)    { "$!name ($!id)" }
     }
 
-    class IdFetch {
-        has Str $!name;
+    sub fetch($what) {
+        once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
+            if $id ~~ m/^
+              [ uid "=" $<uid>=(\d+) ]
+              [ "(" $<user>=(<-[ ) ]>+) ")" ]
+              \s+
+              [ gid "=" $<gid>=(\d+) ]
+              [ "(" $<group>=(<-[ ) ]>+) ")" ]
+            / {
+                PROCESS::<$USER>  := IdName.new(+$<uid>,~$<user>);
+                PROCESS::<$GROUP> := IdName.new(+$<gid>,~$<group>);
+            }
 
-        submethod BUILD(:$!name --> Nil) { PROCESS::{$!name} := self }
-
-        sub fetch {
-            once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
-                if $id ~~ m/^
-                  [ uid "=" $<uid>=(\d+) ]
-                  [ "(" $<user>=(<-[ ) ]>+) ")" ]
-                  \s+
-                  [ gid "=" $<gid>=(\d+) ]
-                  [ "(" $<group>=(<-[ ) ]>+) ")" ]
-                / {
-                    PROCESS::<$USER> :=
-                      IdName.new( :id(+$<uid>), :name(~$<user>) );
-                    PROCESS::<$GROUP> :=
-                      IdName.new( :id(+$<gid>), :name(~$<group>) );
-                }
-
-                # alas, no support yet
-                else {
-                    PROCESS::<$USER>  := Nil;
-                    PROCESS::<$GROUP> := Nil;
-                }
+            # alas, no support yet
+            else {
+                PROCESS::<$USER>  := Nil;
+                PROCESS::<$GROUP> := Nil;
             }
         }
-
-        multi method Numeric(IdFetch:D:) {
-            fetch() ?? +PROCESS::{$!name} !! Nil;
-        }
-        multi method Str(IdFetch:D:) {
-            fetch() ?? ~PROCESS::{$!name} !! Nil;
-        }
-        multi method gist(IdFetch:D:) {
-            fetch() ?? "{PROCESS::{$!name}} ({+PROCESS::{$!name}})" !! Nil;
-        }
+        PROCESS::{$what}
     }
 
-    IdFetch.new( :name<$USER> );
-    IdFetch.new( :name<$GROUP> );
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*USER',  { fetch('$USER') };
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', { fetch('$GROUP') };
 }
 
 # vim: ft=perl6 expandtab sw=4

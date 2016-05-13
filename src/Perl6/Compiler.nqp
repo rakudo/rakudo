@@ -142,8 +142,14 @@ class Perl6::Compiler is HLL::Compiler {
 
     PERL6LIB=\"lib\" perl6 example.pl
 
-    For more information, see the perl6(1) man page.\n"); 
+        "); # end of usage statement
         nqp::exit(0);
+
+    # TODO: create and install a man page for Perl 6; then add the following
+    #       line to the end of the usage text above:
+    # 
+    #  For more information, see the perl6(1) man page.\n"); 
+    
     }
 
     method readline($stdin, $stdout, $prompt) {

@@ -72,9 +72,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
 
         submethod BUILD(:$!id, :$!name --> Nil) { }
 
-        method Numeric { $!id }
-        method Str     { $!name }
-        method gist    { "$!name ($!id)" }
+        multi method Numeric(IdName:D:) { $!id }
+        multi method Str(IdName:D:)     { $!name }
+        multi method gist(IdName:D:)    { "$!name ($!id)" }
     }
 
     class IdFetch {

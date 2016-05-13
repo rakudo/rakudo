@@ -10,6 +10,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! nqp::create(self)
     }
 
+    multi method Map(Map:) { self }
+
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
         if nqp::defined($!storage) && nqp::elems($!storage) {

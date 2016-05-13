@@ -2,8 +2,13 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is Map {
     #     has Mu $!descriptor;
 
-    multi method Hash() {
+    multi method Hash(Hash:) {
         self
+    }
+    multi method Map(Hash:) {
+        my $map := nqp::create(Map);
+        nqp::bindattr($map,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
+        $map
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {

@@ -157,7 +157,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
     my sub parse-simple-number() {
         # Handle NaN here, to make later parsing simpler
-        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
+        if nqp::eqat($str,'NaN',$pos) {
             $pos = nqp::add_i($pos, 3);
             return nqp::p6box_n(nqp::nan());
         }
@@ -242,7 +242,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 parse_fail "'*' multiplier base must be an integer"
                     unless $mult_base.WHAT === Int;
                 parse_fail "'*' multiplier base must be followed by '**' and exponent"
-                    unless nqp::iseq_s(nqp::substr($str, $pos, 2), '**');
+                    unless nqp::eqat($str,'**',$pos);
 
                 $pos           = nqp::add_i($pos, 2);
                 my $mult_exp  := parse-simple-number();
@@ -346,7 +346,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
             parse-int-frac-exp();
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+        elsif nqp::eqat($str,'Inf',$pos) {
             # 'Inf'
             $pos = nqp::add_i($pos, 3);
             $neg ?? -Inf !! Inf;
@@ -392,7 +392,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         $pos = nqp::add_i($pos, 1);
         $result := Complex.new(0, $result);
     }
-    elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+    elsif nqp::eqat($str,'\\i',$pos) {
         $pos = nqp::add_i($pos, 2);
         $result := Complex.new(0, $result);
     }
@@ -410,7 +410,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 if $im == Inf || $im == NaN;
             $pos = nqp::add_i($pos, 1);
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+        elsif nqp::eqat($str,'\\i',$pos) {
             $pos = nqp::add_i($pos, 2);
         }
         else {

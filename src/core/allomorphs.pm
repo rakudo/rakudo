@@ -10,7 +10,7 @@ my class IntStr is Int is Str {
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(IntStr:D:) { 'IntStr.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class NumStr is Num is Str {
@@ -25,7 +25,7 @@ my class NumStr is Num is Str {
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(NumStr:D:) { 'NumStr.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class RatStr is Rat is Str {
@@ -41,7 +41,7 @@ my class RatStr is Rat is Str {
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(RatStr:D:) { 'RatStr.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class ComplexStr is Complex is Str {
@@ -57,7 +57,7 @@ my class ComplexStr is Complex is Str {
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(ComplexStr:D:) { 'ComplexStr.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 # we define cmp ops for these allomorphic types as numeric first, then Str. If

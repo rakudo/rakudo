@@ -358,7 +358,7 @@ sub GATHER(&block) {
             iter
         }
 
-        method pull-one() {
+        method pull-one() is raw {
             if $!slipping && !((my \result = self.slip-one()) =:= IterationEnd) {
                 result
             }

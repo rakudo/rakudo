@@ -62,24 +62,20 @@ my class ComplexStr is Complex is Str {
 
 # we define cmp ops for these allomorphic types as numeric first, then Str. If
 # you want just one half of the cmp, you'll need to coerce the args
-multi sub infix:<cmp>(IntStr $a, IntStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Int cmp $b.Int
+multi sub infix:<cmp>(IntStr:D $a, IntStr:D $b) {
+    $a.Int cmp $b.Int || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(RatStr $a, RatStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Rat cmp $b.Rat
+multi sub infix:<cmp>(RatStr:D $a, RatStr:D $b) {
+    $a.Rat cmp $b.Rat || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(NumStr $a, NumStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Num cmp $b.Num
+multi sub infix:<cmp>(NumStr:D $a, NumStr:D $b) {
+    $a.Num cmp $b.Num || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Complex cmp $b.Complex
+multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) {
+    $a.Complex cmp $b.Complex || $a.Str cmp $b.Str
 }
 
 multi sub val(*@maybevals) {

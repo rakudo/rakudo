@@ -131,8 +131,12 @@ class Perl6::Compiler is HLL::Compiler {
       -v, --version        display version information
       --stagestats         display time spent in the compilation stages
       --ll-exception       display a low level backtrace on errors
-      --profile            write profile information as HTML file (MoarVM)
-      --profile-filename   provide a different filename (also allows .json)
+      --profile=kind       write profile information to a file (MoarVM)
+                             instrumented - performance measurements
+                             heap - record heap snapshots after every
+                                    garbage collector run
+      --profile-filename   provide a different filename; instrumented
+                           profiles may be written to .json files, too.
       --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 

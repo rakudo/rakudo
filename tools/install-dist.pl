@@ -34,7 +34,7 @@ role Distribution::Directory {
         %( (self.meta<resources> // []).map({
             $_ => $_ ~~ m/^libraries\/(.*)/
                 ?? ~$resources-dir.child('libraries').child($*VM.platform-library-name($0.Str.IO))
-                !! ~$resources-dir.child('$_')
+                !! ~$resources-dir.child($_)
         }) );
     }
 }

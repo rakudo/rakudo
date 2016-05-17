@@ -2,7 +2,7 @@ my $ops := nqp::getcomp('QAST').operations;
 
 sub register_op_desugar($op, $desugar) is export {
     nqp::getcomp('QAST').operations.add_op($op, sub ($comp, $node, :$want, :$cps) {
-        $comp.as_js($desugar($op), :$want, :$cps);
+        $comp.as_js($desugar($node), :$want, :$cps);
     });
 }
 

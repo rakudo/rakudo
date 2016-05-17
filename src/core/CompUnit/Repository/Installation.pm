@@ -120,8 +120,12 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
+    method name(--> Str) {
+        CompUnit::RepositoryRegistry.name-for-repository(self)
+    }
+
     method !repo-prefix() {
-        my $repo-prefix = CompUnit::RepositoryRegistry.name-for-repository(self) // '';
+        my $repo-prefix = self.name // '';
         $repo-prefix ~= '#' if $repo-prefix;
         $repo-prefix
     }
@@ -256,6 +260,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             }
             for @provides -> ($source-name, $id) {
                 my $source = $sources-dir.child($id);
+                my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
                 my $rev-deps-file = ($precomp.store.path($compiler-id, $id) ~ '.rev-deps').IO;
                 my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
@@ -267,7 +272,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $precomp.precompile(
                     $source.IO,
                     $id,
-                    :source-name("$repo-prefix$source.relative($.prefix) ($source-name)"),
+                    :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
                 for @rev-deps -> $rev-dep-id {
@@ -281,7 +286,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         $source,
                         $rev-dep-id,
                         :force,
-                        :source-name($repo-prefix ~ $source.relative($.prefix))
+                        :source-name($source-file)
                     ) if $source.e;
                     %done{$rev-dep-id} = 1;
                 }
@@ -437,9 +442,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method id() {
         return $!id if $!id;
-        $!id = self.CompUnit::Repository::Locally::id();
+        my $name = self.path-spec;
+        $name ~= ',' ~ self.next-repo.id if self.next-repo;
         my $dist-dir = $.prefix.child('dist');
-        $!id = nqp::sha1($!id ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
+        $!id = nqp::sha1(nqp::sha1($name) ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
     }
 
     method short-id() { 'inst' }

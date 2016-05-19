@@ -131,7 +131,7 @@ my class Binder {
     my $Positional;
     my $PositionalBindFailover;
 
-#?if moar
+#?if !jvm
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;

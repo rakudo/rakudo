@@ -1437,6 +1437,9 @@ BEGIN {
             );
         }));
     Signature.HOW.compose_repr(Signature);
+#if js
+    Signature.HOW.cheating_publish_method_cache(Signature);
+#endif
         
     # class Parameter is Any {
     #     has str $!variable_name
@@ -1573,6 +1576,9 @@ BEGIN {
             }
         }));
     Parameter.HOW.compose_repr(Parameter);
+#if js
+    Parameter.HOW.cheating_publish_method_cache(Parameter);
+#endif
     
     # class Code {
     #     has Mu $!do;                # Low level code object
@@ -2645,11 +2651,17 @@ BEGIN {
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
+#if js
+    Routine.HOW.cheating_publish_method_cache(Routine);
+#endif
 
     # class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
     Sub.HOW.compose_invocation(Sub);
+#if js
+    Sub.HOW.cheating_publish_method_cache(Sub);
+#endif
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
@@ -2698,6 +2710,10 @@ BEGIN {
         }));
     Regex.HOW.compose_repr(Regex);
     Regex.HOW.compose_invocation(Regex);
+
+#if js
+    Regex.HOW.cheating_publish_method_cache(Regex);
+#endif
 
     # class Str is Cool {
     #     has str $!value is box_target;

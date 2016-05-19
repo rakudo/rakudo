@@ -1344,6 +1344,9 @@ class Perl6::Optimizer {
     }
 
     method optimize_p6typecheckrv($op) {
+#if js
+        return 0;
+#endif
         try {
             my $rettype        := $!symbols.top_routine.returns;
             my int $rettype_ps := nqp::objprimspec($rettype);

@@ -196,7 +196,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         $RMD("Precompiling $path into $bc") if $RMD;
-        my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
+        my $perl6 = $*EXECUTABLE
+            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
+            .subst('perl6-gdb', 'perl6')
+            .subst('perl6-jdb-server', 'perl6-j') ;
         my $proc = run(
           $perl6,
           $lle,

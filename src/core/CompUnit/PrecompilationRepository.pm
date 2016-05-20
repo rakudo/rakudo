@@ -37,8 +37,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         my $handle = (
             self.may-precomp and (
-                self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :source-name($dependency.source-name), :since($source.modified))
+                my $loaded = self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
+                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
@@ -157,9 +157,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
                     $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
                 }
+                fail "Outdated precompiled $unit";
             }
         }
-        CompUnit::Handle
+        Nil
     }
 
     method precompile(

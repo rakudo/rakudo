@@ -245,16 +245,16 @@ m-testable : m-all spectest_checkout spectest_update
 
 # Run the tests in t/localtest.data
 m-localtest: m-all spectest_checkout t/localtest.data
-	@$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
 m-localtest_loud: m-all spectest_checkout t/localtest.data
-	@$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 m-sometests: m-all
-	@$(M_HARNESS_WITH_FUDGE) $(TESTFILES)
+	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
 
 m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist.pl
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin

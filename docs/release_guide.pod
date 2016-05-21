@@ -5,8 +5,9 @@
 Rakudo’s development release cycle is the third Saturday of
 each month.
 
-Each development release is given a sequential number and a code name
-based on an active Perl Mongers group. 
+Each development release is given a sequential number and a name based
+on the release year and month.  Older releases had code names based on
+an active Perl Mongers group.
 
 For releases made so far, see the list of development releases at the
 end of this document.

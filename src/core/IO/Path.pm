@@ -73,7 +73,9 @@ my class IO::Path is Cool {
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        qq|"$.abspath".IO|;
+        $!is-absolute
+          ?? qq|"$.abspath".IO|
+          !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
         $!is-absolute  # attribute now set

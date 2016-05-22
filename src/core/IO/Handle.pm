@@ -800,9 +800,10 @@ my class IO::Handle does IO {
     method r(IO::Handle:D:) { $!path.r }
     method w(IO::Handle:D:) { $!path.w }
     method x(IO::Handle:D:) { $!path.x }
-    method modified(IO::Handle:D:) { $!path.modified }
-    method accessed(IO::Handle:D:) { $!path.accessed }
-    method changed(IO::Handle:D:)  { $!path.changed  }
+    method modified(IO::Handle:D:)   { $!path.modified    }
+    method accessed(IO::Handle:D:)   { $!path.accessed    }
+    method changed(IO::Handle:D:)    { $!path.changed     }
+    method mode(IO::Handle:D: :$Str) { $!path.mode(:$Str) }
 
 #?if moar
     method watch(IO::Handle:D:) {

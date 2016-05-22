@@ -58,27 +58,32 @@ my role Rational[::NuT, ::DeT] does Real {
     method Bridge() { self.Num }
 
     multi method Str(::?CLASS:D:) {
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
-        $r -= $i;
-        $s ~= $i;
-        if $r {
-            $s ~= '.';
-            my $want = $!denominator < 100_000
-                       ?? 6
-                       !! $!denominator.Str.chars + 1;
-            my $f = '';
-            while $r and $f.chars < $want {
-                $r *= 10;
-                $i = $r.floor;
-                $f ~= $i;
-                $r -= $i;
-            }
-            $f++ if  2 * $r >= 1;
-            $s ~= $f;
+        if $!denominator == 0 {
+            $!numerator == 0 ?? 'NaN' !! $!numerator < 0 ?? '-Inf' !! 'Inf'
         }
-        $s;
+        else {
+            my $s = $!numerator < 0 ?? '-' !! '';
+            my $r = self.abs;
+            my $i = $r.floor;
+            $r -= $i;
+            $s ~= $i;
+            if $r {
+                $s ~= '.';
+                my $want = $!denominator < 100_000
+                           ?? 6
+                           !! $!denominator.Str.chars + 1;
+                my $f = '';
+                while $r and $f.chars < $want {
+                    $r *= 10;
+                    $i = $r.floor;
+                    $f ~= $i;
+                    $r -= $i;
+                }
+                $f++ if  2 * $r >= 1;
+                $s ~= $f;
+            }
+            $s
+        }
     }
 
     method base($base, Any $digits? is copy) {

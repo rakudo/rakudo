@@ -40,8 +40,6 @@ my class Num does Real { # declared in BOOTSTRAP
             return self;
         }
 
-        (self == Inf || self == -Inf) && fail("Cannot coerce {self} to a {$fat ?? 'FatRat' !! 'Rat'}");
-
         my Num $num = self;
         $num = -$num if (my int $signum = $num < 0);
         my num $r = $num - floor($num);

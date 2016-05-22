@@ -32,7 +32,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
         $!denominator == 0
-          ?? ($!numerator < 0 ?? -Inf !! Inf)
+          ?? ($!numerator == 0 ?? NaN !! $!numerator < 0 ?? -Inf !! Inf)
           !! nqp::p6box_n(nqp::div_In(
                 nqp::decont($!numerator),
                 nqp::decont($!denominator)

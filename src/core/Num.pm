@@ -36,9 +36,8 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        if nqp::isnanorinf(nqp::unbox_n(self)) {
-            return self;
-        }
+        return self == Inf ?? 1/0 !! self == -Inf ?? -1/0 !! 0/0
+          if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;
         $num = -$num if (my int $signum = $num < 0);

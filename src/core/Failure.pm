@@ -100,7 +100,7 @@ my class Failure is Nil {
 }
 
 proto sub fail(|) {*};
-multi sub fail() {
+multi sub fail(--> Nil) {
     my $stash := CALLER::;
     my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
 
@@ -112,7 +112,7 @@ multi sub fail() {
 
     $fail.exception.throw
 }
-multi sub fail(Exception:U $e) {
+multi sub fail(Exception:U $e --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
     );
@@ -120,7 +120,7 @@ multi sub fail(Exception:U $e) {
     $return($fail) unless nqp::isnull($return);
     $fail.exception.throw
 }
-multi sub fail($payload) {
+multi sub fail($payload --> Nil) {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload
       !! X::AdHoc.new(:$payload)
@@ -131,13 +131,13 @@ multi sub fail($payload) {
 
     $fail.exception.throw
 }
-multi sub fail(|cap (*@msg)) {
+multi sub fail(|cap (*@msg) --> Nil) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));
     my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail.exception.throw
 }
-multi sub fail(Failure:U $f) {
+multi sub fail(Failure:U $f --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
     );
@@ -145,16 +145,16 @@ multi sub fail(Failure:U $f) {
     $return($fail) unless nqp::isnull($return);
     $fail.exception.throw
 }
-multi sub fail(Failure:D $fail) {
+multi sub fail(Failure:D $fail --> Nil) {
     my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail.exception.throw
 }
 
-multi sub die(Failure:D $f) {
+multi sub die(Failure:D $f --> Nil) {
     $f.exception.throw
 }
-multi sub die(Failure:U $f) {
+multi sub die(Failure:U $f --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 

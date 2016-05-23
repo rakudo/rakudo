@@ -168,7 +168,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationId $id,
         Bool :$force = False,
         Instant :$since,
-        :$source-name
+        :$source-name = $path.Str
     ) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);

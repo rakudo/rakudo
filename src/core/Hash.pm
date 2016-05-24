@@ -2,8 +2,13 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is Map {
     #     has Mu $!descriptor;
 
-    multi method Hash() {
+    multi method Hash(Hash:) {
         self
+    }
+    multi method Map(Hash:) {
+        my $map := nqp::create(Map);
+        nqp::bindattr($map,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
+        $map
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
@@ -146,19 +151,21 @@ my class Hash { # declared in BOOTSTRAP
     method push(+values) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if values.is-lazy;
+
         my $previous;
         my int $has_previous = 0;
-        for values -> $e {
-            if $has_previous {
-                self!_push_construct($previous, $e);
-                $has_previous = 0;
-            } elsif $e.^isa(Pair) {
-                self!_push_construct($e.key, $e.value);
-            } else {
-                $previous = $e;
-                $has_previous = 1;
-            }
-        }
+
+        $has_previous
+          ?? STATEMENT_LIST(
+               self!_push_construct($previous,$_);
+               $has_previous = 0)
+          !! nqp::istype($_,Pair)
+            ?? self!_push_construct(.key,.value)
+            !! STATEMENT_LIST(
+                 $previous = $_;
+                 $has_previous = 1)
+          for values;
+
         warn "Trailing item in Hash.push" if $has_previous;
         self
     }
@@ -166,19 +173,21 @@ my class Hash { # declared in BOOTSTRAP
     method append(+values) {
         fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
           if values.is-lazy;
-        my $previous = 0;
-        my int $has_previous;
-        for values -> $e {
-            if $has_previous {
-                self!_append_construct($previous, $e);
-                $has_previous = 0;
-            } elsif $e.^isa(Pair) {
-                self!_append_construct($e.key, $e.value);
-            } else {
-                $previous = $e;
-                $has_previous = 1;
-            }
-        }
+
+        my $previous;
+        my int $has_previous = 0;
+
+        $has_previous
+          ?? STATEMENT_LIST(
+               self!_append_construct($previous,$_);
+               $has_previous = 0)
+          !! nqp::istype($_,Pair)
+            ?? self!_append_construct(.key,.value)
+            !! STATEMENT_LIST(
+                 $previous = $_;
+                 $has_previous = 1)
+          for values;
+
         warn "Trailing item in Hash.append" if $has_previous;
         self
     }

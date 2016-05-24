@@ -157,7 +157,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
     # compare all positionals
     my int $i = -1;
     Nil
-      while nqp::islt_i($i = nqp::add_i($i,1),$elems)
+      while nqp::islt_i(++$i,$elems)
         && nqp::atpos($ap,$i) eqv nqp::atpos($bp,$i);
 
     # not all matching positionals
@@ -170,7 +170,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         # create lookup table
         my int $j = $i = $i - 1;
         my $lookup := nqp::hash;
-        while nqp::islt_i($j = nqp::add_i($j,1),$elems) {
+        while nqp::islt_i(++$j,$elems) {
             my $p  := nqp::atpos($ap,$j);
             my $nn := nqp::getattr($p,Parameter,'$!named_names');
             my str $key =
@@ -183,7 +183,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         }
 
         # named variable mismatch
-        while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+        while nqp::islt_i(++$i,$elems) {
             my $p  := nqp::atpos($bp,$i);
             my $nn := nqp::getattr($p,Parameter,'$!named_names');
             my str $key = nqp::defined($nn) && nqp::elems($nn)

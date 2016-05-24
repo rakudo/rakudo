@@ -1,7 +1,7 @@
 # the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
     method new(Int $i, Str $s) {
-        my \SELF = nqp::add_I($i, 0, IntStr);
+        my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
@@ -10,8 +10,7 @@ my class IntStr is Int is Str {
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(IntStr:D:) { self.Str }
-    multi method perl(IntStr:D:) { 'IntStr.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class NumStr is Num is Str {
@@ -26,8 +25,7 @@ my class NumStr is Num is Str {
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(NumStr:D:) { self.Str }
-    multi method perl(NumStr:D:) { 'NumStr.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class RatStr is Rat is Str {
@@ -43,8 +41,7 @@ my class RatStr is Rat is Str {
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(RatStr:D:) { self.Str }
-    multi method perl(RatStr:D:) { 'RatStr.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class ComplexStr is Complex is Str {
@@ -60,30 +57,25 @@ my class ComplexStr is Complex is Str {
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(ComplexStr:D:) { self.Str }
-    multi method perl(ComplexStr:D:) { 'ComplexStr.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 # we define cmp ops for these allomorphic types as numeric first, then Str. If
 # you want just one half of the cmp, you'll need to coerce the args
-multi sub infix:<cmp>(IntStr $a, IntStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Int cmp $b.Int
+multi sub infix:<cmp>(IntStr:D $a, IntStr:D $b) {
+    $a.Int cmp $b.Int || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(RatStr $a, RatStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Rat cmp $b.Rat
+multi sub infix:<cmp>(RatStr:D $a, RatStr:D $b) {
+    $a.Rat cmp $b.Rat || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(NumStr $a, NumStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Num cmp $b.Num
+multi sub infix:<cmp>(NumStr:D $a, NumStr:D $b) {
+    $a.Num cmp $b.Num || $a.Str cmp $b.Str
 }
 
-multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Complex cmp $b.Complex
+multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) {
+    $a.Complex cmp $b.Complex || $a.Str cmp $b.Str
 }
 
 multi sub val(*@maybevals) {
@@ -165,7 +157,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
     my sub parse-simple-number() {
         # Handle NaN here, to make later parsing simpler
-        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
+        if nqp::eqat($str,'NaN',$pos) {
             $pos = nqp::add_i($pos, 3);
             return nqp::p6box_n(nqp::nan());
         }
@@ -250,7 +242,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 parse_fail "'*' multiplier base must be an integer"
                     unless $mult_base.WHAT === Int;
                 parse_fail "'*' multiplier base must be followed by '**' and exponent"
-                    unless nqp::iseq_s(nqp::substr($str, $pos, 2), '**');
+                    unless nqp::eqat($str,'**',$pos);
 
                 $pos           = nqp::add_i($pos, 2);
                 my $mult_exp  := parse-simple-number();
@@ -354,7 +346,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
             parse-int-frac-exp();
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+        elsif nqp::eqat($str,'Inf',$pos) {
             # 'Inf'
             $pos = nqp::add_i($pos, 3);
             $neg ?? -Inf !! Inf;
@@ -400,7 +392,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         $pos = nqp::add_i($pos, 1);
         $result := Complex.new(0, $result);
     }
-    elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+    elsif nqp::eqat($str,'\\i',$pos) {
         $pos = nqp::add_i($pos, 2);
         $result := Complex.new(0, $result);
     }
@@ -418,7 +410,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 if $im == Inf || $im == NaN;
             $pos = nqp::add_i($pos, 1);
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+        elsif nqp::eqat($str,'\\i',$pos) {
             $pos = nqp::add_i($pos, 2);
         }
         else {

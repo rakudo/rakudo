@@ -73,10 +73,9 @@ my class Array { # declared in BOOTSTRAP
             my int $numind  = @indices.elems;
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+                nqp::push_i($idxs, @indices.shift)
+                  while nqp::isge_i(--$numdims,0);
+
                 my \elem = nqp::ifnull(
                     nqp::atposnd($storage, $idxs),
                     nqp::p6bindattrinvres(
@@ -103,10 +102,8 @@ my class Array { # declared in BOOTSTRAP
             if $numind == $numdims {
                 # Dimension counts match, so fast-path it
                 my $idxs := nqp::list_i();
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+                nqp::push_i($idxs, @indices.shift)
+                  while nqp::isge_i(--$numdims,0);
                 nqp::ifnull(
                     nqp::atposnd($storage, $idxs),
                     nqp::bindposnd($storage, $idxs,
@@ -133,30 +130,31 @@ my class Array { # declared in BOOTSTRAP
         }
         multi method EXISTS-POS(**@indices) {
             my Mu $storage := nqp::getattr(self, List, '$!reified');
+            my $dims       := nqp::dimensions($storage);
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems;
-            my $dims := nqp::dimensions($storage);
+            my int $i = -1;
+
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
-                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
-                    my int $idx = @indices.shift;
-                    return False if $idx >= nqp::atpos_i($dims, $i);
-                    nqp::push_i($idxs, $idx);
-                }
-                if nqp::isnull(nqp::atposnd($storage, $idxs)) {
-                    False
-                }
-                elsif @indices {
-                    nqp::atposnd($storage, $idxs).EXISTS-POS(|@indices)
-                }
-                else {
-                    True
-                }
+                my int $idx;
+
+                ($idx = @indices.shift) >= nqp::atpos_i($dims,$i)
+                  ?? return False
+                  !! nqp::push_i($idxs, $idx)
+                  while nqp::islt_i(++$i,$numind);
+
+                nqp::isnull(nqp::atposnd($storage, $idxs))
+                  ?? False
+                  !! @indices
+                     ?? nqp::atposnd($storage, $idxs).EXISTS-POS(|@indices)
+                     !! True
             }
             else {
-                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
-                    return False if @indices[$i] >= nqp::atpos_i($dims, $i);
-                }
+                return False
+                  if @indices[$i] >= nqp::atpos_i($dims,$i)
+                  while nqp::islt_i(++$i,$numind);
+
                 True
             }
         }
@@ -171,10 +169,9 @@ my class Array { # declared in BOOTSTRAP
             my int $numind  = @indices.elems;
             if $numind >= $numdims {
                 my $idxs := nqp::list_i();
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+                nqp::push_i($idxs, @indices.shift)
+                  while nqp::isge_i(--$numdims,0);
+
                 my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);
                 if @indices {
                     value.DELETE-POS(|@indices)
@@ -207,11 +204,9 @@ my class Array { # declared in BOOTSTRAP
                 # At least enough indices that binding will work out or we can
                 # pass the bind target on down the chain.
                 my $idxs := nqp::list_i();
-                my int $i = 0;
-                while $i < $numdims {
-                    nqp::push_i($idxs, @indices.AT-POS($i));
-                    $i = $i + 1;
-                }
+                my int $i = -1;
+                nqp::push_i($idxs, @indices.AT-POS($i))
+                  while nqp::islt_i(++$i,$numdims);
                 $numind == $numdims
                     ?? nqp::bindposnd($storage, $idxs, value)
                     !! nqp::atposnd($storage, $idxs).BIND-POS(|@indices[$numdims..*])
@@ -233,9 +228,7 @@ my class Array { # declared in BOOTSTRAP
             if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
                 if self.shape eqv in-shape {
                     # Can do a VM-supported memcpy-like thing in the future
-                    for self.keys {
-                        self.ASSIGN-POS(|$_, in.AT-POS(|$_))
-                    }
+                    self.ASSIGN-POS(|$_, in.AT-POS(|$_)) for self.keys;
                 }
                 else {
                     X::Assignment::ArrayShapeMismatch.new(
@@ -307,13 +300,9 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         if $todo.DEFINITE {
             $todo.reify-until-lazy();
-            if $todo.fully-reified {
-                nqp::bindattr(self, List, '$!todo', Mu);
-                False;
-            }
-            else {
-                True;
-            }
+            $todo.fully-reified
+              ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
+              !! True
         }
         else {
             False
@@ -399,9 +388,8 @@ my class Array { # declared in BOOTSTRAP
             if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-at-least($ipos + 1);
-        }
+        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
+
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
             ?? nqp::p6bindattrinvres(
@@ -442,9 +430,8 @@ my class Array { # declared in BOOTSTRAP
             if nqp::islt_i($ipos, 0);
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-at-least($ipos + 1);
-        }
+        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
+
         my Mu \reified := nqp::getattr(self, List, '$!reified');
         $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
             ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
@@ -480,7 +467,7 @@ my class Array { # declared in BOOTSTRAP
             my int $pos = pos;
             nqp::pop($items);
             nqp::pop($items)
-              while ($pos = $pos - 1) >= 0
+              while nqp::isge_i(--$pos,0)
                 && nqp::isnull(nqp::atpos($items,$pos));
         }
         $value;
@@ -489,8 +476,9 @@ my class Array { # declared in BOOTSTRAP
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-        self!append-list(value);
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          !! self!append-list(value)
     }
     multi method push(Array:D: \value) {
         self!ensure-allocated();
@@ -504,14 +492,17 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-        self!append-list(@values)
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
+        if self.is-lazy {
+            Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+        }
+        elsif nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
             nqp::push(
                 nqp::getattr(self, List, '$!reified'),
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
@@ -524,18 +515,18 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw) {
         self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'append to') if self.is-lazy;
-        self!append-list(@values)
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+          !! self!append-list(@values)
     }
     method !append-list(@values) {
         my \values-iter = @values.iterator;
         my \reified := nqp::getattr(self, List, '$!reified');
         my \target := ArrayReificationTarget.new(reified,
             nqp::decont($!descriptor));
-        unless values-iter.push-until-lazy(target) =:= IterationEnd {
-            fail X::Cannot::Lazy.new(:action<push>, :what(self.^name));
-        }
-        self
+        values-iter.push-until-lazy(target) =:= IterationEnd
+          ?? self
+          !! Failure.new(X::Cannot::Lazy.new(:action<push>, :what(self.^name)))
     }
 
     multi method unshift(Array:D: Slip \value) {
@@ -592,8 +583,8 @@ my class Array { # declared in BOOTSTRAP
 
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::elems($reified)
-            ?? nqp::pop($reified)
-            !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+          ?? nqp::pop($reified)
+          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
 
     method shift(Array:D:) is raw is nodal {
@@ -602,10 +593,10 @@ my class Array { # declared in BOOTSTRAP
         my $todo := nqp::getattr(self, List, '$!todo');
         my $reified := nqp::getattr(self, List, '$!reified');
         nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
-            ?? nqp::shift($reified)
-            !! nqp::elems($reified)  # is it actually just sparse?
-                ?? STATEMENT_LIST(nqp::shift($reified); Nil)
-                !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+          ?? nqp::shift($reified)
+          !! nqp::elems($reified)  # is it actually just sparse?
+            ?? STATEMENT_LIST(nqp::shift($reified); Nil)
+            !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
     }
 
     proto method splice(|) is nodal { * }
@@ -663,18 +654,14 @@ my class Array { # declared in BOOTSTRAP
         # need to enforce type checking
         my $expected := self.of;
         unless self.of =:= Mu {
-            my int $i = 0;
+            my int $i = -1;
             my int $n = nqp::elems(splice-buffer);
-            while $i < $n {
-                unless nqp::istype(nqp::atpos(splice-buffer, $i), $expected) {
-                    X::TypeCheck::Splice.new(
-                        :action<splice>,
-                        :got($_.WHAT),
-                        :$expected,
-                    ).fail;
-                }
-                $i = $i + 1;
-            }
+            fail X::TypeCheck::Splice.new(
+              :action<splice>,
+              :got($_.WHAT),
+              :$expected,
+            ) unless nqp::istype(nqp::atpos(splice-buffer,$i),$expected)
+              while nqp::islt_i(++$i,$n);
         }
 
         $todo.reify-at-least($o + $s) if $lazy;
@@ -694,20 +681,16 @@ my class Array { # declared in BOOTSTRAP
 
     # introspection
     method name() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! $d.name()
+        nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
     method of() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
     method default() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Any !! $d.default;
+        nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! so $d.dynamic;
+        nqp::isnull($!descriptor) ?? Nil !! so $!descriptor.dynamic
     }
     multi method perl(Array:D \SELF:) {
         SELF.perlseen('Array', {

@@ -82,7 +82,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
 
     method elems() {
         self.is-lazy
-          ?? fail X::Cannot::Lazy.new(action => '.elems')
+          ?? Failure.new(X::Cannot::Lazy.new(action => '.elems'))
           !! self.iterator.count-only;
     }
 
@@ -358,7 +358,7 @@ sub GATHER(&block) {
             iter
         }
 
-        method pull-one() {
+        method pull-one() is raw {
             if $!slipping && !((my \result = self.slip-one()) =:= IterationEnd) {
                 result
             }

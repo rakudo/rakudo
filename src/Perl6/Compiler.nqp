@@ -93,8 +93,12 @@ class Perl6::Compiler is HLL::Compiler {
       -v, --version        display version information
       --stagestats         display time spent in the compilation stages
       --ll-exception       display a low level backtrace on errors
-      --profile            write profile information as HTML file (MoarVM)
-      --profile-filename   provide a different filename (also allows .json)
+      --profile=kind       write profile information to a file (MoarVM)
+                             instrumented - performance measurements
+                             heap - record heap snapshots after every
+                                    garbage collector run
+      --profile-filename   provide a different filename; instrumented
+                           profiles may be written to .json files, too.
       --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 
@@ -104,7 +108,13 @@ class Perl6::Compiler is HLL::Compiler {
 
     PERL6LIB=\"lib\" perl6 example.pl
 
-    For more information, see the perl6(1) man page.\n"); 
+        "); # end of usage statement
         nqp::exit(0);
+
+    # TODO: create and install a man page for Perl 6; then add the following
+    #       line to the end of the usage text above:
+    # 
+    #  For more information, see the perl6(1) man page.\n"); 
+    
     }
 }

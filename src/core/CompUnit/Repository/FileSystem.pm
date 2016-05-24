@@ -24,7 +24,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             # pick a META6.json if it is there
             if (my $meta = $!prefix.child('META6.json')) && $meta.f {
                 try {
-                    my $json = from-json $meta.slurp;
+                    my $json = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     if $json<provides>{$name} -> $file {
                         my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
                         $found = $path if $path.f;
@@ -64,6 +64,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
@@ -75,7 +76,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             my $id = nqp::sha1($name ~ $*REPO.id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = $precomp.try-load($id, $file, :source-name("$file ($spec.short-name())"));
+            my $handle = $precomp.try-load(
+                CompUnit::PrecompilationDependency::File.new(
+                    :$id,
+                    :src($file.Str),
+                    :$spec,
+                ),
+                :@precomp-stores,
+            );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($file); # precomp failed
 
@@ -88,7 +96,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             );
         }
 
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
@@ -101,7 +109,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $path = $!prefix.child($file);
 
             if $path.f {
-                return %!loaded{$file} = %seen{$path} = CompUnit.new(
+                return %!loaded{$file.Str} //= %seen{$path.Str} = CompUnit.new(
                     :handle(
                         $precompiled
                             ?? CompUnit::Loader.load-precompilation-file($path)
@@ -136,13 +144,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $.prefix.parent.child('resources').child($key);
     }
 
+    method precomp-store() returns CompUnit::PrecompilationStore {
+        CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.child('.precomp')),
+        )
+    }
+
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('.precomp')),
-                )
-            ),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

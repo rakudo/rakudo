@@ -109,10 +109,13 @@ my role Iterable {
     }
 
     method !valid-hyper-race($method,$batch,$degree --> Nil) {
-        fail X::Invalid::Value.new(:$method,:name<batch>,:value($batch))
-          if $batch <= 0;
-        fail X::Invalid::Value.new(:$method,:name<degree>,:value($degree))
-          if $degree <= 0;
+        $batch <= 0
+          ?? Failure.new(X::Invalid::Value.new(
+               :$method,:name<batch>,:value($batch)))
+          !! $degree <= 0
+            ?? Failure.new(X::Invalid::Value.new(
+                 :$method,:name<degree>,:value($degree)))
+            !! Nil
     }
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
@@ -147,5 +150,9 @@ my role Iterable {
         }.new(self.iterator, $configuration));
     }
 }
+
+#?if jvm
+nqp::p6setitertype(Iterable);
+#?endif
 
 # vim: ft=perl6 expandtab sw=4

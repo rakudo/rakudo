@@ -95,9 +95,8 @@ my class Backtrace {
             my $file := $annotations<file>;
             next unless $file;
 
-            my @parts = $file.split('#', 2);
-            if @parts.elems == 2 {
-                $file := CompUnit::RepositoryRegistry.repository-for-name(@parts[0]).prefix.child(@parts[1]).abspath;
+            if CompUnit::RepositoryRegistry.file-for-spec($file) -> $path {
+                $file := $path.abspath;
             }
 
             # now *that's* an evil hack

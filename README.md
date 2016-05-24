@@ -93,15 +93,22 @@ For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs
 
-Bug reports should be sent to "rakudobug@perl.org" with the moniker
-[BUG]\(including the brackets) at the start of the subject so that it
-gets appropriately tagged in [the RT system](https://rt.perl.org/rt3/).
+Bug reports should be sent to "rakudobug@perl.org", which will
+automatically create a ticket in 
+[the RT system](https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the bug,
 and include either the release name/date or the git commit identifier.
 You find that information in the output from `perl6 --version` (or in
 the first line of `git log`, if Rakudo fails to build). There's no need
 to cc: the perl6-compiler mailing list, as the RT system will handle
-this on its own.
+this on its own. Please start your subject with one (or more) of the
+following text, including the brackets:
+
+* [BUG]  - this is an actual bug
+* [LTA]  - a "Less Than Awesome" diagnostic or warning is being generated
+* [JVM]  - issue only occurs on the JVM
+* [PERF] - any performance related issue
+* [UNI]  - related to unicode support
 
 If you find a bug in MoarVM or NQP, you can either discuss it on the IRC
 and have it reported for you, or you can submit an issue to the issue
@@ -110,23 +117,11 @@ trackers on github for perl6/nqp or moarvm/moarvm.
 ## Submitting patches
 
 If you have a patch that fixes a bug or adds a new feature, please
-submit it to "rakudobug@perl.org" with the moniker [PATCH]\(including
-the brackets) at the start of the subject line. We'll generally accept
-patches in any form if we can get them to work, but unified diff from
-the `git` command is greatly preferred. In general this means that in
-the "rakudo" directory you make your changes, and then type
+create a pull request using github's pull request infrastructure.
 
-    git commit -m 'Your commit message' changed/filename.pm
-    git format-patch HEAD^
-
-This will generate a file called "001-your-commit-message.patch", or
-more of them if you made multiple commits; please attach these to your
-email. Please note that if you made more than one commit, you have to
-specify a proper commit range for format-patch,
-for example `origin/nom..HEAD`.
-
-(Note to the maintainers: you can apply these patches with the 
-`git-am -s` command; it preserves meta information like author).
+Please separate your commits for different issues into different
+branches, and please squash out any intermediate commits, like
+adding/removing debug output.
 
 ## Line editing and tab completion
 

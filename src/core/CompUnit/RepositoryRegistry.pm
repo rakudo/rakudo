@@ -33,10 +33,12 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
 
         # starting up for creating precomp
-        if nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH') {
+        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
+            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
+            !! False;
+        if $precomp-specs {
             # assume well formed strings
-            $raw-specs :=
-              nqp::split(',',nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'));
+            $raw-specs := nqp::split(',', $precomp-specs);
         }
 
         # normal start up
@@ -63,51 +65,54 @@ class CompUnit::RepositoryRegistry {
             }
 #?endif
 
-            my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
-              ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-              !! nqp::concat(
-                   nqp::atkey(nqp::backendconfig,'prefix'),
-                   '/share/perl6'
-                 );
-
-            # XXX Various issues with this stuff on JVM , TEMPORARY
-            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-            try {
-                if nqp::existskey($ENV,'HOME')
-                  ?? nqp::atkey($ENV,'HOME')
-                  !! nqp::concat(
-                       (nqp::existskey($ENV,'HOMEDRIVE')
-                         ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
-                       (nqp::existskey($ENV,'HOMEPATH')
-                         ?? nqp::atkey($ENV,'HOMEPATH') !! '')
-                     ) -> $home {
-                    my str $path = "inst#$home/.perl6";
-                    nqp::bindkey($custom-lib,'home',$path);
-                    nqp::push($raw-specs,$path);
-                }
-            }
-
-            # set up custom libs
-            my str $site = "inst#$prefix/site";
-            nqp::bindkey($custom-lib,'site',$site);
-            nqp::push($raw-specs,$site);
-
-            my str $vendor = "inst#$prefix/vendor";
-            nqp::bindkey($custom-lib,'vendor',$vendor);
-            nqp::push($raw-specs,$vendor);
-
-            my str $perl = "inst#$prefix";
-            nqp::bindkey($custom-lib,'perl',$perl);
-            nqp::push($raw-specs,$perl);
         }
+
+        my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+          ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
+          !! nqp::concat(
+               nqp::atkey(nqp::backendconfig,'prefix'),
+               '/share/perl6'
+             );
+
+        # XXX Various issues with this stuff on JVM , TEMPORARY
+        my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
+        try {
+            if nqp::existskey($ENV,'HOME')
+              ?? nqp::atkey($ENV,'HOME')
+              !! nqp::concat(
+                   (nqp::existskey($ENV,'HOMEDRIVE')
+                     ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
+                   (nqp::existskey($ENV,'HOMEPATH')
+                     ?? nqp::atkey($ENV,'HOMEPATH') !! '')
+                 ) -> $home {
+                my str $path = "inst#$home/.perl6";
+                nqp::bindkey($custom-lib,'home',$path);
+                nqp::push($raw-specs, $path) unless $precomp-specs;
+            }
+        }
+
+        # set up custom libs
+        my str $site = "inst#$prefix/site";
+        nqp::bindkey($custom-lib,'site',$site);
+        nqp::push($raw-specs, $site) unless $precomp-specs;
+
+        my str $vendor = "inst#$prefix/vendor";
+        nqp::bindkey($custom-lib,'vendor',$vendor);
+        nqp::push($raw-specs, $vendor) unless $precomp-specs;
+
+        my str $perl = "inst#$prefix";
+        nqp::bindkey($custom-lib,'perl',$perl);
+        nqp::push($raw-specs, $perl) unless $precomp-specs;
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
-          CompUnit::Repository::AbsolutePath.new(
-            :next-repo( CompUnit::Repository::NQP.new(
-              :next-repo(CompUnit::Repository::Perl5.new)
+            $precomp-specs
+            ?? CompUnit::Repository
+            !! CompUnit::Repository::AbsolutePath.new(
+                :next-repo( CompUnit::Repository::NQP.new(
+                    :next-repo(CompUnit::Repository::Perl5.new)
+                )
             )
-          )
         );
 
         my %repos;
@@ -146,8 +151,13 @@ class CompUnit::RepositoryRegistry {
         $iter := nqp::iterator($custom-lib);
         while $iter {
             my \pair = nqp::shift($iter);
-            nqp::bindkey($custom-lib,nqp::iterkey_s(pair),
-              nqp::atkey($repos,normalize(nqp::iterval(pair))));
+            my $repo := nqp::atkey($repos, normalize(nqp::iterval(pair)));
+            if nqp::isnull($repo) {
+                nqp::deletekey($custom-lib, nqp::iterkey_s(pair));
+            }
+            else {
+                nqp::bindkey($custom-lib, nqp::iterkey_s(pair), $repo);
+            }
         }
 
         $next-repo
@@ -185,6 +195,15 @@ class CompUnit::RepositoryRegistry {
         while $iter {
             my \pair = nqp::shift($iter);
             return nqp::iterkey_s(pair) if nqp::iterval(pair).prefix eq $repo.prefix;
+        }
+        Nil
+    }
+
+    method file-for-spec(Str $spec) {
+        my @parts = $spec.split('#', 2);
+        if @parts.elems == 2 {
+            my $repo = self.repository-for-name(@parts[0]);
+            return $repo.source-file(@parts[1]) if $repo.can('source-file');
         }
         Nil
     }

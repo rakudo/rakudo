@@ -78,7 +78,7 @@ my class array does Iterable is repr('VMArray') {
             my int $i = -1;
             nqp::bindpos_s(self, $i,
               nqp::unbox_s(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             self
         }
 
@@ -236,7 +236,7 @@ my class array does Iterable is repr('VMArray') {
             my int $i     = -1;
             nqp::bindpos_s(self,$i,$empty)
               if nqp::isnull_s(nqp::atposref_s(self,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
 
             nqp::join($delim.Str,self)
         }
@@ -288,7 +288,7 @@ my class array does Iterable is repr('VMArray') {
             my int $i = -1;
             nqp::bindpos_i(self, $i,
               nqp::unbox_i(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             self
         }
 
@@ -515,7 +515,7 @@ my class array does Iterable is repr('VMArray') {
             my int $i = -1;
             nqp::bindpos_n(self, $i,
               nqp::unbox_n(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             self
         }
 

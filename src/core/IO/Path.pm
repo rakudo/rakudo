@@ -73,7 +73,9 @@ my class IO::Path is Cool {
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        qq|"$.abspath".IO|;
+        $!is-absolute
+          ?? qq|"$.abspath".IO|
+          !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
         $!is-absolute  # attribute now set
@@ -582,7 +584,7 @@ my class IO::Path is Cool {
     method rw(--> Bool) {
         $.e
           ?? Rakudo::Internals.FILETEST-RW($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<rw>)
     }
 
     method x(--> Bool) {
@@ -594,7 +596,7 @@ my class IO::Path is Cool {
     method rwx(--> Bool) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<rwx>)
     }
 
     method z(--> Bool) {

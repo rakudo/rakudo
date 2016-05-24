@@ -30,7 +30,8 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Load a pre-compiled file
-    method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
+    proto method load-precompilation-file(|) { * }
+    multi method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
         my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;
@@ -38,10 +39,24 @@ class CompUnit::Loader is repr('Uninstantiable') {
         CompUnit::Handle.new($*MAIN_CTX)
     }
 
+    multi method load-precompilation-file(IO::Handle $handle) returns CompUnit::Handle {
+        my $*CTXSAVE := self;
+        my %*COMPILING := nqp::hash();
+        my Mu $*MAIN_CTX;
+#?if moar
+        nqp::loadbytecodefh(nqp::getattr($handle, IO::Handle, '$!PIO'), $handle.path.Str);
+#?endif
+        CompUnit::Handle.new($*MAIN_CTX)
+    }
+
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
     method load-precompilation(Buf:D $bytes) returns CompUnit::Handle {
-        ... # XXX this one needs MoarVM/JVM backends to expose a new API
+        my $*CTXSAVE := self;
+        my %*COMPILING := nqp::hash();
+        my Mu $*MAIN_CTX;
+        nqp::loadbytecodebuffer($bytes);
+        CompUnit::Handle.new($*MAIN_CTX)
     }
 
     method ctxsave() {

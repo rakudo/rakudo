@@ -3,7 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
 
-    method enums() { self.^enum_values }
+    method enums() { self.^enum_values.Map }
 
     multi method kv(::?CLASS:D:) { ($!key, $!value) }
     method pair(::?CLASS:D:) { $!key => $!value }

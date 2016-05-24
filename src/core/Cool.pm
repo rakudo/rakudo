@@ -300,12 +300,12 @@ my class Cool { # declared in BOOTSTRAP
     proto method UInt(|) { * }
     multi method UInt()  {
         my $got := self.Int;
-        fail X::OutOfRange.new(
-          :what('Coercion to UInt'),
-          :$got,
-          :range("0..Inf")
-        ) if $got < 0;
-        $got;
+        $got < 0
+          ?? Failure.new(X::OutOfRange.new(
+               :what('Coercion to UInt'),
+               :$got,
+               :range("0..Inf")))
+          !! $got
     }
 
     method Num()  { self.Numeric.Num }

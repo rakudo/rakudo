@@ -627,14 +627,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $elems = +matches;  # make sure all reified
         my $matches  := nqp::getattr(matches,List,'$!reified');
         my $result   := nqp::list;
-        my int $i;
+        my int $i = -1;
         my int $pos;
         my int $found;
 
         if $any || $skip-empty {
             my int $notskip = !$skip-empty;
             my int $next;
-            while nqp::islt_i($i,$elems) {
+            while nqp::islt_i(++$i,$elems) {
                 my $match := nqp::decont(nqp::atpos($matches,$i));
                 $found  = nqp::getattr_i($match,Match,'$!from');
                 $next   = nqp::getattr_i($match,Match,'$!to');
@@ -646,24 +646,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::push($result,
                       nqp::substr($str,$pos,$chars));
                 }
-                if $any {
-                    if $v {
-                        nqp::push($result,$match);
-                    }
-                    elsif $k {
-                        nqp::push($result,0);
-                    }
-                    elsif $kv {
-                        nqp::push($result,0);
-                        nqp::push($result,$match);
-                    }
-                    else {  # $p
-                        nqp::push($result, Pair.new(0,$match));
-                    }
-                }
-
+                $v
+                  ?? nqp::push($result,$match)                  # v
+                  !! $k
+                    ?? nqp::push($result,0)                     # k
+                    !! $kv
+                      ?? STATEMENT_LIST(                        # kv
+                           nqp::push($result,0);
+                           nqp::push($result,$match))
+                      !! nqp::push($result, Pair.new(0,$match)) # $p
+                  if $any;
                 $pos = $next;
-                $i   = nqp::add_i($i,1);
             }
             nqp::push($result,nqp::substr($str,$pos))
               if $notskip || nqp::islt_i($pos,nqp::chars($str));
@@ -671,13 +664,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
             my $match;
             nqp::setelems($result,$elems + 1);
-            while nqp::islt_i($i,$elems) {
+            while nqp::islt_i(++$i,$elems) {
                 $match := nqp::decont(nqp::atpos($matches,$i));
                 $found  = nqp::getattr_i($match,Match,'$!from');
                 nqp::bindpos($result,$i,
                   nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
                 $pos = nqp::getattr_i($match,Match,'$!to');
-                $i   = nqp::add_i($i,1);
             }
             nqp::bindpos($result,$i,nqp::substr($str,$pos));
         }
@@ -1318,7 +1310,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $chars  = nqp::chars($str);
         my Mu $result := nqp::list_s();
         my str $check;
-        my int $i;
+        my int $i = -1;
 
         # something to convert to
         if $to.chars -> $tochars {
@@ -1328,14 +1320,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
             if $tochars == 1 {
                 my str $sto = nqp::unbox_s($to);
 
-                while nqp::islt_i($i,$chars) {
+                while nqp::islt_i(++$i,$chars) {
                     $check = nqp::substr($str,$i,1);
                     nqp::bindpos_s(
                       $result, $i, nqp::iseq_i(nqp::index($sfrom,$check),-1)
                         ?? $check
                         !! $sto
                     );
-                    $i = $i + 1;
                 }
             }
 
@@ -1348,25 +1339,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 # repeat until mapping complete
                 $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
 
-                while nqp::islt_i($i,$chars) {
+                while nqp::islt_i(++$i,$chars) {
                     $check = nqp::substr($str,$i,1);
                     $found = nqp::index($sfrom,$check);
                     nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
                       ?? $check
                       !! nqp::substr($sto,$found,1)
                     );
-                    $i = $i + 1;
                 }
             }
         }
 
         # just remove
         else {
-            while nqp::islt_i($i,$chars) {
+            while nqp::islt_i(++$i,$chars) {
                 $check = nqp::substr($str,$i,1);
                 nqp::push_s($result, $check)
                   if nqp::iseq_i(nqp::index($sfrom,$check),-1);
-                $i = $i + 1;
             }
         }
 
@@ -1932,7 +1921,7 @@ multi sub infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
 multi sub infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
 
 multi sub prefix:<~^>(Str \a) {
-    fail "prefix:<~^> NYI";   # XXX
+    Failure.new("prefix:<~^> NYI")   # XXX
 }
 
 # XXX: String-wise shifts NYI
@@ -2017,7 +2006,7 @@ sub chrs(*@c) returns Str:D {
         operation => "converting element #$i to .chr",
         got       => $value,
         expected  => Int)
-      while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+      while nqp::islt_i(++$i,$elems);
 
     nqp::join("",$result)
 }
@@ -2061,11 +2050,11 @@ multi sub substr(Str() $what, \start, $want?) {
 
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
-    $r.defined
-      ?? nqp::p6box_s(nqp::substr(
+    nqp::istype($r,Failure)
+      ?? $r
+      !! nqp::p6box_s(nqp::substr(
            nqp::unbox_s($what),nqp::unbox_i($from),nqp::unbox_i($chars)
          ))
-      !! $r;
 }
 
 sub substr-rw(\what, \start, $want?) is rw {
@@ -2073,8 +2062,9 @@ sub substr-rw(\what, \start, $want?) is rw {
 
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
-    $r.defined
-      ?? Proxy.new(
+    nqp::istype($r,Failure)
+      ?? $r
+      !! Proxy.new(
            FETCH => sub ($) {
                nqp::p6box_s(nqp::substr(
                  nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
@@ -2093,7 +2083,6 @@ sub substr-rw(\what, \start, $want?) is rw {
                );
            },
          )
-      !! $r;
 }
 
 proto sub samemark(|) {*}

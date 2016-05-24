@@ -51,7 +51,7 @@ my class Rakudo::Internals {
             my int $i      = $!i;
             my int $elems  = $!elems;
             $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             IterationEnd
         }
         method count-only() {
@@ -621,7 +621,7 @@ my class Rakudo::Internals {
           :range("0.." ~ max),
           :comment( nqp::istype(from, Callable) || -from > max
             ?? ''
-            !! "use *{from} if you want to index relative to the end"),
+            !! "use *-{abs from} if you want to index relative to the end"),
         );
     }
     method SUBSTR-CHARS-OOR(\chars) {
@@ -629,7 +629,7 @@ my class Rakudo::Internals {
           :what('Number of characters argument to substr'),
           :got(chars.gist),
           :range("0..Inf"),
-          :comment("use *{chars} if you want to index relative to the end"),
+          :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }
     method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
@@ -1111,26 +1111,36 @@ my class Rakudo::Internals {
     }
     method FILETEST-D(Str:D \abspath) {
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
-        nqp::isge_i($d,0) ?? $d !! fail X::IO::Unknown.new(:trying<d>)
+        nqp::isge_i($d,0)
+          ?? $d
+          !! Failure.new(X::IO::Unknown.new(:trying<d>))
     }
     method FILETEST-F(Str:D \abspath) {
         my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
-        nqp::isge_i($f,0) ?? $f !! fail X::IO::Unknown.new(:trying<f>)
+        nqp::isge_i($f,0)
+          ?? $f
+          !! Failure.new(X::IO::Unknown.new(:trying<f>))
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
     method FILETEST-L(Str:D \abspath) {
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
-        nqp::isge_i($l,0) ?? $l !! fail X::IO::Unknown.new(:trying<l>)
+        nqp::isge_i($l,0)
+          ?? $l
+          !! Failure.new(X::IO::Unknown.new(:trying<l>))
     }
     method FILETEST-R(Str:D \abspath) {
         my int $r = nqp::filereadable(nqp::unbox_s(abspath));
-        nqp::isge_i($r,0) ?? $r !! fail X::IO::Unknown.new(:trying<r>)
+        nqp::isge_i($r,0)
+          ?? $r
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-W(Str:D \abspath) {
         my int $w = nqp::filewritable(nqp::unbox_s(abspath));
-        nqp::isge_i($w,0) ?? $w !! fail X::IO::Unknown.new(:trying<w>)
+        nqp::isge_i($w,0)
+          ?? $w
+          !! Failure.new(X::IO::Unknown.new(:trying<w>))
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1139,12 +1149,14 @@ my class Rakudo::Internals {
         nqp::isge_i($r,0)
           ?? nqp::isge_i($w,0)
             ?? nqp::bitand_i($r,$w)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-X(Str:D \abspath) {
         my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
-        nqp::isge_i($x,0) ?? $x !! fail X::IO::Unknown.new(:trying<x>)
+        nqp::isge_i($x,0)
+          ?? $x
+          !! Failure.new(X::IO::Unknown.new(:trying<x>))
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1155,9 +1167,9 @@ my class Rakudo::Internals {
           ?? nqp::isge_i($w,0)
             ?? nqp::isge_i($x,0)
               ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! fail X::IO::Unknown.new(:trying<x>)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+              !! Failure.new(X::IO::Unknown.new(:trying<x>))
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(
@@ -1344,8 +1356,18 @@ my class Rakudo::Internals {
                       nqp::substr($pred-nchrs,$at,1))
                 }
             }
-            fail('Decrement out of range');
+            Failure.new('Decrement out of range')
         }
+    }
+
+    method WALK-AT-POS(\target,\indices) is raw {
+        my $target   := target;
+        my $indices  := nqp::getattr(indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        $target := $target.AT-POS(nqp::atpos($indices,$i))
+          while nqp::islt_i(++$i,$elems);
+        $target
     }
 }
 

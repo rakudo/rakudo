@@ -10,6 +10,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! nqp::create(self)
     }
 
+    multi method Map(Map:) { self }
+
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
         if nqp::defined($!storage) && nqp::elems($!storage) {
@@ -122,26 +124,22 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             has int $!on-value;
 
             method pull-one() is raw {
-                if $!on-value {
-                    $!on-value = 0;
-                    nqp::iterval($!iter)
-                }
-                elsif $!iter {
-                    my \tmp = nqp::shift($!iter);
-                    $!on-value = 1;
-                    nqp::iterkey_s(tmp)
-                }
-                else {
-                    IterationEnd
-                }
+                $!on-value
+                  ?? STATEMENT_LIST($!on-value = 0; nqp::iterval($!iter))
+                  !! $!iter
+                    ?? STATEMENT_LIST(
+                         $!on-value = 1;
+                         nqp::iterkey_s(nqp::shift($!iter)))
+                    !! IterationEnd
             }
             method push-all($target) {
                 my $no-sink;
-                while $!iter {
-                    my \tmp = nqp::shift($!iter);
-                    $no-sink := $target.push(nqp::iterkey_s(tmp));
-                    $no-sink := $target.push(nqp::iterval(tmp));
-                }
+
+                STATEMENT_LIST(
+                  $no-sink := $target.push(nqp::iterkey_s(nqp::shift($!iter)));
+                  $no-sink := $target.push(nqp::iterval($!iter))
+                ) while $!iter;
+
                 IterationEnd
             }
         }.new(self))

@@ -107,7 +107,7 @@ my class Mu { # declared in BOOTSTRAP
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
+        while nqp::islt_i(++$i,$count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
             if nqp::iseq_i($code, 0) {
@@ -196,7 +196,7 @@ my class Mu { # declared in BOOTSTRAP
         my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1), $count) {
+        while nqp::islt_i(++$i,$count) {
             my $task := nqp::atpos($build_plan, $i);
             my int $code = nqp::atpos($task, 0);
             if nqp::iseq_i($code, 0) {
@@ -274,7 +274,7 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        self.^name ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
+        self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
     }
 
     proto method Stringy(|) { * }
@@ -420,16 +420,14 @@ my class Mu { # declared in BOOTSTRAP
     }
     multi method isa(Mu \SELF: Str:D $name) {
         my @mro = SELF.^mro;
-        my int $mro_count = +@mro;
-        my int $i = 0;
-        while $i < $mro_count {
-            my $obj = @mro[$i];
-            if $obj.^name eq $name {
-                return Bool::True;
-            }
-            $i = $i + 1;
-        }
-        Bool::False
+        my int $mro_count = @mro.elems;
+        my int $i = -1;
+
+        return True
+          if @mro[$i].^name eq $name
+          while nqp::islt_i(++$i,$mro_count);
+
+        False
     }
 
     method does(Mu \SELF: Mu $type) {
@@ -543,37 +541,29 @@ my class Mu { # declared in BOOTSTRAP
 
     method dispatch:<.*>(Mu \SELF: $name, |c) {
         my @mro = SELF.^mro;
-        my int $mro_count = +@mro;
-        my @results;
-        my int $i = 0;
-        while $i < $mro_count {
+        my int $mro_count = @mro.elems;
+        my $results := nqp::list;
+        my int $i = -1;
+        while nqp::islt_i(++$i,$mro_count) {
             my $obj = @mro[$i];
             my $meth = ($obj.^method_table){$name};
-            if !$meth && $i == 0 {
-                $meth = ($obj.^submethod_table){$name};
-            }
-            if $meth {
-                @results.push($meth(SELF, |c));
-            }
-            $i = $i + 1;
+            $meth = ($obj.^submethod_table){$name} if !$meth && $i == 0;
+            nqp::push($results,$meth(SELF, |c))    if $meth;
         }
         my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', nqp::getattr(@results, List, '$!reified'));
+        nqp::bindattr($list, List, '$!reified', $results);
         $list
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
         my $listcan = List.can($name);
-        if $listcan and $listcan[0].?nodal {
-            c
-                ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
-                !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
-        }
-        else {
-            c
-                ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
-                !! HYPER( -> \obj { obj."$name"() }, SELF )
-        }
+        $listcan && $listcan[0].?nodal
+          ?? c
+            ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
+            !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
+          !! c
+            ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
+            !! HYPER( -> \obj { obj."$name"() }, SELF )
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
@@ -680,7 +670,7 @@ multi sub infix:<eqv>(@a, @b) {
     elsif @a.WHAT =:= @b.WHAT && (my int $n = @a.elems) == @b.elems {
         my int $i = -1;
         return False unless @a.AT-POS($i) eqv @b.AT-POS($i)
-          while nqp::islt_i($i = nqp::add_i($i,1),$n);
+          while nqp::islt_i(++$i,$n);
         True
     }
     else {

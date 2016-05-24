@@ -244,20 +244,15 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
 
         # Extract the values/containers which will be assigned to, in case
         # reifying the rhs does crazy things like splicing SELF.
-        my int $p = 0;
-        for indices {
-            nqp::bindpos($target,$p,SELF[$_]);
-            $p = $p + 1;
-        }
+        my int $p = -1;
+        nqp::bindpos($target,++$p,SELF[$_]) for indices;
 
         rvlist.EXISTS-POS($p);
         my \rviter := rvlist.iterator;
-        $p = 0;
+        $p = -1;
         my $elems = nqp::elems($target);
-        while $p < $elems {
-            nqp::atpos($target,$p) = rviter.pull-one;
-            $p = $p + 1;
-        }
+        nqp::atpos($target,$p) = rviter.pull-one
+          while nqp::islt_i(++$p,$elems);
         $list
     }
     else { # The assumption for now is this must be Iterable
@@ -513,43 +508,39 @@ sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
-    my int $n = @indices.elems;
-    my int $i = 0;
-    my $all-ints := True;
-    while $i < $n {
-        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
-        $i = $i + 1;
-    }
-    $all-ints
-        ?? SELF.AT-POS(|@indices)
-        !! MD-ARRAY-SLICE(SELF, @indices)
+    my int $elems = @indices.elems;
+    my $indices := nqp::getattr(@indices,List,'$!reified');
+    my int $i = -1;
+
+    return MD-ARRAY-SLICE(SELF,@indices)
+      unless nqp::istype(nqp::atpos($indices,$i), Int)
+      while nqp::islt_i(++$i,$elems);
+
+    SELF.AT-POS(|@indices)
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
-    my int $n = @indices.elems;
-    my int $i = 0;
-    my $all-ints := True;
-    while $i < $n {
-        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
-        $i = $i + 1;
-    }
-    $all-ints
-        ?? SELF.ASSIGN-POS(|@indices, assignee)
-        !! (MD-ARRAY-SLICE(SELF, @indices) = assignee)
+    my int $elems = @indices.elems;
+    my $indices := nqp::getattr(@indices,List,'$!reified');
+    my int $i = -1;
+
+    return MD-ARRAY-SLICE(SELF, @indices) = assignee
+      unless nqp::istype(nqp::atpos($indices,$i), Int)
+      while nqp::islt_i(++$i,$elems);
+
+    SELF.ASSIGN-POS(|@indices, assignee)
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
     if $exists {
-        my int $n = @indices.elems;
-        my int $i = 0;
-        my $all-ints := True;
-        while $i < $n {
-            $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
-            $i = $i + 1;
-        }
-        $all-ints
-            ?? SELF.EXISTS-POS(|@indices)
-            !! X::NYI.new(feature => ':exists on multi-dimensional slices')
+        my int $elems = @indices.elems;
+        my $indices := nqp::getattr(@indices,List,'$!reified');
+        my int $i = -1;
+        fail X::NYI.new(feature => ':exists on multi-dimensional slices')
+          unless nqp::istype(nqp::atpos($indices,$i), Int)
+          while nqp::islt_i(++$i,$elems);
+
+        SELF.EXISTS-POS(|@indices)
     }
     else {
         SELF[@indices]
@@ -558,16 +549,14 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     if $delete {
-        my int $n = @indices.elems;
-        my int $i = 0;
-        my $all-ints := True;
-        while $i < $n {
-            $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
-            $i = $i + 1;
-        }
-        $all-ints
-            ?? SELF.DELETE-POS(|@indices)
-            !! X::NYI.new(feature => ':delete on multi-dimensional slices')
+        my int $elems = @indices.elems;
+        my $indices := nqp::getattr(@indices,List,'$!reified');
+        my int $i = -1;
+        fail X::NYI.new(feature => ':delete on multi-dimensional slices')
+          unless nqp::istype(nqp::atpos($indices,$i), Int)
+          while nqp::islt_i(++$i,$elems);
+
+        SELF.DELETE-POS(|@indices)
     }
     else {
         SELF[@indices]
@@ -575,16 +564,14 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
-    my int $n = @indices.elems;
-    my int $i = 0;
-    my $all-ints := True;
-    while $i < $n {
-        $all-ints := False unless nqp::istype(@indices.AT-POS($i), Int);
-        $i = $i + 1;
-    }
-    $all-ints
-        ?? SELF.BIND-POS(|@indices, $BIND)
-        !! X::Bind::Slice.new(type => SELF.WHAT).throw;
+    my int $elems = @indices.elems;
+    my $indices := nqp::getattr(@indices,List,'$!reified');
+    my int $i = -1;
+    X::Bind::Slice.new(type => SELF.WHAT).throw
+      unless nqp::istype(nqp::atpos($indices,$i), Int)
+      while nqp::islt_i(++$i,$elems);
+
+    SELF.BIND-POS(|@indices, $BIND)
 }
 
 # vim: ft=perl6 expandtab sw=4

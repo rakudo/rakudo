@@ -37,6 +37,7 @@ public final class RakOps {
         public SixModelObject Str;
         public SixModelObject List;
         public SixModelObject ListIter;
+        public SixModelObject Iterable;
         public SixModelObject Array;
         public SixModelObject Nil;
         public SixModelObject Map;
@@ -87,6 +88,12 @@ public final class RakOps {
         }
         return null;
     }
+
+    public static SixModelObject p6setitertype(SixModelObject type, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        gcx.Iterable = type;
+        return type;
+    }
     
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
@@ -101,6 +108,7 @@ public final class RakOps {
         gcx.Str = conf.at_key_boxed(tc, "Str");
         gcx.List = conf.at_key_boxed(tc, "List");
         gcx.ListIter = conf.at_key_boxed(tc, "ListIter");
+        gcx.Iterable = conf.at_key_boxed(tc, "Iterable");
         gcx.Array = conf.at_key_boxed(tc, "Array");
         gcx.Nil = conf.at_key_boxed(tc, "Nil");
         gcx.Map = conf.at_key_boxed(tc, "Map");

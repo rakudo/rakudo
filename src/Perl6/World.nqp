@@ -179,54 +179,278 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
 
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
-    # The stack of lexical pads, actually as QAST::Block objects. The
-    # outermost frame is at the bottom, the latest frame is on top.
-    has @!BLOCKS;
+    my class Perl6CompilationContext is HLL::World::CompilationContext {
+        # The stack of lexical pads, actually as QAST::Block objects. The
+        # outermost frame is at the bottom, the latest frame is on top.
+        has @!BLOCKS;
 
-    # The stack of code objects; phasers get attached to the top one.
-    has @!CODES;
+        # The stack of code objects; phasers get attached to the top one.
+        has @!CODES;
 
-    # Mapping of sub IDs to their code objects; used for fixing up in
-    # dynamic compilation.
-    has %!sub_id_to_code_object;
+        # Mapping of sub IDs to their code objects; used for fixing up in
+        # dynamic compilation.
+        has %!sub_id_to_code_object;
 
-    # Mapping of sub IDs to any code objects that were cloned during
-    # compilation before we had chance to compile the code. These are
-    # not true closures (in those cases the surrounding scope that it
-    # would close over is also compiled), but rather are clones for
-    # things like proto method derivation.
-    has %!sub_id_to_cloned_code_objects;
+        # Mapping of sub IDs to any code objects that were cloned during
+        # compilation before we had chance to compile the code. These are
+        # not true closures (in those cases the surrounding scope that it
+        # would close over is also compiled), but rather are clones for
+        # things like proto method derivation.
+        has %!sub_id_to_cloned_code_objects;
 
-    # Mapping of sub IDs to SC indexes of code stubs.
-    has %!sub_id_to_sc_idx;
+        # Mapping of sub IDs to SC indexes of code stubs.
+        has %!sub_id_to_sc_idx;
+
+        # Array of stubs to check and the end of compilation.
+        has @!stub_check;
+
+        # Array of protos that can have their candidates pre-sorted at CHECK
+        # time.
+        has @!protos_to_sort;
+
+        # Cached constants that we've built.
+        has %!const_cache;
+
+        # Cached * and ** instances.
+        has $!the_whatever;
+        has $!the_hyper_whatever;
+
+        # List of CHECK blocks to run.
+        has @!CHECKs;
+
+        # Clean-up tasks, to do after CHECK time.
+        has @!cleanup_tasks;
+
+        # Cache of container info and descriptor for magicals.
+        has %!magical_cds;
+
+        method BUILD(:$handle, :$description) {
+            @!BLOCKS := [];
+            @!CODES := [];
+            @!stub_check := [];
+            @!protos_to_sort := [];
+            @!CHECKs := [];
+            %!sub_id_to_code_object := {};
+            %!sub_id_to_cloned_code_objects := {};
+            %!sub_id_to_sc_idx := {};
+            %!const_cache := {};
+            @!cleanup_tasks := [];
+            %!magical_cds := {};
+        }
+
+        method blocks() {
+            @!BLOCKS
+        }
+
+        # Creates a new lexical scope and puts it on top of the stack.
+        method push_lexpad($/) {
+            # Create pad, link to outer, annotate with creating statement, and add to stack.
+            my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
+            if $*WANTEDOUTERBLOCK {  # (outside of 1st push/pop pass)
+                $pad.annotate('outer', $*WANTEDOUTERBLOCK);
+            }
+            elsif +@!BLOCKS {
+                $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
+            }
+            $pad.annotate('statement_id', $*STATEMENT_ID);
+            $pad.annotate('in_stmt_mod', $*IN_STMT_MOD);
+            @!BLOCKS[+@!BLOCKS] := $pad;
+            $pad
+        }
+
+        # Pops a lexical scope off the stack.
+        method pop_lexpad() {
+            @!BLOCKS.pop()
+        }
+
+        # Gets the top lexpad.
+        method cur_lexpad() {
+            @!BLOCKS[+@!BLOCKS - 1]
+        }
+
+        # Marks the current lexpad as being a signatured block.
+        method mark_cur_lexpad_signatured() {
+            @!BLOCKS[+@!BLOCKS - 1].annotate('signatured', 1);
+        }
+
+        # Finds the nearest signatured block and checks if it declares
+        # a certain symbol.
+        method nearest_signatured_block_declares(str $symbol) {
+            my $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                if @!BLOCKS[$i].ann('signatured') {
+                    return +@!BLOCKS[$i].symbol($symbol);
+                }
+            }
+        }
+
+        # Hunts through scopes to find the type of a lexical.
+        method find_lexical_container_type(str $name) {
+            my int $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($name);
+                if +%sym {
+                    if nqp::existskey(%sym, 'type') {
+                        return %sym<type>;
+                    }
+                    else {
+                        $i := 0;
+                    }
+                }
+            }
+            nqp::die("Could not find container descriptor for $name");
+        }
+
+        # Hunts through scopes to find a lexical and returns if it is
+        # known to be read-only.
+        method is_lexical_marked_ro(str $name) {
+            my int $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($name);
+                if %sym {
+                    return nqp::existskey(%sym, 'ro');
+                }
+            }
+            0;
+        }
+
+        # Checks if the given name is known anywhere in the lexpad
+        # and with lexical scope.
+        method is_lexical(str $name) {
+            my int $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($name);
+                if +%sym {
+                    return %sym<scope> eq 'lexical';
+                }
+            }
+            0;
+        }
+
+        # Checks if the symbol is really an alias to an attribute.
+        method is_attr_alias(str $name) {
+            my int $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($name);
+                if +%sym {
+                    return %sym<attr_alias>;
+                }
+            }
+        }
+
+        # Gets top code object in the code objects stack, or optionally the
+        # one the specified number of scopes down.
+        method get_code_object(int :$scopes = 0) {
+            $scopes < nqp::elems(@!CODES)
+                ?? @!CODES[nqp::elems(@!CODES) - ($scopes + 1)]
+                !! NQPMu
+        }
+
+        method push_code_object($code) {
+            @!CODES[+@!CODES] := $code
+        }
+
+        method pop_code_object() {
+            @!CODES.pop()
+        }
+
+        method cur_code_object() {
+            @!CODES[+@!CODES - 1]
+        }
+
+        # Pushes a stub on the "stubs to check" list.
+        method add_stub_to_check($stub) {
+            nqp::push(@!stub_check, $stub);
+        }
+
+        method stub_check() {
+            @!stub_check
+        }
+
+        # Adds a proto to be sorted at CHECK time.
+        method add_proto_to_sort($proto) {
+            nqp::push(@!protos_to_sort, $proto);
+        }
+
+        method protos_to_sort() {
+            @!protos_to_sort
+        }
+
+        method magical_cds() {
+            %!magical_cds
+        }
+
+        method sub_id_to_code_object() {
+            %!sub_id_to_code_object
+        }
+
+        method sub_id_to_sc_idx() {
+            %!sub_id_to_sc_idx
+        }
+
+        method const_cache() {
+            %!const_cache
+        }
+
+        method add_cleanup_task($task) {
+            nqp::push(@!cleanup_tasks, $task)
+        }
+
+        method cleanup_tasks() {
+            @!cleanup_tasks
+        }
+
+        method add_clone_for_cuid($clone, $cuid) {
+            unless %!sub_id_to_cloned_code_objects{$cuid} {
+                %!sub_id_to_cloned_code_objects{$cuid} := [];
+            }
+            %!sub_id_to_cloned_code_objects{$cuid}.push($clone);
+        }
+
+        method sub_id_to_cloned_code_objects() {
+            %!sub_id_to_cloned_code_objects
+        }
+
+        method whatever() {
+            $!the_whatever
+        }
+
+        method set_whatever($whatever) {
+            $!the_whatever := $whatever
+        }
+
+        method hyper_whatever() {
+            $!the_hyper_whatever
+        }
+
+        method set_hyper_whatever($hyper_whatever) {
+            $!the_hyper_whatever := $hyper_whatever
+        }
+
+        method add_check($check) {
+            @!CHECKs := [] unless @!CHECKs;
+            @!CHECKs.unshift($check);
+        }
+
+        method checks() {
+            @!CHECKs
+        }
+    }
+
+    method context_class() {
+        Perl6CompilationContext
+    }
 
     # Mapping of QAST::Stmts node containing fixups, keyed by sub ID. If
     # we do dynamic compilation then we do the fixups immediately and
     # then clear this list.
+    # Doesn't need to be shared - is used for BEGIN blocks
     has %!code_object_fixup_list;
-
-    # Array of stubs to check and the end of compilation.
-    has @!stub_check;
-
-    # Array of protos that can have their candidates pre-sorted at CHECK
-    # time.
-    has @!protos_to_sort;
-
-    # Cached constants that we've built.
-    has %!const_cache;
-
-    # Cached * and ** instances.
-    has $!the_whatever;
-    has $!the_hyper_whatever;
-
-    # List of CHECK blocks to run.
-    has @!CHECKs;
-
-    # Clean-up tasks, to do after CHECK time.
-    has @!cleanup_tasks;
-
-    # Cache of container info and descriptor for magicals.
-    has %!magical_cds;
 
     # Cached compiler services object, if any.
     has $!compiler_services;
@@ -235,18 +459,11 @@ class Perl6::World is HLL::World {
     has $!RAKUDO_MODULE_DEBUG;
 
     method BUILD(*%adv) {
-        @!BLOCKS := [];
-        @!CODES := [];
-        @!stub_check := [];
-        @!protos_to_sort := [];
-        @!CHECKs := [];
-        %!sub_id_to_code_object := {};
-        %!sub_id_to_cloned_code_objects := {};
-        %!sub_id_to_sc_idx := {};
         %!code_object_fixup_list := {};
-        %!const_cache := {};
-        @!cleanup_tasks := [];
-        %!magical_cds := {};
+    }
+
+    method create_nested() {
+        Perl6::World.new(:handle(self.handle), :context(self.context()))
     }
 
     method RAKUDO_MODULE_DEBUG() {
@@ -425,69 +642,50 @@ class Perl6::World is HLL::World {
 
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
-        # Create pad, link to outer, annotate with creating statement, and add to stack.
-        my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
-        if $*WANTEDOUTERBLOCK {  # (outside of 1st push/pop pass)
-            $pad.annotate('outer', $*WANTEDOUTERBLOCK);
-        }
-        elsif +@!BLOCKS {
-            $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
-        }
-        $pad.annotate('statement_id', $*STATEMENT_ID);
-        $pad.annotate('in_stmt_mod', $*IN_STMT_MOD);
-        @!BLOCKS[+@!BLOCKS] := $pad;
-        $pad
+        self.context().push_lexpad($/)
     }
 
     # Pops a lexical scope off the stack.
     method pop_lexpad() {
-        @!BLOCKS.pop()
+        self.context().pop_lexpad()
     }
 
     # Gets the top lexpad.
     method cur_lexpad() {
-        @!BLOCKS[+@!BLOCKS - 1]
+        self.context().cur_lexpad()
     }
 
     # Marks the current lexpad as being a signatured block.
     method mark_cur_lexpad_signatured() {
-        @!BLOCKS[+@!BLOCKS - 1].annotate('signatured', 1);
+        self.context().mark_cur_lexpad_signatured()
     }
 
     # Finds the nearest signatured block and checks if it declares
     # a certain symbol.
     method nearest_signatured_block_declares(str $symbol) {
-        my $i := +@!BLOCKS;
-        while $i > 0 {
-            $i := $i - 1;
-            if @!BLOCKS[$i].ann('signatured') {
-                return +@!BLOCKS[$i].symbol($symbol);
-            }
-        }
+        self.context().nearest_signatured_block_declares($symbol)
     }
 
     # Gets top code object in the code objects stack, or optionally the
     # one the specified number of scopes down.
     method get_code_object(int :$scopes = 0) {
-        $scopes < nqp::elems(@!CODES)
-            ?? @!CODES[nqp::elems(@!CODES) - ($scopes + 1)]
-            !! NQPMu
+        self.context().get_code_object(:$scopes)
     }
 
     # Pushes a stub on the "stubs to check" list.
     method add_stub_to_check($stub) {
-        nqp::push(@!stub_check, $stub);
+        self.context().add_stub_to_check($stub)
     }
 
     # Adds a proto to be sorted at CHECK time.
     method add_proto_to_sort($proto) {
-        nqp::push(@!protos_to_sort, $proto);
+        self.context().add_proto_to_sort($proto)
     }
 
     # Checks for any stubs that weren't completed.
     method assert_stubs_defined($/) {
         my @incomplete;
-        for @!stub_check {
+        for self.context().stub_check {
             unless $_.HOW.is_composed($_) {
                 @incomplete.push($_.HOW.name($_));
             }
@@ -499,7 +697,7 @@ class Perl6::World is HLL::World {
 
     # Sorts all protos.
     method sort_protos() {
-        for @!protos_to_sort {
+        for self.context().protos_to_sort() {
             if nqp::can($_, 'sort_dispatchees') {
                 $_.sort_dispatchees();
             }
@@ -1468,9 +1666,10 @@ class Perl6::World is HLL::World {
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
     # avoid massive duplication of container descriptors.
     method install_lexical_magical($block, $name) {
+        my %magical_cds := self.context().magical_cds();
 
-        if nqp::existskey(%!magical_cds, $name) {
-            my $mcd := nqp::atkey(%!magical_cds, $name);
+        if nqp::existskey(%magical_cds, $name) {
+            my $mcd := nqp::atkey(%magical_cds, $name);
             self.install_lexical_container($block, $name, $mcd[0], $mcd[1]);
         }
         else {
@@ -1489,7 +1688,7 @@ class Perl6::World is HLL::World {
             my $desc :=
               self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
 
-            %!magical_cds{$name} := [%info, $desc];
+            %magical_cds{$name} := [%info, $desc];
             self.install_lexical_container($block, $name, %info, $desc);
         }
     }
@@ -1529,34 +1728,13 @@ class Perl6::World is HLL::World {
 
     # Hunts through scopes to find the type of a lexical.
     method find_lexical_container_type(str $name) {
-        my int $i := +@!BLOCKS;
-        while $i > 0 {
-            $i := $i - 1;
-            my %sym := @!BLOCKS[$i].symbol($name);
-            if +%sym {
-                if nqp::existskey(%sym, 'type') {
-                    return %sym<type>;
-                }
-                else {
-                    $i := 0;
-                }
-            }
-        }
-        nqp::die("Could not find container descriptor for $name");
+        self.context().find_lexical_container_type($name)
     }
 
     # Hunts through scopes to find a lexical and returns if it is
     # known to be read-only.
     method is_lexical_marked_ro(str $name) {
-        my int $i := +@!BLOCKS;
-        while $i > 0 {
-            $i := $i - 1;
-            my %sym := @!BLOCKS[$i].symbol($name);
-            if %sym {
-                return nqp::existskey(%sym, 'ro');
-            }
-        }
-        0;
+        self.context().is_lexical_marked_ro($name)
     }
 
     # Installs a symbol into the package.
@@ -1935,7 +2113,7 @@ class Perl6::World is HLL::World {
     method stub_code_object($type) {
         my $type_obj := self.find_symbol([$type], :setting-only);
         my $code     := nqp::create($type_obj);
-        @!CODES[+@!CODES] := $code;
+        self.context().push_code_object($code);
         self.add_object($code);
         $code
     }
@@ -1960,7 +2138,7 @@ class Perl6::World is HLL::World {
         my $des    := QAST::Stmts.new();
 
         # Remove it from the code objects stack.
-        @!CODES.pop();
+        self.context().pop_code_object();
 
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code'], :setting-only);
@@ -1975,13 +2153,13 @@ class Perl6::World is HLL::World {
 
         # Stash it under the QAST block unique ID.
         my str $cuid := $code_past.cuid();
-        %!sub_id_to_code_object{$cuid} := $code;
+        self.context().sub_id_to_code_object(){$cuid} := $code;
 
         # Create the compiler stuff array and stick it in the code object.
         # Also add clearup task to remove it again later.
         my @compstuff;
         nqp::bindattr($code, $code_type, '$!compstuff', @compstuff);
-        nqp::push(@!cleanup_tasks, sub () {
+        self.context().add_cleanup_task(sub () {
             nqp::bindattr($code, $code_type, '$!compstuff', nqp::null());
         });
 
@@ -2020,7 +2198,7 @@ class Perl6::World is HLL::World {
         nqp::markcodestatic($stub);
         nqp::markcodestub($stub);
         my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
-        %!sub_id_to_sc_idx{$cuid} := $code_ref_idx;
+        self.context().sub_id_to_sc_idx(){$cuid} := $code_ref_idx;
 
         # If we clone the stub, need to mark it as a dynamic compilation
         # boundary.
@@ -2028,20 +2206,17 @@ class Perl6::World is HLL::World {
             @compstuff[2] := sub ($orig, $clone) {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
-                nqp::push(@!cleanup_tasks, sub () {
+                self.context().add_cleanup_task(sub () {
                     nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
                 });
-                unless %!sub_id_to_cloned_code_objects{$cuid} {
-                    %!sub_id_to_cloned_code_objects{$cuid} := [];
-                }
-                %!sub_id_to_cloned_code_objects{$cuid}.push($clone);
+                self.context().add_clone_for_cuid($clone, $cuid);
             };
         }
 
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.
         unless $*PKGDECL eq 'role' {
-            unless self.is_precompilation_mode() {
+            unless self.is_precompilation_mode() || self.is_nested() {
                 $fixups.push(self.set_attribute($code, $code_type, '$!do',
                     QAST::BVal.new( :value($code_past) )));
 
@@ -2049,7 +2224,7 @@ class Perl6::World is HLL::World {
                 # of it also.
                 @compstuff[2] := sub ($orig, $clone) {
                     self.add_object($clone);
-                    nqp::push(@!cleanup_tasks, sub () {
+                    self.context().add_cleanup_task(sub () {
                         nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
                     });
                     my $tmp := $fixups.unique('tmp_block_fixup');
@@ -2093,7 +2268,12 @@ class Perl6::World is HLL::World {
             nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
 
-        self.add_fixup_task(:deserialize_ast($des), :fixup_ast($fixups));
+        if self.is_nested() {
+            $compiler_thunk();
+        }
+        else {
+            self.add_fixup_task(:deserialize_ast($des), :fixup_ast($fixups));
+        }
         $code;
     }
 
@@ -2268,7 +2448,11 @@ class Perl6::World is HLL::World {
             my %symbols := $cur_block.symtable();
             for %symbols {
                 my str $name := $_.key;
-                unless %seen{$name} {
+                # For now, EVALed code run during precomp will not get the
+                # outer lexical context's symbols as those may contain or
+                # reference unserializable objects leading to compilation
+                # failures. Needs a smarter approach as noted above.
+                unless self.is_nested() || %seen{$name} {
                     # Add symbol.
                     my %sym   := $_.value;
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
@@ -2314,23 +2498,26 @@ class Perl6::World is HLL::World {
         my $result;
         while $i < $num_subs {
             my $subid := nqp::getcodecuid(@coderefs[$i]);
-            if nqp::existskey(%!sub_id_to_code_object, $subid) {
-                my $code_obj := %!sub_id_to_code_object{$subid};
+            my %sub_id_to_code_object := self.context().sub_id_to_code_object();
+            if nqp::existskey(%sub_id_to_code_object, $subid) {
+                my $code_obj := %sub_id_to_code_object{$subid};
                 nqp::setcodeobj(@coderefs[$i], $code_obj);
                 nqp::bindattr($code_obj, $code_type, '$!do', @coderefs[$i]);
                 nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
             }
-            if nqp::existskey(%!sub_id_to_cloned_code_objects, $subid) {
-                for %!sub_id_to_cloned_code_objects{$subid} -> $code_obj {
+            my %sub_id_to_cloned_code_objects := self.context().sub_id_to_cloned_code_objects();
+            if nqp::existskey(%sub_id_to_cloned_code_objects, $subid) {
+                for %sub_id_to_cloned_code_objects{$subid} -> $code_obj {
                     my $clone := nqp::clone(@coderefs[$i]);
                     nqp::setcodeobj($clone, $code_obj);
                     nqp::bindattr($code_obj, $code_type, '$!do', $clone);
                     nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
                 }
             }
-            if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
+            my %sub_id_to_sc_idx := self.context().sub_id_to_sc_idx();
+            if nqp::existskey(%sub_id_to_sc_idx, $subid) {
                 nqp::markcodestatic(@coderefs[$i]);
-                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, @coderefs[$i]);
+                self.update_root_code_ref(%sub_id_to_sc_idx{$subid}, @coderefs[$i]);
             }
             if nqp::existskey(%!code_object_fixup_list, $subid) {
                 my $fixups := %!code_object_fixup_list{$subid};
@@ -2360,6 +2547,7 @@ class Perl6::World is HLL::World {
     method add_constant($type, $primitive, :$nocache, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
+        my %const_cache := self.context().const_cache();
         my str $cache_key;
         if !$nocache {
             my str $namedkey := '';
@@ -2374,8 +2562,8 @@ class Perl6::World is HLL::World {
                     ~ join(',', @value)
                     ~ $namedkey;
             }
-            if nqp::existskey(%!const_cache, $cache_key) {
-                my $value := %!const_cache{$cache_key};
+            if nqp::existskey(%const_cache, $cache_key) {
+                my $value := %const_cache{$cache_key};
                 return QAST::WVal.new( :value($value), :returns($value.WHAT) );
             }
         }
@@ -2413,7 +2601,7 @@ class Perl6::World is HLL::World {
         # we need it. Add to cache.
         my $qast := QAST::WVal.new( :value($constant), :returns($constant.WHAT) );
         if !$nocache {
-            %!const_cache{$cache_key} := $constant;
+            %const_cache{$cache_key} := $constant;
         }
         return $qast;
     }
@@ -2459,19 +2647,23 @@ class Perl6::World is HLL::World {
     }
 
     method whatever() {
-        unless nqp::isconcrete($!the_whatever) {
-            $!the_whatever := nqp::create(self.find_symbol(['Whatever']));
-            self.add_object($!the_whatever);
+        my $the_whatever := self.context().whatever();
+        unless nqp::isconcrete($the_whatever) {
+            $the_whatever := nqp::create(self.find_symbol(['Whatever']));
+            self.add_object($the_whatever);
+            self.context().set_whatever($the_whatever);
         }
-        QAST::WVal.new( :value($!the_whatever), :returns($!the_whatever.WHAT) )
+        QAST::WVal.new( :value($the_whatever), :returns($the_whatever.WHAT) )
     }
 
     method hyper_whatever() {
-        unless nqp::isconcrete($!the_hyper_whatever) {
-            $!the_hyper_whatever := nqp::create(self.find_symbol(['HyperWhatever']));
-            self.add_object($!the_hyper_whatever);
+        my $the_hyper_whatever := self.context().hyper_whatever();
+        unless nqp::isconcrete($the_hyper_whatever) {
+            $the_hyper_whatever := nqp::create(self.find_symbol(['HyperWhatever']));
+            self.add_object($the_hyper_whatever);
+            self.context().set_hyper_whatever($the_hyper_whatever);
         }
-        QAST::WVal.new( :value($!the_hyper_whatever), :returns($!the_hyper_whatever.WHAT) )
+        QAST::WVal.new( :value($the_hyper_whatever), :returns($the_hyper_whatever.WHAT) )
     }
 
     # Adds the result of a constant folding operation to the SC and
@@ -2985,8 +3177,7 @@ class Perl6::World is HLL::World {
         }
         elsif $phaser eq 'CHECK' {
             my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
-            @!CHECKs := [] unless @!CHECKs;
-            @!CHECKs.unshift([$block, $result_node]);
+            self.context().add_check([$block, $result_node]);
             return $result_node;
         }
         elsif $phaser eq 'INIT' {
@@ -3066,12 +3257,12 @@ class Perl6::World is HLL::World {
                         )));
             }
 
-            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            self.context().cur_code_object().add_phaser($phaser, $block);
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
         elsif $phaser eq 'ENTER' {
-            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            my $enclosing := @!BLOCKS[+@!BLOCKS - 1];
+            self.context().cur_code_object().add_phaser($phaser, $block);
+            my $enclosing := self.context().cur_lexpad();
             my $enter_tmp := $enclosing.unique('enter_result_');
             $enclosing[0].push(QAST::Var.new( :name($enter_tmp), :scope('local'), :decl('var') ));
             my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
@@ -3081,14 +3272,14 @@ class Perl6::World is HLL::World {
             return $var;
         }
         else {
-            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            self.context().cur_code_object().add_phaser($phaser, $block);
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
     }
 
     # Runs the CHECK phasers and twiddles the QAST to look them up.
     method CHECK() {
-        for @!CHECKs {
+        for self.context().checks() {
             my $result := $_[0]();
             $_[1][0] := self.add_constant_folded_result($result);
         }
@@ -3096,7 +3287,7 @@ class Perl6::World is HLL::World {
 
     # Does any cleanups needed after compilation.
     method cleanup() {
-        for @!cleanup_tasks { $_() }
+        for self.context().cleanup_tasks() { $_() }
     }
 
     # Adds required libraries to a compilation unit.
@@ -3511,7 +3702,7 @@ class Perl6::World is HLL::World {
             1;
         }
 
-        for @!BLOCKS {
+        for self.context().blocks() {
             return 0 if walk_block($_) == 0;
         }
         for self.stash_hash($*GLOBALish) {
@@ -3531,10 +3722,12 @@ class Perl6::World is HLL::World {
             return $*GLOBALish;
         }
 
+        my @BLOCKS := self.context().blocks;
+
         # Work out where to start searching.
         my int $start_scope := $setting-only
             ?? ($*COMPILING_CORE_SETTING ?? 2 !! 1)
-            !! nqp::elems(@!BLOCKS);
+            !! nqp::elems(@BLOCKS);
 
         # If it's a single-part name, look through the lexical
         # scopes.
@@ -3554,7 +3747,7 @@ class Perl6::World is HLL::World {
                 my int $i := $start_scope;
                 while $i > 0 {
                     $i := $i - 1;
-                    my %sym := @!BLOCKS[$i].symbol($final_name);
+                    my %sym := @BLOCKS[$i].symbol($final_name);
                     if +%sym {
                         return self.force_value(%sym, $final_name, 1);
                     }
@@ -3571,7 +3764,7 @@ class Perl6::World is HLL::World {
             my int $i := $start_scope;
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($first);
+                my %sym := @BLOCKS[$i].symbol($first);
                 if +%sym {
                     $result := self.force_value(%sym, $first, 1);
                     @name := nqp::clone(@name);
@@ -3631,12 +3824,13 @@ class Perl6::World is HLL::World {
 
         # If it's a single item, then go hunting for it through the
         # block stack.
+        my @BLOCKS := self.context().blocks;
         if +@name == 1 && !$package_only {
-            my int $i := +@!BLOCKS;
+            my int $i := +@BLOCKS;
             my str $first_name := ~@name[0];
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($first_name);
+                my %sym := @BLOCKS[$i].symbol($first_name);
                 if +%sym {
                     return QAST::Var.new( :name($first_name), :scope(%sym<scope>) );
                 }
@@ -3693,15 +3887,7 @@ class Perl6::World is HLL::World {
     # Checks if the given name is known anywhere in the lexpad
     # and with lexical scope.
     method is_lexical(str $name) {
-        my int $i := +@!BLOCKS;
-        while $i > 0 {
-            $i := $i - 1;
-            my %sym := @!BLOCKS[$i].symbol($name);
-            if +%sym {
-                return %sym<scope> eq 'lexical';
-            }
-        }
-        0;
+        self.context().is_lexical($name)
     }
 
     method suggest_lexicals($name) {
@@ -3764,14 +3950,7 @@ class Perl6::World is HLL::World {
 
     # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias(str $name) {
-        my int $i := +@!BLOCKS;
-        while $i > 0 {
-            $i := $i - 1;
-            my %sym := @!BLOCKS[$i].symbol($name);
-            if +%sym {
-                return %sym<attr_alias>;
-            }
-        }
+        self.context().is_attr_alias($name)
     }
 
     # Checks if a symbol is lexically visible relative to a given scope.
@@ -4052,6 +4231,20 @@ class Perl6::World is HLL::World {
             $hash := $hash.FLATTENABLE_HASH();
         }
         $hash
+    }
+
+    method add_additional_frames($frames) {
+        if %*COMPILING<%?OPTIONS><mast_frames> {
+            my %existing := %*COMPILING<%?OPTIONS><mast_frames>;
+            my $iterator := nqp::iterator($frames);
+            while $iterator {
+                my $pair := nqp::shift($iterator);
+                %existing{nqp::iterkey_s($pair)} := nqp::iterval($pair);
+            }
+        }
+        else {
+            %*COMPILING<%?OPTIONS><mast_frames> := $frames;
+        }
     }
 
     method ex-handle($/, $code) {

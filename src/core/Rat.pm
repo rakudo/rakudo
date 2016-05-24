@@ -4,14 +4,20 @@ my class Rat is Cool does Rational[Int, Int] {
     method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
     method Range(Rat:U:) { Range.new(-Inf,Inf) }
     multi method perl(Rat:D:) {
-        my $d = $!denominator;
-        return $!numerator ~ '.0' if $d == 1;
-        unless $d == 0 {
-            $d div= 5 while $d %% 5;
-            $d div= 2 while $d %% 2;
-            self.REDUCE-ME;
+        if $!denominator == 1 {
+            $!numerator ~ '.0'
         }
-        ($d == 1) ?? self.base(10,*) !! '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>';
+        else {
+            my $d = $!denominator;
+            unless $d == 0 {
+                $d = $d div 5 while $d %% 5;
+                $d = $d div 2 while $d %% 2;
+                self.REDUCE-ME;
+            }
+            $d == 1
+              ?? self.base(10,*)
+              !! '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
+        }
     }
 }
 
@@ -19,8 +25,8 @@ my class FatRat is Cool does Rational[Int, Int] {
     method FatRat(FatRat:D: Real $?) { self }
     method Rat   (FatRat:D: Real $?) {
         $!denominator < $UINT64_UPPER
-            ?? Rat.new($!numerator, $!denominator)
-            !! fail "Cannot convert from FatRat to Rat because denominator is too big";
+          ?? Rat.new($!numerator, $!denominator)
+          !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
     multi method perl(FatRat:D:) {
         "FatRat.new($!numerator, $!denominator)";

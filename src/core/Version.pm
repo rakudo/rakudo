@@ -6,7 +6,7 @@ class Version {
     method !SET-SELF(\parts,\plus,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
         $!plus   = plus;
-        $!string = $!plus ?? nqp::concat(string,"+") !! string;
+        $!string = string;
         self
     }
 
@@ -17,6 +17,9 @@ class Version {
     multi method new(Version: Whatever) {
         # "v*" sentinel
         once nqp::create(self)!SET-SELF(nqp::list(*),0,"*")
+    }
+    multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
+        nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
     }
     multi method new(Version: Str() $s) {
 
@@ -35,7 +38,7 @@ class Version {
             my $parts    := nqp::setelems(nqp::list,$elems);
 
             my int $i = -1;
-            while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+            while nqp::islt_i(++$i,$elems) {
                 my str $s = nqp::atpos($strings,$i);
                 nqp::bindpos($parts,$i, nqp::iseq_s($s,"*")
                   ?? *
@@ -45,7 +48,12 @@ class Version {
                 );
             }
 
-            nqp::create(self)!SET-SELF($parts,$s.ends-with("+"),nqp::join(".", $strings))
+            my str $string = nqp::join(".", $strings);
+            my int $plus   = $s.ends-with("+");
+            nqp::create(self)!SET-SELF($parts,$plus,$plus
+              ?? nqp::concat($string,"+")
+              !! $string
+            )
         }
 
         # "v+" sentinel
@@ -77,7 +85,7 @@ class Version {
 
         my int $elems = nqp::elems($!parts);
         my int $i     = -1;
-        while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+        while nqp::islt_i(++$i,$elems) {
             my $v := nqp::atpos($!parts,$i);
 
             # if whatever here, no more check this iteration
@@ -109,7 +117,6 @@ class Version {
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
     a =:= b || (a.WHAT =:= b.WHAT && a.Str eq b.Str)
 }
-
 
 multi sub infix:<cmp>(Version:D \a, Version:D \b) {
     proto vnumcmp(|) { * }
@@ -144,5 +151,13 @@ multi sub infix:<cmp>(Version:D \a, Version:D \b) {
         a.plus cmp b.plus
     }
 }
+
+multi sub infix:«<=>»(Version:D \a, Version:D \b) { a cmp b }
+multi sub infix:«<»  (Version:D \a, Version:D \b) { a cmp b == Less }
+multi sub infix:«<=» (Version:D \a, Version:D \b) { a cmp b != More }
+multi sub infix:«==» (Version:D \a, Version:D \b) { a cmp b == Same }
+multi sub infix:«!=» (Version:D \a, Version:D \b) { a cmp b != Same }
+multi sub infix:«>=» (Version:D \a, Version:D \b) { a cmp b != Less }
+multi sub infix:«>»  (Version:D \a, Version:D \b) { a cmp b == More }
 
 # vim: ft=perl6 expandtab sw=4

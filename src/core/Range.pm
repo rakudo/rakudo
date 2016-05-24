@@ -430,8 +430,8 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
-             ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
-             !! fail "Cannot determine integer bounds";
+            ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
+            !! Failure.new("Cannot determine integer bounds")
     }
 
     method fmt(|c) {
@@ -699,8 +699,8 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? self.int-bounds
           !! $!excludes-min || $!excludes-max
-             ?? fail "Cannot return minmax on Range with excluded ends"
-             !! ($!min,$!max)
+            ?? Failure.new("Cannot return minmax on Range with excluded ends")
+            !! ($!min,$!max)
     }
 }
 

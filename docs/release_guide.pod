@@ -55,7 +55,7 @@ any occurrences, remove the code and make sure the spectest is still ok.
 
 Review the RT queue for tickets that might need resolving
 prior to the release, addressing them as needed.  “Tickets
-that need resolving” is left your discretion.  Any problem
+that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).

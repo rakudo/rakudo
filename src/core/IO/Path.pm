@@ -623,11 +623,12 @@ my class IO::Path is Cool {
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<changed>)
     }
 
-    method mode(:$Str) {
+    method mode(--> IntStr) {
         $.e
-          ?? $Str
-            ?? sprintf('%04o', nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777)
-            !! nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE)
+          ?? STATEMENT_LIST(
+              my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777;
+              IntStr.new($mode, sprintf('%04o', $mode));
+            )
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<mode>)
     }
 }

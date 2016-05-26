@@ -42,12 +42,12 @@ my role Rational[::NuT, ::DeT] does Real {
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
-        $!denominator == 0
-          ?? ($!numerator == 0 ?? NaN !! $!numerator < 0 ?? -Inf !! Inf)
-          !! nqp::p6box_n(nqp::div_In(
-                nqp::decont($!numerator),
-                nqp::decont($!denominator)
-             ));
+        nqp::istype($!numerator,Int)
+          ?? nqp::p6box_n(nqp::div_In(
+               nqp::decont($!numerator),
+               nqp::decont($!denominator)
+             ))
+          !! $!numerator
     }
 
     method floor(Rational:D:) {
@@ -69,10 +69,7 @@ my role Rational[::NuT, ::DeT] does Real {
     method Bridge() { self.Num }
 
     multi method Str(::?CLASS:D:) {
-        if $!denominator == 0 {
-            $!numerator == 0 ?? 'NaN' !! $!numerator < 0 ?? '-Inf' !! 'Inf'
-        }
-        else {
+        if nqp::istype($!numerator,Int) {
             my $s = $!numerator < 0 ?? '-' !! '';
             my $r = self.abs;
             my $i = $r.floor;
@@ -94,6 +91,9 @@ my role Rational[::NuT, ::DeT] does Real {
                 $s ~= $f;
             }
             $s
+        }
+        else {
+            $!numerator.Str
         }
     }
 

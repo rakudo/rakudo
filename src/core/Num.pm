@@ -1,4 +1,5 @@
 my class X::Numeric::DivideByZero { ... };
+my role Rational { ... };
 
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool {
@@ -36,7 +37,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        return self == Inf ?? 1/0 !! self == -Inf ?? -1/0 !! 0/0
+        return Rational[Num,Int].new(self,0)
           if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;

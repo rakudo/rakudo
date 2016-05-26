@@ -105,5 +105,8 @@ say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Pe
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp");
 
+say("js-lint:
+	gjslint --strict --max_line_length=200 --nojsdoc src/vm/js/perl6-runtime/*.js");
+
 # Stub
 say("js-runner-default:")

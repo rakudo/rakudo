@@ -16,17 +16,28 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method new(NuT \nu = 0, DeT \de = 1) {
-        my $new     := nqp::create(self);
-        my $gcd     := de == 0 ?? 1 !! nu gcd de;
-        my $numerator   = nu div $gcd;
-        my $denominator = de div $gcd;
-        if $denominator < 0 {
-            $numerator   = -$numerator;
-            $denominator = -$denominator;
+        my $new := nqp::create(self);
+
+        # 0 denominator take it verbatim to support Inf/-Inf/NaN
+        if de == 0 {
+            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont(nu));
+            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont(de));
         }
-        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::decont($numerator));
-        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::decont($denominator));
-        $new;
+
+        # normalize
+        else {
+            my $gcd     := de == 0 ?? 1 !! nu gcd de;
+            my $numerator   = nu div $gcd;
+            my $denominator = de div $gcd;
+            if $denominator < 0 {
+                $numerator   = -$numerator;
+                $denominator = -$denominator;
+            }
+            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont($numerator));
+            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont($denominator));
+        }
+
+        $new
     }
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }

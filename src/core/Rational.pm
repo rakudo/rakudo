@@ -26,7 +26,7 @@ my role Rational[::NuT, ::DeT] does Real {
 
         # normalize
         else {
-            my $gcd     := de == 0 ?? 1 !! nu gcd de;
+            my $gcd        := nu gcd de;
             my $numerator   = nu div $gcd;
             my $denominator = de div $gcd;
             if $denominator < 0 {

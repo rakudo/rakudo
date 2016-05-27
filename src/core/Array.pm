@@ -40,6 +40,51 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
+    method iterator(Array:D:) {
+        self!ensure-allocated;
+        class :: does Iterator {
+            has int $!i;
+            has $!reified;
+            has $!todo;
+            has $!oftype;
+
+            method !SET-SELF(\list, Mu \oftype) {
+                $!reified := nqp::getattr(list, List, '$!reified');
+                $!todo    := nqp::getattr(list, List, '$!todo');
+                $!oftype  := oftype =:= Mu ?? Any !! oftype;
+                self
+            }
+            method new(\list) { nqp::create(self)!SET-SELF(list,list.of) }
+
+            method pull-one() is raw {
+                nqp::islt_i($!i, nqp::elems($!reified))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
+                    !! self!reify-and-pull-one()
+            }
+
+            method !reify-and-pull-one() is raw {
+                $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
+                    !! IterationEnd
+            }
+
+            method push-until-lazy($target) {
+                my int $n = $!todo.DEFINITE
+                    ?? $!todo.reify-until-lazy()
+                    !! nqp::elems($!reified);
+                my int $i = $!i - 1;
+                my $no-sink;
+                $no-sink :=
+                  $target.push(nqp::ifnull(nqp::atpos($!reified, $i),$!oftype))
+                  while nqp::islt_i(++$i,$n);
+                $!i = $n;
+                !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu
+            }
+
+            method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+        }.new(self)
+    }
+
     method from-iterator(Array:U: Iterator $iter) {
         my \result := nqp::create(self);
         my \buffer := nqp::create(IterationBuffer);

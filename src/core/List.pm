@@ -381,25 +381,23 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has int $!i;
             has $!reified;
             has $!todo;
-            has $!oftype;
 
-            method !SET-SELF(\list, Mu \oftype) {
+            method !SET-SELF(\list) {
                 $!reified := nqp::getattr(list, List, '$!reified');
                 $!todo    := nqp::getattr(list, List, '$!todo');
-                $!oftype  := oftype =:= Mu ?? Any !! oftype;
                 self
             }
-            method new(\list) { nqp::create(self)!SET-SELF(list,list.of) }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
 
             method pull-one() is raw {
                 nqp::islt_i($!i, nqp::elems($!reified))
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1),Any)
                     !! self!reify-and-pull-one()
             }
 
             method !reify-and-pull-one() is raw {
                 $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1),Any)
                     !! IterationEnd
             }
 
@@ -410,7 +408,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 my int $i = $!i - 1;
                 my $no-sink;
                 $no-sink :=
-                  $target.push(nqp::ifnull(nqp::atpos($!reified, $i),$!oftype))
+                  $target.push(nqp::ifnull(nqp::atpos($!reified, $i),Any))
                   while nqp::islt_i(++$i,$n);
                 $!i = $n;
                 !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu

@@ -146,6 +146,12 @@ my class Rakudo::Internals {
         }
     }
 
+    our class EmptyIterator does Iterator {
+        method new() { nqp::create(self) }
+        method pull-one() { IterationEnd }
+        method count-only() { 0 }
+    }
+
     our class WeightedRoll {
         has @!pairs;
         has $!total;

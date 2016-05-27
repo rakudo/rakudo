@@ -302,7 +302,6 @@ sub subtest($first, $second?) is export {
         ( &subtests, $desc ) = $first, $second // '';
     }
 
-    diag($desc) if $desc;
     _push_vars();
     _init_vars();
     $indents ~= "    ";

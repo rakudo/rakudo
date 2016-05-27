@@ -399,7 +399,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
             method !reify-and-pull-one() is raw {
                 $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
-                    ?? nqp::ifnull(nqp::atpos($!reified,++$!i - 1), $!oftype)
+                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1), $!oftype)
                     !! IterationEnd
             }
 
@@ -407,19 +407,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 my int $n = $!todo.DEFINITE
                     ?? $!todo.reify-until-lazy()
                     !! nqp::elems($!reified);
-                my int $i = $!i;
+                my int $i = $!i - 1;
                 my $no-sink;
-                while $i < $n {
-                    $no-sink := $target.push(nqp::ifnull(nqp::atpos($!reified, $i), $!oftype));
-                    $i = $i + 1;
-                }
+                $no-sink :=
+                  $target.push(nqp::ifnull(nqp::atpos($!reified, $i),$!oftype))
+                  while nqp::islt_i(++$i,$n);
                 $!i = $n;
                 !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu
             }
 
-            method is-lazy() {
-                $!todo.DEFINITE ?? $!todo.is-lazy !! False
-            }
+            method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
         }.new(self)
     }
 

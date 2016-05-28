@@ -277,9 +277,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \list = nqp::create(self);
         my \iterbuffer = nqp::create(IterationBuffer);
         nqp::bindattr(list, List, '$!reified', iterbuffer);
-        for @things {
-            my $no-sink := iterbuffer.push($_);
-        }
+
+        my int $elems = +@things;  # reify
+        my int $i     = -1;
+        my $reified  := nqp::getattr(@things,List,'$!reified');
+        my $no-sink;
+        $no-sink := nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
+          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
         list
     }
 

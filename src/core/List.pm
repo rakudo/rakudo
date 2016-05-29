@@ -380,46 +380,100 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method iterator(List:D:) {
-        self!ensure-allocated;
-        class :: does Iterator {
-            has int $!i;
-            has $!reified;
-            has $!todo;
 
-            method !SET-SELF(\list) {
-                $!reified := nqp::getattr(list, List, '$!reified');
-                $!todo    := nqp::getattr(list, List, '$!todo');
-                self
-            }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
+        # something to iterate over in the future
+        if $!todo.DEFINITE {
+            self!ensure-allocated;
+            class :: does Iterator {
+                has int $!i;
+                has $!list;
+                has $!reified;
+                has $!todo;
 
-            method pull-one() is raw {
-                nqp::islt_i($!i, nqp::elems($!reified))
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1),Any)
-                    !! self!reify-and-pull-one()
-            }
+                method !SET-SELF(\list) {
+                    $!i        = -1;
+                    $!list    := list;
+                    $!reified := nqp::getattr(list, List, '$!reified');
+                    $!todo    := nqp::getattr(list, List, '$!todo');
+                    self
+                }
+                method new(\list) { nqp::create(self)!SET-SELF(list) }
 
-            method !reify-and-pull-one() is raw {
-                $!todo.DEFINITE && nqp::islt_i($!i, $!todo.reify-at-least($!i + 1))
-                    ?? nqp::ifnull(nqp::atpos($!reified, ($!i += 1) - 1),Any)
-                    !! IterationEnd
-            }
+                method pull-one() is raw {
+                    nqp::islt_i($!i = nqp::add_i($!i,1),nqp::elems($!reified))
+                      ?? nqp::atpos($!reified,$!i)
+                      !! $!todo.DEFINITE
+                        ?? self!reify-and-pull-one
+                        !! IterationEnd
+                }
 
-            method push-until-lazy($target) {
-                my int $n = $!todo.DEFINITE
-                    ?? $!todo.reify-until-lazy()
-                    !! nqp::elems($!reified);
-                my int $i = $!i - 1;
-                my $no-sink;
-                $no-sink :=
-                  $target.push(nqp::ifnull(nqp::atpos($!reified, $i),Any))
-                  while nqp::islt_i(++$i,$n);
-                $!i = $n;
-                !$!todo.DEFINITE || $!todo.fully-reified ?? IterationEnd !! Mu
-            }
+                method !reify-and-pull-one() is raw {
+                    nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
+                      ?? nqp::atpos($!reified,$!i)
+                      !! self!done
+                }
+                method !done() is raw {
+                    $!todo := nqp::bindattr($!list,List,'$!todo',Mu);
+                    IterationEnd
+                }
 
-            method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-        }.new(self)
+                method push-until-lazy($target) {
+                    if $!todo.DEFINITE {
+                        my int $elems = $!todo.reify-until-lazy;
+                        my $no-sink;
+                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                          while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        $!todo.fully-reified
+                          ?? self!done
+                          !! STATEMENT_LIST($!i = $elems - 1; Mu)
+                    }
+                    else {
+                        my int $elems = nqp::elems($!reified);
+                        my $no-sink;
+                        $no-sink := $target.push(
+                          nqp::ifnull(nqp::atpos($!reified,$!i),Any)
+                        ) while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        IterationEnd
+                    }
+                }
+
+                method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+            }.new(self)
+        }
+
+        # everything we need is already there
+        elsif $!reified.DEFINITE {
+            class :: does Iterator {
+                has $!reified;
+                has int $!i;
+                has int $!elems;
+
+                method !SET-SELF(\list) {
+                    $!reified := nqp::getattr(list,List,'$!reified');
+                    $!i        = -1;
+                    $!elems    = nqp::elems($!reified);
+                    self
+                }
+                method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+                method pull-one() is raw {
+                    nqp::islt_i($!i = nqp::add_i($!i,1),$!elems)
+                      ?? nqp::atpos($!reified,$!i)
+                      !! IterationEnd
+                }
+                method push-all($target) {
+                    my $no-sink;
+                    $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                      while nqp::islt_i($!i = nqp::add_i($!i,1),$!elems);
+                    IterationEnd
+                }
+            }.new(self)
+        }
+
+        # nothing now or in the future to iterate over
+        else {
+            Rakudo::Internals::EmptyIterator
+        }
     }
 
     multi method ACCEPTS(List:D: $topic) {

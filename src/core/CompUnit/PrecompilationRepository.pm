@@ -3,8 +3,8 @@
     role CompUnit::PrecompilationRepository {
         has $!i = $i++;
 
-        method load(CompUnit::PrecompilationId $id) returns CompUnit {
-            CompUnit
+        method load(CompUnit::PrecompilationId $id) {
+            Nil
         }
 
         method may-precomp() {
@@ -35,17 +35,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         # Even if we may no longer precompile, we should use already loaded files
         return %!loaded{$id} if %!loaded{$id}:exists;
 
-        my $handle = (
+        my ($handle, $checksum) = (
             self.may-precomp and (
                 my $loaded = self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
                 or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
-        my $precompiled = ?$handle;
 
         if $*W and $*W.is_precompilation_mode {
-            if $precompiled {
+            if $handle {
+                $dependency.checksum = $checksum;
                 say $dependency.serialize;
             }
             else {
@@ -115,15 +115,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 $RMD("Could not find $dependency.spec()") if $RMD and not $store;
                 return False unless $store;
                 my $modified = $file.modified;
-                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since}")
+                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since")
                   if $RMD;
 
-                return False if $modified > $since;
                 my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
                 $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD;
-                return False if not $srcIO.e or $modified <= $srcIO.modified;
+                return False if not $srcIO.e or $modified < $srcIO.modified;
 
                 my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
+                $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
+                return False if $dependency-precomp.checksum ne $dependency.checksum;
+
                 %!loaded{$dependency.id} = self!load-handle-for-path($dependency-precomp);
             }
 
@@ -141,7 +143,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationId $id,
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
-    ) returns CompUnit::Handle {
+    ) {
         return %!loaded{$id} if %!loaded{$id}:exists;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
@@ -151,7 +153,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             if (not $since or $modified > $since)
                 and self!load-dependencies($unit, $modified, @precomp-stores)
             {
-                return %!loaded{$id} = self!load-handle-for-path($unit)
+                return (%!loaded{$id} = self!load-handle-for-path($unit)), $unit.checksum;
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {

@@ -18,13 +18,14 @@ role CompUnit::PrecompilationUnit {
     method modified(--> Instant) { ... }
     method dependencies(--> Array[CompUnit::PrecompilationDependency]) { ... }
     method bytecode(--> Buf) { ... }
+    method checksum(--> Str) { ... }
     method bytecode-handle(--> IO::Handle) { ... }
 }
 
 class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
     has CompUnit::PrecompilationId $.id;
     has Str $.src;
-    has Str $.repo-id;
+    has Str $.checksum is rw;
     has CompUnit::DependencySpecification $.spec;
 
     method source-name() {
@@ -33,12 +34,16 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
 
     method deserialize(Str $str) {
         use MONKEY-SEE-NO-EVAL;
-        my ($id, $src, $spec) = $str.split("\0", 3);
-        self.new(:$id, :$src, :spec(EVAL $spec));
+        my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
+        self.new(:$id, :$src, :$checksum, :spec(EVAL $spec));
     }
 
     method serialize(--> Str) {
-        "$.id\0$.src\0{$.spec.perl}"
+        "$.id\0$.src\0$.checksum\0{$.spec.perl}"
+    }
+
+    method Str() {
+        "$.id $.src $.checksum $.spec"
     }
 }
 

@@ -5,10 +5,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has IO::Handle $!file;
         has CompUnit::PrecompilationDependency @!dependencies;
         has $!initialized = False;
+        has $.checksum;
         has $!bytecode;
 
         method BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode) {
-            $!initialized = True if $!bytecode;
+            if $!bytecode {
+                $!initialized = True;
+                $!checksum = nqp::sha1($!bytecode.join(','));
+            }
         }
 
         method !open() {
@@ -23,10 +27,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             return if $!initialized;
             self!open(:r) unless $!file;
 
-            my $dependency = $!file.get();
+            $!checksum     = $!file.get;
+            my $dependency = $!file.get;
             while $dependency {
                 @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
-                $dependency = $!file.get();
+                $dependency = $!file.get;
             }
             $!initialized = True;
         }
@@ -46,12 +51,18 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!file
         }
 
+        method checksum() is rw {
+            self!read-dependencies;
+            $!checksum
+        }
+
         method Str(--> Str) {
             self.path.Str
         }
 
         method save-to(IO::Path $precomp-file) {
             my $handle = $precomp-file.open(:w);
+            $handle.print($!checksum ~ "\n");
             $handle.print($_.serialize ~ "\n") for @!dependencies;
             $handle.print("\n");
             $handle.write($!bytecode);

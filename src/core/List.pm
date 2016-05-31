@@ -400,17 +400,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
 
                 method pull-one() is raw {
-                    nqp::islt_i($!i = nqp::add_i($!i,1),nqp::elems($!reified))
-                      ?? nqp::atpos($!reified,$!i)
-                      !! $!todo.DEFINITE
-                        ?? self!reify-and-pull-one
+                    nqp::ifnull(
+                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                      $!todo.DEFINITE
+                        ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
+                          ?? nqp::atpos($!reified,$!i)
+                          !! self!done
                         !! IterationEnd
-                }
-
-                method !reify-and-pull-one() is raw {
-                    nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
-                      ?? nqp::atpos($!reified,$!i)
-                      !! self!done
+                    )
                 }
                 method !done() is raw {
                     $!todo := nqp::bindattr($!list,List,'$!todo',Mu);
@@ -430,9 +427,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     else {
                         my int $elems = nqp::elems($!reified);
                         my $no-sink;
-                        $no-sink := $target.push(
-                          nqp::ifnull(nqp::atpos($!reified,$!i),Any)
-                        ) while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                          while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                         IterationEnd
                     }
                 }
@@ -446,25 +442,26 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             class :: does Iterator {
                 has $!reified;
                 has int $!i;
-                has int $!elems;
 
                 method !SET-SELF(\list) {
                     $!reified := nqp::getattr(list,List,'$!reified');
                     $!i        = -1;
-                    $!elems    = nqp::elems($!reified);
                     self
                 }
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
 
                 method pull-one() is raw {
-                    nqp::islt_i($!i = nqp::add_i($!i,1),$!elems)
-                      ?? nqp::atpos($!reified,$!i)
-                      !! IterationEnd
+                    # lists cannot have holes, so null indicates the end
+                    nqp::ifnull(
+                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                      IterationEnd
+                    )
                 }
                 method push-all($target) {
+                    my int $elems = nqp::elems($!reified);
                     my $no-sink;
                     $no-sink := $target.push(nqp::atpos($!reified,$!i))
-                      while nqp::islt_i($!i = nqp::add_i($!i,1),$!elems);
+                      while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                     IterationEnd
                 }
             }.new(self)

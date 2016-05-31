@@ -146,11 +146,13 @@ my class Rakudo::Internals {
         }
     }
 
-    our class EmptyIterator does Iterator {
-        method new() { nqp::create(self) }
-        method pull-one() { IterationEnd }
-        method push-all($) { IterationEnd }
-        method count-only() { 0 }
+    method EmptyIterator() {
+        once class :: does Iterator {
+            method new() { nqp::create(self) }
+            method pull-one() { IterationEnd }
+            method push-all($) { IterationEnd }
+            method count-only() { 0 }
+        }.new
     }
 
     our class WeightedRoll {

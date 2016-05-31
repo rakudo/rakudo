@@ -472,7 +472,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         # nothing now or in the future to iterate over
         else {
-            Rakudo::Internals::EmptyIterator
+            Rakudo::Internals.EmptyIterator
         }
     }
 

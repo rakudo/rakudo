@@ -109,13 +109,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has $!reification-target;
 
         method reify-at-least(int $elems) {
-            if $!current-iter.DEFINITE {
-                if $!current-iter.push-at-least($!reification-target,
-                        $elems - nqp::elems($!reified)) =:= IterationEnd {
-                    $!current-iter := Iterator;
-                }
-            }
-            while nqp::elems($!reified) < $elems &&
+            $!current-iter := Iterator
+              if $!current-iter.DEFINITE 
+              && $!current-iter.push-at-least($!reification-target,
+                   nqp::sub_i($elems,nqp::elems($!reified))) =:= IterationEnd;
+
+            while nqp::islt_i(nqp::elems($!reified),$elems) &&
                     $!future.DEFINITE && nqp::elems($!future) {
                 my \current = nqp::shift($!future);
                 $!future := Mu unless nqp::elems($!future);
@@ -138,11 +137,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method reify-until-lazy() {
-            if $!current-iter.DEFINITE {
-                if $!current-iter.push-until-lazy($!reification-target) =:= IterationEnd {
-                    $!current-iter := Iterator;
-                }
-            }
+            $!current-iter := Iterator
+              if $!current-iter.DEFINITE
+              && $!current-iter.push-until-lazy($!reification-target)
+                   =:= IterationEnd;
+
             if $!future.DEFINITE && !$!current-iter.DEFINITE {
                 while nqp::elems($!future) {
                     my \current = nqp::shift($!future);

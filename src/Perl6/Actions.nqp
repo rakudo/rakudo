@@ -8895,7 +8895,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:name<RETURN>, :scope<lexical>),
-                    QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+                    QAST::Op.new( :op('null') ))
             ),
             $*DECLARAND
         )

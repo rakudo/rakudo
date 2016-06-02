@@ -999,8 +999,8 @@ multi sub infix:<,>(|) {
     my \in      = nqp::p6argvmarray();
     my \reified = nqp::create(IterationBuffer);
     nqp::bindattr(result, List, '$!reified', reified);
-    while nqp::elems(in) {
-        if nqp::istype(nqp::atpos(in, 0), Slip) {
+        nqp::istype(nqp::atpos(in, 0), Slip)
+          ?? STATEMENT_LIST(
             # We saw a Slip, so we'll lazily deal with the rest of the things
             # (as the Slip may expand to something lazy).
             my \todo := nqp::create(List::Reifier);
@@ -1009,13 +1009,10 @@ multi sub infix:<,>(|) {
             nqp::bindattr(todo, List::Reifier, '$!future', in);
             nqp::bindattr(todo, List::Reifier, '$!reification-target',
                 result.reification-target());
-            last;
-        }
-        else {
+            last;)
+          !! STATEMENT_LIST(
             nqp::push(reified, nqp::shift(in));
-            Nil # don't Sink the thing above
-        }
-    }
+            Nil) while nqp::elems(in); # don't Sink the thing above
     result
 }
 

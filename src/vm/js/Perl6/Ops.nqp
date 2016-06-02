@@ -49,3 +49,5 @@ $ops.add_simple_op('p6box_n', $ops.OBJ, [$ops.NUM]);
 $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ]);
 
 $ops.add_simple_op('p6decontrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ]);
+
+$ops.add_simple_op('p6definite', $ops.OBJ, [$ops.OBJ], :decont(0));

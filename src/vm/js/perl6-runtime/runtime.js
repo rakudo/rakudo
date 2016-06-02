@@ -17,6 +17,10 @@ op.p6bool = function(value) {
   return value ? True : False;
 };
 
+op.p6definite = function(obj) {
+  return obj.typeObject_ ? True : False;
+};
+
 op.p6typecheckrv = function(rv, routine, bypassType) {
   // STUB
   return rv;

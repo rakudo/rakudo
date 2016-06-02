@@ -107,48 +107,39 @@ multi sub fail(--> Nil) {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));
 
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 multi sub fail(Exception:U $e --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
     );
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 multi sub fail($payload --> Nil) {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload
       !! X::AdHoc.new(:$payload)
     );
-
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 multi sub fail(|cap (*@msg) --> Nil) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 multi sub fail(Failure:U $f --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
     );
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 multi sub fail(Failure:D $fail --> Nil) {
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 
 multi sub die(Failure:D $f --> Nil) {

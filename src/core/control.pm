@@ -32,12 +32,12 @@ sub RETURN-LIST(Mu \list) is raw {
 
 my &return-rw := -> | {
     my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn($list);
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
     $list;
 };
 my &return := -> | {
     my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn(nqp::p6recont_ro($list));
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list));
     $list;
 };
 
@@ -113,7 +113,7 @@ my &callwith := -> |c {
 
 my &nextwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_args(|c))
 };
@@ -127,7 +127,7 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
 };

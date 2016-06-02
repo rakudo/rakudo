@@ -120,14 +120,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 $!future := Mu unless nqp::elems($!future);
                 if nqp::istype(current, Slip) && nqp::isconcrete(current) {
                     my \iter = current.iterator;
-                    my int $deficit = $elems - nqp::elems($!reified);
-                    unless iter.push-at-least($!reification-target, $deficit) =:= IterationEnd {
-                        # The iterator produced enough values to fill the need,
-                        # but did not reach its end. We save it for next time. We
-                        # know we'll exit the loop, since the < $elems check must
-                        # come out False (unless the iterator broke contract).
-                        $!current-iter := iter;
-                    }
+
+                    # The iterator produced enough values to fill the need,
+                    # but did not reach its end. We save it for next time. We
+                    # know we'll exit the loop, since the < $elems check must
+                    # come out False (unless the iterator broke contract).
+                    $!current-iter := iter
+                      unless iter.push-at-least(
+                        $!reification-target,
+                        nqp::sub_i($elems,nqp::elems($!reified))
+                      ) =:= IterationEnd;
                 }
                 else {
                     my $ = $!reification-target.push(current);

@@ -114,27 +114,35 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               && $!current-iter.push-at-least($!reification-target,
                    nqp::sub_i($elems,nqp::elems($!reified))) =:= IterationEnd;
 
-            while nqp::islt_i(nqp::elems($!reified),$elems) &&
-                    $!future.DEFINITE && nqp::elems($!future) {
-                my \current = nqp::shift($!future);
-                $!future := Mu unless nqp::elems($!future);
-                if nqp::istype(current, Slip) && nqp::isconcrete(current) {
-                    my \iter = current.iterator;
+            # there is a future
+            if $!future.DEFINITE {
 
-                    # The iterator produced enough values to fill the need,
-                    # but did not reach its end. We save it for next time. We
-                    # know we'll exit the loop, since the < $elems check must
-                    # come out False (unless the iterator broke contract).
-                    $!current-iter := iter
-                      unless iter.push-at-least(
-                        $!reification-target,
-                        nqp::sub_i($elems,nqp::elems($!reified))
-                      ) =:= IterationEnd;
+                # still need and can get something from the future
+                while nqp::islt_i(nqp::elems($!reified),$elems)
+                  && nqp::elems($!future) {
+                    my \current := nqp::shift($!future);
+                    if nqp::istype(current, Slip) && nqp::isconcrete(current) {
+                        my \iter := current.iterator;
+
+                        # The iterator produced enough values to fill the need,
+                        # but did not reach its end. We save it for next time.
+                        # We know we'll exit the loop, since the < $elems check
+                        # must be False (unless the iterator broke contract).
+                        $!current-iter := iter
+                          unless iter.push-at-least(
+                            $!reification-target,
+                            nqp::sub_i($elems,nqp::elems($!reified))
+                          ) =:= IterationEnd;
+                    }
+                    else {
+                        my $no-sink := $!reification-target.push(current);
+                    }
                 }
-                else {
-                    my $ = $!reification-target.push(current);
-                }
+
+                # that was the future
+                $!future := Mu unless nqp::elems($!future);
             }
+
             nqp::elems($!reified);
         }
 
@@ -210,7 +218,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!future', vm-tuple);
+        nqp::bindattr(todo, List::Reifier, '$!future', vm-tuple)
+          if nqp::elems(vm-tuple);
         nqp::bindattr(todo, List::Reifier, '$!reification-target',
             result.reification-target());
         result
@@ -268,7 +277,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::bindattr(result, List, '$!reified', buffer);
         nqp::bindattr(result, List, '$!todo', todo);
         nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!future', future);
+        nqp::bindattr(todo, List::Reifier, '$!future', future) if $n;
         nqp::bindattr(todo, List::Reifier, '$!reification-target',
             result.reification-target());
         result

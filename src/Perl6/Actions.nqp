@@ -97,7 +97,7 @@ sub wanted($ast,$by) {
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' {
+              $ast.op eq 'handlepayload' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('WANTED',1);
         }
@@ -249,7 +249,7 @@ sub unwanted($ast, $by) {
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' ||
+              $ast.op eq 'handlepayload' ||
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('context','sink');
@@ -5651,7 +5651,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         my $past := QAST::Op.new( :$op, |@args );
-        if $op eq 'want' || $op eq 'handle' {
+        if $op eq 'want' || $op eq 'handle' || $op eq 'handlepayload' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
             while $i < $n {
@@ -8901,18 +8901,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub wrap_return_handler($past) {
         wrap_return_type_check(
-            QAST::Stmts.new(
-                :resultchild(0),
-                QAST::Op.new(
-                    :op<lexotic>, :name<RETURN>,
-                    # If we fall off the bottom, decontainerize if
-                    # rw not set.
-                    QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past )
-                ),
-                QAST::Op.new(
-                    :op<bind>,
-                    QAST::Var.new(:name<RETURN>, :scope<lexical>),
-                    QAST::Op.new( :op('null') ))
+            QAST::Op.new(
+                :op<handlepayload>,
+                # If we fall off the bottom, decontainerize if
+                # rw not set.
+                QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past ),
+                'RETURN',
+                QAST::Op.new( :op<lastexpayload> )
             ),
             $*DECLARAND
         )

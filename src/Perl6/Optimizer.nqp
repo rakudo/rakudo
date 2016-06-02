@@ -1050,7 +1050,7 @@ class Perl6::Optimizer {
         note("method visit_op $!void_context\n" ~ $op.dump) if $!debug;
         # If it's a QAST::Op of type handle, needs some special attention.
         my str $optype := $op.op;
-        if $optype eq 'handle' {
+        if $optype eq 'handle' || $optype eq 'handlepayload' {
             return self.visit_handle($op);
         }
         elsif $optype eq 'locallifetime' {
@@ -1258,7 +1258,7 @@ class Perl6::Optimizer {
                     $op.shift; # The QAST::WVal of the routine
                     return $op;
                 }
-                if nqp::eqat($last_op, '_i', -2) || 
+                if nqp::eqat($last_op, '_i', -2) ||
                       nqp::eqat($last_op, '_n', -2) ||
                       nqp::eqat($last_op, '_s', -2) {
                     return $value;

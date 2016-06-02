@@ -255,31 +255,37 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-slurpy-flat(|) {
+        my \result := nqp::create(self);
+
+        # only create a future if we need one
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        my \future = nqp::create(IterationBuffer);
-        my int $i = -1;
-        my int $n = nqp::elems(vm-tuple);
-        while nqp::islt_i(++$i,$n) {
-            my \consider = nqp::atpos(vm-tuple, $i);
-            my $no-sink := nqp::push(future, nqp::iscont(consider)
+        if nqp::elems(vm-tuple) -> int $elems {
+            my \buffer := nqp::create(IterationBuffer);
+            my \todo := nqp::create(List::Reifier);
+            nqp::bindattr(result, List, '$!reified', buffer);
+            nqp::bindattr(result, List, '$!todo', todo);
+            nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
+            nqp::bindattr(todo, List::Reifier, '$!reification-target',
+                result.reification-target());
+            my \future := nqp::setelems(nqp::create(IterationBuffer),$elems);
+            my int $i = -1;
+
+            STATEMENT_LIST(
+              my \consider := nqp::atpos(vm-tuple, $i);
+              nqp::bindpos(future, $i, nqp::iscont(consider)
                 ?? consider
                 !! nqp::istype(consider, Iterable) && consider.DEFINITE
-                    ?? (nqp::istype(consider, PositionalBindFailover)
-                            ?? consider.cache
-                            !! consider
-                        ).flat.Slip
-                    !! consider);
+                  ?? (nqp::istype(consider, PositionalBindFailover)
+                    ?? consider.cache
+                    !! consider
+                     ).flat.Slip
+                  !! consider
+              )
+            ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+            nqp::bindattr(todo, List::Reifier, '$!future', future);
         }
 
-        my \result := nqp::create(self);
-        my \buffer := nqp::create(IterationBuffer);
-        my \todo := nqp::create(List::Reifier);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!future', future) if $n;
-        nqp::bindattr(todo, List::Reifier, '$!reification-target',
-            result.reification-target());
         result
     }
 

@@ -727,9 +727,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
     method FLATTENABLE_LIST() {
-        self!ensure-allocated;
-        $!todo.reify-all() if $!todo.DEFINITE;
-        $!reified
+        $!todo.DEFINITE
+          ?? STATEMENT_LIST($!todo.reify-all; $!reified)
+          !! $!reified.DEFINITE
+            ?? $!reified
+            !! nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
     }
     method FLATTENABLE_HASH() { nqp::hash() }
 

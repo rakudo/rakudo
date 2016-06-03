@@ -742,13 +742,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method is-lazy() {
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            !$!todo.fully-reified
-        }
-        else {
-            False
-        }
+        $!todo.DEFINITE
+          && STATEMENT_LIST($!todo.reify-until-lazy; !$!todo.fully-reified)
     }
 
     proto method pick(|) is nodal { * }

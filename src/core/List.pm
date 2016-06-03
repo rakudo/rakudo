@@ -704,21 +704,27 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method Capture() {
         fail X::Cannot::Lazy.new(:action('create a Capture from'))
             if self.is-lazy;
-        my $cap := nqp::create(Capture);
-        nqp::bindattr($cap, Capture, '$!list', $!reified);
 
-        my \positional := nqp::create(IterationBuffer);
-        my Mu $hash := nqp::hash();
-        my int $c = nqp::elems($!reified);
-        my int $i = -1;
-        my $v;
-        nqp::istype(($v := nqp::atpos($!reified, $i)),Pair)
-          ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
-          !! positional.push($v)
-          while nqp::islt_i(++$i,$c);
-        nqp::bindattr($cap, Capture, '$!list', positional);
-        nqp::bindattr($cap, Capture, '$!hash', $hash);
-        $cap
+        # we have something to work with
+        if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
+            my $capture := nqp::create(Capture);
+            my $list := nqp::list;
+            my $hash := nqp::hash;
+            my int $i = -1;
+            my $v;
+            nqp::istype(($v := nqp::atpos($!reified, $i)),Pair)
+              ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
+              !! nqp::push($list,$v)
+              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            nqp::bindattr($capture,Capture,'$!list',$list) if nqp::elems($list);
+            nqp::bindattr($capture,Capture,'$!hash',$hash) if nqp::elems($hash);
+            $capture
+        }
+
+        # nothing to work with
+        else {
+            nqp::create(Capture)
+        }
     }
     method FLATTENABLE_LIST() {
         self!ensure-allocated;

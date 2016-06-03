@@ -989,11 +989,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
 # The , operator produces a List.
 proto sub infix:<,>(|) is pure {*}
-multi sub infix:<,>() {
-    my \result = nqp::create(List);
-    nqp::bindattr(result, List, '$!reified', BEGIN nqp::create(IterationBuffer));
-    result
-}
+multi sub infix:<,>() { nqp::create(List) }
 multi sub infix:<,>(|) {
     my \result  = nqp::create(List);
     my \in      = nqp::p6argvmarray();

@@ -429,15 +429,13 @@ my class Array { # declared in BOOTSTRAP
 
     method is-lazy() {
         my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            $todo.fully-reified
-              ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
-              !! True
-        }
-        else {
-            False
-        }
+        $todo.DEFINITE
+          && STATEMENT_LIST(
+               $todo.reify-until-lazy;
+               $todo.fully-reified
+                 ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
+                 !! True
+             )
     }
 
     proto method STORE(|) { * }

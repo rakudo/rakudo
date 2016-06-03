@@ -149,8 +149,9 @@ my class Rakudo::Internals {
     method EmptyIterator() {
         once class :: does Iterator {
             method new() { nqp::create(self) }
-            method pull-one() { IterationEnd }
+            method pull-one()  { IterationEnd }
             method push-all($) { IterationEnd }
+            method sink-all()  { IterationEnd }
             method count-only() { 0 }
         }.new
     }

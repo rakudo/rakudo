@@ -956,12 +956,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         # something to join
         if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
             my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
-            my int $i     = -1;
-            my str $empty = '';
+            my int $i = -1;
 
             my $tmp;
-            nqp::bindpos_s($strings,$i,nqp::isnull($tmp := nqp::atpos($!reified,$i))
-              ?? $empty
+            nqp::bindpos_s($strings,$i,
+              nqp::isnull($tmp := nqp::atpos($!reified,$i))
+              ?? ''
               !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
                   ?? $tmp
                   !! nqp::can($tmp,'Str')

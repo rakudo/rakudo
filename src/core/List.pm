@@ -945,8 +945,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method join(List:D: $separator = '') is nodal {
-        self!ensure-allocated;
-
         my int $infinite;
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy;
@@ -955,24 +953,31 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               !! ($infinite = 1);
         }
 
-        my int $elems   = nqp::elems($!reified);
-        my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
-        my int $i     = -1;
-        my str $empty = '';
+        # something to join
+        if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
+            my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
+            my int $i     = -1;
+            my str $empty = '';
 
-        my $tmp;
-        nqp::bindpos_s($strings,$i,nqp::isnull($tmp := nqp::atpos($!reified,$i))
-          ?? $empty
-          !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
-              ?? $tmp
-              !! nqp::can($tmp,'Str')
-                ?? $tmp.Str
-                !! nqp::box_s($tmp,Str)
-             )
-        ) while nqp::islt_i(++$i,$elems);
+            my $tmp;
+            nqp::bindpos_s($strings,$i,nqp::isnull($tmp := nqp::atpos($!reified,$i))
+              ?? $empty
+              !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
+                  ?? $tmp
+                  !! nqp::can($tmp,'Str')
+                    ?? $tmp.Str
+                    !! nqp::box_s($tmp,Str)
+                 )
+            ) while nqp::islt_i(++$i,$elems);
 
-        nqp::bindpos_s($strings,$i,'...') if $infinite;
-        nqp::join(nqp::unbox_s($separator.Str),$strings)
+            nqp::bindpos_s($strings,$i,'...') if $infinite;
+            nqp::join(nqp::unbox_s($separator.Str),$strings)
+        }
+
+        # nothing to join
+        else {
+            $infinite ?? '...' !! ''
+        }
     }
 
     method push(|) is nodal {

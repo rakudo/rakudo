@@ -476,7 +476,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method push-all($target) {
                     my int $elems = nqp::elems($!reified);
                     my $no-sink;
-                    $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                    $no-sink := $target.push(nqp::ifnull(nqp::atpos($!reified,$!i),Nil))
                       while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                     IterationEnd
                 }

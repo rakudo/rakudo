@@ -229,10 +229,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my $value;
                         my $result;
 
-                        if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+                        if $!slipping && nqp::not_i(nqp::eqaddr(
+                          ($result := self.slip-one),
+                          IterationEnd
+                        )) {
                             # $result will be returned at the end
                         }
-                        elsif ($value := $!source.pull-one()) =:= IterationEnd {
+                        elsif nqp::eqaddr(
+                          ($value := $!source.pull-one),
+                          IterationEnd
+                        ) {
                             $result := $value
                         }
                         else {
@@ -241,34 +247,26 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             nqp::stmts(
                               $redo = 0,
                               nqp::handle(
-                                nqp::stmts(
-                                  ($result := &!block($value)),
+                                nqp::if(
+                                  nqp::istype(($result := &!block($value)),Slip),
                                   nqp::if(
-                                    nqp::istype($result, Slip),
-                                    nqp::stmts(
-                                      ($result := self.start-slip($result)),
-                                      nqp::if(
-                                        nqp::eqaddr($result, IterationEnd),
-                                        nqp::stmts(
-                                          ($value := $!source.pull-one()),
-                                          ($redo = 1
-                                            unless nqp::eqaddr($value,IterationEnd))
-                                        )
-                                      )
+                                    nqp::eqaddr(
+                                      ($result := self.start-slip($result)), IterationEnd),
+                                    nqp::if(
+                                      nqp::not_i(nqp::eqaddr(
+                                        ($value := $!source.pull-one),
+                                        IterationEnd
+                                      )),
+                                      $redo = 1
                                     )
-                                  ),
+                                  )
                                 ),
-                                'NEXT', nqp::stmts(
-                                   ($value := $!source.pull-one()),
-                                   nqp::eqaddr($value, IterationEnd)
-                                     ?? ($result := IterationEnd)
-                                     !! ($redo = 1)
-                                ),
+                                'NEXT', (nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                          ?? ($result := IterationEnd)
+                                          !! ($redo = 1)),
                                 'REDO', $redo = 1,
-                                'LAST', nqp::stmts(
-                                  ($result := IterationEnd)
-                                )
-                              )
+                                'LAST', $result := IterationEnd
+                              ),
                             ),
                           :nohandler);
                         }

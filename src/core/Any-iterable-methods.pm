@@ -58,25 +58,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    my role MapIterCommon does SlippyIterator {
-        has &!block;
-        has $!source;
-        has $!count;
-        has $!label;
-
-        method new(&block, $source, $count, $label) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!count', $count);
-            nqp::bindattr($iter, self, '$!label', $label);
-            $iter
-        }
-
-        method is-lazy() {
-            $!source.is-lazy
-        }
-    }
     sub sequential-map(\source, &block, :$label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
@@ -84,11 +65,26 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         # "loop" taking 0 or 1 parameter
         if $count == 1 || $count == 0 || $count === Inf {
-            Seq.new(class :: does MapIterCommon {
+            Seq.new(class :: does SlippyIterator {
+                has &!block;
+                has $!source;
+                has $!count;
+                has $!label;
                 has $!did-init;
                 has $!did-iterate;
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
+
+                method new(&block, $source, $count, $label) {
+                    my $iter := nqp::create(self);
+                    nqp::bindattr($iter, self, '&!block', &block);
+                    nqp::bindattr($iter, self, '$!source', $source);
+                    nqp::bindattr($iter, self, '$!count', $count);
+                    nqp::bindattr($iter, self, '$!label', $label);
+                    $iter
+                }
+
+                method is-lazy() { $!source.is-lazy }
 
                 method pull-one() is raw {
                     my int $redo = 1;
@@ -215,12 +211,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         # loop/map taking more than 1 param
         else {
-            Seq.new(class :: does MapIterCommon {
+            Seq.new(class :: does SlippyIterator {
+                has &!block;
+                has $!source;
+                has $!count;
+                has $!label;
                 has $!value-buffer;
                 has $!did-init;
                 has $!did-iterate;
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
+
+                method new(&block, $source, $count, $label) {
+                    my $iter := nqp::create(self);
+                    nqp::bindattr($iter, self, '&!block', &block);
+                    nqp::bindattr($iter, self, '$!source', $source);
+                    nqp::bindattr($iter, self, '$!count', $count);
+                    nqp::bindattr($iter, self, '$!label', $label);
+                    $iter
+                }
+
+                method is-lazy() { $!source.is-lazy }
 
                 method pull-one() is raw {
                     $!value-buffer.DEFINITE

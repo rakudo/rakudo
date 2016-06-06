@@ -65,146 +65,252 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         # "loop" taking 0 or 1 parameter
         if $count == 1 || $count == 0 || $count === Inf {
-            Seq.new(class :: does SlippyIterator {
-                has &!block;
-                has $!source;
-                has $!label;
-                has $!did-init;
-                has $!did-iterate;
-                has $!NEXT;
-                has $!CAN_FIRE_PHASERS;
+            if $label.DEFINITE
+              || (nqp::istype(&block,Block) && &block.has-phasers) {
+                Seq.new(class :: does SlippyIterator {
+                    has &!block;
+                    has $!source;
+                    has $!label;
+                    has $!did-init;
+                    has $!did-iterate;
+                    has $!NEXT;
+                    has $!CAN_FIRE_PHASERS;
 
-                method new(&block, $source, $label) {
-                    my $iter := nqp::create(self);
-                    nqp::bindattr($iter, self, '&!block', &block);
-                    nqp::bindattr($iter, self, '$!source', $source);
-                    nqp::bindattr($iter, self, '$!label', $label);
-                    $iter
-                }
-
-                method is-lazy() { $!source.is-lazy }
-
-                method pull-one() is raw {
-                    my int $redo = 1;
-                    my $value;
-                    my $result;
-
-                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
-                        $!did-init         = 1;
-                        $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = &!block.has-phaser('NEXT');
-                        nqp::p6setfirstflag(&!block)
-                          if &!block.has-phaser('FIRST');
+                    method new(&block, $source, $label) {
+                        my $iter := nqp::create(self);
+                        nqp::bindattr($iter, self, '&!block', &block);
+                        nqp::bindattr($iter, self, '$!source', $source);
+                        nqp::bindattr($iter, self, '$!label', $label);
+                        $iter
                     }
 
-                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
-                        # $result will be returned at the end
-                    }
-                    elsif ($value := $!source.pull-one()) =:= IterationEnd {
-                        $result := $value
-                    }
-                    else {
-                      nqp::while(
-                        $redo,
-                        nqp::stmts(
-                          $redo = 0,
-                          nqp::handle(
-                            nqp::stmts(
-                              ($result := &!block($value)),
-                              ($!did-iterate = 1),
-                              nqp::if(
-                                nqp::istype($result, Slip),
-                                nqp::stmts(
-                                  ($result := self.start-slip($result)),
-                                  nqp::if(
-                                    nqp::eqaddr($result, IterationEnd),
-                                    nqp::stmts(
-                                      ($value := $!source.pull-one()),
-                                      ($redo = 1
-                                        unless nqp::eqaddr($value,IterationEnd))
-                                    )
-                                  )
-                                )
-                              ),
-                              nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                            ),
-                            'LABELED', nqp::decont($!label),
-                            'NEXT', nqp::stmts(
-                               ($!did-iterate = 1),
-                               nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                               ($value := $!source.pull-one()),
-                               nqp::eqaddr($value, IterationEnd)
-                                 ?? ($result := IterationEnd)
-                                 !! ($redo = 1)
-                            ),
-                            'REDO', $redo = 1,
-                            'LAST', nqp::stmts(
-                              ($!did-iterate = 1),
-                              ($result := IterationEnd)
-                            )
-                          )
-                        ),
-                      :nohandler);
-                    }
-                    &!block.fire_phasers('LAST')
-                      if $!CAN_FIRE_PHASERS
-                      && $!did-iterate
-                      && nqp::eqaddr($result,IterationEnd);
-                    $result
-                }
+                    method is-lazy() { $!source.is-lazy }
 
-                method sink-all() {
-                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
-                        $!did-init         = 1;
-                        $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = &!block.has-phaser('NEXT');
-                        nqp::p6setfirstflag(&!block)
-                          if &!block.has-phaser('FIRST');
-                    }
-                    my $result;
-                    my int $redo;
-                    my $value;
-                    until nqp::eqaddr($result, IterationEnd) {
-                        if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
+                    method pull-one() is raw {
+                        my int $redo = 1;
+                        my $value;
+                        my $result;
+
+                        if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                            $!did-init         = 1;
+                            $!CAN_FIRE_PHASERS = 1;
+                            $!NEXT             = &!block.has-phaser('NEXT');
+                            nqp::p6setfirstflag(&!block)
+                              if &!block.has-phaser('FIRST');
+                        }
+
+                        if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+                            # $result will be returned at the end
+                        }
+                        elsif ($value := $!source.pull-one()) =:= IterationEnd {
                             $result := $value
                         }
                         else {
-                            $redo = 1;
-                            nqp::while(
-                              $redo,
-                              nqp::stmts(
-                                $redo = 0,
-                                nqp::handle(
-                                  nqp::stmts(
-                                    ($result := &!block($value)),
-                                    ($!did-iterate = 1),
-                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                          nqp::while(
+                            $redo,
+                            nqp::stmts(
+                              $redo = 0,
+                              nqp::handle(
+                                nqp::stmts(
+                                  ($result := &!block($value)),
+                                  ($!did-iterate = 1),
+                                  nqp::if(
+                                    nqp::istype($result, Slip),
+                                    nqp::stmts(
+                                      ($result := self.start-slip($result)),
+                                      nqp::if(
+                                        nqp::eqaddr($result, IterationEnd),
+                                        nqp::stmts(
+                                          ($value := $!source.pull-one()),
+                                          ($redo = 1
+                                            unless nqp::eqaddr($value,IterationEnd))
+                                        )
+                                      )
+                                    )
                                   ),
-                                  'LABELED', nqp::decont($!label),
-                                  'NEXT', nqp::stmts(
-                                    ($!did-iterate = 1),
-                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                    ($value := $!source.pull-one()),
-                                    nqp::eqaddr($value, IterationEnd)
-                                      ?? ($result := IterationEnd)
-                                      !! ($redo = 1)),
-                                  'REDO', $redo = 1,
-                                  'LAST', nqp::stmts(
-                                    ($!did-iterate = 1),
-                                    ($result := IterationEnd)
-                                  )
+                                  nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                ),
+                                'LABELED', nqp::decont($!label),
+                                'NEXT', nqp::stmts(
+                                   ($!did-iterate = 1),
+                                   nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                   ($value := $!source.pull-one()),
+                                   nqp::eqaddr($value, IterationEnd)
+                                     ?? ($result := IterationEnd)
+                                     !! ($redo = 1)
+                                ),
+                                'REDO', $redo = 1,
+                                'LAST', nqp::stmts(
+                                  ($!did-iterate = 1),
+                                  ($result := IterationEnd)
                                 )
-                              ),
-                            :nohandler);
+                              )
+                            ),
+                          :nohandler);
                         }
                         &!block.fire_phasers('LAST')
                           if $!CAN_FIRE_PHASERS
                           && $!did-iterate
-                          && nqp::eqaddr($result, IterationEnd);
+                          && nqp::eqaddr($result,IterationEnd);
+                        $result
                     }
-                    IterationEnd
-                }
-            }.new(&block, source, $label));
+
+                    method sink-all() {
+                        if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                            $!did-init         = 1;
+                            $!CAN_FIRE_PHASERS = 1;
+                            $!NEXT             = &!block.has-phaser('NEXT');
+                            nqp::p6setfirstflag(&!block)
+                              if &!block.has-phaser('FIRST');
+                        }
+                        my $result;
+                        my int $redo;
+                        my $value;
+                        until nqp::eqaddr($result, IterationEnd) {
+                            if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
+                                $result := $value
+                            }
+                            else {
+                                $redo = 1;
+                                nqp::while(
+                                  $redo,
+                                  nqp::stmts(
+                                    $redo = 0,
+                                    nqp::handle(
+                                      nqp::stmts(
+                                        ($result := &!block($value)),
+                                        ($!did-iterate = 1),
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                      ),
+                                      'LABELED', nqp::decont($!label),
+                                      'NEXT', nqp::stmts(
+                                        ($!did-iterate = 1),
+                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                        ($value := $!source.pull-one()),
+                                        nqp::eqaddr($value, IterationEnd)
+                                          ?? ($result := IterationEnd)
+                                          !! ($redo = 1)),
+                                      'REDO', $redo = 1,
+                                      'LAST', nqp::stmts(
+                                        ($!did-iterate = 1),
+                                        ($result := IterationEnd)
+                                      )
+                                    )
+                                  ),
+                                :nohandler);
+                            }
+                            &!block.fire_phasers('LAST')
+                              if $!CAN_FIRE_PHASERS
+                              && $!did-iterate
+                              && nqp::eqaddr($result, IterationEnd);
+                        }
+                        IterationEnd
+                    }
+                }.new(&block, source, $label))
+            }
+
+            # normal, without phasers or label
+            else {
+                Seq.new(class :: does SlippyIterator {
+                    has &!block;
+                    has $!source;
+
+                    method new(&block, $source) {
+                        my $iter := nqp::create(self);
+                        nqp::bindattr($iter, self, '&!block', &block);
+                        nqp::bindattr($iter, self, '$!source', $source);
+                        $iter
+                    }
+
+                    method is-lazy() { $!source.is-lazy }
+
+                    method pull-one() is raw {
+                        my int $redo = 1;
+                        my $value;
+                        my $result;
+
+                        if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+                            # $result will be returned at the end
+                        }
+                        elsif ($value := $!source.pull-one()) =:= IterationEnd {
+                            $result := $value
+                        }
+                        else {
+                          nqp::while(
+                            $redo,
+                            nqp::stmts(
+                              $redo = 0,
+                              nqp::handle(
+                                nqp::stmts(
+                                  ($result := &!block($value)),
+                                  nqp::if(
+                                    nqp::istype($result, Slip),
+                                    nqp::stmts(
+                                      ($result := self.start-slip($result)),
+                                      nqp::if(
+                                        nqp::eqaddr($result, IterationEnd),
+                                        nqp::stmts(
+                                          ($value := $!source.pull-one()),
+                                          ($redo = 1
+                                            unless nqp::eqaddr($value,IterationEnd))
+                                        )
+                                      )
+                                    )
+                                  ),
+                                ),
+                                'NEXT', nqp::stmts(
+                                   ($value := $!source.pull-one()),
+                                   nqp::eqaddr($value, IterationEnd)
+                                     ?? ($result := IterationEnd)
+                                     !! ($redo = 1)
+                                ),
+                                'REDO', $redo = 1,
+                                'LAST', nqp::stmts(
+                                  ($result := IterationEnd)
+                                )
+                              )
+                            ),
+                          :nohandler);
+                        }
+                        $result
+                    }
+
+                    method sink-all() {
+                        my $result;
+                        my int $redo;
+                        my $value;
+                        until nqp::eqaddr($result, IterationEnd) {
+                            if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
+                                $result := $value
+                            }
+                            else {
+                                $redo = 1;
+                                nqp::while(
+                                  $redo,
+                                  nqp::stmts(
+                                    $redo = 0,
+                                    nqp::handle(
+                                      nqp::stmts(
+                                        ($result := &!block($value)),
+                                      ),
+                                      'NEXT', nqp::stmts(
+                                        ($value := $!source.pull-one()),
+                                        nqp::eqaddr($value, IterationEnd)
+                                          ?? ($result := IterationEnd)
+                                          !! ($redo = 1)),
+                                      'REDO', $redo = 1,
+                                      'LAST', nqp::stmts(
+                                        ($result := IterationEnd)
+                                      )
+                                    )
+                                  ),
+                                :nohandler);
+                            }
+                        }
+                        IterationEnd
+                    }
+                }.new(&block, source))
+            }
         }
 
         # loop/map taking more than 1 param
@@ -305,7 +411,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       && nqp::eqaddr($result, IterationEnd);
                     $result
                 }
-            }.new(&block, source, $count, $label));
+            }.new(&block, source, $count, $label))
         }
     }
 

@@ -65,21 +65,22 @@ my class Array { # declared in BOOTSTRAP
                 method pull-one() is raw {
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      STATEMENT_LIST(
-                        nqp::islt_i($!i,nqp::elems($!reified))
-                          ?? nqp::p6bindattrinvres(    # found a hole
-                               (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                               Scalar,
-                               '$!whence',
-                               -> { nqp::bindpos($!reified,$!i,v) }
-                             )
-                          !! $!todo.DEFINITE
-                            ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
-                              ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
-                              !! self!done
-                            !! IterationEnd
-                      )
+                      nqp::islt_i($!i,nqp::elems($!reified))
+                        ?? self!found-hole
+                        !! $!todo.DEFINITE
+                          ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
+                            ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
+                            !! self!done
+                          !! IterationEnd
                     )
+                }
+                method !found-hole() {
+                   nqp::p6bindattrinvres(
+                     (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                     Scalar,
+                     '$!whence',
+                     -> { nqp::bindpos($!reified,$!i,v) }
+                   )
                 }
                 method !done() is raw {
                     $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
@@ -136,16 +137,14 @@ my class Array { # declared in BOOTSTRAP
                 method pull-one() is raw {
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      STATEMENT_LIST(
-                        nqp::islt_i($!i,nqp::elems($!reified)) # found a hole
-                          ?? nqp::p6bindattrinvres(
-                               (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                               Scalar,
-                               '$!whence',
-                               -> { nqp::bindpos($!reified,$!i,v) }
-                             )
-                          !! IterationEnd
-                      )
+                      nqp::islt_i($!i,nqp::elems($!reified)) # found a hole
+                        ?? nqp::p6bindattrinvres(
+                             (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                             Scalar,
+                             '$!whence',
+                             -> { nqp::bindpos($!reified,$!i,v) }
+                           )
+                        !! IterationEnd
                     )
                 }
 

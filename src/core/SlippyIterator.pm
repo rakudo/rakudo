@@ -18,11 +18,10 @@ my role SlippyIterator does Iterator {
     }
 
     method slip-one() {
-        my \result = $!slip-iter.pull-one;
-        if result =:= IterationEnd {
-            $!slipping = 0;
-            $!slip-iter := Mu;
-        }
+        STATEMENT_LIST(
+          $!slipping   = 0;
+          $!slip-iter := Mu;
+        ) if nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd);
         result
     }
 }

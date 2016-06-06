@@ -68,18 +68,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Seq.new(class :: does SlippyIterator {
                 has &!block;
                 has $!source;
-                has $!count;
                 has $!label;
                 has $!did-init;
                 has $!did-iterate;
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
 
-                method new(&block, $source, $count, $label) {
+                method new(&block, $source, $label) {
                     my $iter := nqp::create(self);
                     nqp::bindattr($iter, self, '&!block', &block);
                     nqp::bindattr($iter, self, '$!source', $source);
-                    nqp::bindattr($iter, self, '$!count', $count);
                     nqp::bindattr($iter, self, '$!label', $label);
                     $iter
                 }
@@ -206,7 +204,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                     IterationEnd
                 }
-            }.new(&block, source, 1, $label));
+            }.new(&block, source, $label));
         }
 
         # loop/map taking more than 1 param

@@ -80,7 +80,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my $iter := nqp::create(self);
                         nqp::bindattr($iter, self, '&!block', &block);
                         nqp::bindattr($iter, self, '$!source', $source);
-                        nqp::bindattr($iter, self, '$!label', $label);
+                        nqp::bindattr($iter, self, '$!label', nqp::decont($label));
                         $iter
                     }
 
@@ -130,7 +130,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   ),
                                   nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                 ),
-                                'LABELED', nqp::decont($!label),
+                                'LABELED', $!label,
                                 'NEXT', nqp::stmts(
                                    ($!did-iterate = 1),
                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
@@ -182,7 +182,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                         ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                       ),
-                                      'LABELED', nqp::decont($!label),
+                                      'LABELED', $!label,
                                       'NEXT', nqp::stmts(
                                         ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
@@ -324,7 +324,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::bindattr($iter, self, '&!block', &block);
                     nqp::bindattr($iter, self, '$!source', $source);
                     nqp::bindattr($iter, self, '$!count', $count);
-                    nqp::bindattr($iter, self, '$!label', $label);
+                    nqp::bindattr($iter, self, '$!label', nqp::decont($label));
                     $iter
                 }
 
@@ -380,7 +380,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                 ),
                                 nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                               ),
-                              'LABELED', nqp::decont($!label),
+                              'LABELED', $!label,
                               'NEXT', nqp::stmts(
                                 ($!did-iterate = 1),
                                 nqp::if($!NEXT, &!block.fire_phasers('NEXT')),

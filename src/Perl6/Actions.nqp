@@ -4218,7 +4218,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Get list of either values or pairs; fail if we can't.
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
-        my $term_ast := $<term>.ast;
+        my $term_ast := WANTED($<term>.ast,'enum');
 
         # remove val call on a single item
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {

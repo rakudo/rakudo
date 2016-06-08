@@ -30,15 +30,25 @@ sub RETURN-LIST(Mu \list) is raw {
             !! list)
 }
 
-sub return-rw(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
-    $list;
+proto sub return-rw(|) {*}
+multi sub return-rw() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
 }
-sub return(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list));
-    $list;
+multi sub return-rw(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, x);
+}
+multi sub return-rw(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
+}
+proto sub return(|) {*}
+multi sub return() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
+}
+multi sub return(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro(x));
+}
+multi sub return(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
 # RT #122732 - control operator crossed continuation barrier

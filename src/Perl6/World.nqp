@@ -2730,20 +2730,22 @@ class Perl6::World is HLL::World {
                 }
                 else {
                     my $result;
-                    $result := self.compile_time_evaluate($/, $ast);
+                    {
+                        $result := ~self.compile_time_evaluate($/, $ast);
+                        CONTROL {
+                            # we might get a warning from evaluating a Block like
+                            # "undefined value ..." which is reason enough to die
+                            $/.CURSOR.panic($mkerr());
+                        }
+                        CATCH {
+                            $/.CURSOR.panic($mkerr());
+                        }
+                    }
                     # if we have something here, it's probably a Slip,
                     # which stringifies fine but has to be split at ','
                     # and potentially whitespace-corrected
-                    my @parts := nqp::split(' ', ~$result);
+                    my @parts := nqp::split(' ', $result);
                     return nqp::join(" ", @parts);
-                    CONTROL {
-                        # we might get a warning from evaluating a Block like
-                        # "undefined value ..." which is reason enough to die
-                        $/.CURSOR.panic($mkerr());
-                    }
-                    CATCH {
-                        $/.CURSOR.panic($mkerr());
-                    }
                 }
             }
         } elsif nqp::istype($ast, QAST::Var) {

@@ -73,7 +73,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     has $!did-init;
                     has $!did-iterate;
                     has $!NEXT;
-                    has $!CAN_FIRE_PHASERS;
 
                     method new(&block, $source, $label) {
                         my $iter := nqp::create(self);
@@ -90,9 +89,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my $value;
                         my $result;
 
-                        if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                        if !$!did-init {
                             $!did-init         = 1;
-                            $!CAN_FIRE_PHASERS = 1;
                             $!NEXT             = &!block.has-phaser('NEXT');
                             nqp::p6setfirstflag(&!block)
                               if &!block.has-phaser('FIRST');
@@ -148,16 +146,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                           :nohandler);
                         }
                         &!block.fire_phasers('LAST')
-                          if $!CAN_FIRE_PHASERS
-                          && $!did-iterate
+                          if $!did-iterate
                           && nqp::eqaddr($result,IterationEnd);
                         $result
                     }
 
                     method sink-all() {
-                        if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+                        if !$!did-init {
                             $!did-init         = 1;
-                            $!CAN_FIRE_PHASERS = 1;
                             $!NEXT             = &!block.has-phaser('NEXT');
                             nqp::p6setfirstflag(&!block)
                               if &!block.has-phaser('FIRST');
@@ -199,8 +195,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                 :nohandler);
                             }
                             &!block.fire_phasers('LAST')
-                              if $!CAN_FIRE_PHASERS
-                              && $!did-iterate
+                              if $!did-iterate
                               && nqp::eqaddr($result, IterationEnd);
                         }
                         IterationEnd

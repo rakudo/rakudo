@@ -70,15 +70,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     has &!block;
                     has $!source;
                     has $!label;
-                    has $!did-init;
-                    has $!did-iterate;
                     has $!NEXT;
+                    has int $!did-init;
+                    has int $!did-iterate;
 
                     method new(&block, $source, $label) {
                         my $iter := nqp::create(self);
                         nqp::bindattr($iter, self, '&!block', &block);
                         nqp::bindattr($iter, self, '$!source', $source);
-                        nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+                        nqp::bindattr($iter, self, '$!label',
+                          nqp::decont($label));
+                        nqp::bindattr($iter, self, '$!NEXT',
+                          &block.has-phaser('NEXT'));
                         $iter
                     }
 
@@ -90,8 +93,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my $result;
 
                         if !$!did-init {
-                            $!did-init         = 1;
-                            $!NEXT             = &!block.has-phaser('NEXT');
+                            $!did-init = 1;
                             nqp::p6setfirstflag(&!block)
                               if &!block.has-phaser('FIRST');
                         }
@@ -152,18 +154,25 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
 
                     method sink-all() {
-                        if !$!did-init {
-                            $!did-init         = 1;
-                            $!NEXT             = &!block.has-phaser('NEXT');
+                        STATEMENT_LIST(
+                          $!did-init = 1;
+                          nqp::if(
+                            &!block.has-phaser('FIRST'),
                             nqp::p6setfirstflag(&!block)
-                              if &!block.has-phaser('FIRST');
-                        }
-                        my $result;
+                          );
+                        ) if nqp::not_i($!did-init);
+
+                        my $no-sink;
                         my int $redo;
+                        my int $running = 1;
                         my $value;
-                        until nqp::eqaddr($result, IterationEnd) {
+                        while $running {
                             if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
-                                $result := $value
+                                $running = 0;
+                                nqp::if(
+                                  $!did-iterate,
+                                  &!block.fire_phasers('LAST')
+                                );
                             }
                             else {
                                 $redo = 1;
@@ -173,7 +182,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                     $redo = 0,
                                     nqp::handle(
                                       nqp::stmts(
-                                        ($result := &!block($value)),
+                                        ($no-sink := &!block($value)),
                                         ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                       ),
@@ -181,22 +190,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                       'NEXT', nqp::stmts(
                                         ($!did-iterate = 1),
                                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                        ($value := $!source.pull-one()),
-                                        nqp::eqaddr($value, IterationEnd)
-                                          ?? ($result := IterationEnd)
+                                        nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                          ?? ($running = 0)
                                           !! ($redo = 1)),
                                       'REDO', $redo = 1,
                                       'LAST', nqp::stmts(
                                         ($!did-iterate = 1),
-                                        ($result := IterationEnd)
-                                      )
+                                        ($running = 0))
                                     )
                                   ),
-                                :nohandler);
+                                  :nohandler);
+                                nqp::if(
+                                  nqp::not_i($running) && $!did-iterate,
+                                  &!block.fire_phasers('LAST')
+                                );
                             }
-                            &!block.fire_phasers('LAST')
-                              if $!did-iterate
-                              && nqp::eqaddr($result, IterationEnd);
                         }
                         IterationEnd
                     }

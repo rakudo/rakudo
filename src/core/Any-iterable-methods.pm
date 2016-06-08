@@ -274,12 +274,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
 
                     method sink-all() {
-                        my $result;
+                        my $no-sink;
                         my int $redo;
+                        my int $running = 1;
                         my $value;
-                        until nqp::eqaddr($result, IterationEnd) {
+                        while $running {
                             if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
-                                $result := $value
+                                $running = 0;
                             }
                             else {
                                 $redo = 1;
@@ -288,18 +289,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   nqp::stmts(
                                     $redo = 0,
                                     nqp::handle(
-                                      nqp::stmts(
-                                        ($result := &!block($value)),
-                                      ),
-                                      'NEXT', nqp::stmts(
-                                        ($value := $!source.pull-one()),
-                                        nqp::eqaddr($value, IterationEnd)
-                                          ?? ($result := IterationEnd)
-                                          !! ($redo = 1)),
+                                      ($no-sink := &!block($value)),
+                                      'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
+                                                ?? ($running = 0)
+                                                !! ($redo = 1)),
                                       'REDO', $redo = 1,
-                                      'LAST', nqp::stmts(
-                                        ($result := IterationEnd)
-                                      )
+                                      'LAST', $running = 0
                                     )
                                   ),
                                 :nohandler);

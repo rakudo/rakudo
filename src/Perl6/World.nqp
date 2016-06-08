@@ -3571,9 +3571,16 @@ class Perl6::World is HLL::World {
                     if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
                         $ast := $ast[0];
                     }
-                    $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
-                        ?? self.canonicalize_pair('',$ast[2].value)
-                        !! ~$_;
+                    if nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal) {
+                        $cp_str := self.canonicalize_pair('',$ast[2].value);
+                    }
+                    elsif nqp::istype($ast, QAST::WVal) &&
+                          nqp::istype($ast.value, $*W.find_symbol(['Str'], :setting-only)) {
+                        $cp_str := self.canonicalize_pair('', $ast.value);
+                    }
+                    else {
+                        $cp_str := ~$_;
+                    }
                 }
 
                 else {

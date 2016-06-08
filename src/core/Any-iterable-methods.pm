@@ -167,44 +167,45 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my int $running = 1;
                         my $value;
                         while $running {
-                            if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
-                                $running = 0;
-                                nqp::if(
-                                  $!did-iterate,
-                                  &!block.fire_phasers('LAST')
-                                );
-                            }
-                            else {
-                                $redo = 1;
-                                nqp::while(
-                                  $redo,
-                                  nqp::stmts(
-                                    $redo = 0,
-                                    nqp::handle(
-                                      nqp::stmts(
-                                        ($no-sink := &!block($value)),
-                                        ($!did-iterate = 1),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                      ),
-                                      'LABELED', $!label,
-                                      'NEXT', nqp::stmts(
-                                        ($!did-iterate = 1),
-                                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                        nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
-                                          ?? ($running = 0)
-                                          !! ($redo = 1)),
-                                      'REDO', $redo = 1,
-                                      'LAST', nqp::stmts(
-                                        ($!did-iterate = 1),
-                                        ($running = 0))
-                                    )
-                                  ),
-                                  :nohandler);
-                                nqp::if(
-                                  nqp::not_i($running) && $!did-iterate,
-                                  &!block.fire_phasers('LAST')
-                                );
-                            }
+                            nqp::eqaddr(($value := $!source.pull-one()), IterationEnd)
+                              ?? STATEMENT_LIST(
+                                   $running = 0;
+                                   nqp::if(
+                                     $!did-iterate,
+                                     &!block.fire_phasers('LAST')
+                                   );
+                                 )
+                              !! STATEMENT_LIST(
+                                   $redo = 1;
+                                   nqp::while(
+                                     $redo,
+                                     nqp::stmts(
+                                       $redo = 0,
+                                       nqp::handle(
+                                         nqp::stmts(
+                                           ($no-sink := &!block($value)),
+                                           ($!did-iterate = 1),
+                                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                         ),
+                                         'LABELED', $!label,
+                                         'NEXT', nqp::stmts(
+                                           ($!did-iterate = 1),
+                                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                           nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                             ?? ($running = 0)
+                                             !! ($redo = 1)),
+                                         'REDO', $redo = 1,
+                                         'LAST', nqp::stmts(
+                                           ($!did-iterate = 1),
+                                           ($running = 0))
+                                       )  
+                                     ),
+                                     :nohandler);
+                                   nqp::if(
+                                     nqp::not_i($running) && $!did-iterate,
+                                     &!block.fire_phasers('LAST')
+                                   );
+                                 );
                         }
                         IterationEnd
                     }

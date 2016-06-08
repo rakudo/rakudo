@@ -65,8 +65,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         # "loop" taking 0 or 1 parameter
         if $count == 1 || $count == 0 || $count === Inf {
-            if $label.DEFINITE
-              || (nqp::istype(&block,Block) && &block.has-phasers) {
+            if nqp::istype(&block,Block) && &block.has-phasers {
                 Seq.new(class :: does SlippyIterator {
                     has &!block;
                     has $!source;
@@ -214,11 +213,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 Seq.new(class :: does SlippyIterator {
                     has &!block;
                     has $!source;
+                    has $!label;
 
-                    method new(&block, $source) {
+                    method new(&block,$source,$label) {
                         my $iter := nqp::create(self);
                         nqp::bindattr($iter, self, '&!block', &block);
                         nqp::bindattr($iter, self, '$!source', $source);
+                        nqp::bindattr($iter, self, '$!label', nqp::decont($label));
                         $iter
                     }
 
@@ -261,6 +262,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                     )
                                   )
                                 ),
+                                'LABELED', $!label,
                                 'NEXT', (nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
                                           ?? ($result := IterationEnd)
                                           !! ($redo = 1)),
@@ -290,6 +292,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                     $redo = 0,
                                     nqp::handle(
                                       ($no-sink := &!block($value)),
+                                      'LABELED', $!label,
                                       'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
                                                 ?? ($running = 0)
                                                 !! ($redo = 1)),
@@ -302,7 +305,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         }
                         IterationEnd
                     }
-                }.new(&block, source))
+                }.new(&block,source,$label))
             }
         }
 

@@ -70,9 +70,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     has &!block;
                     has $!source;
                     has $!label;
-                    has $!NEXT;
-                    has int $!did-init;
-                    has int $!did-iterate;
+                    has Int $!NEXT;         # SHOULD BE int
+                    has Int $!did-init;     # SHOULD BE int
+                    has Int $!did-iterate;  # SHOULD BE int
 
                     method new(&block, $source, $label) {
                         my $iter := nqp::create(self);
@@ -98,7 +98,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             &!block.has-phaser('FIRST'),
                             nqp::p6setfirstflag(&!block)
                           );
-                        ) if nqp::not_i($!did-init);
+                        ) unless $!did-init;
 
                         if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                             # $result will be returned at the end
@@ -159,7 +159,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             &!block.has-phaser('FIRST'),
                             nqp::p6setfirstflag(&!block)
                           );
-                        ) if nqp::not_i($!did-init);
+                        ) unless $!did-init;
 
                         my $no-sink;
                         my int $redo;

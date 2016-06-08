@@ -30,16 +30,16 @@ sub RETURN-LIST(Mu \list) is raw {
             !! list)
 }
 
-my &return-rw := -> | {
+sub return-rw(|) {
     my $list := RETURN-LIST(nqp::p6argvmarray());
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
     $list;
-};
-my &return := -> | {
+}
+sub return(|) {
     my $list := RETURN-LIST(nqp::p6argvmarray());
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list));
     $list;
-};
+}
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm

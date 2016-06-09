@@ -478,14 +478,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method push-all($target) {
-                my $no-sink;
-                until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    $!index = $!index + 1;
-                    if $!test($_) {
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::stmts(
+                    $!index = nqp::add_i($!index,1);
+                    nqp::if(
+                      $!test($_),
+                      nqp::stmts(  # doesn't sink
                         $target.push(nqp::p6box_i($!index));
-                        $no-sink := $target.push($_);
-                    }
-                }
+                        $target.push($_);
+                      )
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))
@@ -532,14 +537,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-regex(Regex:D $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                  || $_.match($!test);
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                    || $_.match($!test),
+                  Nil
+                );
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $_.match($!test)
-                  until ($_ := $!iter.pull-one) =:= IterationEnd;
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    $_.match($!test),
+                    $target.push($_)
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))
@@ -550,19 +562,28 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
-                         Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                           || $!test($_);
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                             || $!test($_),
+                           Nil
+                         );
                          $_
                      }
                      method push-all($target) {
-                         my $no-sink;
-                         $no-sink := $target.push($_) if $!test($_)
-                           until ($_ := $!iter.pull-one) =:= IterationEnd;
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           nqp::if(  # doesn't sink
+                             $!test($_),
+                             $target.push($_)
+                           )
+                         );
                          IterationEnd
                      }
                      method sink-all() {
-                         $!test($_)
-                           until ($_ := $!iter.pull-one) =:= IterationEnd;
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           $!test($_)
+                         );
                          IterationEnd
                      }
                  }.new(self, $test))
@@ -594,14 +615,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-accepts(Mu $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                  || $!test.ACCEPTS($_);
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                    || $!test.ACCEPTS($_),
+                  Nil
+                );
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $!test.ACCEPTS($_)
-                  until ($_ := $!iter.pull-one) =:= IterationEnd;
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    $!test.ACCEPTS($_),
+                    $target.push($_)
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))

@@ -339,7 +339,7 @@ sub GATHER(&block) {
                             iter!start-slip-wanted($taken),
                             ($wanted = nqp::getattr_i(iter, self, '$!wanted'))),
                         nqp::stmts(
-                            (my $no-sink := nqp::getattr(iter, self, '$!push-target').push($taken)),
+                            nqp::getattr(iter, self, '$!push-target').push($taken),
                             ($wanted = nqp::bindattr_i(iter, self, '$!wanted',
                                 nqp::sub_i(nqp::getattr_i(iter, self, '$!wanted'), 1))))),
                     nqp::if(nqp::iseq_i($wanted, 0),
@@ -350,7 +350,7 @@ sub GATHER(&block) {
                 )
             }
             nqp::bindattr(iter, self, '&!resumption', {
-                my $no-sink := nqp::handle(&block(), 'TAKE', $taker());
+                nqp::handle(&block(), 'TAKE', $taker());
                 nqp::continuationcontrol(0, PROMPT, -> | {
                     nqp::bindattr(iter, self, '&!resumption', Callable)
                 });
@@ -394,12 +394,12 @@ sub GATHER(&block) {
         method !start-slip-wanted(\slip) {
             my $value := self.start-slip(slip);
             unless $value =:= IterationEnd {
-                my $no-sink := $!push-target.push($value);
+                $!push-target.push($value);
                 my int $i = 1;
                 my int $n = $!wanted;
                 while $i < $n {
                     last if ($value := self.slip-one()) =:= IterationEnd;
-                    $no-sink := $!push-target.push($value);
+                    $!push-target.push($value);
                     $i = $i + 1;
                 }
                 $!wanted = $!wanted - $i;
@@ -410,10 +410,9 @@ sub GATHER(&block) {
             my int $i = 0;
             my int $n = $!wanted;
             my $value;
-            my $no-sink;
             while $i < $n {
                 last if ($value := self.slip-one()) =:= IterationEnd;
-                $no-sink := $!push-target.push($value);
+                $!push-target.push($value);
                 $i = $i + 1;
             }
             $!wanted = $!wanted - $i;

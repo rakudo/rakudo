@@ -93,10 +93,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 }
             }
             method push-all($target) {
-                my $no-sink;
                 while $!iter {
                     my \tmp = nqp::shift($!iter);
-                    $no-sink := $target.push(
+                    $target.push(
                       Pair.new(nqp::iterkey_s(tmp), nqp::iterval(tmp)));
                 }
                 IterationEnd
@@ -111,9 +110,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink :=
-                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
+                $target.push(nqp::iterkey_s(nqp::shift($!iter)))
                     while $!iter;
                 IterationEnd
             }
@@ -133,11 +130,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
 
                 STATEMENT_LIST(
-                  $no-sink := $target.push(nqp::iterkey_s(nqp::shift($!iter)));
-                  $no-sink := $target.push(nqp::iterval($!iter))
+                  $target.push(nqp::iterkey_s(nqp::shift($!iter)));
+                  $target.push(nqp::iterval($!iter))
                 ) while $!iter;
 
                 IterationEnd
@@ -152,8 +148,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
+                $target.push(nqp::iterval(nqp::shift($!iter)))
                   while $!iter;
                 IterationEnd
             }
@@ -171,10 +166,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 }
             }
             method push-all($target) {
-                my $no-sink;
                 while $!iter {
                     my \tmp = nqp::shift($!iter);
-                    $no-sink := $target.push(
+                    $target.push(
                       Pair.new( nqp::iterval(tmp), nqp::iterkey_s(tmp) ));
                 }
                 IterationEnd

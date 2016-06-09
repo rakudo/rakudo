@@ -297,8 +297,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $elems = +@things;  # reify
         my int $i     = -1;
         my $reified  := nqp::getattr(@things,List,'$!reified');
-        my $no-sink;
-        $no-sink := nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
+        nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
           while nqp::islt_i($i = nqp::add_i($i,1),$elems);
         list
     }
@@ -433,8 +432,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method push-until-lazy($target) {
                     if $!todo.DEFINITE {
                         my int $elems = $!todo.reify-until-lazy;
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                        $target.push(nqp::atpos($!reified,$!i))
                           while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                         $!todo.fully-reified
                           ?? self!done
@@ -442,8 +440,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                        $target.push(nqp::atpos($!reified,$!i))
                           while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                         IterationEnd
                     }
@@ -475,8 +472,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
                 method push-all($target) {
                     my int $elems = nqp::elems($!reified);
-                    my $no-sink;
-                    $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                    $target.push(nqp::atpos($!reified,$!i))
                       while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                     IterationEnd
                 }
@@ -790,10 +786,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my int $i;
-                my $no-sink;
                 while $!number {
-                    $no-sink :=
-                      $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
+                    $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
                     nqp::bindpos(
                       $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
                     $!number = $!number - 1;

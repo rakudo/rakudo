@@ -90,8 +90,7 @@ my class Array { # declared in BOOTSTRAP
                 method push-until-lazy($target) {
                     if $!todo.DEFINITE {
                         my int $elems = $!todo.reify-until-lazy;
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
+                        $target.push(nqp::atpos($!reified,$!i))
                           while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
                         $!todo.fully-reified
                           ?? self!done
@@ -99,8 +98,7 @@ my class Array { # declared in BOOTSTRAP
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
-                        my $no-sink;
-                        $no-sink := $target.push(
+                        $target.push(
                           nqp::ifnull(
                             nqp::atpos($!reified,$!i),
                             nqp::p6bindattrinvres(
@@ -150,8 +148,7 @@ my class Array { # declared in BOOTSTRAP
 
                 method push-all($target) {
                     my int $elems = nqp::elems($!reified);
-                    my $no-sink;
-                    $no-sink := $target.push(nqp::ifnull(
+                    $target.push(nqp::ifnull(
                       nqp::atpos($!reified,$!i),
                       nqp::p6bindattrinvres(
                         (my \v := nqp::p6scalarfromdesc($!descriptor)),

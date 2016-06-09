@@ -161,7 +161,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                           );
                         ) unless $!did-init;
 
-                        my $no-sink;
                         my int $redo;
                         my int $running = 1;
                         my $value;
@@ -182,7 +181,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                        $redo = 0,
                                        nqp::handle(
                                          nqp::stmts(
-                                           ($no-sink := &!block($value)),
+                                           &!block($value),
                                            ($!did-iterate = 1),
                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                          ),
@@ -480,12 +479,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method push-all($target) {
-                my $no-sink;
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
                     if $!test($_) {
                         $target.push(nqp::p6box_i($!index));
-                        $no-sink := $target.push($_);
+                        $target.push($_);
                     }
                 }
                 IterationEnd
@@ -539,8 +537,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $_.match($!test)
+                $target.push($_) if $_.match($!test)
                   until ($_ := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
@@ -557,8 +554,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                          $_
                      }
                      method push-all($target) {
-                         my $no-sink;
-                         $no-sink := $target.push($_) if $!test($_)
+                         $target.push($_) if $!test($_)
                            until ($_ := $!iter.pull-one) =:= IterationEnd;
                          IterationEnd
                      }
@@ -601,8 +597,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $!test.ACCEPTS($_)
+                $target.push($_) if $!test.ACCEPTS($_)
                   until ($_ := $!iter.pull-one) =:= IterationEnd;
                 IterationEnd
             }
@@ -1043,12 +1038,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s($value.WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
+                        $target.push($value);
                     }
                 }
                 IterationEnd
@@ -1092,12 +1086,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     unless nqp::existskey($!seen, $needle) {
                         nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
+                        $target.push($value);
                     }
                 }
                 IterationEnd
@@ -1143,11 +1136,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s($value.WHICH);
                     nqp::existskey($!seen, $needle)
-                      ?? ($no-sink := $target.push($value))
+                      ?? $target.push($value)
                       !! nqp::bindkey($!seen, $needle, 1);
                 }
                 IterationEnd
@@ -1189,11 +1181,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
                 until ($value := $!iter.pull-one) =:= IterationEnd {
                     $needle = nqp::unbox_s(&!as($value).WHICH);
                     nqp::existskey($!seen, $needle)
-                      ?? ($no-sink := $target.push($value))
+                      ?? $target.push($value)
                       !! nqp::bindkey($!seen, $needle, 1);
                 }
                 IterationEnd
@@ -1251,9 +1242,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 unless $value =:= IterationEnd {
                     my $which;
                     my $last_as := $!last_as;
-                    my $no-sink;
                     if $!first {
-                        $no-sink := $target.push($value);
+                        $target.push($value);
                         $which := &!as($value);
                         $last_as := $which;
                         $value := $!iter.pull-one;
@@ -1261,7 +1251,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     until IterationEnd =:= $value {
                         $which := &!as($value);
                         unless with($last_as, $which) {
-                            $no-sink := $target.push($value);
+                            $target.push($value);
                         }
                         $last_as := $which;
                         $value := $!iter.pull-one;
@@ -1305,15 +1295,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 my Mu $value := $!iter.pull-one;
                 unless $value =:= IterationEnd {
                     my $last_val = $!last;
-                    my $no-sink;
                     if $!first {
-                        $no-sink := $target.push($value);
+                        $target.push($value);
                         $last_val := $value;
                         $value := $!iter.pull-one;
                     }
                     until IterationEnd =:= $value {
                         unless with($last_val, $value) {
-                            $no-sink := $target.push($value);
+                            $target.push($value);
                         }
                         $last_val := $value;
                         $value := $!iter.pull-one;

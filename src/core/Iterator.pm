@@ -19,14 +19,14 @@ my role Iterator {
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
         my $pulled;
-        my $no-sink;
         my int $i = -1;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          while nqp::islt_i($i = nqp::add_i($i,1),$n)
-            && nqp::not_i(nqp::eqaddr(($pulled := self.pull-one),IterationEnd));
-
+        nqp::while(  # doesn't sink
+          nqp::islt_i($i = nqp::add_i($i,1),$n)
+            && nqp::not_i(nqp::eqaddr(($pulled := self.pull-one),IterationEnd)),
+          $target.push($pulled)
+        );
         nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $i
     }
 
@@ -46,11 +46,12 @@ my role Iterator {
     # sufficient; you needn't override this. Returns IterationEnd.
     method push-all($target) {
         my $pulled;
-        my $no-sink;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          until nqp::eqaddr(($pulled := self.pull-one),IterationEnd);
+        nqp::until(
+          nqp::eqaddr(($pulled := self.pull-one),IterationEnd),
+          $target.push($pulled)
+        );
         IterationEnd
     }
 
@@ -74,7 +75,10 @@ my role Iterator {
     # lines.
     method count-only() {
         my int $i = 0;
-        $i = nqp::add_i($i,1) until nqp::eqaddr(self.pull-one,IterationEnd);
+        nqp::until(
+          nqp::eqaddr(self.pull-one,IterationEnd),
+          $i = nqp::add_i($i,1)
+        );
         $i
     }
 
@@ -91,7 +95,10 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all() {
-        Nil until nqp::eqaddr(self.pull-one,IterationEnd);
+        nqp::until(
+          nqp::eqaddr(self.pull-one,IterationEnd),
+          Nil
+        );
         IterationEnd
     }
 

@@ -1057,26 +1057,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        return $value;
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen, $needle, 1),
+                      return $value
+                    )
+                  )
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
+                    nqp::stmts(  # doesn't sink
+                      nqp::bindkey($!seen, $needle, 1),
+                      $target.push($value)
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self))
@@ -1106,26 +1111,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        return $value;
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen, $needle, 1),
+                      return $value
+                    )
+                  )
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::stmts(  # doesn't sink
+                      nqp::bindkey($!seen, $needle, 1),
+                      $target.push($value)
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self, &as))

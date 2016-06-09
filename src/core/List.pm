@@ -135,7 +135,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                           ) =:= IterationEnd;
                     }
                     else {
-                        my $no-sink := $!reification-target.push(current);
+                        nqp::stmts(  # doesn't sink
+                          $!reification-target.push(current);
+                        );
                     }
                 }
 
@@ -297,9 +299,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my int $elems = +@things;  # reify
         my int $i     = -1;
         my $reified  := nqp::getattr(@things,List,'$!reified');
-        my $no-sink;
-        $no-sink := nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
-          while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+
+        nqp::while(  # doesn't sink
+          nqp::islt_i($i = nqp::add_i($i,1),$elems),
+          nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
+        );
         list
     }
 
@@ -433,18 +437,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method push-until-lazy($target) {
                     if $!todo.DEFINITE {
                         my int $elems = $!todo.reify-until-lazy;
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
-                          while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        nqp::while(  # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(nqp::atpos($!reified,$!i))
+                        );
                         $!todo.fully-reified
                           ?? self!done
                           !! STATEMENT_LIST($!i = $elems - 1; Mu)
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
-                          while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        nqp::while(  # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(nqp::atpos($!reified,$!i))
+                        );
                         IterationEnd
                     }
                 }
@@ -475,9 +481,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
                 method push-all($target) {
                     my int $elems = nqp::elems($!reified);
-                    my $no-sink;
-                    $no-sink := $target.push(nqp::atpos($!reified,$!i))
-                      while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                    nqp::while(
+                      nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                      $target.push(nqp::atpos($!reified,$!i))
+                    );
                     IterationEnd
                 }
             }.new(self)

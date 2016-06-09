@@ -90,27 +90,30 @@ my class Array { # declared in BOOTSTRAP
                 method push-until-lazy($target) {
                     if $!todo.DEFINITE {
                         my int $elems = $!todo.reify-until-lazy;
-                        my $no-sink;
-                        $no-sink := $target.push(nqp::atpos($!reified,$!i))
-                          while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        nqp::while(   # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(nqp::atpos($!reified,$!i))
+                        );
                         $!todo.fully-reified
                           ?? self!done
                           !! STATEMENT_LIST($!i = $elems - 1; Mu)
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
-                        my $no-sink;
-                        $no-sink := $target.push(
-                          nqp::ifnull(
-                            nqp::atpos($!reified,$!i),
-                            nqp::p6bindattrinvres(
-                              (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                              Scalar,
-                              '$!whence',
-                              -> { nqp::bindpos($!reified,$!i,v) }
+                        nqp::while(   # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(
+                            nqp::ifnull(
+                              nqp::atpos($!reified,$!i),
+                              nqp::p6bindattrinvres(
+                                (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                                Scalar,
+                                '$!whence',
+                                -> { nqp::bindpos($!reified,$!i,v) }
+                              )
                             )
                           )
-                        ) while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                        );
                         IterationEnd
                     }
                 }
@@ -150,16 +153,18 @@ my class Array { # declared in BOOTSTRAP
 
                 method push-all($target) {
                     my int $elems = nqp::elems($!reified);
-                    my $no-sink;
-                    $no-sink := $target.push(nqp::ifnull(
-                      nqp::atpos($!reified,$!i),
-                      nqp::p6bindattrinvres(
-                        (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                        Scalar,
-                        '$!whence',
-                        -> { nqp::bindpos($!reified,$!i,v) }
-                      )
-                    )) while nqp::islt_i($!i = nqp::add_i($!i,1),$elems);
+                    nqp::while(   # doesn't sink
+                      nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                      $target.push(nqp::ifnull(
+                        nqp::atpos($!reified,$!i),
+                        nqp::p6bindattrinvres(
+                          (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                          Scalar,
+                          '$!whence',
+                          -> { nqp::bindpos($!reified,$!i,v) }
+                        )
+                      ))
+                    );
                     IterationEnd
                 }
             }.new(self)

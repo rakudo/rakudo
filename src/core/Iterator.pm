@@ -24,12 +24,10 @@ my role Iterator {
 
         # we may not .sink $pulled here, since it can be a Seq
         $no-sink := $target.push($pulled)
-          while nqp::islt_i(++$i,$n)
-            && !(IterationEnd =:= ($pulled := self.pull-one));
+          while nqp::islt_i($i = nqp::add_i($i,1),$n)
+            && nqp::not_i(nqp::eqaddr(($pulled := self.pull-one),IterationEnd));
 
-        $pulled =:= IterationEnd
-            ?? IterationEnd
-            !! $i
+        nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $i
     }
 
     # Has the iteration push at least a certain number of values into the
@@ -52,7 +50,7 @@ my role Iterator {
 
         # we may not .sink $pulled here, since it can be a Seq
         $no-sink := $target.push($pulled)
-          until IterationEnd =:= ($pulled := self.pull-one);
+          until nqp::eqaddr(($pulled := self.pull-one),IterationEnd);
         IterationEnd
     }
 
@@ -76,7 +74,7 @@ my role Iterator {
     # lines.
     method count-only() {
         my int $i = 0;
-        ++$i until self.pull-one() =:= IterationEnd;
+        $i = nqp::add_i($i,1) until nqp::eqaddr(self.pull-one,IterationEnd);
         $i
     }
 
@@ -85,7 +83,7 @@ my role Iterator {
     # if "foo".IO.lines { , where we're only interested whether there is *any*
     # line in the file, rather than the content of the line.
     method bool-only() {
-        !(self.pull-one() =:= IterationEnd)
+        nqp::p6bool(nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd)))
     }
 
     # Consumes all of the values in the iterator for their side-effects only.
@@ -93,7 +91,7 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all() {
-        until self.pull-one() =:= IterationEnd { }
+        Nil until nqp::eqaddr(self.pull-one,IterationEnd);
         IterationEnd
     }
 

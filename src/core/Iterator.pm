@@ -19,11 +19,10 @@ my role Iterator {
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
         my $pulled;
-        my $no-sink;
         my int $i = -1;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
+        $target.push($pulled)
           while nqp::islt_i(++$i,$n)
             && !(IterationEnd =:= ($pulled := self.pull-one));
 
@@ -48,10 +47,9 @@ my role Iterator {
     # sufficient; you needn't override this. Returns IterationEnd.
     method push-all($target) {
         my $pulled;
-        my $no-sink;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
+        $target.push($pulled)
           until IterationEnd =:= ($pulled := self.pull-one);
         IterationEnd
     }

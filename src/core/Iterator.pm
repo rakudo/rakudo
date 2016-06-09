@@ -76,7 +76,7 @@ my role Iterator {
     method count-only() {
         my int $i = 0;
         nqp::until(
-          nqp::eqaddr(self.pull-one,IterationEnd),
+          self.pull-one =:= IterationEnd, # temporary fix for RT #128357
           $i = nqp::add_i($i,1)
         );
         $i

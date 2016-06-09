@@ -161,7 +161,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                           );
                         ) unless $!did-init;
 
-                        my $no-sink;
                         my int $redo;
                         my int $running = 1;
                         my $value;
@@ -182,7 +181,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                        $redo = 0,
                                        nqp::handle(
                                          nqp::stmts(
-                                           ($no-sink := &!block($value)),
+                                           &!block($value),
                                            ($!did-iterate = 1),
                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                          ),

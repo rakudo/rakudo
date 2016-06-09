@@ -1265,7 +1265,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $which := &!as($value);
                     if $!first {
                         $!first = 0;
@@ -1282,24 +1282,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $which;
                     my $last_as := $!last_as;
-                    my $no-sink;
-                    if $!first {
-                        $no-sink := $target.push($value);
-                        $which := &!as($value);
-                        $last_as := $which;
-                        $value := $!iter.pull-one;
-                    }
-                    until IterationEnd =:= $value {
-                        $which := &!as($value);
-                        unless with($last_as, $which) {
-                            $no-sink := $target.push($value);
-                        }
-                        $last_as := $which;
-                        $value := $!iter.pull-one;
-                    }
+                    nqp::if(
+                      $!first,
+                      nqp::stmts(  # doesn't sink
+                        ($target.push($value)),
+                        ($which := &!as($value)),
+                        ($last_as := $which),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
+                    nqp::until(
+                      nqp::eqaddr($value,IterationEnd),
+                      nqp::stmts(
+                        nqp::unless(  # doesn't sink
+                          with($last_as,$which := &!as($value)),
+                          $target.push($value)
+                        ),
+                        ($last_as := $which),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
                 }
                 IterationEnd
             }
@@ -1319,7 +1324,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     if $!first {
                         $!first = 0;
                     }
@@ -1337,21 +1342,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $last_val = $!last;
-                    my $no-sink;
-                    if $!first {
-                        $no-sink := $target.push($value);
-                        $last_val := $value;
-                        $value := $!iter.pull-one;
-                    }
-                    until IterationEnd =:= $value {
-                        unless with($last_val, $value) {
-                            $no-sink := $target.push($value);
-                        }
-                        $last_val := $value;
-                        $value := $!iter.pull-one;
-                    }
+                    nqp::if(
+                      $!first,
+                      nqp::stmts(  # doesn't sink
+                        ($target.push($value)),
+                        ($last_val := $value),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
+                    nqp::until(
+                      nqp::eqaddr($value,IterationEnd),
+                      nqp::stmts(
+                        nqp::unless(  # doesn't sink
+                          with($last_val, $value),
+                          $target.push($value)
+                        ),
+                        ($last_val := $value),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
                 }
                 IterationEnd
             }

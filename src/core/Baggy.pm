@@ -158,9 +158,10 @@ my role Baggy does QuantHash {
                   !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
-                  while $!iter;
+                nqp::while(  # doesn't sink
+                  $!iter,
+                  $target.push(nqp::iterval(nqp::shift($!iter)))
+                );
                 IterationEnd
             }
         }.new(%!elems))
@@ -173,10 +174,10 @@ my role Baggy does QuantHash {
                   !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink :=
+                nqp::while(
+                  $!iter,
                   $target.push(nqp::iterval(nqp::shift($!iter)).key)
-                    while $!iter;
+                );
                 IterationEnd
             }
         }.new(%!elems))
@@ -201,13 +202,15 @@ my role Baggy does QuantHash {
                 }
             }
             method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp =
-                      nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!key'));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                }
+                my $tmp;
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                    ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
+                    ($target.push(nqp::getattr($tmp,Pair,'$!value')))
+                  )
+                );
                 IterationEnd
             }
         }.new(%!elems))
@@ -221,10 +224,11 @@ my role Baggy does QuantHash {
                     !! IterationEnd
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push(nqp::getattr(nqp::decont(
-                  nqp::iterval(nqp::shift($!iter))),Pair,'$!value'
-                )) while $!iter;
+                nqp::while(  # doesn't sink
+                  $!iter,
+                  $target.push(nqp::getattr(nqp::decont(
+                    nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
+                );
                 IterationEnd
             }
         }.new(%!elems))
@@ -241,11 +245,14 @@ my role Baggy does QuantHash {
                 }
             }
             method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $no-sink := $target.push(Pair.new(tmp.value, tmp.key));
-                }
+                my $tmp;
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    ($tmp := nqp::iterval(nqp::shift($!iter))),
+                    ($target.push(Pair.new($tmp.value,$tmp.key)))
+                  )
+                );
                 IterationEnd
             }
         }.new(%!elems))
@@ -272,13 +279,19 @@ my role Baggy does QuantHash {
                 }
             }
             method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $!key  := tmp.key;
-                    $!times = tmp.value + 1;
-                    $no-sink := $target.push($!key) while $!times = $!times - 1;
-                }
+                my $tmp;
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    ($tmp   := nqp::iterval(nqp::shift($!iter))),
+                    ($!key  := $tmp.key),
+                    ($!times = nqp::add_i($tmp.value,1)),
+                    nqp::while(
+                      ($!times = nqp::sub_i($!times,1)),
+                      ($target.push($!key))
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(%!elems))

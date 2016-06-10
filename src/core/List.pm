@@ -776,19 +776,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
             method !SET-SELF(\list,$!elems,\number) {
                 $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
-                $!number = number;
+                $!number = number + 1;
                 self
             }
             method new(\list,\elems,\number) {
                 nqp::create(self)!SET-SELF(list,elems,number)
             }
             method pull-one() {
-                my int $i;
-                if $!number {
+                if ($!number = nqp::sub_i($!number,1)) {
+                    my int $i;
                     my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
-                    nqp::bindpos(
-                      $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
-                    $!number = $!number - 1;
+                    nqp::bindpos($!list,$i,
+                      nqp::atpos($!list,nqp::unbox_i(--$!elems))
+                    );
                     tmp
                 }
                 else {
@@ -797,14 +797,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             }
             method push-all($target) {
                 my int $i;
-                my $no-sink;
-                while $!number {
-                    $no-sink :=
-                      $target.push(nqp::atpos($!list,$i = $!elems.rand.floor));
-                    nqp::bindpos(
-                      $!list,$i,nqp::atpos($!list,nqp::unbox_i(--$!elems)));
-                    $!number = $!number - 1;
-                }
+                nqp::while(
+                  ($!number = nqp::sub_i($!number,1)),
+                  nqp::stmts(  # doesn't sink
+                    ($target.push(nqp::atpos($!list,$i = $!elems.rand.floor))),
+                    (nqp::bindpos($!list,$i,
+                      nqp::atpos($!list,nqp::unbox_i(--$!elems))))
+                  )
+                );
                 IterationEnd
             }
         }.new(self,$elems,$number))

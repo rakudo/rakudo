@@ -160,7 +160,7 @@ sub emit(\value) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
 }
 sub done() {
-    THROW(nqp::const::CONTROL_DONE, Nil);
+    THROW-NIL(nqp::const::CONTROL_DONE);
 }
 
 proto sub die(|) {*};

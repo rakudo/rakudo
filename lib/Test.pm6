@@ -198,7 +198,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
         $ok = proclaim(?$matcher($got,$expected), $desc);
         if !$ok {
             diag "expected: '{$expected // $expected.^name}'";
-            diag " matcher: '$matcher'";
+            diag " matcher: '{$matcher.?name || $matcher.^name}'";
             diag "     got: '$got'";
         }
     }
@@ -302,7 +302,6 @@ sub subtest($first, $second?) is export {
         ( &subtests, $desc ) = $first, $second // '';
     }
 
-    diag($desc) if $desc;
     _push_vars();
     _init_vars();
     $indents ~= "    ";

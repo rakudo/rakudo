@@ -471,16 +471,17 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method Capture() {
-        my %attrs;
+        my $attrs := nqp::hash;
         for self.^attributes.flat -> $attr {
             if $attr.has_accessor {
-                my $name = substr($attr.name,2);
-                unless %attrs.EXISTS-KEY($name) {
-                    %attrs{$name} = self."$name"();
-                }
+                my str $name = substr($attr.name,2);
+                nqp::bindkey($attrs,$name,self."$name"())
+                  unless nqp::existskey($attrs,$name);
             }
         }
-        %attrs.Capture
+        my $capture := nqp::create(Capture);
+        nqp::bindattr($capture,Capture,'$!hash',$attrs) if nqp::elems($attrs);
+        $capture
     }
 
     # XXX TODO: Handle positional case.

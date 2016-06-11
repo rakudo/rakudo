@@ -97,8 +97,9 @@ my class Match is Capture is Cool {
 }
 
 multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+    $a =:= $b
+    ||
     [&&] (
-	$a 	=:= $b,
         $a.to   eqv $b.to,
         $a.from eqv $b.from,
         $a.orig eqv $b.orig,

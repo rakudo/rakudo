@@ -277,7 +277,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
 }
 multi sub infix:<%>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0
-    nqp::mod_i($a, $b)
+    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
 
 multi sub infix:<**>(Int:D \a, Int:D \b) {

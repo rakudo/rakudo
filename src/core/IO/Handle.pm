@@ -178,7 +178,7 @@ my class IO::Handle does IO {
                 STATEMENT_LIST(
                   $target.push(nqp::p6box_s($str));
                   $str = $!handle.readchars($!size)
-                ) while nqp::iseq_i(nqp::chars($str),$size);
+                ) while nqp::iseq_i(nqp::chars($str),$!size);
                 $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
                 IterationEnd
@@ -187,7 +187,7 @@ my class IO::Handle does IO {
                 my int $found;
                 my str $str = $!handle.readchars($!size);
                 STATEMENT_LIST(++$found; $str = $!handle.readchars($!size))
-                  while nqp::chars($str) == $size;
+                  while nqp::chars($str) == $!size;
                 ++$found if nqp::chars($str);
                 $!handle.close if $!close;
                 nqp::p6box_i($found)

@@ -136,7 +136,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
     method keyof() {
-        Any
+        Str(Any)
     }
     method of() {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of

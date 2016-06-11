@@ -19,17 +19,15 @@ my role Iterator {
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
         my $pulled;
-        my $no-sink;
         my int $i = -1;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          while nqp::islt_i(++$i,$n)
-            && !(IterationEnd =:= ($pulled := self.pull-one));
-
-        $pulled =:= IterationEnd
-            ?? IterationEnd
-            !! $i
+        nqp::while(  # doesn't sink
+          nqp::islt_i($i = nqp::add_i($i,1),$n)
+            && nqp::not_i(nqp::eqaddr(($pulled := self.pull-one),IterationEnd)),
+          $target.push($pulled)
+        );
+        nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $i
     }
 
     # Has the iteration push at least a certain number of values into the
@@ -48,11 +46,12 @@ my role Iterator {
     # sufficient; you needn't override this. Returns IterationEnd.
     method push-all($target) {
         my $pulled;
-        my $no-sink;
 
         # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          until IterationEnd =:= ($pulled := self.pull-one);
+        nqp::until(  # doesn't sink
+          nqp::eqaddr(($pulled := self.pull-one),IterationEnd),
+          $target.push($pulled)
+        );
         IterationEnd
     }
 
@@ -76,7 +75,10 @@ my role Iterator {
     # lines.
     method count-only() {
         my int $i = 0;
-        ++$i until self.pull-one() =:= IterationEnd;
+        nqp::until(
+          self.pull-one =:= IterationEnd, # temporary fix for RT #128357
+          $i = nqp::add_i($i,1)
+        );
         $i
     }
 
@@ -85,7 +87,7 @@ my role Iterator {
     # if "foo".IO.lines { , where we're only interested whether there is *any*
     # line in the file, rather than the content of the line.
     method bool-only() {
-        !(self.pull-one() =:= IterationEnd)
+        nqp::p6bool(nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd)))
     }
 
     # Consumes all of the values in the iterator for their side-effects only.
@@ -93,7 +95,10 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all() {
-        until self.pull-one() =:= IterationEnd { }
+        nqp::until(
+          nqp::eqaddr(self.pull-one,IterationEnd),
+          Nil
+        );
         IterationEnd
     }
 

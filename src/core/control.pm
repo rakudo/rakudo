@@ -251,10 +251,6 @@ multi sub EVALFILE($filename, :$lang = 'perl6') {
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
-sub EXHAUST(|) {
-    X::ControlFlow::Return.new.throw();
-}
-
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     my Mu $clone := nqp::hash();
     my Mu $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));

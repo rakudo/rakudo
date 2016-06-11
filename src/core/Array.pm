@@ -40,6 +40,141 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
+    method iterator(Array:D:) {
+
+        # something to iterate over in the future
+        if nqp::getattr(self,List,'$!todo').DEFINITE {
+            self!ensure-allocated;
+            class :: does Iterator {
+                has int $!i;
+                has $!array;
+                has $!reified;
+                has $!todo;
+                has $!descriptor;
+
+                method !SET-SELF(\array) {
+                    $!i           = -1;
+                    $!array      := array;
+                    $!reified    := nqp::getattr(array, List,  '$!reified');
+                    $!todo       := nqp::getattr(array, List,  '$!todo');
+                    $!descriptor := nqp::getattr(array, Array, '$!descriptor');
+                    self
+                }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+                method pull-one() is raw {
+                    nqp::ifnull(
+                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                      nqp::islt_i($!i,nqp::elems($!reified))
+                        ?? self!found-hole
+                        !! $!todo.DEFINITE
+                          ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
+                            ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
+                            !! self!done
+                          !! IterationEnd
+                    )
+                }
+                method !found-hole() {
+                   nqp::p6bindattrinvres(
+                     (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                     Scalar,
+                     '$!whence',
+                     -> { nqp::bindpos($!reified,$!i,v) }
+                   )
+                }
+                method !done() is raw {
+                    $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
+                    IterationEnd
+                }
+
+                method push-until-lazy($target) {
+                    if $!todo.DEFINITE {
+                        my int $elems = $!todo.reify-until-lazy;
+                        nqp::while(   # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(nqp::atpos($!reified,$!i))
+                        );
+                        $!todo.fully-reified
+                          ?? self!done
+                          !! STATEMENT_LIST($!i = $elems - 1; Mu)
+                    }
+                    else {
+                        my int $elems = nqp::elems($!reified);
+                        nqp::while(   # doesn't sink
+                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          $target.push(
+                            nqp::ifnull(
+                              nqp::atpos($!reified,$!i),
+                              nqp::p6bindattrinvres(
+                                (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                                Scalar,
+                                '$!whence',
+                                -> { nqp::bindpos($!reified,$!i,v) }
+                              )
+                            )
+                          )
+                        );
+                        IterationEnd
+                    }
+                }
+
+                method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+            }.new(self)
+        }
+
+        # everything we need is already there
+        elsif nqp::getattr(self,List,'$!reified').DEFINITE {
+            class :: does Iterator {
+                has int $!i;
+                has $!reified;
+                has $!descriptor;
+
+                method !SET-SELF(\array) {
+                    $!i           = -1;
+                    $!reified    := nqp::getattr(array, List,  '$!reified');
+                    $!descriptor := nqp::getattr(array, Array, '$!descriptor');
+                    self
+                }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+                method pull-one() is raw {
+                    nqp::ifnull(
+                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                      nqp::islt_i($!i,nqp::elems($!reified)) # found a hole
+                        ?? nqp::p6bindattrinvres(
+                             (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                             Scalar,
+                             '$!whence',
+                             -> { nqp::bindpos($!reified,$!i,v) }
+                           )
+                        !! IterationEnd
+                    )
+                }
+
+                method push-all($target) {
+                    my int $elems = nqp::elems($!reified);
+                    nqp::while(   # doesn't sink
+                      nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                      $target.push(nqp::ifnull(
+                        nqp::atpos($!reified,$!i),
+                        nqp::p6bindattrinvres(
+                          (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                          Scalar,
+                          '$!whence',
+                          -> { nqp::bindpos($!reified,$!i,v) }
+                        )
+                      ))
+                    );
+                    IterationEnd
+                }
+            }.new(self)
+        }
+
+        # nothing now or in the future to iterate over
+        else {
+            Rakudo::Internals.EmptyIterator
+        }
+    }
     method from-iterator(Array:U: Iterator $iter) {
         my \result := nqp::create(self);
         my \buffer := nqp::create(IterationBuffer);
@@ -298,15 +433,13 @@ my class Array { # declared in BOOTSTRAP
 
     method is-lazy() {
         my $todo := nqp::getattr(self, List, '$!todo');
-        if $todo.DEFINITE {
-            $todo.reify-until-lazy();
-            $todo.fully-reified
-              ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
-              !! True
-        }
-        else {
-            False
-        }
+        $todo.DEFINITE
+          && STATEMENT_LIST(
+               $todo.reify-until-lazy;
+               $todo.fully-reified
+                 ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
+                 !! True
+             )
     }
 
     proto method STORE(|) { * }

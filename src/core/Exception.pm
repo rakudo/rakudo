@@ -2215,7 +2215,7 @@ my class X::Multi::NoMatch is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
-            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            "Cannot resolve caller $.dispatcher.name()$cap; none of these signatures match:",
             @cand;
     }
 }

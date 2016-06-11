@@ -28,6 +28,17 @@ class Perl6::Metamodel::CoercionHOW
         }
     }
 
+    method shortname($coercion_type) {
+        if nqp::isnull(nqp::typeparameterized($coercion_type)) {
+            '?(?)'
+        }
+        else {
+            my $target := nqp::typeparameterat($coercion_type, 0);
+            my $constraint := nqp::typeparameterat($coercion_type, 1);
+            $target.HOW.shortname($target) ~ '(' ~ $constraint.HOW.shortname($constraint) ~ ')'
+        }
+    }
+
     sub check_instantiated($coercion_type) {
         nqp::die('Cannot perform this operation on an uninstantiated coercion type')
             if nqp::isnull(nqp::typeparameterized($coercion_type));

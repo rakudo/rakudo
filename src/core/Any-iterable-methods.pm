@@ -58,25 +58,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    my role MapIterCommon does SlippyIterator {
-        has &!block;
-        has $!source;
-        has $!count;
-        has $!label;
-
-        method new(&block, $source, $count, $label) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!count', $count);
-            nqp::bindattr($iter, self, '$!label', $label);
-            $iter
-        }
-
-        method is-lazy() {
-            $!source.is-lazy
-        }
-    }
     sub sequential-map(\source, &block, :$label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
@@ -84,98 +65,49 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         # "loop" taking 0 or 1 parameter
         if $count == 1 || $count == 0 || $count === Inf {
-            Seq.new(class :: does MapIterCommon {
-                has $!did-init;
-                has $!did-iterate;
-                has $!NEXT;
-                has $!CAN_FIRE_PHASERS;
+            if nqp::istype(&block,Block) && &block.has-phasers {
+                Seq.new(class :: does SlippyIterator {
+                    has &!block;
+                    has $!source;
+                    has $!label;
+                    has Int $!NEXT;         # SHOULD BE int
+                    has Int $!did-init;     # SHOULD BE int
+                    has Int $!did-iterate;  # SHOULD BE int
 
-                method pull-one() is raw {
-                    my int $redo = 1;
-                    my $value;
-                    my $result;
-
-                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
-                        $!did-init         = 1;
-                        $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = &!block.has-phaser('NEXT');
-                        nqp::p6setfirstflag(&!block)
-                          if &!block.has-phaser('FIRST');
+                    method new(&block, $source, $label) {
+                        my $iter := nqp::create(self);
+                        nqp::bindattr($iter, self, '&!block', &block);
+                        nqp::bindattr($iter, self, '$!source', $source);
+                        nqp::bindattr($iter, self, '$!label',
+                          nqp::decont($label));
+                        nqp::bindattr($iter, self, '$!NEXT',
+                          &block.has-phaser('NEXT'));
+                        $iter
                     }
 
-                    if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
-                        # $result will be returned at the end
-                    }
-                    elsif ($value := $!source.pull-one()) =:= IterationEnd {
-                        $result := $value
-                    }
-                    else {
-                      nqp::while(
-                        $redo,
-                        nqp::stmts(
-                          $redo = 0,
-                          nqp::handle(
-                            nqp::stmts(
-                              ($result := &!block($value)),
-                              ($!did-iterate = 1),
-                              nqp::if(
-                                nqp::istype($result, Slip),
-                                nqp::stmts(
-                                  ($result := self.start-slip($result)),
-                                  nqp::if(
-                                    nqp::eqaddr($result, IterationEnd),
-                                    nqp::stmts(
-                                      ($value := $!source.pull-one()),
-                                      ($redo = 1
-                                        unless nqp::eqaddr($value,IterationEnd))
-                                    )
-                                  )
-                                )
-                              ),
-                              nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                            ),
-                            'LABELED', nqp::decont($!label),
-                            'NEXT', nqp::stmts(
-                               ($!did-iterate = 1),
-                               nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                               ($value := $!source.pull-one()),
-                               nqp::eqaddr($value, IterationEnd)
-                                 ?? ($result := IterationEnd)
-                                 !! ($redo = 1)
-                            ),
-                            'REDO', $redo = 1,
-                            'LAST', nqp::stmts(
-                              ($!did-iterate = 1),
-                              ($result := IterationEnd)
-                            )
-                          )
-                        ),
-                      :nohandler);
-                    }
-                    &!block.fire_phasers('LAST')
-                      if $!CAN_FIRE_PHASERS
-                      && $!did-iterate
-                      && nqp::eqaddr($result,IterationEnd);
-                    $result
-                }
+                    method is-lazy() { $!source.is-lazy }
 
-                method sink-all() {
-                    if !$!did-init && nqp::can(&!block, 'fire_phasers') {
-                        $!did-init         = 1;
-                        $!CAN_FIRE_PHASERS = 1;
-                        $!NEXT             = &!block.has-phaser('NEXT');
-                        nqp::p6setfirstflag(&!block)
-                          if &!block.has-phaser('FIRST');
-                    }
-                    my $result;
-                    my int $redo;
-                    my $value;
-                    until nqp::eqaddr($result, IterationEnd) {
-                        if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
-                            $result := $value
+                    method pull-one() is raw {
+                        my int $redo = 1;
+                        my $value;
+                        my $result;
+
+                        STATEMENT_LIST(
+                          $!did-init = 1;
+                          nqp::if(
+                            &!block.has-phaser('FIRST'),
+                            nqp::p6setfirstflag(&!block)
+                          );
+                        ) unless $!did-init;
+
+                        if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
+                            # $result will be returned at the end
+                        }
+                        elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
+                            $result := $value;
+                            nqp::if($!did-iterate,&!block.fire_phasers('LAST'));
                         }
                         else {
-                            $redo = 1;
                             nqp::while(
                               $redo,
                               nqp::stmts(
@@ -184,16 +116,26 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   nqp::stmts(
                                     ($result := &!block($value)),
                                     ($!did-iterate = 1),
+                                    nqp::if(
+                                      nqp::istype($result, Slip),
+                                      nqp::if(
+                                        nqp::eqaddr(($result := self.start-slip($result)), IterationEnd),
+                                        nqp::if(
+                                          nqp::not_i(nqp::eqaddr(($value := $!source.pull-one),IterationEnd)),
+                                          ($redo = 1)
+                                        ),
+                                      )
+                                    ),
                                     nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                                   ),
-                                  'LABELED', nqp::decont($!label),
+                                  'LABELED', $!label,
                                   'NEXT', nqp::stmts(
-                                    ($!did-iterate = 1),
-                                    nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                                    ($value := $!source.pull-one()),
-                                    nqp::eqaddr($value, IterationEnd)
-                                      ?? ($result := IterationEnd)
-                                      !! ($redo = 1)),
+                                     ($!did-iterate = 1),
+                                     nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                     nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                       ?? ($result := IterationEnd)
+                                       !! ($redo = 1)
+                                  ),
                                   'REDO', $redo = 1,
                                   'LAST', nqp::stmts(
                                     ($!did-iterate = 1),
@@ -201,26 +143,196 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   )
                                 )
                               ),
-                            :nohandler);
+                              :nohandler);
                         }
-                        &!block.fire_phasers('LAST')
-                          if $!CAN_FIRE_PHASERS
-                          && $!did-iterate
-                          && nqp::eqaddr($result, IterationEnd);
+                        nqp::if(
+                          $!did-iterate && nqp::eqaddr($result,IterationEnd),
+                          &!block.fire_phasers('LAST')
+                        );
+                        $result
                     }
-                    IterationEnd
-                }
-            }.new(&block, source, 1, $label));
+
+                    method sink-all() {
+                        STATEMENT_LIST(
+                          $!did-init = 1;
+                          nqp::if(
+                            &!block.has-phaser('FIRST'),
+                            nqp::p6setfirstflag(&!block)
+                          );
+                        ) unless $!did-init;
+
+                        my int $redo;
+                        my int $running = 1;
+                        my $value;
+                        while $running {
+                            nqp::eqaddr(($value := $!source.pull-one()), IterationEnd)
+                              ?? STATEMENT_LIST(
+                                   $running = 0;
+                                   nqp::if(
+                                     $!did-iterate,
+                                     &!block.fire_phasers('LAST')
+                                   );
+                                 )
+                              !! STATEMENT_LIST(
+                                   $redo = 1;
+                                   nqp::while(
+                                     $redo,
+                                     nqp::stmts(
+                                       $redo = 0,
+                                       nqp::handle(
+                                         nqp::stmts(  # doesn't sink
+                                           (&!block($value)),
+                                           ($!did-iterate = 1),
+                                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                         ),
+                                         'LABELED', $!label,
+                                         'NEXT', nqp::stmts(
+                                           ($!did-iterate = 1),
+                                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                                           nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                             ?? ($running = 0)
+                                             !! ($redo = 1)),
+                                         'REDO', $redo = 1,
+                                         'LAST', nqp::stmts(
+                                           ($!did-iterate = 1),
+                                           ($running = 0))
+                                       )  
+                                     ),
+                                     :nohandler);
+                                   nqp::if(
+                                     nqp::not_i($running) && $!did-iterate,
+                                     &!block.fire_phasers('LAST')
+                                   );
+                                 );
+                        }
+                        IterationEnd
+                    }
+                }.new(&block, source, $label))
+            }
+
+            # normal, without phasers or label
+            else {
+                Seq.new(class :: does SlippyIterator {
+                    has &!block;
+                    has $!source;
+                    has $!label;
+
+                    method new(&block,$source,$label) {
+                        my $iter := nqp::create(self);
+                        nqp::bindattr($iter, self, '&!block', &block);
+                        nqp::bindattr($iter, self, '$!source', $source);
+                        nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+                        $iter
+                    }
+
+                    method is-lazy() { $!source.is-lazy }
+
+                    method pull-one() is raw {
+                        my int $redo = 1;
+                        my $value;
+                        my $result;
+
+                        if $!slipping && nqp::not_i(nqp::eqaddr(
+                          ($result := self.slip-one),
+                          IterationEnd
+                        )) {
+                            # $result will be returned at the end
+                        }
+                        elsif nqp::eqaddr(
+                          ($value := $!source.pull-one),
+                          IterationEnd
+                        ) {
+                            $result := $value
+                        }
+                        else {
+                          nqp::while(
+                            $redo,
+                            nqp::stmts(
+                              $redo = 0,
+                              nqp::handle(
+                                nqp::if(
+                                  nqp::istype(($result := &!block($value)),Slip),
+                                  nqp::if(
+                                    nqp::eqaddr(
+                                      ($result := self.start-slip($result)), IterationEnd),
+                                    nqp::if(
+                                      nqp::not_i(nqp::eqaddr(
+                                        ($value := $!source.pull-one),
+                                        IterationEnd
+                                      )),
+                                      $redo = 1
+                                    )
+                                  )
+                                ),
+                                'LABELED', $!label,
+                                'NEXT', (nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
+                                          ?? ($result := IterationEnd)
+                                          !! ($redo = 1)),
+                                'REDO', $redo = 1,
+                                'LAST', $result := IterationEnd
+                              ),
+                            ),
+                          :nohandler);
+                        }
+                        $result
+                    }
+
+                    method sink-all() {
+                        my int $redo;
+                        my int $running = 1;
+                        my $value;
+                        while $running {
+                            if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
+                                $running = 0;
+                            }
+                            else {
+                                $redo = 1;
+                                nqp::while(
+                                  $redo,
+                                  nqp::stmts(
+                                    $redo = 0,
+                                    nqp::handle(  # doesn't sink
+                                      (&!block($value)),
+                                      'LABELED', $!label,
+                                      'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
+                                                ?? ($running = 0)
+                                                !! ($redo = 1)),
+                                      'REDO', $redo = 1,
+                                      'LAST', $running = 0
+                                    )
+                                  ),
+                                :nohandler);
+                            }
+                        }
+                        IterationEnd
+                    }
+                }.new(&block,source,$label))
+            }
         }
 
         # loop/map taking more than 1 param
         else {
-            Seq.new(class :: does MapIterCommon {
+            Seq.new(class :: does SlippyIterator {
+                has &!block;
+                has $!source;
+                has $!count;
+                has $!label;
                 has $!value-buffer;
                 has $!did-init;
                 has $!did-iterate;
                 has $!NEXT;
                 has $!CAN_FIRE_PHASERS;
+
+                method new(&block, $source, $count, $label) {
+                    my $iter := nqp::create(self);
+                    nqp::bindattr($iter, self, '&!block', &block);
+                    nqp::bindattr($iter, self, '$!source', $source);
+                    nqp::bindattr($iter, self, '$!count', $count);
+                    nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+                    $iter
+                }
+
+                method is-lazy() { $!source.is-lazy }
 
                 method pull-one() is raw {
                     $!value-buffer.DEFINITE
@@ -272,7 +384,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                 ),
                                 nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                               ),
-                              'LABELED', nqp::decont($!label),
+                              'LABELED', $!label,
                               'NEXT', nqp::stmts(
                                 ($!did-iterate = 1),
                                 nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
@@ -296,7 +408,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       && nqp::eqaddr($result, IterationEnd);
                     $result
                 }
-            }.new(&block, source, $count, $label));
+            }.new(&block, source, $count, $label))
         }
     }
 
@@ -366,14 +478,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method push-all($target) {
-                my $no-sink;
-                until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    $!index = $!index + 1;
-                    if $!test($_) {
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::stmts(
+                    $!index = nqp::add_i($!index,1);
+                    nqp::if(
+                      $!test($_),
+                      nqp::stmts(  # doesn't sink
                         $target.push(nqp::p6box_i($!index));
-                        $no-sink := $target.push($_);
-                    }
-                }
+                        $target.push($_);
+                      )
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))
@@ -420,14 +537,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-regex(Regex:D $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                  || $_.match($!test);
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                    || $_.match($!test),
+                  Nil
+                );
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $_.match($!test)
-                  until ($_ := $!iter.pull-one) =:= IterationEnd;
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    $_.match($!test),
+                    $target.push($_)
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))
@@ -438,19 +562,28 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               ?? self.map({ next unless $test($_); $_ })  # cannot go fast
               !! Seq.new(class :: does Grepper {
                      method pull-one() is raw {
-                         Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                           || $!test($_);
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                             || $!test($_),
+                           Nil
+                         );
                          $_
                      }
                      method push-all($target) {
-                         my $no-sink;
-                         $no-sink := $target.push($_) if $!test($_)
-                           until ($_ := $!iter.pull-one) =:= IterationEnd;
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           nqp::if(  # doesn't sink
+                             $!test($_),
+                             $target.push($_)
+                           )
+                         );
                          IterationEnd
                      }
                      method sink-all() {
-                         $!test($_)
-                           until ($_ := $!iter.pull-one) =:= IterationEnd;
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           $!test($_)
+                         );
                          IterationEnd
                      }
                  }.new(self, $test))
@@ -482,14 +615,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     method !grep-accepts(Mu $test) {
         Seq.new(class :: does Grepper {
             method pull-one() is raw {
-                Nil until ($_ := $!iter.pull-one) =:= IterationEnd
-                  || $!test.ACCEPTS($_);
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                    || $!test.ACCEPTS($_),
+                  Nil
+                );
                 $_
             }
             method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push($_) if $!test.ACCEPTS($_)
-                  until ($_ := $!iter.pull-one) =:= IterationEnd;
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    $!test.ACCEPTS($_),
+                    $target.push($_)
+                  )
+                );
                 IterationEnd
             }
         }.new(self, $test))
@@ -917,26 +1057,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        return $value;
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen, $needle, 1),
+                      return $value
+                    )
+                  )
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
+                    nqp::stmts(  # doesn't sink
+                      nqp::bindkey($!seen, $needle, 1),
+                      $target.push($value)
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self))
@@ -966,26 +1111,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        return $value;
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen, $needle, 1),
+                      return $value
+                    )
+                  )
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    unless nqp::existskey($!seen, $needle) {
-                        nqp::bindkey($!seen, $needle, 1);
-                        $no-sink := $target.push($value);
-                    }
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::stmts(  # doesn't sink
+                      nqp::bindkey($!seen, $needle, 1),
+                      $target.push($value)
+                    )
+                  )
+                );
                 IterationEnd
             }
         }.new(self, &as))
@@ -1018,24 +1168,23 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    nqp::existskey($!seen, $needle)
-                      ?? return $value
-                      !! nqp::bindkey($!seen, $needle, 1);
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
+                    ?? return $value
+                    !! nqp::bindkey($!seen, $needle, 1)
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s($value.WHICH);
-                    nqp::existskey($!seen, $needle)
-                      ?? ($no-sink := $target.push($value))
-                      !! nqp::bindkey($!seen, $needle, 1);
-                }
+                nqp::until( # doesn't sink
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
+                    ?? $target.push($value)
+                    !! nqp::bindkey($!seen, $needle, 1)
+                );
                 IterationEnd
             }
         }.new(self))
@@ -1064,24 +1213,23 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() {
                 my Mu $value;
                 my str $needle;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    nqp::existskey($!seen, $needle)
-                      ?? return $value
-                      !! nqp::bindkey($!seen, $needle, 1);
-                }
+                nqp::until(
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
+                    ?? return $value
+                    !! nqp::bindkey($!seen, $needle, 1)
+                );
                 IterationEnd
             }
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                my $no-sink;
-                until ($value := $!iter.pull-one) =:= IterationEnd {
-                    $needle = nqp::unbox_s(&!as($value).WHICH);
-                    nqp::existskey($!seen, $needle)
-                      ?? ($no-sink := $target.push($value))
-                      !! nqp::bindkey($!seen, $needle, 1);
-                }
+                nqp::until(  # doesn't sink
+                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
+                    ?? $target.push($value)
+                    !! nqp::bindkey($!seen, $needle, 1)
+                );
                 IterationEnd
             }
         }.new(self, &as))
@@ -1117,7 +1265,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $which := &!as($value);
                     if $!first {
                         $!first = 0;
@@ -1134,24 +1282,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $which;
                     my $last_as := $!last_as;
-                    my $no-sink;
-                    if $!first {
-                        $no-sink := $target.push($value);
-                        $which := &!as($value);
-                        $last_as := $which;
-                        $value := $!iter.pull-one;
-                    }
-                    until IterationEnd =:= $value {
-                        $which := &!as($value);
-                        unless with($last_as, $which) {
-                            $no-sink := $target.push($value);
-                        }
-                        $last_as := $which;
-                        $value := $!iter.pull-one;
-                    }
+                    nqp::if(
+                      $!first,
+                      nqp::stmts(  # doesn't sink
+                        ($target.push($value)),
+                        ($which := &!as($value)),
+                        ($last_as := $which),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
+                    nqp::until(
+                      nqp::eqaddr($value,IterationEnd),
+                      nqp::stmts(
+                        nqp::unless(  # doesn't sink
+                          with($last_as,$which := &!as($value)),
+                          $target.push($value)
+                        ),
+                        ($last_as := $which),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
                 }
                 IterationEnd
             }
@@ -1171,7 +1324,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
             method pull-one() {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     if $!first {
                         $!first = 0;
                     }
@@ -1189,21 +1342,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method push-all($target) {
                 my Mu $value := $!iter.pull-one;
-                unless $value =:= IterationEnd {
+                unless nqp::eqaddr($value,IterationEnd) {
                     my $last_val = $!last;
-                    my $no-sink;
-                    if $!first {
-                        $no-sink := $target.push($value);
-                        $last_val := $value;
-                        $value := $!iter.pull-one;
-                    }
-                    until IterationEnd =:= $value {
-                        unless with($last_val, $value) {
-                            $no-sink := $target.push($value);
-                        }
-                        $last_val := $value;
-                        $value := $!iter.pull-one;
-                    }
+                    nqp::if(
+                      $!first,
+                      nqp::stmts(  # doesn't sink
+                        ($target.push($value)),
+                        ($last_val := $value),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
+                    nqp::until(
+                      nqp::eqaddr($value,IterationEnd),
+                      nqp::stmts(
+                        nqp::unless(  # doesn't sink
+                          with($last_val, $value),
+                          $target.push($value)
+                        ),
+                        ($last_val := $value),
+                        ($value := $!iter.pull-one)
+                      )
+                    );
                 }
                 IterationEnd
             }

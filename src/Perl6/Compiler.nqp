@@ -48,6 +48,15 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
+    method interactive_result($value) {
+        CATCH { nqp::say($_) }
+        if nqp::can($value, 'gist') {
+            nqp::say(nqp::unbox_s($value.gist));
+        } else {
+            nqp::say(~$value);
+        }
+    }
+
     method interactive(*%adverbs) {
         nqp::say("To exit type 'exit' or '^D'");
         my $p6repl;
@@ -57,7 +66,11 @@ class Perl6::Compiler is HLL::Compiler {
             $p6repl := $repl-class.new(self, %adverbs);
 
             CATCH {
-                nqp::die("couldn't load REPL.pm: $_");
+                nqp::say("Couldn't load Rakudo REPL.pm: $_");
+                nqp::say("Falling back to nqp REPL.");
+                my $super := nqp::findmethod(HLL::Compiler, 'interactive');
+                my $result := $super(self, :interactive(1), |%adverbs);
+                return $result;
             }
         }
 
@@ -69,6 +82,17 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $result := $p6repl.repl-loop(:interactive(1), |%adverbs);
         $result
+    }
+
+    method interactive_exception($ex) {
+        my $payload := nqp::getpayload($ex);
+        if nqp::can($payload, 'gist') {
+            nqp::say(nqp::unbox_s($payload.gist));
+        }
+        else {
+            nqp::say(~$ex)
+        }
+        CATCH { nqp::say(~$ex) }
     }
 
     method usage($name?) {

@@ -44,8 +44,7 @@ my &return := -> | {
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take-rw := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW(nqp::const::CONTROL_TAKE, $list);
+    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray));
 }
 #?endif
 #?if !jvm
@@ -53,30 +52,30 @@ proto sub take-rw(|) { * }
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW(nqp::const::CONTROL_TAKE, $list);
+    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
 #?endif
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
-    $list;
+    THROW(
+      nqp::const::CONTROL_TAKE,
+      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray)))
+    )
 }
 #?endif
 #?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
-    my $ = THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x));
-    x
+    THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
 }
 multi sub take(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
-    $list;
+    THROW(
+      nqp::const::CONTROL_TAKE,
+      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
+    )
 }
 #?endif
 
@@ -99,8 +98,7 @@ proto sub succeed(|) { * }
 multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
 multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, x) }
 multi sub succeed(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_SUCCEED, $list);
+    THROW(nqp::const::CONTROL_SUCCEED,RETURN-LIST(nqp::p6argvmarray))
 }
 
 sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
@@ -160,11 +158,9 @@ sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 sub emit(\value) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
-    value
 }
 sub done() {
     THROW(nqp::const::CONTROL_DONE, Nil);
-    Nil
 }
 
 proto sub die(|) {*};

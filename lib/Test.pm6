@@ -211,6 +211,8 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
+    DEPRECATED('is-approx'); # Remove at 20161217 release (6 months from today)
+
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
@@ -224,40 +226,66 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
 }
 
 multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
-    is-approx($got, $expected, 1e-6, $desc);
+    is-approx-calculate($got, $expected, 1e-5, Nil, $desc);
 }
 
-multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
-    $time_after = nqp::time_n;
-    die "Tolerance must be a positive number greater than zero" unless $tol > 0;
-    my $abs-diff = ($got - $expected).abs;
-    my $abs-max = max($got.abs, $expected.abs);
-    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
-    my $test = $rel-diff <= $tol;
-    my $ok = proclaim(?$test, $desc);
-    unless $test {
-        diag("expected: $expected");
-        diag("got:      $got");
-    }
-    $time_before = nqp::time_n;
-    $ok;
+multi sub is-approx(
+    Numeric $got, Numeric $expected, Numeric $abs-tol, $desc = ''
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, Nil, $desc);
 }
 
-multi sub is-approx(Numeric $got, Numeric $expected,
-                    Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
-                    :$desc = '') is export {
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '', Numeric :$rel-tol is required
+) is export {
+    is-approx-calculate($got, $expected, Nil, $rel-tol, $desc);
+}
+
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '', Numeric :$abs-tol is required
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, Nil, $desc);
+}
+
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '',
+    Numeric :$rel-tol is required, Numeric :$abs-tol is required
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, $rel-tol, $desc);
+}
+
+sub is-approx-calculate (
+    $got,
+    $expected,
+    $abs-tol where { !.defined or $_ >= 0 },
+    $rel-tol where { !.defined or $_ >= 0 },
+    $desc,
+) {
     $time_after = nqp::time_n;
-    die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
-    die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
-    my $abs-diff = ($got - $expected).abs;
-    my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
-        ($abs-diff <= ($rel_tol * $got).abs) ||
-        ($abs-diff <= $abs_tol));
-    my $ok = proclaim(?$test, $desc);
-    unless $test {
-        diag("expected: $expected");
-        diag("got:      $got");
+
+    my Bool    ($abs-tol-ok, $rel-tol-ok) = True, True;
+    my Numeric ($abs-tol-got, $rel-tol-got);
+    if $abs-tol.defined {
+        $abs-tol-got = abs($got - $expected);
+        $abs-tol-ok = $abs-tol-got <= $abs-tol;
     }
+    if $rel-tol.defined {
+        $rel-tol-got = abs($got - $expected) / max($got.abs, $expected.abs);
+        $rel-tol-ok = $rel-tol-got <= $rel-tol;
+    }
+
+    my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);
+    unless $ok {
+        unless $abs-tol-ok {
+            diag("maximum absolute tolerance: $abs-tol");
+            diag("actual absolute difference: $abs-tol-got");
+        }
+        unless $rel-tol-ok {
+            diag("maximum relative tolerance: $rel-tol");
+            diag("actual relative difference: $rel-tol-got");
+        }
+    }
+
     $time_before = nqp::time_n;
     $ok;
 }

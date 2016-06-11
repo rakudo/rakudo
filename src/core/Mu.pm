@@ -116,11 +116,11 @@ my class Mu { # declared in BOOTSTRAP
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
-          nqp::stmts(
-            ($task := nqp::atpos($build_plan,$i)),
-            ($code  = nqp::atpos($task,0)),
-          nqp::if( # 0
-            nqp::iseq_i($code,0),     # Custom BUILD call.
+
+          nqp::if( # 0     # Custom BUILD call.
+            nqp::iseq_i(($code = nqp::atpos(
+              ($task := nqp::atpos($build_plan,$i)),0
+            )),0),
             (nqp::atpos($task,1)(self,|%attrinit)),
 
             nqp::if( # 1
@@ -272,7 +272,7 @@ my class Mu { # declared in BOOTSTRAP
                                     nqp::isne_i($code,13),  # no-op
                                     die("Invalid BUILDALLPLAN")
                                   )
-        )))))))))))))));
+        ))))))))))))));
         self
     }
 

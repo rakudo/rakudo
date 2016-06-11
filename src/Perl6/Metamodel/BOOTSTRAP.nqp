@@ -3197,6 +3197,20 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::die("Method '$name' not found for invocant of class '$type'");
     },
 #?endif
+    'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
+        if $cat == nqp::const::CONTROL_RETURN {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
+                nqp::atkey(%ex, 'X::ControlFlow::Return')();
+            }
+            nqp::die('Attempt to return outside of any Routine');
+        }
+        else {
+            my $ex := nqp::newexception();
+            nqp::setextype($ex, $cat);
+            nqp::getcomp('perl6').handle-control($ex);
+        }
+    },
     'finalize_handler', -> @objs {
         for @objs -> $o {
             for $o.HOW.destroyers($o) -> $d {

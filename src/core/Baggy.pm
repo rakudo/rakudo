@@ -174,7 +174,7 @@ my role Baggy does QuantHash {
                   !! IterationEnd
             }
             method push-all($target) {
-                nqp::while(
+                nqp::while(  # doesn't sink
                   $!iter,
                   $target.push(nqp::iterval(nqp::shift($!iter)).key)
                 );
@@ -282,11 +282,11 @@ my role Baggy does QuantHash {
                 my $tmp;
                 nqp::while(
                   $!iter,
-                  nqp::stmts(  # doesn't sink
+                  nqp::stmts(
                     ($tmp   := nqp::iterval(nqp::shift($!iter))),
                     ($!key  := $tmp.key),
                     ($!times = nqp::add_i($tmp.value,1)),
-                    nqp::while(
+                    nqp::while(  # doesn't sink
                       ($!times = nqp::sub_i($!times,1)),
                       ($target.push($!key))
                     )

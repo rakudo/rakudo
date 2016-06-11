@@ -180,7 +180,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                      nqp::stmts(
                                        $redo = 0,
                                        nqp::handle(
-                                         nqp::stmts(
+                                         nqp::stmts(  # doesn't sink
                                            (&!block($value)),
                                            ($!did-iterate = 1),
                                            nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
@@ -291,7 +291,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   $redo,
                                   nqp::stmts(
                                     $redo = 0,
-                                    nqp::handle(
+                                    nqp::handle(  # doesn't sink
                                       (&!block($value)),
                                       'LABELED', $!label,
                                       'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
@@ -1179,7 +1179,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                nqp::until(
+                nqp::until( # doesn't sink
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
                     ?? $target.push($value)
@@ -1224,7 +1224,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method push-all($target) {
                 my Mu $value;
                 my str $needle;
-                nqp::until(
+                nqp::until(  # doesn't sink
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
                     ?? $target.push($value)

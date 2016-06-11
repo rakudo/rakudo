@@ -48,7 +48,7 @@ my role Iterator {
         my $pulled;
 
         # we may not .sink $pulled here, since it can be a Seq
-        nqp::until(
+        nqp::until(  # doesn't sink
           nqp::eqaddr(($pulled := self.pull-one),IterationEnd),
           $target.push($pulled)
         );

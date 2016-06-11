@@ -1059,42 +1059,42 @@ multi sub infix:<xx>(&x, Whatever) {
     Seq.new(class :: does XX-Whatever {
         has @!slipped;
         method pull-one() {
-            if @!slipped {
-                @!slipped.shift
-            }
-            else {
-                my $pulled := $!x.();
-                if nqp::istype($pulled,Slip) {
-                    @!slipped = $pulled;
-                    @!slipped.shift
-                }
-                elsif nqp::istype($pulled, Seq) {
-                    $pulled.cache
-                }
-                else {
-                    $pulled
-                }
-            }
+            my $pulled;
+            nqp::if(
+              @!slipped,
+              @!slipped.shift,
+              nqp::if(
+                nqp::istype(($pulled := $!x.()),Slip),
+                nqp::stmts(
+                  (@!slipped = $pulled),
+                  @!slipped.shift
+                ),
+                nqp::if(
+                  nqp::istype($pulled,Seq),
+                  $pulled.cache,
+                  $pulled
+                )
+              )
+            )
         }
     }.new(&x))
 }
 multi sub infix:<xx>(&x, Int() $n) {
-    my int $todo = $n;
+    my int $todo = $n + 1;
     my Mu $pulled;
     my Mu $list := nqp::list();
-    while $todo > 0 {
-        $pulled := &x.();
-        if nqp::istype($pulled,Slip) {
-            nqp::push($list, $_) for $pulled;
-        }
-        elsif nqp::istype($pulled,Seq) {
-            nqp::push($list, $pulled.cache);
-        }
-        else {
-            nqp::push($list, $pulled);
-        }
-        $todo = $todo - 1;
-    }
+    nqp::while(
+      nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
+      nqp::if(
+        nqp::istype(($pulled := &x.()),Slip),
+        (nqp::push($list,$_) for $pulled),
+        nqp::if(
+          nqp::istype($pulled,Seq),
+          nqp::push($list,$pulled.cache),
+          nqp::push($list,$pulled)
+        )
+      )
+    );  
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
 multi sub infix:<xx>(Mu \x, Num $n) {
@@ -1110,11 +1110,11 @@ multi sub infix:<xx>(Mu \x, Int() $n) is pure {
     my Mu $list := nqp::list();
     if $elems > 0 {
         nqp::setelems($list, $elems);  # presize
-        my int $i;
-        while $i < $elems {
-            nqp::bindpos($list, $i, x);
-            $i = $i + 1;
-        }
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i($i = nqp::add_i($i,1),$elems),
+          nqp::bindpos($list, $i, x),
+        );
     }
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }

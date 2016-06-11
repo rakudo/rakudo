@@ -31,14 +31,10 @@ sub RETURN-LIST(Mu \list) is raw {
 }
 
 my &return-rw := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn($list);
-    $list;
+    nqp::p6routinereturn(RETURN-LIST(nqp::p6argvmarray))
 };
 my &return := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn(nqp::p6recont_ro($list));
-    $list;
+    nqp::p6routinereturn(nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray)))
 };
 
 # RT #122732 - control operator crossed continuation barrier

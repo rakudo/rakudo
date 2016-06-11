@@ -38,17 +38,13 @@ my class Mu { # declared in BOOTSTRAP
     proto method split(|) { * }
 
     method take {
-        take self;
+        take self
     }
     method return-rw(|) {  # same code as control.pm's return-rw
-        my $list := RETURN-LIST(nqp::p6argvmarray());
-        nqp::p6routinereturn($list);
-        $list;
+        nqp::p6routinereturn(RETURN-LIST(nqp::p6argvmarray))
     }
     method return(|) {  # same code as control.pm's return
-        my $list := RETURN-LIST(nqp::p6argvmarray());
-        nqp::p6routinereturn(nqp::p6recont_ro($list));
-        $list;
+        nqp::p6routinereturn(nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray)))
     }
 
     proto method WHY(|) { * }

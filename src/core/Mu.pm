@@ -100,89 +100,175 @@ my class Mu { # declared in BOOTSTRAP
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
-        my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
-        my int $count   = nqp::elems($build_plan);
-        my int $i       = -1;
-        while nqp::islt_i(++$i,$count) {
-            my $task := nqp::atpos($build_plan, $i);
-            my int $code = nqp::atpos($task, 0);
-            if nqp::iseq_i($code, 0) {
-                # Custom BUILD call.
-                nqp::atpos($task, 1)(self, |%attrinit);
-            }
-            elsif nqp::iseq_i($code, 1) {
-                # See if we have a value to initialize this attr with.
-                nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))
-                  if nqp::existskey($init,nqp::atpos($task,2));
-            }
-            elsif nqp::iseq_i($code, 2) {
-                nqp::existskey($init,nqp::atpos($task,2))
-                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                       = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2))))
-                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                       nqp::list);
-            }
-            elsif nqp::iseq_i($code, 3) {
-                nqp::existskey($init,nqp::atpos($task,2))
-                  ?? (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                       = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2))))
-                  !! nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                       nqp::hash);
-            }
-            elsif nqp::iseq_i($code, 4) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
-                    my \attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                    attr = nqp::atpos($task, 3)(self, attr);
-                }
-            }
-            elsif nqp::iseq_i($code, 5) {
-                nqp::bindattr_i(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
-                  if nqp::existskey($init,nqp::atpos($task,2));
-            }
-            elsif nqp::iseq_i($code, 6) {
-                my $something;  # avoid issue with JIT
-                nqp::bindattr_n(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
-                  if nqp::existskey($init,nqp::atpos($task,2));
-            }
-            elsif nqp::iseq_i($code, 7) {
-                nqp::bindattr_s(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                  nqp::decont(%attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))))
-                  if nqp::existskey($init,nqp::atpos($task,2));
-            }
-            elsif nqp::iseq_i($code, 8) {
-                my int $cur_value = nqp::getattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                nqp::bindattr_i(self,nqp::atpos($task,1),nqp::atpos($task,2),
-                  nqp::atpos($task, 3)(self, $cur_value))
-                  if nqp::iseq_i($cur_value, 0);
-            }
-            elsif nqp::iseq_i($code, 9) {
-                my num $cur_value = nqp::getattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                nqp::bindattr_n(self,nqp::atpos($task,1),nqp::atpos($task,2),
-                  nqp::atpos($task,3)(self, $cur_value))
-                  if nqp::iseq_n($cur_value, 0e0);
-            }
-            elsif nqp::iseq_i($code, 10) {
-                my str $cur_value = nqp::getattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                nqp::bindattr_s(self,nqp::atpos($task,1),nqp::atpos($task,2),
-                  nqp::atpos($task, 3)(self, $cur_value))
-                  if nqp::isnull_s($cur_value);
-            }
-            elsif nqp::iseq_i($code, 11) {
-                my str $attr_name = nqp::atpos($task, 2);
-                X::Attribute::Required.new(name => $attr_name).throw
-                  unless nqp::attrinited(self,nqp::atpos($task,1),$attr_name);
-            }
-            elsif nqp::iseq_i($code, 12) {
-                nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2),
-                    nqp::atpos($task, 3)());
-            }
-            elsif nqp::isne_i($code, 13) { # no-op in BUILDALL
-                die "Invalid BUILDALLPLAN";
-            }
-        }
+        my $build_plan :=
+          nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
+        my int $count = nqp::elems($build_plan);
+        my int $i     = -1;
+        my $task;
+        my int $code;
+        my int $int;
+        my num $num;
+        my str $str;
+
+        nqp::while(
+          nqp::islt_i($i = nqp::add_i($i,1),$count),
+          nqp::stmts(
+            ($task := nqp::atpos($build_plan,$i)),
+            ($code  = nqp::atpos($task,0)),
+          nqp::if( # 0
+            nqp::iseq_i($code,0),     # Custom BUILD call.
+            (nqp::atpos($task,1)(self,|%attrinit)),
+
+            nqp::if( # 1
+              nqp::iseq_i($code,1),
+              nqp::if(
+                nqp::existskey($init,nqp::atpos($task,2)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                  = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2))))
+              ),
+
+              nqp::if( # 2
+                nqp::iseq_i($code,2),
+                nqp::if(
+                  nqp::existskey($init,nqp::atpos($task,2)),
+                  (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                    = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))),
+                  nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                    nqp::list)
+                ),
+
+                nqp::if( # 3
+                  nqp::iseq_i($code,3),
+                  nqp::if(
+                    nqp::existskey($init,nqp::atpos($task,2)),
+                    (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                       = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))),
+                    nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
+                       nqp::hash)
+                  ),
+
+                  nqp::if( # 4
+                    nqp::iseq_i($code,4),
+                    nqp::unless(
+                      nqp::attrinited(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      ),
+                      nqp::stmts(
+                        (my \attr := nqp::getattr(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2)
+                        )),
+                        (attr = nqp::atpos($task,3)(self,attr))
+                      )
+                    ),
+
+                    nqp::if( # 5
+                      nqp::iseq_i($code,5),
+                      nqp::if(
+                        nqp::existskey($init,nqp::atpos($task,2)),
+                        nqp::bindattr_i(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,3),
+                          nqp::decont(%attrinit.AT-KEY(
+                            nqp::p6box_s(nqp::atpos($task,2))
+                          ))
+                        )
+                      ),
+
+                      nqp::if( # 6
+                        nqp::iseq_i($code,6),
+                        nqp::if(
+                          nqp::existskey($init,nqp::atpos($task,2)),
+                          nqp::bindattr_n(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,3),
+                            nqp::decont(%attrinit.AT-KEY(
+                              nqp::p6box_s(nqp::atpos($task,2))
+                            ))
+                          )
+                        ),
+
+                        nqp::if( # 7
+                          nqp::iseq_i($code,7),
+                          nqp::if(
+                            nqp::existskey($init,nqp::atpos($task,2)),
+                            nqp::bindattr_s(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,3),
+                              nqp::decont(%attrinit.AT-KEY(
+                                nqp::p6box_s(nqp::atpos($task,2))
+                              ))
+                            )
+                          ),
+
+                          nqp::if( # 8
+                            nqp::iseq_i($code,8),
+                            nqp::if(
+                              nqp::iseq_i($int = nqp::getattr_i(self,
+                                nqp::atpos($task,1),
+                                nqp::atpos($task,2)
+                              ), 0),
+                              nqp::bindattr_i(self,
+                                nqp::atpos($task,1),
+                                nqp::atpos($task,2),
+                                (nqp::atpos($task,3)(self,$int))
+                              )
+                            ),
+
+                            nqp::if( # 9
+                              nqp::iseq_i($code,9),
+                              nqp::if(
+                                nqp::iseq_n($num = nqp::getattr_n(self,
+                                  nqp::atpos($task,1),
+                                  nqp::atpos($task,2)
+                                ), 0e0),
+                                nqp::bindattr_n(self,
+                                  nqp::atpos($task,1),
+                                  nqp::atpos($task,2),
+                                  (nqp::atpos($task,3)(self,$num))
+                                )
+                              ),
+
+                              nqp::if( # 10
+                                nqp::iseq_i($code,10),
+                                nqp::if(
+                                  nqp::isnull_s($str = nqp::getattr_s(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2)
+                                  )),
+                                  nqp::bindattr_s(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2),
+                                    (nqp::atpos($task,3)(self,$str))
+                                  )
+                                ),
+
+                              nqp::if( # 11
+                                nqp::iseq_i($code,11),
+                                nqp::unless(
+                                  nqp::attrinited(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2)
+                                  ),
+                                  X::Attribute::Required.new(
+                                    name => nqp::atpos($task,2)
+                                  ).throw
+                                ),
+
+                                nqp::if( # 12
+                                  nqp::iseq_i($code,12),
+                                  nqp::bindattr(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2),
+                                    (nqp::atpos($task,3)())
+                                  ),
+
+                                  nqp::if( # 13
+                                    nqp::isne_i($code,13),  # no-op
+                                    die("Invalid BUILDALLPLAN")
+                                  )
+        )))))))))))))));
         self
     }
 

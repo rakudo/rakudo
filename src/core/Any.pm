@@ -404,8 +404,10 @@ my class Any { # declared in BOOTSTRAP
         my \iter = self.iterator;
         my $sum = 0;
         my Mu $value;
-        $sum = $sum + $value
-          until ($value := iter.pull-one) =:= IterationEnd;
+        nqp::until(
+          nqp::eqaddr(($value := iter.pull-one),IterationEnd),
+          ($sum = $sum + $value)
+        );
         $sum;
     }
 }

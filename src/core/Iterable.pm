@@ -30,49 +30,62 @@ my role Iterable {
             method pull-one() is raw {
                 my $result := NO_RESULT_YET;
                 my $got;
-                while nqp::eqaddr($result, NO_RESULT_YET) {
-                    if $!nested {
-                        $got := $!nested.pull-one;
-                        nqp::eqaddr($got, IterationEnd)
-                          ?? ($!nested := Iterator)
-                          !! ($result := $got);
-                    }
-                    else {
-                        $got := $!source.pull-one();
-                        nqp::istype($got, Iterable) && !nqp::iscont($got)
-                          ?? ($!nested := $got.flat.iterator)
-                          !! ($result := $got);
-                    }
-                }
+                nqp::while(
+                  nqp::eqaddr($result, NO_RESULT_YET),
+                  nqp::if(
+                    $!nested,
+                    nqp::if(
+                      nqp::eqaddr(($got := $!nested.pull-one),IterationEnd),
+                      ($!nested := Iterator),
+                      ($result := $got)
+                    ),
+                    nqp::if(
+                      nqp::istype(($got := $!source.pull-one),Iterable)
+                        && nqp::not_i(nqp::iscont($got)),
+                      ($!nested := $got.flat.iterator),
+                      ($result := $got)
+                    )
+                  )
+                );
                 $result
             }
             method push-all($target) {
                 my $got;
-                until ($got := $!source.pull-one) =:= IterationEnd {
-                    if nqp::istype($got, Iterable) && !nqp::iscont($got) {
-                        my $nested := $got.flat.iterator;
+                my $nested;
+                nqp::until(
+                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
+                    nqp::stmts(
+                      ($nested := $got.flat.iterator),
+                      nqp::until(  # doesn't sink
+                        nqp::eqaddr(($got := $nested.pull-one),IterationEnd),
                         $target.push($got)
-                          until ($got := $nested.pull-one) =:= IterationEnd;
-                    }
-                    else {
-                        $target.push($got);
-                    }
-                }
+                      )
+                    ),
+                    $target.push($got)
+                  )
+                );
                 IterationEnd
             }
             method count-only() {
                 my int $found;
                 my $got;
-                until ($got := $!source.pull-one) =:= IterationEnd {
-                    if nqp::istype($got, Iterable) && !nqp::iscont($got) {
-                        my $nested := $got.flat.iterator;
-                        $found = $found + 1
-                          until ($got := $nested.pull-one) =:= IterationEnd;
-                    }
-                    else {
-                        $found = $found + 1;
-                    }
-                }
+                my $nested;
+                nqp::until(
+                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
+                  nqp::if(
+                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
+                    nqp::stmts(
+                      ($nested := $got.flat.iterator),
+                      nqp::until(
+                        nqp::eqaddr($nested.pull-one,IterationEnd),
+                        ($found = nqp::add_i($found,1))
+                      )
+                    ),
+                    ($found = nqp::add_i($found,1))
+                  )
+                );
                 nqp::p6box_i($found)
             }
         }.new(self.iterator))

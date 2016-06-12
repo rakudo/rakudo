@@ -213,17 +213,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-slurpy(|) {
-        my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        my \result := nqp::create(self);
-        my \buffer := nqp::create(IterationBuffer);
-        my \todo := nqp::create(List::Reifier);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!future', vm-tuple)
-          if nqp::elems(vm-tuple);
-        nqp::bindattr(todo, List::Reifier, '$!reification-target',
-            result.reification-target());
+        my \result      := nqp::create(self);
+        my Mu \vm-tuple := nqp::captureposarg(nqp::usecapture,1);
+
+        nqp::if(
+          nqp::isgt_i(nqp::elems(vm-tuple),0),
+          nqp::stmts(
+            nqp::bindattr(result,List,'$!reified',
+              my \buffer := nqp::create(IterationBuffer)),
+            nqp::bindattr(result,List,'$!todo',
+              my \todo   := nqp::create(List::Reifier)),
+            nqp::bindattr(todo,List::Reifier,'$!reified',
+              buffer),
+            nqp::bindattr(todo,List::Reifier,'$!reification-target',
+              result.reification-target),
+            nqp::bindattr(todo,List::Reifier,'$!future',vm-tuple)
+          )
+        );
+
         result
     }
 
@@ -258,8 +265,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method from-slurpy-flat(|) {
         my \result := nqp::create(self);
-
-        # only create a future if we need one
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
         my int $elems = nqp::elems(vm-tuple);
         my int $i     = -1;

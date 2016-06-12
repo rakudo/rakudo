@@ -370,13 +370,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method from()    { self.elems ?? self[0].from !! Nil }
 
     method sum(--> Numeric) {
-        my int $elems = self.elems;
-        my $list := nqp::getattr(self,List,'$!reified');
-        my Numeric $sum = 0;
-        my int $i = -1;
-        $sum += nqp::ifnull(nqp::atpos($list,$i),0)
-          while nqp::islt_i(++$i,$elems);
-        $sum
+        fail X::Cannot::Lazy.new(:action('.sum')) if self.is-lazy;
+
+        if nqp::attrinited(self,List,'$!reified') {
+            my int $elems   = self.elems;  # reifies
+            my $list       := nqp::getattr(self,List,'$!reified');
+            my Numeric $sum = 0;
+            my int $i       = -1;
+            nqp::while(
+              nqp::islt_i($i = nqp::add_i($i,1),$elems),
+              ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
+            );
+            $sum
+        }
+        else {
+            0
+        }
     }
 
     method fmt($format = '%s', $separator = ' ') {

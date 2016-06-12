@@ -234,33 +234,60 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         result
     }
 
-    method from-slurpy-onearg(|c) {
-        my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        if nqp::elems(vm-tuple) != 1 {
-            self.from-slurpy(|c);
-        }
-        else {
-            my \consider = nqp::atpos(vm-tuple, 0);
-            if nqp::istype(consider, Seq) {
-                nqp::istype(self,Array) ?? consider.cache !! consider;
-            }
-            else {
-                my \result := nqp::create(self);
-                my \buffer := nqp::create(IterationBuffer);
-                my \todo := nqp::create(List::Reifier);
-                nqp::bindattr(result, List, '$!reified', buffer);
-                nqp::bindattr(result, List, '$!todo', todo);
-                nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-                nqp::bindattr(todo, List::Reifier, '$!future',
-                    nqp::iscont(consider) || !nqp::istype(consider, Iterable) || !consider.DEFINITE
-                        ?? vm-tuple
-                        !! nqp::list(consider.list.Slip)
-                );
-                nqp::bindattr(todo, List::Reifier, '$!reification-target',
-                    result.reification-target());
-                result
-            }
-        }
+    method from-slurpy-onearg(|) {
+        my Mu \vm-tuple := nqp::captureposarg(nqp::usecapture, 1);
+        my $result;
+        my $buffer;
+        my $todo;
+        my $consider;
+
+        nqp::if(
+          nqp::isgt_i(nqp::elems(vm-tuple),1),
+          nqp::stmts(  # handle as slurpy
+            nqp::bindattr(($result := nqp::create(self)),List,'$!reified',
+              $buffer := nqp::create(IterationBuffer)),
+            nqp::bindattr($result,List,'$!todo',
+              $todo   := nqp::create(List::Reifier)),
+            nqp::bindattr($todo,List::Reifier,'$!reified',
+              $buffer),
+            nqp::bindattr($todo,List::Reifier,'$!reification-target',
+              $result.reification-target),
+            nqp::bindattr($todo,List::Reifier,'$!future',vm-tuple),
+            $result
+          ),
+          nqp::if(
+            nqp::iseq_i(nqp::elems(vm-tuple),1),
+            nqp::if(  # single arg semantics active
+              nqp::istype(($consider := nqp::atpos(vm-tuple,0)),Seq),
+              nqp::if(  # a single Seq
+                nqp::istype(self,Array),
+                $consider.cache,
+                $consider
+              ),
+              nqp::stmts( # something else
+                nqp::bindattr(($result := nqp::create(self)),List,'$!reified',
+                  $buffer := nqp::create(IterationBuffer)),
+                nqp::bindattr($result,List,'$!todo',
+                  $todo   := nqp::create(List::Reifier)),
+                nqp::bindattr($todo,List::Reifier,'$!reified',
+                  $buffer),
+                nqp::bindattr($todo,List::Reifier,'$!reification-target',
+                  $result.reification-target),
+                nqp::if(
+                  nqp::iscont($consider)
+                    || nqp::not_i(nqp::istype($consider,Iterable))
+                    || nqp::not_i(nqp::p6definite($consider)),
+                  nqp::bindattr($todo,List::Reifier,'$!future',
+                    vm-tuple),
+                  nqp::bindattr($todo,List::Reifier,'$!future',
+                    nqp::list($consider.list.Slip))
+                ),
+                $result
+              )
+            ),
+            nqp::create(self)  # no args, so just a bare object
+          )
+        )
     }
 
     method from-slurpy-flat(|) {

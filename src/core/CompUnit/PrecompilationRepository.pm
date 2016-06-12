@@ -244,7 +244,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
             my $path = self.store.path($compiler-id, $dependency.id);
             if $path.e {
-                spurt($path ~ '.rev-deps', "$dependency.id()\n", :append);
+                spurt($path ~ '.rev-deps', "$id\n", :append);
             }
             @dependencies.push: $dependency;
         }

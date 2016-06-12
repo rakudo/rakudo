@@ -61,7 +61,7 @@ multi sub take-rw(|) {
 my &take := -> | {
     THROW(
       nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray)))
+      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
     )
 }
 #?endif

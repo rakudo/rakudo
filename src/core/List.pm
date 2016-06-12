@@ -261,32 +261,44 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         # only create a future if we need one
         my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        if nqp::elems(vm-tuple) -> int $elems {
-            my \buffer := nqp::create(IterationBuffer);
-            my \todo := nqp::create(List::Reifier);
-            nqp::bindattr(result, List, '$!reified', buffer);
-            nqp::bindattr(result, List, '$!todo', todo);
-            nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-            nqp::bindattr(todo, List::Reifier, '$!reification-target',
-                result.reification-target());
-            my \future := nqp::setelems(nqp::create(IterationBuffer),$elems);
-            my int $i = -1;
+        my int $elems = nqp::elems(vm-tuple);
+        my int $i     = -1;
+        my $consider;
 
-            STATEMENT_LIST(
-              my \consider := nqp::atpos(vm-tuple, $i);
-              nqp::bindpos(future, $i, nqp::iscont(consider)
-                ?? consider
-                !! nqp::istype(consider, Iterable) && consider.DEFINITE
-                  ?? (nqp::istype(consider, PositionalBindFailover)
-                    ?? consider.cache
-                    !! consider
-                     ).flat.Slip
-                  !! consider
+        nqp::if(
+          nqp::isgt_i($elems,0),
+          nqp::stmts(
+            nqp::bindattr(result,List,'$!reified',
+              my \buffer := nqp::create(IterationBuffer)),
+            nqp::bindattr(result,List,'$!todo',
+              my \todo   := nqp::create(List::Reifier)),
+            nqp::bindattr(todo,List::Reifier,'$!reified',
+              buffer),
+            nqp::bindattr(todo,List::Reifier,'$!reification-target',
+              result.reification-target),
+            nqp::bindattr(todo,List::Reifier,'$!future',
+              my \future := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            nqp::while(
+              nqp::islt_i($i = nqp::add_i($i,1),$elems),
+              nqp::stmts(
+                ($consider := nqp::atpos(vm-tuple,$i)),
+                nqp::if(
+                  nqp::iscont($consider),
+                  nqp::bindpos(future,$i,$consider),
+                  nqp::if(
+                    (nqp::istype($consider, Iterable) && $consider.DEFINITE),
+                    nqp::if(
+                      nqp::istype($consider, PositionalBindFailover),
+                      nqp::bindpos(future,$i,$consider.cache.flat.Slip),
+                      nqp::bindpos(future,$i,$consider.flat.Slip)
+                    ),
+                    nqp::bindpos(future,$i,$consider)
+                  )
+                )
               )
-            ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-
-            nqp::bindattr(todo, List::Reifier, '$!future', future);
-        }
+            )
+          )
+        );
 
         result
     }

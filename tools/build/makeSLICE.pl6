@@ -312,8 +312,14 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$pair,%adv) {
                 if nqp::elems($d) == 0 {          # :delete:k(0|1)
                     $k
                       ?? $more.cache.flatmap( {
-                             next unless SELF.@EXISTS[]$_);
-                             STATEMENT_LIST( SELF.@DELETE[]$_); $_ );
+                             nqp::if(
+                               SELF.@EXISTS[]$_),
+                               nqp::stmts(
+                                 SELF.@DELETE[]$_),
+                                 $_
+                               ),
+                               next
+                             )
                          } ).eager.list
                       !! $more.cache.flatmap( {
                              SELF.@DELETE[]$_); $_

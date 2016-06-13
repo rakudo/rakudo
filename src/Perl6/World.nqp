@@ -2952,10 +2952,9 @@ class Perl6::World is HLL::World {
                     QAST::Var.new(
                         :decl<param>, :scope<local>, :name<self>
                     ),
-                    # XXX not sure if those two could be local instead.
-                    QAST::Var.new(
-                        :decl<param>, :scope<local>, :name('@autovivs')
-                    ),
+                    #QAST::Var.new(
+                        #:decl<param>, :scope<local>, :name('@autovivs')
+                    #),
                     QAST::Var.new(
                         :decl<param>, :scope<local>, :name('%attrinit')
                     ),

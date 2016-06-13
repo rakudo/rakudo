@@ -92,13 +92,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my $value;
                         my $result;
 
-                        STATEMENT_LIST(
-                          $!did-init = 1;
-                          nqp::if(
-                            &!block.has-phaser('FIRST'),
-                            nqp::p6setfirstflag(&!block)
-                          );
-                        ) unless $!did-init;
+                        nqp::unless(
+                          $!did-init,
+                          nqp::stmts(
+                            ($!did-init = 1),
+                            nqp::if(
+                              &!block.has-phaser('FIRST'),
+                              nqp::p6setfirstflag(&!block)
+                            )
+                          )
+                        );
 
                         if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                             # $result will be returned at the end
@@ -153,28 +156,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
 
                     method sink-all() {
-                        STATEMENT_LIST(
-                          $!did-init = 1;
-                          nqp::if(
-                            &!block.has-phaser('FIRST'),
-                            nqp::p6setfirstflag(&!block)
-                          );
-                        ) unless $!did-init;
+                        nqp::unless(
+                          $!did-init,
+                          nqp::stmts(
+                            ($!did-init = 1),
+                            nqp::if(
+                              &!block.has-phaser('FIRST'),
+                              nqp::p6setfirstflag(&!block)
+                            )
+                          )
+                        );
 
                         my int $redo;
                         my int $running = 1;
                         my $value;
                         while $running {
                             nqp::eqaddr(($value := $!source.pull-one()), IterationEnd)
-                              ?? STATEMENT_LIST(
-                                   $running = 0;
+                              ?? nqp::stmts(
+                                   ($running = 0),
                                    nqp::if(
                                      $!did-iterate,
                                      &!block.fire_phasers('LAST')
                                    );
                                  )
-                              !! STATEMENT_LIST(
-                                   $redo = 1;
+                              !! nqp::stmts(
+                                   ($redo = 1),
                                    nqp::while(
                                      $redo,
                                      nqp::stmts(
@@ -198,11 +204,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                            ($running = 0))
                                        )  
                                      ),
-                                     :nohandler);
+                                     :nohandler
+                                   ),
                                    nqp::if(
                                      nqp::not_i($running) && $!did-iterate,
                                      &!block.fire_phasers('LAST')
-                                   );
+                                   )
                                  );
                         }
                         IterationEnd

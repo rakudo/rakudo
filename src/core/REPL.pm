@@ -3,6 +3,8 @@ use nqp;
 class REPL { ... }
 
 do {
+    my $more-code-sentinel = {};
+
     my sub sorted-set-insert(@values, $value) {
         my $low        = 0;
         my $high       = @values.end;
@@ -57,14 +59,14 @@ do {
         my &readline    = $WHO<&readline>;
         my &add_history = $WHO<&add_history>;
 
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
+        method repl-read(Mu \prompt) {
             my $line = readline(prompt);
 
             if $line.defined {
                 add_history($line);
             }
 
-            $line // nqp::null_s()
+            $line
         }
     }
 
@@ -95,7 +97,7 @@ do {
             }
         }
 
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
+        method repl-read(Mu \prompt) {
             self.update-completions;
             my $line = linenoise(prompt);
 
@@ -103,13 +105,14 @@ do {
                 linenoiseHistoryAdd($line);
             }
 
-            $line // nqp::null_s()
+            $line
         }
     }
 
     my role FallbackBehavior {
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
-            super.(SELF, stdin, stdout, prompt);
+        method repl-read(Mu \prompt) {
+            print prompt;
+            get
         }
     }
 
@@ -146,7 +149,7 @@ do {
         method extract-last-word(Str $line) {
             my $m = $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
-            return ( ~$m<prefix>, ~$m<last_word> );
+            ( ~$m<prefix>, ~$m<last_word> )
         }
 
         method completions-for-line(Str $line, int $cursor-index) {
@@ -164,18 +167,14 @@ do {
         }
     }
 
-    # *** WARNING ***
-    #
-    # If you want to add new methods as hooks into Perl6::Compiler, you'll need to
-    # add support for them to Perl6::Compiler itself.  See the readline and eval
-    # methods both in this file and in Perl6::Compiler for guidance on how to do
-    # that
     class REPL {
         also does Completions;
 
         has Mu $.compiler;
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
+
+        has $!save_ctx;
 
         sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
             my Bool $problem = False;
@@ -258,18 +257,15 @@ do {
         }
 
         method new(Mu \compiler, Mu \adverbs) {
-            return if $*VM.name eq 'jvm';
-
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);
             $self = mixin-line-editor($self);
-
             $self
         }
 
         method init(Mu \compiler, $multi-line-enabled) {
-            $!compiler = compiler;
+            $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
         }
 
@@ -277,27 +273,121 @@ do {
             self.?teardown-line-editor;
         }
 
-        method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
-            try {
-                my &needs_more_input = adverbs<needs_more_input>;
-                CATCH {
-                    when X::Syntax::Missing {
-                        if $!multi-line-enabled && .pos == code.chars {
-                            return needs_more_input();
-                        }
-                        .throw;
-                    }
+        method partial-eval(Mu \code, Mu \adverbs) {
+            my &needs_more_input = adverbs<needs_more_input>;
 
-                    when X::Comp::FailGoal {
-                        if $!multi-line-enabled && .pos == code.chars {
-                            return needs_more_input();
-                        }
+            CATCH {
+                when X::Syntax::Missing {
+                    if $!multi-line-enabled && .pos == code.chars {
+                        return needs_more_input();
+                    } else {
                         .throw;
                     }
                 }
 
-                super.(SELF, code, |@(args), |%(adverbs))
+                when X::Comp::FailGoal {
+                    if $!multi-line-enabled && .pos == code.chars {
+                        return needs_more_input();
+                    } else {
+                        .throw;
+                    }
+                }
+
             }
+
+            self.compiler.eval(code, |%(adverbs))
+        }
+
+        method repl-eval($code, *%adverbs) {
+            my $needs_more_input = False;
+            %adverbs<needs_more_input> := sub () {
+                $needs_more_input = True;
+            };
+            my $result := self.partial-eval($code, %adverbs);
+            if $needs_more_input {
+                return $more-code-sentinel;
+            }
+            $result
+        }
+
+        method interactive_prompt() { '> ' }
+
+        method repl-loop(*%adverbs) {
+
+            my $prompt = self.interactive_prompt;
+            my $code = "";
+
+            REPL: loop {
+
+                my $newcode = self.repl-read(~$prompt);
+
+                my $initial_out_position = $*OUT.tell;
+
+                # An undef $newcode implies ^D or similar
+                if !$newcode.defined {
+                    last;
+                }
+
+                $code = $code ~ $newcode ~ "\n";
+
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+
+                my $output;
+                {
+                    $output := self.repl-eval(
+                        $code,
+                        :outer_ctx($!save_ctx),
+                        |%adverbs);
+
+                    CATCH {
+                        say $_;
+                        $code = '';
+                        $prompt = self.interactive_prompt;
+                        next REPL;
+                    }
+                };
+
+                if self.input-incomplete($output) {
+                    # Need to get more code before we execute
+                    # Strip the trailing \, but reinstate the newline
+                    if $code.substr(* - 2) eq "\\\n" {
+                        $code = $code.substr(0, * - 2) ~ "\n";
+                    }
+                    if $code {
+                        $prompt = '* ';
+                    }
+                    next;
+                }
+
+                if $*MAIN_CTX {
+                    $!save_ctx := $*MAIN_CTX;
+                }
+
+                $code = "";
+                $prompt = self.interactive_prompt;
+
+                # Only print the result if there wasn't some other output
+                if $initial_out_position == $*OUT.tell {
+                  self.repl-print($output);
+                }
+            }
+
+            self.teardown;
+        }
+
+        # Inside of the EVAL it does like caller.ctxsave
+        method ctxsave() {
+            $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
+            $*CTXSAVE := 0;
+        }
+
+        method input-incomplete($value) {
+            $value.WHERE == $more-code-sentinel.WHERE
+        }
+
+        method repl-print($value) {
+            say $value unless $value.gist eq '';
         }
 
         method history-file returns Str {

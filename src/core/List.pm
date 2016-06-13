@@ -1077,27 +1077,29 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
 multi sub infix:<,>(|) {
-    my \result  = nqp::create(List);
-    my \in      = nqp::p6argvmarray();
-    my \reified = nqp::create(IterationBuffer);
-    nqp::bindattr(result, List, '$!reified', reified);
-    nqp::istype(nqp::atpos(in, 0), Slip)
-      ?? STATEMENT_LIST(
-           # We saw a Slip, so we'll lazily deal with the rest of the things
-           # (as the Slip may expand to something lazy).
-           my \todo := nqp::create(List::Reifier);
-           nqp::bindattr(result, List, '$!todo', todo);
-           nqp::bindattr(todo, List::Reifier, '$!reified', reified);
-           nqp::bindattr(todo, List::Reifier, '$!future', in);
-           nqp::bindattr(todo, List::Reifier, '$!reification-target',
-             result.reification-target());
-           last;
-         )
-      !! STATEMENT_LIST(
-           nqp::push(reified, nqp::shift(in));
-           Nil;
-         )
-      while nqp::elems(in); # don't Sink the thing above
+    my \result := nqp::create(List);
+    my \in     := nqp::p6argvmarray();
+    my \reified := nqp::bindattr(result,List,'$!reified',nqp::create(IterationBuffer));
+
+    nqp::while(
+      nqp::elems(in),
+      nqp::if(  # doesn't sink
+        nqp::istype(nqp::atpos(in,0),Slip),
+        # We saw a Slip, so we'll lazily deal with the rest of the things
+        # (as the Slip may expand to something lazy).
+        nqp::stmts(
+          nqp::bindattr(result,List,'$!todo',
+             my \todo := nqp::create(List::Reifier)),
+          nqp::bindattr(todo,List::Reifier,'$!reified',reified),
+          nqp::bindattr(todo,List::Reifier,'$!future',in),
+          nqp::bindattr(todo,List::Reifier,'$!reification-target',
+            result.reification-target),
+          last
+        ),
+        # Not a Slip, so just reify it
+        nqp::push(reified,nqp::shift(in))
+      )
+    );
 
     result
 }

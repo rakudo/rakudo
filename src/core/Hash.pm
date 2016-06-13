@@ -155,18 +155,23 @@ my class Hash { # declared in BOOTSTRAP
         my $previous;
         my int $has_previous = 0;
 
-        $has_previous
-          ?? STATEMENT_LIST(
-               self!_push_construct($previous,$_);
-               $has_previous = 0)
-          !! nqp::istype($_,Pair)
-            ?? self!_push_construct(.key,.value)
-            !! STATEMENT_LIST(
-                 $previous = $_;
-                 $has_previous = 1)
-          for values;
+        nqp::if(
+          $has_previous,
+          nqp::stmts(
+            self!_push_construct($previous,$_),
+            ($has_previous = 0)
+          ),
+          nqp::if(
+            nqp::istype($_,Pair),
+            self!_push_construct(.key,.value),
+            nqp::stmts(
+              ($previous := $_),
+              ($has_previous = 1)
+            )
+          )
+        ) for values;
 
-        warn "Trailing item in Hash.push" if $has_previous;
+        warn "Trailing item in {self.^name}.push" if $has_previous;
         self
     }
 
@@ -177,18 +182,23 @@ my class Hash { # declared in BOOTSTRAP
         my $previous;
         my int $has_previous = 0;
 
-        $has_previous
-          ?? STATEMENT_LIST(
-               self!_append_construct($previous,$_);
-               $has_previous = 0)
-          !! nqp::istype($_,Pair)
-            ?? self!_append_construct(.key,.value)
-            !! STATEMENT_LIST(
-                 $previous = $_;
-                 $has_previous = 1)
-          for values;
+        nqp::if(
+          $has_previous,
+          nqp::stmts(
+            self!_append_construct($previous,$_),
+            ($has_previous = 0)
+          ),
+          nqp::if(
+            nqp::istype($_,Pair),
+            self!_append_construct(.key,.value),
+            nqp::stmts(
+              ($previous := $_),
+              ($has_previous = 1)
+            )
+          )
+        ) for values;
 
-        warn "Trailing item in Hash.append" if $has_previous;
+        warn "Trailing item in {self.^name}.append" if $has_previous;
         self
     }
 

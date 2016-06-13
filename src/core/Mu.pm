@@ -121,7 +121,7 @@ my class Mu { # declared in BOOTSTRAP
             nqp::iseq_i(($code = nqp::atpos(
               ($task := nqp::atpos($build_plan,$i)),0
             )),0),
-            (nqp::atpos($task,1)(self,|%attrinit)),
+            (nqp::atpos($task,1)(self,|%attrinit).sink),
 
             nqp::if( # 1
               nqp::iseq_i($code,1),
@@ -292,7 +292,7 @@ my class Mu { # declared in BOOTSTRAP
             nqp::iseq_i(($code = nqp::atpos(
               ($task := nqp::atpos($build_plan,$i)),0
             )),0),
-            (nqp::atpos($task,1)(self,|%attrinit)),
+            (nqp::atpos($task,1)(self,|%attrinit).sink),
 
             nqp::if( # 1
               nqp::iseq_i($code,1),

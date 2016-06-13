@@ -130,13 +130,21 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             has int $!on-value;
 
             method pull-one() is raw {
-                $!on-value
-                  ?? STATEMENT_LIST($!on-value = 0; nqp::iterval($!iter))
-                  !! $!iter
-                    ?? STATEMENT_LIST(
-                         $!on-value = 1;
-                         nqp::iterkey_s(nqp::shift($!iter)))
-                    !! IterationEnd
+                nqp::if(
+                  $!on-value,
+                  nqp::stmts(
+                    ($!on-value = 0),
+                    nqp::iterval($!iter)
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($!on-value = 1),
+                      nqp::iterkey_s(nqp::shift($!iter))
+                    ),
+                    IterationEnd
+                  )
+                )
             }
             method push-all($target) {
                 nqp::while(  # doesn't sink

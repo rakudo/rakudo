@@ -3051,6 +3051,9 @@ class Perl6::World is HLL::World {
                     return NQPMu;
                 }
             }
+
+            $execution.push(QAST::Var.new( :name('self'), :scope('local') ));
+
             #note("HOORAY! BUILDALLPLAN for " ~ $object.HOW.name($object) ~ " with $count steps");
 
             $!w.cur_lexpad()[0].push($block);

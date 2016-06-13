@@ -109,6 +109,7 @@ my class Mu { # declared in BOOTSTRAP
         my int $count = nqp::elems($build_plan);
         my int $i     = -1;
         my $task;
+        my $build;
         my int $code;
         my int $int;
         my num $num;
@@ -121,7 +122,11 @@ my class Mu { # declared in BOOTSTRAP
             nqp::iseq_i(($code = nqp::atpos(
               ($task := nqp::atpos($build_plan,$i)),0
             )),0),
-            (nqp::atpos($task,1)(self,|%attrinit).sink),
+            nqp::if(
+              nqp::istype(
+                ($build := nqp::atpos($task,1)(self,|%attrinit)),Failure),
+              return $build
+            ),
 
             nqp::if( # 1
               nqp::iseq_i($code,1),
@@ -283,6 +288,7 @@ my class Mu { # declared in BOOTSTRAP
         my int $count = nqp::elems($build_plan);
         my int $i     = -1;
         my $task;
+        my $build;
         my int $code;
 
         nqp::while(
@@ -292,7 +298,11 @@ my class Mu { # declared in BOOTSTRAP
             nqp::iseq_i(($code = nqp::atpos(
               ($task := nqp::atpos($build_plan,$i)),0
             )),0),
-            (nqp::atpos($task,1)(self,|%attrinit).sink),
+            nqp::if(
+              nqp::istype(
+                ($build := nqp::atpos($task,1)(self,|%attrinit)),Failure),
+              return $build
+            ),
 
             nqp::if( # 1
               nqp::iseq_i($code,1),

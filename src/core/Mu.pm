@@ -99,7 +99,15 @@ my class Mu { # declared in BOOTSTRAP
         nqp::create(self).BUILDALL(%attrinit);
     }
 
-    method BUILDALL(%attrinit) {
+    proto method BUILDALL(|) { * }
+
+    # This candidate provided for those modules that rely on the old
+    # BUILDALL interface, such as Inline::Perl5
+    multi method BUILDALL(@positional,%attrinit) {
+        self.BUILDALL(%attrinit)
+    }
+
+    multi method BUILDALL(%attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which

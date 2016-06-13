@@ -5,7 +5,7 @@ New in 2016.06
    + Precompilation from a debug Perl 6 now uses "normal" Perl 6 executor.
    + Inf,NaN,-Inf now can be coerced to Rat, and back to Num.
    + Creating an Enum from a List/Range no longer warns.
-   + Precompilation on file systems with coarse timestamps no longer fail.
+   + Precompilation on file systems with coarse timestamps no longer fails.
    + An issue with reverse dependencies of installed modules was fixed.
  + Additions:
    + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)

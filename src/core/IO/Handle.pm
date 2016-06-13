@@ -168,26 +168,41 @@ my class IO::Handle does IO {
             }
 
             method pull-one() {
-                my str $str = $!handle.readchars($!size);
-                nqp::chars($str)
-                  ?? nqp::p6box_s($str)
-                  !! STATEMENT_LIST($!handle.close if $!close;IterationEnd)
+                nqp::if(
+                  nqp::chars(my str $str = $!handle.readchars($!size)),
+                  nqp::p6box_s($str),
+                  nqp::stmts(
+                    nqp::if(
+                      $!close,
+                      $!handle.close
+                    ),
+                    IterationEnd
+                  )
+                )
             }
             method push-all($target) {
                 my str $str = $!handle.readchars($!size);
-                STATEMENT_LIST(
-                  $target.push(nqp::p6box_s($str));
-                  $str = $!handle.readchars($!size)
-                ) while nqp::iseq_i(nqp::chars($str),$!size);
+                nqp::while(
+                  nqp::iseq_i(nqp::chars($str),$!size), 
+                  nqp::stmts(
+                    $target.push(nqp::p6box_s($str)),
+                    ($str = $!handle.readchars($!size))
+                  )
+                );
                 $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
                 IterationEnd
             }
             method count-only() {
-                my int $found;
+                my int $found = 0;
                 my str $str = $!handle.readchars($!size);
-                STATEMENT_LIST(++$found; $str = $!handle.readchars($!size))
-                  while nqp::chars($str) == $!size;
+                nqp::while(
+                  nqp::iseq_i(nqp::chars($str),$!size),
+                  nqp::stmts(
+                    ($found = nqp::add_i($found,1)),
+                    ($str = $!handle.readchars($!size)),
+                  )
+                );
                 ++$found if nqp::chars($str);
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
@@ -660,8 +675,13 @@ my class IO::Handle does IO {
         if $bin {
             supply {
                 my $buf := self.read($size);
-                STATEMENT_LIST( emit $buf; $buf := self.read($size))
-                  while nqp::elems($buf);
+                nqp::while(
+                  nqp::elems($buf),
+                  nqp::stmts(
+                    (emit $buf),
+                    ($buf := self.read($size))
+                  )
+                );
                 done;
             }
         }
@@ -669,10 +689,13 @@ my class IO::Handle does IO {
             supply {
                 my int $chars = $size;
                 my str $str = self.readchars($chars);
-                STATEMENT_LIST(
-                  emit nqp::p6box_s($str);
-                  $str = self.readchars($chars);
-                ) while nqp::chars($str);
+                nqp::while(
+                  nqp::chars($str),
+                  nqp::stmts(
+                    (emit nqp::p6box_s($str)),
+                    ($str = self.readchars($chars))
+                  )
+                );
                 done;
             }
         }

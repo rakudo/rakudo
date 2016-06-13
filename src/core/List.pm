@@ -494,9 +494,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                           nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
                           $target.push(nqp::atpos($!reified,$!i))
                         );
-                        $!todo.fully-reified
-                          ?? self!done
-                          !! STATEMENT_LIST($!i = $elems - 1; Mu)
+                        nqp::if(
+                          $!todo.fully-reified,
+                          self!done,
+                          nqp::stmts(
+                            ($!i = $elems - 1),
+                            Mu
+                          )
+                        )
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
@@ -787,11 +792,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
     method FLATTENABLE_LIST() {
-        $!todo.DEFINITE
-          ?? STATEMENT_LIST($!todo.reify-all; $!reified)
-          !! $!reified.DEFINITE
-            ?? $!reified
-            !! nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+        nqp::if(
+          $!todo.DEFINITE,
+          nqp::stmts(
+            $!todo.reify-all,
+            $!reified
+          ),
+          nqp::if(
+            $!reified.DEFINITE,
+            $!reified,
+            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+          )
+        )
     }
     method FLATTENABLE_HASH() { nqp::hash() }
 
@@ -802,8 +814,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method is-lazy() {
-        $!todo.DEFINITE
-          && STATEMENT_LIST($!todo.reify-until-lazy; !$!todo.fully-reified)
+        nqp::if(
+          $!todo.DEFINITE,
+          nqp::stmts(
+            $!todo.reify-until-lazy,
+            !$!todo.fully-reified
+          ),
+          False
+        )
     }
 
     proto method pick(|) is nodal { * }

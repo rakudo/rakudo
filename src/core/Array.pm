@@ -94,9 +94,14 @@ my class Array { # declared in BOOTSTRAP
                           nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
                           $target.push(nqp::atpos($!reified,$!i))
                         );
-                        $!todo.fully-reified
-                          ?? self!done
-                          !! STATEMENT_LIST($!i = $elems - 1; Mu)
+                        nqp::if(
+                          $!todo.fully-reified,
+                          self!done,
+                          nqp::stmts(
+                            ($!i = nqp::sub_i($elems,1)),
+                            Mu
+                          )
+                        )
                     }
                     else {
                         my int $elems = nqp::elems($!reified);
@@ -433,13 +438,20 @@ my class Array { # declared in BOOTSTRAP
 
     method is-lazy() {
         my $todo := nqp::getattr(self, List, '$!todo');
-        $todo.DEFINITE
-          && STATEMENT_LIST(
-               $todo.reify-until-lazy;
-               $todo.fully-reified
-                 ?? nqp::p6bool(nqp::bindattr(self, List, '$!todo', Mu))
-                 !! True
-             )
+        nqp::if(
+          $todo.DEFINITE,
+          nqp::stmts(
+            $todo.reify-until-lazy,
+            nqp::if(
+              $todo.fully-reified,
+              nqp::stmts(
+                nqp::bindattr(self,List,'$!todo',Mu),
+                False
+              ),
+              True
+            )
+          )
+        )
     }
 
     proto method STORE(|) { * }
@@ -725,11 +737,19 @@ my class Array { # declared in BOOTSTRAP
         self!ensure-allocated();
         my $todo := nqp::getattr(self, List, '$!todo');
         my $reified := nqp::getattr(self, List, '$!reified');
-        nqp::existspos($reified, 0) || $todo.DEFINITE && $todo.reify-at-least(1)
-          ?? nqp::shift($reified)
-          !! nqp::elems($reified)  # is it actually just sparse?
-            ?? STATEMENT_LIST(nqp::shift($reified); Nil)
-            !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+        nqp::if(
+          (nqp::existspos($reified,0)
+            || $todo.DEFINITE && $todo.reify-at-least(1)),
+          nqp::shift($reified),
+          nqp::if(
+            nqp::elems($reified),  # is it actually just sparse?
+            nqp::stmts(
+              nqp::shift($reified),
+              Nil
+            ),
+            Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+          )
+        )
     }
 
     proto method splice(|) is nodal { * }

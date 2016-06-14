@@ -1,7 +1,11 @@
 class IO::Special {
     has Str $.what;
 
-    submethod BUILD(:$!what! --> Nil) { }
+    method new(\what) {
+        my $io := nqp::create(self);
+        nqp::bindattr($io,self,'$!what',what);
+        $io
+    }
     method WHICH(IO::Special:D:) { "IO::Special$!what" }
     method Str(IO::Special:D:)   { $!what }
 

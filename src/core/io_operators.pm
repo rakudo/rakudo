@@ -207,11 +207,11 @@ sub homedir(Str() $path, :$test = <r w x>) {
 }
 
 PROCESS::<$IN> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDIN>  >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDIN>'))).open;
 PROCESS::<$OUT> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDOUT> >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDOUT>'))).open;
 PROCESS::<$ERR> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDERR> >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
 
 sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     my @ok;

@@ -1620,6 +1620,13 @@ my class X::Attribute::Required does X::MOP {
     has $.name;
     method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
 }
+my class X::Attribute::Scope::Package does X::Comp {
+    has $.scope;
+    has $.allowed;
+    has $.disallowed;
+    method message() { "Cannot use {$.scope}-scoped attribute in $.disallowed"
+        ~ ($.allowed ?? ", only $.allowed." !! ".") }
+}
 my class X::Declaration::Scope does X::Comp {
     has $.scope;
     has $.declaration;

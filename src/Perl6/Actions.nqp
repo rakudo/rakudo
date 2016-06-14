@@ -2758,6 +2758,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
     method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
+    method scope_declarator:sym<HAS>($/)     {
+        my $scoped := $<scoped>.ast;
+        my $attr   := $scoped.ann('metaattr');
+        if $attr.package.REPR ne 'CStruct'
+        && $attr.package.REPR ne 'CPPStruct'
+        && $attr.package.REPR ne 'CUnion' {
+            $*W.throw($/, ['X', 'Attribute', 'Scope', 'Package'], :scope<HAS>,
+                :allowed('classes with CStruct, CPPStruct and CUnion representation are supported'),
+                :disallowed('package with ' ~ $attr.package.REPR ~ ' representation'));
+        }
+        if nqp::objprimspec($attr.type) != 0 {
+            $/.CURSOR.worry('Useless use of HAS scope on ' ~ $attr.type.HOW.name($attr.type) ~ ' typed attribute.');
+        }
+        # Mark $attr as inlined, that's why we do all this.
+        nqp::bindattr_i($attr, $attr.WHAT, '$!inlined', 1);
+        make $scoped;
+    }
 
     method declarator($/) {
         if    $<routine_declarator>  { make $<routine_declarator>.ast  }

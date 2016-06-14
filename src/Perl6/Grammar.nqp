@@ -2412,6 +2412,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ATTR_INIT_BLOCK;
         <scoped('has')>
     }
+    token scope_declarator:sym<HAS>       {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym>
+        :my $*HAS_SELF := 'partial';
+        :my $*ATTR_INIT_BLOCK;
+        <scoped('has')>
+    }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }

@@ -190,14 +190,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
         my $bc = "$io.bc".IO;
 
-        my $rev-deps = ($io ~ '.rev-deps').IO;
-        if $rev-deps.e {
-            for $rev-deps.lines {
-                $RMD("removing outdated rev-dep $_") if $RMD;
-                self.store.delete($compiler-id, $_);
-            }
-        }
-
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
@@ -252,10 +244,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
             $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
-            my $path = self.store.path($compiler-id, $dependency.id);
-            if $path.e {
-                spurt($path ~ '.rev-deps', "$id\n", :append);
-            }
             @dependencies.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;

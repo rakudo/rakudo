@@ -261,8 +261,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             for @provides -> ($source-name, $id) {
                 my $source = $sources-dir.child($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
-                my $rev-deps-file = ($precomp.store.path($compiler-id, $id) ~ '.rev-deps').IO;
-                my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
 
                 if %done{$id} {
                     note "(Already did $id)" if $verbose;
@@ -275,21 +273,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
-                for @rev-deps -> $rev-dep-id {
-                    if %done{$rev-dep-id} {
-                        note "(Already did $rev-dep-id)" if $verbose;
-                        next;
-                    }
-                    note("Precompiling rev-dep $rev-dep-id") if $verbose;
-                    my $source = $sources-dir.child($rev-dep-id);
-                    $precomp.precompile(
-                        $source,
-                        $rev-dep-id,
-                        :force,
-                        :source-name($source-file)
-                    ) if $source.e;
-                    %done{$rev-dep-id} = 1;
-                }
             }
             PROCESS::<$REPO> := $head;
         }

@@ -102,9 +102,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
         }
+        my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
             $RMD("dependency: $dependency") if $RMD;
-            unless %!loaded{$dependency.id}:exists {
                 if $resolve {
                     my $comp-unit = $repo.resolve($dependency.spec);
                     $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
@@ -126,11 +126,20 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
                 return False if $dependency-precomp.checksum ne $dependency.checksum;
 
-                %!loaded{$dependency.id} = self!load-handle-for-path($dependency-precomp);
-            }
+                @dependencies.push: $dependency-precomp;
+        }
 
-            # report back id and source location of dependency to dependant
-            say $dependency.serialize if $*W and $*W.is_precompilation_mode;
+        for @dependencies -> $dependency-precomp {
+            unless %!loaded{$dependency-precomp.id}:exists {
+                %!loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
+            }
+        }
+
+        # report back id and source location of dependency to dependant
+        if $*W and $*W.is_precompilation_mode {
+            for $precomp-unit.dependencies -> $dependency {
+                say $dependency.serialize;
+            }
         }
 
         if $resolve {

@@ -169,13 +169,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         IO::Path:D $path,
         CompUnit::PrecompilationId $id,
         Bool :$force = False,
-        Instant :$since,
         :$source-name = $path.Str
     ) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if not $force and $io.e and $io.s and (not $since or $io.modified > $since) {
+        if not $force and $io.e and $io.s {
             $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
             self.store.unlock;
             return True;

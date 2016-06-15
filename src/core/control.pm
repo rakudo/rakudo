@@ -93,15 +93,15 @@ proto sub goto(|) { * }
 multi sub goto(Label:D \x) { x.goto }
 
 proto sub last(|) { * }
-multi sub last()           { THROW-NIL(nqp::const::CONTROL_LAST) }
+multi sub last()           { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x) { x.last }
 
 proto sub next(|) { * }
-multi sub next()           { THROW-NIL(nqp::const::CONTROL_NEXT) }
+multi sub next()           { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x) { x.next }
 
 proto sub redo(|) { * }
-multi sub redo()           { THROW-NIL(nqp::const::CONTROL_REDO) }
+multi sub redo()           { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x) { x.redo }
 
 proto sub succeed(|) { * }

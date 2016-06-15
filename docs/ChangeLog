@@ -7,6 +7,7 @@ New in 2016.06
    + Creating an Enum from a List/Range no longer warns.
    + Precompilation on file systems with coarse timestamps no longer fails.
    + An issue with reverse dependencies of installed modules was fixed.
+   + Fix issue with comparing v6 and v6.c Version objects
  + Additions:
    + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
    + The "is-approx" sub from Test now allows for relative/absolute tolerance.

@@ -20,9 +20,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     has CompUnit::PrecompilationStore $.store;
     has %!loaded;
 
-    my $lle;
-    my $profile;
-
     method try-load(
         CompUnit::PrecompilationDependency::File $dependency,
         IO::Path :$source = $dependency.src.IO,
@@ -180,18 +177,18 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Bool :$force = False,
         :$source-name = $path.Str
     ) {
-        my $compiler-id = $*PERL.compiler.id;
-        my $io = self.store.destination($compiler-id, $id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if not $force and $io.e and $io.s {
-            $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
+
+        my $compiler-id = $*PERL.compiler.id;
+        unless self.store.lock-for-write($compiler-id, $id, :overwrite-existing($force)) {
+            $RMD("$source-name\nalready precompiled into\n$id") if $RMD;
             self.store.unlock;
             return True;
         }
+
+        my $io = $*TMPDIR.child($*PID ~ '-' ~ $id);
         my $bc = "$io.bc".IO;
 
-        $lle     //= Rakudo::Internals.LL-EXCEPTION;
-        $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
         %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: @*MODULES // [];
@@ -199,21 +196,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         $RMD("Precompiling $path into $bc") if $RMD;
-        my $perl6 = $*EXECUTABLE
-            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
-            .subst('perl6-gdb', 'perl6')
-            .subst('perl6-jdb-server', 'perl6-j') ;
-        my $proc = run(
-          $perl6,
-          $lle,
-          $profile,
-          "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-          "--output=$bc",
-          "--source-name=$source-name",
-          $path,
-          :out,
-          :err,
-        );
+        my $proc = Rakudo::Internals.run-precompilation-command($bc, $source-name, $path);
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
         %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;

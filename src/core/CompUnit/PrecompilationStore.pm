@@ -45,6 +45,16 @@ role CompUnit::PrecompilationStore {
     # Delete all precompilations for a particular compiler.
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
     { ... }
+
+    # Lock the repository and return True if we want to overwrite potentially
+    # existing units or the precomp unit does not already exist in this store.
+    method lock-for-write(CompUnit::PrecompilationId $compiler-id,
+                       CompUnit::PrecompilationId $precomp-id,
+                       Bool :$overwrite-existing = False)
+    { ... }
+
+    method unlock() {
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

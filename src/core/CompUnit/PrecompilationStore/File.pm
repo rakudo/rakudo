@@ -98,6 +98,18 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         self!dir($compiler-id, $precomp-id).child(($precomp-id ~ $extension).IO)
     }
 
+
+    method lock-for-write(CompUnit::PrecompilationId $compiler-id,
+                       CompUnit::PrecompilationId $precomp-id,
+                       Bool :$overwrite-existing = False)
+        returns Bool
+    {
+        self!lock();
+        return True if $overwrite-existing;
+        my $file = self!file($compiler-id, $precomp-id);
+        not ($file.e and $file.s) # need to abort if the comp unit already exists
+    }
+
     method !lock() {
         return if $*W && $*W.is_precompilation_mode();
         $!lock //= $.prefix.child('.lock').open(:create, :rw);
@@ -134,15 +146,6 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         else {
             Nil
         }
-    }
-
-    method destination(CompUnit::PrecompilationId $compiler-id,
-                       CompUnit::PrecompilationId $precomp-id,
-                       Str :$extension = '')
-        returns IO::Path
-    {
-        self!lock();
-        self!file($compiler-id, $precomp-id, :$extension);
     }
 
     method !file(CompUnit::PrecompilationId $compiler-id,

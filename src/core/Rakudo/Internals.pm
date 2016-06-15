@@ -791,6 +791,26 @@ my class Rakudo::Internals {
     method PRECOMP-TARGET() { "jar" }
 #?endif
 
+    method run-precompilation-command($output, $source-name, $path) {
+        state $lle //= self.LL-EXCEPTION;
+        state $profile //= self.PROFILE;
+        my $perl6 = $*EXECUTABLE
+            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
+            .subst('perl6-gdb', 'perl6')
+            .subst('perl6-jdb-server', 'perl6-j') ;
+        run(
+          $perl6,
+          $lle,
+          $profile,
+          "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
+          "--output=$output",
+          "--source-name=$source-name",
+          $path,
+          :out,
+          :err,
+        );
+    }
+
     method get-local-timezone-offset() {
         my $utc     = time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));

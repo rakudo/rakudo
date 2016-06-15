@@ -11,11 +11,11 @@ class Version {
     }
 
     multi method new(Version:) {
-        # "v" sentinel
+        # "v" highlander
         once nqp::create(self)!SET-SELF(nqp::list,0,"")
     }
     multi method new(Version: Whatever) {
-        # "v*" sentinel
+        # "v*" highlander
         once nqp::create(self)!SET-SELF(nqp::list(*),-1,"*")
     }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
@@ -23,7 +23,7 @@ class Version {
     }
     multi method new(Version: Str() $s) {
 
-        # sentinel most common
+        # higlanderize most common
         if $s eq '6' {
             once nqp::create(self)!SET-SELF(nqp::list(6),0,"6")
         }
@@ -56,11 +56,11 @@ class Version {
             )
         }
 
-        # "v+" sentinel
+        # "v+" highlander
         elsif $s.ends-with("+") {
             once nqp::create(self)!SET-SELF(nqp::list,1,"")
         }
-        # get "v" sentinel
+        # get "v" highlander
         else {
             self.new
         }

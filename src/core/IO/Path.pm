@@ -625,9 +625,9 @@ my class IO::Path is Cool {
 
     method mode(--> IntStr) {
         $.e
-          ?? STATEMENT_LIST(
-              my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777;
-              IntStr.new($mode, sprintf('%04o', $mode));
+          ?? nqp::stmts(
+              (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+              IntStr.new($mode, sprintf('%04o', $mode))
             )
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<mode>)
     }

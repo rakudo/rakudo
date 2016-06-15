@@ -12,6 +12,7 @@ New in 2016.06
    + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
    + The "is-approx" sub from Test now allows for relative/absolute tolerance.
    + A fail in a custom BUILD will now be returned, rather than thrown.
+   + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
  + Efficiency:
    + .map between 10% and 30% faster.
    + .unique, .repeated and .squish 10% to 20% faster.
@@ -22,6 +23,8 @@ New in 2016.06
    + All routines now have less overhead, thanks to improved implementation of
      return handlers (including those that do not use return).
    + return, next, last, and redo are now all faster.
+   + infix:<,> about 40% faster.
+   + numerous other smaller or edge-case speed improvements
 + Deprecations:
    + The "is_approx" sub (note underscore) from Test.
 

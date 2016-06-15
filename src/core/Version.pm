@@ -16,7 +16,7 @@ class Version {
     }
     multi method new(Version: Whatever) {
         # "v*" sentinel
-        once nqp::create(self)!SET-SELF(nqp::list(*),0,"*")
+        once nqp::create(self)!SET-SELF(nqp::list(*),-1,"*")
     }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
@@ -25,10 +25,10 @@ class Version {
 
         # sentinel most common
         if $s eq '6' {
-            once nqp::create(self)!SET-SELF(nqp::list("6"),0,"6")
+            once nqp::create(self)!SET-SELF(nqp::list(6),0,"6")
         }
         elsif $s eq '6.c' {
-            once nqp::create(self)!SET-SELF(nqp::list("6","c"),0,"6.c")
+            once nqp::create(self)!SET-SELF(nqp::list(6,"c"),0,"6.c")
         }
 
         # something sensible given

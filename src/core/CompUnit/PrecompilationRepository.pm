@@ -8,7 +8,12 @@
         }
 
         method may-precomp() {
-            $i < 3 # number of next repo after None and the first Default
+            if %*ENV<RAKUDO_PRECOMP> ~~ 'none' { # 'read-only' is considered in .precompile
+                RAKUDO_MODULE_DEBUG("Not precompiling or considering extant precompilations") if $*RAKUDO_MODULE_DEBUG;
+                False;
+            } else {
+                $i < 3 # number of next repo after None and the first Default
+            }
         }
     }
 }
@@ -189,6 +194,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             return True;
         }
         my $bc = "$io.bc".IO;
+
+        if %*ENV<RAKUDO_PRECOMP> ~~ 'read-only' { # 'none' is considered in may-precomp
+            RAKUDO_MODULE_DEBUG("Not precompiling $path and extant precompilation not found") if $*RAKUDO_MODULE_DEBUG;
+            self.store.unlock;
+            return True;
+        }
 
         my $rev-deps = ($io ~ '.rev-deps').IO;
         if $rev-deps.e {

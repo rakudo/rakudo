@@ -24,11 +24,6 @@ distribution[^2] --- it’s announcing a new release of the compiler
 only. For the latest Rakudo Star release, see
 <http://rakudo.org/downloads/star/>.
 
-The Rakudo Perl compiler follows a monthly release cycle, but please bear
-with us post-Christmas. We are working hard to ensure that we don’t break
-anything now that we have a released spec, and it make take us a few months
-to settle back into a rhythm.
-
 The changes in this release are outlined below:
 
 New in «release-name»:

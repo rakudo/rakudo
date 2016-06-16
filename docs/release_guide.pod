@@ -147,7 +147,9 @@ releases are typically handled by a separate team.
 =item 7.
 
 Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP’s C<docs/release_guide.pod> file to do that.
+as Rakudo. Follow NQP’s
+L<docs/release_guide.pod|https://github.com/perl6/nqp/blob/master/docs/release_guide.pod>
+file to do that.
 
 =item 8.
 

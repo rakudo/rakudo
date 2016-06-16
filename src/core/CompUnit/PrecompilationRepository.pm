@@ -194,7 +194,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
-        %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: @*MODULES // [];
+
+        my $rakudo_precomp_loading = %ENV<RAKUDO_PRECOMP_LOADING>;
+        my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
+        die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
+        %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
+
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
@@ -215,6 +220,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           :err,
         );
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
+        if $rakudo_precomp_loading {
+            %ENV<RAKUDO_PRECOMP_LOADING> = $rakudo_precomp_loading;
+        }
+        else {
+            %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
+        }
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
         %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 

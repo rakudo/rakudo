@@ -16,9 +16,12 @@ New in 2016.06
    + .map between 10% and 30% faster.
    + .unique, .repeated and .squish 10% to 20% faster.
    + gather/take about 10% faster.
-   + basic object creation (using either .new or .bless) now up to 3x faster.
+   + Basic object creation (using either .new or .bless) now up to 3x faster.
    + (+@a), (*@a) and (**@a) signature handling between 20% and 4x faster.
-   + iterating List/Array now uses less memory and is faster.
+   + Iterating List/Array now uses less memory and is faster.
+   + All routines now have less overhead, thanks to improved implementation of
+     return handlers (including those that do not use return).
+   + return, next, last, and redo are now all faster.
 + Deprecations:
    + The "is_approx" sub (note underscore) from Test.
 

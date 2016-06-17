@@ -194,7 +194,9 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
-    if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
+
+    if $op ~~ Callable ?? $op !! &::("infix:<$op>") // &::("infix:«$op»")
+    -> $matcher {
         $ok = proclaim(?$matcher($got,$expected), $desc);
         if !$ok {
             diag "expected: '{$expected // $expected.^name}'";
@@ -204,7 +206,11 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     }
     else {
         $ok = proclaim(False, $desc);
-        diag "Could not use '$op' as a comparator";
+        diag [~] "Could not use '$op.perl()' as a comparator.", (
+            ' Note that you cannot use custom operators as strings. '
+                ~ 'Use &[op] notation instead'
+            if $op ~~ Str
+        );
     }
     $time_before = nqp::time_n;
     $ok;

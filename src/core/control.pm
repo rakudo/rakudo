@@ -30,16 +30,26 @@ sub RETURN-LIST(Mu \list) is raw {
             !! list)
 }
 
-my &return-rw := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn($list);
-    $list;
-};
-my &return := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn(nqp::p6recont_ro($list));
-    $list;
-};
+proto sub return-rw(|) {*}
+multi sub return-rw() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
+}
+multi sub return-rw(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, x);
+}
+multi sub return-rw(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
+}
+proto sub return(|) {*}
+multi sub return() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
+}
+multi sub return(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro(x));
+}
+multi sub return(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
+}
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
@@ -83,15 +93,15 @@ proto sub goto(|) { * }
 multi sub goto(Label:D \x) { x.goto }
 
 proto sub last(|) { * }
-multi sub last()           { THROW-NIL(nqp::const::CONTROL_LAST) }
+multi sub last()           { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x) { x.last }
 
 proto sub next(|) { * }
-multi sub next()           { THROW-NIL(nqp::const::CONTROL_NEXT) }
+multi sub next()           { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x) { x.next }
 
 proto sub redo(|) { * }
-multi sub redo()           { THROW-NIL(nqp::const::CONTROL_REDO) }
+multi sub redo()           { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x) { x.redo }
 
 proto sub succeed(|) { * }
@@ -111,7 +121,7 @@ my &callwith := -> |c {
 
 my &nextwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_args(|c))
 };
@@ -125,7 +135,7 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
 };

@@ -370,31 +370,6 @@ static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB 
         ins->info = MVM_op_get_op(MVM_OP_set);
 }
 
-static MVMuint8 s_p6routinereturn[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6routinereturn(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel(tc, str_return,
-        tc->cur_frame->caller);
-    MVMObject   *ret = (reg ? reg->o : NULL);
-    if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
-        tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
-        STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
-    }
-    else {
-        MVMObject *thrower = get_thrower(tc, str_cfr);
-        if (!MVM_is_null(tc, thrower)) {
-            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
-            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-            STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
-        } else {
-            MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
-        }
-    }
-}
-
 static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -759,7 +734,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, MVM_EXTOP_INVOKISH);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

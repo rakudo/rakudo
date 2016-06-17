@@ -42,12 +42,12 @@ my class Mu { # declared in BOOTSTRAP
     }
     method return-rw(|) {  # same code as control.pm's return-rw
         my $list := RETURN-LIST(nqp::p6argvmarray());
-        nqp::p6routinereturn($list);
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
         $list;
     }
     method return(|) {  # same code as control.pm's return
         my $list := RETURN-LIST(nqp::p6argvmarray());
-        nqp::p6routinereturn(nqp::p6recont_ro($list));
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list));
         $list;
     }
 

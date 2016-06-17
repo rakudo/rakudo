@@ -574,25 +574,6 @@ public final class RakOps {
         }
         return null;
     }
-
-    public static SixModelObject p6routinereturn(SixModelObject in, ThreadContext tc) {
-        CallFrame ctx = tc.curFrame;
-        SixModelObject cont = getremotelex(ctx.caller, "RETURN");
-
-        if (!(cont instanceof LexoticInstance)) {
-            SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");
-            if (thrower == null)
-                ExceptionHandling.dieInternal(tc, "Attempt to return outside of any Routine");
-            else
-                Ops.invokeArgless(tc, thrower);
-        }
-
-        // rewinding is handled by finally blocks in the generated subs
-        LexoticException throwee = tc.theLexotic;
-        throwee.target = ((LexoticInstance)cont).target;
-        throwee.payload = in;
-        throw throwee;
-    }
     
     public static String tclc(String in, ThreadContext tc) {
         if (in.length() == 0)

@@ -122,7 +122,6 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('return') ));
     $ops.result($il, $RT_OBJ);
 });
-$ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.map_classlib_hll_op('perl6', 'p6captureouters', $TYPE_P6OPS, 'p6captureouters', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {

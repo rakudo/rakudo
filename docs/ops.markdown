@@ -31,7 +31,6 @@
     - [p6recont_ro](#p6recont_ro)
     - [p6reprname](#p6reprname)
     - [p6return](#p6return)
-    - [p6routinereturn](#p6routinereturn)
     - [p6scalarfromdesc](#p6scalarfromdesc)
     - [p6setautothreader](#p6setautothreader)
     - [p6setbinder](#p6setbinder)
@@ -181,9 +180,6 @@ Returns the name of the REPR underlying $obj.
 ## p6return
 * p6return(Mu $value)
 
-## p6routinereturn
-* p6routinereturn(Mu $value)
-
 ## p6scalarfromdesc
 * p6scalarfromdesc(Mu $container-descriptor)
 
@@ -242,4 +238,3 @@ Checks if $return-value satisifies the declared return type of $routine, letting
 
 ## p6var
 * p6var(Mu $variable)
-

@@ -11,6 +11,7 @@ New in 2016.06
  + Additions:
    + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
    + The "is-approx" sub from Test now allows for relative/absolute tolerance
+   + The "cmp-ok" sub from Test now can take any infix as Str, even custom ones
    + A fail in a custom BUILD will now be returned, rather than thrown
    + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
  + Efficiency:

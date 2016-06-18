@@ -127,6 +127,7 @@ J_CORE_SOURCES = \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/allomorphs.pm \
   src/core/IO.pm \
   src/core/IO/Spec.pm \
   src/core/IO/Spec/Unix.pm \
@@ -142,7 +143,6 @@ J_CORE_SOURCES = \
   src/core/IO/ArgFiles.pm \
   src/core/AST.pm \
   src/core/CallFrame.pm \
-  src/core/allomorphs.pm \
   src/core/Main.pm \
   src/core/Instant.pm \
   src/core/Duration.pm \

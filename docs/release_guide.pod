@@ -403,7 +403,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-03-23   Rakudo #97 "2016.03"            (Coke)
   2016-04-19   Rakudo #98 "2016.04"            (Coke)
   2016-05-21   Rakudo #99 "2016.05"            (hoelzro)
-  2016-06-18   Rakudo #100 "2016.05"           (Zoffix)
+  2016-06-18   Rakudo #100 "2016.06"           (Zoffix)
 
 =head1 COPYRIGHT
 

@@ -38,7 +38,7 @@ my class Promise {
     trusts Vow;
     my class Vow {
         has $.promise;
-        method keep(\result) {
+        method keep(Mu \result) {
             $!promise!Promise::keep(result)
         }
         method break(\exception) {
@@ -62,11 +62,11 @@ my class Promise {
     multi method keep(Promise:D:) {
         self.vow.keep(True)
     }
-    multi method keep(Promise:D: \result) {
+    multi method keep(Promise:D: Mu \result) {
         self.vow.keep(result)
     }
 
-    method !keep(\result) {
+    method !keep(Mu \result) {
         $!lock.protect({
             $!result := result;
             $!status = Kept;

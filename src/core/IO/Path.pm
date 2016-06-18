@@ -616,6 +616,15 @@ my class IO::Path is Cool {
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<changed>)
     }
+
+    method mode(--> IntStr) {
+        $.e
+          ?? nqp::stmts(
+              (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+              IntStr.new($mode, sprintf('%04o', $mode))
+            )
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<mode>)
+    }
 }
 
 my class IO::Path::Cygwin is IO::Path {

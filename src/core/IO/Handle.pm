@@ -826,6 +826,7 @@ my class IO::Handle does IO {
     method modified(IO::Handle:D:) { $!path.modified }
     method accessed(IO::Handle:D:) { $!path.accessed }
     method changed(IO::Handle:D:)  { $!path.changed  }
+    method mode(IO::Handle:D:)     { $!path.mode     }
 
 #?if moar
     method watch(IO::Handle:D:) {

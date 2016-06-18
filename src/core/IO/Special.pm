@@ -21,5 +21,6 @@ class IO::Special {
     method x(IO::Special:D:) { False }
     method modified(IO::Special:D:) { Instant }
     method accessed(IO::Special:D:) { Instant }
-    method changed(IO::Special:D:)  { Instant}
+    method changed(IO::Special:D:)  { Instant }
+    method mode(IO::Special:D:)     { Nil     }
 }

@@ -393,7 +393,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :$id,
-                    :src($repo-prefix ~ $loader.relative($.prefix)),
+                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.abspath),
                     :$spec,
                 ),
                 :source($loader),

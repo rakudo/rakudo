@@ -13,7 +13,7 @@ the 2015.12 release of Rakudo, but no new features.
 
 Upcoming releases in 2016 will include new functionality that is not
 part of the 6.c specification, available with a lexically scoped
-pragma. Our goal is to insure that anything that is tested as part of the
+pragma. Our goal is to ensure that anything that is tested as part of the
 6.c specification will continue to work unchanged. There may be incremental
 spec releases this year as well.
 
@@ -23,11 +23,6 @@ Please note: This announcement is not for the Rakudo Star
 distribution[^2] --- it’s announcing a new release of the compiler
 only. For the latest Rakudo Star release, see
 <http://rakudo.org/downloads/star/>.
-
-The Rakudo Perl compiler follows a monthly release cycle, but please bear
-with us post-Christmas. We are working hard to ensure that we don’t break
-anything now that we have a released spec, and it make take us a few months
-to settle back into a rhythm.
 
 The changes in this release are outlined below:
 

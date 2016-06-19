@@ -1,29 +1,34 @@
 New in 2016.06
  + Fixes:
-   + Arrays with holes (e.g. from :delete) now correctly iterate/auto-vivify.
-   + Hash.keyof now correctly returns Str(Any).
-   + Precompilation from a debug Perl 6 now uses "normal" Perl 6 executor.
-   + Inf,NaN,-Inf now can be coerced to Rat, and back to Num.
-   + Creating an Enum from a List/Range no longer warns.
-   + Precompilation on file systems with coarse timestamps no longer fails.
-   + An issue with reverse dependencies of installed modules was fixed.
-   + Fix issue with comparing v6 and v6.c Version objects
+   + Arrays with holes (e.g. from :delete) now correctly iterate/auto-vivify
+   + Hash.keyof now correctly returns Str(Any)
+   + Precompilation from a debug Perl 6 now uses "normal" Perl 6 executor
+   + Inf,NaN,-Inf now can be coerced to Rat, and back to Num
+   + Creating an Enum from a List/Range no longer warns
+   + Precompilation on file systems with coarse timestamps no longer fails
+   + An issue with reverse dependencies of installed modules was fixed
+   + Fixed issue with comparing v6 and v6.c Version objects
+   + Fixed ≅ ignoring the signs of compared numbers
  + Additions:
    + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
-   + The "is-approx" sub from Test now allows for relative/absolute tolerance.
-   + A fail in a custom BUILD will now be returned, rather than thrown.
+   + The "is-approx" sub from Test now allows for relative/absolute tolerance
+   + The "cmp-ok" sub from Test now can take any infix as Str, even custom ones
+   + A fail in a custom BUILD will now be returned, rather than thrown
+   + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
  + Efficiency:
-   + .map between 10% and 30% faster.
-   + .unique, .repeated and .squish 10% to 20% faster.
-   + gather/take about 10% faster.
-   + Basic object creation (using either .new or .bless) now up to 3x faster.
-   + (+@a), (*@a) and (**@a) signature handling between 20% and 4x faster.
-   + Iterating List/Array now uses less memory and is faster.
+   + .map between 10% and 30% faster
+   + .unique, .repeated and .squish 10% to 20% faster
+   + gather/take about 10% faster
+   + Basic object creation (using either .new or .bless) now up to 3x faster
+   + (+@a), (*@a) and (**@a) signature handling between 20% and 4x faster
+   + Iterating List/Array now uses less memory and is faster
    + All routines now have less overhead, thanks to improved implementation of
-     return handlers (including those that do not use return).
-   + return, next, last, and redo are now all faster.
+     return handlers (including those that do not use return)
+   + return, next, last, and redo are now all faster
+   + infix:<,> about 40% faster
+   + numerous other smaller or edge-case speed improvements
 + Deprecations:
-   + The "is_approx" sub (note underscore) from Test.
+   + The "is_approx" sub (note underscore) from Test
 
 New in 2016.05
  + Fixes:

@@ -154,10 +154,15 @@ sub samewith(|c) {
     until nqp::isnull($ctx) {
         my $caller := nqp::getcodeobj(nqp::ctxcode($ctx));
         if nqp::istype($caller, Routine) {
-            my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
-            return nqp::istype($caller, Method)
-              ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package, |c)
-              !! $dispatcher(|c);
+            if $caller.multi {
+                my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
+                return nqp::istype($caller, Method)
+                  ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package,|c)
+                  !! $dispatcher(|c);
+            }
+            else {
+                return $caller(|c);
+            }
         }
         $ctx := nqp::ctxouter($ctx);
     }

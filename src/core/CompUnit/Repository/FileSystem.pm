@@ -144,7 +144,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method resource($dist-id, $key) {
-        $.prefix.parent.child('resources').child($key);
+        # We now save the 'resources/' part of a resource's path in files, i.e:
+        # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
+        # but we also want to root any path request to the CUR's resources directory
+        $.prefix.parent.child('resources').child($key.subst(/^resources\//, ""));
     }
 
     method precomp-store() returns CompUnit::PrecompilationStore {

@@ -8,15 +8,15 @@ my role Mixy does Baggy  {
     }
 
     multi method kxxv(Mixy:D:) {
-        fail ".kxxv is not supported on a {self.^name}";
+        Failure.new(".kxxv is not supported on a {self.^name}")
     }
 
     multi method grab(Mixy:D: $count?) {
-        fail ".grab is not supported on a {self.^name}";
+        Failure.new(".grab is not supported on a {self.^name}")
     }
 
     multi method pick(Mixy:D: $count?) {
-        fail ".pick is not supported on a {self.^name}";
+        Failure.new(".pick is not supported on a {self.^name}")
     }
 
     multi method roll(Mixy:D:) {

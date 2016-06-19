@@ -743,20 +743,20 @@ my class Supply {
             if &as {
                 whenever self -> \val {
                     $target = &as(val);
-                    if $first || !&with($target,$last) {
+                    if $first || !&with($last,$target) {
                         $first = 0;
-                        $last  = $target;
                         emit(val);
                     }
+                    $last  = $target;
                 }
             }
             else {
                 whenever self -> \val {
-                    if $first || !&with(val,$last) {
+                    if $first || !&with($last, val) {
                         $first = 0;
-                        $last = val;
                         emit(val);
                     }
+                    $last = val;
                 }
             }
         }
@@ -1061,7 +1061,10 @@ my class Supply {
             my $min;
             my $max;
             whenever self -> \val {
-                if val.defined {
+                if nqp::istype(val,Failure) {
+                    val.throw;  # XXX or just ignore ???
+                }
+                elsif val.defined {
                     if !$min.defined {
                         emit( Range.new($min = val, $max = val) );
                     }

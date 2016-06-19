@@ -6,6 +6,7 @@ my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
 my class X::Str::Sprintf::Directives::Count { ... };
 my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
@@ -50,7 +51,7 @@ my class Rakudo::Internals {
             my int $i      = $!i;
             my int $elems  = $!elems;
             $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             IterationEnd
         }
         method count-only() {
@@ -143,6 +144,16 @@ my class Rakudo::Internals {
             }
             $!elems
         }
+    }
+
+    method EmptyIterator() {
+        once class :: does Iterator {
+            method new() { nqp::create(self) }
+            method pull-one()  { IterationEnd }
+            method push-all($) { IterationEnd }
+            method sink-all()  { IterationEnd }
+            method count-only() { 0 }
+        }.new
     }
 
     our class WeightedRoll {
@@ -396,18 +407,21 @@ my class Rakudo::Internals {
     }
 
     method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
-        my $key := nqp::list(meta-obj);
-        my $dims := nqp::list_i();
+        my $keys := nqp::list(meta-obj);
+        my $dims := nqp::list_i;
         for @dims {
-            if nqp::istype($_, Whatever) {
-                X::NYI.new(feature => 'Jagged array shapes');
-            }
-            nqp::push($key, type-key);
-            nqp::push_i($dims, $_.Int);
+            X::NYI.new(feature => 'Jagged array shapes').throw
+              if nqp::istype($_,Whatever);
+            my int $dim = $_.Int;
+            X::IllegalDimensionInShape.new(:$dim).throw
+              if nqp::isle_i($dim,0);
+
+            nqp::push($keys, type-key);
+            nqp::push_i($dims, $dim);
         }
-        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
-        nqp::setdimensions($storage, $dims);
-        $storage
+
+        nqp::setdimensions(
+          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys)),$dims);
     }
 
     our role ShapedArrayCommon {
@@ -617,7 +631,7 @@ my class Rakudo::Internals {
           :range("0.." ~ max),
           :comment( nqp::istype(from, Callable) || -from > max
             ?? ''
-            !! "use *{from} if you want to index relative to the end"),
+            !! "use *-{abs from} if you want to index relative to the end"),
         );
     }
     method SUBSTR-CHARS-OOR(\chars) {
@@ -625,7 +639,7 @@ my class Rakudo::Internals {
           :what('Number of characters argument to substr'),
           :got(chars.gist),
           :range("0..Inf"),
-          :comment("use *{chars} if you want to index relative to the end"),
+          :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }
     method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
@@ -1107,26 +1121,36 @@ my class Rakudo::Internals {
     }
     method FILETEST-D(Str:D \abspath) {
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
-        nqp::isge_i($d,0) ?? $d !! fail X::IO::Unknown.new(:trying<d>)
+        nqp::isge_i($d,0)
+          ?? $d
+          !! Failure.new(X::IO::Unknown.new(:trying<d>))
     }
     method FILETEST-F(Str:D \abspath) {
         my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
-        nqp::isge_i($f,0) ?? $f !! fail X::IO::Unknown.new(:trying<f>)
+        nqp::isge_i($f,0)
+          ?? $f
+          !! Failure.new(X::IO::Unknown.new(:trying<f>))
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
     method FILETEST-L(Str:D \abspath) {
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
-        nqp::isge_i($l,0) ?? $l !! fail X::IO::Unknown.new(:trying<l>)
+        nqp::isge_i($l,0)
+          ?? $l
+          !! Failure.new(X::IO::Unknown.new(:trying<l>))
     }
     method FILETEST-R(Str:D \abspath) {
         my int $r = nqp::filereadable(nqp::unbox_s(abspath));
-        nqp::isge_i($r,0) ?? $r !! fail X::IO::Unknown.new(:trying<r>)
+        nqp::isge_i($r,0)
+          ?? $r
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-W(Str:D \abspath) {
         my int $w = nqp::filewritable(nqp::unbox_s(abspath));
-        nqp::isge_i($w,0) ?? $w !! fail X::IO::Unknown.new(:trying<w>)
+        nqp::isge_i($w,0)
+          ?? $w
+          !! Failure.new(X::IO::Unknown.new(:trying<w>))
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1135,12 +1159,14 @@ my class Rakudo::Internals {
         nqp::isge_i($r,0)
           ?? nqp::isge_i($w,0)
             ?? nqp::bitand_i($r,$w)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-X(Str:D \abspath) {
         my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
-        nqp::isge_i($x,0) ?? $x !! fail X::IO::Unknown.new(:trying<x>)
+        nqp::isge_i($x,0)
+          ?? $x
+          !! Failure.new(X::IO::Unknown.new(:trying<x>))
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1151,9 +1177,9 @@ my class Rakudo::Internals {
           ?? nqp::isge_i($w,0)
             ?? nqp::isge_i($x,0)
               ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! fail X::IO::Unknown.new(:trying<x>)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+              !! Failure.new(X::IO::Unknown.new(:trying<x>))
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(
@@ -1201,6 +1227,157 @@ my class Rakudo::Internals {
                 ).throw
             }
         }
+    }
+
+#- start of generated part of succ/pred ---------------------------------------
+#- Generated on 2016-03-31T13:19:02+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # normal increment magic chars & incremented char at same index
+    my $succ-nlook = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪';
+    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫'; 
+
+    # magic increment chars at boundary & incremented char at same index
+    my $succ-blook = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
+    my $succ-bchrs = '10AAaaΑΑααאאААаа١٠१०১০੧੦૧૦୧୦ⁱ⁰₁₀ⅠⅠⅰⅰ①①⑴⑴⒜⒜▁▁⚀⚀❶❶１０🍻🍺🐫🐪';
+
+    # normal decrement magic chars & incremented char at same index
+    my $pred-nlook = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫';
+    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪'; 
+
+    # magic decrement chars at boundary & incremented char at same index
+    my $pred-blook = '0AaΑαאАа٠०০੦૦୦⁰₀Ⅰⅰ①⑴⒜▁⚀❶０🍺🐪';
+    my $pred-bchrs = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of succ/pred -----------------------------------------
+
+    # number of chars that should be considered for magic .succ/.pred
+    method POSSIBLE-MAGIC-CHARS(str \string) {
+
+        # only look at stuff before the last period
+        my int $i = nqp::index(string,".");
+        nqp::iseq_i($i,-1) ?? nqp::chars(string) !! $i
+    }
+
+    # return -1 if string cannot support .succ, else index of last char
+    method CAN-SUCC-INDEX(str \string, int \chars) {
+        my int $i = chars;
+        Nil while nqp::isge_i($i = nqp::sub_i($i,1),0)
+          && nqp::iseq_i(nqp::index($succ-nlook,nqp::substr(string,$i,1)),-1)
+          && nqp::iseq_i(nqp::index($succ-blook,nqp::substr(string,$i,1)),-1);
+        $i
+    }
+
+    # next logical string frontend, hopefully inlineable (pos >= 0)
+    method SUCC(str \string, int \pos) {
+        my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
+        nqp::iseq_i($at,-1)
+          ?? SUCC-NOT-SO-SIMPLE(string,pos)
+          !! nqp::replace(string,pos,1,nqp::substr($succ-nchrs,$at,1))
+    }
+
+    # slow path for next logical string
+    sub SUCC-NOT-SO-SIMPLE(str \string, int \pos) {
+
+        # nothing magical going on
+        my int $at = nqp::index($succ-blook,nqp::substr(string,pos,1));
+        if nqp::iseq_i($at,-1) {
+            string
+        }
+
+        # we have a boundary
+        else {
+
+            # initial change
+            my int $i   = pos;
+            my str $str = nqp::replace(string,$i,1,
+              nqp::substr($succ-bchrs,nqp::add_i($at,$at),2));
+
+            # until we run out of chars to check
+            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+
+                # not an easy magical
+                $at = nqp::index($succ-nlook,nqp::substr($str,$i,1));
+                if nqp::iseq_i($at,-1) {
+
+                    # done if not a boundary magical either
+                    $at = nqp::index($succ-blook,nqp::substr($str,$i,1));
+                    return $str if nqp::iseq_i($at,-1);
+
+                    # eat first of last magical, and continue
+                    $str = nqp::replace($str,$i,2,
+                      nqp::substr($succ-bchrs,nqp::add_i($at,$at),2));
+                }
+
+                # normal magical, eat first of last magical, and we're done
+                else {
+                   return nqp::replace($str,$i,2,
+                     nqp::substr($succ-nchrs,$at,1));
+                }
+            }
+            $str
+        }
+    }
+
+    # previous logical string frontend, hopefully inlineable
+    method PRED(str \string, int \pos) {
+        my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
+        nqp::iseq_i($at,-1)
+          ?? PRED-NOT-SO-SIMPLE(string,pos)
+          !! nqp::replace(string,pos,1,nqp::substr($pred-nchrs,$at,1))
+    }
+
+    # slow path for previous logical string
+    sub PRED-NOT-SO-SIMPLE(str \string, int \pos) {
+
+        # nothing magical going on
+        my int $at = nqp::index($pred-blook,nqp::substr(string,pos,1));
+        if nqp::iseq_i($at,-1) {
+            string
+        }
+
+        # we have a boundary
+        else {
+
+            # initial change
+            my int $i   = pos;
+            my str $str = nqp::replace(string,$i,1,
+              nqp::substr($pred-bchrs,$at,1));
+
+            # until we run out of chars to check
+            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+
+                # not an easy magical
+                $at = nqp::index($pred-nlook,nqp::substr($str,$i,1));
+                if nqp::iseq_i($at,-1) {
+
+                    # not a boundary magical either
+                    $at = nqp::index($pred-blook,nqp::substr($str,$i,1));
+                    nqp::iseq_i($at,-1)
+                      ?? fail('Decrement out of range')
+                      !! ($str = nqp::replace($str,$i,1,
+                           nqp::substr($pred-bchrs,$at,1)))
+                }
+
+                # normal magical, update, and we're done
+                else {
+                    return nqp::replace($str,$i,1,
+                      nqp::substr($pred-nchrs,$at,1))
+                }
+            }
+            Failure.new('Decrement out of range')
+        }
+    }
+
+    method WALK-AT-POS(\target,\indices) is raw {
+        my $target   := target;
+        my $indices  := nqp::getattr(indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        $target := $target.AT-POS(nqp::atpos($indices,$i))
+          while nqp::islt_i(++$i,$elems);
+        $target
     }
 }
 

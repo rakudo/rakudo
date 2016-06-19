@@ -32,130 +32,130 @@ for $*IN.lines -> $line {
     }
 
     # set up template values
-    my @POST = $type.substr(0,1) ~ '(';
-    my @values = '@values';
-    my @type = $type;
-    my @Type = $type.tclc;
-    my @i    = '$i';
+    my %mapper =
+      postfix => $type.substr(0,1),
+      type    => $type,
+      Type    => $type.tclc,
+    ;
 
     # spurt the role
-    say Q:a:to/SOURCE/.chomp;
+    say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-        multi method AT-POS(@type[]array:D: int $idx) is raw {
-            nqp::atposref_@POST[]self, $idx)
+        multi method AT-POS(#type#array:D: int $idx) is raw {
+            nqp::atposref_#postfix#(self, $idx)
         }
-        multi method AT-POS(@type[]array:D: Int:D $idx) is raw {
-            nqp::atposref_@POST[]self, $idx)
+        multi method AT-POS(#type#array:D: Int:D $idx) is raw {
+            nqp::atposref_#postfix#(self, $idx)
         }
 
-        multi method ASSIGN-POS(@type[]array:D: int $idx, @type[] $value) {
-            nqp::bindpos_@POST[]self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(@type[]array:D: Int:D $idx, @type[] $value) {
-            nqp::bindpos_@POST[]self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(@type[]array:D: int $idx, @Type[]:D $value) {
-            nqp::bindpos_@POST[]self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #Type#:D $value) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(@type[]array:D: Int:D $idx, @Type[]:D $value) {
-            nqp::bindpos_@POST[]self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Type#:D $value) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(@type[]array:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(#type#array:D: Any $idx, Mu \value) {
             X::TypeCheck.new(
-                operation => "assignment to @type[] array element #$idx",
+                operation => "assignment to #type# array element #$idx",
                 got       => value,
                 expected  => T,
             ).throw;
         }
 
-        multi method STORE(@type[]array:D: $value) {
-            nqp::bindpos_@POST[]self, 0, nqp::unbox_@POST[]$value));
+        multi method STORE(#type#array:D: $value) {
+            nqp::bindpos_#postfix#(self, 0, nqp::unbox_#postfix#($value));
             self
         }
-        multi method STORE(@type[]array:D: @type[] @values[]) {
-            nqp::splice(self,@values[],0,0)
+        multi method STORE(#type#array:D: #type# @values) {
+            nqp::splice(self,@values,0,0)
         }
-        multi method STORE(@type[]array:D: @values[]) {
-            my int $elems = @values[].elems;
+        multi method STORE(#type#array:D: @values) {
+            my int $elems = @values.elems;
             nqp::setelems(self, $elems);
 
             my int $i = -1;
-            nqp::bindpos_@POST[]self, $i,
-              nqp::unbox_@POST[]@values[] .AT-POS(@i[])))
+            nqp::bindpos_#postfix#(self, $i,
+              nqp::unbox_#postfix#(@values.AT-POS($i)))
               while nqp::islt_i($i = nqp::add_i($i,1),$elems);
             self
         }
 
-        multi method push(@type[]array:D: @type[] $value) {
-            nqp::push_@POST[]self, $value);
+        multi method push(#type#array:D: #type# $value) {
+            nqp::push_#postfix#(self, $value);
             self
         }
-        multi method push(@type[]array:D: @Type[]:D $value) {
-            nqp::push_@POST[]self, $value);
+        multi method push(#type#array:D: #Type#:D $value) {
+            nqp::push_#postfix#(self, $value);
             self
         }
-        multi method push(@type[]array:D: Mu \value) {
+        multi method push(#type#array:D: Mu \value) {
             X::TypeCheck.new(
-                operation => 'push to @type[] array',
+                operation => 'push to #type# array',
                 got       => value,
                 expected  => T,
             ).throw;
         }
-        multi method append(@type[]array:D: @type[] $value) {
-            nqp::push_@POST[]self, $value);
+        multi method append(#type#array:D: #type# $value) {
+            nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(@type[]array:D: @Type[]:D $value) {
-            nqp::push_@POST[]self, $value);
+        multi method append(#type#array:D: #Type#:D $value) {
+            nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(@type[]array:D: @type[] @values[]) {
-            nqp::splice(self,@values[],nqp::elems(self),0)
+        multi method append(#type#array:D: #type# @values) {
+            nqp::splice(self,@values,nqp::elems(self),0)
         }
-        multi method append(@type[]array:D: @values[]) {
+        multi method append(#type#array:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
-              if @values[].is-lazy;
-            nqp::push_@POST[]self, $_) for flat @values[];
+              if @values.is-lazy;
+            nqp::push_#postfix#(self, $_) for flat @values;
             self
         }
 
-        method pop(@type[]array:D:) returns @type[] {
+        method pop(#type#array:D:) returns #type# {
             nqp::elems(self) > 0
-              ?? nqp::pop_@POST[]self)
+              ?? nqp::pop_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(@type[]array:D:) returns @type[] {
+        method shift(#type#array:D:) returns #type# {
             nqp::elems(self) > 0
-              ?? nqp::shift_@POST[]self)
+              ?? nqp::shift_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(@type[]array:D: @type[] $value) {
-            nqp::unshift_@POST[]self, $value);
+        multi method unshift(#type#array:D: #type# $value) {
+            nqp::unshift_#postfix#(self, $value);
             self
         }
-        multi method unshift(@type[]array:D: @Type[]:D $value) {
-            nqp::unshift_@POST[]self, $value);
+        multi method unshift(#type#array:D: #Type#:D $value) {
+            nqp::unshift_#postfix#(self, $value);
             self
         }
-        multi method unshift(@type[]array:D: @values[]) {
+        multi method unshift(#type#array:D: @values) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
-              if @values[].is-lazy;
-            nqp::unshift_@POST[]self, @values[].pop) while @values[];
+              if @values.is-lazy;
+            nqp::unshift_#postfix#(self, @values.pop) while @values;
             self
         }
-        multi method unshift(@type[]array:D: Mu \value) {
+        multi method unshift(#type#array:D: Mu \value) {
             X::TypeCheck.new(
-                operation => 'unshift to @type[] array',
+                operation => 'unshift to #type# array',
                 got       => value,
                 expected  => T,
             ).throw;
         }
 
-        multi method splice(@type[]array:D: $offset=0, $size=Whatever, *@values[], :$SINK) {
+        multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
             fail X::Cannot::Lazy.new(:action('splice in'))
-              if @values[].is-lazy;
+              if @values.is-lazy;
 
             my $elems = self.elems;
             my int $o = nqp::istype($offset,Callable)
@@ -182,7 +182,7 @@ for $*IN.lines -> $line {
 
             if $SINK {
                 my @splicees := nqp::create(self);
-                nqp::push_@POST[]@splicees, @values[].shift) while @values[];
+                nqp::push_#postfix#(@splicees, @values.shift) while @values;
                 nqp::splice(self, @splicees, $o, $s);
                 Nil;
             }
@@ -192,18 +192,18 @@ for $*IN.lines -> $line {
                 my int $i = $o;
                 my int $n = ($elems min $o + $s) - 1;
                 while $i <= $n {
-                    nqp::push_@POST[]@ret, nqp::atpos_@POST[]self, $i));
+                    nqp::push_#postfix#(@ret, nqp::atpos_#postfix#(self, $i));
                     $i = $i + 1;
                 }
 
                 my @splicees := nqp::create(self);
-                nqp::push_@POST[]@splicees, @values[].shift) while @values[];
+                nqp::push_#postfix#(@splicees, @values.shift) while @values;
                 nqp::splice(self, @splicees, $o, $s);
                 @ret;
             }
         }
 
-        method iterator(@type[]array:D:) {
+        method iterator(#type#array:D:) {
             class :: does Iterator {
                 has int $!i;
                 has $!array;    # Native array we're iterating
@@ -217,13 +217,13 @@ for $*IN.lines -> $line {
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
-                      ?? nqp::atposref_@POST[]$!array,$!i)
+                      ?? nqp::atposref_#postfix#($!array,$!i)
                       !! IterationEnd
                 }
                 method push-all($target) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
-                    $target.push(nqp::atposref_@POST[]$!array,$i))
+                    $target.push(nqp::atposref_#postfix#($!array,$i))
                       while ($i = $i + 1) < $elems;
                     $!i = $i;
                     IterationEnd

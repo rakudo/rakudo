@@ -22,8 +22,8 @@ my role Setty does QuantHash {
 
     method elems(Setty:D: --> Int) { %!elems.elems }
     method total(Setty:D: --> Int) { %!elems.elems }
-    method minpairs() { self.pairs }
-    method maxpairs() { self.pairs }
+    multi method minpairs(Setty:D:) { self.pairs }
+    multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {

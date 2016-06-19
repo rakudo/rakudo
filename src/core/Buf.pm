@@ -25,7 +25,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(Blob: @values) {
         @values.is-lazy
-          ?? fail X::Cannot::Lazy.new(:action<new>,:what(self.^name))
+          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
           !! self!push-list("initializ",nqp::create(self),@values)
     }
     multi method new(Blob: *@values) { self.new(@values) }
@@ -38,7 +38,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $elems = $elements;
         my $blob     := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i($i = $i + 1,$elems);
+        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
         $blob;
     }
     multi method allocate(Blob:U: Int $elements, Int \value) {
@@ -101,7 +101,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method list(Blob:D:) {
         Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
             method pull-one() is raw {
-                nqp::islt_i($!i = $!i + 1,$!elems)
+                nqp::islt_i(++$!i,$!elems)
                   ?? nqp::atpos_i($!blob,$!i)
                   !! IterationEnd
             }
@@ -141,7 +141,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           what    => 'From argument to subbuf',
           got     => $from.gist,
           range   => "0..$elems",
-          comment => "use *{$pos} if you want to index relative to the end",
+          comment => "use *-{abs $pos} if you want to index relative to the end",
         ).fail if $pos < 0;
         X::OutOfRange.new(
           what => 'From argument to subbuf',
@@ -153,9 +153,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if $todo {
             nqp::setelems($subbuf, $todo);
             my int $i = -1;
-            $pos = $pos - 1;
-            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,($pos = $pos + 1)))
-              while ($i = $i + 1) < $todo;
+            --$pos;
+            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,++$pos))
+              while nqp::islt_i(++$i,$todo);
         }
         $subbuf
     }
@@ -170,7 +170,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             my int $i = -1;
             return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
               if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              while nqp::islt_i($i = $i + 1,$elems);
+              while nqp::islt_i(++$i,$elems);
             0
         }
     }
@@ -183,7 +183,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $i = -1;
         return False
           unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-          while nqp::islt_i($i = $i + 1,$elems);
+          while nqp::islt_i(++$i,$elems);
 
         True
     }
@@ -297,7 +297,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype(($got := nqp::atpos($from,$i)),Int)
                   ?? nqp::bindpos_i(to,$j++,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
-                  while nqp::islt_i($i = $i + 1,$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
         else {
@@ -308,7 +308,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype($got,Int)
                   ?? nqp::push_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw;
-                $i = $i + 1;
+                ++$i;
             }
         }
         to
@@ -321,7 +321,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::istype((my $got := nqp::atpos($from,$i)),Int)
                   ?? nqp::unshift_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
-                  while nqp::isge_i($i = $i - 1,0);
+                  while nqp::isge_i(--$i,0);
             }
             to
         }
@@ -337,31 +337,31 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
               while nqp::isle_i($i = $i + $values,$elems);
 
             if nqp::isgt_i($i,$elems) {  # something left to init
-                $i     = $i - 1;         # went one too far
+                --$i;                    # went one too far
                 $elems = $elems + $values;
                 my int $j = -1;
                 nqp::bindpos_i(to,$i,nqp::atpos_i(from,$j = ($j + 1) % $values))
-                  while nqp::islt_i($i = $i + 1,$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
         to
     }
     method !fail-range($got) {
-        fail X::OutOfRange.new(
+        Failure.new(X::OutOfRange.new(
           :what($*INDEX // 'Index'),
           :$got,
           :range("0..{nqp::elems(self)-1}")
-        );
+        ))
     }
     method !fail-typecheck-element(\action,\i,\got) {
         self!fail-typecheck(action ~ "ing element #" ~ i,got);
     }
     method !fail-typecheck($action,$got) {
-        fail X::TypeCheck.new(
+        Failure.new(X::TypeCheck.new(
           operation => $action ~ " to " ~ self.^name,
           got       => $got,
           expected  => T,
-        );
+        ))
     }
 }
 
@@ -411,37 +411,37 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method WHICH(Buf:D:) { self.Mu::WHICH }
 
     multi method AT-POS(Buf:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::atposref_i(self, pos);
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::atposref_i(self, pos)
     }
     multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::atposref_i(self,$pos);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::atposref_i(self,$pos)
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::bindpos_i(self,\pos,assignee)
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::bindpos_i(self,\pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::bindpos_i(self,$pos,assignee)
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+          !! nqp::bindpos_i(self,$pos,assignee)
     }
 
     multi method list(Buf:D:) {
         Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
             method pull-one() is raw {
-                nqp::islt_i($!i = $!i + 1,$!elems)
+                nqp::islt_i(++$!i,$!elems)
                   ?? nqp::atposref_i($!blob,$!i)
                   !! IterationEnd
             }
@@ -451,12 +451,12 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
-          !! fail X::Cannot::Empty.new(:action<pop>, :what(self.^name))
+          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
-          !! fail X::Cannot::Empty.new(:action<shift>, :what(self.^name))
+          !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
     }
 
     method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
@@ -558,7 +558,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method !pend(Buf:D: @values, $action) {
         @values.is-lazy
-          ?? fail X::Cannot::Lazy.new(:$action,:what(self.^name))
+          ?? Failure.new(X::Cannot::Lazy.new(:$action,:what(self.^name)))
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)
@@ -684,7 +684,7 @@ multi sub prefix:<~^>(Blob:D \a) {
     my int $i    = -1;
     my int $mask = 0xFFFFFFFFFFFFFFFF;
     nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
-      while nqp::islt_i($i = $i + 1,$elems);
+      while nqp::islt_i(++$i,$elems);
 
     $r
 }
@@ -703,10 +703,10 @@ multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitand_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
-    $i = $i - 1;    # went one too far
-    nqp::bindpos_i($r,$i,0) while nqp::islt_i($i = $i + 1,$max);
+    --$i;    # went one too far
+    nqp::bindpos_i($r,$i,0) while nqp::islt_i(++$i,$max);
 
     $r
 }
@@ -726,11 +726,11 @@ multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
     $i = $i - 1;    # went one too far
     nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
-      while nqp::islt_i($i = $i + 1,$max);
+      while nqp::islt_i(++$i,$max);
 
     $r
 }
@@ -750,21 +750,17 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
     my int $i = -1;
     nqp::bindpos_i($r,$i,
       nqp::bitxor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
-      while nqp::islt_i($i = $i + 1,$do);
+      while nqp::islt_i(++$i,$do);
 
-    $i = $i - 1;    # went one too far
+    --$i;    # went one too far
     nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
-      while nqp::islt_i($i = $i + 1,$max);
+      while nqp::islt_i(++$i,$max);
 
     $r
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    a =:= b
-      ?? True
-      !! a.WHAT === b.WHAT
-        ?? a.SAME(b)
-        !! False
+    nqp::p6bool(nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b)))
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }

@@ -29,8 +29,8 @@ my role Numeric {
     method pred() { self - 1 }
 }
 
-multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
-    $a.WHAT === $b.WHAT && $a == $b
+multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
+    nqp::p6bool(a =:= b || (a.WHAT =:= b.WHAT && a == b)) # RT #127951
 }
 
 ## arithmetic operators
@@ -200,7 +200,7 @@ multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 sub infix:<×>(|c) is pure { infix:<*>(|c) }
 
 proto sub infix:</>(Mu $?, Mu $?) is pure { * }
-multi sub infix:</>()            { fail "No zero-arg meaning for infix:</>" }
+multi sub infix:</>() { Failure.new("No zero-arg meaning for infix:</>") }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 
@@ -210,18 +210,18 @@ proto sub infix:<div>(Mu $?, Mu $?) is pure  { * }
 # rest of infix:<div> is in Int.pm
 
 proto sub infix:<%>(Mu $?, Mu $?) is pure   { * }
-multi sub infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
+multi sub infix:<%>() { Failure.new("No zero-arg meaning for infix:<%>") }
 multi sub infix:<%>($x)          { $x }
 multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 
 proto sub infix:<%%>(Mu $?, Mu $?) is pure  { * }
-multi sub infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
+multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b)   {
-    fail X::Numeric::DivideByZero.new(
-      using => 'infix:<%%>', numerator => a
-    ) unless b;
-    a.Real % b.Real == 0;
+    b
+      ?? a.Real % b.Real == 0
+      !! Failure.new(X::Numeric::DivideByZero.new(
+           using => 'infix:<%%>', numerator => a))
 }
 
 proto sub infix:<lcm>(Mu $?, Mu $?) is pure  { * }
@@ -229,7 +229,7 @@ multi sub infix:<lcm>(Int $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
+multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
 multi sub infix:<gcd>(Int $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
@@ -255,9 +255,7 @@ multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
     # If operands are non-0, scale the tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.
     if b && a && $tolerance {
-        my $a = a.abs;
-        my $b = b.abs;
-        abs($a - $b) < ($a max $b) * $tolerance;
+        abs(a - b) < (a.abs max b.abs) * $tolerance;
     }
     else {  # interpret tolerance as absolute
         abs(a.Num - b.Num) < $tolerance;
@@ -303,12 +301,12 @@ multi sub infix:<+^>($x)         { $x }
 multi sub infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
 
 proto sub infix:«+<»(Mu $?, Mu $?) is pure { * }
-multi sub infix:«+<»()           { fail "No zero-arg meaning for infix:«+<»"; }
+multi sub infix:«+<»() { Failure.new("No zero-arg meaning for infix:«+<»") }
 multi sub infix:«+<»($x)         { $x }
 multi sub infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
 
 proto sub infix:«+>»(Mu $?, Mu $?) is pure { * }
-multi sub infix:«+>»()           { fail "No zero-arg meaning for infix:«+>»"; }
+multi sub infix:«+>»() { Failure.new("No zero-arg meaning for infix:«+>»") }
 multi sub infix:«+>»($x)         { $x }
 multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 

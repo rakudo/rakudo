@@ -2,8 +2,8 @@ my class X::NYI { ... }
 
 my role Stringy { }
 
-multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b) {
+    ?(a =:= b || (a.WHAT =:= b.WHAT && (a cmp b) == 0))  # XXX RT #128092
 }
 
 proto sub prefix:<~>($) is pure { * }
@@ -16,11 +16,11 @@ multi sub infix:<~>($x = '')       { $x.Stringy }
 multi sub infix:<~>(\a, \b)        { a.Stringy ~ b.Stringy }
 
 proto sub infix:<x>(Mu $?, Mu $?)  is pure { * }
-multi sub infix:<x>()              { fail "No zero-arg meaning for infix:<x>" }
+multi sub infix:<x>() { Failure.new("No zero-arg meaning for infix:<x>") }
 multi sub infix:<x>($x)            { $x.Stringy }
 multi sub infix:<x>($s, Num:D $n) {
     $n == Inf
-      ?? fail X::NYI.new(:feature('Cat object'))
+      ?? Failure.new(X::NYI.new(:feature('Cat object')))
       !! $s.Stringy x $n.Int;
 }
 multi sub infix:<x>($s, $n)        { $s.Stringy x ($n.Int // 0) }
@@ -62,7 +62,7 @@ multi sub infix:<~^>($x = '')      { $x.Stringy }
 multi sub infix:<~^>(\a, \b)       { a.Stringy ~^ b.Stringy }
 
 proto sub infix:<~&>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<~&>()             { fail "No zero-arg meaning for infix:<~&>" }
+multi sub infix:<~&>() { Failure.new("No zero-arg meaning for infix:<~&>") }
 multi sub infix:<~&>($x)           { $x.Stringy }
 multi sub infix:<~&>(\a, \b)       { a.Stringy ~& b.Stringy }
 

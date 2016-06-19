@@ -440,10 +440,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
                 ?? self.target() ~ $sc_id++
                 !! self.target());
-        my $*W := nqp::isnull($file) ??
-            Perl6::World.new(:handle($source_id)) !!
-            Perl6::World.new(:handle($source_id), :description($file));
-        $*W.add_initializations();
+        my $outer_world := nqp::getlexdyn('$*W');
+        my $is_nested := (
+            $outer_world
+            && nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+            && $outer_world.is_precompilation_mode()
+        );
+
+        my $*W := $is_nested
+            ?? $outer_world.create_nested()
+            !! nqp::isnull($file)
+                ?? Perl6::World.new(:handle($source_id))
+                !! Perl6::World.new(:handle($source_id), :description($file));
+
+        unless $is_nested {
+            $*W.add_initializations();
+        }
 
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT
@@ -1777,7 +1789,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | $<num> = [\d+] <identifier> [ <?before <[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
-            { $*key := $<identifier>.Str; $*value := +$<num>; }
+            { $*key := $<identifier>.Str; $*value := nqp::radix(10, $<num>, 0, 0)[0]; }
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
@@ -2394,6 +2406,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<has>       {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym>
+        :my $*HAS_SELF := 'partial';
+        :my $*ATTR_INIT_BLOCK;
+        <scoped('has')>
+    }
+    token scope_declarator:sym<HAS>       {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym>
         :my $*HAS_SELF := 'partial';
@@ -3663,8 +3682,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <block>
     }
 
-    # XXX remove SEQ for xmas?
-    token circumfix:sym<SEQ( )> { 'SEQ(' <.panic: "Use of unsupported SEQ macro; please change to STATEMENT_LIST"> }
     token circumfix:sym<STATEMENT_LIST( )> { :dba('statement list') 'STATEMENT_LIST(' ~ ')' <sequence> }
 
     token circumfix:sym<( )> {

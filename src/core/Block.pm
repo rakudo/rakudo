@@ -82,26 +82,22 @@ my class Block { # declared in BOOTSTRAP
 
             $perl = '' if $elide_agg_cont;
             unless $type eq "Any" {
-                my $i = 0; # broken FIRST workaround
+                my int $FIRST = 1; # broken FIRST workaround
                 while ($type ~~ / (.*?) \[ (.*) \] $$/) {
-                    my $slash0 = ~$0;
-                    my $slash1 = ~$1;
-#                   FIRST {  # seems broken
-                    unless ($i++) { # broken FIRST workaaround
-                        $perl = ~$/;
-                        if $elide_agg_cont {
-                           $perl = ~$slash1;
-                        }
+#                   FIRST {  # seems broken in setting
+                    if $FIRST { # broken FIRST workaround
+                        $perl = $elide_agg_cont
+                          ?? ~$1
+                          !! ~$/;
+                        $FIRST = 0;
                     }
-                    $type = ~$slash1;
-                    unless soft_indirect_name_lookup($slash0) {
+                    $type = ~$1;
+                    unless soft_indirect_name_lookup(~$0) {
                         $perl = "";
                         last
                     };
                 }
-                unless soft_indirect_name_lookup($type) {
-                    $perl = "";
-                };
+                $perl = "" unless soft_indirect_name_lookup($type);
             }
 #Introspection fail.  There is no introspection to access these flags.
 #Skipped for now.

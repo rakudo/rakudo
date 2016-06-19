@@ -46,6 +46,17 @@ class Perl6::Metamodel::DefiniteHOW
         }
     }
 
+    method shortname($definite_type) {
+        if nqp::isnull(nqp::typeparameterized($definite_type)) {
+            '?:?'
+        }
+        else {
+            my $base_type := nqp::typeparameterat($definite_type, 0);
+            my $definite  := nqp::typeparameterat($definite_type, 1);
+            $base_type.HOW.shortname($base_type) ~ ':' ~ ($definite ?? 'D' !! 'U')
+        }
+    }
+
     sub check_instantiated($definite_type) {
         nqp::die('Cannot perform this operation on an uninstantiated definite type')
             if nqp::isnull(nqp::typeparameterized($definite_type));

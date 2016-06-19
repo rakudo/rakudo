@@ -15,15 +15,20 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     @signals .= unique;
 
     state %sigmap =
+#?if moar
         SIGHUP,   nqp::const::SIG_HUP,
+#?endif
         SIGINT,   nqp::const::SIG_INT,
+#?if moar
         SIGQUIT,  nqp::const::SIG_QUIT,
         SIGILL,   nqp::const::SIG_ILL,
         SIGTRAP,  nqp::const::SIG_TRAP,
         SIGABRT,  nqp::const::SIG_ABRT,
         SIGEMT,   nqp::const::SIG_EMT,
         SIGFPE,   nqp::const::SIG_FPE,
+#?endif
         SIGKILL,  nqp::const::SIG_KILL,
+#?if moar
         SIGBUS,   nqp::const::SIG_BUS,
         SIGSEGV,  nqp::const::SIG_SEGV,
         SIGSYS,   nqp::const::SIG_SYS,
@@ -49,7 +54,9 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         SIGTHR,   nqp::const::SIG_THR,
         SIGSTKFLT,nqp::const::SIG_STKFLT,
         SIGPWR,   nqp::const::SIG_PWR,
-        SIGBREAK, nqp::const::SIG_BREAK;
+        SIGBREAK, nqp::const::SIG_BREAK
+#?endif
+;
 
     state @known_signals := $*KERNEL.signals;
 

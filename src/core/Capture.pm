@@ -41,15 +41,15 @@ my class Capture { # declared in BOOTSTRAP
 
     multi method AT-POS(Capture:D: int \pos) is raw {
         nqp::islt_i(pos,0)
-          ?? fail X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
           !! nqp::ifnull(nqp::atpos($!list,pos),Nil)
     }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
-          ?? fail X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
           !! nqp::ifnull(nqp::atpos($!list,$pos),Nil)
     }
 
@@ -146,8 +146,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture $a, Capture $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+multi sub infix:<eqv>(Capture \a, Capture \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.list eqv b.list && a.hash eqv b.hash)
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

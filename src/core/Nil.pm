@@ -12,7 +12,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
 #    method ACCEPTS(*@)    { Nil }  # XXX spec says Nil, but makes spectest hang
 
     method BIND-POS(*@)   { die "Attempted to BIND-POS to {self.gist}." }
-    method BIND-KEY(*@)   { fail X::Bind.new(target => self.gist) }
+    method BIND-KEY(*@)   { Failure.new(X::Bind.new(target => self.gist)) }
     method ASSIGN-POS(*@) { die "Attempted to ASSIGN-POS to {self.gist}." }
     method ASSIGN-KEY(*@) { die "Attempted to ASSIGN-KEY to {self.gist}." }
     method STORE(*@)      { X::Assignment::RO.new(:typename<Nil>).throw }

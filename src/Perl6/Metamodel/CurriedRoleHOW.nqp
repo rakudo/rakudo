@@ -18,11 +18,11 @@
 class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::TypePretense
+    does Perl6::Metamodel::Naming
 {
     has $!curried_role;
     has @!pos_args;
     has %!named_args;
-    has $!name;
 
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
@@ -82,10 +82,6 @@ class Perl6::Metamodel::CurriedRoleHOW
     method specialize($obj, $first_arg) {
         $!curried_role.HOW.specialize($!curried_role, $first_arg,
             |@!pos_args, |%!named_args);
-    }
-    
-    method name($obj) {
-        $!name
     }
     
     method curried_role($obj) {

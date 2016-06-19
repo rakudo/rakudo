@@ -153,7 +153,7 @@ my class DateTime does Dateish {
                $year,$month,$day,$hour,$minute,$second,0,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),&formatter,|%_);
+               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:

@@ -166,7 +166,7 @@ my class Binder {
         } elsif $count < 0 {
             return "$error_prefix positionals passed; expected at least $arity argument$s but got only $num_pos_args";
         } else {
-	    my str $conj := $count == $arity+1 ?? "or" !! "to";
+            my str $conj := $count == $arity+1 ?? "or" !! "to";
             return "$error_prefix positionals passed; expected $arity $conj $count arguments but got $num_pos_args";
         }
     }
@@ -749,10 +749,10 @@ my class Binder {
                     }
                     my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
                     my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
-			?? $slurpy_type.from-slurpy-onearg($temp)
-			!! $flags +& $SIG_ELEM_SLURPY_POS
-			    ?? $slurpy_type.from-slurpy-flat($temp)
-			    !! $slurpy_type.from-slurpy($temp);
+                        ?? $slurpy_type.from-slurpy-onearg($temp)
+                        !! $flags +& $SIG_ELEM_SLURPY_POS
+                        ?? $slurpy_type.from-slurpy-flat($temp)
+                        !! $slurpy_type.from-slurpy($temp);
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                         0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
@@ -3197,6 +3197,20 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::die("Method '$name' not found for invocant of class '$type'");
     },
 #?endif
+    'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
+        if $cat == nqp::const::CONTROL_RETURN {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
+                nqp::atkey(%ex, 'X::ControlFlow::Return')();
+            }
+            nqp::die('Attempt to return outside of any Routine');
+        }
+        else {
+            my $ex := nqp::newexception();
+            nqp::setextype($ex, $cat);
+            nqp::getcomp('perl6').handle-control($ex);
+        }
+    },
     'finalize_handler', -> @objs {
         for @objs -> $o {
             for $o.HOW.destroyers($o) -> $d {

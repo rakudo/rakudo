@@ -2,8 +2,13 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is Map {
     #     has Mu $!descriptor;
 
-    multi method Hash() {
+    multi method Hash(Hash:) {
         self
+    }
+    multi method Map(Hash:) {
+        my $map := nqp::create(Map);
+        nqp::bindattr($map,Map,'$!storage',nqp::getattr(self,Map,'$!storage'));
+        $map
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
@@ -103,13 +108,15 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method gist(Hash:D:) {
         self.gistseen('Hash', {
+            '{' ~
             self.pairs.sort.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
                     default  { $elem.gist }
                 }
-            } ).join: ', '
+            } ).join(', ')
+            ~ '}'
         })
     }
 
@@ -129,7 +136,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
     method keyof() {
-        Any
+        Str(Any)
     }
     method of() {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
@@ -144,40 +151,54 @@ my class Hash { # declared in BOOTSTRAP
     method push(+values) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
           if values.is-lazy;
+
         my $previous;
         my int $has_previous = 0;
-        for values -> $e {
-            if $has_previous {
-                self!_push_construct($previous, $e);
-                $has_previous = 0;
-            } elsif $e.^isa(Pair) {
-                self!_push_construct($e.key, $e.value);
-            } else {
-                $previous = $e;
-                $has_previous = 1;
-            }
-        }
-        warn "Trailing item in Hash.push" if $has_previous;
+
+        nqp::if(
+          $has_previous,
+          nqp::stmts(
+            self!_push_construct($previous,$_),
+            ($has_previous = 0)
+          ),
+          nqp::if(
+            nqp::istype($_,Pair),
+            self!_push_construct(.key,.value),
+            nqp::stmts(
+              ($previous := $_),
+              ($has_previous = 1)
+            )
+          )
+        ) for values;
+
+        warn "Trailing item in {self.^name}.push" if $has_previous;
         self
     }
 
     method append(+values) {
         fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
           if values.is-lazy;
-        my $previous = 0;
-        my int $has_previous;
-        for values -> $e {
-            if $has_previous {
-                self!_append_construct($previous, $e);
-                $has_previous = 0;
-            } elsif $e.^isa(Pair) {
-                self!_append_construct($e.key, $e.value);
-            } else {
-                $previous = $e;
-                $has_previous = 1;
-            }
-        }
-        warn "Trailing item in Hash.append" if $has_previous;
+
+        my $previous;
+        my int $has_previous = 0;
+
+        nqp::if(
+          $has_previous,
+          nqp::stmts(
+            self!_append_construct($previous,$_),
+            ($has_previous = 0)
+          ),
+          nqp::if(
+            nqp::istype($_,Pair),
+            self!_append_construct(.key,.value),
+            nqp::stmts(
+              ($previous := $_),
+              ($has_previous = 1)
+            )
+          )
+        ) for values;
+
+        warn "Trailing item in {self.^name}.append" if $has_previous;
         self
     }
 

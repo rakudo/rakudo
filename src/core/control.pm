@@ -30,22 +30,31 @@ sub RETURN-LIST(Mu \list) is raw {
             !! list)
 }
 
-my &return-rw := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn($list);
-    $list;
-};
-my &return := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    nqp::p6routinereturn(nqp::p6recont_ro($list));
-    $list;
-};
+proto sub return-rw(|) {*}
+multi sub return-rw() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
+}
+multi sub return-rw(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, x);
+}
+multi sub return-rw(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
+}
+proto sub return(|) {*}
+multi sub return() {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
+}
+multi sub return(Mu \x) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro(x));
+}
+multi sub return(**@x is raw) {
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
+}
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take-rw := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW(nqp::const::CONTROL_TAKE, $list);
+    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray));
 }
 #?endif
 #?if !jvm
@@ -53,30 +62,30 @@ proto sub take-rw(|) { * }
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW(nqp::const::CONTROL_TAKE, $list);
+    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
 #?endif
 
 # RT #122732 - control operator crossed continuation barrier
 #?if jvm
 my &take := -> | {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
-    $list;
+    THROW(
+      nqp::const::CONTROL_TAKE,
+      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
+    )
 }
 #?endif
 #?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
-    my $ = THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x));
-    x
+    THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
 }
 multi sub take(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_TAKE, nqp::p6recont_ro($list) );
-    $list;
+    THROW(
+      nqp::const::CONTROL_TAKE,
+      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
+    )
 }
 #?endif
 
@@ -84,23 +93,22 @@ proto sub goto(|) { * }
 multi sub goto(Label:D \x) { x.goto }
 
 proto sub last(|) { * }
-multi sub last()           { THROW-NIL(nqp::const::CONTROL_LAST) }
+multi sub last()           { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x) { x.last }
 
 proto sub next(|) { * }
-multi sub next()           { THROW-NIL(nqp::const::CONTROL_NEXT) }
+multi sub next()           { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x) { x.next }
 
 proto sub redo(|) { * }
-multi sub redo()           { THROW-NIL(nqp::const::CONTROL_REDO) }
+multi sub redo()           { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x) { x.redo }
 
 proto sub succeed(|) { * }
 multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
 multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, x) }
 multi sub succeed(|) {
-    my $list := RETURN-LIST(nqp::p6argvmarray());
-    THROW( nqp::const::CONTROL_SUCCEED, $list);
+    THROW(nqp::const::CONTROL_SUCCEED,RETURN-LIST(nqp::p6argvmarray))
 }
 
 sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
@@ -113,7 +121,7 @@ my &callwith := -> |c {
 
 my &nextwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_args(|c))
 };
@@ -127,7 +135,7 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::p6routinereturn($dispatcher.exhausted
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
 };
@@ -146,10 +154,15 @@ sub samewith(|c) {
     until nqp::isnull($ctx) {
         my $caller := nqp::getcodeobj(nqp::ctxcode($ctx));
         if nqp::istype($caller, Routine) {
-            my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
-            return nqp::istype($caller, Method)
-              ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package, |c)
-              !! $dispatcher(|c);
+            if $caller.multi {
+                my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
+                return nqp::istype($caller, Method)
+                  ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package,|c)
+                  !! $dispatcher(|c);
+            }
+            else {
+                return $caller(|c);
+            }
         }
         $ctx := nqp::ctxouter($ctx);
     }
@@ -160,11 +173,9 @@ sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 sub emit(\value) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
-    value
 }
 sub done() {
-    THROW(nqp::const::CONTROL_DONE, Nil);
-    Nil
+    THROW-NIL(nqp::const::CONTROL_DONE);
 }
 
 proto sub die(|) {*};
@@ -211,7 +222,16 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     }
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
-    my $compiled := $compiler.compile($code.Stringy, :outer_ctx($eval_ctx), :global(GLOBAL));
+    my \mast_frames := nqp::hash();
+    my $compiled := $compiler.compile(
+        $code.Stringy,
+        :outer_ctx($eval_ctx),
+        :global(GLOBAL),
+        :mast_frames(mast_frames),
+    );
+    if $*W and $*W.is_precompilation_mode() { # we are still compiling
+        $*W.add_additional_frames(mast_frames);
+    }
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }
@@ -241,10 +261,6 @@ multi sub EVALFILE($filename, :$lang = 'perl6') {
 
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
-
-sub EXHAUST(|) {
-    X::ControlFlow::Return.new.throw();
-}
 
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     my Mu $clone := nqp::hash();

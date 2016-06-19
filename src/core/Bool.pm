@@ -32,6 +32,8 @@ BEGIN {
     Bool.^add_method('pred',  my method pred() { Bool::False });
     Bool.^add_method('succ',  my method succ() { Bool::True });
 
+    Bool.^add_method('enums', my method enums() { self.^enum_values });
+
     Bool.^compose;
 }
 

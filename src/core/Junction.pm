@@ -3,24 +3,59 @@ my class Junction { # declared in BOOTSTRAP
     #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
 
-    multi method new(\values, Str :$type!) {
-        my $junc := nqp::create(Junction);
-        nqp::bindattr($junc, Junction, '$!storage', values.eager.list);
-        nqp::bindattr($junc, Junction, '$!type', $type);
-        $junc
+    method !SET-SELF(\type,\values) {
+        $!type = type;
+        fail "Junction Can only have 'any', 'all', 'none', 'one' type"
+          unless nqp::iseq_s($!type,"any")
+              || nqp::iseq_s($!type,"all") 
+              || nqp::iseq_s($!type,"none") 
+              || nqp::iseq_s($!type,"one");
+        $!storage := values.eager.list;
+        self
+    }
+
+    multi method new(Junction: \values, Str :$type!) {
+        nqp::create(Junction)!SET-SELF($type,values)
+    }
+    multi method new(Junction: Str:D \type, \values) {
+        nqp::create(Junction)!SET-SELF(type,values)
     }
 
     multi method Bool(Junction:D:) {
-        STATEMENT_LIST($!storage.map({return True if $_}).sink; return False)
-            if nqp::iseq_s($!type, 'any');
-        STATEMENT_LIST($!storage.map({return False unless $_}).sink; return True)
-            if nqp::iseq_s($!type, 'all');
-        STATEMENT_LIST($!storage.map({return False if $_}).sink; return True)
-            if nqp::iseq_s($!type, 'none');
-        # 'one' junction
-        my $count = 0;
-        $!storage.map({ $count++ if $_; return False if $count > 1 }).sink;
-        $count == 1;
+        if nqp::attrinited($!storage,List,'$!reified') {
+            my $states   := nqp::getattr($!storage,List,'$!reified');
+            my int $elems = nqp::elems($states);
+            my int $i     = -1;
+
+            if nqp::iseq_s($!type,'any') {
+                return True if nqp::atpos($states,$i)
+                  while nqp::islt_i(++$i,$elems);
+                False
+            }
+            elsif nqp::iseq_s($!type,'all') {
+                return False unless nqp::atpos($states,$i)
+                  while nqp::islt_i(++$i,$elems);
+                True
+            }
+            elsif nqp::iseq_s($!type,'none') {
+                return False if nqp::atpos($states,$i)
+                  while nqp::islt_i(++$i,$elems);
+                True
+            }
+            else {
+                my int $seen;
+                return False if nqp::atpos($states,$i) && nqp::isgt_i(++$seen,1)
+                  while nqp::islt_i(++$i,$elems);
+                nqp::p6bool(nqp::iseq_i($seen,1))
+            }
+        }
+
+        # all/none are True, any/one are False
+        else {
+            nqp::p6bool(
+              nqp::iseq_s($!type,'all') || nqp::iseq_s($!type,'none')
+            )
+        }
     }
 
     multi method Str(Junction:D:) {
@@ -34,24 +69,71 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        STATEMENT_LIST($!storage.map({return True if $_.ACCEPTS(topic)}).sink; return False)
-            if nqp::iseq_s($!type, 'any');
-        STATEMENT_LIST($!storage.map({return False unless $_.ACCEPTS(topic)}).sink; return True)
-            if nqp::iseq_s($!type, 'all');
-        STATEMENT_LIST($!storage.map({return False if $_.ACCEPTS(topic)}).sink; return True)
-            if nqp::iseq_s($!type, 'none');
-        # 'one' junction
-        my $count = 0;
-        $!storage.map({ $count++ if $_.ACCEPTS(topic); return False if $count > 1 }).sink;
-        $count == 1;
+        if nqp::attrinited($!storage,List,'$!reified') {
+            my $states   := nqp::getattr($!storage,List,'$!reified');
+            my int $elems = nqp::elems($states);
+            my int $i     = -1;
+
+            if nqp::iseq_s($!type,'any') {
+                return True if nqp::atpos($states,$i).ACCEPTS(topic)
+                  while nqp::islt_i(++$i,$elems);
+                False
+            }
+            elsif nqp::iseq_s($!type,'all') {
+                return False unless nqp::atpos($states,$i).ACCEPTS(topic)
+                  while nqp::islt_i(++$i,$elems);
+                True
+            }
+            elsif nqp::iseq_s($!type,'none') {
+                return False if nqp::atpos($states,$i).ACCEPTS(topic)
+                  while nqp::islt_i(++$i,$elems);
+                True
+            }
+            else {
+                my int $seen;
+                return False if nqp::atpos($states,$i).ACCEPTS(topic)
+                  && nqp::isgt_i(++$seen,1)
+                  while nqp::islt_i(++$i,$elems);
+                nqp::p6bool(nqp::iseq_i($seen,1))
+            }
+        }
+
+        # all/none are True, any/one are False
+        else {
+            nqp::p6bool(
+              nqp::iseq_s($!type,'all') || nqp::iseq_s($!type,'none')
+            )
+        }
     }
 
     multi method gist(Junction:D:) {
-        $!type ~ '(' ~ $!storage.map({$_.gist}).join(', ') ~ ')'
+        if nqp::attrinited($!storage,List,'$!reified') {
+            my $states   := nqp::getattr($!storage,List,'$!reified');
+            my int $elems = nqp::elems($states);
+            my int $i     = -1;
+            my $gists    := nqp::setelems(nqp::list_s,$elems);
+            nqp::bindpos_s($gists,$i,nqp::atpos($states,$i).gist)
+              while nqp::islt_i(++$i,$elems);
+            $!type ~ '(' ~ nqp::join(', ',$gists) ~ ')'
+        }
+        else {
+            $!type ~ '()'
+        }
     }
 
     multi method perl(Junction:D:) {
-        $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
+        if nqp::attrinited($!storage,List,'$!reified') {
+            my $states   := nqp::getattr($!storage,List,'$!reified');
+            my int $elems = nqp::elems($states);
+            my int $i     = -1;
+            my $perls    := nqp::setelems(nqp::list_s,$elems);
+            nqp::bindpos_s($perls,$i,nqp::atpos($states,$i).perl)
+              while nqp::islt_i(++$i,$elems);
+            $!type ~ '(' ~ nqp::join(', ',$perls) ~ ')'
+        }
+        else {
+            $!type ~ '()'
+        }
     }
 
     method CALL-ME(|c) {
@@ -61,69 +143,88 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method sink(Junction:D: --> Nil) {
-        .?sink for $!storage.list;
+        if nqp::attrinited($!storage,List,'$!reified') {
+            my $states   := nqp::getattr($!storage,List,'$!reified');
+            my int $elems = nqp::elems($states);
+            my int $i     = -1;
+            nqp::atpos($states,$i).?sink while nqp::islt_i(++$i,$elems);
+        }
     }
 
     method AUTOTHREAD(&call, |args) {
-        my Mu $pos_rpa := nqp::getattr(nqp::decont(args), Capture, '$!list');
-        sub thread_junction(int $i) {
-            my Junction $arg := nqp::atpos($pos_rpa, $i);
-            my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
-            my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
+        my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'$!list');
 
-            my Mu $res := nqp::list();
-            @states.map: -> \st --> Nil {
-                # Next line is Officially Naughty, since captures are meant to be
-                # immutable. But hey, it's our capture to be naughty with...
-                nqp::bindpos($pos_rpa, $i, st);
-                nqp::push($res, call(|args));
+        sub thread_junction(int $pos) {
+            my $junction := nqp::decont(nqp::atpos($positionals, $pos));
+            my $threaded := nqp::clone($junction);
+
+            my $storage := nqp::getattr($junction,Junction,'$!storage');
+            if nqp::attrinited($storage,List,'$!reified') {
+                my $states   := nqp::getattr($storage,List,'$!reified');
+                my int $elems = nqp::elems($states);
+                my $result   := nqp::setelems(nqp::list,$elems);
+                my int $i     = -1;
+                while nqp::islt_i(++$i,$elems) {
+                    # Next line is Officially Naughty, since captures are
+                    # meant to be immutable. But hey, it's our capture to
+                    # be naughty with...
+                    nqp::bindpos($positionals,$pos,nqp::atpos($states,$i));
+                    nqp::bindpos($result,$i,call(|args));
+                }
+                nqp::bindattr($threaded,Junction,'$!storage',
+                  nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',$result));
             }
-            my $res_junc := nqp::clone(nqp::decont($arg));
-            nqp::bindattr($res_junc, Junction, '$!storage',
-                nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
-            $res_junc;
+
+            $threaded
         }
 
         # Look for a junctional arg in the positionals.
-
         # we have to autothread the first all or none junction before
         # doing any one or any junctions.
-        my int $first_one_any = -1;
-        loop (my int $i = 0; $i < nqp::elems($pos_rpa); $i = $i + 1) {
+        my int $first_any_one = -1;
+        my int $elems = nqp::elems($positionals);
+        my int $i     = -1;
+        while nqp::islt_i(++$i,$elems) {
+
             # Junctional positional argument?
-            my Mu $arg := nqp::atpos($pos_rpa, $i);
-            if nqp::istype($arg, Junction) {
-                my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
-                if nqp::iseq_s($type, 'any') || nqp::iseq_s($type, 'one') {
-                    if $first_one_any == -1 {
-                        # save it for later, first make sure we don't have all or none junctions later.
-                        $first_one_any = $i;
-                    }
-                } else {
-                    return thread_junction($i);
-                }
+            my Mu $arg := nqp::atpos($positionals, $i);
+            if nqp::istype($arg,Junction) {
+                my str $type = nqp::getattr(nqp::decont($arg),Junction,'$!type');
+                nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
+                  ?? $first_any_one == -1
+                    ?? ($first_any_one = $i)
+                    !! Nil
+                  !! return thread_junction($i);
             }
         }
-
-        if $first_one_any >= 0 {
-            return thread_junction($first_one_any);
-        }
+        return thread_junction($first_any_one) if $first_any_one >= 0;
 
         # Otherwise, look for one in the nameds.
-        for args.hash.kv -> $k, $v {
-            if nqp::istype($v, Junction) {
-                my Mu $nam_hash := nqp::getattr(nqp::decont(args), Capture, '$!hash');
-                my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
-                my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
-                my Mu $res := nqp::list();
-                @states.map: -> \st --> Nil {
-                    nqp::bindkey($nam_hash, $k, st);
-                    nqp::push($res, call(|args));
+        my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '$!hash');
+        my $iter := nqp::iterator($nameds);
+        while $iter {
+            my \tmp = nqp::shift($iter);
+            if nqp::istype(nqp::iterval(tmp),Junction) {
+                my $junction := nqp::decont(nqp::iterval(tmp));
+                my $states   := nqp::getattr(
+                  nqp::getattr($junction,Junction,'$!storage'),
+                  List,
+                  '$!reified');
+                my int $elems = nqp::elems($states);
+                my $result   := nqp::setelems(nqp::list,$elems);
+                my int $i     = -1;
+                
+                while nqp::islt_i(++$i,$elems) {
+                    # also naughty, like above
+                    nqp::bindkey($nameds,nqp::iterkey_s(tmp),nqp::atpos($states,$i));
+                    nqp::bindpos($result,$i,call(|args));
                 }
-                my $res_junc := nqp::clone(nqp::decont($v));
-                nqp::bindattr($res_junc, Junction, '$!storage',
-                    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $res));
-                return $res_junc;
+
+                my $threaded := nqp::clone(nqp::decont($junction));
+                nqp::bindattr($threaded,Junction,'$!storage',
+                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$result));
+                return $threaded;
             }
         }
 

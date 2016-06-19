@@ -103,7 +103,7 @@ class Distribution::Resources does Associative {
 
     method from-precomp() {
         if %*ENV<RAKUDO_PRECOMP_DIST> -> \dist {
-            my %data := from-json dist;
+            my %data := Rakudo::Internals::JSON.from-json: dist;
             self.new(:repo(%data<repo>), :dist-id(%data<dist-id>))
         }
         else {
@@ -116,7 +116,7 @@ class Distribution::Resources does Associative {
     }
 
     method Str() {
-        to-json {repo => $.repo.Str, dist-id => $.dist-id};
+        Rakudo::Internals::JSON.to-json: {repo => $.repo.Str, dist-id => $.dist-id};
     }
 }
 

@@ -15,7 +15,7 @@ my class Exception {
 
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {
-	nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+        nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
     }
     method reset-backtrace(Exception:D:) {
         nqp::bindattr(self, Exception, '$!ex', Nil)
@@ -80,9 +80,8 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-        $return($fail) unless nqp::isnull($return);
-        $fail.exception.throw
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+        CATCH { $fail.exception.throw }
     }
 
     method is-compile-time { False }
@@ -349,29 +348,30 @@ do {
             nqp::printfh($err, $backtrace.first-none-setting-line);
             nqp::resume($ex)
         }
-        if $type == nqp::const::CONTROL_LAST {
-            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct', :$backtrace).throw;
+        my $label = $type +& nqp::const::CONTROL_LABELED ?? "labeled " !! "";
+        if $type +& nqp::const::CONTROL_LAST {
+            X::ControlFlow.new(illegal => "{$label}last", enclosing => 'loop construct', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_NEXT {
-            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct', :$backtrace).throw;
+        elsif $type +& nqp::const::CONTROL_NEXT {
+            X::ControlFlow.new(illegal => "{$label}next", enclosing => 'loop construct', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_REDO {
-            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct', :$backtrace).throw;
+        elsif $type +& nqp::const::CONTROL_REDO {
+            X::ControlFlow.new(illegal => "{$label}redo", enclosing => 'loop construct', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_PROCEED {
+        elsif $type +& nqp::const::CONTROL_PROCEED {
             X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_SUCCEED {
+        elsif $type +& nqp::const::CONTROL_SUCCEED {
             # XXX: should work like leave() ?
             X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_TAKE {
+        elsif $type +& nqp::const::CONTROL_TAKE {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_EMIT {
+        elsif $type +& nqp::const::CONTROL_EMIT {
             X::ControlFlow.new(illegal => 'emit', enclosing => 'supply or react', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_DONE {
+        elsif $type +& nqp::const::CONTROL_DONE {
             X::ControlFlow.new(illegal => 'done', enclosing => 'supply or react', :$backtrace).throw;
         }
         else {
@@ -1356,7 +1356,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
-      '$.'  => "the filehandle's .ins method",
+      '$.'  => "the .kv method on e.g. .lines",
       '$/'  => "the filehandle's .nl-in attribute",
       '$\\' => "the filehandle's .nl-out attribute",
       '$|'  => ':autoflush on open',
@@ -1618,6 +1618,13 @@ my class X::Attribute::NoPackage does X::Comp {
 my class X::Attribute::Required does X::MOP {
     has $.name;
     method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
+}
+my class X::Attribute::Scope::Package does X::Comp {
+    has $.scope;
+    has $.allowed;
+    has $.disallowed;
+    method message() { "Cannot use {$.scope}-scoped attribute in $.disallowed"
+        ~ ($.allowed ?? ", only $.allowed." !! ".") }
 }
 my class X::Declaration::Scope does X::Comp {
     has $.scope;
@@ -2214,7 +2221,7 @@ my class X::Multi::NoMatch is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
-            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            "Cannot resolve caller $.dispatcher.name()$cap; none of these signatures match:",
             @cand;
     }
 }
@@ -2444,6 +2451,13 @@ my class X::TooManyDimensions is Exception {
     }
 }
 
+my class X::IllegalDimensionInShape is Exception {
+    has $.dim;
+    method message() {
+        "Illegal dimension in shape: $.dim. All dimensions must be integers bigger than 0"
+    }
+}
+
 my class X::Assignment::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;
@@ -2489,9 +2503,10 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     method message() {
         my $name = $.specification.short-name;
+        my $line = $.specification.source-line-number;
         is-core($name)
             ?? "{$name} is a builtin type. You can use it without loading a module."
-            !! "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+            !! "Could not find $.specification at line $line in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
     }
 }
 

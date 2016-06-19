@@ -154,7 +154,7 @@ my class IO::Handle does IO {
 
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
-            has Mu  $!size;
+            has int $!size;
             has int $!close;
 
             method !SET-SELF(\handle, \size, \close) {
@@ -168,33 +168,42 @@ my class IO::Handle does IO {
             }
 
             method pull-one() {
-                my str $str = $!handle.readchars($!size);
-                if nqp::chars($str) {
-                    nqp::p6box_s($str)
-                }
-                else {
-                    $!handle.close if $!close;
+                nqp::if(
+                  nqp::chars(my str $str = $!handle.readchars($!size)),
+                  nqp::p6box_s($str),
+                  nqp::stmts(
+                    nqp::if(
+                      $!close,
+                      $!handle.close
+                    ),
                     IterationEnd
-                }
+                  )
+                )
             }
             method push-all($target) {
                 my str $str = $!handle.readchars($!size);
-                while nqp::chars($str) == $size {
-                    $target.push(nqp::p6box_s($str));
-                    $str = $!handle.readchars($!size);
-                }
+                nqp::while(
+                  nqp::iseq_i(nqp::chars($str),$!size), 
+                  nqp::stmts(
+                    $target.push(nqp::p6box_s($str)),
+                    ($str = $!handle.readchars($!size))
+                  )
+                );
                 $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
                 IterationEnd
             }
             method count-only() {
-                my int $found;
+                my int $found = 0;
                 my str $str = $!handle.readchars($!size);
-                while nqp::chars($str) == $size {
-                    $found = $found + 1;
-                    $str   = $!handle.readchars($!size);
-                }
-                $found = $found + 1 if nqp::chars($str);
+                nqp::while(
+                  nqp::iseq_i(nqp::chars($str),$!size),
+                  nqp::stmts(
+                    ($found = nqp::add_i($found,1)),
+                    ($str = $!handle.readchars($!size)),
+                  )
+                );
+                ++$found if nqp::chars($str);
                 $!handle.close if $!close;
                 nqp::p6box_i($found)
             }
@@ -650,7 +659,7 @@ my class IO::Handle does IO {
         $buf;
     }
 
-    method readchars(Int(Cool:D) $chars = 65536) { # optimize for ASCII
+    method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
 #?if jvm
         my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
         # a char = 2 bytes
@@ -662,14 +671,17 @@ my class IO::Handle does IO {
 #?endif
     }
 
-    method Supply(IO::Handle:D: :$size = 65536, :$bin --> Supply:D) {
+    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS, :$bin --> Supply:D) {
         if $bin {
             supply {
                 my $buf := self.read($size);
-                while nqp::elems($buf) {
-                    emit $buf;
-                    $buf := self.read($size);
-                }
+                nqp::while(
+                  nqp::elems($buf),
+                  nqp::stmts(
+                    (emit $buf),
+                    ($buf := self.read($size))
+                  )
+                );
                 done;
             }
         }
@@ -677,10 +689,13 @@ my class IO::Handle does IO {
             supply {
                 my int $chars = $size;
                 my str $str = self.readchars($chars);
-                while nqp::chars($str) {
-                    emit nqp::p6box_s($str);
-                    $str = self.readchars($chars);
-                }
+                nqp::while(
+                  nqp::chars($str),
+                  nqp::stmts(
+                    (emit nqp::p6box_s($str)),
+                    ($str = self.readchars($chars))
+                  )
+                );
                 done;
             }
         }
@@ -811,6 +826,7 @@ my class IO::Handle does IO {
     method modified(IO::Handle:D:) { $!path.modified }
     method accessed(IO::Handle:D:) { $!path.accessed }
     method changed(IO::Handle:D:)  { $!path.changed  }
+    method mode(IO::Handle:D:)     { $!path.mode     }
 
 #?if moar
     method watch(IO::Handle:D:) {
@@ -821,6 +837,10 @@ my class IO::Handle does IO {
     method native-descriptor(IO::Handle:D:) {
         nqp::filenofh($!PIO)
     }
+}
+
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
+    PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
 }
 
 # vim: ft=perl6 expandtab sw=4

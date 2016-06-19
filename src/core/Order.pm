@@ -2,16 +2,36 @@
 my enum Order (:Less(-1), :Same(0), :More(1));
 
 sub ORDER(int $i) {
-    $i == 0 ?? Same !! $i <  0 ?? Less !! More
+    nqp::iseq_i($i,0) ?? Same !! nqp::islt_i($i,0) ?? Less !! More
 }
 
 proto sub infix:<cmp>(Mu $, Mu $) is pure { * }
 multi sub infix:<cmp>(\a, \b) {
-    return Order::Less if a === -Inf || b === Inf;
-    return Order::More if a ===  Inf || b === -Inf;
-    a.Stringy cmp b.Stringy
+    nqp::eqaddr(a,b)
+      ?? Same
+      !! a.Stringy cmp b.Stringy
 }
-multi sub infix:<cmp>(Real \a, Real \b) { a.Bridge cmp b.Bridge }
+multi sub infix:<cmp>(Real:D \a, \b) {
+     a === -Inf
+       ?? Less
+       !! a === Inf
+         ?? More
+         !! a.Stringy cmp b.Stringy
+}
+multi sub infix:<cmp>(\a, Real:D \b) {
+     b === Inf
+       ?? Less
+       !! b === -Inf
+         ?? More
+         !! a.Stringy cmp b.Stringy
+}
+multi sub infix:<cmp>(Real:D \a, Real:D \b) {
+     a === -Inf || b === Inf
+       ?? Less
+       !! a === Inf || b === -Inf
+         ?? More
+         !! a.Bridge cmp b.Bridge
+}
 multi sub infix:<cmp>(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }

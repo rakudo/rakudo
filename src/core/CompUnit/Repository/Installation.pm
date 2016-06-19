@@ -3,6 +3,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!loaded;
     has $!precomp;
     has $!id;
+    has Int $!version;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -97,11 +98,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !add-short-name($name, $dist) {
         my $short-dir = $.prefix.child('short');
-        $short-dir.mkdir unless $short-dir.e;
         my $id = nqp::sha1($name);
-        my $lookup = $short-dir.child($id).open(:a);
-        $lookup.say: $dist.id;
-        $lookup.close;
+        my $lookup = $short-dir.child($id);
+        $lookup.mkdir;
+        $lookup.child($dist.id).spurt("{$dist.ver // ''}\n{$dist.auth // ''}\n{$dist.api // ''}\n");
     }
 
     method !remove-dist-from-short-name-lookup-files($dist) {
@@ -110,14 +110,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         my $id = $dist.id;
 
-        for $short-dir.dir -> $file {
-            my $filtered = ($file.lines ∖ $id);
-            if $filtered.elems > 0 {
-                $file.spurt: $filtered.keys.sort.map({"$_\n"}).join('');
-            }
-            else {
-                $file.unlink;
-            }
+        for $short-dir.dir -> $dir {
+            $dir.child($id).unlink;
         }
     }
 
@@ -126,13 +120,52 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
+    method name(--> Str) {
+        CompUnit::RepositoryRegistry.name-for-repository(self)
+    }
 
     method !repo-prefix() {
-        my $repo-prefix = CompUnit::RepositoryRegistry.name-for-repository(self) // '';
+        my $repo-prefix = self.name // '';
         $repo-prefix ~= '#' if $repo-prefix;
         $repo-prefix
     }
 
+    method !read-dist($id) {
+        my $dist = Rakudo::Internals::JSON.from-json($.prefix.child('dist').child($id).slurp);
+        $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
+        $dist
+    }
+
+    method !repository-version(--> Int) {
+        return $!version if defined $!version;
+        my $version-file = $.prefix.child('version');
+        return $!version = 0 unless $version-file ~~ :f;
+        $!version = $version-file.slurp.Int
+    }
+
+    method !upgrade-repository(Int $version) {
+        my $short-dir = $.prefix.child('short');
+        mkdir $short-dir unless $short-dir.e;
+        my $precomp-dir = $.prefix.child('precomp');
+        mkdir $precomp-dir unless $precomp-dir.e;
+        self!sources-dir;
+        self!resources-dir;
+        self!dist-dir;
+        self!bin-dir;
+        if ($version < 1) {
+            $.prefix.child('version').spurt('1');
+            for $short-dir.dir -> $file {
+                my @ids = $file.lines.unique;
+                $file.unlink;
+                $file.mkdir;
+                for @ids -> $id {
+                    my $dist = self!read-dist($id);
+                    $file.child($id).spurt("{$dist<ver> // ''}\n{$dist<auth> // ''}\n{$dist<api> // ''}\n");
+                }
+            }
+        }
+        $!version = 1;
+    }
 
     proto method install(|) {*}
     multi method install($dist, %sources, %scripts?, %resources?, :$force) {
@@ -165,8 +198,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!lock.protect( {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
-        my $lock //= $.prefix.child('repo.lock').open(:create, :w);
+        my $lock = $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
+
+        my $version = self!repository-version;
+        self!upgrade-repository($version) unless $version == 1;
 
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
@@ -245,23 +281,33 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             $handle.close;
         }
 
-
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => conent-id mapping
         %meta<provides> = %provides; # new meta data added to provides
-        $dist-dir.child($dist-id).spurt: to-json(%meta);
+        $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json($dist.Hash);
         # XXX: $dist-dir.child($dist-id).spurt: to-json($dist.meta.hash);
 
-        my $precomp = $*REPO.precomp-repository;
-        my $repo-prefix = self!repo-prefix;
-        if $precomp.may-precomp {
+        # reset cached id so it's generated again on next access.
+        # identity changes with every installation of a dist.
+        $!id = Any;
+
+        {
+            my $head = $*REPO;
+            PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
+            my $precomp = $*REPO.precomp-repository;
+            my $repo-prefix = self!repo-prefix;
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
+
+            my @provides = $dist.provides.kv.map(-> $source-name, $ext {($source-name, $ext.values[0]<file>)});
+            my $compiler-id = $*PERL.compiler.id;
+            for @provides -> ($source-name, $id) {
+                $precomp.store.delete($compiler-id, $id);
+            }
             for %provides.kv -> $source-name, $source-meta {
                 my $id = $source-meta.values[0]<file>;
                 my $source = $sources-dir.child($id);
-                my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
-                my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
+                my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
                 if %done{$id} {
                     note "(Already did $id)" if $verbose;
@@ -271,31 +317,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $precomp.precompile(
                     $source.IO,
                     $id,
-                    :force,
-                    :source-name("$repo-prefix$source.relative($.prefix) ($source-name)"),
+                    :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
-                for @rev-deps -> $rev-dep-id {
-                    if %done{$rev-dep-id} {
-                        note "(Already did $rev-dep-id)" if $verbose;
-                        next;
-                    }
-                    note("Precompiling rev-dep $rev-dep-id") if $verbose;
-                    my $source = $sources-dir.child($rev-dep-id);
-                    $precomp.precompile(
-                        $source,
-                        $rev-dep-id,
-                        :force,
-                        :source-name($repo-prefix ~ $source.relative($.prefix))
-                    ) if $source.e;
-                    %done{$rev-dep-id} = 1;
-                }
             }
+            PROCESS::<$REPO> := $head;
         }
 
-        # reset cached id so it's generated again on next access.
-        # identity changes with every installation of a dist.
-        $!id = Any;
         $lock.unlock;
     } ) }
 
@@ -329,23 +357,22 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $prefix = self.prefix;
         my $lookup = $prefix.child('short').child(nqp::sha1($name));
         if $lookup.e {
-            my $dist-dir = self!dist-dir;
-            for $lookup.lines -> $dist-id {
-                my $dist = from-json($dist-dir.child($dist-id).slurp);
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( $dist<ver> )
-                        !! Version.new('0');
-                if (!$name || $dist<name> ~~ $name)
-                && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver) {
-                    with $dist<files>{$file} {
-                        my $candi   = %$dist;
-                        $candi<ver> = $dver;
-                        $candi<files>{$file} = self!resources-dir.child($candi<files>{$file});
-                        @candi.push: $candi;
-                    }
+            my $version = self!repository-version;
+            my @dists = $version < 1
+                ?? $lookup.lines.unique.map({
+                        self!read-dist($_)
+                    })
+                !! $lookup.dir.map({
+                        my ($ver, $auth, $api) = $_.slurp.split("\n");
+                        (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
+                    });
+            for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
+                $dist = self!read-dist($dist<id>) if $version >= 1;
+                with $dist<files>{$file} {
+                    my $candi   = %$dist;
+                    $candi<files>{$file} = $prefix.abspath ~ '/resources/' ~ $candi<files>{$file}
+                        unless $candi<files>{$file} ~~ /^$prefix/;
+                    @candi.push: $candi;
                 }
             }
         }
@@ -354,19 +381,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
+            my $version = self!repository-version;
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
-                my $dist-dir = $.prefix.child('dist');
-                my @dists = $lookup.lines.unique.map({
-                    $_ => from-json($dist-dir.child($_).slurp)
-                }).grep({
-                    $_.value<auth> ~~ $spec.auth-matcher
-                    and Version.new(~$_.value<ver> || '0') ~~ $spec.version-matcher
-                    and $_.value<provides>{$spec.short-name}:exists
-                });
+                my @dists = (
+                        $version < 1
+                        ?? $lookup.lines.unique.map({
+                                $_ => self!read-dist($_)
+                            })
+                        !! $lookup.dir.map({
+                                my ($ver, $auth, $api) = $_.slurp.split("\n");
+                                $_.basename => {ver => Version.new( $ver || 0 ), auth => $auth, api => $api}
+                            })
+                    ).grep({
+                        $_.value<auth> ~~ $spec.auth-matcher
+                        and $_.value<ver> ~~ $spec.version-matcher
+                    });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
-                    return ($dist-id, $dist);
+                    return ($dist-id, $version < 1 ?? $dist !! self!read-dist($dist-id));
                 }
             }
         }
@@ -403,6 +435,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
@@ -416,9 +449,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $id = $loader.basename;
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
-                $id,
-                $loader,
-                :source-name("$repo-prefix$loader.relative($.prefix) ($spec.short-name())"),
+                CompUnit::PrecompilationDependency::File.new(
+                    :$id,
+                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.abspath),
+                    :$spec,
+                ),
+                :source($loader),
+                :@precomp-stores,
             );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
@@ -436,20 +473,21 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             );
             return %!loaded{$compunit.short-name} = $compunit;
         }
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method resource($dist-id, $key) {
-        my $dist = from-json(self!dist-dir.child($dist-id).slurp);
+        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
         self!resources-dir.child($dist<files>{$key})
     }
 
     method id() {
         return $!id if $!id;
-        $!id = self.CompUnit::Repository::Locally::id();
+        my $name = self.path-spec;
+        $name ~= ',' ~ self.next-repo.id if self.next-repo;
         my $dist-dir = $.prefix.child('dist');
-        $!id = nqp::sha1($!id ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
+        $!id = nqp::sha1(nqp::sha1($name) ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
     }
 
     method short-id() { 'inst' }
@@ -458,13 +496,15 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
+    method precomp-store() returns CompUnit::PrecompilationStore {
+        CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.child('precomp')),
+        )
+    }
+
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('precomp')),
-                )
-            ),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

@@ -97,7 +97,7 @@ sub wanted($ast,$by) {
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' {
+              $ast.op eq 'handlepayload' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('WANTED',1);
         }
@@ -249,7 +249,7 @@ sub unwanted($ast, $by) {
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' ||
+              $ast.op eq 'handlepayload' ||
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.annotate('context','sink');
@@ -773,6 +773,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :compilation_mode($*W.is_precompilation_mode()),
             :pre_deserialize($*W.load_dependency_tasks()),
             :post_deserialize($*W.fixup_tasks()),
+            :is_nested($*W.is_nested()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
@@ -1733,6 +1734,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<import>($/) {
+        # NB: Grammar already passed arglist directly to World, but this seems soon enough to want it.
+        if $<arglist> {
+            WANTED($<arglist><EXPR>.ast, 'import');
+        }
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         make $past;
     }
@@ -2753,6 +2758,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
     method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
+    method scope_declarator:sym<HAS>($/)     {
+        my $scoped := $<scoped>.ast;
+        my $attr   := $scoped.ann('metaattr');
+        if $attr.package.REPR ne 'CStruct'
+        && $attr.package.REPR ne 'CPPStruct'
+        && $attr.package.REPR ne 'CUnion' {
+            $*W.throw($/, ['X', 'Attribute', 'Scope', 'Package'], :scope<HAS>,
+                :allowed('classes with CStruct, CPPStruct and CUnion representation are supported'),
+                :disallowed('package with ' ~ $attr.package.REPR ~ ' representation'));
+        }
+        if nqp::objprimspec($attr.type) != 0 {
+            $/.CURSOR.worry('Useless use of HAS scope on ' ~ $attr.type.HOW.name($attr.type) ~ ' typed attribute.');
+        }
+        # Mark $attr as inlined, that's why we do all this.
+        nqp::bindattr_i($attr, $attr.WHAT, '$!inlined', 1);
+        make $scoped;
+    }
 
     method declarator($/) {
         if    $<routine_declarator>  { make $<routine_declarator>.ast  }
@@ -4213,7 +4235,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Get list of either values or pairs; fail if we can't.
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
-        my $term_ast := $<term>.ast;
+        my $term_ast := WANTED($<term>.ast,'enum');
 
         # remove val call on a single item
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
@@ -5629,7 +5651,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         my $past := QAST::Op.new( :$op, |@args );
-        if $op eq 'want' || $op eq 'handle' {
+        if $op eq 'want' || $op eq 'handle' || $op eq 'handlepayload' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
             while $i < $n {
@@ -6291,7 +6313,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub check_smartmatch($/,$pat) {
         if nqp::can($pat,'ann') && $pat.ann('is_S') {
-            $/.PRECURSOR.worry('Smartmatch with S/// can never succeed because the string it returns will fail to match. You can use given instead of ~~.');
+            $/.PRECURSOR.worry('Smartmatch with S/// is not useful. You can use given instead: S/// given $foo');
         }
 
         if $pat ~~ QAST::WVal && istype($pat.returns, $*W.find_symbol(['Bool'])) && nqp::isconcrete($pat.value) {
@@ -7367,7 +7389,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method rx_adverbs($/) {
         my @pairs;
         for $<quotepair> {
-            nqp::push(@pairs, $_.ast);
+            nqp::push(@pairs, wanted($_.ast,'rx_adverbs'));
         }
         make @pairs;
     }
@@ -8879,18 +8901,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub wrap_return_handler($past) {
         wrap_return_type_check(
-            QAST::Stmts.new(
-                :resultchild(0),
-                QAST::Op.new(
-                    :op<lexotic>, :name<RETURN>,
-                    # If we fall off the bottom, decontainerize if
-                    # rw not set.
-                    QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past )
-                ),
-                QAST::Op.new(
-                    :op<bind>,
-                    QAST::Var.new(:name<RETURN>, :scope<lexical>),
-                    QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+            QAST::Op.new(
+                :op<handlepayload>,
+                # If we fall off the bottom, decontainerize if
+                # rw not set.
+                QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past ),
+                'RETURN',
+                QAST::Op.new( :op<lastexpayload> )
             ),
             $*DECLARAND
         )

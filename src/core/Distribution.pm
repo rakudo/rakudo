@@ -64,7 +64,7 @@ class Distribution::Path does Distribution does Distribution::Locally {
     method new(IO::Path $prefix, IO::Path :$file is copy) {
         my $path := ?$file ?? $file !! $prefix.child('META6.json');
         die "No meta file located at {$path.abspath}" unless $path.e;
-        my $meta = from-json(slurp($path));
+        my $meta = Rakudo::Internals::JSON.from-json(slurp($path));
 
         my sub ls-files($prefix, $subdir) {
             my @stack = dir($prefix.child($subdir));

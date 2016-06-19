@@ -101,7 +101,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $id = nqp::sha1($name);
         my $lookup = $short-dir.child($id);
         $lookup.mkdir;
-        $lookup.child($dist.id).spurt("{$dist.ver // ''}\n{$dist.auth // ''}\n{$dist.api // ''}\n");
+        $lookup.child($dist.id).spurt(
+                "{$dist.meta<ver>  // ''}\n"
+            ~   "{$dist.meta<auth> // ''}\n"
+            ~   "{$dist.meta<api>  // ''}\n"
+        );
     }
 
     method !remove-dist-from-short-name-lookup-files($dist) {
@@ -152,8 +156,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         self!resources-dir;
         self!dist-dir;
         self!bin-dir;
-        if ($version < 1) {
-            $.prefix.child('version').spurt('1');
+        if ($version < 2) {
+            $.prefix.child('version').spurt('2');
             for $short-dir.dir -> $file {
                 my @ids = $file.lines.unique;
                 $file.unlink;
@@ -164,25 +168,25 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 }
             }
         }
-        $!version = 1;
+        $!version = 2;
     }
 
     proto method install(|) {*}
     multi method install($dist, %sources, %scripts?, %resources?, :$force) {
         # XXX: Deprecation shim
+        my %files = |%scripts, |%resources;
         my %meta6 = %(
             name     => $dist.?name,
             ver      => $dist.?ver // $dist.?version,
             auth     => $dist.?auth // $dist.?authority,
             provides => %sources,
-            files    => (grep *.defined, |%scripts, |%resources),
+            files    => %files,
         );
+
         my $new-dist = class {
             also does Distribution;
             method meta { %meta6 }
             method content($address is copy) {
-                $address = Rakudo::Internals.IS-WIN ?? ~$address.subst('\\', '/', :g) !! ~$address;
-                # everything is already an absolute path
                 my $handle = IO::Handle.new: path => IO::Path.new($address.IO.absolute);
                 $handle // $handle.throw;
             }
@@ -202,7 +206,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lock.lock(2);
 
         my $version = self!repository-version;
-        self!upgrade-repository($version) unless $version == 1;
+        self!upgrade-repository($version) unless $version == 2;
 
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
@@ -228,10 +232,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # lib/ source files
         for $dist.meta<provides>.kv -> $name, $file is copy {
             # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
-            my $id          = self!file-id($name, $dist-id);
+            my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
-            %provides{ $name } = $file => {
+            %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
                 :$!cver
@@ -246,7 +250,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # bin/ scripts
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
-            my $id          = self!file-id($file, $dist-id);
+            my $id          = self!file-id(~$file, $dist-id);
             my $destination = $resources-dir.child($id); # wrappers are put in bin/; originals in resources/
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
@@ -271,8 +275,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # resources/
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('resources/');
-            # $name is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
-            my $id             = self!file-id($name-path, $dist-id) ~ '.' ~ $file.IO.extension;
+            # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
+            my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
@@ -284,8 +288,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => conent-id mapping
         %meta<provides> = %provides; # new meta data added to provides
-        $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json($dist.Hash);
-        # XXX: $dist-dir.child($dist-id).spurt: to-json($dist.meta.hash);
+        $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
 
         # reset cached id so it's generated again on next access.
         # identity changes with every installation of a dist.
@@ -299,11 +302,12 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my @provides = $dist.provides.kv.map(-> $source-name, $ext {($source-name, $ext.values[0]<file>)});
             my $compiler-id = $*PERL.compiler.id;
-            for @provides -> ($source-name, $id) {
+            for %provides.kv -> $source-name, $source-meta {
+                my $id = $source-meta.values[0]<file>;
                 $precomp.store.delete($compiler-id, $id);
             }
+
             for %provides.kv -> $source-name, $source-meta {
                 my $id = $source-meta.values[0]<file>;
                 my $source = $sources-dir.child($id);
@@ -357,8 +361,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $prefix = self.prefix;
         my $lookup = $prefix.child('short').child(nqp::sha1($name));
         if $lookup.e {
-            my $version = self!repository-version;
-            my @dists = $version < 1
+            my $repo-version = self!repository-version;
+            my @dists = $repo-version < 2
                 ?? $lookup.lines.unique.map({
                         self!read-dist($_)
                     })
@@ -367,11 +371,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
                     });
             for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
-                $dist = self!read-dist($dist<id>) if $version >= 1;
+                $dist = self!read-dist($dist<id>) if $repo-version >= 2;
                 with $dist<files>{$file} {
-                    my $candi   = %$dist;
-                    $candi<files>{$file} = $prefix.abspath ~ '/resources/' ~ $candi<files>{$file}
-                        unless $candi<files>{$file} ~~ /^$prefix/;
+                    my $candi = %$dist;
+                    $candi<files>{$file} = self!resources-dir.child($candi<files>{$file});
                     @candi.push: $candi;
                 }
             }
@@ -381,11 +384,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
-            my $version = self!repository-version;
+            my $repo-version = self!repository-version;
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
                 my @dists = (
-                        $version < 1
+                        $repo-version < 2
                         ?? $lookup.lines.unique.map({
                                 $_ => self!read-dist($_)
                             })
@@ -398,7 +401,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         and $_.value<ver> ~~ $spec.version-matcher
                     });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return ($dist-id, $version < 1 ?? $dist !! self!read-dist($dist-id));
+                    return ($dist-id, $repo-version < 2 ?? $dist !! self!read-dist($dist-id));
                 }
             }
         }

@@ -761,8 +761,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         # nothing to do
-        elsif $limit < 2 {
-            return $limit <= 0 ?? () !! self.list;
+        elsif $limit == 1 {
+            return self.list;
         }
 
         # want them all

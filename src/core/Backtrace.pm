@@ -11,6 +11,14 @@ my class Backtrace::Frame {
     has Mu  $.code;
     has Str $.subname;
 
+    method !SET-SELF($!file,$!line,\code,$!subname) {
+        $!code := code;
+        self
+    }
+    method new(\file,\line,\code,\subname) {
+        nqp::create(self)!SET-SELF(file,line,code,subname)
+    }
+
     method subtype(Backtrace::Frame:D:) {
         my $s = $!code.^name.lc.split('+', 2).cache[0];
         $s eq 'mu' ?? '' !! $s;
@@ -125,10 +133,10 @@ my class Backtrace {
 
             nqp::push($!frames,
               Backtrace::Frame.new(
-                :$code,
-                :$file,
-                :line($line.Int),
-                :subname($name.starts-with("_block") ?? '<anon>' !! $name),
+                $file,
+                $line.Int,
+                $code,
+                $name.starts-with("_block") ?? '<anon>' !! $name,
               )
             );
             last unless $todo = $todo - 1;

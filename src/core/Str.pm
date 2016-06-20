@@ -617,6 +617,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $any = self!split-sanity($v,$k,$kv,$p);
 
         my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        $limit != $limit and X::TypeCheck.new(
+            operation => 'split ($limit argument)',
+            expected  => 'any Real type (non-NaN) or Whatever',
+            got       => $limit.perl,
+        ).throw;
+
         return ().list if $limit <= 0;
 
         my \matches = $limit == Inf
@@ -752,6 +758,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # don't do it here
         my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        $limit != $limit and X::TypeCheck.new(
+            operation => 'split ($limit argument)',
+            expected  => 'any Real type (non-NaN) or Whatever',
+            got       => $limit.perl,
+        ).throw;
+
         return ().list if $limit <= 0;
 
         # nothing to work with
@@ -919,7 +931,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
           if Rakudo::Internals.NOT_ALL_TYPE(@needles,Cool);
 
         my int $limit = $parts.Int
-          unless nqp::istype($parts,Whatever) || $parts == Inf;
+          unless nqp::istype($parts,Whatever) || $parts == Inf || $parts != $parts;
+
+        X::TypeCheck.new(
+            operation => 'split ($limit argument)',
+            expected  => 'any Real type (non-NaN) or Whatever',
+            got       => $parts.perl,
+        ).throw unless nqp::istype($parts,Whatever) or $parts == $parts;
 
         my str $str       = nqp::unbox_s(self);
         my $positions    := nqp::list;

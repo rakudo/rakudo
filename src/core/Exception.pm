@@ -1617,7 +1617,12 @@ my class X::Attribute::NoPackage does X::Comp {
 }
 my class X::Attribute::Required does X::MOP {
     has $.name;
-    method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
+    has $.why;
+    method message() {
+        $.why
+          ?? "The attribute '$.name' is required because $.why,\nbut you did not provide a value for it."
+          !! "The attribute '$.name' is required, but you did not provide a value for it."
+    }
 }
 my class X::Attribute::Scope::Package does X::Comp {
     has $.scope;

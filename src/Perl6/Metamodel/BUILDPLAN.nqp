@@ -71,7 +71,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # Ensure that any required attributes are set
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
-                @plan[+@plan] := [11, $obj, $_.name, 1];
+                @plan[+@plan] := [11, $obj, $_.name, $_.required];
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }

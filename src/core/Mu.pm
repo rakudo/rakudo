@@ -269,7 +269,8 @@ my class Mu { # declared in BOOTSTRAP
                                     nqp::atpos($task,2)
                                   ),
                                   X::Attribute::Required.new(
-                                    name => nqp::atpos($task,2)
+                                    name => nqp::atpos($task,2),
+                                    why  => nqp::atpos($task,3)
                                   ).throw
                                 ),
 

@@ -1117,7 +1117,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
@@ -1202,13 +1202,13 @@ BEGIN {
                 Attribute, '$!ro', 1);
             nqp::p6bool(1)
         }));
-    Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self) {
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!required', 1);
+    Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
+            nqp::bindattr(nqp::decont($self),
+                Attribute, '$!required', $value);
             nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!required');
         }));
     Attribute.HOW.add_method(Attribute, 'default_to_rw', nqp::getstaticcode(sub ($self) {

@@ -4,6 +4,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # my class Map is Iterable is Cool {
     #   has Mu $!storage;
 
+    multi method WHICH(Map:D:) {
+        self.^name
+          ~ '|'
+          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } )
+    }
     method new(*@args) {
         @args
           ?? nqp::create(self).STORE(@args)

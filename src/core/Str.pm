@@ -600,7 +600,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self));
     }
 
-    method !split-sanity(\v,\k,\kv,\p) {
+    method !ensure-split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
         my int $any = ?v + ?k + ?kv + ?p;
         X::Adverb.new(
@@ -611,7 +611,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $any
     }
 
-    method !limit-sanity(\limit --> Nil) {
+    method !ensure-limit-sanity(\limit --> Nil) {
         X::TypeCheck.new(
           operation => 'split ($limit argument)',
           expected  => 'any Real type (non-NaN) or Whatever',
@@ -624,9 +624,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
 
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
-        self!limit-sanity($limit);
+        self!ensure-limit-sanity($limit);
         return ().list if $limit <= 0;
 
         my \matches = $limit == Inf
@@ -698,7 +698,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method split(Str:D: Str(Cool) $match;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # nothing to work with
         my str $needle = nqp::unbox_s($match);
@@ -758,9 +758,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
-        self!limit-sanity($limit);
+        self!ensure-limit-sanity($limit);
         return ().list if $limit <= 0;
 
         # nothing to work with
@@ -921,13 +921,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method split(Str:D: @needles, $parts is copy = Inf;;
        :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # must all be Cool, otherwise we'll just use a regex
         return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty) # / hl
           if Rakudo::Internals.NOT_ALL_TYPE(@needles,Cool);
 
-        self!limit-sanity($parts);
+        self!ensure-limit-sanity($parts);
         return ().list if $parts <= 0;
 
         my int $limit = $parts.Int

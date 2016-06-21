@@ -1,6 +1,7 @@
 my class MixHash does Mixy {
 
 #--- interface methods
+    multi method WHICH(MixHash:D:) { self.Mu::WHICH }
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

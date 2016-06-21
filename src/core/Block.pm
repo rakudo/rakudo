@@ -300,6 +300,7 @@ my class Block { # declared in BOOTSTRAP
         my $f;
         my $primed_sig = (flat @plist.map(&strip_parm), @phash,
                           ($slurp_p ?? strip_parm($slurp_p) !! ())).join(", ");
+        $primed_sig ~= " --> " ~ $sig.returns.^name;
 
         $f = EVAL sprintf(
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });

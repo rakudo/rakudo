@@ -607,16 +607,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
           what   => 'split',
           source => 'Str',
           nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).map(*.key),
-        ).throw if $any > 1;
-
+        ).throw if nqp::isgt_i($any,1);
         $any
     }
 
-    multi method split(Str:D: Regex:D $pat, $parts = *;;
+    method !limit-sanity(\limit --> Nil) {
+        X::TypeCheck.new(
+          operation => 'split ($limit argument)',
+          expected  => 'any Real type (non-NaN) or Whatever',
+          got       => limit.perl,
+        ).throw if limit === NaN;
+
+        limit = Inf if nqp::istype(limit,Whatever);
+    }
+
+    multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+
         my int $any = self!split-sanity($v,$k,$kv,$p);
 
-        my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        self!limit-sanity($limit);
         return ().list if $limit <= 0;
 
         my \matches = $limit == Inf
@@ -746,12 +756,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $matches
     }
 
-    multi method split(Str:D: Str(Cool) $match, $parts;;
+    multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!split-sanity($v,$k,$kv,$p);
 
-        # don't do it here
-        my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        self!limit-sanity($limit);
         return ().list if $limit <= 0;
 
         # nothing to work with
@@ -774,7 +783,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         elsif $chars {
 
             # let the multi-needle handler handle all nameds
-            return self.split(($match,),$parts,:$v,:$k,:$kv,:$p,:$skip-empty)
+            return self.split(($match,),$limit,:$v,:$k,:$kv,:$p,:$skip-empty)
               if $any || $skip-empty;
 
             # make the sequence
@@ -910,13 +919,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }.new(self,$limit,$skip-empty));
         }
     }
-    multi method split(Str:D: @needles, $parts = *;;
+    multi method split(Str:D: @needles, $parts is copy = Inf;;
        :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!split-sanity($v,$k,$kv,$p);
 
         # must all be Cool, otherwise we'll just use a regex
-        return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty)
+        return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty) # / hl
           if Rakudo::Internals.NOT_ALL_TYPE(@needles,Cool);
+
+        self!limit-sanity($parts);
+        return ().list if $parts <= 0;
 
         my int $limit = $parts.Int
           unless nqp::istype($parts,Whatever) || $parts == Inf;
@@ -958,7 +970,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         # no needle tried, assume we want chars
-        return self.split("",$parts) if nqp::not_i($tried);
+        return self.split("",$limit) if nqp::not_i($tried);
 
         # sort by position if more than one needle fired
         nqp::p6sort($sorted, -> int $a, int $b {

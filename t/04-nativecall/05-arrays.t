@@ -12,15 +12,15 @@ compile_test_lib('05-arrays');
 {
     sub ReturnADoubleArray() returns CArray[num64] is native("./05-arrays") { * }
     my @rarr := ReturnADoubleArray();
-    is_approx @rarr[0], 23.45e0, 'returning double array (1)';
-    is_approx @rarr[1], -99.87e0, 'returning double array (2)';
-    is_approx @rarr[2], 0.25e0, 'returning double array (3)';
+    is-approx @rarr[0], 23.45e0, 'returning double array (1)';
+    is-approx @rarr[1], -99.87e0, 'returning double array (2)';
+    is-approx @rarr[2], 0.25e0, 'returning double array (3)';
 
     sub TakeADoubleArrayAndAddElements(CArray[num64]) returns num64 is native("./05-arrays") { * }
     my @parr := CArray[num].new();
     @parr[0] = 9.5e0;
     @parr[1] = 32.5e0;
-    is_approx TakeADoubleArrayAndAddElements(@parr), 42e0, 'passing double array';
+    is-approx TakeADoubleArrayAndAddElements(@parr), 42e0, 'passing double array';
 }
 
 {
@@ -123,15 +123,15 @@ compile_test_lib('05-arrays');
 {
     sub ReturnsAFloatArray() returns CArray[num32] is native("./05-arrays") { * }
     my @rarr := ReturnsAFloatArray();
-    is_approx @rarr[0], 1.23e0, 'float in element 0';
-    is_approx @rarr[1], 4.56e0, 'float in element 1';
-    is_approx @rarr[2], 7.89e0, 'float in element 2';
+    is-approx @rarr[0], 1.23e0, 'float in element 0';
+    is-approx @rarr[1], 4.56e0, 'float in element 1';
+    is-approx @rarr[2], 7.89e0, 'float in element 2';
 
     sub SumAFloatArray(CArray[num32]) returns num32 is native("./05-arrays") { * }
     my @parr := CArray[num32].new;
     @parr[0] = 12.3e0;
     @parr[1] = 45.6e0;
-    is_approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+    is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
 }
 
 # vim:ft=perl6

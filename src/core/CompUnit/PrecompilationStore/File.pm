@@ -8,7 +8,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has $.checksum;
         has $!bytecode;
 
-        method BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode) {
+        submethod BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode --> Nil) {
             if $!bytecode {
                 $!initialized = True;
                 $!checksum = nqp::sha1($!bytecode.join(','));

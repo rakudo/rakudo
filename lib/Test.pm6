@@ -686,7 +686,7 @@ If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
 You can also check the documentation about testing in Perl 6 online on:
 
-  http://doc.perl6.org/language/testing
+  https://doc.perl6.org/language/testing
 
 =end pod
 

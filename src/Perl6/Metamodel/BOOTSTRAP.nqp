@@ -199,7 +199,7 @@ my class Binder {
             if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
                 unless !$got_native && nqp::iscont_i($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native int argument for '$varname'";
+                        $error[0] := "Expected a modifiable native int argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -207,7 +207,7 @@ my class Binder {
             elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                 unless !$got_native && nqp::iscont_n($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native num argument for '$varname'";
+                        $error[0] := "Expected a modifiable native num argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -215,7 +215,7 @@ my class Binder {
             elsif $desired_native == $SIG_ELEM_NATIVE_STR_VALUE {
                 unless !$got_native && nqp::iscont_s($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native str argument for '$varname'";
+                        $error[0] := "Expected a modifiable native str argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }

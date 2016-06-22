@@ -48,7 +48,7 @@ my role Iterator {
         my $pulled;
 
         # we may not .sink $pulled here, since it can be a Seq
-        nqp::until(  # doesn't sink
+        nqp::until(
           nqp::eqaddr(($pulled := self.pull-one),IterationEnd),
           $target.push($pulled)
         );
@@ -66,28 +66,6 @@ my role Iterator {
         self.is-lazy
             ?? Mu
             !! self.push-all($target)
-    }
-
-    # Does not push anything but consumes the iterator to find out the number
-    # items that were generated, and returns that number.  Intended to be used
-    # in situations such as "foo".IO.lines.elems, where we're only interested
-    # in the number of lines in the file, rather than the contents of the
-    # lines.
-    method count-only() {
-        my int $i = 0;
-        nqp::until(
-          self.pull-one =:= IterationEnd, # temporary fix for RT #128357
-          $i = nqp::add_i($i,1)
-        );
-        $i
-    }
-
-    # Does not push anything, but tries to consume the iterator once to find
-    # out if anything is there.  Intended to be used in situations such as
-    # if "foo".IO.lines { , where we're only interested whether there is *any*
-    # line in the file, rather than the content of the line.
-    method bool-only() {
-        nqp::p6bool(nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd)))
     }
 
     # Consumes all of the values in the iterator for their side-effects only.

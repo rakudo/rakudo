@@ -121,7 +121,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
                   !! IterationEnd
             }
-            method count-only() { nqp::p6box_i($!pos = $!chars) }
         }.new(self));
     }
     multi method comb(Str:D: Int:D $size, $limit = *) {
@@ -160,7 +159,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!pos = $!chars;
                 IterationEnd
             }
-            method count-only() { $!pos = $!chars; $!max }
         }.new(self,$size,$limit,$inf))
     }
     multi method comb(Str:D: Str $pat) {
@@ -183,15 +181,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $!pos = $found + 1;
                     nqp::p6box_s($!pat)
                 }
-            }
-            method count-only() {
-                my int $seen;
-                my int $found;
-                until ($found = nqp::index($!str, $!pat, $!pos)) < 0 {
-                    $seen = $seen + 1;
-                    $!pos = $found + 1;
-                }
-                nqp::p6box_i($seen)
             }
         }.new(self, $pat));
     }
@@ -223,17 +212,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $!todo = $!todo - 1;
                     nqp::p6box_s($!pat)
                 }
-            }
-            method count-only() {
-                my int $seen;
-                my int $found;
-                until ($found = nqp::index($!str, $!pat, $!pos)) < 0
-                  || $!todo == 0 {
-                    $seen  = $seen + 1;
-                    $!pos  = $found + 1;
-                    $!todo = $!todo - 1;
-                }
-                nqp::p6box_i($seen)
             }
         }.new(self, $pat, $limit));
     }
@@ -584,19 +562,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
                 IterationEnd
             }
-            method count-only() {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-                    $found = $found   + 1;
-                    $!pos  = $nextpos + 1;
-                }
-                nqp::p6box_i($found)
-            }
         }.new(self));
     }
 
@@ -911,9 +876,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       if nqp::islt_i($!pos,$!chars);
                     $target.push("") if $!last;
                     IterationEnd
-                }
-                method count-only() {
-                    nqp::p6box_i($!todo + $!first + $!last)
                 }
                 method sink-all() { IterationEnd }
             }.new(self,$limit,$skip-empty));
@@ -1238,21 +1200,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       $!str, $nextpos, $!chars - $nextpos);
                 }
                 IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-
-                    $found = $found + 1;
-                    $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                      $!str, $nextpos, $!chars - $nextpos);
-                }
-                nqp::p6box_i($found)
             }
         }.new(self));
     }

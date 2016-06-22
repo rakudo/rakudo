@@ -147,17 +147,17 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!version = $version-file.slurp.Int
     }
 
-    method !upgrade-repository(Int $version) {
+    method upgrade-repository() {
+        my $version = self!repository-version;
         my $short-dir = $.prefix.child('short');
         mkdir $short-dir unless $short-dir.e;
         my $precomp-dir = $.prefix.child('precomp');
         mkdir $precomp-dir unless $precomp-dir.e;
         self!sources-dir;
-        self!resources-dir;
-        self!dist-dir;
+        my $resources-dir = self!resources-dir;
+        my $dist-dir = self!dist-dir;
         self!bin-dir;
-        if ($version < 2) {
-            $.prefix.child('version').spurt('2');
+        if ($version < 1) {
             for $short-dir.dir -> $file {
                 my @ids = $file.lines.unique;
                 $file.unlink;
@@ -168,6 +168,18 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 }
             }
         }
+        if ($version < 2) {
+            for $dist-dir.dir -> $dist-file {
+                my %meta = Rakudo::Internals::JSON.from-json($dist-file.slurp);
+                my $files = %meta<files> //= [];
+                for eager $files.keys -> $file {
+                    $files{"resources/$file"} = $files{$file}:delete
+                        if $resources-dir.child($files{$file}).e;
+                }
+                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
+            }
+        }
+        $.prefix.child('version').spurt('2');
         $!version = 2;
     }
 
@@ -206,7 +218,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $lock.lock(2);
 
         my $version = self!repository-version;
-        self!upgrade-repository($version) unless $version == 2;
+        self.upgrade-repository unless $version == 2;
 
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
@@ -362,7 +374,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $lookup = $prefix.child('short').child(nqp::sha1($name));
         if $lookup.e {
             my $repo-version = self!repository-version;
-            my @dists = $repo-version < 2
+            my @dists = $repo-version < 1
                 ?? $lookup.lines.unique.map({
                         self!read-dist($_)
                     })
@@ -371,7 +383,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
                     });
             for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
-                $dist = self!read-dist($dist<id>) if $repo-version >= 2;
+                $dist = self!read-dist($dist<id>) if $repo-version >= 1;
                 with $dist<files>{$file} {
                     my $candi = %$dist;
                     $candi<files>{$file} = self!resources-dir.child($candi<files>{$file});
@@ -388,7 +400,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
                 my @dists = (
-                        $repo-version < 2
+                        $repo-version < 1
                         ?? $lookup.lines.unique.map({
                                 $_ => self!read-dist($_)
                             })
@@ -401,7 +413,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                         and $_.value<ver> ~~ $spec.version-matcher
                     });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return ($dist-id, $repo-version < 2 ?? $dist !! self!read-dist($dist-id));
+                    return ($dist-id, $repo-version < 1 ?? $dist !! self!read-dist($dist-id));
                 }
             }
         }
@@ -482,7 +494,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method resource($dist-id, $key) {
         my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
-        self!resources-dir.child($dist<files>{$key})
+        # need to strip the leading resources/ on old repositories
+        self!resources-dir.child($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }
 
     method id() {

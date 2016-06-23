@@ -52,16 +52,22 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     method is-ready(Seq:D:) { $!iter.DEFINITE }
 
     method iterator(Seq:D:) {
-        my \iter = $!iter;
-        X::Seq::Consumed.new.throw unless iter.DEFINITE;
-        $!iter := Iterator;
-        iter
+        nqp::if(
+          (my \iter = $!iter).DEFINITE,
+          nqp::stmts(
+            ($!iter := Iterator),
+            iter
+          ),
+          X::Seq::Consumed.new.throw
+        )
     }
 
     method is-lazy(Seq:D:) {
-        my \iter = $!iter;
-        X::Seq::Consumed.new.throw unless iter.DEFINITE;
-        iter.is-lazy
+        nqp::if(
+          $!iter.DEFINITE,
+          $!iter.is-lazy,
+          X::Seq::Consumed.new.throw
+        )
     }
 
     method eager {

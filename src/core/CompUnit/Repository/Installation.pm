@@ -344,6 +344,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     } ) }
 
     method uninstall(Distribution $distribution) {
+        my $repo-version = self!repository-version;
+        self.upgrade-repository unless $repo-version == 2;
+
         # xxx: currently needs to be passed in a distribution object that
         # has meta<files> pointing at content-ids, so you cannot yet just
         # pass in the original meta data and have it discovered and deleted
@@ -357,15 +360,28 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $dist-dir      = self.prefix.child('dist');
 
         self!remove-dist-from-short-name-lookup-files($dist);
-        for %files.grep({$_.key ~~ /^bin\//}) {
-            # actual bin scripts are in resources/, these are just the wrappers
-            $bin-dir.child($_.key).unlink;
-            $bin-dir.child($_.key ~ "-m").unlink;
-            $bin-dir.child($_.key ~ "-j").unlink;
+        my sub unlink-if-exists($path) { unlink($path) if $path.IO.e }
+
+        # delete special directory files
+        for %files.kv -> $name-path, $file {
+            given $name-path {
+                when /^bin\/(.*)/ {
+                    # wrappers are located in $bin-dir
+                    unlink-if-exists( $bin-dir.child("$0$_") ) for '', '-m', '-j';
+                    # original bin scripts are in $resources-dir
+                    unlink-if-exists( $resources-dir.child($file) )
+                }
+                when /^resources\// {
+                    unlink-if-exists( $resources-dir.child($file) )
+                }
+            }
         }
-        $sources-dir.child($_).unlink for %provides.map(*.values[0].values[0]<file>);
-        $resources-dir.child($_).unlink for %files.values.grep({ !$resources-dir.child($_).IO.e });
-        $dist-dir.child($dist.id).unlink;
+
+        # delete sources
+        unlink-if-exists( $sources-dir.child($_) ) for %provides.values.flatmap(*.values.map(*.<file>));
+
+        # delete the meta file
+        unlink( $dist-dir.child($dist.id) )
     }
 
     method files($file, :$name!, :$auth, :$ver) {

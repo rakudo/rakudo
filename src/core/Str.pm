@@ -102,24 +102,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
-    role ProcessStr does Iterator {
-        has str $!str;
-        has int $!chars;
-        method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!chars = nqp::chars($!str);
-            self
-        }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
-    }
-
     multi method comb(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = -1;
+                self
+            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
-                $!pos < $!chars
-                  ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
+                  nqp::p6box_s(nqp::substr($!str,$!pos,1)),
+                  IterationEnd
+                )
             }
         }.new(self));
     }
@@ -515,14 +515,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !moar
     method ords(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
-            method pull-one() {
-                $!pos < $!chars
-                  ?? nqp::p6box_i(nqp::ordat($!str, $!pos++))
-                  !! IterationEnd
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = -1;
+                self
             }
-        }.new(self));
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
+            method pull-one() {
+                nqp::if(
+                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
+                  nqp::p6box_i(nqp::ordat($!str,$!pos)),
+                  IterationEnd
+                )
+            }
+        }.new(self,-1));
     }
 #?endif
 
@@ -537,8 +548,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.lines[ 0 .. $limit.Int - 1 ]
     }
     multi method lines(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = 0;
+                self
+            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 my int $left;
                 return IterationEnd if ($left = $!chars - $!pos) <= 0;

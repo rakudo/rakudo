@@ -58,7 +58,6 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method interactive(*%adverbs) {
-        nqp::say("To exit type 'exit' or '^D'");
         my $p6repl;
 
         try {
@@ -80,8 +79,7 @@ class Perl6::Compiler is HLL::Compiler {
             nqp::setencoding($stdin, $encoding);
         }
 
-        my $result := $p6repl.repl-loop(:interactive(1), |%adverbs);
-        $result
+        $p6repl.repl-loop(:interactive(1), |%adverbs)
     }
 
     method interactive_exception($ex) {

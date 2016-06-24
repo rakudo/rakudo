@@ -339,9 +339,9 @@ do {
                 my $*MAIN_CTX;
 
                 my $output := self.repl-eval(
-                        $code,
-                        :outer_ctx($!save_ctx),
-                        |%adverbs);
+                    $code,
+                    :outer_ctx($!save_ctx),
+                    |%adverbs);
 
                 if self.input-incomplete($output) {
                     $prompt = '* ';

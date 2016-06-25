@@ -533,7 +533,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   IterationEnd
                 )
             }
-        }.new(self,-1));
+        }.new(self));
     }
 #?endif
 

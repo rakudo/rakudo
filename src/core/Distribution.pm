@@ -1,10 +1,19 @@
 # API to obtain the data of any addressable content
+role Distribution { ... }
+
 role Distribution {
     # `meta` provides an API to the meta data in META6 spec (s22)
     #   -   A Distribution may be represented internally by some other
     #       spec (such as using the file system itself for prereqs), as
     #       long as it can also be represented as the META6 hash format
-    method meta(--> Hash) { ... }
+    method meta(--> Hash) {
+        # Cannot just use ... here as that would break legacy code
+        my $class-name = ::?CLASS.^name;
+
+        die $class-name eq 'Distribution'
+            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
+            !! "Method 'meta' must be implemented by $class-name because it is required by role Distribution"
+    }
 
     # `content($content-id)` provides an API to the data itself
     #   -   Use `.meta` to determine the $address of a specific $content-id
@@ -13,10 +22,52 @@ role Distribution {
     #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
-    method content($content-id --> IO::Handle) { ... }
+    method content($content-id --> IO::Handle) {
+        # Cannot just use ... here as that would break legacy code
+        my $class-name = ::?CLASS.^name;
+
+        die $class-name eq 'Distribution'
+            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
+            !! "Method 'content' must be implemented by $class-name because it is required by role Distribution"
+    }
+
+    # Backwards compatibility shim
+    submethod new(*%_) {
+        ::?CLASS.^name eq 'Distribution'
+            ?? class :: {
+                has $.name;
+                has $.auth;
+                has $.author;
+                has $.authority;
+                has $.api;
+                has $.ver;
+                has $.version;
+                has $.description;
+                has @.depends;
+                has %.provides;
+                has %.files;
+                has $.source-url;
+                method auth { $!auth // $!author // $!authority }
+                method ver  { $!ver // $!version }
+                method meta(--> Hash) {
+                    {
+                        :$!name,
+                        :$.auth,
+                        :$.ver,
+                        :$!description,
+                        :@!depends,
+                        :%!provides,
+                        :%!files,
+                        :$!source-url,
+                    }
+                }
+                method content($content-id --> IO::Handle) { }
+            }.new(|%_)
+            !! self.bless(|%_)
+    }
 }
 
-role Distribution::Locally {
+role Distribution::Locally does Distribution {
     has IO::Path $.prefix;
     method content($address) {
         my $handle = IO::Handle.new: path => IO::Path.new($address, :CWD($!prefix // $*CWD));
@@ -51,14 +102,14 @@ class CompUnit::Repository::Distribution {
     }
 }
 
-class Distribution::Hash does Distribution does Distribution::Locally {
+class Distribution::Hash does Distribution::Locally {
     has $!meta;
     submethod BUILD(:$!meta, :$!prefix) { }
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
 }
 
-class Distribution::Path does Distribution does Distribution::Locally {
+class Distribution::Path does Distribution::Locally {
     has $!meta;
     submethod BUILD(:$!meta, :$!prefix) { }
     method new(IO::Path $prefix, IO::Path :$file is copy) {

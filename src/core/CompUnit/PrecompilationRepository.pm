@@ -243,7 +243,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;
             self.store.unlock;
-            return True;
+            return False;
         }
         $RMD("Precompiled $path into $bc") if $RMD;
         my str $dependencies = '';

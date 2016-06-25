@@ -738,7 +738,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # since most of data structures are built already, there is little
         # point in making this a lazy iterator here
-        $matches
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$matches)
     }
 
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
@@ -1026,7 +1026,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::push($result,nqp::substr($str,$pos))
           unless $skip && nqp::iseq_i($pos,nqp::chars($str));
 
-        $result
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$result)
     }
 
     # Note that in these same* methods, as used by s/LHS/RHS/, the

@@ -121,7 +121,6 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
-                method count-only() { nqp::p6box_i($!n - $!i) }
                 method sink-all()   { $!i = $!n; IterationEnd }
             }.new($!min + $!excludes-min, $!max - $!excludes-max)
         }
@@ -177,7 +176,6 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                            IterationEnd
                        }
-                       method count-only() { nqp::p6box_i($!n - $!i) }
                        method sink-all()   { $!i = $!n; IterationEnd }
                    }.new($min, $!excludes-max ?? $!max.pred !! $!max)
                 !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
@@ -227,24 +225,6 @@ my class Range is Cool does Iterable does Positional {
                     }
                     IterationEnd
                 }
-                method count-only {
-                    my Mu $i = $!i;
-                    my Mu $e = $!e;
-                    my int $found;
-                    if $!exclude {
-                        while $i before $e {
-                            $found = $found + 1;
-                            $i     = $i.succ;
-                        }
-                    }
-                    else {
-                        while not $i after $e {
-                            $found = $found + 1;
-                            $i     = $i.succ;
-                        }
-                    }
-                    nqp::p6box_i($found)
-                }
                 method sink-all {
                     $!i = $!e;
                     IterationEnd
@@ -277,7 +257,6 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
-                method count-only() { nqp::p6box_i($!i - $!n) }
                 method sink-all()   { $!i = $!n; IterationEnd }
             }.new($!max - $!excludes-max, $!min + $!excludes-min)
         }
@@ -333,7 +312,6 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                            IterationEnd
                        }
-                       method count-only() { nqp::p6box_i($!i - $!n) }
                        method sink-all()   { $!i = $!n; IterationEnd }
                    }.new($max, $!excludes-min ?? $!min.succ !! $!min)
                 !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
@@ -382,24 +360,6 @@ my class Range is Cool does Iterable does Positional {
                         }
                     }
                     IterationEnd
-                }
-                method count-only {
-                    my Mu $i = $!i;
-                    my Mu $e = $!e;
-                    my int $found;
-                    if $!exclude {
-                        while $i after $e {
-                            $found = $found + 1;
-                            $i     = $i.pred;
-                        }
-                    }
-                    else {
-                        while not $i before $e {
-                            $found = $found + 1;
-                            $i     = $i.pred;
-                        }
-                    }
-                    nqp::p6box_i($found)
                 }
                 method sink-all {
                     $!i = $!e;

@@ -377,11 +377,11 @@ do {
             $*CTXSAVE := 0;
         }
 
-        method input-incomplete($value) {
+        method input-incomplete(Mu $value) {
             $value.WHERE == $more-code-sentinel.WHERE
         }
 
-        method repl-print($value) {
+        method repl-print(Mu $value) {
             say $value;
         }
 

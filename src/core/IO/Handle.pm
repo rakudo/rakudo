@@ -193,20 +193,6 @@ my class IO::Handle does IO {
                 $!handle.close if $!close;
                 IterationEnd
             }
-            method count-only() {
-                my int $found = 0;
-                my str $str = $!handle.readchars($!size);
-                nqp::while(
-                  nqp::iseq_i(nqp::chars($str),$!size),
-                  nqp::stmts(
-                    ($found = nqp::add_i($found,1)),
-                    ($str = $!handle.readchars($!size)),
-                  )
-                );
-                ++$found if nqp::chars($str);
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
-            }
         }.new(self, $size, +$close));
     }
     multi method comb(IO::Handle:D: $comber, :$close = False) {
@@ -305,16 +291,6 @@ my class IO::Handle does IO {
                 $!handle.close if $!close;
                 IterationEnd
             }
-            method count-only() {
-                my int $found;
-                while $!elems {
-                    $found  = $found + $!elems;
-                    $!elems = 0;
-                    self!next-chunk until $!elems || $!done;
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
-            }
         }.new(self, $comber, +$close));
     }
 
@@ -375,15 +351,6 @@ my class IO::Handle does IO {
                 $target.push('') if $!last;
                 $!handle.close if $!close;
                 IterationEnd
-            }
-            method count-only() {
-                my int $found = $!first + $!last;
-                while $!chars {
-                    $found = $found + $!chars;
-                    self!next-chunk();
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, +$close, $COMB));
     }
@@ -483,16 +450,6 @@ my class IO::Handle does IO {
                 $!handle.close if $!close;
                 IterationEnd
             }
-            method count-only() {
-                my int $found = 1;
-                while $!elems {
-                    $found = $found + $!elems;
-                    $!elems = 0;
-                    self!next-chunk until $!elems || $!done;
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
-            }
         }.new(self, $splitter, +$close));
     }
 
@@ -586,29 +543,6 @@ my class IO::Handle does IO {
                 $!handle.close if $close;
                 IterationEnd
             }
-            method count-only() {
-                my int $found;
-                my int $chars;
-                my int $left;
-                my int $nextpos;
-
-                while ($chars = nqp::chars($!str)) && $!searching {
-                    while ($left = $chars - $!pos) > 0 {
-                        $nextpos = nqp::findcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
-                        last unless $left = $chars - $nextpos; # broken word
-
-                        $found = $found + 1;
-
-                        $!pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
-                    }
-                    self!next-chunk;
-                }
-                $found = $found + 1 if $!pos < $chars;
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
-            }
         }.new(self, $close));
     }
 
@@ -642,13 +576,6 @@ my class IO::Handle does IO {
                 $target.push($line) while ($line := $!handle.get).DEFINITE;
                 $!handle.close if $close;
                 IterationEnd
-            }
-            method count-only() {
-                my $line;
-                my int $seen;
-                $seen = $seen + 1 while ($line := $!handle.get).DEFINITE;
-                $!handle.close if $!close;
-                $seen
             }
         }.new(self, $close));
     }

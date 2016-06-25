@@ -266,28 +266,9 @@ m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/dist
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/sources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/resources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/bin
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/short
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/precomp
-	echo 1 >  $(DESTDIR)$(PERL6_LANG_DIR)/version
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/dist
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/sources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/resources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/bin
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/short
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/precomp
-	echo 1 >  $(DESTDIR)$(PERL6_LANG_DIR)/vendor/version
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor/dist
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/dist
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/sources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/resources
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/bin
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/short
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site/precomp
-	echo 1 >  $(DESTDIR)$(PERL6_LANG_DIR)/site/version
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/vendor
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/site
 	.@slash@$(M_RUNNER) tools/build/install-core-dist.pl $(DESTDIR)$(PERL6_LANG_DIR)
 	$(PERL5) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(PERL5) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"

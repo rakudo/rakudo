@@ -95,8 +95,8 @@ my class IO::ArgFiles is IO::Handle {
     }
     method slurp(IO::ArgFiles:D:) {
         my @chunks;
-        if $!io && $!io.opened {
-            @chunks.push: nqp::p6box_s($!io.readall);
+        if $!io.defined && $!io.opened {
+            @chunks.push: nqp::p6box_s($!io.slurp-rest);
             $!io.close;
         }
         while $!args {

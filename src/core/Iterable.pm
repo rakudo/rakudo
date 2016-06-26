@@ -21,9 +21,7 @@ my role Iterable {
             has Iterator $!nested;
 
             method new(\source) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!source', source);
-                iter
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
             }
 
             my constant NO_RESULT_YET = nqp::create(Mu);
@@ -82,9 +80,9 @@ my role Iterable {
             has $!iterator;
 
             method new(\iterable) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!iterable', iterable);
-                iter
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!iterable',iterable
+                )
             }
 
             method pull-one() is raw {

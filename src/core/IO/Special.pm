@@ -2,9 +2,7 @@ class IO::Special {
     has Str $.what;
 
     method new(\what) {
-        my $io := nqp::create(self);
-        nqp::bindattr($io,self,'$!what',what);
-        $io
+        nqp::p6bindattrinvres(nqp::create(self),self,'$!what',what)
     }
     method WHICH(IO::Special:D:) { "IO::Special$!what" }
     method Str(IO::Special:D:)   { $!what }

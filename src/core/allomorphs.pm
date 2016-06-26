@@ -144,13 +144,13 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     my &parse_win := -> \newval {
         $val-or-fail
           ?? return newval
-          !! newval.isa(Num)
+          !! nqp::istype(newval, Num)
             ?? return NumStr.new(newval, $MAYBEVAL)
-            !! newval.isa(Rat)
+            !! nqp::istype(newval, Rat)
               ?? return RatStr.new(newval, $MAYBEVAL)
-              !! newval.isa(Complex)
+              !! nqp::istype(newval, Complex)
                 ?? return ComplexStr.new(newval, $MAYBEVAL)
-                !! newval.isa(Int)
+                !! nqp::istype(newval, Int)
                   ?? return IntStr.new(newval, $MAYBEVAL)
                   !! die "Unknown type {newval.^name} found in val() processing"
     }
@@ -181,7 +181,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
             my Int $int := 0;
             if nqp::isne_i($ch, 46) {  # '.'
                 parse_fail "Cannot convert radix of $radix (max 36)"
-                    if $radix > 36;
+                    if nqp::isgt_i($radix, 36);
                 $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
                 $p      = nqp::atpos($parse, 2);
                 parse_fail "base-$radix number must begin with valid digits or '.'"
@@ -189,12 +189,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 $pos    = $p;
 
                 $int   := nqp::atpos($parse, 0);
-                if nqp::isge_i($pos, $eos) {
-                    return $int;
-                }
-                else {
-                    $ch = nqp::ord($str, $pos);
-                }
+                nqp::isge_i($pos, $eos)
+                  ??  return $int
+                  !!  ($ch = nqp::ord($str, $pos));
             }
 
             # Fraction, if any
@@ -226,9 +223,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
-                my num $exp  = nqp::atpos($parse, 0).Num;
-                my num $coef = $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num;
-                return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10e0, $exp)));
+                return nqp::p6box_n(nqp::mul_n(
+                  $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num,
+                  nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)));
             }
 
             # Multiplier with exponent, if single '*' is present
@@ -240,7 +237,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 my $mult_base := parse-simple-number();
 
                 parse_fail "'*' multiplier base must be an integer"
-                    unless $mult_base.WHAT === Int;
+                    unless nqp::istype($mult_base, Int);
                 parse_fail "'*' multiplier base must be followed by '**' and exponent"
                     unless nqp::eqat($str,'**',$pos);
 
@@ -248,19 +245,15 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 my $mult_exp  := parse-simple-number();
 
                 parse_fail "'**' multiplier exponent must be an integer"
-                    unless $mult_exp.WHAT === Int;
+                    unless nqp::istype($mult_exp, Int);
 
                 my $mult := $mult_base ** $mult_exp;
                 $int     := $int  * $mult;
                 $frac    := $frac * $mult;
             }
 
-            # Return an Int if there was no radix point
-            return $int unless $base;
-
-            # Otherwise, return a Rat
-            my Int $numerator := $int * $base + $frac;
-            Rat.new($numerator, $base);
+            # Return an Int if there was no radix point, otherwise, return a Rat
+            nqp::unless($base, $int, Rat.new($int * $base + $frac, $base));
         }
 
         # Look for radix specifiers
@@ -275,7 +268,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
             $radix  = nqp::atpos($parse, 0);
             $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-            if    nqp::iseq_i($ch, 60) {  # '<'
+            if nqp::iseq_i($ch, 60) {  # '<'
                 $pos = nqp::add_i($pos, 1);
 
                 my $result := parse-int-frac-exp();
@@ -313,7 +306,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
                     $digit := nqp::atpos($parse, 0);
                     parse_fail "digit is larger than {$radix - 1} in ':$radix[]' style radix number"
-                        if $digit >= $radix;
+                        if nqp::isge_i($digit, $radix);
 
                     $result := $result * $radix + $digit;
                     $pos     = nqp::add_i($pos, 1)
@@ -388,7 +381,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     # the magnitude of a pure imaginary number
     if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
         parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
-            if $result == Inf || $result == NaN;
+            if nqp::isnanorinf($result.Num);
         $pos = nqp::add_i($pos, 1);
         $result := Complex.new(0, $result);
     }
@@ -407,7 +400,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
         if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
             parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
-                if $im == Inf || $im == NaN;
+                if nqp::isnanorinf($im.Num);
             $pos = nqp::add_i($pos, 1);
         }
         elsif nqp::eqat($str,'\\i',$pos) {

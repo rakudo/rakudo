@@ -393,14 +393,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samecase,
               $samemark,
             );
-            if $global {
-                my \result := nqp::create(List);
-                nqp::bindattr(result, List, '$!reified', nqp::getattr(@matches, List, '$!reified'));
-                result
-            }
-            else {
-                @matches[0]
-            }
+            nqp::if(
+              $global,
+              nqp::p6bindattrinvres(
+                nqp::create(List),
+                List,
+                '$!reified',
+                nqp::getattr(@matches,List,'$!reified')
+              ),
+              @matches[0]
+            )
         }
     }
 

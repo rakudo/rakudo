@@ -109,8 +109,11 @@ my class Attribute { # declared in BOOTSTRAP
               nqp::iseq_i($t,2),
               nqp::p6box_n(nqp::getattr_n(nqp::decont($obj),
                 $!package,$!name)),
-              nqp::p6box_s(nqp::getattr_s(nqp::decont($obj),
-                $!package,$!name))  # 3
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::getattr_s(nqp::decont($obj),
+                  $!package,$!name))
+              )
             )
           )
         )
@@ -128,8 +131,11 @@ my class Attribute { # declared in BOOTSTRAP
               nqp::iseq_i($t,2),
               nqp::p6box_n(nqp::bindattr_n(nqp::decont($obj),
                 $!package,$!name,value)),
-              nqp::p6box_s(nqp::bindattr_s(nqp::decont($obj),
-                $!package,$!name,value))  # 3
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::bindattr_s(nqp::decont($obj),
+                  $!package,$!name,value))
+              )
             )
           )
         )

@@ -39,9 +39,9 @@ my class HyperWorkBuffer {
             has int $!i;
 
             method new(\buffer) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!buffer', buffer);
-                iter
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!buffer',buffer
+                )
             }
 
             method pull-one() {

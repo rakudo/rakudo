@@ -29,14 +29,11 @@ my class MixHash does Mixy {
 
 #--- coercion methods
     method Mix(:$view) {
-        if $view {
-            my \mix = nqp::create(Mix);
-            nqp::bindattr(mix,Mix,'%!elems',%!elems);
-            mix
-        }
-        else {
-            Mix.new-from-pairs(%!elems.values)
-        }
+        nqp::if(
+          $view,
+          nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems),
+          Mix.new-from-pairs(%!elems.values)
+        )
     }
     method MixHash { self }
     method Bag     { Bag.new-from-pairs(%!elems.values) }

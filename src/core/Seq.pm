@@ -40,9 +40,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     # The only valid way to create a Seq directly is by giving it the
     # iterator it will consume and maybe memoize.
     method new(Iterator:D $iter) {
-        my $seq := nqp::create(self);
-        nqp::bindattr($seq, Seq, '$!iter', nqp::decont($iter));
-        $seq
+        nqp::p6bindattrinvres(nqp::create(self),Seq,'$!iter',nqp::decont($iter))
     }
 
     method new-consumed() {

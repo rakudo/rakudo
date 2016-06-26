@@ -3,15 +3,15 @@ class CompUnit::Handle {
     has Mu $!unit;
 
     submethod new(Mu \module_ctx) {
-        my $self := nqp::create(self);
-        nqp::bindattr($self, CompUnit::Handle, '$!module_ctx', module_ctx);
-        $self
+        nqp::p6bindattrinvres(
+          nqp::create(self),CompUnit::Handle,'$!module_ctx', module_ctx
+        )
     }
 
     submethod from-unit(Stash $unit) {
-        my $self := nqp::create(self);
-        nqp::bindattr($self, CompUnit::Handle, '$!unit', nqp::decont($unit));
-        $self
+        nqp::p6bindattrinvres(
+          nqp::create(self),CompUnit::Handle,'$!unit',nqp::decont($unit)
+        )
     }
 
     # If the compilation unit has a callable EXPORT subroutine, it will

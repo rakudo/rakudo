@@ -29,14 +29,11 @@ my class BagHash does Baggy {
 
 #--- introspection methods
     method Bag(:$view) {
-        if $view {
-            my \bag = nqp::create(Bag);
-            nqp::bindattr(bag,Bag,'%!elems',%!elems);
-            bag
-        }
-        else {
-           Bag.new-from-pairs(%!elems.values)
-        }
+        nqp::if(
+          $view,
+          nqp::p6bindattrinvres(nqp::create(Bag),Bag,'%!elems',%!elems),
+          Bag.new-from-pairs(%!elems.values)
+        )
     }
     method BagHash { self }
     method Mix     { Mix.new-from-pairs(%!elems.values) }

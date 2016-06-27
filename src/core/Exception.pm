@@ -1619,7 +1619,7 @@ my class X::Attribute::Required does X::MOP {
     has $.name;
     has $.why;
     method message() {
-        $.why
+        $.why && nqp::istype($.why,Str)
           ?? "The attribute '$.name' is required because $.why,\nbut you did not provide a value for it."
           !! "The attribute '$.name' is required, but you did not provide a value for it."
     }

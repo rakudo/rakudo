@@ -2,6 +2,7 @@ my class Hash { # declared in BOOTSTRAP
     # my class Hash is Map {
     #     has Mu $!descriptor;
 
+    multi method WHICH(Hash:D:) { self.Mu::WHICH }
     multi method Hash(Hash:) {
         self
     }

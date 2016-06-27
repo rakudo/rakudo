@@ -681,21 +681,12 @@ Test - Rakudo Testing Library
 
 =head1 DESCRIPTION
 
-=head1 FUNCTIONS
+Please check the section Language/testing of the doc repository.
+If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
-=head2 throws-like($code, Mu $expected_type, *%matchers)
+You can also check the documentation about testing in Perl 6 online on:
 
-If C<$code> is C<Callable>, calls it, otherwise C<EVAL>s it,
-and expects it thrown an exception.
-
-If an exception is thrown, it is compared to C<$expected_type>.
-
-Then for each key in C<%matchers>, a method of that name is called
-on the resulting exception, and its return value smart-matched against
-the value.
-
-Each step is counted as a separate test; if one of the first two fails,
-the rest of the tests are skipped.
+  https://doc.perl6.org/language/testing
 
 =end pod
 

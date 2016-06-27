@@ -24,10 +24,6 @@ my class Rakudo::Internals {
             self
         }
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
-        method count-only() {
-            $!iter := Mu;
-            nqp::p6box_i(nqp::elems($!storage))
-        }
         method sink-all() {
             $!iter := Mu;
             IterationEnd

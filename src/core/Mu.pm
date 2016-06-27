@@ -664,30 +664,30 @@ my class Mu { # declared in BOOTSTRAP
         self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
-    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is raw {
-        my $meth := $type.^find_private_method($name);
+    method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
+        my $meth := type.^find_private_method(name);
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => '!' ~ $name,
-              typename => $type.^name,
+              method   => '!' ~ name,
+              typename => type.^name,
               :private,
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: $name, |c) is raw {
-        self.HOW."$name"(SELF, |c)
+    method dispatch:<.^>(Mu \SELF: \name, |c) is raw {
+        self.HOW."{name}"(SELF, |c)
     }
 
-    method dispatch:<.=>(\mutate: $name, |c) is raw {
+    method dispatch:<.=>(\mutate: \name, |c) is raw {
         $/ := nqp::getlexcaller('$/');
-        mutate = mutate."$name"(|c)
+        mutate = mutate."{name}"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: $name, |c) is raw {
-        nqp::can(SELF, $name) ??
-            SELF."$name"(|c) !!
+    method dispatch:<.?>(Mu \SELF: \name, |c) is raw {
+        nqp::can(SELF, name) ??
+            SELF."{name}"(|c) !!
             Nil
     }
 
@@ -703,15 +703,15 @@ my class Mu { # declared in BOOTSTRAP
         @result
     }
 
-    method dispatch:<.*>(Mu \SELF: $name, |c) {
+    method dispatch:<.*>(Mu \SELF: \name, |c) {
         my @mro = SELF.^mro;
         my int $mro_count = @mro.elems;
         my $results := nqp::list;
         my int $i = -1;
         while nqp::islt_i(++$i,$mro_count) {
             my $obj = @mro[$i];
-            my $meth = ($obj.^method_table){$name};
-            $meth = ($obj.^submethod_table){$name} if !$meth && $i == 0;
+            my $meth = ($obj.^method_table){name};
+            $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
         my $list := nqp::create(List);
@@ -719,15 +719,15 @@ my class Mu { # declared in BOOTSTRAP
         $list
     }
 
-    method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        my $listcan = List.can($name);
+    method dispatch:<hyper>(Mu \SELF: \name, |c) {
+        my $listcan = List.can(name);
         $listcan && $listcan[0].?nodal
           ?? c
-            ?? HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF )
-            !! HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
+            ?? HYPER( sub (\obj) is nodal { obj."{name}"(|c) }, SELF )
+            !! HYPER( sub (\obj) is nodal { obj."{name}"() }, SELF )
           !! c
-            ?? HYPER( -> \obj { obj."$name"(|c) }, SELF )
-            !! HYPER( -> \obj { obj."$name"() }, SELF )
+            ?? HYPER( -> \obj { obj."{name}"(|c) }, SELF )
+            !! HYPER( -> \obj { obj."{name}"() }, SELF )
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

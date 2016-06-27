@@ -17,6 +17,10 @@ my class StrDistance is Cool {
         self.Int
     }
 
+    method Str {
+        $.after
+    }
+
     multi method Int(StrDistance:D:) {
         $!distance //= do {
             my @s = *, |$.before.comb;

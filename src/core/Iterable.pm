@@ -68,26 +68,6 @@ my role Iterable {
                 );
                 IterationEnd
             }
-            method count-only() {
-                my int $found;
-                my $got;
-                my $nested;
-                nqp::until(
-                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
-                  nqp::if(
-                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
-                    nqp::stmts(
-                      ($nested := $got.flat.iterator),
-                      nqp::until(
-                        nqp::eqaddr($nested.pull-one,IterationEnd),
-                        ($found = nqp::add_i($found,1))
-                      )
-                    ),
-                    ($found = nqp::add_i($found,1))
-                  )
-                );
-                nqp::p6box_i($found)
-            }
         }.new(self.iterator))
     }
 

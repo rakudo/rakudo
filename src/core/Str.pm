@@ -102,26 +102,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
-    role ProcessStr does Iterator {
-        has str $!str;
-        has int $!chars;
-        method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!chars = nqp::chars($!str);
-            self
-        }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
-    }
-
     multi method comb(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
-            method pull-one() {
-                $!pos < $!chars
-                  ?? nqp::p6box_s(nqp::substr($!str, $!pos++, 1))
-                  !! IterationEnd
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = -1;
+                self
             }
-            method count-only() { nqp::p6box_i($!pos = $!chars) }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
+            method pull-one() {
+                nqp::if(
+                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
+                  nqp::p6box_s(nqp::substr($!str,$!pos,1)),
+                  IterationEnd
+                )
+            }
         }.new(self));
     }
     multi method comb(Str:D: Int:D $size, $limit = *) {
@@ -160,7 +159,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!pos = $!chars;
                 IterationEnd
             }
-            method count-only() { $!pos = $!chars; $!max }
         }.new(self,$size,$limit,$inf))
     }
     multi method comb(Str:D: Str $pat) {
@@ -183,15 +181,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $!pos = $found + 1;
                     nqp::p6box_s($!pat)
                 }
-            }
-            method count-only() {
-                my int $seen;
-                my int $found;
-                until ($found = nqp::index($!str, $!pat, $!pos)) < 0 {
-                    $seen = $seen + 1;
-                    $!pos = $found + 1;
-                }
-                nqp::p6box_i($seen)
             }
         }.new(self, $pat));
     }
@@ -223,17 +212,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $!todo = $!todo - 1;
                     nqp::p6box_s($!pat)
                 }
-            }
-            method count-only() {
-                my int $seen;
-                my int $found;
-                until ($found = nqp::index($!str, $!pat, $!pos)) < 0
-                  || $!todo == 0 {
-                    $seen  = $seen + 1;
-                    $!pos  = $found + 1;
-                    $!todo = $!todo - 1;
-                }
-                nqp::p6box_i($seen)
             }
         }.new(self, $pat, $limit));
     }
@@ -537,12 +515,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !moar
     method ords(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = -1;
+                self
+            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
-                $!pos < $!chars
-                  ?? nqp::p6box_i(nqp::ordat($!str, $!pos++))
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
+                  nqp::p6box_i(nqp::ordat($!str,$!pos)),
+                  IterationEnd
+                )
             }
         }.new(self));
     }
@@ -559,8 +548,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.lines[ 0 .. $limit.Int - 1 ]
     }
     multi method lines(Str:D:) {
-        Seq.new(class :: does ProcessStr {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
             has int $!pos;
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = 0;
+                self
+            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 my int $left;
                 return IterationEnd if ($left = $!chars - $!pos) <= 0;
@@ -584,39 +582,36 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
                 IterationEnd
             }
-            method count-only() {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-                    $found = $found   + 1;
-                    $!pos  = $nextpos + 1;
-                }
-                nqp::p6box_i($found)
-            }
         }.new(self));
     }
 
-    method !split-sanity(\v,\k,\kv,\p) {
+    method !ensure-split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
         my int $any = ?v + ?k + ?kv + ?p;
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
           nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).map(*.key),
-        ).throw if $any > 1;
-
+        ).throw if nqp::isgt_i($any,1);
         $any
     }
 
-    multi method split(Str:D: Regex:D $pat, $parts = *;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+    method !ensure-limit-sanity(\limit --> Nil) {
+        X::TypeCheck.new(
+          operation => 'split ($limit argument)',
+          expected  => 'any Real type (non-NaN) or Whatever',
+          got       => limit.perl,
+        ).throw if limit === NaN;
 
-        my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        limit = Inf if nqp::istype(limit,Whatever);
+    }
+
+    multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
+
+        self!ensure-limit-sanity($limit);
         return ().list if $limit <= 0;
 
         my \matches = $limit == Inf
@@ -688,7 +683,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method split(Str:D: Str(Cool) $match;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # nothing to work with
         my str $needle = nqp::unbox_s($match);
@@ -746,12 +741,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $matches
     }
 
-    multi method split(Str:D: Str(Cool) $match, $parts;;
+    multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
-        # don't do it here
-        my $limit = nqp::istype($parts,Whatever) ?? Inf !! $parts;
+        self!ensure-limit-sanity($limit);
         return ().list if $limit <= 0;
 
         # nothing to work with
@@ -774,7 +768,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         elsif $chars {
 
             # let the multi-needle handler handle all nameds
-            return self.split(($match,),$parts,:$v,:$k,:$kv,:$p,:$skip-empty)
+            return self.split(($match,),$limit,:$v,:$k,:$kv,:$p,:$skip-empty)
               if $any || $skip-empty;
 
             # make the sequence
@@ -903,20 +897,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $target.push("") if $!last;
                     IterationEnd
                 }
-                method count-only() {
-                    nqp::p6box_i($!todo + $!first + $!last)
-                }
                 method sink-all() { IterationEnd }
             }.new(self,$limit,$skip-empty));
         }
     }
-    multi method split(Str:D: @needles, $parts = *;;
+    multi method split(Str:D: @needles, $parts is copy = Inf;;
        :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        my int $any = self!split-sanity($v,$k,$kv,$p);
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # must all be Cool, otherwise we'll just use a regex
-        return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty)
+        return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty) # / hl
           if Rakudo::Internals.NOT_ALL_TYPE(@needles,Cool);
+
+        self!ensure-limit-sanity($parts);
+        return ().list if $parts <= 0;
 
         my int $limit = $parts.Int
           unless nqp::istype($parts,Whatever) || $parts == Inf;
@@ -958,7 +952,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
 
         # no needle tried, assume we want chars
-        return self.split("",$parts) if nqp::not_i($tried);
+        return self.split("",$limit) if nqp::not_i($tried);
 
         # sort by position if more than one needle fired
         nqp::p6sort($sorted, -> int $a, int $b {
@@ -1226,21 +1220,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       $!str, $nextpos, $!chars - $nextpos);
                 }
                 IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-
-                    $found = $found + 1;
-                    $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                      $!str, $nextpos, $!chars - $nextpos);
-                }
-                nqp::p6box_i($found)
             }
         }.new(self));
     }

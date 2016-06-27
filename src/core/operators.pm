@@ -694,6 +694,8 @@ sub permutations(Int() $n) {
                 (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
                 @!a.List;
             }
+            method count-only { [*] 1 .. $!n }
+            method bool-only(--> True) { }
         }.new(:$n)
     );
 }

@@ -19,11 +19,18 @@ my class Rakudo::Internals {
 
         method !SET-SELF(\hash) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!storage := no-keys unless $!storage.DEFINITE;
-            $!iter    := nqp::iterator($!storage);
-            self
+            nqp::if(
+              ($!storage.DEFINITE && nqp::elems($!storage)),
+              nqp::stmts(
+                ($!iter := nqp::iterator($!storage)),
+                self
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
         }
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
+        method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
+        method bool-only(--> True) { }
         method sink-all() {
             $!iter := Mu;
             IterationEnd
@@ -51,7 +58,6 @@ my class Rakudo::Internals {
             IterationEnd
         }
         method count-only() {
-            $!i = $!elems;
             nqp::p6box_i($!elems)
         }
         method sink-all() {
@@ -145,10 +151,11 @@ my class Rakudo::Internals {
     method EmptyIterator() {
         once class :: does Iterator {
             method new() { nqp::create(self) }
-            method pull-one()  { IterationEnd }
-            method push-all($) { IterationEnd }
-            method sink-all()  { IterationEnd }
-            method count-only() { 0 }
+            method pull-one(--> IterationEnd)  { }
+            method push-all($ --> IterationEnd) { }
+            method sink-all(--> IterationEnd)  { }
+            method count-only(--> 0) { }
+            method bool-only(--> False) { }
         }.new
     }
 

@@ -109,9 +109,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!pos;
             method !SET-SELF(\string) {
                 $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                $!pos   = -1;
-                self
+                nqp::if(
+                  nqp::isgt_i(($!chars = nqp::chars($!str)),0),
+                  nqp::stmts(
+                    ($!pos = -1),
+                    self
+                  ),
+                  Rakudo::Internals.EmptyIterator
+                )
             }
             method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
@@ -121,6 +126,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   IterationEnd
                 )
             }
+            method count-only() { nqp::p6box_i($!chars) }
+            method bool-only(--> True) { }
         }.new(self));
     }
     multi method comb(Str:D: Int:D $size, $limit = *) {
@@ -136,12 +143,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!todo;
             method !SET-SELF(\string,\size,\limit,\inf) {
                 $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                $!size  = 1 max size;
-                $!pos   = -size;
-                $!max   = 1 + floor( ( $!chars - 1 ) / $!size );
-                $!todo  = (inf ?? $!max !! (0 max limit)) + 1;
-                self
+                nqp::if(
+                  nqp::isgt_i(($!chars = nqp::chars($!str)),0),
+                  nqp::stmts(
+                    ($!size  = 1 max size),
+                    ($!pos   = -size),
+                    ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
+                    ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
+                    self
+                  ),
+                  Rakudo::Internals.EmptyIterator
+                )
             }
             method new(\s,\z,\l,\i) { nqp::create(self)!SET-SELF(s,z,l,i) }
             method pull-one() {
@@ -159,6 +171,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!pos = $!chars;
                 IterationEnd
             }
+            method count-only() { $!max }
+            method bool-only(--> True) { }
         }.new(self,$size,$limit,$inf))
     }
     multi method comb(Str:D: Str $pat) {
@@ -899,6 +913,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $target.push("") if $!last;
                     IterationEnd
                 }
+                method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
+                method bool-only() { nqp::p6bool($!todo + $!first + $!last) }
                 method sink-all() { IterationEnd }
             }.new(self,$limit,$skip-empty));
         }

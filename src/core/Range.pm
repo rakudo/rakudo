@@ -121,6 +121,8 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
+                method count-only() { nqp::p6box_i($!n - $!i) }
+                method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
                 method sink-all()   { $!i = $!n; IterationEnd }
             }.new($!min + $!excludes-min, $!max - $!excludes-max)
         }
@@ -176,6 +178,8 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                            IterationEnd
                        }
+                       method count-only() { nqp::p6box_i($!n - $!i) }
+                       method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
                        method sink-all()   { $!i = $!n; IterationEnd }
                    }.new($min, $!excludes-max ?? $!max.pred !! $!max)
                 !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
@@ -257,6 +261,8 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                     IterationEnd
                 }
+                method count-only() { nqp::p6box_i($!i - $!n) }
+                method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
                 method sink-all()   { $!i = $!n; IterationEnd }
             }.new($!max - $!excludes-max, $!min + $!excludes-min)
         }
@@ -312,6 +318,8 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                            IterationEnd
                        }
+                       method count-only() { nqp::p6box_i($!i - $!n) }
+                       method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
                        method sink-all()   { $!i = $!n; IterationEnd }
                    }.new($max, $!excludes-min ?? $!min.succ !! $!min)
                 !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator

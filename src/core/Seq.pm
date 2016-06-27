@@ -85,21 +85,47 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     method elems() {
-        self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => '.elems'))
-          !! self.cache.elems
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => '.elems')),
+          nqp::if(
+            ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+            $!iter.count-only,
+            self.cache.elems
+          )
+        )
     }
 
     method Numeric() {
-        self.cache.Numeric
+        nqp::if(
+          ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+          $!iter.count-only,
+          self.cache.Numeric
+        )
     }
 
     method Int() {
-        self.cache.Int
+        nqp::if(
+          ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+          $!iter.count-only,
+          self.cache.Int
+        )
     }
 
     method Bool(Seq:D:) {
-        self.cache.Bool
+        nqp::if(
+          $!iter.DEFINITE,
+          nqp::if(
+            nqp::can($!iter,'bool-only'),
+            $!iter.bool-only,
+            nqp::if(
+              nqp::can($!iter,'count-only'),
+              ?$!iter.count-only,
+              self.cache.Bool
+            )
+          ),
+          self.cache.Bool
+        )
     }
 
     multi method Str(Seq:D:) {

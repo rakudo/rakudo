@@ -57,6 +57,8 @@ my sub combinations(Int() $n, Int() $k) {
             }
             IterationEnd
         }
+        method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
+        method bool-only(--> True) { }
     }.new($n, $k))
 }
 

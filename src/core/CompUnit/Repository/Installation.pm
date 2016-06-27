@@ -186,7 +186,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     proto method install(|) {*}
     multi method install($dist, %sources, %scripts?, %resources?, :$force) {
         # XXX: Deprecation shim
-        my %files = |%scripts, |%resources;
+        my %files;
+        %files{"bin/$_.key()"} = $_.value for %scripts.pairs;
+        %files{"resources/$_.key()"} = $_.value for %resources.pairs;
         my %meta6 = %(
             name     => $dist.?name,
             ver      => $dist.?ver // $dist.?version,
@@ -195,15 +197,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             files    => %files,
         );
 
-        my $new-dist = class {
-            also does Distribution;
-            method meta { %meta6 }
-            method content($address is copy) {
-                my $handle = IO::Handle.new: path => IO::Path.new($address.IO.absolute);
-                $handle // $handle.throw;
-            }
-        }
-        samewith($new-dist, :$force);
+        return samewith(Distribution::Hash.new(%meta6, :prefix($*CWD)), :$force);
     }
     multi method install(Distribution $distribution, Bool :$force) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);

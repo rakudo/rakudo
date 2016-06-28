@@ -251,9 +251,9 @@ class Perl6::Pod {
     our sub process_rows(@rows) {
         # remove trailing blank lines
         @rows.pop while @rows && @rows[+@rows - 1] ~~ /^ \s* $/;
-        # find the longest leading whitespace and strip it
+        # find the shortest leading whitespace and strip it
         # from every row, also remove trailing \n
-        my $w := -1; # the longest leading whitespace
+        my $w := -1; # the shortest leading whitespace
         for @rows -> $row {
             next if $row ~~ /^\s*$/;
             my $match := $row ~~ /^\s+/;

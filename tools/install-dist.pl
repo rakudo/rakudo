@@ -62,16 +62,13 @@ multi sub MAIN($from is copy = '.', :$to!, :$for!) {
         :next-repo(CompUnit::RepositoryRegistry.repository-for-name($for)),
         :name($for),
     ).install(
-        Distribution.new(|$dist-dir.meta),
-        $dist-dir.sources,
-        $dist-dir.scripts,
-        $dist-dir.resources,
+        Distribution::Hash.new($dist-dir.meta, :prefix($from)),
     );
 
     $_.unlink for <version repo.lock precomp/.lock>.map: {"$to/$_".IO};
 }
 
-multi sub MAIN($from is copy = '.', :$to = 'site') {
+multi sub MAIN($from is copy = '.', :$to = 'site', Bool :$force) {
     $from = $from.IO;
     my $dist-dir = Distribution::Directory.new(path => $from);
 
@@ -79,10 +76,8 @@ multi sub MAIN($from is copy = '.', :$to = 'site') {
         ?? CompUnit::RepositoryRegistry.repository-for-name($to)
         !! CompUnit::RepositoryRegistry.repository-for-spec($to);
     $repo.install(
-        Distribution.new(|$dist-dir.meta),
-        $dist-dir.sources,
-        $dist-dir.scripts,
-        $dist-dir.resources,
+        Distribution::Hash.new($dist-dir.meta, :prefix($from)),
+        :$force,
     );
 }
 

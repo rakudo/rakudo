@@ -15,16 +15,13 @@ PROCESS::<$REPO> := CompUnit::RepositoryRegistry.repository-for-spec(
     "inst#@*ARGS[0]",
     :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl').next-repo),
 );
-$*REPO.install(
-    Distribution.new(
-        name     => "CORE",
-        auth     => "perl",
-        ver      => $*PERL.version.Str,
-        provides => %provides,
-    ),
-    %provides,
-    :force,
-);
+my $dist = Distribution::Hash.new(%(
+    name     => "CORE",
+    auth     => "perl",
+    ver      => $*PERL.version.Str,
+    provides => %provides,
+), prefix => $*CWD);
+$*REPO.install($dist, :force);
 
 note "installed!";
 

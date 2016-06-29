@@ -409,7 +409,7 @@ my role Baggy does QuantHash {
     multi method roll(Baggy:D:) { self!ROLLPICKGRAB1 }
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf
-          ?? ROLLPICKGRABW(self,%!elems.values)
+          ?? self!ROLLPICKGRABW
           !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
     }
 
@@ -429,7 +429,7 @@ my role Baggy does QuantHash {
             )
           )
         );
-        Nil;
+        Nil
     }
 
     sub ROLLPICKGRABN($self, \count, @pairs, :$keep) { # N times
@@ -481,24 +481,40 @@ my role Baggy does QuantHash {
         }.new($self.total,@pairs,$keep,count))
     }
 
-    sub ROLLPICKGRABW($self,@pairs) { # keep going
+    method !ROLLPICKGRABW() { # keep going
         Seq.new(class :: does Iterator {
             has Int $!total;
-            has @!pairs;
-
-            method !SET-SELF($!total, @!pairs) { self }
-            method new(\total,\pairs) {
-                nqp::create(self)!SET-SELF(total,pairs)
+            has $!elems;
+            method !SET-SELF(\bag) {
+                $!total  = bag.total;
+                $!elems := nqp::getattr(
+                  nqp::getattr(nqp::decont(bag),bag.WHAT,'%!elems'),
+                  Map,
+                  '$!storage'
+                );
+                self
             }
+            method new(\bag) { nqp::create(self)!SET-SELF(bag) }
             method is-lazy() { True }
-
             method pull-one() {
                 my Int $rand = $!total.rand.Int;
                 my Int $seen = 0;
-                return .key if ( $seen += .value ) > $rand for @!pairs;
-                IterationEnd
+                my \iter    := nqp::iterator($!elems);
+
+                nqp::while(
+                  iter,
+                  nqp::stmts(
+                    nqp::shift(iter),
+                    ($seen = $seen + nqp::iterval(iter).value),
+                    nqp::if(
+                      $seen > $rand,
+                      return nqp::iterval(iter).key
+                    )
+                  )
+                );
+                Nil
             }
-        }.new($self.total,@pairs))
+        }.new(self))
     }
 
 #--- classification method

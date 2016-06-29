@@ -174,7 +174,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 my $files = %meta<files> //= [];
                 for eager $files.keys -> $file {
                     $files{"resources/$file"} = $files{$file}:delete
-                        if $resources-dir.child($files{$file}).e;
+                        if $resources-dir.child($files{$file}).e
+                        and not $.prefix.child($file).e; # bin/ is already included in the path
                 }
                 $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
             }

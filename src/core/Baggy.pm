@@ -383,10 +383,28 @@ my role Baggy does QuantHash {
         ROLLPICKGRAB1(self,%!elems.values);
     }
     multi method pick(Baggy:D: $count) {
+        my $hash     := nqp::getattr(%!elems,Map,'$!storage');
+        my int $elems = nqp::elems($hash);
+        my $pairs    := nqp::setelems(nqp::list,$elems);
+
+        my \iter := nqp::iterator($hash);
+        my int $i = -1;
+        my $pair;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos($pairs,$i,Pair.new(
+            nqp::getattr(
+              ($pair := nqp::iterval(nqp::shift(iter))),Pair,'$!key'),
+            nqp::assign(nqp::p6scalarfromdesc(nqp::null),
+              nqp::getattr($pair,Pair,'$!value'))
+          ))
+        );
+
         ROLLPICKGRABN(self,
           nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
-          %!elems.values.map: { (.key => my $ = .value) }
-        );
+          $pairs
+        )
     }
 
     proto method roll(|) { * }
@@ -409,13 +427,16 @@ my role Baggy does QuantHash {
     sub ROLLPICKGRABN($self, \count, @pairs, :$keep) { # N times
         Seq.new(class :: does Iterator {
             has Int $!total;
-            has @!pairs;
+            has int $!elems;
+            has $!pairs;
             has int $!todo;
             has int $!keep;
 
-            method !SET-SELF($!total, @!pairs, \keep, \todo) {
-                $!todo = todo;
-                $!keep = +?keep;
+            method !SET-SELF($!total, \pairs, \keep, \todo) {
+                $!elems  = pairs.elems;  # reifies
+                $!pairs := nqp::getattr(pairs,List,'$!reified');
+                $!todo   = todo;
+                $!keep   = +?keep;
                 self
             }
             method new(\total,\pairs,\keep,\count) {
@@ -425,15 +446,27 @@ my role Baggy does QuantHash {
 
             method pull-one() {
                 if $!todo {
+                    $!todo = nqp::sub_i($!todo,1);
                     my Int $rand = $!total.rand.Int;
                     my Int $seen = 0;
-                    $!todo = $!todo - 1;
-                    for @!pairs {
-                        if ( $seen += .value ) > $rand {
-                            .value--, $!total-- unless $!keep;
-                            return .key;
-                        }
-                    }
+                    my int $i    = -1;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$!elems),
+                      ($seen = $seen + nqp::atpos($!pairs,$i).value),
+                      nqp::if(
+                        $seen > $rand,
+                        nqp::stmts(
+                          nqp::unless(
+                            $!keep,
+                            nqp::stmts(
+                              --(nqp::atpos($!pairs,$i)).value,
+                              --$!total,
+                            )
+                          ),
+                          return nqp::atpos($!pairs,$i).key
+                        )
+                      )
+                    );
                 }
                 IterationEnd
             }

@@ -1890,9 +1890,11 @@ BEGIN {
                         next;
                     }
 
-                    # If it's got a sub-signature, also need a bind check.
+                    # If it's got a sub-signature, also need a bind check and
+                    # to check constraint on every dispatch.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) {
                         %info<bind_check> := 1;
+                        %info<constrainty> := 1;
                     }
 
                     # If it's named slurpy, we're done, also we don't need a bind
@@ -1917,6 +1919,7 @@ BEGIN {
                     # Record type info for this parameter.
                     if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
                         %info<bind_check> := 1;
+                        %info<constrainty> := 1;
                         %info<types>[$significant_param] := Any;
                     }
                     else {
@@ -1926,6 +1929,7 @@ BEGIN {
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
                         %info<constraints>[$significant_param] := 1;
                         %info<bind_check> := 1;
+                        %info<constrainty> := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                         $num_types++;
@@ -2235,7 +2239,7 @@ BEGIN {
                                 
                                 # Since we had to do a bindability check, this is not
                                 # a result we can cache on nominal type.
-                                $pure_type_result := 0;
+                                $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
                                 
                                 # If we haven't got a possibles storage space, allocate it now.
                                 $new_possibles := [] unless nqp::islist($new_possibles);
@@ -2351,14 +2355,15 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-                unless nqp::capturehasnameds($capture) {
-                    nqp::scwbdisable();
-                    nqp::bindattr($dcself, Routine, '$!dispatch_cache',
-                        nqp::multicacheadd(
-                            nqp::getattr($dcself, Routine, '$!dispatch_cache'),
-                            $capture, $entry));
-                    nqp::scwbenable();
-                }
+#?if jvm
+                return 0 if nqp::capturehasnameds($capture);
+#?endif
+                nqp::scwbdisable();
+                nqp::bindattr($dcself, Routine, '$!dispatch_cache',
+                    nqp::multicacheadd(
+                        nqp::getattr($dcself, Routine, '$!dispatch_cache'),
+                        $capture, $entry));
+                nqp::scwbenable();
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
                 add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));

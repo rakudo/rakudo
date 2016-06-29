@@ -118,7 +118,8 @@ class Distribution::Path does Distribution::Locally {
         my $meta = Rakudo::Internals::JSON.from-json(slurp($path));
 
         my sub ls-files($prefix, $subdir) {
-            my @stack = dir($prefix.child($subdir));
+            my $dir   = $prefix.child($subdir);
+            my @stack = dir($dir) if $dir.e;
             my @files = eager gather while ( @stack ) {
                 my IO::Path $current = @stack.pop;
                 my Str      $relpath = $current.relative($prefix);

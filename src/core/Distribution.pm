@@ -61,6 +61,13 @@ role Distribution {
                         :$!source-url,
                     }
                 }
+                method Str() {
+                    return "{$.meta<name>}"
+                    ~ ":ver<{$.meta<ver>   // ''}>"
+                    ~ ":auth<{$.meta<auth> // ''}>"
+                    ~ ":api<{$.meta<api>   // ''}>";
+
+                }
                 method content($content-id --> IO::Handle) { }
             }.new(|%_)
             !! self.bless(|%_)

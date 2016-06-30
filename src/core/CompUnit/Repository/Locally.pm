@@ -8,8 +8,9 @@ role CompUnit::Repository::Locally {
         my $IO      := IO::Path.new-from-absolute-path($abspath);
 
         state %instances;
-        %instances{$abspath} //=
-          self.bless(:prefix($IO), :lock(Lock.new), :WHICH(self.^name ~ '|' ~ $abspath), :$next-repo, |%args);
+        my $WHICH = self.^name ~ '|' ~ $abspath;
+        %instances{$WHICH} //=
+          self.bless(:prefix($IO), :lock(Lock.new), :$WHICH, :$next-repo, |%args);
     }
 
     multi method Str(CompUnit::Repository::Locally:D:) { $!prefix.abspath }

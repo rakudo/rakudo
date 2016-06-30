@@ -212,6 +212,7 @@ J_CORE_SOURCES = \
   src/core/CompUnit/Repository/Locally.pm \
   src/core/CompUnit/Repository/FileSystem.pm \
   src/core/CompUnit/Repository/Installation.pm \
+  src/core/CompUnit/Repository/Staging.pm \
   src/core/CompUnit/Repository/AbsolutePath.pm \
   src/core/CompUnit/Repository/NQP.pm \
   src/core/CompUnit/Repository/Perl5.pm \

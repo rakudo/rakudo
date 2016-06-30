@@ -70,14 +70,18 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method AT-POS(Blob:D: int \pos) {
-        self!fail-range(pos)
-          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
-        nqp::atpos_i(self, pos);
+        nqp::if(
+          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
+          self!fail-range(pos),
+          nqp::atpos_i(self,pos)
+        )
     }
     multi method AT-POS(Blob:D: Int:D \pos) {
-        self!fail-range(pos)
-          if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
-        nqp::atpos_i(self,pos);
+        nqp::if(
+          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
+          self!fail-range(pos),
+          nqp::atpos_i(self,pos)
+        )
     }
 
     multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }

@@ -426,7 +426,7 @@ my role Baggy does QuantHash {
     }
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf
-          ?? self!ROLLPICKGRABW
+          ?? Rakudo::Internals.RollerIterator(self)
           !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 
@@ -477,42 +477,6 @@ my role Baggy does QuantHash {
                 IterationEnd
             }
         }.new(self.total,@pairs,$keep,count))
-    }
-
-    method !ROLLPICKGRABW() { # keep going
-        Seq.new(class :: does Iterator {
-            has Int $!total;
-            has $!elems;
-            method !SET-SELF(\bag) {
-                $!total  = bag.total;
-                $!elems := nqp::getattr(
-                  nqp::getattr(nqp::decont(bag),bag.WHAT,'%!elems'),
-                  Map,
-                  '$!storage'
-                );
-                self
-            }
-            method new(\bag) { nqp::create(self)!SET-SELF(bag) }
-            method is-lazy() { True }
-            method pull-one() {
-                my Int $rand = $!total.rand.Int;
-                my Int $seen = 0;
-                my \iter    := nqp::iterator($!elems);
-
-                nqp::while(
-                  iter,
-                  nqp::stmts(
-                    nqp::shift(iter),
-                    ($seen = $seen + nqp::iterval(iter).value),
-                    nqp::if(
-                      $seen > $rand,
-                      return nqp::iterval(iter).key
-                    )
-                  )
-                );
-                Nil
-            }
-        }.new(self))
     }
 
 #--- classification method

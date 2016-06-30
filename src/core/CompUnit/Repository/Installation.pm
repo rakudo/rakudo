@@ -185,7 +185,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     proto method install(|) {*}
-    multi method install($dist, %sources, %scripts?, %resources?, :$force) {
+    multi method install($dist, %sources, %scripts?, %resources?, Bool :$force) {
         # XXX: Deprecation shim
         my %files;
         %files{"bin/$_.key()"} = $_.value for %scripts.pairs;

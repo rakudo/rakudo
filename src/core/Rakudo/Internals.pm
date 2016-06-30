@@ -100,50 +100,61 @@ my class Rakudo::Internals {
     our class DwimIterator does Iterator {
         has $!source;
         has $!buffer;
-        has $!ended;
-        has $!whatever;
-        has $!i;
-        has $!elems;
-        method new(\source) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!buffer', IterationBuffer.new);
-            nqp::bindattr($iter, self, '$!ended', False);
-            nqp::bindattr($iter, self, '$!whatever', False);
-            nqp::bindattr($iter, self, '$!i', 0);
-            nqp::bindattr($iter, self, '$!elems', 0);
-            $iter
+        has int $!ended;
+        has int $!whatever;
+        has int $!i;
+        has int $!elems;
+        method !SET-SELF(\source) {
+            $!source := source;
+            $!buffer := IterationBuffer.new;
+            self
         }
+        method new(\source) { nqp::create(self)!SET-SELF(source) }
+
         method pull-one() is raw {
-            if ($!ended) {
-                $!buffer.AT-POS( $!whatever
-                  ?? $!elems - 1
-                  !! (($!i := $!i + 1) - 1) % $!elems
-                );
-            }
-            else {
-                my \value := $!source.pull-one;
-                if value =:= IterationEnd {
-                    $!ended := True;
-                    $!elems == 0 ?? value !! self.pull-one()
-                }
-                elsif nqp::istype(value, Whatever) {
-                    $!whatever := True;
-                    $!ended := True;
-                    self.pull-one()
-                }
-                else {
-                    $!elems := $!elems + 1;
-                    $!buffer.push(value);
+            nqp::if(
+              $!ended,
+              nqp::if(
+                $!whatever,
+                $!buffer.AT-POS(nqp::sub_i($!elems,1)),
+                $!buffer.AT-POS(
+                  nqp::mod_i(nqp::sub_i(($!i = nqp::add_i($!i,1)),1),$!elems)
+                )
+              ),
+              nqp::if(
+                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  ($!ended = 1),
+                  nqp::if(
+                    nqp::iseq_i($!elems,0),
+                    IterationEnd,
+                    self.pull-one
+                  )
+                ),
+                nqp::if(
+                  nqp::istype(value,Whatever),
+                  nqp::stmts(
+                    ($!whatever = $!ended = 1),
+                    self.pull-one
+                  ),
+                  nqp::stmts(
+                    ($!elems = nqp::add_i($!elems,1)),
+                    $!buffer.push(value),
                     value
-                }
-            }
+                  )
+                )
+              )
+            )
         }
-        method ended() { $!ended }
+        method ended() { nqp::p6bool($!ended) }
         method count-elems() {
-            unless ($!ended) {
-                $!elems := $!elems + 1 until $!source.pull-one =:= IterationEnd;
-            }
+            nqp::unless(
+              $!ended,
+              nqp::until(
+                nqp::eqaddr($!source.pull-one,IterationEnd),
+                $!elems = nqp::add_i($!elems,1)
+              )
+            );
             $!elems
         }
     }

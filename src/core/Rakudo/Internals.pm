@@ -40,10 +40,15 @@ my class Rakudo::Internals {
         has Int $!i;   # cannot be an int yet sadly enough
 
         method SET-SELF(\blob) {
-            $!blob := blob;
-            $!i     = -1;
-            $!elems = nqp::elems($!blob);
-            self
+            nqp::if(
+              nqp::isgt_i($!elems = nqp::elems(blob),0),
+              nqp::stmts(
+                ($!blob := blob),
+                ($!i     = -1),
+                self
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
         }
         method new(\blob) { nqp::create(self).SET-SELF(blob) }
         method push-all($target) {

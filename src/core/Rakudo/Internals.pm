@@ -71,31 +71,29 @@ my class Rakudo::Internals {
     our class WhateverIterator does Iterator {
         has $!source;
         has $!last;
-        has $!whatever;
+        has int $!whatever;
         method new(\source) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!whatever', False);
             $iter
         }
         method pull-one() is raw {
-            if ($!whatever) {
-                $!last
-            }
-            else {
-                my \value := $!source.pull-one;
-                if value =:= IterationEnd {
-                    value
-                }
-                elsif nqp::istype(value, Whatever) {
-                    $!whatever := True;
-                    self.pull-one()
-                }
-                else {
-                    $!last := value;
-                    value
-                }
-            }
+            nqp::if(
+              $!whatever,
+              $!last,
+              nqp::if(
+                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                IterationEnd,
+                nqp::if(
+                  nqp::istype(value, Whatever),
+                  nqp::stmts(
+                    ($!whatever = 1),
+                    self.pull-one
+                  ),
+                  ($!last := value)
+                )
+              )
+            )
         }
     }
 

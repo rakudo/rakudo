@@ -363,12 +363,12 @@ my role Baggy does QuantHash {
     }
     multi method grab(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
-            my @grabbed = ROLLPICKGRABN(self,self.total,%!elems.values);
+            my @grabbed = self!ROLLPICKGRABN(self.total,%!elems.values);
             %!elems = ();
             @grabbed;
         }
         else {
-            my @grabbed = ROLLPICKGRABN(self,$count,%!elems.values);
+            my @grabbed = self!ROLLPICKGRABN($count,%!elems.values);
             for @grabbed {
                 if %!elems.AT-KEY(.WHICH) -> $pair {
                     %!elems.DELETE-KEY(.WHICH) unless $pair.value;
@@ -399,7 +399,7 @@ my role Baggy does QuantHash {
           ))
         );
 
-        ROLLPICKGRABN(self,
+        self!ROLLPICKGRABN(
           nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
           $pairs
         )
@@ -410,7 +410,7 @@ my role Baggy does QuantHash {
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf
           ?? self!ROLLPICKGRABW
-          !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
+          !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 
     method !ROLLPICKGRAB1() { # one time
@@ -432,7 +432,7 @@ my role Baggy does QuantHash {
         Nil
     }
 
-    sub ROLLPICKGRABN($self, \count, @pairs, :$keep) { # N times
+    method !ROLLPICKGRABN(\count, @pairs, :$keep) { # N times
         Seq.new(class :: does Iterator {
             has Int $!total;
             has int $!elems;
@@ -478,7 +478,7 @@ my role Baggy does QuantHash {
                 }
                 IterationEnd
             }
-        }.new($self.total,@pairs,$keep,count))
+        }.new(self.total,@pairs,$keep,count))
     }
 
     method !ROLLPICKGRABW() { # keep going

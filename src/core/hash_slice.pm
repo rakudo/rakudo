@@ -16,32 +16,32 @@ multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, (:$SINK), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$delete!, *%other ) is raw {
-    $delete && !%other
+    $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? SELF.DELETE-KEY(key)
       !! SLICE_ONE_HASH( SELF, key, (:$delete), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$exists!, *%other ) is raw {
-    $exists && !%other
+    $exists && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? SELF.EXISTS-KEY(key)
       !! SLICE_ONE_HASH( SELF, key, (:$exists), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$kv!, *%other ) is raw {
-    $kv && !%other
+    $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? (SELF.EXISTS-KEY(key) ?? (key,SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, (:$kv), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$p!, *%other ) is raw {
-    $p && !%other
+    $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? (SELF.EXISTS-KEY(key) ?? Pair.new(key,SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, (:$p), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$k!, *%other ) is raw {
-    $k && !%other
+    $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? (SELF.EXISTS-KEY(key) ?? key !! ())
       !! SLICE_ONE_HASH( SELF, key, (:$k), %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is raw {
-    $v && !%other
+    $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,q/$!storage/)))
       ?? (SELF.EXISTS-KEY(key) ?? nqp::decont(SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, (:$v), %other );
 }

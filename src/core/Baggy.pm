@@ -19,11 +19,20 @@ my role Baggy does QuantHash {
     }
     method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
     method !TOTAL() {
-        my $total = 0;
-        my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-        $total += nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-          while $iter;
-        $total;
+        nqp::if(
+          (my $storage := nqp::getattr(%!elems,Map,'$!storage')),
+          nqp::stmts(
+            (my $total = 0),
+            (my $iter := nqp::iterator($storage)),
+            nqp::while(
+              $iter,
+              $total = $total
+                + nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+            ),
+            $total
+          ),
+          0
+        )
     }
     method !SANITY(%hash --> Nil) {
         my @toolow;

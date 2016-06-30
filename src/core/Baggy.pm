@@ -356,7 +356,7 @@ my role Baggy does QuantHash {
 
     proto method grab(|) { * }
     multi method grab(Baggy:D:) {
-        my \grabbed := self!ROLLPICKGRAB1;
+        my \grabbed := self.roll;
         %!elems.DELETE-KEY(grabbed.WHICH)
           if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
         grabbed;
@@ -379,7 +379,7 @@ my role Baggy does QuantHash {
     }
 
     proto method pick(|) { * }
-    multi method pick(Baggy:D:) { self!ROLLPICKGRAB1 }
+    multi method pick(Baggy:D:) { self.roll }
     multi method pick(Baggy:D: $count) {
         my $hash     := nqp::getattr(%!elems,Map,'$!storage');
         my int $elems = nqp::elems($hash);
@@ -406,14 +406,7 @@ my role Baggy does QuantHash {
     }
 
     proto method roll(|) { * }
-    multi method roll(Baggy:D:) { self!ROLLPICKGRAB1 }
-    multi method roll(Baggy:D: $count) {
-        nqp::istype($count,Whatever) || $count == Inf
-          ?? self!ROLLPICKGRABW
-          !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
-    }
-
-    method !ROLLPICKGRAB1() { # one time
+    multi method roll(Baggy:D:) {
         my Int $rand = self.total.rand.Int;
         my Int $seen = 0;
         my \iter    := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
@@ -430,6 +423,11 @@ my role Baggy does QuantHash {
           )
         );
         Nil
+    }
+    multi method roll(Baggy:D: $count) {
+        nqp::istype($count,Whatever) || $count == Inf
+          ?? self!ROLLPICKGRABW
+          !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 
     method !ROLLPICKGRABN(\count, @pairs, :$keep) { # N times

@@ -10,9 +10,6 @@ my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
-    # an empty hash for when we need to iterate over something
-    my \no-keys := nqp::hash;
-
     our role MappyIterator does Iterator {
         has $!storage;
         has $!iter;

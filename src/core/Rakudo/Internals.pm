@@ -170,6 +170,16 @@ my class Rakudo::Internals {
         }.new
     }
 
+    method RollerIterator(\baggy) {
+        Seq.new(class :: does Iterator {
+            has $!baggy;
+            method !SET-SELF(\baggy) { $!baggy := baggy; self }
+            method new(\bag) { nqp::create(self)!SET-SELF(bag) }
+            method is-lazy() { True }
+            method pull-one() { $!baggy.roll }
+        }.new(baggy))
+    }
+
     our class WeightedRoll {
         has @!pairs;
         has $!total;

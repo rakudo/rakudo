@@ -292,7 +292,6 @@ do {
                         .throw;
                     }
                 }
-
             }
 
             self.compiler.eval(code, |%(adverbs))
@@ -314,6 +313,8 @@ do {
 
         method repl-loop(*%adverbs) {
 
+            say "To exit type 'exit' or '^D'";
+
             my $prompt = self.interactive_prompt;
             my $code = "";
 
@@ -330,33 +331,20 @@ do {
 
                 $code = $code ~ $newcode ~ "\n";
 
+                if $code ~~ /^ <.ws> $/ {
+                    next;
+                }
+
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
 
-                my $output;
-                {
-                    $output := self.repl-eval(
-                        $code,
-                        :outer_ctx($!save_ctx),
-                        |%adverbs);
-
-                    CATCH {
-                        say $_;
-                        $code = '';
-                        $prompt = self.interactive_prompt;
-                        next REPL;
-                    }
-                };
+                my $output := self.repl-eval(
+                    $code,
+                    :outer_ctx($!save_ctx),
+                    |%adverbs);
 
                 if self.input-incomplete($output) {
-                    # Need to get more code before we execute
-                    # Strip the trailing \, but reinstate the newline
-                    if $code.substr(* - 2) eq "\\\n" {
-                        $code = $code.substr(0, * - 2) ~ "\n";
-                    }
-                    if $code {
-                        $prompt = '* ';
-                    }
+                    $prompt = '* ';
                     next;
                 }
 
@@ -370,6 +358,13 @@ do {
                 # Only print the result if there wasn't some other output
                 if $initial_out_position == $*OUT.tell {
                   self.repl-print($output);
+                }
+
+                CATCH {
+                    say $_;
+                    $code = '';
+                    $prompt = self.interactive_prompt;
+                    next REPL;
                 }
             }
 
@@ -387,7 +382,7 @@ do {
         }
 
         method repl-print(Mu $value) {
-            say $value unless $value.gist eq '';
+            say $value;
         }
 
         method history-file returns Str {

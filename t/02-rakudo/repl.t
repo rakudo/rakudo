@@ -1,20 +1,18 @@
 use v6;
 use Test;
 
-plan 14;
-
 # Sanity check that the repl is working at all.
 my $cmd = $*DISTRO.is-win
     ?? "echo exit(42)   | $*EXECUTABLE 1>&2"
     !! "echo 'exit(42)' | $*EXECUTABLE >/dev/null 2>&1";
-is shell($cmd).exit, 42, 'exit(42) in executed REPL got run';
+is shell($cmd).exitcode, 42, 'exit(42) in executed REPL got run';
 
 # RT #104514
 {
     my $cmd = $*DISTRO.is-win
         ?? q[echo my @a = -^^^> { say "foo" }; @a^^^>^^^>.() | ] ~ $*EXECUTABLE
         !! q[echo 'my @a = -> { say "foo" }; @a>>.()' | ] ~ $*EXECUTABLE;
-    is qqx[$cmd].trim-trailing.lines, 'foo', '>>.() does not crash in REPL';
+    like qqx[$cmd].Str, /"foo" $$/, '>>.() does not crash in REPL';
 }
 
 my $quote;
@@ -31,7 +29,13 @@ else {
 sub feed_repl_with ( @lines ) {
     ## warning: works only with simple input lines which don't need quoting for Windows
     my $repl-input = '(' ~ (@lines.map: { 'echo ' ~ $quote ~ $_ ~ $quote }).join($separator) ~ ')';
-    return qqx[$repl-input | $*EXECUTABLE].trim-trailing;
+    my $repl-output = qqx[$repl-input | $*EXECUTABLE].trim-trailing;
+    $repl-output ~~ s/^^ "You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor\n\n"//;
+    $repl-output ~~ s/^^ "To exit type 'exit' or '^D'\n"//;
+    $repl-output ~~ s:g/ ^^ "> " //; # Strip out the prompts
+    $repl-output ~~ s:g/ ">" $ //; # Strip out the final prompt
+    $repl-output ~~ s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
+    $repl-output
 }
 
 my @input-lines;
@@ -89,7 +93,6 @@ my @input-lines;
     }
     END
 
-    todo "indent styles don't parse right";
     is feed_repl_with( @input-lines ).lines, ":)",
         "cuddled else is parsed correctly";
 }
@@ -118,15 +121,49 @@ my @input-lines;
 
 # RT #122914
 {
-    @input-lines = 'my $a := 42; say 1', '$a.say';
+    @input-lines = 'my $a = 42; say 1', '$a.say';
     is feed_repl_with( @input-lines ).lines, (1, 42),
-        'Binding to a Scalar lasts to the next line';
+        'Assigning to a Scalar lasts to the next line';
 
-    @input-lines = 'my @a := 1, 2, 3; say 1', '@a.elems.say';
+    @input-lines = 'my @a = 1, 2, 3; say 1', '@a.elems.say';
     is feed_repl_with( @input-lines ).lines, (1, 3),
-        'Binding to an Array lasts to the next line';
+        'Assigning to an Array lasts to the next line';
 
     @input-lines = 'my \a = 100; say 1', 'a.say';
     is feed_repl_with( @input-lines ).lines, (1, 100),
-        'Binding to a sigilless lasts to the next line';
+        'Assigning to a sigilless lasts to the next line';
 }
+
+{
+    @input-lines = '';
+    is feed_repl_with(@input-lines).lines, (),
+        'Entering a blank line gives back the prompt';
+
+    @input-lines = '""';
+    is feed_repl_with(@input-lines).lines, (''),
+        'An empty string gives back one blank line';
+}
+
+{
+    @input-lines = '}';
+    like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
+        'Syntax error gives a compile-time error';
+    like feed_repl_with(@input-lines), / "Unexpected closing bracket" /,
+        'Syntax error gives the expected error';
+
+    @input-lines = 'this-function-does-not-exist()';
+    like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
+        'EVAL-time compile error gives a compile-time error';
+    like feed_repl_with(@input-lines), / "Undeclared routine" /,
+        'EVAL-time compile error error gives the expected error';
+
+    @input-lines = 'sub f { this-function-does-not-exist() } ; f()';
+    like feed_repl_with(@input-lines), / "Undeclared routine" /,
+        'EVAL-time compile error error gives the expected error';
+
+    @input-lines = '[1].map:{[].grep:Str}';
+    like feed_repl_with(@input-lines), / "Cannot resolve caller" /,
+        'Print-time error error gives the expected error';
+}
+
+done-testing;

@@ -56,8 +56,11 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
         # There are lazy positions to care about too. We truncate at the first
         # one that fails to exists.
         my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
-            last unless $eagerize($i);
-            $i
+            nqp::unless(
+              $eagerize($i),
+              last,
+              $i
+            )
         };
         my \todo := nqp::create(List::Reifier);
         nqp::bindattr(todo, List::Reifier, '$!reified', eager-indices);

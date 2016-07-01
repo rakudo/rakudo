@@ -26,22 +26,23 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
         }
 
         method push(Mu \value) {
-            if nqp::istype(value,Callable) {
-                if nqp::istype($!star, Callable) {
-                    nqp::bindattr(self, IndicesReificationTarget, '$!star', $!star(*))
-                }
+            nqp::if(
+              nqp::istype(value,Callable),
+              nqp::stmts(
+                nqp::if(
+                  nqp::istype($!star,Callable),
+                  nqp::bindattr(self,IndicesReificationTarget,'$!star',$!star(*))
+                ),
                 # just using value(...) causes stage optimize to die
-                my &whatever := value;
-                if &whatever.count == Inf {
-                    nqp::push($!target, whatever(+$!star))
-                }
-                else {
-                    nqp::push($!target, whatever(|(+$!star xx &whatever.count)))
-                }
-            }
-            else {
-                nqp::push($!target, value)
-            }
+                (my &whatever := value),
+                nqp::if(
+                  &whatever.count == Inf,
+                  nqp::push($!target, whatever(+$!star)),
+                  nqp::push($!target, whatever(|(+$!star xx &whatever.count)))
+                )
+              ),
+              nqp::push($!target,value)
+            )
         }
     }
 

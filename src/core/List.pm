@@ -456,8 +456,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method iterator(List:D:) {
 
         # something to iterate over in the future
-        if $!todo.DEFINITE {
-            self!ensure-allocated;
+        nqp::if(
+          $!todo.DEFINITE,
             class :: does Iterator {
                 has int $!i;
                 has $!list;
@@ -467,7 +467,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method !SET-SELF(\list) {
                     $!i        = -1;
                     $!list    := list;
-                    $!reified := nqp::getattr(list, List, '$!reified');
+                    $!reified := nqp::attrinited(list, List,'$!reified')
+                      # we already have a place to put values in
+                      ?? nqp::getattr(list,List,'$!reified')
+                      # create a place here and there to put values in
+                      !! nqp::bindattr(list,List,'$!reified',nqp::list);
                     $!todo    := nqp::getattr(list, List, '$!todo');
                     self
                 }
@@ -515,11 +519,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
 
                 method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-            }.new(self)
-        }
+            }.new(self),
 
-        # everything we need is already there
-        elsif $!reified.DEFINITE {
+          # everything we need is already there
+          nqp::if(
+            $!reified.DEFINITE,
             class :: does Iterator {
                 has $!reified;
                 has int $!i;
@@ -546,13 +550,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     );
                     IterationEnd
                 }
-            }.new(self)
-        }
+            }.new(self),
 
-        # nothing now or in the future to iterate over
-        else {
+            # nothing now or in the future to iterate over
             Rakudo::Internals.EmptyIterator
-        }
+          )
+        )
     }
 
     multi method ACCEPTS(List:D: $topic) {

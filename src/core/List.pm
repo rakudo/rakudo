@@ -758,19 +758,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method List(List:D:) { self }
 
     multi method Slip(List:D:) {
-        if $!todo.DEFINITE {
-            # We're not fully reified, and so have internal mutability still.
-            # The safe thing to do is to take an iterator of ourself and build
-            # the Slip out of that.
-            Slip.from-iterator(self.iterator)
-        }
-        else {
-            # We're fully reified - and so immutable inside and out! Just make
-            # a Slip that shares our reified buffer.
-            my \result := nqp::create(Slip);
-            nqp::bindattr(result, List, '$!reified', $!reified);
-            result
-        }
+        nqp::if(
+          $!todo.DEFINITE,
+          # We're not fully reified, and so have internal mutability still.
+          # The safe thing to do is to take an iterator of ourself and build
+          # the Slip out of that.
+          Slip.from-iterator(self.iterator),
+          # We're fully reified - and so immutable inside and out! Just make
+          # a Slip that shares our reified buffer.
+          nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',$!reified)
+        )
     }
 
     multi method Array(List:D:) {

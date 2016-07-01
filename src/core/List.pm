@@ -1095,31 +1095,39 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
 multi sub infix:<,>(|) {
-    my \result := nqp::create(List);
-    my \in     := nqp::p6argvmarray();
-    my \reified := nqp::bindattr(result,List,'$!reified',nqp::create(IterationBuffer));
 
+    # look for a Slip in the parameters
+    my \in := nqp::p6argvmarray();
+    my int $i     = -1;
+    my int $elems = nqp::elems(in);
     nqp::while(
-      nqp::elems(in),
-      nqp::if(  # doesn't sink
-        nqp::istype(nqp::atpos(in,0),Slip),
-        # We saw a Slip, so we'll lazily deal with the rest of the things
-        # (as the Slip may expand to something lazy).
-        nqp::stmts(
-          nqp::bindattr(result,List,'$!todo',
-             my \todo := nqp::create(List::Reifier)),
-          nqp::bindattr(todo,List::Reifier,'$!reified',reified),
-          nqp::bindattr(todo,List::Reifier,'$!future',in),
-          nqp::bindattr(todo,List::Reifier,'$!reification-target',
-            result.reification-target),
-          last
-        ),
-        # Not a Slip, so just reify it
-        nqp::push(reified,nqp::shift(in))
-      )
+      (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+        && nqp::not_i(nqp::istype(nqp::atpos(in,$i),Slip))),
+      Nil
     );
 
-    result
+    nqp::if(
+      nqp::iseq_i($i,$elems),  # no Slip seen, so just alias input params
+      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',in),
+      nqp::stmts(  # Slip seen, first copy non-slippy things
+        ($elems = $i),
+        ($i     = -1),
+        (my $reified := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos($reified,$i,nqp::shift(in))
+        ),
+        # now set up the List with a future
+        (my $list :=
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$reified)),
+        nqp::bindattr($list,List,'$!todo',
+          my $todo:= nqp::create(List::Reifier)),
+        nqp::bindattr($todo,List::Reifier,'$!reified',$reified),
+        nqp::bindattr($todo,List::Reifier,'$!future',in),
+        nqp::bindattr($todo,List::Reifier,'$!reification-target',$reified),
+        $list
+      )
+    )
 }
 
 sub list(+l) { l }

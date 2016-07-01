@@ -541,7 +541,9 @@ my role X::Comp is Exception {
             my ($red,$clear,$green,$yellow,$eject) =
               Rakudo::Internals.error-rcgye;
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= "$.message\nat $.filename():$.line";
+            $r ~= $.filename eq '<unknown file>'
+              ?? $.message
+              !! "$.message\nat $.filename():$.line";
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
@@ -563,7 +565,9 @@ my role X::Comp is Exception {
     }
     method sorry_heading() {
         my ($red, $clear) = Rakudo::Internals.error-rcgye;
-        "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
+        "$red==={$clear}SORRY!$red===$clear Error while compiling {
+          $.filename if $.filename ne '<unknown file>'
+        }\n"
     }
     method SET_FILE_LINE($file, $line) {
         $!filename = $file;

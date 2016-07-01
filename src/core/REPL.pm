@@ -276,16 +276,12 @@ do {
         method partial-eval(Mu \code, Mu \adverbs) {
             my &needs_more_input = adverbs<needs_more_input>;
 
-            sub show-error($exception) {
-                "ERROR: $exception.message()"
-            }
-
             CATCH {
                 when X::Syntax::Missing {
                     if $!multi-line-enabled && .pos == code.chars {
                         return needs_more_input();
                     } else {
-                        return show-error($_);
+                        .throw;
                     }
                 }
 
@@ -293,19 +289,14 @@ do {
                     if $!multi-line-enabled && .pos == code.chars {
                         return needs_more_input();
                     } else {
-                        return show-error($_);
+                        .throw;
                     }
                 }
 
-                default {
-                    return show-error($_);
-                }
             }
 
             self.compiler.eval(code, |%(adverbs))
         }
-
-        
 
         method repl-eval($code, *%adverbs) {
             my $needs_more_input = False;

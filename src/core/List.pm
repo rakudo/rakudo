@@ -663,7 +663,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     # Store in List targets containers with in the list. This handles list
-    # assignemnts, like ($a, $b) = foo().
+    # assignments, like ($a, $b) = foo().
     proto method STORE(|) { * }
     multi method STORE(List:D: Iterable:D \iterable) {
         # First pass -- scan lhs containers and pick out scalar versus list
@@ -674,40 +674,57 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my \rhs-iter = iterable.iterator;
         my int $rhs-done;
         my Mu $v;
-        until (my Mu \c := lhs-iter.pull-one) =:= IterationEnd {
-            if nqp::iscont(c) {
-                # Container: scalar assignment
-                nqp::push(cv, c);
-                nqp::push(cv, $rhs-done
-                  || ($rhs-done = ($v := rhs-iter.pull-one) =:= IterationEnd)
-                  ?? Nil
-                  !! nqp::decont($v)
-                );
-            }
-            elsif nqp::istype(c, Whatever) {
-                # Whatever: skip assigning value
-                $rhs-done = 1
-                  if !$rhs-done && rhs-iter.pull-one =:= IterationEnd;
-            }
-            elsif nqp::istype(c, List) and not nqp::istype(c, Array) {
-                # List splice into current lhs
-                my \subiter := c.iterator;
-                until (my \sc = subiter.pull-one) =:= IterationEnd {
-                    nqp::push(cv, sc);
-                    $v := rhs-iter.pull-one;
-                    nqp::push(cv, ($rhs-done = ($v =:= IterationEnd))
-                      ?? Nil
-                      !! nqp::decont($v)
-                    );
-                }
-            }
-            else {
-                # Non-container: store entire remaining rhs
-                nqp::push(cv, c);
-                nqp::push(cv, List.from-iterator(rhs-iter));
-                $rhs-done = 1;
-            }
-        }
+        my Mu $c;
+        my Mu $sub-iter;
+        my Mu $sc;
+
+        nqp::until(
+          nqp::eqaddr(($c := lhs-iter.pull-one),IterationEnd),
+          nqp::if(          # Container: scalar assignment
+            nqp::iscont($c),
+            nqp::stmts(
+              nqp::push(cv,$c),
+              nqp::if(
+                ($rhs-done || ($rhs-done =
+                  nqp::eqaddr(($v := rhs-iter.pull-one),IterationEnd))),
+                nqp::push(cv,Nil),
+                nqp::push(cv,nqp::decont($v)),
+              )
+            ),
+            nqp::if(        # Whatever: skip assigning value
+              nqp::istype($c,Whatever),
+              nqp::if(
+                (nqp::not_i($rhs-done)
+                  && nqp::eqaddr(rhs-iter.pull-one,IterationEnd)),
+                ($rhs-done = 1)
+              ),
+              nqp::if(      # List splice into current lhs
+                (nqp::istype($c,List) && nqp::not_i(nqp::istype($c,Array))),
+                nqp::stmts(
+                  ($sub-iter := $c.iterator),
+                  nqp::until(
+                    nqp::eqaddr(($sc := $sub-iter.pull-one),IterationEnd),
+                    nqp::stmts(
+                      nqp::push(cv,$sc);
+                      nqp::if(
+                        ($rhs-done = nqp::eqaddr(
+                          ($v := rhs-iter.pull-one),IterationEnd
+                        )),
+                        nqp::push(cv,Nil),
+                        nqp::push(cv,nqp::decont($v))
+                      )
+                    )
+                  )
+                ),
+                nqp::stmts( # Non-container: store entire remaining rhs
+                  nqp::push(cv,$c),
+                  nqp::push(cv,List.from-iterator(rhs-iter)),
+                  ($rhs-done = 1)
+                )
+              )
+            )
+          )
+        );
 
         # Second pass, perform the assignments.
         nqp::shift(cv) = nqp::shift(cv) while nqp::elems(cv);

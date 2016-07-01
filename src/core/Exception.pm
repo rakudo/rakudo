@@ -542,7 +542,9 @@ my role X::Comp is Exception {
               Rakudo::Internals.error-rcgye;
             my $r = $sorry ?? self.sorry_heading() !! "";
             $r ~= $.filename eq '<unknown file>'
-              ?? $.message
+              ?? $.line == 1
+                ?? $.message
+                !! "$.message\nat line $.line"
               !! "$.message\nat $.filename():$.line";
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {

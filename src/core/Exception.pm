@@ -567,8 +567,10 @@ my role X::Comp is Exception {
     }
     method sorry_heading() {
         my ($red, $clear) = Rakudo::Internals.error-rcgye;
-        "$red==={$clear}SORRY!$red===$clear Error while compiling {
-          $.filename if $.filename ne '<unknown file>'
+        "$red==={$clear}SORRY!$red===$clear Error while compiling{
+          $.filename eq '<unknown file>'
+            ?? ':'
+            !! " $.filename"
         }\n"
     }
     method SET_FILE_LINE($file, $line) {

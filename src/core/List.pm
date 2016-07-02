@@ -1205,17 +1205,18 @@ multi sub infix:<xx>(Mu \x, Whatever) {
     }.new(x))
 }
 multi sub infix:<xx>(Mu \x, Int() $n) is pure {
-    my int $elems = $n;
-    my Mu $list := nqp::list();
-    if $elems > 0 {
-        nqp::setelems($list, $elems);  # presize
+    if nqp::isgt_i((my int $elems = $n),0) {
+        my $list := nqp::setelems(nqp::list,$elems);
         my int $i = -1;
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$elems),
           nqp::bindpos($list, $i, x),
         );
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
     }
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
+    else {
+        nqp::create(List)
+    }
 }
 
 proto sub reverse(|)   { * }

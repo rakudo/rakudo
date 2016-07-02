@@ -253,14 +253,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method Capture(Map:D:) {
-        if nqp::defined($!storage) {
-            my $cap := nqp::create(Capture);
-            nqp::bindattr($cap,Capture,'$!hash',$!storage);
-            $cap
-        }
-        else {
-            nqp::create(Capture)
-        }
+        nqp::defined($!storage)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(Capture),Capture,'$!hash',$!storage)
+          !! nqp::create(Capture)
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
@@ -278,9 +274,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method hash() { self }
     method clone(Map:D: *%) is raw {
-        my \clone = nqp::create(self);
-        nqp::bindattr(clone, Map, '$!storage', nqp::clone($!storage));
-        clone
+        nqp::p6bindattrinvres(
+          nqp::create(self),Map,'$!storage',nqp::clone($!storage))
     }
 }
 

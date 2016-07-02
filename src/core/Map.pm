@@ -280,18 +280,33 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {
-    if a =:= b {
-        True
-    }
-    elsif a.WHAT =:= b.WHAT && a.elems == b.elems {
-        return False
-          unless b.EXISTS-KEY($_) && a.AT-KEY($_) eqv b.AT-KEY($_)
-          for a.keys;
-        True
-    }
-    else {
+    nqp::if(
+      nqp::eqaddr(a,b),
+      True,
+      nqp::if(
+        (nqp::eqaddr(a.WHAT,b.WHAT) && (my int $elems = a.elems) == b.elems),
+        nqp::if(
+          nqp::iseq_i($elems,0),
+          True,
+          nqp::stmts(
+            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
+            (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+            (my $iter := nqp::iterator($amap)),
+            nqp::while(
+              $iter,
+              nqp::unless(
+                (nqp::existskey(
+                  $bmap,my str $key = nqp::iterkey_s(nqp::shift($iter))
+                ) && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key)),
+                return False
+              )
+            ),
+            True
+          )
+        ),
         False
-    }
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

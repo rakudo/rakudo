@@ -6,8 +6,34 @@ my class IO::ArgFiles is IO::Handle {
     has $!nl-in = ["\x0A", "\r\n"];
     has $!has-args;
 
+    # returns True only if at the end of all input files
     method eof() {
-        ! $!args && $!io.opened && $!io.eof
+        # make sure $!has-args is in the proper state since !next-io() may not have been called
+        $!has-args = ?$!args unless $!has-args.defined;
+
+        if $!has-args {
+            # if there are files left it can't be the end
+            if $!args {
+                False
+            }
+            # $!io might be opened to the last file so ask it
+            elsif $!io.defined && $!io.opened {
+                $!io.eof
+            }
+            # $!args must have been exhausted
+            else {
+                True
+            }
+        }
+        # TODO should probably get the STDIN filehandle the same way as !next-io()
+        elsif $*IN.opened {
+            # ask $*IN because there was no args
+            $*IN.eof
+        }
+        else {
+            # there is no input available
+            True
+        }
     }
 
     method !next-io() {
@@ -93,16 +119,28 @@ my class IO::ArgFiles is IO::Handle {
             }
         }.new(self, $!ins, $l, -> { self!next-io }));
     }
+
     method slurp(IO::ArgFiles:D:) {
+        # NOTE: $.filename and $.ins will be incorrect after this is called
+
+        # make sure $!has-args is in the proper state since !next-io() may not have been called
+        $!has-args = ?$!args unless $!has-args.defined;
+
+        # TODO should probably get the STDIN filehandle the same way as !next-io()
+        return $*IN.slurp-rest unless $!has-args;
+
         my @chunks;
-        if $!io && $!io.opened {
-            @chunks.push: nqp::p6box_s($!io.readall);
+        if $!io.defined && $!io.opened {
+            @chunks.push: nqp::p6box_s($!io.slurp-rest);
             $!io.close;
         }
         while $!args {
             @chunks.push: slurp $!args.shift;
         }
-        return $*IN.slurp-rest unless @chunks;
+
+        # TODO Should this be a failure?
+        return Nil unless @chunks;
+
         @chunks.join;
     }
 

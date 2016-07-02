@@ -365,6 +365,7 @@ sub diag(Mu $message) is export {
     $time_before = nqp::time_n;
 }
 
+# In earlier Perls, this is spelled "sub fail"
 multi sub flunk($reason) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(0, $reason);

@@ -35,6 +35,12 @@ my class Hash { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$map)
         }
     }
+    method clone(Hash:D:) is raw {
+        nqp::p6bindattrinvres(
+          nqp::create(self),Map,'$!storage',
+          nqp::clone(nqp::getattr(self,Map,'$!storage'))
+        )
+    }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
         nqp::bindattr(self,Map,'$!storage',nqp::hash)

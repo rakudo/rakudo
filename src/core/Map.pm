@@ -273,10 +273,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method hash() { self }
-    method clone(Map:D: *%) is raw {
-        nqp::p6bindattrinvres(
-          nqp::create(self),Map,'$!storage',nqp::clone($!storage))
-    }
+    method clone(Map:D:) is raw { self }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

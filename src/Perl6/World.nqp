@@ -30,6 +30,7 @@ my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
+my $SIG_ELEM_CODE_SIGIL          := 33554432;
 
 sub p6ize_recursive($x) {
     if nqp::islist($x) {
@@ -1838,6 +1839,9 @@ class Perl6::World is HLL::World {
         }
         elsif %param_info<sigil> eq '%' {
             $flags := $flags + $SIG_ELEM_HASH_SIGIL;
+        }
+        elsif %param_info<sigil> eq '&' {
+            $flags := $flags + $SIG_ELEM_CODE_SIGIL;
         }
         if %param_info<default_from_outer> {
             $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;

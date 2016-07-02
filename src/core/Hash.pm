@@ -386,13 +386,14 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method STORE_AT_KEY(TKey \key, TValue \x --> Nil) {
-            nqp::bindattr(self,Map,'$!storage',nqp::hash)
-              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-            my str $which = key.WHICH;
-
             nqp::bindkey(
-              nqp::getattr(self,Map,'$!storage'),$which,Pair.new(key,
-              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')) = x)
+              nqp::getattr(self,Map,'$!storage'),
+              nqp::unbox_s(key.WHICH),
+              Pair.new(
+                key,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))
+                = x
+              )
             )
         }
 

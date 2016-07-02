@@ -244,11 +244,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     proto method STORE_AT_KEY(|) { * }
     multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key), value)
     }
     multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        $!storage := nqp::hash unless nqp::defined($!storage);
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
 

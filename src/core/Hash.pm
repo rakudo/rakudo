@@ -71,9 +71,19 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    method STORE_AT_KEY(\key, Mu \x --> Nil) {
-        nqp::findmethod(Map,'STORE_AT_KEY')(self,key,
-           nqp::p6scalarfromdesc($!descriptor) = x)
+    multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
+        nqp::bindkey(
+          nqp::getattr(self,Map,'$!storage'),
+          nqp::unbox_s(key),
+          (nqp::p6scalarfromdesc($!descriptor) = x),
+        )
+    }
+    multi method STORE_AT_KEY(\key, Mu \x --> Nil) {
+        nqp::bindkey(
+          nqp::getattr(self,Map,'$!storage'),
+          nqp::unbox_s(key.Str),
+          (nqp::p6scalarfromdesc($!descriptor) = x),
+        )
     }
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {

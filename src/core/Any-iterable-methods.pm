@@ -292,6 +292,44 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         $result
                     }
 
+                    method push-all($target) {
+                        my int $redo;
+                        my $value;
+                        my $result;
+
+                        nqp::until(
+                          nqp::eqaddr(
+                            ($value := $!source.pull-one),IterationEnd
+                          ),
+                          nqp::stmts(
+                            ($redo = 1),
+                            nqp::while(
+                              $redo,
+                              nqp::stmts(
+                                ($redo = 0),
+                                nqp::handle(
+                                  nqp::if(
+                                    nqp::istype(
+                                      ($result := &!block($value)),Slip
+                                    ) && nqp::defined($result),
+                                    $result.iterator.push-all($target),
+                                    $target.push($result)
+                                  ),
+                                  'LABELED',
+                                  $!label,
+                                  'REDO',
+                                  ($redo = 1),
+                                  'LAST',
+                                  (return IterationEnd)
+                                )
+                              ),
+                              :nohandler
+                            )
+                          )
+                        );
+                        IterationEnd
+                    }
+
                     method sink-all() {
                         my int $redo;
                         my int $running = 1;

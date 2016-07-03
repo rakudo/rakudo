@@ -308,12 +308,21 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                   $redo = 0,
                                   nqp::handle(  # doesn't sink
                                     (&!block($value)),
-                                    'LABELED', $!label,
-                                    'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
-                                              ?? ($running = 0)
-                                              !! ($redo = 1)),
-                                    'REDO', ($redo = 1),
-                                    'LAST', ($running = 0)
+                                    'LABELED',
+                                    $!label,
+                                    'NEXT',
+                                    nqp::if(
+                                      nqp::eqaddr(
+                                        ($value := $!source.pull-one),
+                                        IterationEnd
+                                      ),
+                                      ($running = 0),
+                                      ($redo = 1)
+                                    ),
+                                    'REDO',
+                                    ($redo = 1),
+                                    'LAST',
+                                    ($running = 0)
                                   )
                                 ),
                               :nohandler

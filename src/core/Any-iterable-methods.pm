@@ -288,29 +288,40 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         my int $redo;
                         my int $running = 1;
                         my $value;
-                        while $running {
-                            if nqp::eqaddr(($value := $!source.pull-one()), IterationEnd) {
-                                $running = 0;
-                            }
-                            else {
-                                $redo = 1;
-                                nqp::while(
-                                  $redo,
-                                  nqp::stmts(
-                                    $redo = 0,
-                                    nqp::handle(  # doesn't sink
-                                      (&!block($value)),
-                                      'LABELED', $!label,
-                                      'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
-                                                ?? ($running = 0)
-                                                !! ($redo = 1)),
-                                      'REDO', $redo = 1,
-                                      'LAST', $running = 0
-                                    )
-                                  ),
-                                :nohandler);
-                            }
-                        }
+
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+                        nqp::while(
+                          $running,
+                          nqp::if(
+                            nqp::eqaddr(
+                              ($value := $!source.pull-one()),IterationEnd
+                            ),
+                            ($running = 0),
+                            nqp::stmts(
+                              ($redo = 1),
+                              nqp::while(
+                                $redo,
+                                nqp::stmts(
+                                  $redo = 0,
+                                  nqp::handle(  # doesn't sink
+                                    (&!block($value)),
+                                    'LABELED', $!label,
+                                    'NEXT', (nqp::eqaddr(($value := $!source.pull-one),IterationEnd)
+                                              ?? ($running = 0)
+                                              !! ($redo = 1)),
+                                    'REDO', ($redo = 1),
+                                    'LAST', ($running = 0)
+                                  )
+                                ),
+                              :nohandler
+                              )
+                            )
+                          )
+                        );
+} # needed for some reason
                         IterationEnd
                     }
                 }.new(&block,source,$label))

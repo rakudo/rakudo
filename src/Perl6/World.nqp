@@ -2141,6 +2141,7 @@ class Perl6::World is HLL::World {
         my $fixups := QAST::Stmts.new();
         my $des    := QAST::Stmts.new();
 
+        nqp::sayfh(nqp::getstderr, "finish_code_obj: " ~ $code.HOW.name($code) ~ "\n" ~ $code_past.dump) if nqp::getenvhash()<DEBUG>;
         # Remove it from the code objects stack.
         self.context().pop_code_object();
 
@@ -2190,6 +2191,7 @@ class Perl6::World is HLL::World {
         };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
             unless $precomp {
+                nqp::sayfh(nqp::getstderr, 'in the precomp freshcoderef') if nqp::getenvhash()<DEBUG>;
                 $compiler_thunk();
             }
             $precomp(|@pos, |%named);
@@ -2440,6 +2442,7 @@ class Perl6::World is HLL::World {
         # HLL.
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
         self.add_libs($wrapper);
+        nqp::sayfh(nqp::getstderr, 'compile_in_context for ' ~ $past.dump) if nqp::getenvhash()<DEBUG>;
 
         # Create outer lexical contexts with all symbols visible. Maybe
         # we can be a bit smarter here some day. But for now we just make a
@@ -3074,6 +3077,7 @@ class Perl6::World is HLL::World {
             self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
             CATCH { $ex := $_; }
             CONTROL {
+                nqp::sayfh(nqp::getstderr, $_.HOW.name($_));
                 if nqp::getextype($_) == nqp::const::CONTROL_WARN {
                     $/.CURSOR.worry(nqp::getmessage($_));
                     nqp::resume($_);

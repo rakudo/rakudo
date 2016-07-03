@@ -33,13 +33,34 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     }
 
     method deserialize(Str $str) {
+#?if jvm
+        my ($id, $src, $checksum, *@spec) = $str.split("\0", 7);
+        my @spec-pairs;
+        for @spec>>.match(/(<-[:]>+)':'(.+)/) {
+            @spec-pairs.push: .[0].Str => (.[1] ~~ / ^ \d+ $ / ?? .[1].Int !! .[1].Str);
+        }
+        note @spec-pairs if %*ENV<SPECIFIC_DEBUG>;
+        my CompUnit::DependencySpecification $spec .= new: |%(|@spec-pairs);
+#?endif
+#?if moarvm
         use MONKEY-SEE-NO-EVAL;
         my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
-        self.new(:$id, :$src, :$checksum, :spec(EVAL $spec));
+        $spec = EVAL $spec;
+#?endif
+        self.new(:$id, :$src, :$checksum, :$spec);
     }
 
     method serialize(--> Str) {
+#?if jvm
+        my $specs;
+        for $.spec.^attributes {
+            $specs ~= .name.substr(2) ~ ":" ~ $.spec."$(.name.substr(2))"() ~ "\0";
+        }
+        "$.id\0$.src\0$.checksum\0$specs"
+#?endif
+#?if !jvm
         "$.id\0$.src\0$.checksum\0{$.spec.perl}"
+#?endif
     }
 
     method Str() {

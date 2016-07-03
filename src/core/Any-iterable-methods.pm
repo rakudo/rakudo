@@ -271,12 +271,20 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                                     )
                                   )
                                 ),
-                                'LABELED', $!label,
-                                'NEXT', (nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
-                                          ?? ($result := IterationEnd)
-                                          !! ($redo = 1)),
-                                'REDO', $redo = 1,
-                                'LAST', $result := IterationEnd
+                                'LABELED',
+                                $!label,
+                                'NEXT',
+                                nqp::if(
+                                  nqp::eqaddr(
+                                    ($value := $!source.pull-one),IterationEnd
+                                  ),
+                                  ($result := IterationEnd),
+                                  ($redo = 1)
+                                ),
+                                'REDO',
+                                ($redo = 1),
+                                'LAST',
+                                ($result := IterationEnd)
                               ),
                             ),
                           :nohandler);

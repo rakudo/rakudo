@@ -219,26 +219,57 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! Nil
     }
 
-    method STORE(\to_store) {
-        method !STORE_LIST(\x --> Nil) {
-            self.STORE_AT_KEY(.key,.value) for x.list;
-        }
+    method !STORE_MAP(\map --> Nil) {
+        nqp::if(
+          nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::stmts(
+            (my $iter := nqp::iterator($other)),
+            nqp::while(
+              $iter,
+              nqp::stmts(
+                nqp::shift($iter),
+                self.STORE_AT_KEY(
+                  nqp::iterkey_s($iter),nqp::iterval($iter)
+                )
+              )
+            )
+          )
+        )
+    }
 
+    method STORE(\to_store) {
         $!storage := nqp::hash();
         my $iter  := to_store.iterator;
         my Mu $x;
         my Mu $y;
 
-        nqp::istype($x,Pair)
-          ?? self.STORE_AT_KEY($x.key, $x.value)
-          !! nqp::istype($x, Map) && !nqp::iscont($x)
-            ?? self!STORE_LIST($x)
-            !! (($y := $iter.pull-one) =:= IterationEnd)
-              ?? nqp::istype($x,Failure)
-                ?? $x.throw
-                !! X::Hash::Store::OddNumber.new.throw
-              !! self.STORE_AT_KEY($x,$y)
-                until ($x := $iter.pull-one) =:= IterationEnd;
+        nqp::until(
+          nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            self.STORE_AT_KEY(
+              nqp::getattr(nqp::decont($x),Pair,'$!key'),
+              nqp::getattr(nqp::decont($x),Pair,'$!value')
+            ),
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              self!STORE_MAP($x),
+              nqp::if(
+                nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => nqp::add_i(nqp::mul_i(nqp::elems($!storage),2),1),
+                    last  => $x
+                  ).throw
+                ),
+                self.STORE_AT_KEY($x,$y)
+              )
+            )
+          )
+        );
+        
         self
     }
 

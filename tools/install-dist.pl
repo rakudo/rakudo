@@ -1,5 +1,6 @@
 #!/usr/bin/env perl6
 use v6.c;
+use CompUnit::Repository::Staging;
 
 role Distribution::Directory {
     has IO::Path $.path;
@@ -36,20 +37,6 @@ role Distribution::Directory {
                 ?? ~$resources-dir.child('libraries').child($*VM.platform-library-name($0.Str.IO))
                 !! ~$resources-dir.child($_)
         }) );
-    }
-}
-
-class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
-    has Str $.name;
-
-    submethod BUILD(Str :$!name --> Nil) { }
-
-    method name(--> Str) {
-        $!name
-    }
-    method source-file(Str $name --> IO::Path) {
-        my $file = self.prefix.child($name);
-        $file.e ?? $file !! self.next-repo.source-file($name)
     }
 }
 

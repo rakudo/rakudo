@@ -1,6 +1,7 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
 class CompUnit::Repository::AbsolutePath { ... }
+class CompUnit::Repository::Unknown      { ... }
 class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
 
@@ -12,9 +13,9 @@ class CompUnit::RepositoryRegistry {
         state $lock = Lock.new;
 
         my ($short-id,%options,$path) := parse-include-spec($spec);
-        my $class = short-id2class($short-id);
-        die "No class loaded for short-id '$short-id': $spec -> $path"
-          if $class === Any;
+        my $class := short-id2class($short-id);
+        return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
+            if so $class && nqp::istype($class, Failure) or $class === Any;
 
         my $abspath = $class.?absolutify($path) // $path;
         my $id      = "$short-id#$abspath";
@@ -118,11 +119,10 @@ class CompUnit::RepositoryRegistry {
         my %repos;
         my $SPEC := $*SPEC;
         sub normalize(\spec){
-            my $parts := nqp::split('#',spec);
-            nqp::concat(
-              nqp::concat(nqp::atpos($parts,0),'#'),
-              nqp::unbox_s($SPEC.canonpath(nqp::atpos($parts,1)))
-            );
+            my $parts := nqp::split('#', spec);
+            my $path := nqp::elems($parts) - 1;
+            nqp::bindpos($parts, $path, $SPEC.canonpath(nqp::atpos($parts, $path)));
+            nqp::join('#', $parts)
         };
 
         # create reverted, unique list of path-specs
@@ -212,6 +212,33 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
+    method resolve-unknown-repos(@repos) {
+        for @repos.pairs {
+            if nqp::istype($_.value, CompUnit::Repository::Unknown) {
+                my $i = $_.key;
+                my $next-repo := @repos[$i + 1];
+
+                my $head := PROCESS<$REPO>;
+                PROCESS::<$REPO> := $next-repo;
+                my $comp_unit = $next-repo.need(
+                    CompUnit::DependencySpecification.new(:short-name($_.value.short-name))
+                );
+                PROCESS::<$REPO> := $head;
+
+                my $global := nqp::list(); # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
+                nqp::push($global, "GLOBAL");
+                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package.WHO);
+                my $new-repo = self.repository-for-spec($_.value.path-spec, :$next-repo);
+                if $i > 0 {
+                    @repos[$i - 1].next-repo = $new-repo if $i > 0;
+                }
+                else {
+                    PROCESS::<$REPO> := $new-repo;
+                }
+            }
+        }
+    }
+
     # Handles any object repossession conflicts that occurred during module load,
     # or complains about any that cannot be resolved.
     method resolve_repossession_conflicts(@conflicts) {
@@ -240,16 +267,19 @@ class CompUnit::RepositoryRegistry {
                       my $type = try ::($short-id);
                       if $type !=== Any {
                           if $type.?short-id -> $id {
-                              die "Have '$id' already registered for %short-id2class{$id}.^name()"
-                                if %short-id2class.EXISTS-KEY($id);
-                              %short-id2class.BIND-KEY($id,$type);
+                              if %short-id2class.EXISTS-KEY($id) {
+                                  %short-id2class.AT-KEY($id);
+                              }
+                              else {
+                                  %short-id2class.BIND-KEY($id, $type);
+                              }
                           }
                           else {
                               die "Class '$type.^name()' is not a CompUnit::Repository";
                           }
                       }
                       else {
-                          die "No CompUnit::Repository known by '$short-id'";
+                          Any
                       }
                   }
               } );
@@ -263,12 +293,11 @@ class CompUnit::RepositoryRegistry {
     }
 
 # prime the short-id -> class lookup
-    short-id2class('file')    = 'CompUnit::Repository::FileSystem';
-    short-id2class('inst')    = 'CompUnit::Repository::Installation';
-    short-id2class('staging') = 'CompUnit::Repository::Staging';
-    short-id2class('ap')      = 'CompUnit::Repository::AbsolutePath';
-    short-id2class('nqp')     = 'CompUnit::Repository::NQP';
-    short-id2class('perl5')   = 'CompUnit::Repository::Perl5';
+    short-id2class('file')  = 'CompUnit::Repository::FileSystem';
+    short-id2class('inst')  = 'CompUnit::Repository::Installation';
+    short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
+    short-id2class('nqp')   = 'CompUnit::Repository::NQP';
+    short-id2class('perl5') = 'CompUnit::Repository::Perl5';
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
         my %options;

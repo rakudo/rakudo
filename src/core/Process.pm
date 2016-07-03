@@ -50,7 +50,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
-    PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
+    my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
+    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo.repo-chain);
+    PROCESS::<$REPO>
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {

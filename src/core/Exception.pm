@@ -1685,7 +1685,21 @@ my class X::Constructor::Positional is Exception {
 }
 
 my class X::Hash::Store::OddNumber is Exception {
-    method message() { "Odd number of elements found where hash initializer expected" }
+    has $.found;
+    has $.last;
+    method message() {
+        my $msg =
+          "Odd number of elements found where hash initializer expected";
+        if $.found == 1 {
+            $msg ~= $.last
+              ?? ":\nOnly saw: $.last.perl()"
+              !! ":\nOnly saw 1 element"
+        }
+        else {
+            $msg ~= ":\nFound $.found (implicit) elements";
+            $msg ~= ":\nLast element seen: $.last.perl()" if $.last;
+        }
+    }
 }
 
 my class X::Pairup::OddNumber is Exception {

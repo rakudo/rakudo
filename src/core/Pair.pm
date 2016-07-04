@@ -3,15 +3,15 @@ my class Pair does Associative {
     has $.value is rw is default(Nil);
 
     multi method new(Mu \key, Mu \value) {
-        my \p := nqp::create(self);
-        nqp::bindattr(p, Pair, '$!key', nqp::decont(key));
-        nqp::bindattr(p, Pair, '$!value', value);
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',nqp::decont(key));
+        nqp::bindattr(p,Pair,'$!value',value);
         p
     }
     multi method new(Mu :$key, Mu :$value) {
-        my \p := nqp::create(self);
-        nqp::bindattr(p, Pair, '$!key', $key);
-        nqp::bindattr(p, Pair, '$!value', $value);
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',$key);
+        nqp::bindattr(p,Pair,'$!value',$value);
         p
     }
 

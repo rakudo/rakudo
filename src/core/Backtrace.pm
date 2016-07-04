@@ -15,8 +15,11 @@ my class Backtrace::Frame {
         $!code := code;
         self
     }
-    method new(\file,\line,\code,\subname) {
+    multi method new(Backtrace::Frame: \file,\line,\code,\subname) {
         nqp::create(self)!SET-SELF(file,line,code,subname)
+    }
+    multi method new(Backtrace::Frame: |c) {
+        self.bless(|c)
     }
 
     method subtype(Backtrace::Frame:D:) {

@@ -39,17 +39,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method Int(Str:D:) {
         my str $s     = self;
         my int $chars = nqp::chars($s);
-        nqp::isge_i(nqp::findnotcclass(
-          nqp::const::CCLASS_NUMERIC,$s,0,$chars),$chars)
-            ?? nqp::atpos(nqp::radix_I(10,$s,0,0,Int),0)
-#?if moar
-            !! nqp::iseq_i($chars,1)
-              ?? (unival(nqp::ord($s)) // self.Numeric).Int
-              !! self.Numeric.Int
-#?endif
-#?if !moar
-            !! self.Numeric.Int
-#?endif
+        nqp::isge_i(
+          nqp::findnotcclass(nqp::const::CCLASS_NUMERIC,$s,0,$chars),
+          $chars
+        ) ?? nqp::atpos(nqp::radix_I(10,$s,0,0,Int),0)
+          !! self.Numeric.Int;
     }
     method Num(Str:D:) { self.Numeric.Num; }
 

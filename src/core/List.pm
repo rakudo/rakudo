@@ -636,34 +636,48 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has int $!on-key;
             has int $!key;
 
-            method !SET-SELF(\iter) { $!iter := iter; $!on-key = 1; self }
+            method !SET-SELF(\iter) {
+                $!iter := iter;
+                $!on-key = 1;
+                $!key    = 0;
+                self
+            }
             method new(\iter)   { nqp::create(self)!SET-SELF(iter) }
 
             method pull-one() is raw {
-                if $!on-key {
-                    my $pulled;
-                    if ($pulled := $!iter.pull-one) =:= IterationEnd {
-                        IterationEnd
-                    }
-                    else {
-                        $!pulled := $pulled;
-                        $!on-key  = 0;
-                        $!key++
-                    }
-                }
-                else {
-                    $!on-key = 1;
+                nqp::if(
+                  $!on-key,
+                  nqp::if(
+                    nqp::eqaddr(
+                      ($!pulled := $!iter.pull-one),IterationEnd
+                    ),
+                    IterationEnd,
+                    nqp::stmts(
+                      ($!on-key = 0),
+                      +$!key  # need a right value
+                    )
+                  ),
+                  nqp::stmts(
+                    ($!on-key = 1),
+                    ($!key = nqp::add_i($!key,1)),
                     $!pulled
-                }
+                  )
+                )
             }
             method push-all($target) {
                 my $pulled;
                 my int $key;
-                until ($pulled := $!iter.pull-one) =:= IterationEnd {
-                    $target.push(nqp::p6box_i($key));
-                    $target.push($pulled);
-                    $key = $key + 1;
-                }
+                nqp::until(
+                  nqp::eqaddr(
+                    ($pulled := $!iter.pull-one),
+                    IterationEnd
+                  ),
+                  nqp::stmts(
+                    $target.push(nqp::p6box_i($key)),
+                    $target.push($pulled),
+                    ($key = nqp::add_i($key,1))
+                  )
+                );
                 IterationEnd
             }
         }.new(self.iterator))

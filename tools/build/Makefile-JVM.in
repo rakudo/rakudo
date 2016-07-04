@@ -243,8 +243,8 @@ J_CLEANUPS = \
 
 HARNESS_TYPE =
 
-J_HARNESS = $(PERL5) t/harness5 --jvm
-J_HARNESS_WITH_FUDGE = $(J_HARNESS) --fudge --keep-exit-code
+J_HARNESS5 = $(PERL5) t/harness5 --jvm
+J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
 j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
@@ -332,23 +332,23 @@ j-test    : j-coretest
 j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
-	$(J_HARNESS) t/01-sanity t/03-jvm t/04-nativecall
+	$(J_HARNESS5) t/01-sanity t/03-jvm t/04-nativecall
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data
-	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/spectest.data
 
 j-spectest_full: j-testable
-	$(J_HARNESS_WITH_FUDGE) t/spec
+	$(J_HARNESS5_WITH_FUDGE) t/spec
 
 j-quicktest: j-testable t/spectest.data
-	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --quick
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/spectest.data --quick
 
 j-stresstest: j-testable t/spectest.data
-	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/spectest.data --stress
 
 j-rakudo_test_run.tar.gz: j-testable t/spectest.data
-	- $(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive j-rakudo_test_run.tar.gz
+	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/spectest.data --archive j-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
@@ -358,16 +358,16 @@ j-testable : j-all spectest_checkout spectest_update
 
 # Run the tests in t/localtest.data
 j-localtest: j-all spectest_checkout t/localtest.data
-	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
 j-localtest_loud: j-all spectest_checkout t/localtest.data
-	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 sometests: j-all
-	@$(J_HARNESS_WITH_FUDGE) $(TESTFILES)
+	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
 j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.pl
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin

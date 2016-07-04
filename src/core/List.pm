@@ -112,8 +112,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method reify-at-least(int $elems) {
             $!current-iter := Iterator
               if $!current-iter.DEFINITE 
-              && $!current-iter.push-at-least($!reification-target,
-                   nqp::sub_i($elems,nqp::elems($!reified))) =:= IterationEnd;
+              && nqp::eqaddr(
+                   $!current-iter.push-at-least(
+                     $!reification-target,
+                     nqp::sub_i($elems,nqp::elems($!reified))
+                   ),
+                   IterationEnd
+                 );
 
             # there is a future
             if $!future.DEFINITE {
@@ -130,10 +135,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                         # We know we'll exit the loop, since the < $elems check
                         # must be False (unless the iterator broke contract).
                         $!current-iter := iter
-                          unless iter.push-at-least(
-                            $!reification-target,
-                            nqp::sub_i($elems,nqp::elems($!reified))
-                          ) =:= IterationEnd;
+                          unless nqp::eqaddr(
+                            iter.push-at-least(
+                              $!reification-target,
+                              nqp::sub_i($elems,nqp::elems($!reified))
+                            ),
+                            IterationEnd
+                          );
                     }
                     else {
                         nqp::stmts(  # doesn't sink
@@ -152,15 +160,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method reify-until-lazy() {
             $!current-iter := Iterator
               if $!current-iter.DEFINITE
-              && $!current-iter.push-until-lazy($!reification-target)
-                   =:= IterationEnd;
+              && nqp::eqaddr(
+                   $!current-iter.push-until-lazy($!reification-target),
+                   IterationEnd
+                 );
 
             if $!future.DEFINITE && !$!current-iter.DEFINITE {
                 while nqp::elems($!future) {
                     my \current = nqp::shift($!future);
                     if nqp::istype(current, Slip) && nqp::isconcrete(current) {
                         my \iter = current.iterator;
-                        unless iter.push-until-lazy($!reification-target) =:= IterationEnd {
+                        unless nqp::eqaddr(
+                          iter.push-until-lazy($!reification-target),
+                          IterationEnd
+                        ) {
                             $!current-iter := iter;
                             last;
                         }

@@ -88,37 +88,37 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, (:$SINK), %other );
+    SLICE_ONE_LIST( SELF, $pos, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.DELETE-POS($pos)
-      !! SLICE_ONE_LIST( SELF, $pos, (:$delete), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$exists!, *%other ) is raw {
     $exists && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.EXISTS-POS($pos)
-      !! SLICE_ONE_LIST( SELF, $pos, (:$exists), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$kv!, *%other ) is raw {
     $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? ($pos, SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$kv), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$p!, *%other ) is raw {
     $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? Pair.new($pos,SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$p), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'p', $p, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$k!, *%other ) is raw {
     $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? $pos !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$k), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is raw {
     $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? nqp::decont(SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$v), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'v', $v, %other );
 }
 
 # @a[Int 1]
@@ -132,37 +132,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, (:$SINK), %other );
+    SLICE_ONE_LIST( SELF, $pos, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.DELETE-POS($pos)
-      !! SLICE_ONE_LIST( SELF, $pos, (:$delete), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$exists!, *%other ) is raw {
     $exists && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.EXISTS-POS($pos)
-      !! SLICE_ONE_LIST( SELF, $pos, (:$exists), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$kv!, *%other ) is raw {
     $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? ($pos, SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$kv), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$p!, *%other ) is raw {
     $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? Pair.new($pos,SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$p), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'p', $p, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$k!, *%other ) is raw {
     $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? $pos !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$k), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$v!, *%other ) is raw {
     $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS($pos) ?? nqp::decont(SELF.AT-POS($pos)) !! ())
-      !! SLICE_ONE_LIST( SELF, $pos, (:$v), %other );
+      !! SLICE_ONE_LIST( SELF, $pos, 'v', $v, %other );
 }
 
 # @a[$x]
@@ -176,37 +176,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, (:$SINK), %other );
+    SLICE_ONE_LIST( SELF, pos.Int, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.DELETE-POS(pos.Int)
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$delete), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$exists!, *%other ) is raw {
     $exists && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.EXISTS-POS(pos.Int)
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$exists), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$kv!, *%other ) is raw {
     $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS(pos.Int) ?? (pos, SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$kv), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$p!, *%other ) is raw {
     $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS(pos.Int) ?? Pair.new(pos, SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$p), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'p', $p, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$k!, *%other ) is raw {
     $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS(pos.Int) ?? pos !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$k), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is raw {
     $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-POS(pos.Int) ?? nqp::decont(SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, (:$v), %other );
+      !! SLICE_ONE_LIST( SELF, pos.Int, 'v', $v, %other );
 }
 
 # @a[@i]
@@ -292,37 +292,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is raw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$SINK!, *%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$SINK), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'SINK', $SINK, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$SINK), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$delete!,*%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$delete), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$delete), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$exists!,*%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$exists), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'exists', $exists, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$exists), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$kv!, *%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$kv), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'kv', $kv, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$kv), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$p!, *%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$p), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'p', $p, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$p), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$k!, *%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$k), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'k', $k, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$k), %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is raw {
     nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, (:$v), %other )
+        ?? SLICE_ONE_LIST( SELF, pos.Int, 'v', $v, %other )
         !! SLICE_MORE_LIST( SELF, POSITIONS(SELF, pos), (:$v), %other )
 }
 
@@ -346,42 +346,42 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is raw 
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$delete), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$delete), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is raw {
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$exists), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$exists), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is raw {
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$kv), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$kv), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is raw {
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$p), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$p), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is raw {
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$k), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$k), %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is raw {
     my $*INDEX = 'Effective index';
     my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
     nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, (:$v), %other )
+      ?? SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other )
       !! SLICE_MORE_LIST( SELF, @$pos, (:$v), %other );
 }
 

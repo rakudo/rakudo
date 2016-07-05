@@ -33,32 +33,41 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 
     say Q:a:to/SOURCE/;
 # internal 1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
+sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) {
     my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
-    nqp::bindkey($d,
-      nqp::unbox_s(nqp::getattr(nqp::decont($pair),Pair,'$!key')),
-      nqp::decont(nqp::getattr(nqp::decont($pair),Pair,'$!value')),
-    );
+    nqp::bindkey($d,nqp::unbox_s($key),nqp::decont($value));
+
+    sub HANDLED($key) {
+        nqp::if(
+          nqp::existskey($d,nqp::unbox_s($key)),
+          nqp::stmts(
+            (my $value := nqp::atkey($d,$key)),
+            nqp::deletekey($d,$key),
+            $value
+          ),
+          Nil
+        )
+    }
 
     my @nogo;
     my \result = do {
 
-        if DELETEKEY($d,'delete') {            # :delete:*
-            if DELETEKEY($d,'SINK') {            # :delete:SINK
+        if HANDLED('delete') {            # :delete:*
+            if HANDLED('SINK') {            # :delete:SINK
                 SELF.@DELETE[]$one,:SINK);
             }
             elsif nqp::elems($d) == 0 {       # :delete
                 SELF.@DELETE[]$one);
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
-                my $exists   := DELETEKEY($d,'exists');
+                my $exists   := HANDLED('exists');
                 my $wasthere := SELF.@EXISTS[]$one);
                 SELF.@DELETE[]$one);
                 if nqp::elems($d) == 0 {          # :delete:exists(0|1)
                     !( $wasthere ?^ $exists )
                 }
                 elsif nqp::existskey($d,'kv') {   # :delete:exists(0|1):kv(0|1)
-                    my $kv := DELETEKEY($d,'kv');
+                    my $kv := HANDLED('kv');
                     if nqp::elems($d) == 0 {
                         !$kv || $wasthere
                           ?? ( $one, !( $wasthere ?^ $exists ) )
@@ -69,7 +78,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                     }
                 }
                 elsif nqp::existskey($d,'p') {    # :delete:exists(0|1):p(0|1)
-                    my $p := DELETEKEY($d,'p');
+                    my $p := HANDLED('p');
                     if nqp::elems($d) == 0 {
                         !$p || $wasthere
                           ?? Pair.new($one, !($wasthere ?^ $exists) )
@@ -84,7 +93,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                 }
             }
             elsif nqp::existskey($d,'kv') {    # :delete:kv(0|1)
-                my $kv := DELETEKEY($d,'kv');
+                my $kv := HANDLED('kv');
                 if nqp::elems($d) == 0 {
                     !$kv || SELF.@EXISTS[]$one)
                       ?? ( $one, SELF.@DELETE[]$one) )
@@ -95,7 +104,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                 }
             }
             elsif nqp::existskey($d,'p') {     # :delete:p(0|1)
-                my $p := DELETEKEY($d,'p');
+                my $p := HANDLED('p');
                 if nqp::elems($d) == 0 {
                     !$p || SELF.@EXISTS[]$one)
                       ?? Pair.new($one, SELF.@DELETE[]$one))
@@ -106,7 +115,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                 }
             }
             elsif nqp::existskey($d,'k') {     # :delete:k(0|1)
-                my $k := DELETEKEY($d,'k');
+                my $k := HANDLED('k');
                 if nqp::elems($d) == 0 {
                     !$k || SELF.@EXISTS[]$one)
                       ?? do { SELF.@DELETE[]$one); $one }
@@ -117,7 +126,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                 }
             }
             elsif nqp::existskey($d,'v') {     # :delete:v(0|1)
-                my $v := DELETEKEY($d,'v');
+                my $v := HANDLED('v');
                 if nqp::elems($d) == 0 {
                     !$v || SELF.@EXISTS[]$one)
                       ?? SELF.@DELETE[]$one)
@@ -132,13 +141,13 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
             }
         }
         elsif nqp::existskey($d,'exists') {  # :!delete?:exists(0|1):*
-            my $exists  := DELETEKEY($d,'exists');
+            my $exists  := HANDLED('exists');
             my $wasthere = SELF.@EXISTS[]$one);
             if nqp::elems($d) == 0 {           # :!delete?:exists(0|1)
                 !( $wasthere ?^ $exists )
             }
             elsif nqp::existskey($d,'kv') {    # :!delete?:exists(0|1):kv(0|1)
-                my $kv := DELETEKEY($d,'kv');
+                my $kv := HANDLED('kv');
                 if nqp::elems($d) == 0 {
                     !$kv || $wasthere
                       ?? ( $one, !( $wasthere ?^ $exists ) )
@@ -149,7 +158,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
                 }
             }
             elsif nqp::existskey($d,'p') {     # :!delete?:exists(0|1):p(0|1)
-                my $p := DELETEKEY($d,'p');
+                my $p := HANDLED('p');
                 if nqp::elems($d) == 0 {
                     !$p || $wasthere
                       ?? Pair.new($one, !( $wasthere ?^ $exists ))
@@ -164,7 +173,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
             }
         }
         elsif nqp::existskey($d,'kv') {      # :!delete?:kv(0|1):*
-            my $kv := DELETEKEY($d,'kv');
+            my $kv := HANDLED('kv');
             if nqp::elems($d) == 0 {           # :!delete?:kv(0|1)
                 !$kv || SELF.@EXISTS[]$one)
                   ?? ($one, SELF.@AT[]$one))
@@ -175,7 +184,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
             }
         }
         elsif nqp::existskey($d,'p') {       # :!delete?:p(0|1):*
-            my $p := DELETEKEY($d,'p');
+            my $p := HANDLED('p');
             if nqp::elems($d) == 0 {           # :!delete?:p(0|1)
                 !$p || SELF.@EXISTS[]$one)
                   ?? Pair.new($one, SELF.@AT[]$one))
@@ -186,7 +195,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
             }
         }
         elsif nqp::existskey($d,'k') {       # :!delete?:k(0|1):*
-            my $k := DELETEKEY($d,'k');
+            my $k := HANDLED('k');
             if nqp::elems($d) == 0 {           # :!delete?:k(0|1)
                 !$k || SELF.@EXISTS[]$one)
                   ?? $one
@@ -197,7 +206,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$pair,%adv) {
             }
         }
         elsif nqp::existskey($d,'v') {       # :!delete?:v(0|1):*
-            my $v := DELETEKEY($d,'v');           # :!delete?:v(0|1)
+            my $v := HANDLED('v');             # :!delete?:v(0|1)
             if nqp::elems($d) == 0 {
                 !$v || SELF.@EXISTS[]$one)
                   ?? SELF.@AT[]$one)

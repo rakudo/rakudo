@@ -223,6 +223,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     my \mast_frames := nqp::hash();
+    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
     my $compiled := $compiler.compile(
         $code.Stringy,
         :outer_ctx($eval_ctx),

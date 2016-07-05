@@ -236,6 +236,9 @@ my class CX::Succeed does X::Control {
 my class CX::Proceed does X::Control {
     method message() { "<proceed control exception>" }
 }
+my class CX::Return does X::Control {
+    method message() { "<return control exception>" }
+}
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -246,13 +249,13 @@ sub EXCEPTION(|) {
     } else {
         my int $type = nqp::getextype($vm_ex);
         my $ex;
-        if $type == nqp::const::CONTROL_NEXT {
+        if $type +& nqp::const::CONTROL_NEXT {
             $ex := CX::Next.new();
         }
-        elsif $type == nqp::const::CONTROL_REDO {
+        elsif $type +& nqp::const::CONTROL_REDO {
             $ex := CX::Redo.new();
         }
-        elsif $type == nqp::const::CONTROL_LAST {
+        elsif $type +& nqp::const::CONTROL_LAST {
             $ex := CX::Last.new();
         }
         elsif $type == nqp::const::CONTROL_TAKE {
@@ -269,6 +272,9 @@ sub EXCEPTION(|) {
         elsif $type == nqp::const::CONTROL_PROCEED {
             $ex := CX::Proceed.new();
         }
+        elsif $type == nqp::const::CONTROL_RETURN {
+            $ex := CX::Return.new();
+        }
         elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
                 nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
             $ex := X::Method::NotFound.new(
@@ -278,7 +284,7 @@ sub EXCEPTION(|) {
         }
         else {
             $ex := nqp::create(X::AdHoc);
-            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex) // 'unknown exception'));
         }
         nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
         $ex;

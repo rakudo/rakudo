@@ -1875,6 +1875,15 @@ BEGIN {
                 my @coerce_type_idxs;
                 my @coerce_type_objs;
                 for @params -> $param {
+                    # If it's got a sub-signature, also need a bind check and
+                    # to check constraint on every dispatch. Same if it's got a
+                    # `where` clause.
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
+                           nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                        %info<bind_check> := 1;
+                        %info<constrainty> := 1;
+                    }
+
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
@@ -1889,13 +1898,6 @@ BEGIN {
                             %info<bind_check> := 1;
                         }
                         next;
-                    }
-
-                    # If it's got a sub-signature, also need a bind check and
-                    # to check constraint on every dispatch.
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) {
-                        %info<bind_check> := 1;
-                        %info<constrainty> := 1;
                     }
 
                     # If it's named slurpy, we're done, also we don't need a bind
@@ -1929,8 +1931,6 @@ BEGIN {
                     }
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
                         %info<constraints>[$significant_param] := 1;
-                        %info<bind_check> := 1;
-                        %info<constrainty> := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                         $num_types++;

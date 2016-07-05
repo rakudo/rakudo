@@ -2,7 +2,15 @@ class CompUnit::Handle {
     has Mu $!module_ctx;
     has Mu $!unit;
 
-    submethod new(Mu \module_ctx) {
+    multi submethod new() {
+        nqp::create(self)
+    }
+
+    method ctxsave() {
+        $!module_ctx := nqp::ctxcaller(nqp::ctx()) unless $!module_ctx;
+    }
+
+    multi submethod new(Mu \module_ctx) {
         nqp::p6bindattrinvres(
           nqp::create(self),CompUnit::Handle,'$!module_ctx', module_ctx
         )

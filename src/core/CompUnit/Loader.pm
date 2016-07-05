@@ -8,7 +8,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Decode the specified byte buffer as source code, and compile it
-    method load-source(Buf:D $bytes) returns CompUnit::Handle {
+    method load-source(Blob:D $bytes) returns CompUnit::Handle {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
 
         my $*CTXSAVE := self;
@@ -51,7 +51,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
-    method load-precompilation(Buf:D $bytes) returns CompUnit::Handle {
+    method load-precompilation(Blob:D $bytes) returns CompUnit::Handle {
         my $*CTXSAVE := self;
         my %*COMPILING := nqp::hash();
         my Mu $*MAIN_CTX;

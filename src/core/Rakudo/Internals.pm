@@ -483,10 +483,10 @@ my class Rakudo::Internals {
             self.keys.map({ slip($_, self.AT-POS(|$_)) })
         }
         multi method pairs(::?CLASS:D:) {
-            self.keys.map({ $_ => self.AT-POS(|$_) })
+            self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
         }
         multi method antipairs(::?CLASS:D:) {
-            self.keys.map({ self.AT-POS(|$_) => $_ })
+            self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat

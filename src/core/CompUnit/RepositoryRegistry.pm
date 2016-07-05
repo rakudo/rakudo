@@ -121,7 +121,7 @@ class CompUnit::RepositoryRegistry {
         sub normalize(\spec){
             my $parts := nqp::split('#', spec);
             my $path := nqp::elems($parts) - 1;
-            nqp::bindpos($parts, $path, $SPEC.canonpath(nqp::atpos($parts, $path)));
+            nqp::bindpos($parts, $path, nqp::unbox_s($SPEC.canonpath(nqp::atpos($parts, $path))));
             nqp::join('#', $parts)
         };
 

@@ -724,8 +724,13 @@ Parenthesize as \\(...) if you intended a capture of a single numeric value./
 my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     has $.value;
     method message {
-qq/Leading 0 does not indicate octal in Perl 6.
-Please use 0o$!value if you mean that./
+        if $!value >= 8 {
+            "Leading 0 is not allowed. For octals, use '0o' prefix.";
+        }
+        else {
+            'Leading 0 does not indicate octal in Perl 6.'
+                ~ " Please use 0o$!value if you mean that.";
+        }
     }
 }
 
@@ -2292,7 +2297,7 @@ my class X::PhaserExceptions is Exception {
 }
 
 nqp::bindcurhllsym('P6EX', nqp::hash(
-  'X::TypeCheck::Binding', 
+  'X::TypeCheck::Binding',
   sub (Mu $got, Mu $expected, $symbol?) {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },

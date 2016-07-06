@@ -65,12 +65,15 @@ my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $perl6jars
           . ' -Dperl6.prefix=' . $prefix
           . ' -Djna.library.path=' . $sharedir
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
+my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address=' 
+            . ($^O eq 'MSWin32' ? '8000' : '${RAKUDO_JDB_PORT:=8000}') 
+            . ',server=y,suspend=y';
 
 if ($debugger) {
     install "perl6-debug-j", "java $jopts perl6-debug";
 }
 else {
     install "perl6-j", "java $jopts perl6";
-    install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y $jopts perl6";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6";
     install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
 }

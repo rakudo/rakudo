@@ -208,6 +208,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
+        if %*ENV<RAKUDO_PRECOMP_NESTED_JDB> {
+            $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
+            note "starting jdb on port " ~ ++%*ENV<RAKUDO_JDB_PORT>;
+        }
         my $proc = run(
           $perl6,
           $lle,

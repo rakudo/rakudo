@@ -886,9 +886,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           $!todo.DEFINITE,
           nqp::stmts(
             $!todo.reify-until-lazy,
-            !$!todo.fully-reified
-          ),
-          False
+            nqp::if(
+              $!todo.fully-reified,
+              nqp::stmts(
+                ($!todo := Mu),
+                False
+              ),
+              True
+            )
+          )
         )
     }
 

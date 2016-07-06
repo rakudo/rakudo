@@ -451,24 +451,6 @@ my class Array { # declared in BOOTSTRAP
             unless nqp::getattr(self, List, '$!reified').DEFINITE;
     }
 
-    method is-lazy() {
-        my $todo := nqp::getattr(self, List, '$!todo');
-        nqp::if(
-          $todo.DEFINITE,
-          nqp::stmts(
-            $todo.reify-until-lazy,
-            nqp::if(
-              $todo.fully-reified,
-              nqp::stmts(
-                nqp::bindattr(self,List,'$!todo',Mu),
-                False
-              ),
-              True
-            )
-          )
-        )
-    }
-
     proto method STORE(|) { * }
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)

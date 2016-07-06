@@ -635,58 +635,80 @@ my class Array { # declared in BOOTSTRAP
 
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
-        self!ensure-allocated();
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
           !! self!append-list(value)
     }
     multi method push(Array:D: \value) {
-        self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'push to') if self.is-lazy;
-
-        nqp::push(
-          nqp::getattr(self, List, '$!reified'),
-          nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-        );
-        self
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => 'push to')),
+          nqp::stmts(
+            nqp::push(
+              nqp::if(
+                nqp::getattr(self,List,'$!reified').DEFINITE,
+                nqp::getattr(self,List,'$!reified'),
+                nqp::bindattr(self,List,'$!reified',
+                  nqp::create(IterationBuffer))
+              ),
+              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+            ),
+            self
+          )
+        )
     }
     multi method push(Array:D: **@values is raw) {
-        self!ensure-allocated();
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
           !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
-        self!ensure-allocated();
-        if self.is-lazy {
-            Failure.new(X::Cannot::Lazy.new(action => 'append to'))
-        }
-        elsif nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
-            nqp::push(
-                nqp::getattr(self, List, '$!reified'),
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-            );
-            self
-        }
-        else {
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => 'append to')),
+          nqp::if(
+            (nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))),
+            nqp::stmts(
+              nqp::push(
+                nqp::if(
+                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::getattr(self,List,'$!reified'),
+                  nqp::bindattr(self,List,'$!reified',
+                    nqp::create(IterationBuffer))
+                ),
+                nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+              ),
+              self
+            ),
             self!append-list(value.list)
-        }
+          )
+        )
     }
     multi method append(Array:D: **@values is raw) {
-        self!ensure-allocated();
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(action => 'append to'))
           !! self!append-list(@values)
     }
     method !append-list(@values) {
-        my \values-iter = @values.iterator;
-        my \reified := nqp::getattr(self, List, '$!reified');
-        my \target := ArrayReificationTarget.new(reified,
-            nqp::decont($!descriptor));
-        values-iter.push-until-lazy(target) =:= IterationEnd
-          ?? self
-          !! Failure.new(X::Cannot::Lazy.new(:action<push>, :what(self.^name)))
+        nqp::if(
+          nqp::eqaddr(
+            @values.iterator.push-until-lazy(
+              ArrayReificationTarget.new(
+                nqp::if(
+                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::getattr(self,List,'$!reified'),
+                  nqp::bindattr(self,List,'$!reified',
+                    nqp::create(IterationBuffer))
+                ),
+                nqp::decont($!descriptor)
+              )
+            ),
+            IterationEnd
+          ),
+          self,
+          Failure.new(X::Cannot::Lazy.new(:action<push>,:what(self.^name)))
+        )
     }
 
     multi method unshift(Array:D: Slip \value) {

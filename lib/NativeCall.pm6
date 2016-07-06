@@ -18,6 +18,22 @@ my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArra
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 
+
+# Role for carrying extra calling convention information.
+my role NativeCallingConvention[$name] {
+    method native_call_convention() { $name };
+}
+
+# Role for carrying extra string encoding information.
+my role NativeCallEncoded[$name] {
+    method native_call_encoded() { $name };
+}
+
+my role NativeCallMangled[$name] {
+    method native_call_mangled() { $name }
+}
+
+
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
 my class native_callsite is repr('NativeCall') { }
@@ -302,20 +318,6 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
 
         nqp::nativecall($!rettype, self, $args)
     }
-}
-
-# Role for carrying extra calling convention information.
-my role NativeCallingConvention[$name] {
-    method native_call_convention() { $name };
-}
-
-# Role for carrying extra string encoding information.
-my role NativeCallEncoded[$name] {
-    method native_call_encoded() { $name };
-}
-
-my role NativeCallMangled[$name] {
-    method native_call_mangled() { $name }
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {

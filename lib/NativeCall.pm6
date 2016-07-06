@@ -180,14 +180,15 @@ sub type_code_for(Mu ::T) {
 }
 
 sub gen_native_symbol(Routine $r, :$cpp-name-mangler) {
-    if $r.package.REPR eq 'CPPStruct' {
-        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name))
-    }
-    elsif $r.?native_call_mangled {
+    if ! $r.?native_call_mangled {
+        # Native symbol or name is said to be already mangled
+        $r.?native_symbol // $r.name;
+    } elsif $r.package.REPR eq 'CPPStruct' {
+        # Mangle C++ classes
+        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name));
+    } else {
+        # Mangle C
         $cpp-name-mangler($r, $r.?native_symbol // $r.name)
-    }
-    else {
-        $r.?native_symbol // $r.name
     }
 }
 
@@ -289,9 +290,17 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has Pointer $!entry-point;
 
     method !setup() {
+        # Make sure that C++ methotds are treated as mangled (unless set otherwise)
+        if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
+          self does NativeCallMangled[True];
+        }
+
         my $guessed_libname = guess_library_name($libname);
-        $!cpp-name-mangler  = %lib{$guessed_libname} //
-            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        if self.does(NativeCallMangled) and $r.?native_call_mangled {
+          # if needed, try to guess mangler
+          $!cpp-name-mangler  = %lib{$guessed_libname} //
+              (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        }
         my Mu $arg_info := param_list_for($r.signature, $r);
         my $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,

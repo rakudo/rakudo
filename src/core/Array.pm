@@ -953,49 +953,56 @@ my class Array { # declared in BOOTSTRAP
 # The [...] term creates an Array.
 proto circumfix:<[ ]>(|) { * }
 multi circumfix:<[ ]>() {
-    my \result = nqp::create(Array);
-    nqp::bindattr(result, List, '$!reified', nqp::create(IterationBuffer));
-    result
+    nqp::create(Array)
 }
 multi circumfix:<[ ]>(Iterable:D \iterable) {
-    if nqp::iscont(iterable) {
-        my \result = nqp::create(Array);
-        my \buffer = nqp::create(IterationBuffer);
-        buffer.push(iterable);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        result
-    }
-    else {
+    my $reified;
+    nqp::if(
+      nqp::iscont(iterable),
+      nqp::p6bindattrinvres(
+        nqp::create(Array),List,'$!reified',
+        nqp::stmts(
+          nqp::push(
+            ($reified := nqp::create(IterationBuffer)),
+            nqp::assign(nqp::p6scalarfromdesc(nqp::null),iterable)
+          ),
+          $reified
+        )
+      ),
+      nqp::if(
+        nqp::eqaddr(iterable.WHAT,List),
+        nqp::if(
+          iterable.is-lazy,
+          Array.from-iterator(iterable.iterator),
+          nqp::stmts(     # immutable List
+            (my int $elems = iterable.elems),  # reifies
+            (my $params  := nqp::getattr(iterable,List,'$!reified')),
+            (my int $i    = -1),
+            ($reified := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($reified,$i,nqp::assign(
+                nqp::p6scalarfromdesc(nqp::null),nqp::atpos($params,$i))
+              )
+            ),
+            nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$reified)
+          ),
+        ),
         Array.from-iterator(iterable.iterator)
-    }
+      )
+    )
 }
-multi circumfix:<[ ]>(|) {
-    my \in      = nqp::p6argvmarray();
-    my \result  = nqp::create(Array);
-    my \reified = nqp::create(IterationBuffer);
-    nqp::bindattr(result, List, '$!reified', reified);
-    while nqp::elems(in) {
-        if nqp::istype(nqp::atpos(in, 0), Slip) {
-            # We saw a Slip, which may expand to something lazy. Put all that
-            # remains in the future, and let normal reification take care of
-            # it.
-            my \todo := nqp::create(List::Reifier);
-            nqp::bindattr(result, List, '$!todo', todo);
-            nqp::bindattr(todo, List::Reifier, '$!reified', reified);
-            nqp::bindattr(todo, List::Reifier, '$!future', in);
-            nqp::bindattr(todo, List::Reifier, '$!reification-target',
-                result.reification-target());
-            todo.reify-until-lazy();
-            last;
-        }
-        else {
-            # Just an item, no need to go through the whole maybe-lazy
-            # business.
-            nqp::push(reified,
-                nqp::assign(nqp::p6scalarfromdesc(nqp::null()), nqp::shift(in)));
-        }
-    }
-    result
+multi circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
+    nqp::p6bindattrinvres(
+      nqp::create(Array),List,'$!reified',
+      nqp::stmts(
+        nqp::push(
+          (my $reified := nqp::create(IterationBuffer)),
+          nqp::assign(nqp::p6scalarfromdesc(nqp::null),x)
+        ),
+        $reified
+      )
+    )
 }
 
 proto sub pop(@) {*}

@@ -888,20 +888,10 @@ my class Array { # declared in BOOTSTRAP
              ~ ']'
         })
     }
-
     multi method gist(Array:D:) {
         self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
     }
-
-    multi method WHICH(Array:D:) {
-        nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::objectid(self)
-            ),
-            ObjAt
-        )
-    }
+    multi method WHICH(Array:D:) { self.Mu::WHICH }
 
     my role TypedArray[::TValue] does Positional[TValue] {
         proto method new(|) { * }

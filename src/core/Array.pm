@@ -766,20 +766,21 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method shift(Array:D:) is raw is nodal {
-        # make sure we have at least one item, then shift+return it
-        self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        my $reified := nqp::getattr(self, List, '$!reified');
         nqp::if(
-          (nqp::existspos($reified,0)
-            || $todo.DEFINITE && $todo.reify-at-least(1)),
-          nqp::shift($reified),
+          nqp::getattr(self,List,'$!reified').DEFINITE
+            && nqp::elems(nqp::getattr(self,List,'$!reified')),
           nqp::if(
-            nqp::elems($reified),  # is it actually just sparse?
+            nqp::existspos(nqp::getattr(self,List,'$!reified'),0),
+            nqp::shift(nqp::getattr(self,List,'$!reified')),
             nqp::stmts(
-              nqp::shift($reified),
+              nqp::shift(nqp::getattr(self,List,'$!reified')),
               Nil
-            ),
+            )
+          ),
+          nqp::if(
+            (nqp::getattr(self,List,'$!todo').DEFINITE
+              && nqp::getattr(self,List,'$!todo').reify-at-least(1)),
+            nqp::shift(nqp::getattr(self,List,'$!reified')),
             Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
           )
         )

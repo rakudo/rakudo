@@ -769,13 +769,9 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::getattr(self,List,'$!reified').DEFINITE
             && nqp::elems(nqp::getattr(self,List,'$!reified')),
-          nqp::if(
-            nqp::existspos(nqp::getattr(self,List,'$!reified'),0),
+          nqp::ifnull(  # handle holes
             nqp::shift(nqp::getattr(self,List,'$!reified')),
-            nqp::stmts(
-              nqp::shift(nqp::getattr(self,List,'$!reified')),
-              Nil
-            )
+            Nil
           ),
           nqp::if(
             (nqp::getattr(self,List,'$!todo').DEFINITE

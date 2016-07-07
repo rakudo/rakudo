@@ -753,13 +753,16 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method pop(Array:D:) is raw is nodal {
-        self!ensure-allocated();
-        fail X::Cannot::Lazy.new(action => 'pop from') if self.is-lazy;
-
-        my $reified := nqp::getattr(self, List, '$!reified');
-        nqp::elems($reified)
-          ?? nqp::pop($reified)
-          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => 'pop from')),
+          nqp::if(
+            (nqp::getattr(self,List,'$!reified').DEFINITE
+              && nqp::elems(nqp::getattr(self,List,'$!reified'))),
+            nqp::pop(nqp::getattr(self,List,'$!reified')),
+            Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+          )
+        )
     }
 
     method shift(Array:D:) is raw is nodal {

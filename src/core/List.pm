@@ -370,9 +370,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method Bool(List:D:) {
-        self!ensure-allocated;
-        so nqp::elems($!reified) ||
-            $!todo.DEFINITE && $!todo.reify-at-least(1)
+        nqp::p6bool(
+          nqp::unless(
+            ($!reified.DEFINITE && nqp::elems($!reified)),
+            ($!todo.DEFINITE && $!todo.reify-at-least(1))
+          )
+        )
     }
     multi method Int(List:D:)     { self.elems }
     multi method end(List:D:)     { self.elems - 1 }

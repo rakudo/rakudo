@@ -68,7 +68,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method chop(Str:D: Int() $chopping = 1) {
         my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str) - $chopping;
+        my Int $chars = nqp::chars($str) - $chopping;
         $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
     }
 

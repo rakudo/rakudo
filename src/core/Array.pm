@@ -705,51 +705,73 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method unshift(Array:D: Slip \value) {
-        self!ensure-allocated();
         self!prepend-list(value)
     }
     multi method unshift(Array:D: \value) {
-        self!ensure-allocated();
-        nqp::unshift(
-            nqp::getattr(self, List, '$!reified'),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-        );
-        self
+        nqp::stmts(
+          nqp::unshift(
+            nqp::if(
+              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::getattr(self,List,'$!reified'),
+              nqp::bindattr(self,List,'$!reified',
+                nqp::create(IterationBuffer))
+            ),
+            nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+          ),
+          self
+        )
     }
     multi method unshift(Array:D: **@values is raw) {
-        self!ensure-allocated();
         self!prepend-list(@values)
     }
     multi method prepend(Array:D: \value) {
-        if nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable)) {
-            self!ensure-allocated();
-
+        nqp::if(
+          (nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))),
+          nqp::stmts(
             nqp::unshift(
-                nqp::getattr(self, List, '$!reified'),
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value)
-            );
+              nqp::if(
+                nqp::getattr(self,List,'$!reified').DEFINITE,
+                nqp::getattr(self,List,'$!reified'),
+                nqp::bindattr(self,List,'$!reified',
+                  nqp::create(IterationBuffer))
+              ),
+              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+            ),
             self
-        }
-        else {
-            self!prepend-list(value.list)
-        }
+          ),
+          self!prepend-list(value.list)
+        )
     }
     multi method prepend(Array:D: **@values is raw) {
         self!prepend-list(@values)
     }
     method !prepend-list(@values) {
-        my \containers := nqp::create(IterationBuffer);
-        my \target := ArrayReificationTarget.new(containers,
-            nqp::decont($!descriptor));
-
-        my \iter := @values.iterator;
-        iter.push-all(target);
-
-        self!ensure-allocated();
-        nqp::splice(nqp::getattr(self, List, '$!reified'),
-                    containers, 0, 0);
-
-        self;
+        nqp::stmts(
+          nqp::if(
+            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::splice(nqp::getattr(self,List,'$!reified'), # prepend existing
+              nqp::stmts(
+                @values.iterator.push-all(
+                  ArrayReificationTarget.new(
+                    (my $containers := nqp::create(IterationBuffer)),
+                    nqp::decont($!descriptor)
+                  )
+                ),
+                $containers
+              ),
+              0,
+              0
+            ),
+            @values.iterator.push-all(        # no list yet, make this it
+              ArrayReificationTarget.new(
+                nqp::bindattr(self,List,'$!reified',
+                  nqp::create(IterationBuffer)),
+                nqp::decont($!descriptor)
+              )
+            )
+          ),
+          self
+        )
     }
 
     method pop(Array:D:) is raw is nodal {

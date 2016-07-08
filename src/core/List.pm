@@ -407,14 +407,25 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method elems(List:D:) is nodal {
-        self!ensure-allocated;
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy();
-            $!todo.fully-reified
-              ?? ($!todo := Mu)
-              !! fail X::Cannot::Lazy.new(:action('.elems'));
-        }
-        nqp::elems($!reified)
+        nqp::if(
+          $!todo.DEFINITE,
+          nqp::stmts(
+            $!todo.reify-until-lazy,
+            nqp::if(
+              $!todo.fully-reified,
+              nqp::stmts(
+                ($!todo := Mu),
+                nqp::elems($!reified)
+              ),
+              Failure.new(X::Cannot::Lazy.new(:action('.elems')))
+            )
+          ),
+          nqp::if(
+            $!reified.DEFINITE,
+            nqp::elems($!reified),
+            0
+          )
+        )
     }
 
     multi method AT-POS(List:D: Int $pos) is raw {

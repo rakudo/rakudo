@@ -868,6 +868,7 @@ my class Rakudo::Internals {
         '2008-12-31',
         '2012-06-30',
         '2015-06-30',
+        '2016-12-31',
         )
         #END leap-second-dates
     ;
@@ -909,6 +910,7 @@ my class Rakudo::Internals {
         1230768000,
         1341100800,
         1435708800,
+        1483228800,
         )
         #END leap-second-posix
     ;

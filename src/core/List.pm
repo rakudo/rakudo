@@ -449,16 +449,40 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
-        self!ensure-allocated;
-        $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
-        nqp::p6bool(nqp::not_i(
-          nqp::islt_i($pos, 0) || nqp::isnull(nqp::atpos($!reified, $pos))))
+        nqp::p6bool(
+          nqp::if(
+            nqp::isge_i($pos,0),
+            nqp::if(
+              $!reified.DEFINITE && nqp::islt_i($pos,nqp::elems($!reified)),
+              nqp::existspos($!reified,$pos),
+              nqp::if(
+                $!todo.DEFINITE,
+                nqp::stmts(
+                  $!todo.reify-at-least(nqp::add_i($pos,1)),
+                  nqp::existspos($!reified,$pos)
+                )
+              )
+            )
+          )
+        )
     }
     multi method EXISTS-POS(List:D: Int:D $pos) {
-        self!ensure-allocated;
-        $!todo.reify-at-least($pos + 1) if $!todo.DEFINITE;
-        nqp::p6bool(nqp::not_i(
-          $pos < 0 || nqp::isnull(nqp::atpos($!reified, $pos))))
+        nqp::p6bool(
+          nqp::if(
+            nqp::isge_i($pos,0),
+            nqp::if(
+              $!reified.DEFINITE && nqp::islt_i($pos,nqp::elems($!reified)),
+              nqp::existspos($!reified,$pos),
+              nqp::if(
+                $!todo.DEFINITE,
+                nqp::stmts(
+                  $!todo.reify-at-least(nqp::add_i($pos,1)),
+                  nqp::existspos($!reified,$pos)
+                )
+              )
+            )
+          )
+        )
     }
 
     method reification-target(List:D:) {

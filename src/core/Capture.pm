@@ -88,7 +88,7 @@ my class Capture { # declared in BOOTSTRAP
             my Mu $iter := nqp::iterator($!hash);
             while $iter {
                 my $kv := nqp::shift($iter);
-                nqp::push_s($str, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).Str));
+                nqp::push_s($str, nqp::unbox_s((nqp::p6box_s(nqp::iterkey_s($kv)) => nqp::iterval($kv).Str).Str));
             }
         }
         nqp::p6box_s(nqp::join(' ', $str))

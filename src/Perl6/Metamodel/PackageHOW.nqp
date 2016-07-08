@@ -1,7 +1,6 @@
 class Perl6::Metamodel::PackageHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::MethodDelegation
@@ -22,8 +21,6 @@ class Perl6::Metamodel::PackageHOW
         my $metaclass := nqp::create(self);
         my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'perl6');
         $metaclass.set_name($obj, $name);
-        $metaclass.set_ver( $obj, $ver ) if $ver;
-        $metaclass.set_auth($obj, $auth) if $auth;
         self.add_stash($obj);
     }
 

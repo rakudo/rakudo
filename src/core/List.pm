@@ -515,8 +515,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method reification-target(List:D:) {
-        self!ensure-allocated;
-        $!reified
+        nqp::ifnull(
+          $!reified,
+          $!reified := nqp::create(IterationBuffer)
+        )
     }
 
     method iterator(List:D:) {

@@ -365,10 +365,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         list
     }
 
-    method !ensure-allocated(--> Nil) {
-        $!reified := nqp::create(IterationBuffer) unless $!reified.DEFINITE;
-    }
-
     multi method Bool(List:D:) {
         nqp::p6bool(
           nqp::unless(
@@ -1095,9 +1091,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {
-        self!ensure-allocated;
         die "Must specify *how* to rotor a List"
           unless @cycle.is-lazy || @cycle;
+
+        # done if there's nothing to rotor on
+        return Rakudo::Internals.EmptyIterator
+          unless nqp::getattr(self,List,'$!reified').DEFINITE
+                   || nqp::getattr(self,List,'$!todo').DEFINITE;
 
         my $finished = 0;
         # (Note, the xx should be harmless if the cycle is already infinite by accident.)

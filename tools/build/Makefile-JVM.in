@@ -217,6 +217,7 @@ J_CORE_SOURCES = \
   src/core/CompUnit/Repository/NQP.pm \
   src/core/CompUnit/Repository/Perl5.pm \
   src/core/CompUnit/Repository/Unknown.pm \
+  src/vm/jvm/CompUnit/Repository/Java.pm \
   src/core/Argfiles.pm \
   src/core/Process.pm \
   src/core/StrDistance.pm \

@@ -222,6 +222,7 @@ $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OB
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'jvmrakudointerop', $TYPE_P6OPS, 'jvmrakudointerop', [], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'jvmrakudointerop', $TYPE_P6OPS, 'jvmrakudointerop', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6captureouters2', $TYPE_P6OPS, 'p6captureouters2', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 
 # Override defor to call defined method.

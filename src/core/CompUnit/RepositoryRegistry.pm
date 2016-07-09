@@ -5,6 +5,10 @@ class CompUnit::Repository::Unknown      { ... }
 class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
 
+#?if jvm
+class CompUnit::Repository::Java { ... }
+#?endif
+
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
 
@@ -111,7 +115,11 @@ class CompUnit::RepositoryRegistry {
             ?? CompUnit::Repository
             !! CompUnit::Repository::AbsolutePath.new(
                 :next-repo( CompUnit::Repository::NQP.new(
-                    :next-repo(CompUnit::Repository::Perl5.new)
+                    :next-repo(CompUnit::Repository::Perl5.new(
+#?if jvm
+                        :next-repo(CompUnit::Repository::Java.new)
+#?endif
+                    ))
                 )
             )
         );
@@ -298,6 +306,9 @@ class CompUnit::RepositoryRegistry {
     short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
     short-id2class('nqp')   = 'CompUnit::Repository::NQP';
     short-id2class('perl5') = 'CompUnit::Repository::Perl5';
+#?if jvm
+    short-id2class('java')  = 'CompUnit::Repository::Java';
+#?endif
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
         my %options;

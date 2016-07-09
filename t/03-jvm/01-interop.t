@@ -5,9 +5,9 @@ plan 25;
 
 {
     # still supported
-    use java::lang::String:from<java>;
+    use java::lang::String:from<Java>;
 
-    ok 1, "alive after 'use java::lang::String:from<java>' (not deprecated yet)";
+    ok 1, "alive after 'use java::lang::String:from<Java>' (not deprecated yet)";
 }
 
 {
@@ -40,17 +40,13 @@ plan 25;
     
     {
         my $crc32 = CRC32.new;
-        for 'Hello, Java'.encode('utf-8') {
-            $crc32.update($_);
-        }
+        $crc32.update('Hello, Java'.encode('utf-8'));
         is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 is recognized correctly";
     }
 
     {
         my $crc32 = CRC32.new;
-        for 'Hello, Java'.encode('utf-8') {
-            $crc32."method/update/([B)V"($_);
-        }
+        $crc32."method/update/([B)V"('Hello, Java'.encode('utf-8'));
         is $crc32.getValue, 1072431491, "([B)V candidate for CRC32 works when explicitly specified";
     }
 }
@@ -143,7 +139,15 @@ plan 25;
     use java::lang::StringBuilder:from<Java>;
     {
         my $sb = StringBuilder.new();
-        $sb = $sb.append("foo"); # dies
+        $sb = $sb.append("foo");
         is $sb.toString(), "foo", 'calling through to a less visible parent method works';
+    }
+}
+
+{
+    use java::util::zip::CRC32:from<Java>;
+    {
+        my $crc32 = CRC32.new;
+        throws-like { $crc32.foo() }, X::Method::NotFound;
     }
 }

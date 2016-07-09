@@ -14,6 +14,8 @@ class Perl6::Metamodel::JavaHOW
         1
     }
 
+    method parents($obj, :$all, :$excl) { [] }
+
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
     method find_method($obj, $name, :$no_fallback, *%adverbs) {
@@ -29,7 +31,6 @@ class Perl6::Metamodel::JavaHOW
                 return %methods{$name}
             }
         }
+        nqp::null()
     }
-
- 
 }

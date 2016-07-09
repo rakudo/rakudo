@@ -864,6 +864,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
             if( shorten.contains("mmd+") ) {
                 String shortmult = shorten.substring(shorten.indexOf("+") + 1);
                 mult.put(shortmult, cr);
+                // don't add multi candidates with mmd+ prefix
+                continue;
             }
             if( names.containsKey(shorten) ) {
                 names.put(shorten, null);
@@ -884,9 +886,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             names.put(ent.getKey(), ent.getValue());
         }
 
+        int pos = 0;
         for (Iterator<Map.Entry<String, SixModelObject>> it = names.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, SixModelObject> ent = it.next();
             if (ent.getValue() != null) {
+                method_order.bind_pos_boxed(tc, pos++, ent.getValue());
+                methods.bind_key_boxed(tc, ent.getKey(), ent.getValue());
                 hash.bind_key_boxed(tc, ent.getKey(), ent.getValue());
             }
             else

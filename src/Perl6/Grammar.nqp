@@ -685,7 +685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method attach_leading_docs() {
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(
-                [Perl6::Pod::formatted_text(~$*DOC)]
+                [Perl6::Pod::normalize_text(~$*DOC)]
             ).compile_time_value;
             my $block := $*W.add_constant(
                 'Pod::Block::Declarator', 'type_new',
@@ -703,7 +703,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $pod_block;
             if $doc ne '' {
                 my $cont  := Perl6::Pod::serialize_aos(
-                    [Perl6::Pod::formatted_text($doc)]
+                    [Perl6::Pod::normalize_text($doc)]
                 ).compile_time_value;
                 my $block := $*W.add_constant(
                     'Pod::Block::Declarator', 'type_new',

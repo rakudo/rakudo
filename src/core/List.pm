@@ -431,28 +431,44 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method AT-POS(List:D: Int $pos) is raw {
-        self!ensure-allocated;
-        my int $ipos = nqp::unbox_i($pos);
-        nqp::islt_i($ipos, nqp::elems($!reified)) && nqp::isge_i($ipos, 0)
-            ?? nqp::atpos($!reified, $ipos)
-            !! self!AT-POS-SLOWPATH($ipos);
+    multi method AT-POS(List:D: Int:D $Ipos) is raw {
+        nqp::if(
+          nqp::islt_i((my int $pos = nqp::unbox_i($Ipos)),0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)),
+          nqp::if(
+            $!reified.DEFINITE,
+            nqp::if(
+              nqp::islt_i($pos,nqp::elems($!reified)),
+              nqp::atpos($!reified,$pos),
+              nqp::if(
+                ($!todo.DEFINITE && $!todo.reify-at-least(nqp::add_i($pos,1))),
+                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
+                Nil
+              )
+            )
+          )
+        )
     }
 
     multi method AT-POS(List:D: int $pos) is raw {
-        self!ensure-allocated;
-        nqp::islt_i($pos, nqp::elems($!reified)) && nqp::isge_i($pos, 0)
-            ?? nqp::atpos($!reified, $pos)
-            !! self!AT-POS-SLOWPATH($pos);
-    }
-
-    method !AT-POS-SLOWPATH(int $pos) is raw {
-        nqp::islt_i($pos, 0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>))
-          !! $!todo.DEFINITE && nqp::isgt_i($!todo.reify-at-least($pos + 1), $pos)
-            ?? nqp::atpos($!reified, $pos)
-            !! Nil
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)),
+          nqp::if(
+            $!reified.DEFINITE,
+            nqp::if(
+              nqp::islt_i($pos,nqp::elems($!reified)),
+              nqp::atpos($!reified,$pos),
+              nqp::if(
+                ($!todo.DEFINITE && $!todo.reify-at-least(nqp::add_i($pos,1))),
+                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
+                Nil
+              )
+            )
+          )
+        )
     }
 
     method BIND-POS(List:D: Int \pos, \what) is raw {

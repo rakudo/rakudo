@@ -8,9 +8,9 @@ my class Code does Callable { # declared in BOOTSTRAP
         $self.count ?? $self($topic) !! $self()
     }
 
-    method arity(Code:D:) { $!signature.arity }
+    method arity(Code:D:) { nqp::getattr($!signature,Signature,'$!arity') }
 
-    method count(Code:D:) { $!signature.count }
+    method count(Code:D:) { nqp::getattr($!signature,Signature,'$!count') }
 
     method signature(Code:D:) { $!signature }
 

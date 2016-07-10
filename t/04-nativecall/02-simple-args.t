@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 13;
+plan 14;
 
 compile_test_lib('02-simple-args');
 
@@ -65,5 +65,7 @@ is TakeUint32(0xFFFFFFFE), 12, 'passed uint8 0xFFFFFFFE';
 
 sub TakeSizeT(size_t) returns int32 is native('./02-simple-args') { * }
 is TakeSizeT(42),     13, 'passed size_t 42';
+sub TakeSSizeT(ssize_t --> int32) is native('./02-simple-args') { * }
+is TakeSSizeT(-42),   14, 'passed ssize_t -42';
 
 # vim:ft=perl6

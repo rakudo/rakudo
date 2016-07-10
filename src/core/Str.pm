@@ -37,13 +37,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method DUMP(Str:D:) { self.perl }
 
     method Int(Str:D:) {
-        my str $s     = self;
-        my int $chars = nqp::chars($s);
         nqp::isge_i(
-          nqp::findnotcclass(nqp::const::CCLASS_NUMERIC,$s,0,$chars),
-          $chars
-        ) ?? nqp::atpos(nqp::radix_I(10,$s,0,0,Int),0)
-          !! self.Numeric.Int;
+          nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
+          nqp::chars($!value)
+        ) ?? nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0)
+          !! self.Numeric.Int
     }
     method Num(Str:D:) { self.Numeric.Num; }
 

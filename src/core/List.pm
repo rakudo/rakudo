@@ -341,48 +341,67 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-slurpy-flat(|) {
-        my \result := nqp::create(self);
-        my Mu \vm-tuple = nqp::captureposarg(nqp::usecapture(), 1);
-        my int $elems = nqp::elems(vm-tuple);
-        my int $i     = -1;
-        my $consider;
 
         nqp::if(
-          nqp::isgt_i($elems,0),
+          (my int $elems = nqp::elems(
+            (my Mu $vm-tuple := nqp::captureposarg(nqp::usecapture,1))
+          )),
           nqp::stmts(
-            nqp::bindattr(result,List,'$!reified',
-              my \buffer := nqp::create(IterationBuffer)),
-            nqp::bindattr(result,List,'$!todo',
-              my \todo   := nqp::create(List::Reifier)),
-            nqp::bindattr(todo,List::Reifier,'$!reified',
-              buffer),
-            nqp::bindattr(todo,List::Reifier,'$!reification-target',
-              result.reification-target),
-            nqp::bindattr(todo,List::Reifier,'$!future',
-              my \future := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my $future := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i   = -1),
+            (my int $b   = 0),
             nqp::while(
               nqp::islt_i($i = nqp::add_i($i,1),$elems),
-              nqp::stmts(
-                ($consider := nqp::atpos(vm-tuple,$i)),
+              nqp::if(
+                nqp::iscont(my $consider := nqp::atpos($vm-tuple,$i)),
+                nqp::bindpos($future,$i,$consider),
                 nqp::if(
-                  nqp::iscont($consider),
-                  nqp::bindpos(future,$i,$consider),
+                  (nqp::istype($consider,Iterable) && $consider.DEFINITE),
                   nqp::if(
-                    (nqp::istype($consider, Iterable) && $consider.DEFINITE),
-                    nqp::if(
-                      nqp::istype($consider, PositionalBindFailover),
-                      nqp::bindpos(future,$i,$consider.cache.flat.Slip),
-                      nqp::bindpos(future,$i,$consider.flat.Slip)
-                    ),
-                    nqp::bindpos(future,$i,$consider)
+                    nqp::istype($consider,PositionalBindFailover),
+                    nqp::bindpos($future,$i,$consider.cache.flat.Slip),
+                    nqp::bindpos($future,$i,$consider.flat.Slip)
+                  ),
+                  nqp::stmts(
+                    nqp::bindpos($future,$i,$consider),
+                    ($b = nqp::add_i($b,1))
                   )
                 )
               )
-            )
-          )
-        );
+            ),
+            nqp::if(
+              nqp::iseq_i($b,$elems),
 
-        result
+              # we already reified everything
+              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',$future),
+
+              # need full fledged List with a $todo
+              nqp::stmts(
+                (my $result :=
+                  nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
+                    (my $buffer := nqp::create(IterationBuffer))
+                  )
+                ),
+                nqp::bindattr($result,List,'$!todo',
+                  (my $todo := nqp::create(List::Reifier))
+                ),
+                nqp::bindattr($todo,List::Reifier,'$!reified',
+                  $buffer
+                ),
+                nqp::bindattr($todo,List::Reifier,'$!reification-target',
+                  $result.reification-target
+                ),
+                nqp::bindattr($todo,List::Reifier,'$!future',
+                  $future
+                ),
+                $result
+              )
+            )
+          ),
+
+          # no args, an empty list suffices
+          nqp::create(self)
+        )
     }
 
     method new(**@things) {

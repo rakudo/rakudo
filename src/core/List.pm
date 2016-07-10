@@ -213,20 +213,31 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method reify-all() {
-            if $!current-iter.DEFINITE {
-                $!current-iter.push-all($!reification-target);
-                $!current-iter := Iterator;
-            }
-            if $!future.DEFINITE {
-                while nqp::elems($!future) {
-                    my \current = nqp::shift($!future);
-                    nqp::istype(current, Slip) && nqp::isconcrete(current)
-                        ?? current.iterator.push-all($!reification-target)
-                        !! my $ = $!reification-target.push(current);
-                }
-                $!future := Mu;
-            }
-            nqp::elems($!reified);
+            nqp::stmts(
+              nqp::if(
+                $!current-iter.DEFINITE,
+                nqp::stmts(
+                  $!current-iter.push-all($!reification-target),
+                  $!current-iter := Iterator
+                )
+              ),
+              nqp::if(
+                $!future.DEFINITE,
+                nqp::stmts(
+                  nqp::while(
+                    nqp::elems($!future),
+                    nqp::if(
+                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                        && nqp::isconcrete($current)),
+                      $current.iterator.push-all($!reification-target),
+                      $!reification-target.push($current)
+                    )
+                  ),
+                  ($!future := Mu)
+                )
+              ),
+              nqp::elems($!reified)
+            )
         }
 
         method fully-reified() {

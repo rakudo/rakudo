@@ -37,14 +37,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method DUMP(Str:D:) { self.perl }
 
     method Int(Str:D:) {
-        nqp::isge_i(
-          nqp::findnotcclass(
-            nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
-          nqp::chars($!value)
-        ) ?? nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0)
-          !! self.Numeric.Int
+        nqp::if(
+          nqp::isge_i(
+            nqp::findnotcclass(
+              nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
+            nqp::chars($!value)
+          ),
+          nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0),  # all numeric chars
+          nqp::if(
+            nqp::istype((my $numeric := self.Numeric),Failure),
+            $numeric,
+            $numeric.Int
+          )
+        )
     }
-    method Num(Str:D:) { self.Numeric.Num; }
+    method Num(Str:D:) {
+        nqp::if(
+          nqp::istype((my $numeric := self.Numeric),Failure),
+          $numeric,
+          $numeric.Num
+        )
+    }
 
     multi method ACCEPTS(Str:D: Str:D \other) {
         nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));

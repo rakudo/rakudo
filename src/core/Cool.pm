@@ -290,10 +290,22 @@ my class Cool { # declared in BOOTSTRAP
         EVAL(self, context => CALLER::, |%opts);
     }
 
-    multi method Real() { self.Numeric.Real }
+    multi method Real() {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Real
+        )
+    }
 
     proto method Int(|) { * }
-    multi method Int()  { self.Numeric.Int }
+    multi method Int()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Int
+        )
+    }
 
     proto method UInt(|) { * }
     multi method UInt()  {
@@ -306,8 +318,21 @@ my class Cool { # declared in BOOTSTRAP
           !! $got
     }
 
-    method Num()  { self.Numeric.Num }
-    method Rat()  { self.Numeric.Rat }
+    method Num()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Num
+        )
+    }
+
+    method Rat()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Rat
+        )
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

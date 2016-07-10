@@ -103,7 +103,7 @@ DLLEXPORT int TakeSizeT(size_t x)
     return 0;
 }
 
-DLLEXPORT int TakeSSizeT(size_t x)
+DLLEXPORT int TakeSSizeT(ssize_t x)
 {
     if (x == -42)
         return 14;

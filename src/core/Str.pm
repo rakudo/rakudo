@@ -78,10 +78,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self
     }
 
-    method chop(Str:D: Int() $chopping = 1) {
-        my str $str   = nqp::unbox_s(self);
-        my Int $chars = nqp::chars($str) - $chopping;
-        $chars > 0 ?? nqp::p6box_s(nqp::substr($str,0,$chars)) !! '';
+    multi method chop(Str:D:) {
+        nqp::if(
+          nqp::isgt_i(nqp::chars($!value),0),
+          nqp::p6box_s(
+            nqp::substr($!value,0,nqp::sub_i(nqp::chars($!value),1))),
+          ''
+        )
+    }
+    multi method chop(Str:D: Int() $chopping) {
+        my Int $chars = nqp::chars($!value) - $chopping;
+        $chars > 0 ?? nqp::p6box_s(nqp::substr($!value,0,$chars)) !! '';
     }
 
     method pred(Str:D:) {

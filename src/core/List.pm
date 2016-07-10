@@ -169,33 +169,47 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method reify-until-lazy() {
-            $!current-iter := Iterator
-              if $!current-iter.DEFINITE
-              && nqp::eqaddr(
-                   $!current-iter.push-until-lazy($!reification-target),
-                   IterationEnd
-                 );
-
-            if $!future.DEFINITE && !$!current-iter.DEFINITE {
-                while nqp::elems($!future) {
-                    my \current = nqp::shift($!future);
-                    if nqp::istype(current, Slip) && nqp::isconcrete(current) {
-                        my \iter = current.iterator;
-                        unless nqp::eqaddr(
-                          iter.push-until-lazy($!reification-target),
+            nqp::stmts(
+              nqp::if(
+                ($!current-iter.DEFINITE 
+                  && nqp::eqaddr(
+                       $!current-iter.push-until-lazy($!reification-target),
+                       IterationEnd
+                     )
+                ),
+                $!current-iter := Iterator
+              ),
+  
+              nqp::if(
+                ($!future.DEFINITE && nqp::not_i($!current-iter.DEFINITE)),
+                nqp::stmts(
+                  nqp::while(
+                    nqp::elems($!future),
+                    nqp::if(
+                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                        && nqp::isconcrete($current)),
+                      nqp::unless(
+                        nqp::eqaddr(
+                          (my $iter := $current.iterator).push-until-lazy(
+                            $!reification-target),
                           IterationEnd
-                        ) {
-                            $!current-iter := iter;
-                            last;
-                        }
-                    }
-                    else {
-                        my $ = $!reification-target.push(current);
-                    }
-                }
-                $!future := Mu unless nqp::elems($!future);
-            }
-            nqp::elems($!reified);
+                        ),
+                        nqp::stmts(
+                          ($!current-iter := $iter),
+                          last
+                        )
+                      ),
+                      $!reification-target.push($current)
+                    )
+                  ),
+                  nqp::unless(
+                    nqp::elems($!future),
+                    $!future := Mu
+                  )
+                )
+              ),
+              nqp::elems($!reified)
+            )
         }
 
         method reify-all() {

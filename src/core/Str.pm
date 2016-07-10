@@ -70,12 +70,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D:) {
-        my str $str   = nqp::unbox_s(self);
-        my int $chars = nqp::chars($str);
-
-        $chars && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$str,$chars-1)
-            ?? nqp::p6box_s(nqp::substr($str,0,$chars-1))
-            !! self
+        nqp::if(
+          (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0)
+            && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)),
+          nqp::p6box_s(nqp::substr($!value,0,$chars)),
+          self
+        )
     }
 
     multi method chop(Str:D:) {

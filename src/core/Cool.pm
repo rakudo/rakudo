@@ -109,9 +109,7 @@ my class Cool { # declared in BOOTSTRAP
     method uniprop-str(|c)  { uniprop-str(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
-    method chomp() {
-        self.Str.chomp;
-    }
+    method chomp(Cool:D:) { self.Str.chomp }
 
     proto method chop(|)                { * }
     multi method chop(Cool:D:)          { self.Str.chop }
@@ -317,7 +315,8 @@ proto sub chop(|) { * }
 multi sub chop(Cool:D $s)           returns Str { $s.chop }
 multi sub chop(Cool:D $s, Int() $n) returns Str { $s.chop($n) }
 
-sub chomp(Cool $s) returns Str     { $s.chomp }
+sub chomp(Cool:D $s) returns Str { $s.chomp }
+
 sub flip(Cool $s) returns Str      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }

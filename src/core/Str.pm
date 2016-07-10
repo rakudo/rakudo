@@ -43,9 +43,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::findnotcclass(nqp::const::CCLASS_NUMERIC,$s,0,$chars),
           $chars
         ) ?? nqp::atpos(nqp::radix_I(10,$s,0,0,Int),0)
-          !! self.Numeric.Int;
+          !! (given self.Numeric { when Failure { $_ }; .Int });
     }
-    method Num(Str:D:) { self.Numeric.Num; }
+    method Num(Str:D:) { given self.Numeric { when Failure { $_ }; .Num } }
 
     multi method ACCEPTS(Str:D: Str:D \other) {
         nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));

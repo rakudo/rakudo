@@ -110,51 +110,62 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has $!reification-target;
 
         method reify-at-least(int $elems) {
-            $!current-iter := Iterator
-              if $!current-iter.DEFINITE 
-              && nqp::eqaddr(
-                   $!current-iter.push-at-least(
-                     $!reification-target,
-                     nqp::sub_i($elems,nqp::elems($!reified))
-                   ),
-                   IterationEnd
-                 );
-
-            # there is a future
-            if $!future.DEFINITE {
+            nqp::stmts(
+              nqp::if(
+                ($!current-iter.DEFINITE 
+                  && nqp::eqaddr(
+                       $!current-iter.push-at-least(
+                         $!reification-target,
+                         nqp::sub_i($elems,nqp::elems($!reified))
+                       ),
+                       IterationEnd
+                     )),
+                $!current-iter := Iterator
+              ),
+  
+              # there is a future
+              nqp::if(
+                $!future.DEFINITE,
 
                 # still need and can get something from the future
-                while nqp::islt_i(nqp::elems($!reified),$elems)
-                  && nqp::elems($!future) {
-                    my \current := nqp::shift($!future);
-                    if nqp::istype(current, Slip) && nqp::isconcrete(current) {
-                        my \iter := current.iterator;
-
-                        # The iterator produced enough values to fill the need,
-                        # but did not reach its end. We save it for next time.
-                        # We know we'll exit the loop, since the < $elems check
-                        # must be False (unless the iterator broke contract).
-                        $!current-iter := iter
-                          unless nqp::eqaddr(
-                            iter.push-at-least(
+                nqp::stmts(
+                  nqp::while(
+                    (nqp::islt_i(nqp::elems($!reified),$elems)
+                      && nqp::elems($!future)),
+                    nqp::if(
+                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                        && nqp::isconcrete($current)),
+                      nqp::stmts(
+                        (my $iter := $current.iterator),
+                        nqp::unless(
+                          nqp::eqaddr(
+                            $iter.push-at-least(
                               $!reification-target,
                               nqp::sub_i($elems,nqp::elems($!reified))
                             ),
                             IterationEnd
-                          );
-                    }
-                    else {
-                        nqp::stmts(  # doesn't sink
-                          $!reification-target.push(current);
-                        );
-                    }
-                }
+                          ),
+                          # The iterator produced enough values to fill the need,
+                          # but did not reach its end. We save it for next time.
+                          # We know we'll exit the loop, since the < $elems check
+                          # must be False (unless the iterator broke contract).
+                          ($!current-iter := $iter)
+                        )
+                      ),
+                      $!reification-target.push($current)
+                    )
+                  ),
+    
+                  # that was the future
+                  nqp::unless(
+                    nqp::elems($!future),
+                    ($!future := Mu)
+                  )
+                )
+              ),
 
-                # that was the future
-                $!future := Mu unless nqp::elems($!future);
-            }
-
-            nqp::elems($!reified);
+              nqp::elems($!reified)
+            )
         }
 
         method reify-until-lazy() {

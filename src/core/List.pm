@@ -245,7 +245,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method is-lazy() {
-            $!current-iter.DEFINITE ?? $!current-iter.is-lazy !! False
+            nqp::if(
+              $!current-iter.DEFINITE,
+              $!current-iter.is-lazy
+            )
         }
     }
 

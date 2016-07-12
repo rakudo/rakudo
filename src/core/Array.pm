@@ -598,41 +598,82 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) {
-        X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>).throw
-            if nqp::islt_i($ipos, 0);
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        reified.DEFINITE && $ipos < nqp::elems(reified)
-            ?? nqp::isnull(nqp::atpos(reified, $ipos))
-                ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
-                !! (nqp::atpos(reified, $ipos) = assignee)
-            !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
+    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::if(
+              nqp::existspos($reified,$pos),
+              (nqp::atpos($reified,$pos) = assignee),         # found it!
+              nqp::if(
+                nqp::islt_i($pos,nqp::elems($reified)),       # it's a hole
+                (nqp::bindpos($reified,$pos,
+                  nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                nqp::if(
+                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                  nqp::stmts(                                 # can reify
+                    $todo.reify-at-least(nqp::add_i($pos,1)),
+                    nqp::if(
+                      nqp::existspos($reified,$pos),
+                      (nqp::atpos($reified,$pos) = assignee), # reified
+                      (nqp::bindpos($reified,$pos,            # outlander
+                        nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                    )
+                  ),
+                  (nqp::bindpos($reified,$pos,                # outlander
+                    nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                )
+              )
+            ),
+            nqp::stmts(                                       # new outlander
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              (nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,
+                nqp::p6scalarfromdesc($!descriptor)) = assignee)
+            )
+          )
+        )
     }
+    # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
-        my int $ipos = nqp::unbox_i($pos);
-        X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>).throw
-            if nqp::islt_i($ipos, 0);
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        reified.DEFINITE && $ipos < nqp::elems(reified)
-            ?? nqp::isnull(nqp::atpos(reified, $ipos))
-                ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
-                !! (nqp::atpos(reified, $ipos) = assignee)
-            !! self!ASSIGN-POS-SLOWPATH($ipos, assignee)
-    }
-    method !ASSIGN-POS-SLOWPATH(int $ipos, Mu \assignee) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>)
-            if nqp::islt_i($ipos, 0);
-        self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
-            ?? (nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)) = assignee)
-            !! (nqp::atpos(reified, $ipos) = assignee)
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::if(
+              nqp::existspos($reified,$pos),
+              (nqp::atpos($reified,$pos) = assignee),         # found it!
+              nqp::if(
+                nqp::islt_i($pos,nqp::elems($reified)),       # it's a hole
+                (nqp::bindpos($reified,$pos,
+                  nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                nqp::if(
+                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                  nqp::stmts(                                 # can reify
+                    $todo.reify-at-least(nqp::add_i($pos,1)),
+                    nqp::if(
+                      nqp::existspos($reified,$pos),
+                      (nqp::atpos($reified,$pos) = assignee), # reified
+                      (nqp::bindpos($reified,$pos,            # outlander
+                        nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                    )
+                  ),
+                  (nqp::bindpos($reified,$pos,                # outlander
+                    nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                )
+              )
+            ),
+            nqp::stmts(                                       # new outlander
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              (nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,
+                nqp::p6scalarfromdesc($!descriptor)) = assignee)
+            )
+          )
+        )
     }
 
     multi method BIND-POS(Array:D: Int $pos, Mu \bindval) is raw {

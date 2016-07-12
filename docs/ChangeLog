@@ -1,5 +1,6 @@
 New in 2016.07
  + Fixes:
+   + Mu can now be the result of a Promise
    + samewith() now also works on none-multi's
    + Many fixes in the area of pre-compilation and installing modules
    + Maps now correctly identify themselves as value objects
@@ -13,8 +14,33 @@ New in 2016.07
      (This typically happens in the REPL, or when doing an EVAL)
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
+   + Support for new leap-second at 31-12-2016 added
  + Efficiency:
    + The MMD cache accepts candidates with named parameters if it can.
+     (This made adverbed slices about 18x as fast)
+   + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
+   + List.elems is 4.5x faster
+   + List.Bool is 4x faster
+   + Str.chop is about 3.5x faster, Str.chop(N) 20% faster
+   + Map eqv Map is 3x faster
+   + Adverbed slices (e.g. %h<a>:exists) are 2.5x faster
+   + Make "for List.pairs {}" 2.5x faster
+   + Array.pop is 2.5x faster
+   + List.AT-POS/EXISTS-POS are 2.5x faster
+   + Creating arrays with [] is 2.5x faster
+   + Array.shift is 2x faster
+   + Baggy.roll(*) is 2x faster
+   + Blob/Buf.AT-POS is 2x faster (underlying method of e.g. "$buf[2]")
+   + List.STORE is 2x faster (e.g. "my ($a,$b,$c) = (1,2,3)")
+   + Make "for List.kv {}" 1.8x faster
+   + Array.push/append is 40% faster
+   + Str.comb 30% faster
+   + Map/Hash initializations are now 30% faster
+   + A slurpy taking a list is 30% faster ("sub a(*@a) { }; a(1,2,3,4)")
+   + Str.chomp is 20% faster
+   + single element for/map in sink context without phasers, is 20% faster
+   + Pair.new is 10% faster
+   + val() is 5% faster
 
 New in 2016.06
  + Fixes:

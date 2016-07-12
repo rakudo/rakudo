@@ -676,18 +676,48 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method BIND-POS(Array:D: Int $pos, Mu \bindval) is raw {
-        self!ensure-allocated();
-        my int $ipos = $pos;
-        my $todo := nqp::getattr(self, List, '$!todo');
-        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-        nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval);
-    }
     multi method BIND-POS(Array:D: int $pos, Mu \bindval) is raw {
-        self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
-        nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval);
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::stmts(
+            nqp::if(
+              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::if(
+                (nqp::isge_i(
+                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                    && nqp::getattr(self,List,'$!todo').DEFINITE),
+                nqp::getattr(self,List,'$!todo').reify-at-least(
+                  nqp::add_i($pos,1)),
+              ),
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+            ),
+            nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+          )
+        )
+    }
+    # because this is a very hot path, we copied the code from the int candidate
+    multi method BIND-POS(Array:D: Int $pos, Mu \bindval) is raw {
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::stmts(
+            nqp::if(
+              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::if(
+                (nqp::isge_i(
+                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                    && nqp::getattr(self,List,'$!todo').DEFINITE),
+                nqp::getattr(self,List,'$!todo').reify-at-least(
+                  nqp::add_i($pos,1)),
+              ),
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+            ),
+            nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+          )
+        )
     }
 
     multi method DELETE-POS(\pos, :$SINK) {

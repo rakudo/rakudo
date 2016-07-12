@@ -27,6 +27,7 @@ New in 2016.07
    + Array.pop is 2.5x faster
    + List.AT-POS/EXISTS-POS are 2.5x faster
    + Creating arrays with [] is 2.5x faster
+   + Array.AT-POS/ASSIGN-POS/BIND-POS at least 2x faster for unreified elements
    + Array.shift is 2x faster
    + Baggy.roll(*) is 2x faster
    + Blob/Buf.AT-POS is 2x faster (underlying method of e.g. "$buf[2]")

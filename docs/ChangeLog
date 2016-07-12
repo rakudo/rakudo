@@ -15,6 +15,7 @@ New in 2016.07
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
+   + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
  + Efficiency:
    + The MMD cache accepts candidates with named parameters if it can.
      (This made adverbed slices about 18x as fast)

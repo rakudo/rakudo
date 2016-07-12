@@ -252,12 +252,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $RMD("Precompiled $path into $bc") if $RMD;
         my str $dependencies = '';
         my CompUnit::PrecompilationDependency::File @dependencies;
+        my %dependencies;
         for @result -> $dependency-str {
             unless $dependency-str ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
                 say $dependency-str;
                 next
             }
             my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
+            next if %dependencies{$dependency.Str}++; # already got that one
             $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
             @dependencies.push: $dependency;
         }

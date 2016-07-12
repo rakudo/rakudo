@@ -1,3 +1,21 @@
+New in 2016.07
+ + Fixes:
+   + samewith() now also works on none-multi's
+   + Many fixes in the area of pre-compilation and installing modules
+   + Maps now correctly identify themselves as value objects
+   + BagHashes and MixHashes no longer identify themselves as value objects
+   + count-only and bool-only now are optional methods in Iterators
+     (only to be implemented if they can work without generating anything)
+   + Hash.Map now properly creates immutable Map
+   + IO::ArgFiles.slurp / IO::ArgFiles.eof are fixed
+   + Several wrapper file fixes
+   + If a file is unknown in an error report, it is no longer shown
+     (This typically happens in the REPL, or when doing an EVAL)
+ + Additions:
+   + The "is required" trait on Attributes can now take a Bool or a Str
+ + Efficiency:
+   + The MMD cache accepts candidates with named parameters if it can.
+
 New in 2016.06
  + Fixes:
    + Arrays with holes (e.g. from :delete) now correctly iterate/auto-vivify

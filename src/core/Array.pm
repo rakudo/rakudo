@@ -520,38 +520,82 @@ my class Array { # declared in BOOTSTRAP
 
     method shape() { (*,) }
 
-    multi method AT-POS(Array:D: int $ipos) is raw {
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
-            ?? nqp::ifnull(nqp::atpos(reified, $ipos),
-                    self!AT-POS-SLOWPATH($ipos))
-            !! self!AT-POS-SLOWPATH($ipos)
-    }
-    multi method AT-POS(Array:D: Int:D $pos) is raw {
-        my int $ipos = nqp::unbox_i($pos);
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        reified.DEFINITE && $ipos < nqp::elems(reified) && $ipos >= 0
-            ?? nqp::ifnull(nqp::atpos(reified, $ipos),
-                    self!AT-POS-SLOWPATH($ipos))
-            !! self!AT-POS-SLOWPATH($ipos)
-    }
-    method !AT-POS-SLOWPATH(int $ipos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got($ipos),:range<0..Inf>)
-            if nqp::islt_i($ipos, 0);
-        self!ensure-allocated();
-        my $todo := nqp::getattr(self, List, '$!todo');
-        $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-
-        my Mu \reified := nqp::getattr(self, List, '$!reified');
-        $ipos >= nqp::elems(reified) || nqp::isnull(my \value = nqp::atpos(reified, $ipos))
-            ?? nqp::p6bindattrinvres(
-                    (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                    Scalar,
-                    '$!whence',
-                    -> { nqp::bindpos(reified, $ipos, v) }
+    multi method AT-POS(Array:D: int $pos) is raw {
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::ifnull(
+              nqp::atpos($reified,$pos),           # found it!
+              nqp::if(
+                nqp::islt_i(
+                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))),
+                self!AT-POS-CONTAINER($pos),       # it's a hole
+                nqp::if(                           # too far out, try reifying
+                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                  nqp::stmts(
+                    $todo.reify-at-least(nqp::add_i($pos,1)),
+                    nqp::ifnull(
+                      nqp::atpos($reified,$pos),   # reified ok
+                      self!AT-POS-CONTAINER($pos)  # reifier didn't reach
+                    )
+                  ),
+                  self!AT-POS-CONTAINER($pos)      # create an outlander
                 )
-            !! value
+              )
+            ),
+            # no reified, implies no todo
+            nqp::stmts(                            # create reified
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              self!AT-POS-CONTAINER($pos)          # create an outlander
+            )
+          )
+        )
+    }
+    # because this is a very hot path, we copied the code from the int candidate
+    multi method AT-POS(Array:D: Int:D $pos) is raw {
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::ifnull(
+              nqp::atpos($reified,$pos),           # found it!
+              nqp::if(
+                nqp::islt_i(
+                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))),
+                self!AT-POS-CONTAINER($pos),       # it's a hole
+                nqp::if(                           # too far out, try reifying
+                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                  nqp::stmts(
+                    $todo.reify-at-least(nqp::add_i($pos,1)),
+                    nqp::ifnull(
+                      nqp::atpos($reified,$pos),   # reified ok
+                      self!AT-POS-CONTAINER($pos)  # reifier didn't reach
+                    )
+                  ),
+                  self!AT-POS-CONTAINER($pos)      # create an outlander
+                )
+              )
+            ),
+            # no reified, implies no todo
+            nqp::stmts(                            # create reified
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              self!AT-POS-CONTAINER($pos)          # create an outlander
+            )
+          )
+        )
+    }
+    method !AT-POS-CONTAINER(int $pos) is raw {
+        nqp::p6bindattrinvres(
+          (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
+          Scalar,
+          '$!whence',
+          -> { nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
+        )
     }
 
     multi method ASSIGN-POS(Array:D: int $ipos, Mu \assignee) {

@@ -698,7 +698,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
     # because this is a very hot path, we copied the code from the int candidate
-    multi method BIND-POS(Array:D: Int $pos, Mu \bindval) is raw {
+    multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(

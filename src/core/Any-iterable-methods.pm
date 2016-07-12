@@ -902,7 +902,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         todo = $elems;
         my $value;
 
-        return nqp::istype($value, Failure) ?? $value.exception.throw !! $value
+        nqp::istype($value,Failure) ?? $value.exception.throw !! return $value
           if nqp::isconcrete($value := self.AT-POS(i))
             while nqp::islt_i(++i,todo);
 

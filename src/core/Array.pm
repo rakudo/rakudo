@@ -59,7 +59,6 @@ my class Array { # declared in BOOTSTRAP
 
         # something to iterate over in the future
         if nqp::getattr(self,List,'$!todo').DEFINITE {
-            self!ensure-allocated;
             class :: does Iterator {
                 has int $!i;
                 has $!array;
@@ -70,9 +69,14 @@ my class Array { # declared in BOOTSTRAP
                 method !SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
-                    $!reified    := nqp::getattr(array, List,  '$!reified');
-                    $!todo       := nqp::getattr(array, List,  '$!todo');
-                    $!descriptor := nqp::getattr(array, Array, '$!descriptor');
+                    $!reified    := 
+                      nqp::ifnull(
+                        nqp::getattr( array,List,'$!reified'),
+                        nqp::bindattr(array,List,'$!reified',
+                          nqp::create(IterationBuffer))
+                      );
+                    $!todo       := nqp::getattr(array,List, '$!todo');
+                    $!descriptor := nqp::getattr(array,Array,'$!descriptor');
                     self
                 }
                 method new(\array) { nqp::create(self)!SET-SELF(array) }

@@ -720,25 +720,44 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method DELETE-POS(\pos, :$SINK) {
-        fail X::Subscript::Negative.new(index => pos, type => self.WHAT) if pos < 0;
-
-        my $value := self.AT-POS(pos); # needed for reification
-        my $items := nqp::getattr(self, List, '$!reified');
-        my $end   := self.end;
-
-        pos <= $end
-          ?? nqp::bindpos($items, pos, nqp::null())
-          !! return self.default;
-
-        if pos == $end {
-            my int $pos = pos;
-            nqp::pop($items);
-            nqp::pop($items)
-              while nqp::isge_i(--$pos,0)
-                && nqp::isnull(nqp::atpos($items,$pos));
-        }
-        $value;
+    multi method DELETE-POS(Array:D: int $pos) is raw {
+        nqp::if(
+          nqp::islt_i($pos,0),
+          Failure.new(X::OutOfRange.new(
+            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::if(
+              nqp::isle_i(                               # something to delete
+                $pos,my int $end = nqp::sub_i(nqp::elems($reified),1)),
+              nqp::stmts(
+                (my $value := nqp::ifnull(               # save the value
+                  nqp::atpos($reified,$pos),
+                  self.default
+                )),
+                nqp::bindpos($reified,$pos,nqp::null),   # remove this one
+                nqp::if(
+                  nqp::iseq_i($pos,$end),
+                  nqp::stmts(                            # shorten from end
+                    (my int $i = $pos),
+                    nqp::while(
+                      (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+                        && nqp::not_i(nqp::existspos($reified,$i))),
+                      Nil
+                    ),
+                    nqp::setelems($reified,nqp::add_i($i,1))
+                  ),
+                ),
+                $value                                   # value, if any
+              ),
+              self.default                               # outlander
+            ),
+            self.default                                 # no elements
+          )
+        )
+    }
+    multi method DELETE-POS(Array:D: Int:D $pos) is raw {
+        self.DELETE-POS(nqp::unbox_i($pos))
     }
 
     # MUST have a separate Slip variant to have it slip

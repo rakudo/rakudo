@@ -461,11 +461,6 @@ my class Array { # declared in BOOTSTRAP
         arr
     }
 
-    method !ensure-allocated(--> Nil) {
-        nqp::bindattr(self, List, '$!reified', nqp::create(IterationBuffer))
-            unless nqp::getattr(self, List, '$!reified').DEFINITE;
-    }
-
     proto method STORE(|) { * }
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)
@@ -511,15 +506,31 @@ my class Array { # declared in BOOTSTRAP
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
-    multi method List(Array:D:) {
-        self!ensure-allocated;
-        X::Cannot::Lazy.new(:action<List>).throw if self.is-lazy;
-        my \retval := nqp::create(List);
-        my \reified := nqp::create(IterationBuffer);
-        nqp::bindattr(retval, List, '$!reified', reified);
-        my \target := ListReificationTarget.new(reified);
-        self.iterator.push-all(target);
-        retval
+    multi method List(Array:D: :$view) {
+        nqp::if(
+          self.is-lazy,                           # can't make a List
+          Failure.new(X::Cannot::Lazy.new(:action<List>)),
+
+          nqp::if(                                # all reified
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::if(
+              $view,                              # assume no change in array
+              nqp::p6bindattrinvres(
+                nqp::create(List),List,'$!reified',$reified),
+              nqp::stmts(                         # make cow copy
+                (my int $elems = nqp::elems($reified)),
+                (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos($cow,$i,nqp::decont(nqp::atpos($reified,$i))),
+                ),
+                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$cow)
+              )
+            ),
+            nqp::create(List)                     # was empty, is empty
+          )
+        )
     }
 
     method shape() { (*,) }

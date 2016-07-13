@@ -6,8 +6,8 @@ my class Hash { # declared in BOOTSTRAP
     multi method Hash(Hash:) {
         self
     }
-    multi method Map(Hash:U) { Map }
-    multi method Map(Hash:D :$view) {
+    multi method Map(Hash:U:) { Map }
+    multi method Map(Hash:D: :$view) {
         my $hash := nqp::getattr(self,Map,'$!storage');
 
         # empty

@@ -450,7 +450,7 @@ multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is raw {
     SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is raw {
-    %other
+    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
       ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'v', $v, %other )
       !! SELF[^SELF.cache.elems];
 }

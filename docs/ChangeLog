@@ -16,9 +16,11 @@ New in 2016.07
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
    + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
+   + Fixed LTA error message with Str.samemark when no pattern present
  + Efficiency:
    + The MMD cache accepts candidates with named parameters if it can.
      (This made adverbed slices about 18x as fast)
+   + Str.samemark is 50x faster
    + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
    + List.elems is 4.5x faster
    + List.Bool is 4x faster

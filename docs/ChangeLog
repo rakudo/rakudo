@@ -22,6 +22,7 @@ New in 2016.07
      (This made adverbed slices about 18x as fast)
    + Str.samemark is 50x faster
    + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
+   + Array.List is 5x faster
    + List.elems is 4.5x faster
    + List.Bool is 4x faster
    + Str.chop is about 3.5x faster, Str.chop(N) 20% faster

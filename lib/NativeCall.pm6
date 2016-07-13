@@ -186,25 +186,12 @@ my role NativeCallSymbol[Str $name] {
 }
 
 sub guess_library_name($lib) is export(:TEST) {
-    my $libname;
-    my $apiversion = '';
-    my Str $ext = '';
-    given $lib {
-        when Callable {
-           return $lib();
-        }
-        when List {
-           $libname = $lib[0];
-           $apiversion = $lib[1];
-        }
-        when Str {
-           $libname = $lib;
-        }
-    }
-    return '' unless $libname.DEFINITE;
-    #Already a full name?
-    return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-    return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
+    return $lib() if $lib ~~ Callable;
+    return '' unless $lib[0].DEFINITE;
+    my $name-path = $lib[0].IO;
+    $name-path.extension
+        ?? $name-path
+        !! $*VM.platform-library-name($name-path, :version($lib.end ?? $lib[1] !! Version));
 }
 
 sub check_routine_sanity(Routine $r) is export(:TEST) {
@@ -273,9 +260,9 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has Pointer $!entry-point;
 
     method !setup() {
-        my $guessed_libname = guess_library_name($libname);
-        $!cpp-name-mangler  = %lib{$guessed_libname} //
-            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        my $guess = guess_library_name($libname);
+        my $guessed_libname = $guess.?chars ?? $guess.IO.absolute !! $guess;
+        $!cpp-name-mangler  = %lib{$guessed_libname} //= guess-name-mangler($r, $guessed_libname);
         my Mu $arg_info := param_list_for($r.signature, $r);
         my $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,
@@ -405,7 +392,7 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(
-                nqp::unbox_s(guess_library_name($libname)),
+                nqp::unbox_s(guess_library_name($libname).IO.absolute),
                 nqp::unbox_s($symbol),
                 nqp::decont($target-type),
                 nqp::decont(map_return_type($target-type)))

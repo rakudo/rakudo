@@ -50,14 +50,12 @@ class VM does Systemic {
 #?if jvm
         my int $is-darwin = $*VM.config<os.name> eq 'darwin';
 #?endif
-
-        my $basename  = $library.basename;
-        my int $full-path = $library ne $basename;
-        my $dirname   = $library.dirname;
+        my $abslib   = $library.absolute.IO;
+        my $basename = $abslib.basename;
+        my $root     = $abslib.parent;
 
         # OS X needs version before extension
         $basename ~= ".$version" if $is-darwin && $version.defined;
-
 #?if moar
         my $dll = self.config<dll>;
         my $platform-name = sprintf($dll, $basename);
@@ -66,13 +64,11 @@ class VM does Systemic {
         my $prefix = $is-win ?? '' !! 'lib';
         my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
 #?endif
-
         $platform-name ~= '.' ~ $version
             if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
-        $full-path
-          ?? $dirname.IO.child($platform-name).abspath
-          !! $platform-name.IO
+        my $path = IO::Path.new($platform-name, :CWD($root));
+        ?$library.is-absolute ?? $path.absolute !! $path.relative;
     }
 }
 

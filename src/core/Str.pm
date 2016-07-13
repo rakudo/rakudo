@@ -1094,12 +1094,71 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
 #?if moar
     method samemark(Str:D: Str:D $pattern) {
-        my @marklist = $pattern.comb;
-        my $patmarks;
-        join '', self.comb.map: -> $orig {
-            $patmarks := .NFD[1..*] with @marklist.shift;
-            Uni.new($orig.NFD[0], |$patmarks).Str;
-        }
+        nqp::if(
+          nqp::chars(nqp::unbox_s($pattern)),        # something to work with
+          nqp::stmts(
+            (my $base   := nqp::split("",$!value)),
+            (my $marks  := nqp::split("",nqp::unbox_s($pattern))),
+            (my int $base-elems  = nqp::elems($base)),
+            (my int $marks-elems = nqp::elems($marks) min $base-elems),
+            (my $result := nqp::setelems(nqp::list_s,$base-elems)),
+
+            (my int $i = -1),
+            nqp::while(                               # for all marks
+              nqp::islt_i(($i = nqp::add_i($i,1)),$marks-elems),
+              nqp::bindpos_s($result,$i,              # store the result of:
+                nqp::stmts(
+                  (my $marks-nfd := nqp::strtocodes(  # char + accents of mark
+                    nqp::atpos($marks,$i),
+                    nqp::const::NORMALIZE_NFD,
+                    nqp::create(NFD)
+                  )),
+                  nqp::shift_i($marks-nfd),           # lose the char
+                  (my $marks-base := nqp::strtocodes( # char + accents of base
+                    nqp::atpos($base,$i),
+                    nqp::const::NORMALIZE_NFD,
+                    nqp::create(NFD)
+                  )),
+                  nqp::strfromcodes(                  # join base+rest of marks
+                    nqp::splice(
+                      $marks-base,
+                      $marks-nfd,
+                      1,
+                      nqp::sub_i(nqp::elems($marks-base),1)
+                    )
+                  )
+                )
+              )
+            ),
+
+            ($i = nqp::sub_i($i,1)),
+            nqp::while(                               # remaining base chars
+              nqp::islt_i(($i = nqp::add_i($i,1)),$base-elems),
+              nqp::bindpos_s($result,$i,              # store the result of:
+                nqp::stmts(
+                  ($marks-base := nqp::strtocodes(    # char+all accents of base
+                    nqp::atpos($base,$i),
+                    nqp::const::NORMALIZE_NFD,
+                    nqp::create(NFD)
+                  )),
+                  nqp::strfromcodes(                  # join base+rest of marks
+                    nqp::splice(
+                      $marks-base,
+                      $marks-nfd, # NOTE: state of last iteration previous loop
+                      1,
+                      nqp::sub_i(nqp::elems($marks-base),1)
+                    )
+                  )
+                )
+              )
+            ),
+
+            nqp::join("",$result)                     # wrap it up
+          ),
+          Failure.new(X::AdHoc.new(
+            payload => "Must have at least 1 char of pattern with 'samemark'"
+          ))
+        )
     }
 #?endif
 #?if jvm

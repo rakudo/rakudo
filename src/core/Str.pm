@@ -103,6 +103,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    multi method substr-eq(Str:D: Str:D $needle) {
+        nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
+    }
+    multi method substr-eq(Str:D: Str:D $needle, Int:D $pos) {
+        nqp::p6bool(
+          nqp::if(
+            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
+            nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),$pos)
+          )
+        )
+    }
+
     method pred(Str:D:) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.PRED(self,$chars - 1)

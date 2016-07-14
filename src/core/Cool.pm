@@ -135,17 +135,14 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.starts-with($needle)
     }
 
-    proto method ends-with(|) { * }
+    proto method ends-with(|) {*}
     multi method ends-with(Cool:D: Str(Cool) $suffix) {
         self.Str.ends-with($suffix)
     }
 
     proto method substr-eq(|) {*}
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $start?) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $pos =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        $pos >= 0 && nqp::p6bool(nqp::eqat($str, nqp::unbox_s($needle), $pos));
+    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
+        self.Str.substr-eq($needle,$pos)
     }
 
     proto method contains(|) {*}

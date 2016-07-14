@@ -135,13 +135,9 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.starts-with($needle)
     }
 
-    proto method ends-with(Str(Cool) $suffix) { * }
+    proto method ends-with(|) { * }
     multi method ends-with(Cool:D: Str(Cool) $suffix) {
-        my str $str    = nqp::unbox_s(self.Str);
-        my str $needle = nqp::unbox_s($suffix);
-        nqp::p6bool(
-          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
-        );
+        self.Str.ends-with($suffix)
     }
 
     proto method substr-eq(|) {*}

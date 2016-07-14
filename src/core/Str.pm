@@ -95,6 +95,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }
 
+    multi method ends-with(Str:D: Str:D $suffix) {
+        nqp::p6bool(nqp::eqat(
+          $!value,
+          nqp::getattr($suffix,Str,'$!value'),
+          nqp::chars($!value) - nqp::chars(nqp::getattr($suffix,Str,'$!value'))
+        ))
+    }
+
     method pred(Str:D:) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.PRED(self,$chars - 1)

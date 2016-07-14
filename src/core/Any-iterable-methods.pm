@@ -217,7 +217,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }.new(&block, source, $label))
             }
 
-            # normal, without phasers or label
+            # normal, without phasers
             else {
                 Seq.new(class :: does SlippyIterator {
                     has &!block;
@@ -381,6 +381,199 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                 }.new(&block,source,$label))
             }
+        }
+
+        # code without phasers taking 2 params, typically .kv -> $k, $v
+        elsif $count == 2 && !(nqp::istype(&block,Block) && &block.has-phasers) {
+            Seq.new(class :: does SlippyIterator {
+                has &!block;
+                has $!source;
+                has $!label;
+
+                method new(&block,$source,$label) {
+                    my $iter := nqp::create(self);
+                    nqp::bindattr($iter, self, '&!block', &block);
+                    nqp::bindattr($iter, self, '$!source', $source);
+                    nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+                    $iter
+                }
+
+                method is-lazy() { $!source.is-lazy }
+
+                method pull-one() is raw {
+                    my int $redo = 1;
+                    my $value;
+                    my $value2;
+                    my $result;
+
+                    if $!slipping && nqp::not_i(nqp::eqaddr(
+                      ($result := self.slip-one),
+                      IterationEnd
+                    )) {
+                        # $result will be returned at the end
+                    }
+                    elsif nqp::eqaddr(
+                      ($value := $!source.pull-one),
+                      IterationEnd
+                    ) {
+                        $result := IterationEnd;
+                    }
+                    else {
+                      nqp::while(
+                        $redo,
+                        nqp::stmts(
+                          $redo = 0,
+                          nqp::handle(
+                            nqp::stmts(
+                              nqp::if(
+                                nqp::eqaddr(($value2 := $!source.pull-one),IterationEnd),
+                                nqp::if(                                 # don't have 2 params
+                                  nqp::istype(($result := &!block($value)),Slip),
+                                  ($result := self.start-slip($result))  # don't care if empty
+                                ),
+                                nqp::if(
+                                  nqp::istype(($result := &!block($value,$value2)),Slip),
+                                  nqp::if(
+                                    nqp::eqaddr(($result := self.start-slip($result)),IterationEnd),
+                                    nqp::unless(
+                                      nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                                      ($redo = 1)
+                                    )
+                                  )
+                                )
+                              )
+                            ),
+                            'LABELED',
+                            $!label,
+                            'NEXT',
+                            nqp::if(
+                              nqp::eqaddr(
+                                ($value := $!source.pull-one),IterationEnd
+                              ),
+                              ($result := IterationEnd),
+                              ($redo = 1)
+                            ),
+                            'REDO',
+                            ($redo = 1),
+                            'LAST',
+                            ($result := IterationEnd)
+                          ),
+                        ),
+                      :nohandler);
+                    }
+                    $result
+                }
+
+                method push-all($target) {
+                    my int $redo;
+                    my $value;
+                    my $value2;
+                    my $result;
+
+                    nqp::until(
+                      nqp::eqaddr(
+                        ($value := $!source.pull-one),IterationEnd
+                      ),
+                      nqp::stmts(
+                        ($redo = 1),
+                        nqp::while(
+                          $redo,
+                          nqp::stmts(
+                            ($redo = 0),
+                            nqp::handle(
+                              nqp::if(
+                                nqp::eqaddr(($value2 := $!source.pull-one),IterationEnd),
+                                nqp::stmts(
+                                  ($result := &!block($value)),
+                                  nqp::if(
+                                    (nqp::istype($result,Slip) && nqp::defined($result)),
+                                    $result.iterator.push-all($target),
+                                    $target.push($result)
+                                  ),
+                                  (return IterationEnd)
+                                ),
+                                nqp::stmts(
+                                  ($result := &!block($value,$value2)),
+                                  nqp::if(
+                                    (nqp::istype($result,Slip) && nqp::defined($result)),
+                                    $result.iterator.push-all($target),
+                                    $target.push($result)
+                                  )
+                                )
+                              ),
+                              'LABELED',
+                              $!label,
+                              'REDO',
+                              ($redo = 1),
+                              'LAST',
+                              (return IterationEnd)
+                            )
+                          ),
+                          :nohandler
+                        )
+                      )
+                    );
+                    IterationEnd
+                }
+
+                method sink-all() {
+                    my int $redo;
+                    my int $running = 1;
+                    my $value;
+                    my $value2;
+
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+                    nqp::while(
+                      $running,
+                      nqp::if(
+                        nqp::eqaddr(
+                          ($value := $!source.pull-one()),IterationEnd
+                        ),
+                        ($running = 0),
+                        nqp::stmts(
+                          ($redo = 1),
+                          nqp::while(
+                            $redo,
+                            nqp::stmts(
+                              $redo = 0,
+                              nqp::handle(  # doesn't sink
+                                nqp::if(
+                                  nqp::eqaddr(($value2 := $!source.pull-one),IterationEnd),
+                                  nqp::stmts(
+                                    (&!block($value)),
+                                    (return IterationEnd)
+                                  ),
+                                  (&!block($value,$value2))
+                                ),
+                                'LABELED',
+                                $!label,
+                                'NEXT',
+                                nqp::if(
+                                  nqp::eqaddr(
+                                    ($value := $!source.pull-one),
+                                    IterationEnd
+                                  ),
+                                  ($running = 0),
+                                  ($redo = 1)
+                                ),
+                                'REDO',
+                                ($redo = 1),
+                                'LAST',
+                                ($running = 0)
+                              )
+                            ),
+                          :nohandler
+                          )
+                        )
+                      )
+                    );
+} # needed for some reason
+                    IterationEnd
+                }
+            }.new(&block,source,$label))
         }
 
         # loop/map taking more than 1 param

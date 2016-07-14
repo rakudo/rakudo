@@ -91,6 +91,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $chars > 0 ?? nqp::p6box_s(nqp::substr($!value,0,$chars)) !! '';
     }
 
+    multi method starts-with(Str:D: Str:D $needle) {
+        nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
+    }
+
     method pred(Str:D:) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.PRED(self,$chars - 1)

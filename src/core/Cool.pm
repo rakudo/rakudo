@@ -132,9 +132,7 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D: Str(Cool) $needle) {
-        nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
-        );
+        self.Str.starts-with($needle)
     }
 
     proto method ends-with(Str(Cool) $suffix) { * }

@@ -147,7 +147,7 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method contains(|) {*}
     multi method contains(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
-        self.Str.contains($needle,$pos)
+        self.Str.contains($needle,$pos.Int)
     }
 
     proto method indices(|) {*}

@@ -146,11 +146,8 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle, Cool $start?) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $pos =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        nqp::index($str, nqp::unbox_s($needle), $pos) != -1;
+    multi method contains(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
+        self.Str.contains($needle,$pos)
     }
 
     proto method indices(|) {*}

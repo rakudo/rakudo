@@ -18,6 +18,22 @@ my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArra
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 
+
+# Role for carrying extra calling convention information.
+my role NativeCallingConvention[$name] {
+    method native_call_convention() { $name };
+}
+
+# Role for carrying extra string encoding information.
+my role NativeCallEncoded[$name] {
+    method native_call_encoded() { $name };
+}
+
+my role NativeCallMangled[$name] {
+    method native_call_mangled() { $name }
+}
+
+
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
 my class native_callsite is repr('NativeCall') { }
@@ -164,14 +180,15 @@ sub type_code_for(Mu ::T) {
 }
 
 sub gen_native_symbol(Routine $r, :$cpp-name-mangler) {
-    if $r.package.REPR eq 'CPPStruct' {
-        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name))
-    }
-    elsif $r.?native_call_mangled {
+    if ! $r.?native_call_mangled {
+        # Native symbol or name is said to be already mangled
+        $r.?native_symbol // $r.name;
+    } elsif $r.package.REPR eq 'CPPStruct' {
+        # Mangle C++ classes
+        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name));
+    } else {
+        # Mangle C
         $cpp-name-mangler($r, $r.?native_symbol // $r.name)
-    }
-    else {
-        $r.?native_symbol // $r.name
     }
 }
 
@@ -273,9 +290,17 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     has Pointer $!entry-point;
 
     method !setup() {
+        # Make sure that C++ methotds are treated as mangled (unless set otherwise)
+        if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
+          self does NativeCallMangled[True];
+        }
+
         my $guessed_libname = guess_library_name($libname);
-        $!cpp-name-mangler  = %lib{$guessed_libname} //
-            (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        if self.does(NativeCallMangled) and $r.?native_call_mangled {
+          # if needed, try to guess mangler
+          $!cpp-name-mangler  = %lib{$guessed_libname} //
+              (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+        }
         my Mu $arg_info := param_list_for($r.signature, $r);
         my $conv = self.?native_call_convention || '';
         nqp::buildnativecall(self,
@@ -302,20 +327,6 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
 
         nqp::nativecall($!rettype, self, $args)
     }
-}
-
-# Role for carrying extra calling convention information.
-my role NativeCallingConvention[$name] {
-    method native_call_convention() { $name };
-}
-
-# Role for carrying extra string encoding information.
-my role NativeCallEncoded[$name] {
-    method native_call_encoded() { $name };
-}
-
-my role NativeCallMangled[$name] {
-    method native_call_mangled() { $name }
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {

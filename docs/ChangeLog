@@ -13,11 +13,17 @@ New in 2016.07
    + If a file is unknown in an error report, it is no longer shown
      (This typically happens in the REPL, or when doing an EVAL)
    + REPL whitespace and error handling
+   + CompUnit::Repository::Installation no longer considers `bin/xxx` and
+     `resources/bin/xxx` the same content address
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
    + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
    + Fixed LTA error message with Str.samemark when no pattern present
+   + Distribution is now a role interface that enables encapsulating IO
+     used for distribution installation
+   + CompUnit::Repository::Installation now uses the new Distribution interface
+   + The original distribution META `provides` data is now preserved
  + Efficiency:
    + The MMD cache accepts candidates with named parameters if it can.
      (This made adverbed slices about 18x as fast)

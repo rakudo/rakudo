@@ -104,11 +104,12 @@ to cc: the perl6-compiler mailing list, as the RT system will handle
 this on its own. Please start your subject with one (or more) of the
 following text, including the brackets:
 
-* [BUG]  - this is an actual bug
-* [LTA]  - a "Less Than Awesome" diagnostic or warning is being generated
-* [JVM]  - issue only occurs on the JVM
-* [PERF] - any performance related issue
-* [UNI]  - related to unicode support
+* [BUG]    - this is an actual bug
+* [LTA]    - a "Less Than Awesome" diagnostic or warning is being generated
+* [JVM]    - issue only occurs on the JVM
+* [PERF]   - any performance related issue
+* [UNI]    - related to unicode support
+* [@LARRY] - this ticket requires a decision from the design team
 
 If you find a bug in MoarVM or NQP, you can either discuss it on the IRC
 and have it reported for you, or you can submit an issue to the issue

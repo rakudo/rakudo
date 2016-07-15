@@ -21,9 +21,12 @@ New in 2016.07
    + The MMD cache accepts candidates with named parameters if it can.
      (This made adverbed slices about 18x as fast)
    + Str.samemark is 50x faster
+   + Str.contains is 6x faster
    + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
    + Array.List is 5x faster
    + List.elems is 4.5x faster
+   + for/map with 2 arguments is 4x faster (e.g. for @a.kv -> $i, $v { })
+   + Str.substr-eq is 4x faster
    + List.Bool is 4x faster
    + Str.chop is about 3.5x faster, Str.chop(N) 20% faster
    + Map eqv Map is 3x faster
@@ -32,6 +35,7 @@ New in 2016.07
    + List.AT-POS/EXISTS-POS are 2.5x faster
    + Creating arrays with [] is 2.5x faster
    + Array.AT-POS/ASSIGN-POS/BIND-POS at least 2x faster for unreified elements
+   + Str.starts-with is 2x faster
    + Array.shift is 2x faster
    + Baggy.roll(*) is 2x faster
    + Blob/Buf.AT-POS is 2x faster (underlying method of e.g. "$buf[2]")
@@ -41,6 +45,7 @@ New in 2016.07
    + Str.comb 30% faster
    + Map/Hash initializations are now 30% faster
    + A slurpy taking a list is 30% faster ("sub a(*@a) { }; a(1,2,3,4)")
+   + Str.ends-with is 25% faster.
    + Str.chomp is 20% faster
    + single element for/map in sink context without phasers, is 20% faster
    + Pair.new is 10% faster

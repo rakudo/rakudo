@@ -12,6 +12,7 @@ New in 2016.07
    + Several wrapper file fixes
    + If a file is unknown in an error report, it is no longer shown
      (This typically happens in the REPL, or when doing an EVAL)
+   + REPL whitespace and error handling
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
@@ -50,6 +51,7 @@ New in 2016.07
    + single element for/map in sink context without phasers, is 20% faster
    + Pair.new is 10% faster
    + val() is 5% faster
+   + {}|[]:adverb is about 2.5x faster
 
 New in 2016.06
  + Fixes:

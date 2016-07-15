@@ -40,21 +40,6 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    method cow() {
-        my int $elems = self.elems; # ensure reification
-        my $src  := nqp::getattr(self,List,'$!reified');
-        my $cow  := nqp::setelems(nqp::list,$elems);
-        my int $i = -1;
-
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::bindpos($cow,$i,nqp::p6scalarfromdesc($!descriptor) =
-            nqp::decont(nqp::atpos($src,$i)))
-        );
-
-        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$cow)
-    }
-
     method iterator(Array:D:) {
 
         # something to iterate over in the future

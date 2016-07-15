@@ -102,8 +102,9 @@ Update Rakudo’s leap-second tables:
 
   $ perl tools/update-tai-utc.pl
 
-If a new leap second has been announced, F<tai-utc.pm> will be modified, so
-commit the new version:
+If a new leap second has been announced, F<src/core/Rakudo/Internals.pm>
+will be modified, so commit the new version. B<Note:> be sure to double
+check the modifications are correct before committing.
 
   $ git commit src
 

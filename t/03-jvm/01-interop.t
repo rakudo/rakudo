@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 25;
+plan 26;
 
 {
     use java::lang::String:from<JavaRuntime>;
@@ -142,5 +142,16 @@ plan 25;
     {
         my $crc32 = CRC32.new;
         throws-like { $crc32.foo() }, X::Method::NotFound;
+    }
+}
+
+{
+    my $r = run('javac', 't/03-jvm/Foo.java');
+    if $r && "t/03-jvm/Foo.class".IO ~~ :e {
+        my $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.bar; say Foo.new.quux;'", :out);
+        is $out.out.lines, "baz womble", "(compiling and) loading a .class file via 'use lib' works";
+    }
+    else {
+        skip 1;
     }
 }

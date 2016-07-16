@@ -177,27 +177,10 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method rindex(|) {*}
     multi method rindex(Cool:D: Str(Cool) $needle) {
-        my int $i = nqp::rindex(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.rindex($needle)
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        fail X::OutOfRange.new(
-          :what("Position in rindex"),
-          :got($pos),
-          :range("0..{self.chars}"),
-        ) if nqp::isbig_I(nqp::decont($pos));
-        my int $i = nqp::unbox_i($pos);
-        fail X::OutOfRange.new(
-          :what("Position in rindex"),
-          :got($i),
-          :range("0..{self.chars}"),
-        ) if $i < 0;
-        $i = nqp::rindex(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          $i
-        );
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.rindex($needle,$pos)
     }
 
     multi method split(Cool: Regex:D $pat, $limit = Inf;; :$all) {

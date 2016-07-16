@@ -15,6 +15,10 @@ New in 2016.07
    + REPL whitespace and error handling
    + CompUnit::Repository::Installation no longer considers `bin/xxx` and
      `resources/bin/xxx` the same content address
+   + Callable in a Signatures stringifies correctly
+   + BEGIN time EVAL no longer negatively affects MAIN_CTX
+   + Str.chop correctly works when given very large arguments
+   + min/max on Failures throw instead of returning ±Inf
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
@@ -24,6 +28,14 @@ New in 2016.07
      used for distribution installation
    + CompUnit::Repository::Installation now uses the new Distribution interface
    + The original distribution META `provides` data is now preserved
+   + Custom repository implementations now supported, including precompilation
+   + List.BIND-POS now fails instead of throwing
+   + RAKUDO_JDB_PORT and RAKUDO_PRECOMP_NESTED_JDB debug environmental
+     variables
+   + Failures in Cool.Numeric and related coercers now get propagated
+   + Ability to mark NativeCall import symbols to be mangled or not
+   + Improved warning message for literals with leading zeros
+   + Improved error message for attempts to `use` core types
  + Efficiency:
    + The MMD cache accepts candidates with named parameters if it can.
      (This made adverbed slices about 18x as fast)
@@ -42,6 +54,7 @@ New in 2016.07
    + List.AT-POS/EXISTS-POS are 2.5x faster
    + Creating arrays with [] is 2.5x faster
    + Array.AT-POS/ASSIGN-POS/BIND-POS at least 2x faster for unreified elements
+   + Array.DELETE-POS is 7x faster
    + Str.starts-with is 2x faster
    + Array.shift is 2x faster
    + Baggy.roll(*) is 2x faster
@@ -57,7 +70,10 @@ New in 2016.07
    + single element for/map in sink context without phasers, is 20% faster
    + Pair.new is 10% faster
    + val() is 5% faster
-   + {}|[]:adverb is about 2.5x faster
+   + {}|[]:adverb is 2.5x faster
+   + foo xx Int is 10% faster
+   + Str.Int is 5% faster
+   + Code.arity|count are 2x faster
 
 New in 2016.06
  + Fixes:

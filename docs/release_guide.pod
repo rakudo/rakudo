@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2016-08-20   Rakudo #102
+  2016-08-20   Rakudo #102 (Zoffix; but space open for anyone wanting to learn to do a release)
   2016-09-17   Rakudo #103
   2016-10-15   Rakudo #104
   2016-11-19   Rakudo #105

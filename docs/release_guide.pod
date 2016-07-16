@@ -84,7 +84,9 @@ There is a helper script C<tools/create-release-announcement.pl> that
 will create a basic release announcement for you based on the state
 of the repository and the current date.  Feel free to use it to
 save yourself some time, but please look over its output if you decide
-to use it.
+to use it:
+
+    ./perl6 tools/create-release-announcement.pl > docs/announce/YYYY.MM.md
 
 =item *
 

@@ -1,14 +1,11 @@
 {
-    my $i;
     role CompUnit::PrecompilationRepository {
-        has $!i = $i++;
-
         method load(CompUnit::PrecompilationId $id) {
             Nil
         }
 
         method may-precomp() {
-            $i < 3 # number of next repo after None and the first Default
+            True # would be a good place to check an environment variable
         }
     }
 }
@@ -19,6 +16,7 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
     has %!loaded;
+    my $first-repo-id;
 
     my $lle;
     my $profile;
@@ -97,9 +95,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
         my $repo = $*REPO;
+        $first-repo-id //= $repo.id;
         my $repo-id = self!load-file(@precomp-stores, $precomp-unit.id, :repo-id);
         if $repo-id ne $repo.id {
             $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
+            $resolve = True;
+        }
+        if $repo-id ne $first-repo-id {
+            $RMD("Repo chain changed: $repo-id ne {$first-repo-id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
         }
         my @dependencies;

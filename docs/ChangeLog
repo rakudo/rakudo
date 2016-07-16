@@ -19,6 +19,7 @@ New in 2016.07
    + BEGIN time EVAL no longer negatively affects MAIN_CTX
    + Str.chop correctly works when given very large arguments
    + min/max on Failures throw instead of returning ±Inf
+   + NativeCall's is mangled trait no longer ignored for CPPStruct
  + Additions:
    + The "is required" trait on Attributes can now take a Bool or a Str
    + Support for new leap-second at 31-12-2016 added
@@ -33,7 +34,6 @@ New in 2016.07
    + RAKUDO_JDB_PORT and RAKUDO_PRECOMP_NESTED_JDB debug environmental
      variables
    + Failures in Cool.Numeric and related coercers now get propagated
-   + Ability to mark NativeCall import symbols to be mangled or not
    + Improved warning message for literals with leading zeros
    + Improved error message for attempts to `use` core types
  + Efficiency:

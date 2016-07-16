@@ -356,11 +356,18 @@ public final class Binder {
 
                 /* If the expected type is Positional, see if we need to do the
                  * positional bind failover. */
-                if (nomType == gcx.Positional && Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
-                    SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
-                    Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
-                    arg_o = Ops.result_o(tc.curFrame);
-                    decontValue = Ops.decont(arg_o, tc);
+                if (nomType == gcx.Positional) {
+                    if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
+                        SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
+                        Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
+                        arg_o = Ops.result_o(tc.curFrame);
+                        decontValue = Ops.decont(arg_o, tc);
+                    }
+                    else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
+                        SixModelObject ig = Ops.findmethod(tc, decontValue, "cache");
+                        Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
+                        decontValue = Ops.result_o(tc.curFrame);
+                    }
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then

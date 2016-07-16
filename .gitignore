@@ -97,3 +97,4 @@ perl6-valgrind-m
 *.rakudo.moar
 *.rakudo.jvm
 **/.precomp
+t/03-jvm/*.class

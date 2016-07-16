@@ -15,7 +15,7 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
-    has %!loaded;
+    my %loaded;
     my $first-repo-id;
 
     my $lle;
@@ -31,7 +31,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $RMD("try-load $id: $source") if $RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
-        return %!loaded{$id} if %!loaded{$id}:exists;
+        return %loaded{$id} if %loaded{$id}:exists;
 
         my ($handle, $checksum) = (
             self.may-precomp and (
@@ -133,8 +133,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         for @dependencies -> $dependency-precomp {
-            unless %!loaded{$dependency-precomp.id}:exists {
-                %!loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
+            unless %loaded{$dependency-precomp.id}:exists {
+                %loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
             }
         }
 
@@ -156,7 +156,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) {
-        return %!loaded{$id} if %!loaded{$id}:exists;
+        return %loaded{$id} if %loaded{$id}:exists;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
         my $unit = self!load-file(@precomp-stores, $id);
@@ -165,7 +165,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             if (not $since or $modified > $since)
                 and self!load-dependencies($unit, $modified, @precomp-stores)
             {
-                return (%!loaded{$id} = self!load-handle-for-path($unit)), $unit.checksum;
+                return (%loaded{$id} = self!load-handle-for-path($unit)), $unit.checksum;
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {

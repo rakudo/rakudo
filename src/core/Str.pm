@@ -130,6 +130,42 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    multi method index(Str:D: Str:D $needle) {
+        nqp::if(
+          nqp::islt_i((my int $i =
+            nqp::index($!value,nqp::getattr($needle,Str,'$!value'))),
+            0
+          ),
+          Nil,
+          nqp::p6box_i($i)
+        )
+    }
+    multi method index(Str:D: Str:D $needle, Int:D $pos) {
+        nqp::if(
+          nqp::isbig_I(nqp::decont($pos)),
+          Failure.new(X::OutOfRange.new(
+            :what("Position in index"),
+            :got($pos),
+            :range("0..{self.chars}")
+          )),
+          nqp::if(
+            nqp::islt_i($pos,0),
+            Failure.new(X::OutOfRange.new(
+              :what("Position in index"),
+              :got($pos),
+              :range("0..{self.chars}")
+            )),
+            nqp::if(
+              nqp::islt_i((my int $i = nqp::index(
+                $!value,nqp::getattr($needle,Str,'$!value'),$pos
+              )),0),
+              Nil,
+              nqp::p6box_i($i)
+            )
+          )
+        )
+    }
+
     method pred(Str:D:) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.PRED(self,$chars - 1)

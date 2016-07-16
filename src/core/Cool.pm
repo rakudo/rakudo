@@ -169,27 +169,10 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method index(|) {*}
     multi method index(Cool:D: Str(Cool) $needle) {
-        my int $i = nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.index($needle)
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        fail X::OutOfRange.new(
-          :what("Position in index"),
-          :got($pos),
-          :range("0..{self.chars}"),
-        ) if nqp::isbig_I(nqp::decont($pos));
-        my int $i = nqp::unbox_i($pos);
-        fail X::OutOfRange.new(
-          :what("Position in index"),
-          :got($i),
-          :range("0..{self.chars}"),
-        ) if $i < 0;
-        $i = nqp::index(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          $i
-        );
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.index($needle,$pos)
     }
 
     proto method rindex(|) {*}

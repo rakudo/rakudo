@@ -182,6 +182,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     ) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
+        return False unless $io;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
             $RMD("$source-name\nalready precompiled into\n$io") if $RMD;

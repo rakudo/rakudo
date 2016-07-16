@@ -76,7 +76,6 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has int $!lock-count = 0;
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
-        $!prefix.mkdir unless $!prefix.e;
     }
 
     method new-unit(|c) {
@@ -141,6 +140,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                        Str :$extension = '')
         returns IO::Path
     {
+        unless $!prefix.e {
+            $!prefix.mkdir or return;
+        }
+        return unless $!prefix.w;
         self!lock();
         self!file($compiler-id, $precomp-id, :$extension);
     }

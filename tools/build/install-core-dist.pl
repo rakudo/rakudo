@@ -13,7 +13,6 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm",
 ;
 
-$*REPO; # init repo chain so AbsolutePath and NQP repos are available during precomp
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),
     :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl')),

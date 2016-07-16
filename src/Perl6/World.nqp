@@ -459,8 +459,11 @@ class Perl6::World is HLL::World {
     # are we module debugging?
     has $!RAKUDO_MODULE_DEBUG;
 
+    has $!record_precompilation_dependencies;
+
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
+        $!record_precompilation_dependencies := 1;
     }
 
     method create_nested() {
@@ -4360,6 +4363,18 @@ class Perl6::World is HLL::World {
             }
             ':' ~ $k ~ '<' ~ $new ~ '>';
         }
+    }
+
+    method record_precompilation_dependencies() {
+        self.is_precompilation_mode && $!record_precompilation_dependencies
+    }
+
+    method suspend_recording_precompilation_dependencies() {
+        $!record_precompilation_dependencies := 0;
+    }
+
+    method resume_recording_precompilation_dependencies() {
+        $!record_precompilation_dependencies := 1;
     }
 }
 

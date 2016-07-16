@@ -41,7 +41,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             )
         );
 
-        if $*W and $*W.is_precompilation_mode {
+        if $*W and $*W.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
                 say $dependency.serialize;
@@ -139,7 +139,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         # report back id and source location of dependency to dependant
-        if $*W and $*W.is_precompilation_mode {
+        if $*W and $*W.record_precompilation_dependencies {
             for $precomp-unit.dependencies -> $dependency {
                 say $dependency.serialize;
             }

@@ -51,7 +51,10 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
+    my $world := $*W;
+    $world.suspend_recording_precompilation_dependencies if $world;
     CompUnit::RepositoryRegistry.resolve-unknown-repos($repo.repo-chain);
+    $world.resume_recording_precompilation_dependencies if $world;
     PROCESS::<$REPO>
 }
 

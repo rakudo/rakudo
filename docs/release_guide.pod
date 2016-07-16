@@ -283,8 +283,8 @@ Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
        rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
-masak, tadzik, moritz, PerlJam/perlpilot,  [Coke], lizmat, timotimo, fsergot,
-hoelzro) on #perl6 to do it for you.
+masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
+hoelzro, Zoffix) on #perl6 or #perl6-dev to do it for you.
 
 =item 19.
 

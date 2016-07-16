@@ -64,13 +64,13 @@ my role Real does Numeric {
 
     method polymod(Real:D: +@mods) {
         my $more = self;
-        my $inf = @mods.is-lazy;
+        my $lazy = @mods.is-lazy;
         fail X::OutOfRange.new(
           what => 'invocant to polymod', got => $more, range => "0..*"
         ) if $more < 0;
         gather {
             for @mods -> $mod {
-                last if $inf and not $more;
+                last if $lazy and not $more;
                 fail X::Numeric::DivideByZero.new(
                   using => 'polymod', numerator => $more
                 ) unless $mod;
@@ -78,7 +78,7 @@ my role Real does Numeric {
                 $more -= $rem;
                 $more /= $mod;
             }
-            take $more unless $inf;
+            take $more if ($lazy and $more) or not $lazy;
         }
     }
 

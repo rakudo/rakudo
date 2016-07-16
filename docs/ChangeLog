@@ -1,5 +1,6 @@
 New in 2016.08
  + Fixes:
+   + .polymod with a lazy list no longer loses mods if the list runs out
  + Additions:
  + Efficiency:
 

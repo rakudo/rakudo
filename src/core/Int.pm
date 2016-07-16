@@ -99,6 +99,7 @@ my class Int does Real { # declared in BOOTSTRAP
                       !! last;
                     $more = $more div $mod;
                 }
+                take $more if $more;
             }
             else {
                 for @mods -> $mod {

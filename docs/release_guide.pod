@@ -18,7 +18,6 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2016-07-16   Rakudo #101 (Zoffix)
   2016-08-20   Rakudo #102
   2016-09-17   Rakudo #103
   2016-10-15   Rakudo #104
@@ -407,6 +406,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-04-19   Rakudo #98 "2016.04"            (Coke)
   2016-05-21   Rakudo #99 "2016.05"            (hoelzro)
   2016-06-18   Rakudo #100 "2016.06"           (Zoffix)
+  2016-07-16   Rakudo #101 "2016.07"           (Zoffix)
 
 =head1 COPYRIGHT
 

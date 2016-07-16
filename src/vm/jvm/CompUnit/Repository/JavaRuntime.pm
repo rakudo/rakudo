@@ -1,4 +1,4 @@
-class CompUnit::Repository::Java does CompUnit::Repository does CompUnit::Repository::Locally {
+class CompUnit::Repository::JavaRuntime does CompUnit::Repository {
     has $!interop;
 
     method need(
@@ -7,9 +7,9 @@ class CompUnit::Repository::Java does CompUnit::Repository does CompUnit::Reposi
     )
         returns CompUnit:D
     {
-        if $spec.from eq 'Java' {
+        if $spec.from eq 'JavaRuntime' {
             $!interop = nqp::jvmrakudointerop() unless nqp::isconcrete($!interop);
-            $!interop.addToClassPath($.prefix.abspath);
+
             my $jtype = $!interop.typeForName($spec.short-name.subst(/'::'/, '.', :g));
 
             # register the class by its name (cf. Inline::Perl5, nine++)
@@ -48,11 +48,11 @@ class CompUnit::Repository::Java does CompUnit::Repository does CompUnit::Reposi
     }
 
     method id() {
-        'Java'
+        'JavaRuntime'
     }
 
-    method short-id {
-        'java'
+    method path-spec() {
+        'javart#'
     }
 }
 

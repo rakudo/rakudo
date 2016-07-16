@@ -1,19 +1,12 @@
 use v6;
 use Test;
 
-plan 26;
+plan 25;
 
 {
-    # still supported
-    use java::lang::String:from<Java>;
+    use java::lang::String:from<JavaRuntime>;
 
-    ok 1, "alive after 'use java::lang::String:from<Java>' (not deprecated yet)";
-}
-
-{
-    use java::lang::String:from<Java>;
-
-    ok 1, "alive after 'use java::lang::String:from<Java>'";
+    ok 1, "alive after 'use java::lang::String:from<JavaRuntime>'";
 
     is String."method/valueOf/(Z)Ljava/lang/String;"(True), "true", 
         "calling explicit static methods works";
@@ -28,7 +21,7 @@ plan 26;
 }
 
 {
-    use java::util::zip::CRC32:from<Java>;
+    use java::util::zip::CRC32:from<JavaRuntime>;
     # check two of the .update candidates for CRC32
     {
         my $crc32 = CRC32.new;
@@ -52,7 +45,7 @@ plan 26;
 }
 
 {
-    use java::lang::Long:from<Java>;
+    use java::lang::Long:from<JavaRuntime>;
     {
         my $long = Long.new("42");
         is $long, 42, 'multi constructor and marshalling for Long works (1)';
@@ -62,7 +55,7 @@ plan 26;
 }
 
 {
-    use java::lang::Integer:from<Java>;
+    use java::lang::Integer:from<JavaRuntime>;
     {
         my $int = Integer.new("42");
         is $int, 42, 'multi constructor and marshalling for Integer works (1)';
@@ -72,7 +65,7 @@ plan 26;
 }
 
 {
-    use java::lang::Short:from<Java>;
+    use java::lang::Short:from<JavaRuntime>;
     {
         my $short = Short.new("42");
         is $short, 42, 'multi constructor and marshalling for Short works (1)';
@@ -82,7 +75,7 @@ plan 26;
 }
 
 {
-    use java::lang::Byte:from<Java>;
+    use java::lang::Byte:from<JavaRuntime>;
     {
         my $Byte = Byte.new("42");
         is $Byte, 42, 'multi constructor and marshalling for Byte works (1)';
@@ -92,7 +85,7 @@ plan 26;
 }
 
 {
-    use java::lang::Float:from<Java>;
+    use java::lang::Float:from<JavaRuntime>;
     {
         my $Float = Float.new("42.0");
         is $Float, 42.0, 'multi constructor and marshalling for Float works (1)';
@@ -102,7 +95,7 @@ plan 26;
 }
 
 {
-    use java::lang::Double:from<Java>;
+    use java::lang::Double:from<JavaRuntime>;
     {
         my $Double = Double.new("42.0");
         is $Double, 42.0, 'multi constructor and marshalling for Double works (1)';
@@ -112,7 +105,7 @@ plan 26;
 }
 
 {
-    use java::lang::Boolean:from<Java>;
+    use java::lang::Boolean:from<JavaRuntime>;
     {
         my $Boolean = Boolean.new("true"); # lower case t, because Java does the converting
         is $Boolean, True, 'multi constructor and marshalling for Boolean works (1)';
@@ -122,7 +115,7 @@ plan 26;
 }
 
 {
-    use java::util::zip::CRC32:from<Java>;
+    use java::util::zip::CRC32:from<JavaRuntime>;
     {
         CRC32.HOW.add_method(CRC32, "doubledValue", method ($self:) {
             return $self.getValue() * 2;
@@ -136,7 +129,7 @@ plan 26;
 }
 
 {
-    use java::lang::StringBuilder:from<Java>;
+    use java::lang::StringBuilder:from<JavaRuntime>;
     {
         my $sb = StringBuilder.new();
         $sb = $sb.append("foo");
@@ -145,7 +138,7 @@ plan 26;
 }
 
 {
-    use java::util::zip::CRC32:from<Java>;
+    use java::util::zip::CRC32:from<JavaRuntime>;
     {
         my $crc32 = CRC32.new;
         throws-like { $crc32.foo() }, X::Method::NotFound;

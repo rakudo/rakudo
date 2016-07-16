@@ -6,7 +6,7 @@ class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
 
 #?if jvm
-class CompUnit::Repository::Java { ... }
+class CompUnit::Repository::JavaRuntime { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
@@ -62,14 +62,6 @@ class CompUnit::RepositoryRegistry {
                 nqp::push($raw-specs,nqp::unbox_s($_))
                   for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }
-
-#?if jvm
-            for nqp::hllize(nqp::jvmclasspaths()) -> $path {
-                nqp::push($raw-specs,nqp::unbox_s($_))
-                  for parse-include-specS($path);
-            }
-#?endif
-
         }
 
         my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
@@ -117,7 +109,7 @@ class CompUnit::RepositoryRegistry {
                 :next-repo( CompUnit::Repository::NQP.new(
                     :next-repo(CompUnit::Repository::Perl5.new(
 #?if jvm
-                        :next-repo(CompUnit::Repository::Java.new)
+                        :next-repo(CompUnit::Repository::JavaRuntime.new)
 #?endif
                     ))
                 )
@@ -307,6 +299,7 @@ class CompUnit::RepositoryRegistry {
     short-id2class('nqp')   = 'CompUnit::Repository::NQP';
     short-id2class('perl5') = 'CompUnit::Repository::Perl5';
 #?if jvm
+    short-id2class('javart')  = 'CompUnit::Repository::JavaRuntime';
     short-id2class('java')  = 'CompUnit::Repository::Java';
 #?endif
 

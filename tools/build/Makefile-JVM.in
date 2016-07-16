@@ -13,8 +13,8 @@ J_LIBPATH = $(PREFIX)/share/nqp/lib
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx2000m -Xbootclasspath/a:.@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar -cp $(SYSROOT)@nqp_classpath@ nqp
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -Xbootclasspath/a:.@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp $(SYSROOT)@nqp_classpath@ perl6
+J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -218,6 +218,7 @@ J_CORE_SOURCES = \
   src/core/CompUnit/Repository/Perl5.pm \
   src/core/CompUnit/Repository/Unknown.pm \
   src/vm/jvm/CompUnit/Repository/Java.pm \
+  src/vm/jvm/CompUnit/Repository/JavaRuntime.pm \
   src/core/Argfiles.pm \
   src/core/Process.pm \
   src/core/StrDistance.pm \

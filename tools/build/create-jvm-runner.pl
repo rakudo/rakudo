@@ -59,8 +59,8 @@ sub install {
     chmod 0755, $install_to if $^O ne 'MSWin32';
 }
 
-my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
-my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $perl6jars 
+my $classpath = join($cpsep, ($perl6jars, $jardir, $libdir, $nqplibdir));
+my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . $prefix
           . ' -Djna.library.path=' . $sharedir

@@ -8,6 +8,10 @@ import org.perl6.nqp.sixmodel.reprs.P6Opaque;
 import org.perl6.nqp.sixmodel.reprs.JavaObjectWrapper;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.net.URLClassLoader;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,6 +27,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.InvocationTargetException;
 
 import org.perl6.nqp.sixmodel.reprs.NativeCall.ArgType;
 
@@ -823,6 +828,31 @@ public class RakudoJavaInterop extends BootJavaInterop {
         return cc;
     }
 
+    public void addToClassPath(String path) {
+        path = "file:" + path;
+        if (!path.endsWith("jar") && !path.endsWith("class"))
+            path = path + "/";
+        Class<?> klass;
+
+        try {
+            // ...but here's what we actually do:
+            Method meth_addURL = URLClassLoader.class.getDeclaredMethod("addURL", new Class<?>[] { URL.class });
+            meth_addURL.setAccessible(true);
+            meth_addURL.invoke(getClass().getClassLoader(), new URL(path));
+        }
+        catch (NoSuchMethodException nsme) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), nsme);
+        }
+        catch (InvocationTargetException ite) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), ite);
+        }
+        catch (IllegalAccessException iae) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), iae);
+        }
+        catch (MalformedURLException mue) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), mue);
+        }
+    }
 
     @Override
     protected SixModelObject computeInterop(ThreadContext tc, Class<?> klass) {
@@ -909,7 +939,4 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         return hash;
     }
-
 }
-
-

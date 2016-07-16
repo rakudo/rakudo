@@ -136,7 +136,7 @@ new release is significant.
 Include a list of contributors since the last release in the announcement.
 You can get an automatically generated list by running
 
-  $ perl6 tools/contributors.pl6
+  $ ./perl6 tools/contributors.pl6
 
 Please check the result manually for duplicates and other errors. Note that
 you may not be able to run your system perl6 in a local checkout, you may

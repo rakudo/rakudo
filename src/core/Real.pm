@@ -71,7 +71,7 @@ my role Real does Numeric {
         gather {
             for @mods -> $mod {
                 last if $lazy and not $more;
-                fail X::Numeric::DivideByZero.new(
+                Failure.new(X::Numeric::DivideByZero.new:
                   using => 'polymod', numerator => $more
                 ) unless $mod;
                 take my $rem = $more % $mod;

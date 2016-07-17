@@ -94,7 +94,7 @@ my class Int does Real { # declared in BOOTSTRAP
                     $more
                       ?? $mod
                         ?? take $more mod $mod
-                        !! fail X::Numeric::DivideByZero.new(
+                        !! Failure.new(X::Numeric::DivideByZero.new:
                              using => 'polymod', numerator => $more)
                       !! last;
                     $more = $more div $mod;
@@ -105,7 +105,7 @@ my class Int does Real { # declared in BOOTSTRAP
                 for @mods -> $mod {
                     $mod
                       ?? take $more mod $mod
-                      !! fail X::Numeric::DivideByZero.new(
+                      !! Failure.new(X::Numeric::DivideByZero.new:
                            using => 'polymod', numerator => $more);
                     $more = $more div $mod;
                 }

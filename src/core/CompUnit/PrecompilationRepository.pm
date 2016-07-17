@@ -122,7 +122,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                   if $RMD;
 
                 my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
-                $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD;
+                $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD and $srcIO.e;
                 return False if not $srcIO.e or $modified < $srcIO.modified;
 
                 my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);

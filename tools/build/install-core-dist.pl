@@ -15,7 +15,13 @@ my %provides =
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),
-    :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl')),
+    :next-repo(
+        # Make CompUnit::Repository::Staging available to precomp processes
+        CompUnit::Repository::Installation.new(
+            :prefix(@*ARGS[0]),
+            :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl')),
+        )
+    ),
     :name('perl'),
 );
 $*REPO.install(

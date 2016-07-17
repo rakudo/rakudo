@@ -7,7 +7,7 @@ New in 2016.08
 New in 2016.07
  + Fixes:
    + Mu can now be the result of a Promise
-   + samewith() now also works on none-multi's
+   + samewith() now also works on non-multi's
    + Many fixes in the area of pre-compilation and installing modules
    + Maps now correctly identify themselves as value objects
    + BagHashes and MixHashes no longer identify themselves as value objects

@@ -1,8 +1,6 @@
 New in 2016.08
  + Fixes:
    + .polymod with a lazy list no longer loses mods if the list runs out
-   + Output from Test.pm6's diag() is no longer lost in non-verbose prove output
-     when called at the start of the test file or during TODO tests
  + Additions:
  + Efficiency:
 

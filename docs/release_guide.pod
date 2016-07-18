@@ -212,8 +212,8 @@ Install Inline::Perl5 so stresstest can use it.
 =item 13.
 
 Now run the stresstests for stable and lastest specs. The following commands
-assume you already have a roast checkout in `t/spec`. If not, run
-`make spectest` (you can abort it  after the repository is retrieved).
+assume you already have a roast checkout in C<t/spec>. If not, run
+C<make spectest> (you can abort it  after the repository is retrieved).
 
   $ (cd t/spec && git checkout master)     # test latest language spec
   $ make stresstest

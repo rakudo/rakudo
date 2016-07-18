@@ -202,7 +202,7 @@ Make sure everything compiles and runs from a known clean state:
 
 Install Inline::Perl5 so stresstest can use it.
 
-  $ git clone git@github.com:tadzik/panda.git
+  $ git clone https://github.com/tadzik/panda
   $ export PATH=`pwd`/install/bin:$PATH
   $ cd panda; perl6 bootstrap.pl
   $ cd ..

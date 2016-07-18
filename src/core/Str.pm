@@ -1215,33 +1215,71 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Note that in these same* methods, as used by s/LHS/RHS/, the
     # pattern is actually the original string matched by LHS, while the
     # invocant "original" is really the replacement RHS part.  Confusing...
-    method samecase(Str:D: Str $pattern) {
-        my str $str = nqp::unbox_s(self);
-        my str $pat = nqp::unbox_s($pattern);
-        my int $min = min(nqp::chars($str),nqp::chars($pattern));
-        my int $i = 0;
-        my int $j = 0;
-        my int $case = 0;
-        my int $last-case;
-        my Mu $ret := nqp::list_s();
-        my str $substr;
-        while $i < $min {
-            repeat {
-                $last-case = $case;
-                $case = nqp::iscclass(nqp::const::CCLASS_LOWERCASE, $pat, $j) ?? 1 !!
-                        nqp::iscclass(nqp::const::CCLASS_UPPERCASE, $pat, $j) ?? 2 !! 0;
-                last if $case != $last-case;
-                $j = $j + 1;
-            } while $j < $min;
-            $substr = nqp::substr($str, $i, $j - $i);
-            nqp::push_s($ret, $last-case == 1 ?? nqp::lc($substr) !!
-                              $last-case == 2 ?? nqp::uc($substr) !! $substr);
-            $i = $j
-        }
-        $substr = nqp::substr($str,$i);
-        nqp::push_s($ret, $case == 1 ?? nqp::lc($substr) !!
-                          $case == 2 ?? nqp::uc($substr) !! $substr);
-        nqp::join("",$ret);
+    method samecase(Str:D: Str:D $pattern) {
+        nqp::if(
+          nqp::chars(nqp::unbox_s($pattern)),        # something to work with
+          nqp::stmts(
+            (my $result := nqp::list_s),
+            (my $cases  := nqp::getattr($pattern,Str,'$!value')),
+            (my int $base-chars  = nqp::chars($!value)),
+            (my int $cases-chars = nqp::if(
+              nqp::isgt_i(nqp::chars($cases),$base-chars),
+              $base-chars,
+              nqp::chars($cases)
+            )),
+            (my int $i = 0),
+            (my int $j = 0),
+            (my int $prev-case = nqp::if(            # set up initial case
+              nqp::iscclass(nqp::const::CCLASS_LOWERCASE,$cases,0),
+              -1,
+              nqp::iscclass(nqp::const::CCLASS_UPPERCASE,$cases,0)
+            )),
+
+            nqp::while(                              # other chars in pattern
+              nqp::islt_i(($i = nqp::add_i($i,1)),$cases-chars),
+              nqp::stmts(
+                (my int $case = nqp::if(             # -1 =lc, 1 = uc, 0 = else
+                  nqp::iscclass(nqp::const::CCLASS_LOWERCASE,$cases,$i),
+                  -1,
+                  nqp::iscclass(nqp::const::CCLASS_UPPERCASE,$cases,$i)
+                )),
+                nqp::if(
+                  nqp::isne_i($case,$prev-case),
+                  nqp::stmts(                        # seen a change
+                    nqp::push_s($result,nqp::if(
+                      nqp::iseq_i($prev-case,-1),    # coming from lc
+                      nqp::lc(nqp::substr($!value,$j,nqp::sub_i($i,$j))),
+                      nqp::if(
+                        nqp::iseq_i($prev-case,1),   # coming from uc
+                        nqp::uc(nqp::substr($!value,$j,nqp::sub_i($i,$j))),
+                        nqp::substr($!value,$j,nqp::sub_i($i,$j))
+                      )
+                    )),
+                    ($prev-case = $case),
+                    ($j         = $i)
+                  )
+                )
+              )
+            ),
+
+            nqp::if(                                 # something left
+              nqp::islt_i($j,$base-chars),
+              nqp::push_s($result,nqp::if(
+                nqp::iseq_i($prev-case,-1),          # must become lc
+                nqp::lc(nqp::substr($!value,$j,nqp::sub_i($base-chars,$j))),
+                nqp::if(
+                  nqp::iseq_i($prev-case,1),         # must become uc
+                  nqp::uc(nqp::substr($!value,$j,nqp::sub_i($base-chars,$j))),
+                  nqp::substr($!value,$j,nqp::sub_i($base-chars,$j))
+                )
+              ))
+            ),
+
+            nqp::join("",$result)                    # wrap it up
+          ),
+
+          self                                       # nothing to be done
+        )
     }
 
 #?if moar

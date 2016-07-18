@@ -151,20 +151,11 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, Cool $start?, :$overlap) {
-        my str $str  = nqp::unbox_s(self.Str);
-        my int $pos  =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        my str $need = nqp::unbox_s($needle);
-        my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
-
-        my $rpa := nqp::list();
-        my int $i;
-        while ($i = nqp::index($str, $need, $pos)) >= 0 {
-            nqp::push($rpa,nqp::p6box_i($i));
-            $pos = $i + $add;
-        }
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+    multi method indices(Cool:D: Str(Cool) $needle, :$overlap) {
+        self.Str.indices($needle,:$overlap)
+    }
+    multi method indices(Cool:D: Str(Cool) $needle,Int(Cool) $start,:$overlap) {
+        self.Str.indices($needle,$start,:$overlap)
     }
 
     proto method index(|) {*}

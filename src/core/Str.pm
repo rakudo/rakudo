@@ -130,6 +130,47 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    multi method indices(Str:D: Str:D $needle, :$overlap) {
+        nqp::stmts(
+          (my $need    := nqp::getattr($needle,Str,'$!value')),
+          (my int $add  = nqp::if($overlap,1,nqp::chars($need) || 1)),
+          (my $indices := nqp::list),
+          (my int $pos),
+          (my int $i),
+          nqp::while(
+            nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
+            nqp::stmts(
+              nqp::push($indices,nqp::p6box_i($i)),
+              ($pos = nqp::add_i($i,$add))
+            )
+          ),
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
+        )
+    }
+    multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
+        nqp::stmts(
+          (my int $pos = $start),
+          nqp::if(
+            nqp::isgt_i($pos,nqp::chars($!value)),
+            nqp::create(List),   # position after string, always empty List
+            nqp::stmts(
+              (my $need   := nqp::getattr($needle,Str,'$!value')),
+              (my int $add = nqp::if($overlap,1,nqp::chars($need) || 1)),
+              (my $indices := nqp::list),
+              (my int $i),
+              nqp::while(
+                nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
+                nqp::stmts(
+                  nqp::push($indices,nqp::p6box_i($i)),
+                  ($pos = nqp::add_i($i,$add))
+                )
+              ),
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
+            )
+          )
+        )
+    }
+
     multi method index(Str:D: Str:D $needle) {
         nqp::if(
           nqp::islt_i((my int $i =

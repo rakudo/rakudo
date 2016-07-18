@@ -137,9 +137,12 @@ You can get an automatically generated list by running
 
   $ ./perl6 tools/contributors.pl6
 
-Please check the result manually for duplicates and other errors. Note that
-you may not be able to run your system perl6 in a local checkout, you may
-have to wait until you build in this directory and use C<./perl6>.
+To obtain all contribtors, ensure you have all supporting repositories
+checked out, before running (this is can be achieved by building rakudo
+and running a spectest). Please check the result manually for duplicates
+and other errors. Note that you may not be able to run your system perl6
+in a local checkout, you may have to wait until you build in this
+directory and use C<./perl6>.
 
   $ git add docs/announce/YYYY.MM.md
   $ git commit docs

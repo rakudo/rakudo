@@ -1,4 +1,4 @@
-New in 2016.07.01
+New in 2016.07.1
  + Fixes:
    + `make DESTDIR` now correctly finds CompUnit::Repository::Staging
    + .polymod with a lazy list no longer loses mods if the list runs out

@@ -29,6 +29,7 @@ my class IO::Path is Cool {
         self.bless(:$path, :$SPEC, :$CWD)!fap;
     }
 
+    proto method new(|) {*}
     multi method new(IO::Path: Str(Cool) $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         die "Must specify something as a path: did you mean '.' for the current directory?" unless $path.chars;
         self.bless(:$path, :$SPEC, :$CWD);

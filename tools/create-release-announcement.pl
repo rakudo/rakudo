@@ -140,7 +140,7 @@ sub find-next-release-date() {
     if $next-release ~~ /^ \s* (\d\d\d\d '-' \d\d '-' \d\d)/ {
         ~$0
     } else {
-        fail "shit";
+        fail "Could not find next release date in a correct format";
     }
 }
 

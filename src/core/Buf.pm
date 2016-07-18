@@ -13,7 +13,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
       unless nqp::istype(T,Int);
 
     multi method WHICH(Blob:D:) {
-        self.^name ~ '|' ~ nqp::sha1(self.join(","))
+        self.^name ~ '|' ~ nqp::sha1(self.decode("latin-1"))
     }
 
     multi method new(Blob:) { nqp::create(self) }

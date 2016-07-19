@@ -456,7 +456,7 @@ my class Mu { # declared in BOOTSTRAP
     method note() { note(self) }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
-        if nqp::isnull(nqp::getlexdyn('$*gistseen')) == 0 {
+        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*gistseen'))) {
             my \sems := $*gistseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
@@ -484,7 +484,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method gist(Mu:D:) { self.perl }
 
     method perlseen(Mu:D \SELF: $id, $perl, *%named) {
-        if nqp::isnull(nqp::getlexdyn('$*perlseen')) == 0 {
+        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*perlseen'))) {
             my \sems := $*perlseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {

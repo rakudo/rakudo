@@ -141,7 +141,7 @@ my class Attribute { # declared in BOOTSTRAP
         )
     }
 
-    method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
+    method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }
     method readonly() { !self.rw }
     method package() { $!package }
     method inlined() { $!inlined }

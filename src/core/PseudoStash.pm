@@ -173,16 +173,16 @@ my class PseudoStash is Map {
             $res;
         }
         elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
-            my $found := nqp::getlexreldyn(
-                nqp::getattr(self, PseudoStash, '$!ctx'),
-                $nkey);
-            nqp::isnull($found) ?? Nil !! $found
+            nqp::ifnull(
+              nqp::getlexreldyn(nqp::getattr(self,PseudoStash,'$!ctx'),$nkey),
+              Nil
+            )
         }
         else { # STATIC_CHAIN
-            my $found := nqp::getlexrel(
-                nqp::getattr(self, PseudoStash, '$!ctx'),
-                $nkey);
-            nqp::isnull($found) ?? Nil !! $found
+            nqp::ifnull(
+              nqp::getlexrel(nqp::getattr(self,PseudoStash,'$!ctx'),$nkey),
+              Nil
+            )
         }
     }
 

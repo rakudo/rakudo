@@ -52,11 +52,11 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method gist(Regex:D:) {
-        nqp::isnull($!source) ?? '' !! $!source
+        nqp::ifnull($!source,'')
     }
 
     multi method perl(Regex:D:) {
-        nqp::isnull($!source) ?? '' !! $!source
+        nqp::ifnull($!source,'')
     }
 }
 

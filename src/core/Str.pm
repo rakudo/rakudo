@@ -1345,9 +1345,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             nqp::join("",$result)                     # wrap it up
           ),
-          Failure.new(X::AdHoc.new(
-            payload => "Must have at least 1 char of pattern with 'samemark'"
-          ))
+
+          self                                        # nothing to be done
         )
     }
 #?endif

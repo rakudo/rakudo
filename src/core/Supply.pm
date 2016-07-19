@@ -619,7 +619,7 @@ my class Supply {
     method unique(Supply:D $self: :&as, :&with, :$expires) {
         supply {
             if $expires {
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {
@@ -686,7 +686,7 @@ my class Supply {
                 }
             }
             else { # !$!expires
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {

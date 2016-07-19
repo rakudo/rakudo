@@ -288,7 +288,7 @@ my class Block { # declared in BOOTSTRAP
             }
             $p;
         }
-        if ($slurp_n and $slurp_n.capture and $slurp_n !=== $slurp_p) {
+        if ($slurp_n and $slurp_n.capture and !($slurp_n === $slurp_p)) {
             @phash.push(strip_parm($slurp_n));
         }
         my $error = False;

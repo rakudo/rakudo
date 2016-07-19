@@ -154,77 +154,94 @@ my class PseudoStash is Map {
         };
 
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
-        my Mu $nkey := nqp::unbox_s($key);
-        if %pseudoers.EXISTS-KEY($key) {
-            %pseudoers.AT-KEY($key)(self)
-        }
-        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
-            my Mu $store := nqp::getattr(self, Map, '$!storage');
-            my Mu $res := nqp::existskey($store, $nkey) ??
-                            nqp::atkey($store, $nkey) !!
-                            Nil;
-            if !($res =:= Nil) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
-                if try !$res.VAR.dynamic {
-                    X::Caller::NotDynamic.new(
-                        symbol => $key,
-                    ).throw;
-                }
-            }
-            $res;
-        }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
-            nqp::ifnull(
-              nqp::getlexreldyn(nqp::getattr(self,PseudoStash,'$!ctx'),$nkey),
-              Nil
+        nqp::if(
+          %pseudoers.EXISTS-KEY($key),
+          %pseudoers.AT-KEY($key)(self),
+          nqp::if(
+            nqp::bitand_i($!mode,PRECISE_SCOPE),
+            nqp::stmts(
+              (my Mu $res := nqp::if(
+                nqp::existskey(
+                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                nqp::atkey(
+                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                Nil
+              )),
+              nqp::if(
+                (nqp::not_i(nqp::eqaddr($res,Nil))
+                  && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
+                nqp::if(
+                  (try nqp::not_i($res.VAR.dynamic)),
+                  X::Caller::NotDynamic.new(symbol => $key).throw
+                )
+              ),
+              $res
+            ),
+            nqp::if(
+              nqp::bitand_i(
+                $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
+                ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
+              nqp::ifnull(
+                nqp::getlexreldyn(
+                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                Nil
+              ),
+              nqp::ifnull(                                    # STATIC_CHAIN
+                nqp::getlexrel(
+                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                Nil
+              )
             )
-        }
-        else { # STATIC_CHAIN
-            nqp::ifnull(
-              nqp::getlexrel(nqp::getattr(self,PseudoStash,'$!ctx'),$nkey),
-              Nil
-            )
-        }
+          )
+        )
     }
 
     method BIND-KEY(Str() $key, \value) is raw {
-        if %pseudoers.EXISTS-KEY($key) {
-            X::Bind.new(target => "pseudo-package $key").throw;
-        }
-        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
-            my Mu $store := nqp::getattr(self, Map, '$!storage');
-            nqp::bindkey($store, nqp::unbox_s($key), value)
-        }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
-            die "Binding to dynamic variables not yet implemented";
-        }
-        else { # STATIC_CHAIN
-            die "This case of binding is not yet implemented";
-        }
+        nqp::if(
+          %pseudoers.EXISTS-KEY($key),
+          X::Bind.new(target => "pseudo-package $key").throw,
+          nqp::if(
+            nqp::bitand_i($!mode,PRECISE_SCOPE),
+            nqp::bindkey(
+              nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key),value),
+            nqp::if(
+              nqp::bitand_i(
+                $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
+              ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
+              (die "Binding to dynamic variables not yet implemented"),
+              (die "This case of binding is not yet implemented") # STATIC_CHAIN
+            )
+          )
+        )
     }
+
     # for some reason we get a ambiguous dispatch error by making this a multi
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
-        if %pseudoers.EXISTS-KEY($key) {
-            True
-        }
-        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
-            nqp::p6bool(nqp::existskey(
-                nqp::getattr(self, Map, '$!storage'),
-                nqp::unbox_s($key)))
-        }
-        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && $key.substr-eq("*",1) {
-            nqp::isnull(
-                nqp::getlexreldyn(
-                    nqp::getattr(self, PseudoStash, '$!ctx'),
-                    nqp::unbox_s($key)))
-                ?? False !! True
-        }
-        else { # STATIC_CHAIN
-            nqp::isnull(
-                nqp::getlexrel(
-                    nqp::getattr(self, PseudoStash, '$!ctx'),
-                    nqp::unbox_s($key)))
-                ?? False !! True
-        }
+        nqp::unless(
+          %pseudoers.EXISTS-KEY($key),
+          nqp::p6bool(
+            nqp::if(
+              nqp::bitand_i($!mode,PRECISE_SCOPE),
+              nqp::existskey(
+                nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+              nqp::if(
+                nqp::bitand_i(
+                  $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
+                ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
+                nqp::not_i(
+                  nqp::isnull(
+                    nqp::getlexreldyn(
+                      nqp::getattr(self, PseudoStash, '$!ctx'),
+                      nqp::unbox_s($key)))),
+                nqp::not_i(           # STATIC_CHAIN
+                  nqp::isnull(
+                    nqp::getlexrel(
+                      nqp::getattr(self, PseudoStash, '$!ctx'),
+                      nqp::unbox_s($key))))
+              )
+            )
+          )
+        )
     }
 }
 

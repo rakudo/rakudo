@@ -221,6 +221,12 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     $ok;
 }
 
+sub bail-out ($desc?) is export {
+    $output.put: join ' ', 'Bail out!', ($desc if $desc);
+    $done_testing_has_been_run = 1;
+    exit 255;
+}
+
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     DEPRECATED('is-approx'); # Remove at 20161217 release (6 months from today)
 

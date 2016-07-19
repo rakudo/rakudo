@@ -26,22 +26,32 @@ my class Mix { ... }
 my class MixHash { ... }
 
 sub DYNAMIC(\name) is raw {
-    my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
-    if nqp::isnull(x) {
-        my str $name = nqp::unbox_s(name);
-        my \prom := nqp::getlexdyn('$*PROMISE');
-        x := nqp::getlexreldyn(
-          nqp::getattr(prom, Promise, '$!dynamic_context'), $name)
-          unless nqp::isnull(prom);
-        if nqp::isnull(x) {
-            my str $pkgname = nqp::replace($name, 1, 1, '');
-            x := nqp::ifnull(nqp::atkey(GLOBAL.WHO,$pkgname),
+    nqp::ifnull(
+      nqp::getlexdyn(nqp::unbox_s(name)),
+      nqp::stmts(
+        nqp::unless(
+          nqp::isnull(my $prom := nqp::getlexdyn('$*PROMISE')),
+          (my Mu $x := nqp::getlexreldyn(
+            nqp::getattr($prom,Promise,'$!dynamic_context'),nqp::unbox_s(name))
+          )
+        ),
+        nqp::if(
+          nqp::isnull($x),
+          nqp::stmts(
+            (my str $pkgname = nqp::replace(nqp::unbox_s(name),1,1,'')),
+            ($x := nqp::ifnull(nqp::atkey(GLOBAL.WHO,$pkgname),
                    nqp::ifnull(nqp::atkey(PROCESS.WHO,$pkgname),
-                     Rakudo::Internals.INITIALIZE-DYNAMIC($name)));
-            fail x if nqp::istype(x, Exception);
-        }
-    }
-    x
+                   Rakudo::Internals.INITIALIZE-DYNAMIC(nqp::unbox_s(name))))
+            )
+          )
+        ),
+        nqp::if(
+          nqp::istype($x,Exception),
+          Failure.new($x),
+          $x
+        )
+      )
+    )
 }
 
 # Set up ClassHOW's auto-gen proto (nested scope so it won't

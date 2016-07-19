@@ -889,7 +889,23 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         );
 
         # Second pass, perform the assignments.
-        nqp::shift(cv) = nqp::shift(cv) while nqp::elems(cv);
+        nqp::if(
+          nqp::elems(cv),
+          nqp::while(                             # we have something set up
+            nqp::elems(cv),
+            (nqp::shift(cv) = nqp::shift(cv))     # do the assignment(s)
+          ),
+          nqp::unless(                            # reify directly
+            nqp::eqaddr(rhs-iter.push-until-lazy($!reified),IterationEnd),
+            nqp::stmts(                           # set up reifier
+              (my $new-todo := nqp::create(List::Reifier)),
+              nqp::bindattr($new-todo,List::Reifier,'$!reified',$!reified),
+              nqp::bindattr($new-todo,List::Reifier,'$!current-iter',rhs-iter),
+              nqp::bindattr($new-todo,List::Reifier,'$!reification-target',$!reified),
+              nqp::bindattr(self,List,'$!todo',$new-todo)
+            )
+          )
+        );
 
         self
     }

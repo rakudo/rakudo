@@ -157,7 +157,11 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
-        nqp::getattr_i(self, Cursor, '$!pos') < 0 ?? Nil !! self.MATCH()
+        nqp::if(
+          nqp::islt_i(nqp::getattr_i(self,Cursor,'$!pos'),0),
+          Nil,
+          self.MATCH
+        )
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.

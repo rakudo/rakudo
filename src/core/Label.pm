@@ -6,11 +6,10 @@ my class Label {
     has Str $!postmatch;
     method new(:$name, :$line, :$prematch, :$postmatch) {
         # XXX Register in &?BLOCK.labels when we have &?BLOCK.
-        my $file := nqp::getlexdyn('$?FILES');
-        $file    := nqp::isnull($file) ?? '<unkown>' !! nqp::p6box_s($file);
-        my $obj  := nqp::create(self);
+        my $obj := nqp::create(self);
         nqp::bindattr($obj, Label, '$!name',      $name);
-        nqp::bindattr($obj, Label, '$!file',      $file);
+        nqp::bindattr($obj, Label, '$!file',
+          nqp::ifnull(nqp::getlexdyn('$?FILES'),'<unknown>'));
         nqp::bindattr($obj, Label, '$!line',      $line);
         nqp::bindattr($obj, Label, '$!prematch',  nqp::p6box_s($prematch));
         nqp::bindattr($obj, Label, '$!postmatch', nqp::p6box_s($postmatch));

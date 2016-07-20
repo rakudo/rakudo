@@ -105,7 +105,8 @@ my class X::SecurityPolicy::Eval is X::SecurityPolicy {
                     .Str;
                 }
             }
-        } ~ " (use MONKEY-SEE-NO-EVAL to override,\nbut only if you're VERY sure your data contains no injection attacks)";
+        } ~ " (use the MONKEY-SEE-NO-EVAL pragma to override this error,\n"
+          ~ "but only if you're VERY sure your data contains no injection attacks)";
     }
     method Numeric() { $.payload.Numeric }
     method from-slurpy (|cap) {

@@ -1190,13 +1190,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<statement> > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $<statement> {
-                    $l.push(wanted($_.ast,'semilist'));
+                    my $sast := $_.ast || QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
+                    $l.push(wanted($sast, 'semilist'));
                 }
                 $past.push($l);
                 $past.annotate('multislice', 1);
             }
             else {
-                $past.push($<statement>[0].ast);
+                $past.push($<statement>[0].ast || QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
             }
             make $past;
         }

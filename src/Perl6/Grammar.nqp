@@ -2582,7 +2582,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || ';'
             {
-                $/.CURSOR.missing_block() if $*BORG<block>;
                 if $<deflongname> ne 'MAIN' {
                     $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
                 }

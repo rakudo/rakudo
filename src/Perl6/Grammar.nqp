@@ -2284,7 +2284,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
 
-                # Install $?PACKAGE, $?ROLE, $?CLASS, and :: variants as needed.
+                # Install $?PACKAGE, $?MODULE, $?ROLE, $?CLASS, and :: variants as needed.
                 my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
@@ -2297,7 +2297,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('::?CLASS')));
                     }
-                    elsif $*PKGDECL ne 'package' && $*PKGDECL ne 'module' {
+                    elsif $*PKGDECL eq 'module' {
+                        $*W.install_lexical_symbol($curpad, '$?MODULE', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?MODULE', $*PACKAGE);
+                    }
+                    elsif $*PKGDECL ne 'package'{
                         $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }

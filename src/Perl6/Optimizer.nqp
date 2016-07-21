@@ -33,6 +33,7 @@ my class Symbols {
     has $!Routine;
     has $!Nil;
     has $!Failure;
+    has $!Seq;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -59,6 +60,7 @@ my class Symbols {
         $!Routine     := self.find_lexical('Routine');
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
+        $!Seq         := self.find_lexical('Seq');
         nqp::pop(@!block_stack);
     }
 
@@ -100,6 +102,7 @@ my class Symbols {
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
+    method Seq()         { $!Seq }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -1420,7 +1423,7 @@ class Perl6::Optimizer {
                             $survived := 0;
                         }
                     }
-                    if $survived && !nqp::istype($ret_value, $!symbols.Failure) {
+                    if $survived && self.constant_foldable_type($ret_value) {
                         return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
@@ -1550,6 +1553,13 @@ class Perl6::Optimizer {
             }
         }
         return NQPMu;
+    }
+
+    method constant_foldable_type($value) {
+        !(
+            nqp::istype($value, $!symbols.Seq) ||
+            nqp::istype($value, $!symbols.Failure)
+        )
     }
 
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];

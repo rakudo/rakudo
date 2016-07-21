@@ -9,6 +9,17 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
+    my class InstalledDistribution is Distribution::Hash {
+        method content($address) {
+            my $entry = $.meta<provides>.values.first: { $_{$address}:exists };
+            my $file = $entry
+                ?? $.prefix.child('sources').child($entry{$address}<file>)
+                !! $.prefix.child('resources').child($.meta<files>{$address});
+
+            $file.open(:r)
+        }
+    }
+
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
     }
@@ -521,6 +532,15 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method loaded() returns Iterable {
         return %!loaded.values;
+    }
+
+    method installed() returns Iterable {
+        my $dist-dir = self.prefix.child('dist');
+        $dist-dir.e
+            ?? $dist-dir.dir.map({
+                    InstalledDistribution.new(self!read-dist($_.basename), :prefix(self.prefix))
+                })
+            !! Nil
     }
 
     method precomp-store() returns CompUnit::PrecompilationStore {

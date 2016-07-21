@@ -118,24 +118,46 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        my $storage := nqp::getattr(self,Map,'$!storage');
-        my str $key = key;
-        nqp::existskey($storage, $key)
-            ?? (nqp::atkey($storage, $key) = assignval)
-            !! nqp::bindkey($storage, $key,
-                nqp::p6scalarfromdesc($!descriptor) = assignval)
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          (nqp::ifnull(
+             nqp::atkey(
+               nqp::getattr(self,Map,'$!storage'),
+               nqp::unbox_s(key)
+             ),
+             nqp::bindkey(
+               nqp::getattr(self,Map,'$!storage'),
+               nqp::unbox_s(key),
+               nqp::p6scalarfromdesc($!descriptor)
+             )
+          ) = assignval),
+          nqp::bindkey(
+            nqp::bindattr(self,Map,'$!storage',nqp::hash),
+            nqp::unbox_s(key),
+            nqp::p6scalarfromdesc($!descriptor) = assignval
+          )
+        )
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        my $storage := nqp::getattr(self,Map,'$!storage');
-        my str $key = key.Str;
-        nqp::existskey($storage, $key)
-            ?? (nqp::atkey($storage, $key) = assignval)
-            !! nqp::bindkey($storage, $key,
-                nqp::p6scalarfromdesc($!descriptor) = assignval)
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          (nqp::ifnull(
+             nqp::atkey(
+               nqp::getattr(self,Map,'$!storage'),
+               nqp::unbox_s(key.Str)
+             ),
+             nqp::bindkey(
+               nqp::getattr(self,Map,'$!storage'),
+               nqp::unbox_s(key.Str),
+               nqp::p6scalarfromdesc($!descriptor)
+             )
+          ) = assignval),
+          nqp::bindkey(
+            nqp::bindattr(self,Map,'$!storage',nqp::hash),
+            nqp::unbox_s(key.Str),
+            nqp::p6scalarfromdesc($!descriptor) = assignval
+          )
+        )
     }
 
     # for some reason, this can't be turned into a multi without
@@ -394,6 +416,69 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
+        # These ASSIGN-KEY candidates are only needed because of:
+        #   my Int %h; try %h<a> = "foo"; dd %h
+        # leaving an uninitialized Int for key <a> in the hash.  If
+        # we could live with that, then these candidates can be
+        # removed.  However, there are spectest covering this
+        # eventuality, so to appease roast, we need these.
+        multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, Mu \assignval) is raw {
+            nqp::if(
+              nqp::getattr(self,Map,'$!storage').DEFINITE,
+              nqp::if(
+                nqp::existskey(
+                  nqp::getattr(self,Map,'$!storage'),
+                  nqp::unbox_s(key)
+                ),
+                (nqp::atkey(
+                  nqp::getattr(self,Map,'$!storage'),
+                  nqp::unbox_s(key)
+                ) = assignval),
+                nqp::bindkey(
+                  nqp::getattr(self,Map,'$!storage'),
+                  nqp::unbox_s(key),
+                  nqp::p6scalarfromdesc(
+                    nqp::getattr(self,Hash,'$!descriptor')) = assignval
+                )
+              ),
+              nqp::bindkey(
+                nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                nqp::unbox_s(key),
+                nqp::p6scalarfromdesc(
+                  nqp::getattr(self,Hash,'$!descriptor')) = assignval
+              )
+            )
+        }
+        multi method ASSIGN-KEY(::?CLASS:D: \key, Mu \assignval) is raw {
+            nqp::stmts(
+              (my str $key = nqp::unbox_s(key.Str)),
+              nqp::if(
+                nqp::getattr(self,Map,'$!storage').DEFINITE,
+                nqp::if(
+                  nqp::existskey(
+                    nqp::getattr(self,Map,'$!storage'),
+                    $key
+                  ),
+                  (nqp::atkey(
+                    nqp::getattr(self,Map,'$!storage'),
+                    $key
+                  ) = assignval),
+                  nqp::bindkey(
+                    nqp::getattr(self,Map,'$!storage'),
+                    nqp::unbox_s(key.Str),
+                    nqp::p6scalarfromdesc(
+                      nqp::getattr(self,Hash,'$!descriptor')) = assignval
+                  )
+                ),
+                nqp::bindkey(
+                  nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                  $key,
+                  nqp::p6scalarfromdesc(
+                    nqp::getattr(self,Hash,'$!descriptor')) = assignval
+                )
+              )
+            )
+        }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 '(my '

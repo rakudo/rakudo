@@ -3441,7 +3441,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           }>
         ]
         # parametric/coercion type?
-        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [
+            <?[[]>
+            :my %*MYSTERY;
+            '[' ~ ']' <arglist>
+            <.explain_mystery> <.cry_sorrows>
+        ]?
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?

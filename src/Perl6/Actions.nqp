@@ -4905,44 +4905,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                     );
                 }
-                my $type := $<typename>.ast;
-                if nqp::isconcrete($type) {
-                    # Actual a value that parses type-ish.
-                    %*PARAM_INFO<nominal_type> := $type.WHAT;
-                    unless %*PARAM_INFO<post_constraints> {
-                        %*PARAM_INFO<post_constraints> := [];
-                    }
-                    %*PARAM_INFO<post_constraints>.push($type);
-                }
-                elsif $type.HOW.archetypes.nominal {
-                    %*PARAM_INFO<nominal_type> := $type;
-                }
-                elsif $type.HOW.archetypes.coercive {
-                    %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
-                    %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
-                }
-                elsif $type.HOW.archetypes.definite {
-                    %*PARAM_INFO<nominal_type> := $type.HOW.base_type($type);
-                }
-                elsif $type.HOW.archetypes.generic {
-                    %*PARAM_INFO<nominal_type> := $type;
-                    %*PARAM_INFO<nominal_generic> := 1;
-                }
-                elsif $type.HOW.archetypes.nominalizable {
-                    my $nom := $type.HOW.nominalize($type);
-                    %*PARAM_INFO<nominal_type> := $nom;
-                    unless %*PARAM_INFO<post_constraints> {
-                        %*PARAM_INFO<post_constraints> := [];
-                    }
-                    %*PARAM_INFO<post_constraints>.push($type);
-                }
-                else {
-                    $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
-                }
-                %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
-                %*PARAM_INFO<of_type_match> := $<typename>;
-                %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
-                %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
+                dissect_type_into_parameter($/, $<typename>.ast);
             }
         }
         elsif $<value> {
@@ -4969,6 +4932,46 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
         }
+    }
+
+    sub dissect_type_into_parameter($/, $type) {
+        if nqp::isconcrete($type) {
+            # Actual a value that parses type-ish.
+            %*PARAM_INFO<nominal_type> := $type.WHAT;
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push($type);
+        }
+        elsif $type.HOW.archetypes.nominal {
+            %*PARAM_INFO<nominal_type> := $type;
+        }
+        elsif $type.HOW.archetypes.coercive {
+            %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
+            %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
+        }
+        elsif $type.HOW.archetypes.definite {
+            dissect_type_into_parameter($/, $type.HOW.base_type($type));
+        }
+        elsif $type.HOW.archetypes.generic {
+            %*PARAM_INFO<nominal_type> := $type;
+            %*PARAM_INFO<nominal_generic> := 1;
+        }
+        elsif $type.HOW.archetypes.nominalizable {
+            my $nom := $type.HOW.nominalize($type);
+            %*PARAM_INFO<nominal_type> := $nom;
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push($type);
+        }
+        else {
+            $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
+        }
+        %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
+        %*PARAM_INFO<of_type_match> := $<typename>;
+        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
+        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
     }
 
     method post_constraint($/) {

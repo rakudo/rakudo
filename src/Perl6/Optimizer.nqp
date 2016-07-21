@@ -1971,7 +1971,7 @@ class Perl6::Optimizer {
                     }
                 }
                 else {
-                    note("Non-QAST node visited " ~ $visit.HOW.name($visit));
+                    note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -1993,14 +1993,23 @@ class Perl6::Optimizer {
                     my int $resultchild := $visit.resultchild // +@($visit) - 1;
                     if $resultchild >= 0 {
                         self.visit_children($visit, :$resultchild,:void_default);
-                        if !nqp::can($visit,'returns') { note("Child can't returns! " ~ $visit.HOW.name($visit)); next }
-                        if !nqp::can($visit[$resultchild],'returns') { note("Resultchild $resultchild can't returns! " ~ $visit[$resultchild].HOW.name($visit[$resultchild]) ~ "\n" ~ $node.dump); next; }
-                        $visit.returns($visit[$resultchild].returns);
-                        if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
-                            if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
-                                # Lexotic in something making no calls, which
-                                # means there's no way to use it.
-                                $node[$i] := $visit[0][0];
+                        if !nqp::can($visit,'returns') {
+                            note("Child can't returns! " ~ $visit.HOW.name($visit)) if $!debug;
+                        }
+                        elsif !nqp::can($visit[$resultchild],'returns') {
+                            note("Resultchild $resultchild can't returns! " ~
+                                $visit[$resultchild].HOW.name($visit[$resultchild]) ~
+                                "\n" ~ $node.dump)
+                                if $!debug;
+                        }
+                        else {
+                            $visit.returns($visit[$resultchild].returns);
+                            if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
+                                if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
+                                    # Lexotic in something making no calls, which
+                                    # means there's no way to use it.
+                                    $node[$i] := $visit[0][0];
+                                }
                             }
                         }
                     }
@@ -2031,7 +2040,7 @@ class Perl6::Optimizer {
                       nqp::istype($visit, QAST::VM)
                 { }
                 else {
-                    note("Weird node visited: " ~ $visit.HOW.name($visit));
+                    note("Weird node visited: " ~ $visit.HOW.name($visit)) if $!debug;
                 }
             }
             $i               := $first ?? $n !! $i + 1;

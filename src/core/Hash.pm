@@ -44,30 +44,60 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key)),
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          nqp::ifnull(
+            nqp::atkey(nqp::getattr(self,Map,'$!storage'),
+              nqp::unbox_s(key)),
+            nqp::p6bindattrinvres(
+              (my \v := nqp::p6scalarfromdesc($!descriptor)),
+              Scalar,
+              '$!whence',
+              -> { nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
+                     nqp::unbox_s(key),v) }
+            )
+          ),
           nqp::p6bindattrinvres(
-            (my \v := nqp::p6scalarfromdesc($!descriptor)),
+            (my \vv := nqp::p6scalarfromdesc($!descriptor)),
             Scalar,
             '$!whence',
             -> { nqp::bindkey(
-                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key),v) }
+                   nqp::if(
+                     nqp::getattr(self,Map,'$!storage').DEFINITE,
+                     nqp::getattr(self,Map,'$!storage'),
+                     nqp::bindattr(self,Map,'$!storage',nqp::hash)
+                   ),
+                   nqp::unbox_s(key),vv)
+               }
           )
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.Str)),
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          nqp::ifnull(
+            nqp::atkey(nqp::getattr(self,Map,'$!storage'),
+              nqp::unbox_s(key.Str)),
+            nqp::p6bindattrinvres(
+              (my \v := nqp::p6scalarfromdesc($!descriptor)),
+              Scalar,
+              '$!whence',
+              -> { nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
+                       nqp::unbox_s(key.Str),v) }
+            )
+          ),
           nqp::p6bindattrinvres(
-            (my \v := nqp::p6scalarfromdesc($!descriptor)),
+            (my \vv := nqp::p6scalarfromdesc($!descriptor)),
             Scalar,
             '$!whence',
             -> { nqp::bindkey(
-                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.Str),v) }
+                   nqp::if(
+                     nqp::getattr(self,Map,'$!storage').DEFINITE,
+                     nqp::getattr(self,Map,'$!storage'),
+                     nqp::bindattr(self,Map,'$!storage',nqp::hash)
+                   ),
+                   nqp::unbox_s(key.Str),vv)
+               }
           )
         )
     }

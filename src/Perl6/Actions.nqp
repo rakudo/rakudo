@@ -3425,8 +3425,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install the candidate.
                 $*W.add_dispatchee_to_proto($proto, $code);
             }
+            elsif $*SCOPE eq 'anon' {
+                # don't install anything
+            }
             else {
-                # Install.
+                # Always install in lexpad unless predeclared.
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
                     unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine'], :setting-only), '$!yada') {
@@ -3436,11 +3439,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         );
                     }
                 }
-                if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                }
-                elsif $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
-                    # Install in lexpad and in package, and set up code to
+                $*W.install_lexical_symbol($outer, $name, $code, :$clone);
+
+                if $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
+                    # Also install in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
                     my $package := $*PACKAGE;
@@ -3459,13 +3461,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
                 }
-                elsif $*SCOPE eq 'anon' {
-                    # don't do anything
-                }
-                else {
+                elsif $*SCOPE ne '' && $*SCOPE ne 'my' {
                     $*W.throw($/, 'X::Declaration::Scope',
-                            scope       => $*SCOPE,
-                            declaration => 'sub',
+                        scope       => $*SCOPE,
+                        declaration => 'sub',
                     );
                 }
             }

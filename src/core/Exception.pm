@@ -1512,7 +1512,10 @@ my class X::Syntax::Regex::NullRegex does X::Syntax {
 }
 
 my class X::Syntax::Regex::MalformedRange does X::Syntax {
-    method message() { 'Malformed Range' }
+    method message() {
+        'Malformed Range. If attempting to use variables for end points, '
+        ~ 'wrap the entire range in curly braces.'
+    }
 }
 
 my class X::Syntax::Regex::Unspace does X::Syntax {

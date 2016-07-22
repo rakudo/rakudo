@@ -3,7 +3,13 @@ my class Bag does Baggy {
     has $!WHICH;
 
 #--- introspection methods
-    multi method WHICH(Bag:D:)   { $!WHICH //= self!WHICH }
+    multi method WHICH(Bag:D:)   {
+        nqp::if(
+          nqp::attrinited(self,Bag,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self!WHICH
+        )
+    }
     method total(Bag:D: --> Int) { $!total //= self!TOTAL }
 
 #--- interface methods

@@ -171,26 +171,34 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method DELETE-KEY(Hash:U:) { Nil }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
-        my $val := nqp::p6scalarfromdesc($!descriptor);
-        if nqp::getattr(self,Map,'$!storage') -> \storage {
-            my str $key = key;
-            if nqp::existskey(storage,$key) {
-                $val = nqp::atkey(storage,$key);
-                nqp::deletekey(storage,$key);
-            }
-        }
-        $val
+        nqp::if(
+          (nqp::getattr(self,Map,'$!storage').DEFINITE
+            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
+                 nqp::unbox_s(key))),
+          nqp::stmts(
+            (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),
+               nqp::unbox_s(key))),
+            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),
+              nqp::unbox_s(key)),
+            $value
+          ),
+          nqp::p6scalarfromdesc($!descriptor)
+        )
     }
     multi method DELETE-KEY(Hash:D: \key) {
-        my $val := nqp::p6scalarfromdesc($!descriptor);
-        if nqp::getattr(self,Map,'$!storage') -> \storage {
-            my str $key = key.Str;
-            if nqp::existskey(storage,$key) {
-                $val = nqp::atkey(storage,$key);
-                nqp::deletekey(storage,$key);
-            }
-        }
-        $val
+        nqp::stmts(
+          (my str $key = nqp::unbox_s(key.Str)),
+          nqp::if(
+            (nqp::getattr(self,Map,'$!storage').DEFINITE
+              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key)),
+            nqp::stmts(
+              (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key)),
+              nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
+              $value
+            ),
+            nqp::p6scalarfromdesc($!descriptor)
+          )
+        )
     }
 
     multi method perl(Hash:D \SELF:) {

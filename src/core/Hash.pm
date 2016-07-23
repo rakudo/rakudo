@@ -591,16 +591,20 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method DELETE-KEY(TKey \key) {
-            my str $which = key.WHICH;
-            my TValue $val;
-            if nqp::getattr(self,Map,'$!storage') -> \storage {
-                if nqp::existskey(storage,$which) {
-                    $val =
-                      nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value');
-                    nqp::deletekey(storage,$which);
-                }
-            }
-            $val
+            nqp::if(
+              (nqp::getattr(self,Map,'$!storage').DEFINITE
+                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
+                     (my str $which = key.WHICH))),
+              nqp::stmts(
+                (my TValue $value =
+                  nqp::getattr(
+                    nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
+                    Pair,'$!value')),
+                 nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which),
+                 $value
+              ),
+              TValue
+            )
         }
 
         method keys() {

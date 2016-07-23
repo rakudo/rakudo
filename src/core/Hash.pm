@@ -568,13 +568,18 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
-            nqp::bindattr(self,Map,'$!storage',nqp::hash)
-              unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-            my str $which = key.WHICH;
-
-            nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
-              Pair.new(key,bindval));
-            bindval
+            nqp::getattr(
+              nqp::if(
+                nqp::getattr(self,Map,'$!storage').DEFINITE,
+                nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
+                  nqp::unbox_s(key.WHICH),
+                  Pair.new(key,bindval)),
+                nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                  nqp::unbox_s(key.WHICH),
+                  Pair.new(key,bindval))
+              ),
+              Pair,'$!value'
+            )
         }
 
         method EXISTS-KEY(TKey \key) {

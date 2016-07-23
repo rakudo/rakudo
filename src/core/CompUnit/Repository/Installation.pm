@@ -449,10 +449,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
-            my $loader = $.prefix.child('sources').child(
-                $dist<provides>{$spec.short-name}.values[0]<file>
-            );
-            my $id = $loader.basename;
+            my $id = $dist<provides>{$spec.short-name}.values[0]<file>;
 
             # xxx: replace :distribution with meta6
             return CompUnit.new(
@@ -462,7 +459,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :auth($dist<auth> // Str),
                 :repo(self),
                 :repo-id($id),
-                :distribution(Distribution::Hash.new($dist.hash, :$.prefix)),
+                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
             );
         }
         return self.next-repo.resolve($spec) if self.next-repo;
@@ -506,7 +503,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :repo(self),
                 :repo-id($id),
                 :$precompiled,
-                :distribution(Distribution::Hash.new($dist.hash, :$.prefix)),
+                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
             );
             return %!loaded{$compunit.short-name} = $compunit;
         }

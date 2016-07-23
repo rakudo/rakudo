@@ -950,26 +950,35 @@ my class Rakudo::Internals {
 #nqp::print("Registering ");
 #nqp::print(name);
 #nqp::print("\n");
-        my str $name = nqp::unbox_s(name);
-        my str $ver  = nqp::unbox_s($version);
-        my str $with = $ver ~ "\0" ~ $name;
-        nqp::existskey($initializers,$with)
-          ?? die "Already have initializer for '$name' ('$ver')"
-          !! nqp::bindkey($initializers,$with,&code);
-        nqp::bindkey($initializers,$name,&code)  # first come, first kept
-          unless nqp::existskey($initializers,$name);
+        nqp::stmts(
+          (my str $with = $version ~ "\0" ~ name),
+          nqp::if(
+            nqp::existskey($initializers,$with),
+            (die "Already have initializer for '{name}' ('$version')"),
+            nqp::bindkey($initializers,$with,&code)
+          ),
+          nqp::unless(                                 # first come, first kept
+            nqp::existskey($initializers,nqp::unbox_s(name)),
+            nqp::bindkey($initializers,nqp::unbox_s(name),&code)
+          )
+        )
     }
     method INITIALIZE-DYNAMIC(str \name) {
 #nqp::print("Initializing");
 #nqp::print(name);
 #nqp::print("\n");
-        my str $ver  = nqp::getcomp('perl6').language_version;
-        my str $with = $ver ~ "\0" ~ name;
-        nqp::existskey($initializers,$with)
-          ?? nqp::atkey($initializers,$with)()
-          !! nqp::existskey($initializers,name)
-            ?? nqp::atkey($initializers,name)()
-            !! X::Dynamic::NotFound.new(:name(name));
+        nqp::stmts(
+          (my str $with = nqp::getcomp('perl6').language_version ~ "\0" ~ name),
+          nqp::if(
+            nqp::existskey($initializers,$with),
+            nqp::atkey($initializers,$with)(),
+            nqp::if(
+              nqp::existskey($initializers,name),
+              nqp::atkey($initializers,name)(),
+              Failure.new(X::Dynamic::NotFound.new(:name(name)))
+            )
+          )
+        )
     }
 
     method EXPAND-LITERAL-RANGE(Str:D \x,$list) {

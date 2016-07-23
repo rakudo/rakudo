@@ -45,11 +45,7 @@ sub DYNAMIC(\name) is raw {
             )
           )
         ),
-        nqp::if(
-          nqp::istype($x,Exception),
-          Failure.new($x),
-          $x
-        )
+        $x
       )
     )
 }

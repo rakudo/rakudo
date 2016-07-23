@@ -8,8 +8,20 @@ my class Mix does Mixy {
     }
 
 #--- introspection methods
-    multi method WHICH(Mix:D:)    { $!WHICH //= self!WHICH }
-    method total(Mix:D: --> Real) { $!total //= self!TOTAL }
+    multi method WHICH(Mix:D:)    {
+        nqp::if(
+          nqp::attrinited(self,Mix,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self!WHICH
+        )
+    }
+    method total(Mix:D: --> Real) {
+        nqp::if(
+          nqp::attrinited(self,Mix,'$!total'),
+          $!total,
+          $!total := self!TOTAL
+        )
+    }
 
 #--- selection methods
     multi method grab($count? --> Real) {

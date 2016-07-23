@@ -10,7 +10,13 @@ my class Bag does Baggy {
           $!WHICH := self!WHICH
         )
     }
-    method total(Bag:D: --> Int) { $!total //= self!TOTAL }
+    method total(Bag:D: --> Int) {
+        nqp::if(
+          nqp::attrinited(self,Bag,'$!total'),
+          $!total,
+          $!total := self!TOTAL
+        )
+    }
 
 #--- interface methods
     multi method DELETE-KEY(Bag:D: \k) {

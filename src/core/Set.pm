@@ -4,10 +4,19 @@ my class Set does Setty {
 
     method ISINSET(\key) { True }
 
-    method total (--> Int) { $!total //= %!elems.elems }
     multi method WHICH (Set:D:) {
-        $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
-        $!WHICH
+        nqp::if(
+          nqp::attrinited(self,Set,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort
+        )
+    }
+    method total (--> Int) {
+        nqp::if(
+          nqp::attrinited(self,Set,'$!total'),
+          $!total,
+          $!total = %!elems.elems
+        )
     }
 
     method grab ($count?) {

@@ -543,7 +543,7 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) {
+        method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
             nqp::if(
               nqp::getattr(self,Map,'$!storage').DEFINITE,
               nqp::if(
@@ -552,20 +552,18 @@ my class Hash { # declared in BOOTSTRAP
                 (nqp::getattr(
                   nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
                   Pair,'$!value') = assignval),
-                nqp::stmts(
+                nqp::getattr(
                   (nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
                     Pair.new(key,nqp::p6scalarfromdesc(
                       nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                  assignval
-                )
+                  Pair,'$!value')
               ),
-              nqp::stmts(
+              nqp::getattr(
                 (nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
                   nqp::unbox_s(key.WHICH),
                   Pair.new(key,nqp::p6scalarfromdesc(
                     nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                assignval
-              )
+                Pair,'$!value')
             )
         }
 

@@ -608,72 +608,73 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method keys() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
-                     method pull-one() {
-                         $!iter
-                           ?? nqp::getattr(nqp::iterval(
-                                nqp::shift($!iter)),Pair,'$!key')
-                           !! IterationEnd
-                     }
-                 }.new(self))
-              !! ().list
+            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                method pull-one() {
+                    nqp::if(
+                      $!iter,
+                      nqp::getattr(nqp::iterval(nqp::shift($!iter)),
+                        Pair,'$!key'),
+                      IterationEnd
+                    )
+                 }
+            }.new(self))
         }
         method values() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
-                     method pull-one() {
-                         $!iter
-                           ?? nqp::getattr(nqp::iterval(
-                                nqp::shift($!iter)),Pair,'$!value')
-                           !! IterationEnd
-                     }
-                 }.new(self))
-              !! ().list
+            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                method pull-one() {
+                    nqp::if(
+                      $!iter,
+                      nqp::getattr(nqp::iterval(nqp::shift($!iter)),
+                        Pair,'$!value'),
+                      IterationEnd
+                    )
+                 }
+            }.new(self))
         }
         method kv() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
-                     has $!pair;
+            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                has $!pair;
 
-                     method pull-one() {
-                         if $!pair {
-                             my $value := nqp::getattr($!pair,Pair,'$!value');
-                             $!pair := nqp::null;
-                             $value
-                         }
-                         elsif $!iter {
-                             $!pair := nqp::iterval(nqp::shift($!iter));
-                             nqp::getattr($!pair,Pair,'$!key')
-                         }
-                         else {
-                             IterationEnd
-                         }
-                     }
-                 }.new(self))
-              !! ().list
+                method pull-one() {
+                    nqp::if(
+                      $!pair,
+                      nqp::stmts(
+                        (my $value := nqp::getattr($!pair,Pair,'$!value')),
+                        ($!pair := nqp::null),
+                        $value
+                      ),
+                      nqp::if(
+                        $!iter,
+                        nqp::getattr(
+                          ($!pair := nqp::iterval(nqp::shift($!iter))),
+                          Pair,'$!key'),
+                        IterationEnd
+                      )
+                    )
+                }
+            }.new(self))
         }
         method pairs() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
-                     method pull-one() {
-                         $!iter
-                           ?? nqp::iterval(nqp::shift($!iter))
-                           !! IterationEnd
-                     }
-                 }.new(self))
-              !! ().list
+            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                method pull-one() {
+                    nqp::if(
+                      $!iter,
+                      nqp::iterval(nqp::shift($!iter)),
+                      IterationEnd
+                    )
+                 }
+            }.new(self))
         }
         method antipairs() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? Seq.new(class :: does Rakudo::Internals::MappyIterator {
-                     method pull-one() {
-                         $!iter
-                           ?? nqp::iterval(nqp::shift($!iter)).antipair
-                           !! IterationEnd
-                     }
-                 }.new(self))
-              !! ().list
+            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+                method pull-one() {
+                    nqp::if(
+                      $!iter,
+                      nqp::iterval(nqp::shift($!iter)).antipair,
+                      IterationEnd
+                    )
+                 }
+            }.new(self))
         }
         method invert() {
             self.map: { .value »=>» .key }

@@ -583,10 +583,11 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method EXISTS-KEY(TKey \key) {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
-              ?? nqp::p6bool(nqp::existskey(
-                   nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.WHICH)))
-              !! False
+            nqp::if(
+              nqp::getattr(self,Map,'$!storage').DEFINITE,
+              nqp::p6bool(nqp::existskey(
+                nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.WHICH)))
+            )
         }
 
         method DELETE-KEY(TKey \key) {

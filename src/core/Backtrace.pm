@@ -62,26 +62,44 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
-    submethod BUILD(:$!bt, :$!bt-next --> Nil) { $!frames := nqp::list }
-
-    multi method new(Mu $e, Int $offset = 0) {
-        $e.^name eq 'BOOTException'
-            ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
-            !! self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
+    method !SET-SELF($!bt,$!bt-next) {
+        once $RAKUDO-VERBOSE-STACKFRAME =
+          +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
+        $!frames := nqp::list;
+        self
     }
-
-    multi method new(Int $offset = 0) {
-        try { die() };
-        self.new($!, 2 + $offset);
+    multi method new() {
+        try X::AdHoc.new(:payload("Died")).throw;
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1)
     }
-
+    multi method new(Int:D $offset) {
+        try X::AdHoc.new(:payload("Died")).throw;
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1 + $offset)
+    }
+    multi method new(Mu \ex) {
+        nqp::create(self)!SET-SELF(
+          ex.^name eq 'BOOTException'
+            ?? nqp::backtrace(nqp::decont(ex))
+            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          0)
+    }
+    multi method new(Mu \ex, Int:D $offset) {
+        nqp::create(self)!SET-SELF(
+          ex.^name eq 'BOOTException'
+            ?? nqp::backtrace(nqp::decont(ex))
+            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          $offset)
+    }
     # note that backtraces are nqp::list()s, marshalled to us as a List
-    multi method new(List $bt, Int $bt-next = 0) {
-
-        # only check for verbose stack frames once
-        $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
-
-        self.bless(:$bt, :$bt-next);
+    multi method new(List:D $bt) {
+        nqp::create(self)!SET-SELF($bt,0)
+    }
+    multi method new(List:D $bt, Int:D $offset) {
+        nqp::create(self)!SET-SELF($bt,$offset)
     }
 
     method AT-POS($pos) {

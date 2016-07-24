@@ -108,20 +108,22 @@ class Perl6::Compiler is HLL::Compiler {
       -p                   same as -n, but also print \$_ at the end of lines
       -I path              adds the path to the module search path
       -M module            loads the module prior to running the program
-      --target=[stage]     specify compilation stage to emit
-      --optimize=[level]   use the given level of optimization (0..3)
-      --encoding=[mode]    specify string encoding mode
-      -o, --output=[name]  specify name of output file
+      --target=stage       specify compilation stage to emit
+      --optimize=level     use the given level of optimization (0..3)
+      --encoding=mode      specify string encoding mode
+      -o, --output=name    specify name of output file
       -v, --version        display version information
       --stagestats         display time spent in the compilation stages
       --ll-exception       display a low level backtrace on errors
-      --profile=kind       write profile information to a file (MoarVM)
-                             instrumented - performance measurements
+      --profile[=kind]     write profile information to an HTML file (MoarVM)
+                             instrumented - performance measurements (default)
                              heap - record heap snapshots after every
                                     garbage collector run
-      --profile-filename   provide a different filename; instrumented
-                           profiles may be written to .json files, too.
-      --doc=[module]       Use Pod::To::[module] to render inline documentation.
+      --profile-filename=name
+                           provide a different filename; if the name ends in
+                             .json, instrumented profiles will be written as
+                             JSON instead of HTML
+      --doc=module         use Pod::To::[module] to render inline documentation
 
 
     Note that only boolean single-letter options may be bundled.

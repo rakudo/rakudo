@@ -53,11 +53,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         False
     }
 
+    method !comp-unit-id($name) {
+        nqp::sha1($name ~ $*REPO.id);
+    }
+
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {
         my ($base, $file) = self!matching-file($spec);
+
         return CompUnit.new(
             :short-name($spec.short-name),
-            :repo-id($file.Str),
+            :repo-id(self!comp-unit-id($spec.short-name)),
             :repo(self)
         ) if $base;
         return self.next-repo.resolve($spec) if self.next-repo;
@@ -77,7 +82,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             return %!loaded{$name} if %!loaded{$name}:exists;
             return %seen{$base}    if %seen{$base}:exists;
 
-            my $id = nqp::sha1($name ~ $*REPO.id);
+            my $id = self!comp-unit-id($name);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(

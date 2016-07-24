@@ -37,6 +37,20 @@ $*REPO.install(
     :force,
 );
 
+# Precompile CompUnit::Repository::Staging again to give it a source path relative to perl#
+my $core-dist = $*REPO.resolve(
+    CompUnit::DependencySpecification.new(:short-name<CompUnit::Repository::Staging>)
+).distribution;
+my $source-id = $core-dist.meta<provides><CompUnit::Repository::Staging>.values[0]<file>;
+my $source = $*REPO.prefix.child('sources').child($source-id);
+my $source-file = $source.relative($*REPO.prefix);
+$*REPO.precomp-repository.precompile(
+        $source,
+        $source-id,
+        :source-name("perl#$source-file (CompUnit::Repository::Staging)"),
+        :force,
+    );
+
 note "installed!";
 
 # vim: ft=perl6

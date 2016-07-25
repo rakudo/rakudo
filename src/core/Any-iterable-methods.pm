@@ -1045,13 +1045,20 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Nil
         }
         else {
-            my $iter := self.iterator;
-            my int $index;
-            $index = $index + 1
-              until ($_ := $iter.pull-one) =:= IterationEnd || .match($test);
-            $_ =:= IterationEnd
-              ?? Nil
-              !! self!first-result($index,$_,'first',%a)
+            nqp::stmts(
+              (my $iter := self.iterator),
+              (my int $index),
+              nqp::until(
+                (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+                  || .match($test)),
+                ($index = nqp::add_i($index,1))
+              ),
+              nqp::if(
+                nqp::eqaddr($_,IterationEnd),
+                Nil,
+                self!first-result($index,$_,'first',%a)
+              )
+            )
         }
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
@@ -1066,13 +1073,20 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Nil
         }
         else {
-            my $iter := self.iterator;
-            my int $index;
-            $index = $index + 1
-              until ($_ := $iter.pull-one) =:= IterationEnd || $test($_);
-            $_ =:= IterationEnd
-              ?? Nil
-              !! self!first-result($index,$_,'first',%a)
+            nqp::stmts(
+              (my $iter := self.iterator),
+              (my int $index),
+              nqp::until(
+                (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+                  || $test($_)),
+                ($index = nqp::add_i($index,1))
+              ),
+              nqp::if(
+                nqp::eqaddr($_,IterationEnd),
+                Nil,
+                self!first-result($index,$_,'first',%a)
+              )
+            )
         }
     }
     multi method first(Mu $test, :$end, *%a) is raw {
@@ -1087,13 +1101,20 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Nil
         }
         else {
-            my $iter := self.iterator;
-            my int $index;
-            $index = $index + 1
-              until (($_ := $iter.pull-one) =:= IterationEnd) || $test.ACCEPTS($_);
-            $_ =:= IterationEnd
-              ?? Nil
-              !! self!first-result($index,$_,'first',%a)
+            nqp::stmts(
+              (my $iter := self.iterator),
+              (my int $index),
+              nqp::until(
+                (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+                  || $test.ACCEPTS($_)),
+                ($index = nqp::add_i($index,1))
+              ),
+              nqp::if(
+                nqp::eqaddr($_,IterationEnd),
+                Nil,
+                self!first-result($index,$_,'first',%a)
+              )
+            )
         }
     }
 

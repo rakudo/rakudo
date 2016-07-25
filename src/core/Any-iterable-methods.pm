@@ -1035,14 +1035,24 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Regex:D $test, :$end, *%a) is raw {
         if $end {
-            my $elems = +self;
-            if $elems && !($elems == Inf) {
-                my int $index = $elems;
-                return self!first-result($index,$_,'first :end',%a)
-                  if ($_ := self.AT-POS($index)).match($test)
-                    while $index--;
-            }
-            Nil
+            nqp::stmts(
+              (my $elems = +self),
+              nqp::if(
+                ($elems && nqp::not_i($elems == Inf)),
+                nqp::stmts(
+                  (my int $index = $elems),
+                  nqp::while(
+                    nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+                    nqp::if(
+                      ($_ := self.AT-POS($index)).match($test),
+                      return self!first-result($index,$_,'first :end',%a)
+                    )
+                  ),
+                  Nil
+                ),
+                Nil
+              )
+            )
         }
         else {
             nqp::stmts(
@@ -1063,14 +1073,24 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
-            my $elems = +self;
-            if $elems && !($elems == Inf) {
-                my int $index = $elems;
-                return self!first-result($index,$_,'first :end',%a)
-                  if $test($_ := self.AT-POS($index))
-                    while $index--;
-            }
-            Nil
+            nqp::stmts(
+              (my $elems = +self),
+              nqp::if(
+                ($elems && nqp::not_i($elems == Inf)),
+                nqp::stmts(
+                  (my int $index = $elems),
+                  nqp::while(
+                    nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+                    nqp::if(
+                      $test($_ := self.AT-POS($index)),
+                      return self!first-result($index,$_,'first :end',%a)
+                    )
+                  ),
+                  Nil
+                ),
+                Nil
+              )
+            )
         }
         else {
             nqp::stmts(
@@ -1091,14 +1111,24 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method first(Mu $test, :$end, *%a) is raw {
         if $end {
-            my $elems = +self;
-            if $elems && !($elems == Inf) {
-                my int $index = $elems;
-                return self!first-result($index,$_,'first :end',%a)
-                  if $test.ACCEPTS($_ := self.AT-POS($index))
-                    while $index--;
-            }
-            Nil
+            nqp::stmts(
+              (my $elems = +self),
+              nqp::if(
+                ($elems && nqp::not_i($elems == Inf)),
+                nqp::stmts(
+                  (my int $index = $elems),
+                  nqp::while(
+                    nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+                    nqp::if(
+                      $test.ACCEPTS($_ := self.AT-POS($index)),
+                      return self!first-result($index,$_,'first :end',%a)
+                    )
+                  ),
+                  Nil
+                ),
+                Nil
+              )
+            )
         }
         else {
             nqp::stmts(

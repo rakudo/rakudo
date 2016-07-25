@@ -3172,7 +3172,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.end_keyword>
     }
 
-    token term:sym<...> { [<sym>|'…'] <args> }
+    token term:sym<...> {
+        [<sym>|'…']
+        [ <?after ','\h*<[ . … ]>+> { self.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... listop, or use 'fail' instead of ...)") } ]?
+        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }> <?after <:L + [\]]>\h*<[ . … ]>+> { self.worry("Apparent sequence operator parsed as stubbed function argument; please parenthesize the ... call (or use 'fail' instead of ...)") } ]?
+        <args>
+    }
     token term:sym<???> { <sym> <args> }
     token term:sym<!!!> { <sym> <args> }
 
@@ -4336,8 +4341,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>
-        # TODO: should be <.worry>, not <.panic>
-        [ <?before \h*['...'|'…']> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
         { $*INVOCANT_OK := 0 }
     }
     token infix:sym<:>    {

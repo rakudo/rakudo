@@ -345,16 +345,22 @@ do {
     }
 
     sub print_control(|) {
-        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
-        my int $type = nqp::getextype($ex);
-        my $backtrace = Backtrace.new(nqp::backtrace($ex), 0);
-        if ($type == nqp::const::CONTROL_WARN) {
-            my Mu $err := nqp::getstderr();
-            my $msg = nqp::p6box_s(nqp::getmessage($ex));
-            nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-            nqp::printfh($err, $backtrace.first-none-setting-line);
-            nqp::resume($ex)
-        }
+        nqp::stmts(
+          (my Mu $ex := nqp::atpos(nqp::p6argvmarray(),0)),
+          (my int $type = nqp::getextype($ex)),
+          (my $backtrace = Backtrace.new(nqp::backtrace($ex))),
+          nqp::if(
+            nqp::iseq_i($type,nqp::const::CONTROL_WARN),
+            nqp::stmts(
+              (my Mu $err := nqp::getstderr),
+              (my str $msg = nqp::getmessage($ex)),
+              nqp::printfh($err,nqp::if(nqp::chars($msg),$msg,"Warning")),
+              nqp::printfh($err, $backtrace.first-none-setting-line),
+              nqp::resume($ex)
+            )
+          )
+        );
+
         my $label = $type +& nqp::const::CONTROL_LABELED ?? "labeled " !! "";
         if $type +& nqp::const::CONTROL_LAST {
             X::ControlFlow.new(illegal => "{$label}last", enclosing => 'loop construct', :$backtrace).throw;

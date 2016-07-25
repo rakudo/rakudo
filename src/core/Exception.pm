@@ -1937,30 +1937,36 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     has $.symbol;
     method operation { 'binding' }
     method message() {
-        if $.symbol {
-            self.priors() ~
-            "Type check failed in $.operation $.symbol; expected $.expectedn but got $.gotn";
-        } else {
-            self.priors() ~
-            "Type check failed in $.operation; expected $.expectedn but got $.gotn";
-        }
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to $.symbol" !! "";
+        my $expected = $.expected =:= $.got
+            ?? "expected type $.expectedn cannot be itself"
+            !! "expected $.expectedn but got $.gotn";
+        self.priors() ~ "Type check failed in $.operation$to; $expected";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
+        my $expected = $.expected =:= $.got
+            ?? "expected return type $.expectedn cannot be itself " ~
+               "(perhaps $.operation a :D type object?)"
+            !! "expected $.expectedn but got $.gotn";
         self.priors() ~
-        "Type check failed for return value; expected $.expectedn but got $.gotn";
+        "Type check failed for return value; $expected";
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
-        self.priors() ~ do
-            $.symbol.defined && $.symbol ne '$'
-            ?? "Type check failed in assignment to $.symbol; expected $.expectedn but got $.gotn"
-            !! "Type check failed in assignment; expected $.expectedn but got $.gotn";
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to $.symbol" !! "";
+        my $expected = $.expected =:= $.got
+            ?? "expected type $.expectedn cannot be itself " ~
+               "(perhaps Nil was assigned to a :D which had no default?)"
+            !! "expected $.expectedn but got $.gotn";
+        self.priors() ~ "Type check failed in assignment$to; $expected";
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {

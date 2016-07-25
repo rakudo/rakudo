@@ -64,8 +64,19 @@ my class IO::Path is Cool {
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
-    method basename(IO::Path:D:) { %.parts<basename> }
     method extension(IO::Path:D:) { Rakudo::Internals.MAKE-EXT(self.basename) }
+
+    proto method basename(|) {*}
+    multi method basename(IO::Path:D:) { %.parts<basename> }
+    multi method basename(IO::Path:D: :$ext!) {
+        $ext ?? self.basename
+             !! self.basename.substr(0, * - self.extension.chars - 1);
+    }
+    multi method basename(IO::Path:D: Str $suffix) {
+        $suffix eq self.basename.substr(* - $suffix.chars)
+            ?? self.basename.substr(0, * - $suffix.chars)
+            !! self.basename;
+    }
 
     # core can't do 'basename handles <Numeric Bridge Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }

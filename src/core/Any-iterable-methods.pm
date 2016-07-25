@@ -905,33 +905,33 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::stmts(
           (my $storage := nqp::getattr(%a,Map,'$!storage')),
           nqp::if(
-            nqp::elems($storage),
+            nqp::elems($storage),                       # some adverb
             nqp::if(
-              nqp::iseq_i(nqp::elems($storage),1),
+              nqp::iseq_i(nqp::elems($storage),1),      # one adverb
               nqp::if(
-                nqp::atkey($storage,"k"),
+                nqp::atkey($storage,"k"),               # :k
                 nqp::p6box_i(index),
                 nqp::if(
-                  nqp::atkey($storage,"p"),
+                  nqp::atkey($storage,"p"),             # :p
                   Pair.new(index,value),
                   nqp::if(
-                    nqp::atkey($storage,"v"),
+                    nqp::atkey($storage,"v"),           # :v
                     value,
                     nqp::if(
-                      nqp::atkey($storage,"kv"),
+                      nqp::atkey($storage,"kv"),        # :kv
                       (index,value),
-                      nqp::stmts(
+                      nqp::stmts(                       # no truthy or different
                         (my str $key =
                           nqp::iterkey_s(nqp::shift(nqp::iterator($storage)))),
                         nqp::if(
-                          (nqp::iseq_s($key,"k")
+                          (nqp::iseq_s($key,"k")        # :!k || :!p || :!kv
                             || nqp::iseq_s($key,"p")
                             || nqp::iseq_s($key,"kv")),
                           value,
                           nqp::if(
-                            nqp::iseq_s($key,"v"),
+                            nqp::iseq_s($key,"v"),      # :!v
                             Failure.new("Specified a negated :v adverb"),
-                            Failure.new(X::Adverb.new(
+                            Failure.new(X::Adverb.new(  # :foo ??
                               :$what,
                               :source(try { self.VAR.name } // self.WHAT.perl),
                               :unexpected(%a.keys)))
@@ -942,13 +942,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   )
                 )
               ),
-              Failure.new(X::Adverb.new(
+              Failure.new(X::Adverb.new(                # multiple adverbs ??
                 :$what,
                 :source(try { self.VAR.name } // self.WHAT.perl),
                 :nogo(%a.keys.grep: /k|v|p/)
                 :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             ),
-            value
+            value                                       # no adverb
           )
         )
     }

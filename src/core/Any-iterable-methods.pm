@@ -958,36 +958,37 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Failure.new(X::Match::Bool.new( type => '.grep' ))
     }
     multi method grep(Mu $t) {
-        if %_ == 0 {
+        my $storage := nqp::getattr(%_,Map,'$!storage');
+        if nqp::iseq_i(nqp::elems($storage),0) {
             nqp::istype($t,Regex:D)
               ?? self!grep-regex: $t
               !! nqp::istype($t,Callable:D)
                    ?? self!grep-callable: $t
                    !! self!grep-accepts: $t
         }
-        elsif %_ == 1 {
-            if %_<k> {
+        elsif nqp::iseq_i(nqp::elems($storage),1) {
+            if nqp::atkey($storage,"k") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-k: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-k: $t
                        !! self!grep-k: { $t.ACCEPTS($_) }
             }
-            elsif %_<kv> {
+            elsif nqp::atkey($storage,"kv") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-kv: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-kv: $t
                        !! self!grep-kv: { $t.ACCEPTS($_) }
             }
-            elsif %_<p> {
+            elsif nqp::atkey($storage,"p") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-p: { $_.match($t) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-p: $t
                        !! self!grep-p: { $t.ACCEPTS($_) }
             }
-            elsif %_<v> {
+            elsif nqp::atkey($storage,"v") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-regex: $t
                   !! nqp::istype($t,Callable:D)
@@ -995,8 +996,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                        !! self!grep-accepts: $t
             }
             else {
-                my $k = %_.keys[0];
-                if $k eq 'k' || $k eq 'kv' || $k eq 'p' {
+                my str $key =
+                  nqp::iterkey_s(nqp::shift(nqp::iterator($storage)));
+                if nqp::iseq_s($key,"k") || nqp::iseq_s($key,"kv") || nqp::iseq_s($key,"p") {
                     nqp::istype($t,Regex:D)
                       ?? self!grep-regex: $t
                       !! nqp::istype($t,Callable:D)
@@ -1004,12 +1006,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                            !! self!grep-accepts: $t
                 }
                 else {
-                    $k eq 'v'
-                      ?? Failure.new("Doesn't make sense to specify a negated :v adverb")
+                    nqp::iseq_s($key,"k")
+                      ?? Failure.new("Specified a negated :v adverb")
                       !! Failure.new(X::Adverb.new(
                            :what<grep>,
                            :source(try { self.VAR.name } // self.WHAT.perl),
-                           :unexpected($k)))
+                           :unexpected($key)))
                 }
             }
         }

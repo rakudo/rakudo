@@ -902,47 +902,55 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     method !first-result(\index,\value,$what,%a) is raw {
-        if %a {
-            if %a == 1 {
-                if %a<k> {
-                    nqp::p6box_i(index)
-                }
-                elsif %a<p> {
-                    Pair.new(index,value)
-                }
-                elsif %a<v> {
-                    value
-                }
-                elsif %a<kv> {
-                    (index,value)
-                }
-                else {
-                    my $k = %a.keys[0];
-                    if $k eq 'k' || $k eq 'p' || $k eq 'kv' {
-                        value
-                    }
-                    elsif $k eq 'v' {
-                        Failure.new("Doesn't make sense to specify a negated :v adverb")
-                    }
-                    else {
-                        Failure.new(X::Adverb.new(
-                          :$what,
-                          :source(try { self.VAR.name } // self.WHAT.perl),
-                          :unexpected(%a.keys)))
-                    }
-                }
-            }
-            else {
-                Failure.new(X::Adverb.new(
-                  :$what,
-                  :source(try { self.VAR.name } // self.WHAT.perl),
-                  :nogo(%a.keys.grep: /k|v|p/)
-                  :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
-            }
-        }
-        else {
+        nqp::stmts(
+          (my $storage := nqp::getattr(%a,Map,'$!storage')),
+          nqp::if(
+            nqp::elems($storage),
+            nqp::if(
+              nqp::iseq_i(nqp::elems($storage),1),
+              nqp::if(
+                nqp::atkey($storage,"k"),
+                nqp::p6box_i(index),
+                nqp::if(
+                  nqp::atkey($storage,"p"),
+                  Pair.new(index,value),
+                  nqp::if(
+                    nqp::atkey($storage,"v"),
+                    value,
+                    nqp::if(
+                      nqp::atkey($storage,"kv"),
+                      (index,value),
+                      nqp::stmts(
+                        (my str $key =
+                          nqp::iterkey_s(nqp::shift(nqp::iterator($storage)))),
+                        nqp::if(
+                          (nqp::iseq_s($key,"k")
+                            || nqp::iseq_s($key,"p")
+                            || nqp::iseq_s($key,"kv")),
+                          value,
+                          nqp::if(
+                            nqp::iseq_s($key,"v"),
+                            Failure.new("Specified a negated :v adverb"),
+                            Failure.new(X::Adverb.new(
+                              :$what,
+                              :source(try { self.VAR.name } // self.WHAT.perl),
+                              :unexpected(%a.keys)))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              Failure.new(X::Adverb.new(
+                :$what,
+                :source(try { self.VAR.name } // self.WHAT.perl),
+                :nogo(%a.keys.grep: /k|v|p/)
+                :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
+            ),
             value
-        }
+          )
+        )
     }
 
     proto method grep(|) is nodal { * }

@@ -54,7 +54,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !comp-unit-id($name) {
-        nqp::sha1($name ~ $*REPO.id);
+        nqp::sha1($name ~ self.id);
     }
 
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {

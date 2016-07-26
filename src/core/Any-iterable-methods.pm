@@ -576,7 +576,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }.new(&block,source,$label))
         }
 
-        # loop/map taking more than 1 param
+        # loop/map taking more than 2 param, or more than 1 + phasers
         else {
             Seq.new(class :: does SlippyIterator {
                 has &!block;

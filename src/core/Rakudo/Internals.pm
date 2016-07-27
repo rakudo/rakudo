@@ -455,7 +455,6 @@ my class Rakudo::Internals {
         multi method pop(::?CLASS:D:)    { self!illegal("pop")    }
         multi method shift(::?CLASS:D:)  { self!illegal("shift")  }
         multi method splice(::?CLASS:D: *@) { self!illegal("splice") }
-        multi method plan(::?CLASS:D: *@)   { self!illegal("plan")   }
 
         proto method push(|c) is nodal {
             self.DEFINITE ?? self!illegal("push")    !! self.Any::push(|c)

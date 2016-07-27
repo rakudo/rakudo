@@ -167,6 +167,7 @@ S03-binding/attributes.t
 S03-binding/closure.t
 S03-binding/hashes.t
 S03-binding/nested.t
+S03-binding/nonsense.t
 S03-binding/ro.t
 S03-binding/scalars.t
 S03-feeds/basic.t

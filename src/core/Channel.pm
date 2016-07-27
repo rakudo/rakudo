@@ -108,17 +108,7 @@ my class Channel {
 
     method Supply(Channel:D:) {
         supply {
-            loop {
-                my Mu \got = self.poll;
-                last if nqp::eqaddr(got, Nil);
-                emit got;
-            }
-            self!peek();
-            if $!closed_promise {
-                $!closed_promise.status == Kept
-                    ?? done()
-                    !! die $!closed_promise.cause
-            }
+            # Tap the async notification for new values supply.
             whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {
                 my Mu \got = self.poll;
                 if nqp::eqaddr(got, Nil) {
@@ -131,6 +121,23 @@ my class Channel {
                 else {
                     emit got;
                 }
+            }
+
+            # Grab anything that's in the channel and emit it. Note that
+            # it's important to do this after tapping the supply, or a
+            # value sent between us draining it and doing the tap would
+            # not result in a notification, and so we'd not emit it on
+            # the supply. This lost event can then cause a deadlock.
+            loop {
+                my Mu \got = self.poll;
+                last if nqp::eqaddr(got, Nil);
+                emit got;
+            }
+            self!peek();
+            if $!closed_promise {
+                $!closed_promise.status == Kept
+                    ?? done()
+                    !! die $!closed_promise.cause
             }
         }
     }

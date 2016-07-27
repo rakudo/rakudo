@@ -8441,6 +8441,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     our sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
+        $block.blocktype('declaration_static');
         if !$*SUPPOSING {  # don't actually copy the thunk if inside <?before>
             fatalize($to_thunk) if %*PRAGMAS<fatal>;
             $block.push(QAST::Stmts.new(autosink($to_thunk)));

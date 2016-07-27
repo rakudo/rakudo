@@ -452,9 +452,9 @@ my class Rakudo::Internals {
         method !illegal($operation) {
             X::IllegalOnFixedDimensionArray.new(:$operation).throw
         }
-        multi method pop(::?CLASS:D:)    { self!illegal("pop")    }
-        multi method shift(::?CLASS:D:)  { self!illegal("shift")  }
-        multi method splice(::?CLASS:D: *@) { self!illegal("splice") }
+        proto method pop(::?CLASS:D: |)    { self!illegal("pop")    }
+        proto method shift(::?CLASS:D: |)  { self!illegal("shift")  }
+        proto method splice(::?CLASS:D: |) { self!illegal("splice") }
 
         proto method push(|c) is nodal {
             self.DEFINITE ?? self!illegal("push")    !! self.Any::push(|c)

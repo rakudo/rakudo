@@ -84,7 +84,7 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>') {
+        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>') {
             WANTALL($ast,$byby);
         }
         elsif $ast.op eq 'p6capturelex' {
@@ -157,7 +157,7 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
         my $node := $ast[0];
         if nqp::istype($node,QAST::Op) {
-            if $node.op eq 'call' && !$node.name {
+            if $node.op eq 'call' && (!$node.name || $node.name eq '&infix:<xx>') {
                 $node := $node[0];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
@@ -235,7 +235,7 @@ sub unwanted($ast, $by) {
         $ast.annotate('context','sink');
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
+        if $ast.op eq 'call' && ($ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>') {
             UNWANTALL($ast,$byby);
             $ast.annotate('context','sink');
         }
@@ -294,7 +294,7 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
             $node.annotate('context','sink');
-            unwantall($node, $byby) if $node.name eq '&infix:<,>';
+            unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
             $node := $node[1];
@@ -8900,7 +8900,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         return $wrappee if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
         QAST::Op.new(
             :op('p6typecheckrv'),
-            $wrappee,
+            WANTED($wrappee,'wrap_return_type_check'),
             QAST::WVal.new( :value($code_obj) ),
             QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
         );

@@ -2695,6 +2695,7 @@ class Perl6::World is HLL::World {
             $ast := $ast[0];
         }
 
+        $ast.annotate('WANTED',1);
         if $ast.has_compile_time_value {
             return nqp::unbox_s($ast.compile_time_value);
         } elsif nqp::istype($ast, QAST::Op) {

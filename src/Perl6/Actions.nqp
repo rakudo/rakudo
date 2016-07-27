@@ -8900,7 +8900,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         return $wrappee if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
         QAST::Op.new(
             :op('p6typecheckrv'),
-            WANTED($wrappee,'wrap_return_type_check'),
+            $wrappee,
             QAST::WVal.new( :value($code_obj) ),
             QAST::WVal.new( :value($*W.find_symbol(['Nil'])) )
         );

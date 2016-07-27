@@ -528,7 +528,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method BIND-POS(List:D: Int:D \pos, \what) is raw {
         nqp::iscont(self.AT-POS(pos))
           ?? nqp::bindpos($!reified,nqp::unbox_i(pos),what)
-          !! Failure.new(X::Bind.new)
+          !! X::Bind.new.throw
     }
 
     multi method EXISTS-POS(List:D: int $pos) {

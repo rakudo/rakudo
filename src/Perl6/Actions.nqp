@@ -6228,6 +6228,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $past;
             return 1;
         }
+        elsif $thunky {
+            for $/.list { if $_.ast { WANTED($_.ast, "EXPR/thunky") if nqp::substr($thunky,$arity,1) eq '.'; $past.push($_.ast); ++$arity; } }
+        }
         else {
             for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
         }
@@ -6606,7 +6609,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i];
-            $ast := WANTED($ast.ast, 'thunkity') if nqp::can($ast,'ast');  # reduce already passes ast...
+            $ast := $ast.ast if nqp::can($ast,'ast');  # reduce already passes ast...
 
             if $type eq 'T' || $type eq 'B' || $type eq 'A' {
                 my $argast := $ast;
@@ -6636,6 +6639,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             if $type eq '.' || $type eq 'T' || $type eq 'B' || $type eq 'A' || nqp::istype($ast,QAST::SpecialArg) {
+                $ast := WANTED($ast, 'thunkity') if $type eq '.';
                 $past.push($ast);
             }
             elsif $type eq 't' {  # thunk anything that might need (re)calculation

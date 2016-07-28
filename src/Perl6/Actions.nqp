@@ -3696,7 +3696,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<onlystar>.ast;
         }
         else {
-            $past := $<blockoid>.ast;
+            $past := WANTED($<blockoid>.ast,'method_def');
             if $past.ann('placeholder_sig') {
                 $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }

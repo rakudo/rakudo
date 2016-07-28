@@ -1004,6 +1004,8 @@ my class Array { # declared in BOOTSTRAP
         }
 
         $todo.reify-at-least($o + $s) if $lazy;
+        nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+          unless nqp::getattr(self,List,'$!reified').DEFINITE;
         if $SINK {
             nqp::splice(nqp::getattr(self, List, '$!reified'),
                 splice-buffer, $o, $s);

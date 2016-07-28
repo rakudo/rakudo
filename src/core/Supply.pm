@@ -1408,7 +1408,7 @@ my class Supplier {
             })
         }
 
-        method emit(\value) {
+        method emit(\value --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1418,7 +1418,7 @@ my class Supplier {
             }
         }
 
-        method done() {
+        method done(--> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1428,7 +1428,7 @@ my class Supplier {
             }
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1521,7 +1521,7 @@ my class Supplier::Preserving is Supplier {
             })
         }
 
-        method emit(\value) {
+        method emit(\value --> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
@@ -1536,7 +1536,7 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method done() {
+        method done(--> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
@@ -1551,7 +1551,7 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {

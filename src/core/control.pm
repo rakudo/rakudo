@@ -264,14 +264,26 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    my Mu $clone := nqp::hash();
-    my Mu $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));
-    my $e;
-    while $iter {
-        $e := nqp::shift($iter);
-        nqp::bindkey($clone,nqp::iterkey_s($e),~(nqp::decont(nqp::iterval($e)) // ''));
-    }
-    $clone;
+    nqp::if(
+      nqp::getattr(hash,Map,'$!storage').DEFINITE,
+      nqp::stmts(
+        (my $clone := nqp::hash),
+        (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
+        nqp::while(
+          $iter,
+          nqp::bindkey($clone,
+            nqp::iterkey_s(my $e := nqp::shift($iter)),
+            nqp::if(
+              nqp::defined(nqp::iterval($e)),
+              nqp::decont(nqp::iterval($e)).Str,
+              ''
+            )
+          )
+        ),
+        $clone
+      ),
+      nqp::hash
+    )
 }
 
 sub CLONE-LIST-DECONTAINERIZED(*@list) {

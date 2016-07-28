@@ -1520,7 +1520,7 @@ multi sub infix:<X>(+lol) {
     }
 }
 
-my &cross = &infix:<X>;
+my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :$with!) {

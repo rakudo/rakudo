@@ -132,8 +132,6 @@ my class Signature { # declared in BOOTSTRAP
     multi method gist(Signature:D:) {
         self!gistperl(False, :elide-type(self!deftype))
     }
-
-    method returns() { $!returns }
 }
 
 multi sub infix:<eqv>(Signature \a, Signature \b) {

@@ -1420,6 +1420,9 @@ BEGIN {
             nqp::bindattr($ins, Signature, '$!params', @ins_params);
             $ins
         }));
+    Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self),Signature,'$!returns')
+        }));
     Signature.HOW.add_method(Signature, 'set_returns', nqp::getstaticcode(sub ($self, $type) {
             nqp::bindattr(nqp::decont($self),
                 Signature, '$!returns', nqp::decont($type));

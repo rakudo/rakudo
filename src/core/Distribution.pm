@@ -87,7 +87,7 @@ role Distribution::Locally does Distribution {
 class CompUnit::Repository::Distribution {
     has Distribution $!dist handles 'content';
     has $!meta;
-    submethod BUILD(:$!meta, :$!dist) { }
+    submethod BUILD(:$!meta, :$!dist --> Nil) { }
     method new(Distribution $dist) {
         my $meta = $dist.meta.hash;
         $meta<ver>  //= $meta<version>;
@@ -111,14 +111,14 @@ class CompUnit::Repository::Distribution {
 
 class Distribution::Hash does Distribution::Locally {
     has $!meta;
-    submethod BUILD(:$!meta, :$!prefix) { }
+    submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
 }
 
 class Distribution::Path does Distribution::Locally {
     has $!meta;
-    submethod BUILD(:$!meta, :$!prefix) { }
+    submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new(IO::Path $prefix, IO::Path :$file is copy) {
         my $path := ?$file ?? $file !! $prefix.child('META6.json');
         die "No meta file located at {$path.abspath}" unless $path.e;

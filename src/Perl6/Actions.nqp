@@ -6909,7 +6909,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $args := $<args>.ast;
         # one-arg rule?
         if +$args.list == 1 && !$args[0].flat && !$args[0].named {
-            make QAST::Op.new(:node($/), :op<call>, $metapast, $args[0]);
+            make QAST::Op.new(:node($/), :op<call>, WANTED($metapast,'reduce/meta'), WANTED($args[0],'reduce/meta'));
         }
         else {
             if $t {

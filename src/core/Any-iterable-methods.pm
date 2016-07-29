@@ -799,6 +799,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             self
         }
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+        method is-lazy() { $!iter.is-lazy }
     }
     method !grep-regex(Regex:D $test) {
         Seq.new(class :: does Grepper {

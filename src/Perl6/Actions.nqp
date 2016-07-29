@@ -84,7 +84,13 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>') {
+        if $ast.op eq 'call' && (
+                !$ast.name ||
+                $ast.name eq '&infix:<,>' ||
+                $ast.name eq '&infix:<andthen>' ||
+                $ast.name eq '&infix:<orelse>' ||
+                $ast.name eq '&infix:<notandthen>' ||
+                $ast.name eq '&infix:<xx>') {
             WANTALL($ast,$byby);
         }
         elsif $ast.op eq 'p6capturelex' {

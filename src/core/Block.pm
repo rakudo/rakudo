@@ -188,7 +188,7 @@ my class Block { # declared in BOOTSTRAP
         #
         # Until then, we will add slurpy behaviors, assuming we
         # do not aready have them, if we see a capture.
-        my $need_cap = $sig.count == Inf and not ($slurp_p and $slurp_n);
+        my $need_cap = ($sig.count == Inf and not ($slurp_p and $slurp_n));
         if $need_cap {
             $need_cap = False;
             for $sig.params.grep(*.capture) {

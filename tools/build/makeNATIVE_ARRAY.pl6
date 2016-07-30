@@ -203,6 +203,70 @@ for $*IN.lines -> $line {
             }
         }
 
+        method min(#type#array:D:) {
+            nqp::if(
+              (my int $elems = self.elems),
+              nqp::stmts(
+                (my int $i),
+                (my #type# $min = nqp::atpos_#postfix#(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::islt_i(nqp::cmp_#postfix#(
+                      nqp::atpos_#postfix#(self,$i),$min),0),
+                    ($min = nqp::atpos_#postfix#(self,$i))
+                  )
+                ),
+                $min
+              ),
+              Inf
+            )
+        }
+        method max(#type#array:D:) {
+            nqp::if(
+              (my int $elems = self.elems),
+              nqp::stmts(
+                (my int $i),
+                (my #type# $max = nqp::atpos_#postfix#(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isgt_i(nqp::cmp_#postfix#(
+                      nqp::atpos_#postfix#(self,$i),$max),0),
+                    ($max = nqp::atpos_#postfix#(self,$i))
+                  )
+                ),
+                $max
+              ),
+              -Inf
+            )
+        }
+        method minmax(#type#array:D:) {
+            nqp::if(
+              (my int $elems = self.elems),
+              nqp::stmts(
+                (my int $i),
+                (my #type# $min =
+                  my #type# $max = nqp::atpos_#postfix#(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::islt_i(nqp::cmp_#postfix#(
+                      nqp::atpos_#postfix#(self,$i),$min),0),
+                    ($min = nqp::atpos_#postfix#(self,$i)),
+                    nqp::if(
+                      nqp::isgt_i(nqp::cmp_#postfix#(
+                        nqp::atpos_#postfix#(self,$i),$max),0),
+                      ($max = nqp::atpos_#postfix#(self,$i))
+                    )
+                  )
+                ),
+                Range.new($min,$max)
+              ),
+              Range.new(Inf,-Inf)
+            )
+        }
+
         method iterator(#type#array:D:) {
             class :: does Iterator {
                 has int $!i;

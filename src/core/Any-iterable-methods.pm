@@ -1163,55 +1163,97 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         $value
     }
+    method !iterator-and-first($what,\first) is raw {
+        nqp::if(
+          self.is-lazy,
+          (die "Cannot $what on an infinite list"),
+          nqp::stmts(
+            (my $iterator := self.iterator),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::isconcrete($pulled),
+                nqp::if(
+                  nqp::istype($pulled,Failure),
+                  $pulled.exception.throw,
+                  nqp::stmts(
+                    (first = $pulled),
+                    (return $iterator)
+                  )
+                )
+              )
+            ),
+            Mu
+          )
+        )
+    }
 
     proto method min (|) is nodal { * }
     multi method min() {
-        my $min = self!first-concrete(".min", my int $index, my int $todo);
-
-        my $value;
-        while nqp::islt_i(++$index,$todo) {
-            $value := self.AT-POS($index);
-            $min    = $value
-              if nqp::isconcrete($value) && $value cmp $min < 0;
-        }
-        $min // Inf;
+        nqp::stmts(
+          nqp::if(
+            (my $iter := self!iterator-and-first(".min",my $min)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled) && $pulled cmp $min < 0),
+                $min = $pulled
+              )
+            )
+          ),
+          nqp::if(nqp::defined($min),$min,Inf)
+        )
     }
     multi method min(&by) {
-        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $min = self!first-concrete(".min", my int $index, my int $todo);
-
-        my $value;
-        while nqp::islt_i(++$index,$todo) {
-            $value := self.AT-POS($index);
-            $min    = $value
-              if nqp::isconcrete($value) && $cmp($value,$min) < 0;
-        }
-        $min // Inf;
+        nqp::stmts(
+          (my $cmp := nqp::if(
+            nqp::iseq_i(&by.arity,2),&by,{ &by($^a) cmp &by($^b) })),
+          nqp::if(
+            (my $iter := self!iterator-and-first(".min",my $min)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled) && $cmp($pulled,$min) < 0),
+                $min = $pulled
+              )
+            )
+          ),
+          nqp::if(nqp::defined($min),$min,Inf)
+        )
     }
 
     proto method max (|) is nodal { * }
     multi method max() {
-        my $max = self!first-concrete(".max", my int $index, my int $todo);
-
-        my $value;
-        while nqp::islt_i(++$index,$todo) {
-            $value := self.AT-POS($index);
-            $max    = $value
-              if nqp::isconcrete($value) && $value cmp $max > 0;
-        }
-        $max // -Inf;
+        nqp::stmts(
+          nqp::if(
+            (my $iter := self!iterator-and-first(".max",my $max)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled) && $pulled cmp $max > 0),
+                $max = $pulled
+              )
+            )
+          ),
+          nqp::if(nqp::defined($max),$max,-Inf)
+        )
     }
     multi method max(&by) {
-        my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) }
-        my $max = self!first-concrete(".max", my int $index, my int $todo);
-
-        my $value;
-        while nqp::islt_i(++$index,$todo) {
-            $value := self.AT-POS($index);
-            $max    = $value
-              if nqp::isconcrete($value) && $cmp($value,$max) > 0;
-        }
-        $max // -Inf;
+        nqp::stmts(
+          (my $cmp := nqp::if(
+            nqp::iseq_i(&by.arity,2),&by,{ &by($^a) cmp &by($^b) })),
+          nqp::if(
+            (my $iter := self!iterator-and-first(".max",my $max)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled) && $cmp($pulled,$max) > 0),
+                $max = $pulled
+              )
+            )
+          ),
+          nqp::if(nqp::defined($max),$max,-Inf)
+        )
     }
 
     method !minmax-range-init($value,\mi,\exmi,\ma,\exma --> Nil) {

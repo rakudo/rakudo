@@ -203,7 +203,7 @@ for $*IN.lines -> $line {
             }
         }
 
-        method min(#type#array:D:) {
+        multi method min(#type#array:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -212,8 +212,7 @@ for $*IN.lines -> $line {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_#postfix#(
-                      nqp::atpos_#postfix#(self,$i),$min),0),
+                    nqp::islt_#postfix#(nqp::atpos_#postfix#(self,$i),$min),
                     ($min = nqp::atpos_#postfix#(self,$i))
                   )
                 ),
@@ -222,7 +221,7 @@ for $*IN.lines -> $line {
               Inf
             )
         }
-        method max(#type#array:D:) {
+        multi method max(#type#array:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -231,8 +230,7 @@ for $*IN.lines -> $line {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::isgt_i(nqp::cmp_#postfix#(
-                      nqp::atpos_#postfix#(self,$i),$max),0),
+                    nqp::isgt_#postfix#(nqp::atpos_#postfix#(self,$i),$max),
                     ($max = nqp::atpos_#postfix#(self,$i))
                   )
                 ),
@@ -241,7 +239,7 @@ for $*IN.lines -> $line {
               -Inf
             )
         }
-        method minmax(#type#array:D:) {
+        multi method minmax(#type#array:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -251,12 +249,10 @@ for $*IN.lines -> $line {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_#postfix#(
-                      nqp::atpos_#postfix#(self,$i),$min),0),
+                    nqp::islt_#postfix#(nqp::atpos_#postfix#(self,$i),$min),
                     ($min = nqp::atpos_#postfix#(self,$i)),
                     nqp::if(
-                      nqp::isgt_i(nqp::cmp_#postfix#(
-                        nqp::atpos_#postfix#(self,$i),$max),0),
+                      nqp::isgt_#postfix#(nqp::atpos_#postfix#(self,$i),$max),
                       ($max = nqp::atpos_#postfix#(self,$i))
                     )
                   )

@@ -34,7 +34,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-07-30T23:24:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -199,7 +199,7 @@ my class array does Iterable is repr('VMArray') {
             }
         }
 
-        method min(strarray:D:) {
+        multi method min(strarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -208,8 +208,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_s(
-                      nqp::atpos_s(self,$i),$min),0),
+                    nqp::islt_s(nqp::atpos_s(self,$i),$min),
                     ($min = nqp::atpos_s(self,$i))
                   )
                 ),
@@ -218,7 +217,7 @@ my class array does Iterable is repr('VMArray') {
               Inf
             )
         }
-        method max(strarray:D:) {
+        multi method max(strarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -227,8 +226,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::isgt_i(nqp::cmp_s(
-                      nqp::atpos_s(self,$i),$max),0),
+                    nqp::isgt_s(nqp::atpos_s(self,$i),$max),
                     ($max = nqp::atpos_s(self,$i))
                   )
                 ),
@@ -237,7 +235,7 @@ my class array does Iterable is repr('VMArray') {
               -Inf
             )
         }
-        method minmax(strarray:D:) {
+        multi method minmax(strarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -247,12 +245,10 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_s(
-                      nqp::atpos_s(self,$i),$min),0),
+                    nqp::islt_s(nqp::atpos_s(self,$i),$min),
                     ($min = nqp::atpos_s(self,$i)),
                     nqp::if(
-                      nqp::isgt_i(nqp::cmp_s(
-                        nqp::atpos_s(self,$i),$max),0),
+                      nqp::isgt_s(nqp::atpos_s(self,$i),$max),
                       ($max = nqp::atpos_s(self,$i))
                     )
                   )
@@ -308,7 +304,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-07-30T23:24:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -473,7 +469,7 @@ my class array does Iterable is repr('VMArray') {
             }
         }
 
-        method min(intarray:D:) {
+        multi method min(intarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -482,8 +478,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_i(
-                      nqp::atpos_i(self,$i),$min),0),
+                    nqp::islt_i(nqp::atpos_i(self,$i),$min),
                     ($min = nqp::atpos_i(self,$i))
                   )
                 ),
@@ -492,7 +487,7 @@ my class array does Iterable is repr('VMArray') {
               Inf
             )
         }
-        method max(intarray:D:) {
+        multi method max(intarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -501,8 +496,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::isgt_i(nqp::cmp_i(
-                      nqp::atpos_i(self,$i),$max),0),
+                    nqp::isgt_i(nqp::atpos_i(self,$i),$max),
                     ($max = nqp::atpos_i(self,$i))
                   )
                 ),
@@ -511,7 +505,7 @@ my class array does Iterable is repr('VMArray') {
               -Inf
             )
         }
-        method minmax(intarray:D:) {
+        multi method minmax(intarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -521,12 +515,10 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_i(
-                      nqp::atpos_i(self,$i),$min),0),
+                    nqp::islt_i(nqp::atpos_i(self,$i),$min),
                     ($min = nqp::atpos_i(self,$i)),
                     nqp::if(
-                      nqp::isgt_i(nqp::cmp_i(
-                        nqp::atpos_i(self,$i),$max),0),
+                      nqp::isgt_i(nqp::atpos_i(self,$i),$max),
                       ($max = nqp::atpos_i(self,$i))
                     )
                   )
@@ -599,7 +591,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-07-30T23:24:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -764,7 +756,7 @@ my class array does Iterable is repr('VMArray') {
             }
         }
 
-        method min(numarray:D:) {
+        multi method min(numarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -773,8 +765,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_n(
-                      nqp::atpos_n(self,$i),$min),0),
+                    nqp::islt_n(nqp::atpos_n(self,$i),$min),
                     ($min = nqp::atpos_n(self,$i))
                   )
                 ),
@@ -783,7 +774,7 @@ my class array does Iterable is repr('VMArray') {
               Inf
             )
         }
-        method max(numarray:D:) {
+        multi method max(numarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -792,8 +783,7 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::isgt_i(nqp::cmp_n(
-                      nqp::atpos_n(self,$i),$max),0),
+                    nqp::isgt_n(nqp::atpos_n(self,$i),$max),
                     ($max = nqp::atpos_n(self,$i))
                   )
                 ),
@@ -802,7 +792,7 @@ my class array does Iterable is repr('VMArray') {
               -Inf
             )
         }
-        method minmax(numarray:D:) {
+        multi method minmax(numarray:D:) {
             nqp::if(
               (my int $elems = self.elems),
               nqp::stmts(
@@ -812,12 +802,10 @@ my class array does Iterable is repr('VMArray') {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
-                    nqp::islt_i(nqp::cmp_n(
-                      nqp::atpos_n(self,$i),$min),0),
+                    nqp::islt_n(nqp::atpos_n(self,$i),$min),
                     ($min = nqp::atpos_n(self,$i)),
                     nqp::if(
-                      nqp::isgt_i(nqp::cmp_n(
-                        nqp::atpos_n(self,$i),$max),0),
+                      nqp::isgt_n(nqp::atpos_n(self,$i),$max),
                       ($max = nqp::atpos_n(self,$i))
                     )
                   )

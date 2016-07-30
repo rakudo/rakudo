@@ -1354,7 +1354,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::bindpos(result,$i,nqp::atpos(sort-buffer,nqp::atpos(indices,$i)))
           while nqp::islt_i(++$i,$elems);
 
-        result
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',result)
     }
 
     proto method reduce(|) { * }

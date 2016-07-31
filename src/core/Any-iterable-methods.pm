@@ -1173,13 +1173,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
               nqp::if(
                 nqp::isconcrete($pulled),
-                nqp::if(
-                  nqp::istype($pulled,Failure),
-                  $pulled.exception.throw,
-                  nqp::stmts(
-                    (first = $pulled),
-                    (return $iterator)
-                  )
+                nqp::stmts(
+                  (first = $pulled),
+                  (return $iterator)
                 )
               )
             ),

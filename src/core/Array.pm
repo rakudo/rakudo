@@ -939,22 +939,37 @@ my class Array { # declared in BOOTSTRAP
     }
 
     proto method splice(|) is nodal { * }
-    multi method splice(Array:D \SELF: :$SINK) {
-        if $SINK {
-            SELF.STORE(());
-            Nil
-        }
-        else {
-            my @ret := SELF.of =:= Mu ?? Array.new !! Array[SELF.of].new;
-            @ret.STORE(SELF);
-            SELF.STORE(());
-            @ret
-        }
+    multi method splice(Array:D \SELF:) {
+        nqp::if(
+          nqp::getattr(SELF,List,'$!reified').DEFINITE,
+          nqp::stmts(
+            (my $result := nqp::create(SELF)),
+            nqp::bindattr($result,Array,'$!descriptor',$!descriptor),
+            nqp::stmts(       # transplant the internals
+              nqp::bindattr($result,List,'$!reified',
+                nqp::getattr(SELF,List,'$!reified')),
+              nqp::if(
+                nqp::getattr(SELF,List,'$!todo').DEFINITE,
+                nqp::bindattr($result,List,'$!todo',
+                  nqp::getattr(SELF,List,'$!todo')),
+              )
+            ),
+            (SELF = nqp::create(SELF)),
+            $result
+          ),
+          nqp::create(SELF)   # nothing to return
+        )
     }
-    multi method splice(Array:D: $offset=0, $size=Whatever, @values?, :$SINK) {
+    multi method splice(Array:D \SELF: :$SINK! --> Nil) {
+        nqp::if(
+          nqp::getattr(self,List,'$!reified').DEFINITE,
+          (SELF = nqp::create(SELF))
+        )
+    }
+    multi method splice(Array:D: $offset, $size=Whatever, @values?, :$SINK) {
         self!splice-list($offset, $size, @values, :$SINK)
     }
-    multi method splice(Array:D: $offset=0, $size=Whatever, **@values, :$SINK) {
+    multi method splice(Array:D: $offset, $size=Whatever, **@values, :$SINK) {
         self!splice-list($offset, $size, @values, :$SINK)
     }
     method !splice-list($offset, $size, @values, :$SINK) {

@@ -1148,21 +1148,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             )
         }
     }
-
-    method !first-concrete($what,\i,\todo) {
-        my $elems = self.cache.elems;
-        die "Cannot $what on an infinite list" if $elems == Inf;
-
-        i    = -1;
-        todo = $elems;
-        my $value;
-
-        nqp::istype($value,Failure) ?? $value.exception.throw !! return $value
-          if nqp::isconcrete($value := self.AT-POS(i))
-            while nqp::islt_i(++i,todo);
-
-        $value
-    }
     method !iterator-and-first($what,\first) is raw {
         nqp::if(
           self.is-lazy,
@@ -1252,91 +1237,150 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    method !minmax-range-init($value,\mi,\exmi,\ma,\exma --> Nil) {
-        mi   = $value.min;
-        exmi = $value.excludes-min;
-        ma   = $value.max;
-        exma = $value.excludes-max;
+    method !minmax-range-init(\value,\mi,\exmi,\ma,\exma --> Nil) {
+        mi   = value.min;
+        exmi = value.excludes-min;
+        ma   = value.max;
+        exma = value.excludes-max;
     }
-    method !minmax-range-check($value,$cmp,\mi,\exmi,\ma,\exma --> Nil) {
-        if $cmp($value.min,mi) < 0 {
-            mi   = $value.min;
-            exmi = $value.excludes-min;
-        }
-        if $cmp($value.max,ma) > 0 {
-            ma   = $value.max;
-            exma = $value.excludes-max;
-        }
+    method !minmax-range-check(\value,\mi,\exmi,\ma,\exma --> Nil) {
+        nqp::stmts(
+          nqp::if(
+            ((value.min cmp mi) < 0),
+            nqp::stmts(
+              (mi   = value.min),
+              (exmi = value.excludes-min)
+            )
+          ),
+          nqp::if(
+            ((value.max cmp ma) > 0),
+            nqp::stmts(
+              (ma   = value.max),
+              (exma = value.excludes-max)
+            )
+          )
+        )
+    }
+    method !cmp-minmax-range-check(\value,$cmp,\mi,\exmi,\ma,\exma --> Nil) {
+        nqp::stmts(                     # $cmp sigillless confuses the optimizer
+          nqp::if(
+            ($cmp(value.min,mi) < 0),
+            nqp::stmts(
+              (mi   = value.min),
+              (exmi = value.excludes-min)
+            )
+          ),
+          nqp::if(
+            ($cmp(value.max,ma) > 0),
+            nqp::stmts(
+              (ma   = value.max),
+              (exma = value.excludes-max)
+            )
+          )
+        )
     }
 
     proto method minmax (|) is nodal { * }
-    multi method minmax(&by?) {
-        my $value := self!first-concrete(".minmax",my int $index,my int $todo);
-
-        my $min;
-        my $max;
-        my int $excludes-min;
-        my int $excludes-max;
-
-        # initializations
-        nqp::istype($value,Failure)
-          ?? $value.throw
-          !! $value.defined
-            ?? nqp::istype($value,Range)
-              ?? self!minmax-range-init($value,
-                   $min,$excludes-min,$max,$excludes-max)
-              !! nqp::istype($value,Positional)
-                ?? self!minmax-range-init($value.minmax(&by),
-                     $min,$excludes-min,$max,$excludes-max)
-                !! ($min = $max = $value)
-            !! return Range.new(Inf,-Inf);
-
-        # special comparison needed
-        if &by && !(&by === &infix:<cmp>) {
-            my $cmp = &by.arity == 2 ?? &by !! { &by($^a) cmp &by($^b) };
-
-            # check rest of values
-            nqp::istype(($value := self.AT-POS($index)),Failure)
-              ?? $value.throw
-              !! $value.defined
-                ?? nqp::istype($value,Range)
-                  ?? self!minmax-range-check($value,
-                       $cmp,$min,$excludes-min,$max,$excludes-max)
-                  !! nqp::istype($value,Positional)
-                    ?? self!minmax-range-check($value.minmax(&by),
-                         $cmp,$min,$excludes-min,$max,$excludes-max)
-                    !! $cmp($value, $min) < 0
-                      ?? ($min = $value)
-                      !! $cmp($value, $max) > 0
-                        ?? ($max = $value)
-                        !! Nil
-                !! Nil
-              while nqp::islt_i(++$index,$todo);
-        }
-
-        # default infix:<cmp> comparison
-        else {
-
-            # check rest of values
-            nqp::istype(($value := self.AT-POS($index)),Failure)
-              ?? $value.throw
-              !! $value.defined
-                ?? nqp::istype($value,Range)
-                  ?? self!minmax-range-check($value,
-                       &infix:<cmp>,$min,$excludes-min,$max,$excludes-max)
-                  !! nqp::istype($value,Positional)
-                    ?? self!minmax-range-check($value.minmax,
-                         &infix:<cmp>,$min,$excludes-min,$max,$excludes-max)
-                    !! $value cmp $min < 0
-                      ?? ($min = $value)
-                      !! $value cmp $max > 0
-                        ?? ($max = $value)
-                        !! Nil
-                !! Nil
-              while nqp::islt_i(++$index,$todo);
-        }
-
-        Range.new($min, $max, :$excludes-min, :$excludes-max)
+    multi method minmax() {
+        nqp::stmts(
+          nqp::if(
+            (my $iter := self!iterator-and-first(".minmax",my $pulled)),
+            nqp::stmts(
+              nqp::if(
+                nqp::istype($pulled,Range),
+                self!minmax-range-init($pulled,
+                  my $min,my int $excludes-min,my $max,my int $excludes-max),
+                nqp::if(
+                  nqp::istype($pulled,Positional),
+                  self!minmax-range-init($pulled.minmax, # recurse for min/max
+                    $min,$excludes-min,$max,$excludes-max),
+                  ($min = $max = $pulled)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::isconcrete($pulled),
+                  nqp::if(
+                    nqp::istype($pulled,Range),
+                    self!minmax-range-check($pulled,
+                       $min,$excludes-min,$max,$excludes-max),
+                    nqp::if(
+                      nqp::istype($pulled,Positional),
+                      self!minmax-range-check($pulled.minmax,
+                         $min,$excludes-min,$max,$excludes-max),
+                      nqp::if(
+                        (($pulled cmp $min) < 0),
+                        ($min = $pulled),
+                        nqp::if(
+                          (($pulled cmp $max) > 0),
+                          ($max = $pulled)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          nqp::if(
+            nqp::defined($min),
+            Range.new($min,$max,:$excludes-min,:$excludes-max),
+            Range.new(Inf,-Inf)
+          )
+        )
+    }
+    multi method minmax(&by) {
+        nqp::stmts(
+          nqp::if(
+            (my $iter := self!iterator-and-first(".minmax",my $pulled)),
+            nqp::stmts(
+              (my $cmp = nqp::if(
+                nqp::iseq_i(&by.arity,2),&by,{ &by($^a) cmp &by($^b) })
+              ),
+              nqp::if(
+                nqp::istype($pulled,Range),
+                self!minmax-range-init($pulled,
+                  my $min,my int $excludes-min,my $max,my int $excludes-max),
+                nqp::if(
+                  nqp::istype($pulled,Positional),
+                  self!minmax-range-init($pulled.minmax(&by), # recurse min/max
+                    $min,$excludes-min,$max,$excludes-max),
+                  ($min = $max = $pulled)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::isconcrete($pulled),
+                  nqp::if(
+                    nqp::istype($pulled,Range),
+                    self!cmp-minmax-range-check($pulled,
+                       $cmp,$min,$excludes-min,$max,$excludes-max),
+                    nqp::if(
+                      nqp::istype($pulled,Positional),
+                      self!cmp-minmax-range-check($pulled.minmax(&by),
+                         $cmp,$min,$excludes-min,$max,$excludes-max),
+                      nqp::if(
+                        ($cmp($pulled,$min) < 0),
+                        ($min = $pulled),
+                        nqp::if(
+                          ($cmp($pulled,$max) > 0),
+                          ($max = $pulled)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          nqp::if(
+            nqp::defined($min),
+            Range.new($min,$max,:$excludes-min,:$excludes-max),
+            Range.new(Inf,-Inf)
+          )
+        )
     }
 
     method sort(&by?) is nodal {

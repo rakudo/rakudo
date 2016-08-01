@@ -1164,14 +1164,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my $elems;
             my $gap;
             if $s ~~ Pair {
-                $elems = +$s.key;
-                $gap   = +$s.value;
+                $elems = $s.key.Int;
+                $gap   = $s.value.Int;
             }
             elsif $s < 1 {
                 die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
             }
             else {
-                $elems = +$s;
+                $elems = $s.Int;
                 $gap   = 0;
             }
             $!todo.reify-at-least($finished + $elems) if $!todo.DEFINITE;

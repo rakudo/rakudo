@@ -954,16 +954,17 @@ my class Array { # declared in BOOTSTRAP
                   nqp::getattr(SELF,List,'$!todo')),
               )
             ),
-            (SELF = nqp::create(SELF)),
+            (SELF = nqp::create(SELF)),  # XXX this preserves $!descriptor ??
             $result
           ),
-          nqp::create(SELF)   # nothing to return
+          nqp::p6bindattrinvres(   # nothing to return, so create new one
+            nqp::create(SELF),Array,'$!descriptor',$!descriptor)
         )
     }
     multi method splice(Array:D \SELF: :$SINK! --> Nil) {
         nqp::if(
           nqp::getattr(self,List,'$!reified').DEFINITE,
-          (SELF = nqp::create(SELF))
+          (SELF = nqp::create(SELF))  # XXX this preserves $!descriptor ??
         )
     }
     multi method splice(Array:D: $offset, $size=Whatever, @values?, :$SINK) {

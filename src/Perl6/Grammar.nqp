@@ -2755,7 +2755,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token fakesignature {
         <.newpad>
-        <signature>
+        <signature('sig', 1)>
     }
 
     token signature($*IN_DECL = 'sig', $*ALLOW_INVOCANT = 0) {

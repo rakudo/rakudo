@@ -1179,6 +1179,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             if $finished + $elems <= nqp::elems($!reified) {
                 take self[$finished ..^ $finished + $elems];
                 $finished += $elems + $gap;
+
+                X::OutOfRange.new(
+                    what    => ".rotor position is",
+                    got     => $finished,
+                    range   => "0..Inf",
+                    comment => '(ensure the negative gap is not larger than'
+                                ~ ' the length of the sublist)',
+                ).throw if $finished < 0;
             }
             else {
                 take self[$finished .. *]

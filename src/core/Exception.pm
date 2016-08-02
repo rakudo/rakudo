@@ -1477,6 +1477,12 @@ my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
     method message() {
+        "Operators '$.left' and '$.right' are non-associative and require parentheses";
+    }
+}
+
+my class X::Syntax::NonListAssociative is X::Syntax::NonAssociative {
+    method message() {
         "Only identical operators may be list associative; since '$.left' and '$.right' differ, they are non-associative and you need to clarify with parentheses";
     }
 }

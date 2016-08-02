@@ -57,7 +57,7 @@ my class Signature { # declared in BOOTSTRAP
             return False unless +$other == 1;
         }
 
-        my $here=$sclass{True}.SetHash;
+        my $here=($sclass{True}:v).SetHash;
         my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
         $here{@$hasslurpy} :delete;
         $hasslurpy .= Bool;
@@ -132,8 +132,6 @@ my class Signature { # declared in BOOTSTRAP
     multi method gist(Signature:D:) {
         self!gistperl(False, :elide-type(self!deftype))
     }
-
-    method returns() { $!returns }
 }
 
 multi sub infix:<eqv>(Signature \a, Signature \b) {

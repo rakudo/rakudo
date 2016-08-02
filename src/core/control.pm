@@ -13,7 +13,7 @@ sub THROW(int $type, Mu \arg) {
     nqp::throw($ex);
     arg;
 }
-sub THROW-NIL(int $type) {
+sub THROW-NIL(int $type --> Nil) {
     my Mu $ex := nqp::newexception();
 #    nqp::setpayload($ex, Nil);
     nqp::setextype($ex, $type);
@@ -31,23 +31,23 @@ sub RETURN-LIST(Mu \list) is raw {
 }
 
 proto sub return-rw(|) {*}
-multi sub return-rw() {
+multi sub return-rw(--> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
 }
-multi sub return-rw(Mu \x) {
+multi sub return-rw(Mu \x --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, x);
 }
-multi sub return-rw(**@x is raw) {
+multi sub return-rw(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 proto sub return(|) {*}
-multi sub return() {
+multi sub return(--> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, Nil);
 }
-multi sub return(Mu \x) {
+multi sub return(Mu \x --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro(x));
 }
-multi sub return(**@x is raw) {
+multi sub return(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
@@ -90,28 +90,28 @@ multi sub take(|) {
 #?endif
 
 proto sub goto(|) { * }
-multi sub goto(Label:D \x) { x.goto }
+multi sub goto(Label:D \x --> Nil) { x.goto }
 
 proto sub last(|) { * }
-multi sub last()           { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
-multi sub last(Label:D \x) { x.last }
+multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
+multi sub last(Label:D \x --> Nil) { x.last }
 
 proto sub next(|) { * }
-multi sub next()           { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
-multi sub next(Label:D \x) { x.next }
+multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
+multi sub next(Label:D \x --> Nil) { x.next }
 
 proto sub redo(|) { * }
-multi sub redo()           { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
-multi sub redo(Label:D \x) { x.redo }
+multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
+multi sub redo(Label:D \x --> Nil) { x.redo }
 
 proto sub succeed(|) { * }
-multi sub succeed()   { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
-multi sub succeed(\x) { THROW(nqp::const::CONTROL_SUCCEED, x) }
-multi sub succeed(|) {
+multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
+multi sub succeed(\x --> Nil) { THROW(nqp::const::CONTROL_SUCCEED, x) }
+multi sub succeed(| --> Nil) {
     THROW(nqp::const::CONTROL_SUCCEED,RETURN-LIST(nqp::p6argvmarray))
 }
 
-sub proceed() { THROW-NIL(nqp::const::CONTROL_PROCEED) }
+sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
 my &callwith := -> |c {
     my Mu $dispatcher := nqp::p6finddispatcher('callwith');
@@ -171,30 +171,30 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
-sub emit(\value) {
+sub emit(\value --> Nil) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
 }
-sub done() {
+sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);
 }
 
 proto sub die(|) {*};
-multi sub die() {
+multi sub die(--> Nil) {
     my $stash  := CALLER::;
     my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
     $payload ~~ Exception
       ?? $payload.throw
       !! X::AdHoc.new(:$payload).throw
 }
-multi sub die(Exception:U $e) {
+multi sub die(Exception:U $e --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
 }
-multi sub die($payload) {
+multi sub die($payload --> Nil) {
     $payload ~~ Exception
       ?? $payload.throw
       !! X::AdHoc.new(:$payload).throw
 }
-multi sub die(|cap ( *@msg )) {
+multi sub die(|cap ( *@msg ) --> Nil) {
     X::AdHoc.from-slurpy(|cap).throw
 }
 
@@ -264,14 +264,26 @@ constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    my Mu $clone := nqp::hash();
-    my Mu $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));
-    my $e;
-    while $iter {
-        $e := nqp::shift($iter);
-        nqp::bindkey($clone,nqp::iterkey_s($e),~(nqp::decont(nqp::iterval($e)) // ''));
-    }
-    $clone;
+    nqp::if(
+      nqp::getattr(hash,Map,'$!storage').DEFINITE,
+      nqp::stmts(
+        (my $clone := nqp::hash),
+        (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
+        nqp::while(
+          $iter,
+          nqp::bindkey($clone,
+            nqp::iterkey_s(my $e := nqp::shift($iter)),
+            nqp::if(
+              nqp::defined(nqp::iterval($e)),
+              nqp::decont(nqp::iterval($e)).Str,
+              ''
+            )
+          )
+        ),
+        $clone
+      ),
+      nqp::hash
+    )
 }
 
 sub CLONE-LIST-DECONTAINERIZED(*@list) {

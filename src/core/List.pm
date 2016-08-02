@@ -80,7 +80,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #   The reified elements in the list so far (that is, those that we already
     #   have produced the values for).
     #   has $!reified;
-    # 
+    #
     #   Object that reifies the rest of the list. We don't just inline it into
     #   the List class itself, because a STORE on Array can clear things and
     #   upset an ongoing iteration. (An easy way to create such a case is to
@@ -112,7 +112,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method reify-at-least(int $elems) {
             nqp::stmts(
               nqp::if(
-                ($!current-iter.DEFINITE 
+                ($!current-iter.DEFINITE
                   && nqp::eqaddr(
                        $!current-iter.push-at-least(
                          $!reification-target,
@@ -122,7 +122,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                      )),
                 $!current-iter := Iterator
               ),
-  
+
               # there is a future
               nqp::if(
                 $!future.DEFINITE,
@@ -155,7 +155,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       $!reification-target.push($current)
                     )
                   ),
-    
+
                   # that was the future
                   nqp::unless(
                     nqp::elems($!future),
@@ -171,7 +171,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method reify-until-lazy() {
             nqp::stmts(
               nqp::if(
-                ($!current-iter.DEFINITE 
+                ($!current-iter.DEFINITE
                   && nqp::eqaddr(
                        $!current-iter.push-until-lazy($!reification-target),
                        IterationEnd
@@ -179,7 +179,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ),
                 $!current-iter := Iterator
               ),
-  
+
               nqp::if(
                 ($!future.DEFINITE && nqp::not_i($!current-iter.DEFINITE)),
                 nqp::stmts(
@@ -1164,21 +1164,28 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my $elems;
             my $gap;
             if $s ~~ Pair {
-                $elems = +$s.key;
-                $gap   = +$s.value;
+                $elems = $s.key.Int;
+                $gap   = $s.value.Int;
             }
             elsif $s < 1 {
                 die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
             }
             else {
-                $elems = +$s;
+                $elems = $s.Int;
                 $gap   = 0;
             }
-
             $!todo.reify-at-least($finished + $elems) if $!todo.DEFINITE;
             if $finished + $elems <= nqp::elems($!reified) {
                 take self[$finished ..^ $finished + $elems];
                 $finished += $elems + $gap;
+
+                X::OutOfRange.new(
+                    what    => ".rotor position is",
+                    got     => $finished,
+                    range   => "0..Inf",
+                    comment => '(ensure the negative gap is not larger than'
+                                ~ ' the length of the sublist)',
+                ).throw if $finished < 0;
             }
             else {
                 take self[$finished .. *]
@@ -1362,7 +1369,7 @@ multi sub infix:<xx>(&x, Int() $n) {
           nqp::push($list,$pulled)
         )
       )
-    );  
+    );
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
 multi sub infix:<xx>(Mu \x, Num $n) {
@@ -1520,7 +1527,7 @@ multi sub infix:<X>(+lol) {
     }
 }
 
-my &cross = &infix:<X>;
+my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :$with!) {

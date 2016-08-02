@@ -489,9 +489,11 @@ my class Hash { # declared in BOOTSTRAP
         }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
-                '(my '
-                ~ TValue.perl
-                ~ ' % = ' ~ self.pairs.sort.map({.perl}).join(', ') ~ ')'
+                self.elems
+                  ?? "(my {TValue.perl} % = {
+                       self.pairs.sort.map({.perl}).join(', ')
+                     })"
+                  !! "(my {TValue.perl} %)"
             })
         }
     }

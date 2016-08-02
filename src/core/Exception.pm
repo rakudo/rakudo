@@ -321,9 +321,9 @@ do {
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
-                if $v {
+                if $v and $v.Str -> $location {
                    nqp::printfh($err, "Actually thrown at:\n");
-                   nqp::printfh($err, $v.Str);
+                   nqp::printfh($err, $location);
                    nqp::printfh($err, "\n");
                 }
             }
@@ -1476,6 +1476,12 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
 my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
+    method message() {
+        "Operators '$.left' and '$.right' are non-associative and require parentheses";
+    }
+}
+
+my class X::Syntax::NonListAssociative is X::Syntax::NonAssociative {
     method message() {
         "Only identical operators may be list associative; since '$.left' and '$.right' differ, they are non-associative and you need to clarify with parentheses";
     }

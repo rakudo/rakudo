@@ -84,7 +84,13 @@ sub wanted($ast,$by) {
         $ast.annotate('WANTED',1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>') {
+        if $ast.op eq 'call' && (
+                !$ast.name ||
+                $ast.name eq '&infix:<,>' ||
+                $ast.name eq '&infix:<andthen>' ||
+                $ast.name eq '&infix:<orelse>' ||
+                $ast.name eq '&infix:<notandthen>' ||
+                $ast.name eq '&infix:<xx>') {
             WANTALL($ast,$byby);
         }
         elsif $ast.op eq 'p6capturelex' {
@@ -3696,7 +3702,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<onlystar>.ast;
         }
         else {
-            $past := $<blockoid>.ast;
+            $past := WANTED($<blockoid>.ast,'method_def');
             if $past.ann('placeholder_sig') {
                 $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
@@ -6903,7 +6909,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $args := $<args>.ast;
         # one-arg rule?
         if +$args.list == 1 && !$args[0].flat && !$args[0].named {
-            make QAST::Op.new(:node($/), :op<call>, $metapast, $args[0]);
+            make QAST::Op.new(:node($/), :op<call>, WANTED($metapast,'reduce/meta'), WANTED($args[0],'reduce/meta'));
         }
         else {
             if $t {

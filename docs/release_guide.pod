@@ -274,6 +274,12 @@ If you have no PGP key, you might need to
 L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
 that prove impossible, you can omit the C<-s> from the command line.
 
+Be sure to upload your public key to your GitHub account, so that GitHub
+displays I<Verified> button next to the tag. You can do that by running
+C<< gpg --armor --export <email> >> and adding the output as the
+I<New GPG Key> at the bottom of the
+L<< settings -> keys page|https://github.com/settings/keys >>
+
 =item 17.
 
 Sign the tarball with your PGP key:

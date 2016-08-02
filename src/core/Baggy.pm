@@ -316,7 +316,11 @@ my role Baggy does QuantHash {
     method Bool(Baggy:D: --> Bool) {
         nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
     }
-    method hash(Baggy:D: --> Hash) { %!elems.values.hash }
+    method hash(Baggy:D: --> Hash) {
+        my \h = Hash.^parameterize(Any, Any).new;
+        h = %!elems.values;
+        h;
+    }
     method default(Baggy:D:)       { 0 }
 
     multi method Str(Baggy:D: --> Str) {

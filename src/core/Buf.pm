@@ -529,7 +529,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Mu $got) { self!fail-typecheck('push',$got) }
-    multi method push(Buf:D: Buf:D $buf) {
+    multi method push(Buf:D: Blob:D $buf) {
         nqp::splice(self,$buf,nqp::elems(self),0)
     }
     multi method push(Buf:D: **@values) { self!pend(@values,'push') }
@@ -537,7 +537,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Mu $got) { self!fail-typecheck('append',$got) }
-    multi method append(Buf:D: Buf:D $buf) {
+    multi method append(Buf:D: Blob:D $buf) {
         nqp::splice(self,$buf,nqp::elems(self),0)
     }
     multi method append(Buf:D: int @values) {
@@ -549,13 +549,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Mu $got) { self!fail-typecheck('unshift',$got) }
-    multi method unshift(Buf:D: Buf:D $buf) { nqp::splice(self,$buf,0,0) }
+    multi method unshift(Buf:D: Blob:D $buf) { nqp::splice(self,$buf,0,0) }
     multi method unshift(Buf:D: **@values) { self!pend(@values,'unshift') }
 
     multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Mu $got) { self!fail-typecheck('prepend',$got) }
-    multi method prepend(Buf:D: Buf:D $buf)  { nqp::splice(self,$buf,0,0)    }
+    multi method prepend(Buf:D: Blob:D $buf)  { nqp::splice(self,$buf,0,0)    }
     multi method prepend(Buf:D: int @values) { nqp::splice(self,@values,0,0) }
     multi method prepend(Buf:D:  @values) { self!pend(@values,'prepend') }
     multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }

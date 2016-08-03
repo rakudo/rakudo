@@ -26,7 +26,7 @@ my role Tappable {
     method tap() { ... }
     method live() { ... }    # Taps into a live data source
     method serial() { ... }  # Promises no concurrent emits
-    method sane() { ... }    # Matches emit* [done|quit] grammar
+    method sane() { ... }    # Matches emit* [done|quit]? grammar
 }
 
 # A few Supply-related exception types.

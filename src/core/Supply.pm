@@ -1219,7 +1219,6 @@ my class Supply {
                     @buffer.push(val);
                 }
                 LAST {
-                    $control.done if $control;
                     if $status {
                         emit-status("done");
                         $status.done;

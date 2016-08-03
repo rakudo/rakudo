@@ -15,14 +15,24 @@ my $last_release = @*ARGS.shift // do {
 # authors and put them in a Bag.  Sort the bag by frequency, highest first.
 # Then take the keys (aka the authors), and join them in a list.
 
+my @repos = < . ../doc nqp nqp/MoarVM t/spec >;
+note qq:to/END/;
+    ###############################################################
+    Extracting contributor information from these locations.
+    @repos[]
+    Ensure those repositories exist and have all changes pulled in.
+    ###############################################################
+    END
+
 say "Contributors to Rakudo since the release on $last_release:";
 say
-< . ../MoarVM ../nqp ../roast ../doc nqp nqp/MoarVM t/spec >.map({
+@repos.map({
   |get-committers($_,$last_release)
 }).unique(:as(*.key))>>.value.Bag.sort(*.value).reverse>>.key.join(', ');
 
 sub get-committers($repo, $since) {
-    return Empty unless $repo.IO.d && "$repo/.git".IO.d;
+    die "Expected a repo in `$repo` but did not find one"
+         unless $repo.IO.d && "$repo/.git".IO.d;
 
     gather for shell(:out, :cwd($repo),
       "git log --since=$since --pretty='format:%an|%cn|%H|%s'"

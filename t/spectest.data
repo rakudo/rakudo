@@ -753,6 +753,7 @@ S16-io/basic-open.t
 S16-io/bom.t
 S16-io/comb.t
 S16-io/cwd.t
+S16-io/eof.t
 S16-io/getc.t
 S16-io/lines.t
 S16-io/newline.t

@@ -938,6 +938,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
+    my $nqplist := nqp::list;  # for splicing in without values
     proto method splice(|) is nodal { * }
     multi method splice(Array:D \SELF:) {
         nqp::if(
@@ -964,14 +965,110 @@ my class Array { # declared in BOOTSTRAP
     multi method splice(Array:D \SELF: :$SINK! --> Nil) {
         nqp::if(
           nqp::getattr(self,List,'$!reified').DEFINITE,
-          (SELF = nqp::create(SELF))  # XXX this preserves $!descriptor ??
+          (SELF = nqp::create(SELF))     # XXX this preserves $!descriptor ??
         )
     }
-    multi method splice(Array:D: $offset, $size=Whatever, @values?, :$SINK) {
+    multi method splice(Array:D: Whatever $) {
+        nqp::p6bindattrinvres(     # nothing to return, so create new one
+          nqp::create(self),Array,'$!descriptor',$!descriptor)
+    }
+    multi method splice(Array:D: Whatever $, :$SINK! --> Nil) { }
+    multi method splice(Array:D: Callable:D $offset) {
+        self.splice($offset(self.elems))
+    }
+    multi method splice(Array:D: Callable:D $offset, :$SINK! --> Nil) {
+        self.splice($offset(self.elems),:$SINK)
+    }
+    multi method splice(Array:D: Int:D $offset) {
+        nqp::if(
+          $offset,
+          nqp::if(
+            nqp::islt_i($offset,0),
+            self!splice-offset-fail($offset),
+            nqp::if(
+              (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+              nqp::if(
+                nqp::isge_i($todo.reify-at-least($offset),$offset),
+                self!splice-offset(nqp::unbox_i($offset)),
+                self!splice-offset-fail($offset)
+              ),
+              nqp::if(
+                (nqp::getattr(self,List,'$!reified').DEFINITE
+                  && nqp::isge_i(
+                    nqp::elems(nqp::getattr(self,List,'$!reified')),$offset)),
+                self!splice-offset(nqp::unbox_i($offset)),
+                self!splice-offset-fail($offset)
+              )
+            )
+          ),
+          self.splice       # offset 0, take the quick route out
+        )
+    }
+    multi method splice(Array:D: Int:D $offset, :$SINK! --> Nil) {
+        nqp::if(
+          $offset,
+          nqp::if(
+            nqp::islt_i($offset,0),
+            self!splice-offset-fail($offset),
+            nqp::if(
+              (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+              nqp::if(
+                nqp::isge_i($todo.reify-at-least($offset),$offset),
+                nqp::splice(
+                  nqp::getattr(self,List,'$!reified'),
+                  $nqplist,
+                  $offset,
+                  nqp::sub_i(
+                    nqp::elems(nqp::getattr(self,List,'$!reified')),$offset)
+                ),
+                self!splice-offset-fail($offset)
+              ),
+              nqp::if(
+                (nqp::getattr(self,List,'$!reified').DEFINITE
+                  && nqp::isge_i(
+                    nqp::elems(nqp::getattr(self,List,'$!reified')),$offset)),
+                nqp::splice(
+                  nqp::getattr(self,List,'$!reified'),
+                  $nqplist,
+                  $offset,
+                  nqp::sub_i(
+                    nqp::elems(nqp::getattr(self,List,'$!reified')),$offset)
+                ),
+                self!splice-offset-fail($offset)
+              )
+            )
+          ),
+          self.splice(:$SINK)       # offset 0, take the quick route out
+        )
+    }
+    multi method splice(Array:D: $offset, $size, @values?, :$SINK) {
         self!splice-list($offset, $size, @values, :$SINK)
     }
-    multi method splice(Array:D: $offset, $size=Whatever, **@values, :$SINK) {
+    multi method splice(Array:D: $offset, $size, **@values, :$SINK) {
         self!splice-list($offset, $size, @values, :$SINK)
+    }
+    method !splice-offset(Int:D $offset) {
+        nqp::stmts(
+          (my int $elems = nqp::elems(nqp::getattr(self,List,'$!reified'))),
+          (my int $size  = nqp::sub_i($elems,$offset)),
+          nqp::bindattr((my $result:= nqp::create(self)),List,'$!reified',
+            (my $buffer := nqp::setelems(nqp::create(IterationBuffer),$size))),
+          nqp::bindattr($result,Array,'$!descriptor',$!descriptor),
+          (my int $i = nqp::sub_i($offset,1)),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos($buffer,nqp::sub_i($i,$offset),
+              nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
+          ),
+          nqp::splice(
+            nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$size),
+          $result
+        ) 
+    }
+    method !splice-offset-fail($got) {
+        Failure.new(X::OutOfRange.new(
+          :what('Offset argument to splice'), :$got, :range("0..{self.elems}")
+        ))
     }
     method !splice-list($offset, $size, @values, :$SINK) {
         my \splice-buffer = IterationBuffer.new;

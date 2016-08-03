@@ -274,13 +274,17 @@ role STD {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
     method missing_block() {
+        my $marked := self.MARKED('ws');
+        my $pos := $marked ?? $marked.from !! self.pos;
+
         if $*BORG<block> {
-            my $pos := self.pos;
             self.'!clear_highwater'();
             self.'!cursor_pos'($*BORG<block>.CURSOR.pos);
             self.typed_sorry('X::Syntax::BlockGobbled', what => ($*BORG<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($*BORG<name> ?? "'" ~ $*BORG<name> ~ "'" !! "expression") ~ ")");
+        } elsif nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
+            self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
         } elsif %*MYSTERY {
             self.missing("block (taken by some undeclared routine?)");
         } else {

@@ -470,7 +470,7 @@ my class IO::Path is Cool {
                 loop {
                     my $buf := nqp::readfh($PIO,buf8.new,0x100000);
                     last unless nqp::elems($buf);
-                    $res.push($buf);
+                    $res.append($buf);
                 }
                 $handle.close;
                 $res

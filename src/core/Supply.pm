@@ -1220,7 +1220,6 @@ my class Supply {
                 }
                 LAST {
                     $control.done if $control;
-                    $status.done  if $status;
                     if $status {
                         emit-status("done");
                         $status.done;

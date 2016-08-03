@@ -2025,6 +2025,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<start>($/) {
+        my $block := $<blorst>.ast.ann('past_block');
+        unless $block.symbol('$/') {
+            $*W.install_lexical_magical($block, '$/');
+        }
+        unless $block.symbol('$!') {
+            $*W.install_lexical_magical($block, '$!');
+        }
         make QAST::Op.new(
             :op('callmethod'),
             :name('start'),

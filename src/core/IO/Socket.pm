@@ -13,7 +13,7 @@ my role IO::Socket does IO {
 #?if jvm
         if $!buffer.elems < $chars {
             my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), $*DEFAULT-READ-ELEMS);
-            $!buffer ~= $r;
+            $!buffer.append($r);
         }
 
         if $bin {
@@ -58,7 +58,7 @@ my role IO::Socket does IO {
         while nqp::elems($res) < $toread {
             my $buf := nqp::readfh($!PIO,buf8.new,$toread - nqp::elems($res));
             last unless nqp::elems($buf);
-            $res.push($buf);
+            $res.append($buf);
         }
 
         $res

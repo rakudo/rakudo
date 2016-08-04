@@ -48,9 +48,7 @@ my class IO::Path is Cool {
     }
 
     method abspath() {
-        $!abspath //= $!path.starts-with('-')
-          ?? ''
-          !! $!SPEC.rel2abs($!path,$!CWD);
+        $!abspath //= $!SPEC.rel2abs($!path,$!CWD);
     }
     method is-absolute() {
         $!is-absolute //= $!SPEC.is-absolute($!path);

@@ -4,6 +4,8 @@ my class Scalar { # declared in BOOTSTRAP
     #     has Mu $!value;
     #     has Mu $!whence;
 
+    method new(|) { X::Cannot::New.new(class => self.WHAT).throw }
+
     multi method WHICH(Scalar:D:) {
         'Scalar|' ~ nqp::objectid($!descriptor);
     }

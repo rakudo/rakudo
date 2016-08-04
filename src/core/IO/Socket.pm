@@ -57,10 +57,10 @@ my role IO::Socket does IO {
 
         while nqp::elems($res) < $toread {
             my $buf := nqp::readfh($!PIO,buf8.new,$toread - nqp::elems($res));
-            last unless nqp::elems($buf);
-            $res.append($buf);
+            nqp::elems($buf)
+              ?? $res.append($buf)
+              !! return $res
         }
-
         $res
     }
 

@@ -30,6 +30,7 @@ sub MAIN(*@ARGS) {
                 nqp::die("Nested conditionals not supported") if $in_cond;
                 $in_cond := 1;
                 $in_omit := $x[0] && $x[1] eq $backend || !$x[0] && $x[1] ne $backend;
+                print("\n");
             } elsif $_ ~~ /^ '#?endif' / {
                 unless $in_cond {
                     nqp::sayfh($stderr,
@@ -38,8 +39,11 @@ sub MAIN(*@ARGS) {
                 }
                 $in_cond := 0;
                 $in_omit := 0;
-            } elsif  !$in_omit {
-                print($_) unless $_ ~~ /^ '# ' \w /;
+                print("\n");
+            } elsif $in_omit {
+                print("\n");
+            } else {
+                print($_) unless nqp::eqat($_,"# vim:",0);
             }
             $line++;
         }

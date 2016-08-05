@@ -344,8 +344,9 @@ sub unwanted($ast, $by) {
 
 sub UNWANTED($ast, $by) {
     if nqp::istype($ast, QAST::Node) {
+        $ast.annotate('context','');
         $ast := unwanted($ast, $by ~ ' U');
-        $ast.annotate('context','sink');  # force in case it's just a thunk
+        $ast.annotate('context','sink');
     }
     else {
         note("Non ast passed to UNWANTED: " ~ $ast.HOW.name($ast));
@@ -1157,7 +1158,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         }
                     }
                     else {
-                        if nqp::istype($ast,QAST::Op) && ($ast.op eq 'while' || $ast.op eq 'until') {
+                        if nqp::istype($ast,QAST::Op) && ($ast.op eq 'while' || $ast.op eq 'until' || $ast.op eq 'repeat_while' || $ast.op eq 'repeat_until') {
                             $ast := UNWANTED($ast,'statementlist/loop');   # statement level loops never want return value
                         }
                         elsif $i == $e && $*ESCAPEBLOCK {
@@ -1278,7 +1279,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past[0].annotate('context', 'eager');
                     $past[2].annotate('context', 'sink');
                     my $sinkee := $past[0];
-                    $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
+                    $past.annotate('statement_level', -> { UNWANTED($sinkee, 'force for mod') });
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1661,7 +1662,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past[0].annotate('context', 'eager');
         $past[2].annotate('context', 'sink');
         my $sinkee := $past[0];
-        $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
+        $past.annotate('statement_level', -> { UNWANTED($sinkee,'force for') });
         make $past;
     }
 
@@ -1684,6 +1685,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e1> {
             $loop := QAST::Stmts.new( UNWANTED($<e1>.ast, 'statement_control/e1'), $loop, :node($/) );
         }
+        my $sinkee := $loop[1];
+        $loop.annotate('statement_level', -> { UNWANTED($sinkee,'force loop') });
         make $loop;
     }
 

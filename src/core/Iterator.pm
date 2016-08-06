@@ -18,16 +18,20 @@ my role Iterator {
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
-        my $pulled;
-        my int $i = -1;
-
-        # we may not .sink $pulled here, since it can be a Seq
-        nqp::while(  # doesn't sink
-          nqp::islt_i($i = nqp::add_i($i,1),$n)
-            && nqp::not_i(nqp::eqaddr(($pulled := self.pull-one),IterationEnd)),
-          $target.push($pulled)
-        );
-        nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $i
+        nqp::stmts(
+          (my int $i = -1),
+          nqp::while(  # doesn't sink
+            nqp::islt_i($i = nqp::add_i($i,1),$n)
+              && nqp::not_i(nqp::eqaddr(
+                (my $pulled := self.pull-one),IterationEnd)),
+            $target.push($pulled) # don't .sink $pulled here, it can be a Seq
+          ),
+          nqp::if(
+            nqp::eqaddr($pulled,IterationEnd),
+            IterationEnd,
+            $i
+          )
+        )
     }
 
     # Has the iteration push at least a certain number of values into the
@@ -45,14 +49,13 @@ my role Iterator {
     # one call to it. Thus, overriding push-at-least or push-exactly is
     # sufficient; you needn't override this. Returns IterationEnd.
     method push-all($target) {
-        my $pulled;
-
-        # we may not .sink $pulled here, since it can be a Seq
-        nqp::until(
-          nqp::eqaddr(($pulled := self.pull-one),IterationEnd),
-          $target.push($pulled)
-        );
-        IterationEnd
+        nqp::stmts(
+          nqp::until( # we may not .sink $pulled here, since it can be a Seq
+            nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+            $target.push($pulled)
+          ),
+          IterationEnd
+        )
     }
 
     # Pushes things until we hit a lazy iterator (one whose is-lazy method returns
@@ -63,9 +66,11 @@ my role Iterator {
     # IterationEnd should be returned. Otherwise, return something else (Mu
     # will do fine).
     method push-until-lazy($target) {
-        self.is-lazy
-            ?? Mu
-            !! self.push-all($target)
+        nqp::if(
+          self.is-lazy,
+          Mu,
+          self.push-all($target)
+        )
     }
 
     # The optional "count-only" method in an Iterator class returns the number
@@ -86,17 +91,17 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all() {
-        nqp::until(
-          nqp::eqaddr(self.pull-one,IterationEnd),
-          Nil
-        );
-        IterationEnd
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr(self.pull-one,IterationEnd),
+            Nil
+          ),
+          IterationEnd
+        )
     }
 
     # Whether the iterator is lazy (True if yes, False if no).
-    method is-lazy() {
-        False
-    }
+    method is-lazy(--> False) { }
 }
 
 # vim: ft=perl6 expandtab sw=4

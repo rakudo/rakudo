@@ -48,13 +48,10 @@ my role Iterator {
     # very large value in a loop, but will probably only ever need to do
     # one call to it. Thus, overriding push-at-least or push-exactly is
     # sufficient; you needn't override this. Returns IterationEnd.
-    method push-all($target) {
-        nqp::stmts(
-          nqp::until( # we may not .sink $pulled here, since it can be a Seq
-            nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-            $target.push($pulled)
-          ),
-          IterationEnd
+    method push-all($target --> IterationEnd) {
+        nqp::until( # we may not .sink $pulled here, since it can be a Seq
+          nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+          $target.push($pulled)
         )
     }
 

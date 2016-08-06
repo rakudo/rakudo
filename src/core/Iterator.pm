@@ -63,9 +63,8 @@ my role Iterator {
     # IterationEnd should be returned. Otherwise, return something else (Mu
     # will do fine).
     method push-until-lazy($target) {
-        nqp::if(
+        nqp::unless(
           self.is-lazy,
-          Mu,
           self.push-all($target)
         )
     }

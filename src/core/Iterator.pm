@@ -90,13 +90,10 @@ my role Iterator {
     # May be overridden by iterators to either warn about use of things in
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
-    method sink-all() {
-        nqp::stmts(
-          nqp::until(
-            nqp::eqaddr(self.pull-one,IterationEnd),
-            Nil
-          ),
-          IterationEnd
+    method sink-all(--> IterationEnd) {
+        nqp::until(
+          nqp::eqaddr(self.pull-one,IterationEnd),
+          Nil
         )
     }
 

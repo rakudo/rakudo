@@ -1062,7 +1062,7 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
-        if $optype eq 'p6for' && $op.ann('context') eq 'sink' && @($op) == 2 {
+        if $optype eq 'p6for' && $op.sunk && @($op) == 2 {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
@@ -1382,7 +1382,7 @@ class Perl6::Optimizer {
                         try self.visit_children($op);
                     }
                     elsif $!void_context {
-                        my $suggest := ($op.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($op.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         my $warning := qq[Useless use of () in sink context$suggest];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);
@@ -1782,7 +1782,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
-                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.ann('okifnil');
+                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);
             }
@@ -1818,14 +1818,14 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if $!void_context && !$decl && $var.name && !$var.ann('sink_ok') {
+        if $!void_context && !$decl && $var.name && !$var.sinkok {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
             if $name ne "Nil" && $name ne 'ctxsave' {  # (comes from nqp, which doesn't know about wanted)
-                my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                my $suggest := ($var.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                 my $warning := nqp::index(' $@%&', $sigil) < 1
                     ?? "Useless use of $name symbol in sink context$suggest"
                     !! $sigil eq $name
@@ -1963,9 +1963,9 @@ class Perl6::Optimizer {
                 $!in_declaration := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::can($visit,'ann') {
-                    if $visit.ann('WANTED') { $!void_context := 0 }
-                    elsif $visit.ann('context') eq 'sink' { $!void_context := 1 }
-                    elsif $visit.ann('final') {
+                    if $visit.wanted { $!void_context := 0 }
+                    elsif $visit.sunk { $!void_context := 1 }
+                    elsif $visit.final {
                         note("Undecided final " ~ $node.HOW.name($node)) if $!debug;
                         $!void_context := 0;  # assume wanted
                     }
@@ -2022,7 +2022,7 @@ class Perl6::Optimizer {
                     if $!void_context && $visit.has_compile_time_value && $visit.node {
                         my $value := ~$visit.node;
                         $value := '""' if $value eq '';
-                        my $suggest := ($visit.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         unless $value eq 'Nil' {
                             my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
                             note($warning) if $!debug;

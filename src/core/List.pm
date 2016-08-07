@@ -440,7 +440,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
 
-    method sum(--> Numeric) {
+    method sum(--> Numeric) is nodal {
         fail X::Cannot::Lazy.new(:action('.sum')) if self.is-lazy;
 
         if nqp::attrinited(self,List,'$!reified') {

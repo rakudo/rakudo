@@ -2695,7 +2695,7 @@ class Perl6::World is HLL::World {
             $ast := $ast[0];
         }
 
-        $ast.annotate('WANTED',1);
+        $ast.wanted(1);
         if $ast.has_compile_time_value {
             return nqp::unbox_s($ast.compile_time_value);
         } elsif nqp::istype($ast, QAST::Op) {
@@ -3282,7 +3282,7 @@ class Perl6::World is HLL::World {
             my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
             @pres.push($block);
             @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('local') ));
-            $var.annotate('WANTED',1);  # don't really know if wanted, but suppress warning
+            $var.wanted(1);  # don't really know if wanted, but suppress warning
             return $var;
         }
         else {
@@ -3606,7 +3606,7 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
-                $_.ast.annotate('WANTED',1);
+                $_.ast.wanted(1);
                 @pairs.push($_);
             }
         }

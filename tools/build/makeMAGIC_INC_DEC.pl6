@@ -27,6 +27,7 @@ my @ranges =
   0x00A66 .. 0x00A6F,  # gurmukhi digits
   0x00AE6 .. 0x00AEF,  # gujarati digits
   0x00B66 .. 0x00B6F,  # oriya digits
+  0x00E50 .. 0x00E59,  # thai digits
   0x02070 .. 0x02079,  # superscripts
   0x02080 .. 0x02089,  # subscripts
   0x02160 .. 0x0216b,  # clock roman uc
@@ -51,6 +52,7 @@ my str $carrydigits =
    ~ "\x00A66"  # gurmukhi
    ~ "\x00AE6"  # gujarati
    ~ "\x00B66"  # oriya
+   ~ "\x00E50"  # thai
    ~ "\x02070"  # superscripts XXX: should be treated as digit?
    ~ "\x02080"  # subscripts XXX: should be treated as digit?
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?

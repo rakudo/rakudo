@@ -1629,7 +1629,7 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        "Preceding context expects a term, but found infix $.infix instead";
+        "Preceding context expects a term, but found infix {$.infix.trim} instead";
     }
 }
 

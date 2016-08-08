@@ -432,8 +432,9 @@ my class Mu { # declared in BOOTSTRAP
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
-        warn "Use of uninitialized value {$name}of type {self.^name} in string context\n" ~
-             "Any of .^name, .perl, .gist, or .say can stringify undefined things, if needed.";
+        warn "Use of uninitialized value {$name}of type {self.^name} in string"
+                ~ " context.\nMethods .^name, .perl, .gist, or .say can be"
+                ~ " used to stringify it to something meaningful.";
         ''
     }
     multi method Str(Mu:D:) {

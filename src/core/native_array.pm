@@ -34,7 +34,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -149,7 +149,7 @@ my class array does Iterable is repr('VMArray') {
             ).throw;
         }
 
-        multi method splice(strarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        multi method splice(strarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -176,27 +176,18 @@ my class array does Iterable is repr('VMArray') {
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            if $SINK {
-                my @splicees := nqp::create(self);
-                nqp::push_s(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                Nil;
+            my @ret := nqp::create(self);
+            my int $i = $o;
+            my int $n = ($elems min $o + $s) - 1;
+            while $i <= $n {
+                nqp::push_s(@ret, nqp::atpos_s(self, $i));
+                $i = $i + 1;
             }
 
-            else {
-                my @ret := nqp::create(self);
-                my int $i = $o;
-                my int $n = ($elems min $o + $s) - 1;
-                while $i <= $n {
-                    nqp::push_s(@ret, nqp::atpos_s(self, $i));
-                    $i = $i + 1;
-                }
-
-                my @splicees := nqp::create(self);
-                nqp::push_s(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                @ret;
-            }
+            my @splicees := nqp::create(self);
+            nqp::push_s(@splicees, @values.shift) while @values;
+            nqp::splice(self, @splicees, $o, $s);
+            @ret;
         }
 
         multi method min(strarray:D:) {
@@ -304,7 +295,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -419,7 +410,7 @@ my class array does Iterable is repr('VMArray') {
             ).throw;
         }
 
-        multi method splice(intarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        multi method splice(intarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -446,27 +437,18 @@ my class array does Iterable is repr('VMArray') {
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            if $SINK {
-                my @splicees := nqp::create(self);
-                nqp::push_i(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                Nil;
+            my @ret := nqp::create(self);
+            my int $i = $o;
+            my int $n = ($elems min $o + $s) - 1;
+            while $i <= $n {
+                nqp::push_i(@ret, nqp::atpos_i(self, $i));
+                $i = $i + 1;
             }
 
-            else {
-                my @ret := nqp::create(self);
-                my int $i = $o;
-                my int $n = ($elems min $o + $s) - 1;
-                while $i <= $n {
-                    nqp::push_i(@ret, nqp::atpos_i(self, $i));
-                    $i = $i + 1;
-                }
-
-                my @splicees := nqp::create(self);
-                nqp::push_i(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                @ret;
-            }
+            my @splicees := nqp::create(self);
+            nqp::push_i(@splicees, @values.shift) while @values;
+            nqp::splice(self, @splicees, $o, $s);
+            @ret;
         }
 
         multi method min(intarray:D:) {
@@ -591,7 +573,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-07-30T23:53:50+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -706,7 +688,7 @@ my class array does Iterable is repr('VMArray') {
             ).throw;
         }
 
-        multi method splice(numarray:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        multi method splice(numarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -733,27 +715,18 @@ my class array does Iterable is repr('VMArray') {
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            if $SINK {
-                my @splicees := nqp::create(self);
-                nqp::push_n(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                Nil;
+            my @ret := nqp::create(self);
+            my int $i = $o;
+            my int $n = ($elems min $o + $s) - 1;
+            while $i <= $n {
+                nqp::push_n(@ret, nqp::atpos_n(self, $i));
+                $i = $i + 1;
             }
 
-            else {
-                my @ret := nqp::create(self);
-                my int $i = $o;
-                my int $n = ($elems min $o + $s) - 1;
-                while $i <= $n {
-                    nqp::push_n(@ret, nqp::atpos_n(self, $i));
-                    $i = $i + 1;
-                }
-
-                my @splicees := nqp::create(self);
-                nqp::push_n(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                @ret;
-            }
+            my @splicees := nqp::create(self);
+            nqp::push_n(@splicees, @values.shift) while @values;
+            nqp::splice(self, @splicees, $o, $s);
+            @ret;
         }
 
         multi method min(numarray:D:) {

@@ -53,10 +53,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) {
     my \result = do {
 
         if HANDLED('delete') {            # :delete:*
-            if HANDLED('SINK') {            # :delete:SINK
-                SELF.@DELETE[]$one,:SINK);
-            }
-            elsif nqp::elems($d) == 0 {       # :delete
+            if nqp::elems($d) == 0 {          # :delete
                 SELF.@DELETE[]$one);
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*
@@ -247,11 +244,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) {
     my \result = do {
 
         if HANDLED('delete') {            # :delete:*
-            if HANDLED('SINK') {            # :delete:SINK
-                SELF.@DELETE[]$_,:SINK) for $more.cache;
-                Nil;
-            }
-            elsif nqp::elems($d) == 0 {       # :delete
+            if nqp::elems($d) == 0 {          # :delete
                 $more.cache.flatmap( { SELF.@DELETE[]$_) } ).eager.list;
             }
             elsif nqp::existskey($d,'exists') { # :delete:exists(0|1):*

@@ -12,9 +12,6 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, 'SINK', $SINK, %other );
-}
 multi sub postcircumfix:<{ }>( \SELF, \key, :$delete!, *%other ) is raw {
     nqp::if(
       $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage'))),
@@ -64,11 +61,6 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$SINK!,*%other) is raw {
-    nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'SINK', $SINK, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'SINK', $SINK, %other )
-}
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$delete!,*%other) is raw {
     nqp::iscont(key)
         ?? SLICE_ONE_HASH(  SELF, key, 'delete', $delete, %other )
@@ -110,9 +102,6 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, 'SINK', $SINK, %other );
-}
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is raw {
     SLICE_MORE_HASH( SELF, SELF.keys.list, 'delete', $delete, %other );
 }
@@ -140,9 +129,6 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
 # %h{}
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
-}
-multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is raw {
     SLICE_MORE_HASH( SELF, SELF.keys.list, 'delete', $delete, %other );

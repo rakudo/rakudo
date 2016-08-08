@@ -154,6 +154,8 @@ my class Any { # declared in BOOTSTRAP
     method duckmap(&block) is nodal { duckmap(&block, self) }
     method deepmap(&block) is nodal { deepmap(&block, self) }
 
+    method descend() { descend(self) }
+
     # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal { * }
     multi method tree(Any:U:) { self }

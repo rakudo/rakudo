@@ -87,9 +87,6 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, 'SINK', $SINK, %other );
-}
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.DELETE-POS($pos)
@@ -131,9 +128,6 @@ multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Mu \assignee ) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, $pos, 'SINK', $SINK, %other );
-}
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? SELF.DELETE-POS($pos)
@@ -174,9 +168,6 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is raw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos.Int, $BIND);
-}
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$SINK!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$delete!, *%other ) is raw {
     $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
@@ -290,11 +281,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$SINK!, *%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'SINK', $SINK, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'SINK',$SINK,%other )
-}
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,:$delete!,*%other) is raw {
     nqp::iscont(pos)
         ?? SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other )
@@ -337,10 +323,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
-}
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$SINK!, *%other) is raw {
-    my $*INDEX = 'Effective index';
-    SLICE_MORE_LIST( SELF, POSITIONS(SELF,$block), 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is raw {
     my $*INDEX = 'Effective index';
@@ -395,9 +377,6 @@ multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$SINK!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'SINK', $SINK, %other );
-}
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$delete!, *%other) is raw {
     SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'delete', $delete, %other );
 }
@@ -430,9 +409,6 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
 # @a[]
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
-}
-multi sub postcircumfix:<[ ]>(\SELF, :$SINK!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'SINK', $SINK, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is raw {
     SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'delete', $delete, %other );

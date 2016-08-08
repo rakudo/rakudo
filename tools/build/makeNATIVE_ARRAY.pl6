@@ -153,7 +153,7 @@ for $*IN.lines -> $line {
             ).throw;
         }
 
-        multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values, :$SINK) {
+        multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -180,27 +180,18 @@ for $*IN.lines -> $line {
               :range("0..^{$elems - $o}"),
             ).fail if $s < 0;
 
-            if $SINK {
-                my @splicees := nqp::create(self);
-                nqp::push_#postfix#(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                Nil;
+            my @ret := nqp::create(self);
+            my int $i = $o;
+            my int $n = ($elems min $o + $s) - 1;
+            while $i <= $n {
+                nqp::push_#postfix#(@ret, nqp::atpos_#postfix#(self, $i));
+                $i = $i + 1;
             }
 
-            else {
-                my @ret := nqp::create(self);
-                my int $i = $o;
-                my int $n = ($elems min $o + $s) - 1;
-                while $i <= $n {
-                    nqp::push_#postfix#(@ret, nqp::atpos_#postfix#(self, $i));
-                    $i = $i + 1;
-                }
-
-                my @splicees := nqp::create(self);
-                nqp::push_#postfix#(@splicees, @values.shift) while @values;
-                nqp::splice(self, @splicees, $o, $s);
-                @ret;
-            }
+            my @splicees := nqp::create(self);
+            nqp::push_#postfix#(@splicees, @values.shift) while @values;
+            nqp::splice(self, @splicees, $o, $s);
+            @ret;
         }
 
         multi method min(#type#array:D:) {

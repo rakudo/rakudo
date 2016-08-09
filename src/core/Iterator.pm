@@ -91,9 +91,9 @@ my role Iterator {
     }
 
     # Whether the iterator is lazy (True if yes, False if no).
-    # If True, the iterator must *never* try to evaluate than the user
-    # absolutely asks for.  This has e.g. effect on the behaviour on
-    # .STORE: a lazy iterator would not reify, a non-lazy would.
+    # If True, the iterator must *never* try to evaluate more than the
+    # user absolutely asks for.  This has e.g. effect on the behaviour
+    # on .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
 }
 

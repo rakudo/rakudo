@@ -43,11 +43,8 @@ my role Iterator {
         self.push-exactly($target, $n)
     }
 
-    # Has the iterator produce all of its values into the target. This is
-    # mostly just for convenience/clarity; it calls push-at-least with a
-    # very large value in a loop, but will probably only ever need to do
-    # one call to it. Thus, overriding push-at-least or push-exactly is
-    # sufficient; you needn't override this. Returns IterationEnd.
+    # Has the iterator produce all of its values into the target.  Typically
+    # called in .STORE if the iterator is non-lazy.  Returns IterationEnd.
     method push-all($target --> IterationEnd) {
         nqp::until( # we may not .sink $pulled here, since it can be a Seq
           nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
@@ -94,6 +91,9 @@ my role Iterator {
     }
 
     # Whether the iterator is lazy (True if yes, False if no).
+    # If True, the iterator must *never* try to evaluate than the user
+    # absolutely asks for.  This has e.g. effect on the behaviour on
+    # .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
 }
 

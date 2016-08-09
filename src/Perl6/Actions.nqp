@@ -302,6 +302,14 @@ sub unwanted($ast, $by) {
             $node.sunk(1);
             unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
         }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' {
+            if $node.name ne 'sink' && !$node.nosink {
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
+                $ast.sunk(1);
+                return $ast;
+            }
+            $node.sunk(1);
+        }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
             $node := $node[1];
             if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
@@ -2265,11 +2273,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_pair($/,$key_str, $value) {
         my $key := $*W.add_string_constant($key_str);
-        QAST::Op.new(
+        my $pair := QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
             WANTED(QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),'make_pair'),
             $key, WANTED($value, 'make_pair')
-        )
+        );
+        $pair.nosink(1);
+        $pair;
     }
 
     method desigilname($/) {
@@ -8554,6 +8564,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $call.unshift(WANTED($target,'make_dot_equals'));
         $call.name('dispatch:<.=>');
         $call.op('callmethod');
+        $call.nosink(1);
         wantall($call, 'make_dot_equals');
         $call;
     }

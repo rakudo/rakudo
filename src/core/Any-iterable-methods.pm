@@ -1953,10 +1953,7 @@ multi sub grep(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<grep>)) }
 
 proto sub first(|) {*}
 multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
-multi sub first(Mu $test, +values, *%a) {
-    my $laze = values.is-lazy;
-    values.first($test,|%a).lazy-if($laze)
-}
+multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }
 
 proto sub join(|) { * }
 multi sub join($sep = '', *@values) { @values.join($sep) }

@@ -22,12 +22,33 @@ my @ranges =
   0x00410 .. 0x0042F,  # cyrillic uppercase
   0x00430 .. 0x0044F,  # cyrillic lowercase
   0x00660 .. 0x00669,  # arabic-indic digits
+  0x006F0 .. 0x006F9,  # extended arabic-indic digits
+  0x007C0 .. 0x007C9,  # nko digits
   0x00966 .. 0x0096F,  # devanagari digits
   0x009E6 .. 0x009EF,  # bengali digits
   0x00A66 .. 0x00A6F,  # gurmukhi digits
   0x00AE6 .. 0x00AEF,  # gujarati digits
   0x00B66 .. 0x00B6F,  # oriya digits
+  0x00BE6 .. 0x00BEF,  # tamil digits
+  0x00C66 .. 0x00C6F,  # telugu digits
+  0x00CE6 .. 0x00CEF,  # kannada digits
+  0x00D66 .. 0x00D6F,  # malayalam digits
+  0x00DE6 .. 0x00DEF,  # sinhala lith digits
   0x00E50 .. 0x00E59,  # thai digits
+  0x00ED0 .. 0x00ED9,  # lao digits
+  0x00F20 .. 0x00F29,  # tibetan digits
+  0x01040 .. 0x01049,  # myanmar digits
+  0x01090 .. 0x01099,  # myanmar shan digits
+  0x017E0 .. 0x017E9,  # khmer digits
+  0x01810 .. 0x01819,  # mongolian digits
+  0x01946 .. 0x0194F,  # limbu digits
+  0x019D0 .. 0x019D9,  # new tai lue digits
+  0x01A80 .. 0x01A89,  # tai tham hora digits
+  0x01A90 .. 0x01A99,  # tai tham tham digits
+  0x01B50 .. 0x01B59,  # balinese digits
+  0x01BB0 .. 0x01BB9,  # sundanese digits
+  0x01C40 .. 0x01C49,  # lepcha digits
+  0x01C50 .. 0x01C59,  # ol chiki digits
   0x02070 .. 0x02079,  # superscripts
   0x02080 .. 0x02089,  # subscripts
   0x02160 .. 0x0216b,  # clock roman uc
@@ -38,6 +59,14 @@ my @ranges =
   0x02581 .. 0x02588,  # lower blocks
   0x02680 .. 0x02685,  # die faces
   0x02776 .. 0x0277F,  # dingbat negative circled 1..10
+  0x0A620 .. 0x0A629,  # vai digits
+  0x0A8D0 .. 0x0A8D9,  # saurashtra digits
+  0x0A8E0 .. 0x0A8E9,  # combining devanagari digits
+  0x0A900 .. 0x0A909,  # kayah li digits
+  0x0A9D0 .. 0x0A9D9,  # javanese digits
+  0x0A9F0 .. 0x0A9F9,  # myanmar tai laing digits
+  0x0AA50 .. 0x0AA59,  # cham digits
+  0x0ABF0 .. 0x0ABF9,  # meetei mayek digits
   0x0FF10 .. 0x0FF19,  # fullwidth digits
   0x1F37A .. 0x1F37B,  # beer mugs
   0x1F42A .. 0x1F42B,  # camels
@@ -47,14 +76,42 @@ my @ranges =
 my str $carrydigits =
            '0'  # arabic
    ~ "\x00660"  # arabic-indic
+   ~ "\x006F0"  # extended arabic-indic
+   ~ "\x007C0"  # nko
    ~ "\x00966"  # devanagari
    ~ "\x009E6"  # bengali
    ~ "\x00A66"  # gurmukhi
    ~ "\x00AE6"  # gujarati
    ~ "\x00B66"  # oriya
+   ~ "\x00BE6"  # tamil
+   ~ "\x00C66"  # telugu
+   ~ "\x00CE6"  # kannada
+   ~ "\x00D66"  # malayalam
+   ~ "\x00DE6"  # sinhala lith
    ~ "\x00E50"  # thai
+   ~ "\x00ED0"  # lao
+   ~ "\x00F20"  # tibetan
+   ~ "\x01040"  # myanmar
+   ~ "\x01090"  # myanmar shan
+   ~ "\x017E0"  # khmer
+   ~ "\x01810"  # mongolian
+   ~ "\x01946"  # limbu
+   ~ "\x019D0"  # new tai lue
+   ~ "\x01A80"  # tai tham hora
+   ~ "\x01A90"  # tai tham tham
+   ~ "\x01B50"  # balinese
+   ~ "\x01BB0"  # sundanese
+   ~ "\x01C40"  # lepcha
    ~ "\x02070"  # superscripts XXX: should be treated as digit?
    ~ "\x02080"  # subscripts XXX: should be treated as digit?
+   ~ "\x0A620"  # vai
+   ~ "\x0A8D0"  # saurashtra
+   ~ "\x0A8E0"  # combining devanagari
+   ~ "\x0A900"  # kayah li
+   ~ "\x0A9D0"  # javanese
+   ~ "\x0A9F0"  # myanmar tai laing
+   ~ "\x0ABF0"  # meetei mayek
+   ~ "\x0AA50"  # cham
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
    ~ "\x1F37A"  # beer mugs
    ~ "\x1F42A"  # camels

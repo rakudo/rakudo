@@ -118,7 +118,12 @@ my class IO::Socket::Async {
                 $host, $port, $backlog, SocketCancellation);
         },
         closing => {
-            $cancellation && nqp::cancel($cancellation)
+            if $cancellation {
+                my $p = Promise.new;
+                my $v = $p.vow;
+                nqp::cancelnotify($cancellation, $scheduler.queue, { $v.keep(True); });
+                $p
+            }
         });
     }
 

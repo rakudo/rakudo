@@ -52,9 +52,15 @@ my class Backtrace::Frame {
         $text;
     }
 
-    method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
-    method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
-    method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
+    method is-hidden(Backtrace::Frame:D:) {
+        ?$!code.?is-hidden-from-backtrace
+    }
+    method is-routine(Backtrace::Frame:D:) {
+        nqp::p6bool(nqp::istype($!code,Routine))
+    }
+    method is-setting(Backtrace::Frame:D:) {
+        $!file.ends-with("CORE.setting")
+    }
 }
 
 my class Backtrace {

@@ -17,14 +17,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     multi method map(\SELF: &block;; :$label, :$item) {
-        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, :$label);
+        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
     }
 
     multi method map(HyperIterable:D: &block;; :$label) {
         # For now we only know how to parallelize when we've only one input
         # value needed per block. For the rest, fall back to sequential.
         if &block.count != 1 {
-            sequential-map(self.iterator, &block, :$label)
+            sequential-map(self.iterator, &block, $label)
         }
         else {
             HyperSeq.new(class :: does HyperIterator {
@@ -46,7 +46,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     unless $!source.process-buffer($work) =:= Nil {
                         $work.swap();
                     }
-                    my \buffer-mapper = sequential-map($work.input-iterator, &!block, :$label);
+                    my \buffer-mapper = sequential-map($work.input-iterator, &!block, $label);
                     buffer-mapper.iterator.push-all($work.output);
                     $work
                 }
@@ -58,7 +58,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    sub sequential-map(\source, &block, :$label) {
+    sub sequential-map(\source, &block, $label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
         my $count = &block.count;

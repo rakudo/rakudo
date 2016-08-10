@@ -1494,6 +1494,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
+            method is-lazy() { $!iter.is-lazy }
         }.new(self))
     }
     multi method unique( :&as!, :&with! ) {
@@ -1597,6 +1598,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
+            method is-lazy() { $!iter.is-lazy }
         }.new(self))
     }
     multi method repeated( :&as!, :&with! ) {
@@ -1642,6 +1644,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
+            method is-lazy() { $!iter.is-lazy }
         }.new(self, &as))
     }
     multi method repeated( :&with! ) {
@@ -1718,6 +1721,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 IterationEnd
             }
+            method is-lazy() { $!iter.is-lazy }
         }.new(self, &as, &with))
     }
     multi method squish( :&with = &[===] ) {
@@ -1776,6 +1780,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 IterationEnd
             }
+            method is-lazy() { $!iter.is-lazy }
         }.new(self, &with))
     }
 

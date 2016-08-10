@@ -10,8 +10,11 @@ my class Tap {
     }
 
     method close() {
-        &!on-close() if &!on-close;
-        True;
+        if &!on-close {
+            my \close-result = &!on-close();
+            await close-result if nqp::istype(close-result, Promise);
+        }
+        True
     }
 }
 

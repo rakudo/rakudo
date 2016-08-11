@@ -15,7 +15,7 @@ my role Baggy does QuantHash {
     method !WHICH() {
         self.^name
           ~ '|'
-          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
+          ~ self.keys.sort.quickmap( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
     }
     method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
     method !TOTAL() {
@@ -306,7 +306,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method invert(Baggy:D:) {
-        %!elems.values.map: { (.value »=>» .key).cache.Slip }
+        %!elems.values.quickmap: { (.value »=>» .key).cache.Slip }
     }
 
 #--- introspection methods

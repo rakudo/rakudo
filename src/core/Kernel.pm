@@ -113,7 +113,7 @@ class Kernel does Systemic {
             } else {
                 @names = flat "", qx/kill -l/.words;
                 @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
-                @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
+                @names.=quickmap({.uc}) if $*KERNEL.name eq 'dragonfly';
             }
 
             for Signal.^enum_value_list -> $signal {
@@ -132,7 +132,7 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Str:D $signal --> Int) {
         once {
             %!signals_by_Str =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value => +.key});
+              @.signals.pairs.grep(*.value.defined).quickmap({~$_.value => +.key});
         }
         %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"} // Int;
     }
@@ -141,7 +141,7 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Signal:D $signal --> Int) {
         once {
             %!signals_by_Signal =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => +.key});
+              @.signals.pairs.grep(*.value.defined).quickmap({~$_.value.WHICH => +.key});
         }
         %!signals_by_Signal{$signal.WHICH} // Int;
     }

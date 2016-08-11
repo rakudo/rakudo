@@ -79,7 +79,7 @@ multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) {
 }
 
 multi sub val(*@maybevals) {
-    @maybevals.list.map({ val($_) }).eager;
+    @maybevals.quickmap({ val($_) }).eager;
 }
 
 multi sub val(Mu) {

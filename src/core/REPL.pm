@@ -47,7 +47,7 @@ do {
         my ( :$directory, *% ) := $full-path.parts;
         my @parts = $*SPEC.splitdir($directory);
 
-        for [\~] @parts.map(* ~ '/') -> $path {
+        for [\~] @parts.quickmap(* ~ '/') -> $path {
             mkdir $path;
             unless $path.IO ~~ :d {
                 fail "Unable to mkpath '$full-path': $path is not a directory";
@@ -84,7 +84,7 @@ do {
 
         method init-line-editor {
             linenoiseSetCompletionCallback(sub ($line, $c) {
-                eager self.completions-for-line($line, $line.chars).map(&linenoiseAddCompletion.assuming($c));
+                eager self.completions-for-line($line, $line.chars).quickmap(&linenoiseAddCompletion.assuming($c));
             });
             linenoiseHistoryLoad($.history-file);
         }

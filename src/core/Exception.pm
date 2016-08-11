@@ -888,7 +888,7 @@ my class X::Undeclared::Symbols does X::Comp {
     }
     method message(X::Undeclared::Symbols:D:) {
         sub l(@l) {
-            my @lu = @l.map({ nqp::hllize($_) }).unique.sort;
+            my @lu = @l.quickmap({ nqp::hllize($_) }).unique.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
@@ -2237,7 +2237,7 @@ my class X::Multi::Ambiguous is Exception {
     method message {
         join "\n",
             "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
-            @.ambiguous.map(*.signature.perl)
+            @.ambiguous.quickmap(*.signature.perl)
     }
 }
 
@@ -2245,7 +2245,7 @@ my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
     has $.capture;
     method message {
-        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my @cand = $.dispatcher.dispatchees.quickmap(*.signature.gist);
         my $where = so first / where /, @cand;
         my @bits;
         my @priors;
@@ -2375,7 +2375,7 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   'X::PhaserExceptions',
   sub (@exceptions) {
       X::PhaserExceptions.new(exceptions =>
-        @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
+        @exceptions.quickmap(-> Mu \e { EXCEPTION(e) })).throw;
   },
 ));
 
@@ -2568,7 +2568,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
             !! "Could not find $.specification at line $line in:\n"
-                ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+                ~ $*REPO.repo-chain.quickmap(*.Str).join("\n").indent(4)
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"
                         ~ " a single colon for it: $<name>:from<...>\n"

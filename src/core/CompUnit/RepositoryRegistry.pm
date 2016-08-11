@@ -333,7 +333,7 @@ class CompUnit::RepositoryRegistry {
             if parse-include-spec($spec, $default-short-id) -> $triplet {
                 @found.push: join "#",
                   $triplet[0],
-                  $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),
+                  $triplet[1].quickmap({ .key ~ "<" ~ .value ~ ">" }),
                   $triplet[2];
                 $default-short-id = $triplet[0];
             }

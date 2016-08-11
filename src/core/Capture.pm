@@ -100,14 +100,14 @@ my class Capture { # declared in BOOTSTRAP
             "\\({
                 join ', ',
                     ((nqp::atpos($!list, $_).perl for ^nqp::elems($!list)) if $!list),
-                    %hash.sort.map( *.perl )
+                    %hash.sort.quickmap( *.perl )
             })";
         } else {
             self.^name
               ~ '.new('
               ~ ( 'list => (' ~ (nqp::atpos($!list, $_).perl for ^nqp::elems($!list)).join(', ') ~ ',)' if $!list)
               ~ (', ' if +$!list and +%hash)
-              ~ ( 'hash => {' ~ %hash.sort.map( *.perl ).join(', ') ~ '}' if +%hash)
+              ~ ( 'hash => {' ~ %hash.sort.quickmap( *.perl ).join(', ') ~ '}' if +%hash)
               ~ ')';
         }
     }

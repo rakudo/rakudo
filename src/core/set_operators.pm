@@ -36,7 +36,7 @@ only sub infix:<(|)>(**@p) is pure {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
+        for @p.quickmap(*.Mix(:view)) -> $mix {
             $mixhash{$_} max= $mix{$_} for $mix.keys;
         }
         $mixhash.Mix(:view);
@@ -44,7 +44,7 @@ only sub infix:<(|)>(**@p) is pure {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
+        for @p.quickmap(*.Bag(:view)) -> $bag {
             $baghash{$_} max= $bag{$_} for $bag.keys;
         }
         $baghash.Bag(:view);
@@ -64,7 +64,7 @@ only sub infix:<(&)>(**@p) is pure {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
+        for @p.quickmap(*.Mix(:view)) -> $mix {
             $mix{$_}
               ?? ($mixhash{$_} min= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
@@ -75,7 +75,7 @@ only sub infix:<(&)>(**@p) is pure {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
+        for @p.quickmap(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? ($baghash{$_} min= $bag{$_})
               !! $baghash.DELETE-KEY($_)
@@ -86,7 +86,7 @@ only sub infix:<(&)>(**@p) is pure {
         my $sethash = nqp::istype(@p[0], SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
-        for @p.map(*.Set(:view)) -> $set {
+        for @p.quickmap(*.Set(:view)) -> $set {
             $set{$_} || $sethash.DELETE-KEY($_) for $sethash.keys;
         }
         $sethash.Set(:view);
@@ -104,7 +104,7 @@ only sub infix:<(-)>(**@p) is pure {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
+        for @p.quickmap(*.Mix(:view)) -> $mix {
             $mix{$_} < $mixhash{$_}
               ?? ($mixhash{$_} -= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
@@ -115,7 +115,7 @@ only sub infix:<(-)>(**@p) is pure {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
+        for @p.quickmap(*.Bag(:view)) -> $bag {
             $bag{$_} < $baghash{$_}
               ?? ($baghash{$_} -= $bag{$_})
               !! $baghash.DELETE-KEY($_)
@@ -126,7 +126,7 @@ only sub infix:<(-)>(**@p) is pure {
         my $sethash = nqp::istype(@p[0],SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
-        for @p.map(*.Set(:view)) -> $set {
+        for @p.quickmap(*.Set(:view)) -> $set {
             $set{$_} && $sethash.DELETE-KEY($_) for $sethash.keys;
         }
         $sethash.Set(:view);
@@ -223,7 +223,7 @@ only sub infix:<(.)>(**@p) is pure {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
+        for @p.quickmap(*.Mix(:view)) -> $mix {
             $mix{$_}
               ?? ($mixhash{$_} *= $mix{$_})
               !! $mixhash.DELETE-KEY($_)
@@ -234,7 +234,7 @@ only sub infix:<(.)>(**@p) is pure {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
+        for @p.quickmap(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? ($baghash{$_} *= $bag{$_})
               !! $baghash.DELETE-KEY($_)
@@ -255,7 +255,7 @@ only sub infix:<(+)>(**@p) is pure {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
+        for @p.quickmap(*.Mix(:view)) -> $mix {
             $mixhash{$_} += $mix{$_} for $mix.keys;
         }
         $mixhash.Mix(:view);
@@ -263,7 +263,7 @@ only sub infix:<(+)>(**@p) is pure {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
+        for @p.quickmap(*.Bag(:view)) -> $bag {
             $baghash{$_} += $bag{$_} for $bag.keys;
         }
         $baghash.Bag(:view);

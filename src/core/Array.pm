@@ -1268,13 +1268,13 @@ my class Array { # declared in BOOTSTRAP
         SELF.perlseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['
-             ~ self.map({nqp::decont($_).perl}).join(', ')
+             ~ self.quickmap({nqp::decont($_).perl}).join(', ')
              ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
              ~ ']'
         })
     }
     multi method gist(Array:D:) {
-        self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
+        self.gistseen('Array', { '[' ~ self.quickmap({.gist}).join(' ') ~ ']' } )
     }
     multi method WHICH(Array:D:) { self.Mu::WHICH }
 
@@ -1322,7 +1322,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');
+            my $args = self.quickmap({ ($_ // TValue).perl(:arglist) }).join(', ');
             'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
         }
     }

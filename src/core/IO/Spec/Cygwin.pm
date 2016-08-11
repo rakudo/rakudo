@@ -54,7 +54,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         IO::Spec::Win32.catpath(|c).subst(:global, '\\', '/');
     }
     multi method split(IO::Spec::Cygwin: Cool:D $path) {
-        IO::Spec::Win32.split($path).map(
+        IO::Spec::Win32.split($path).quickmap(
           { (.key => .value.subst(:global, '\\', '/')) }
         );
     }

@@ -11,13 +11,13 @@ my role Setty does QuantHash {
         %!elems.values.map: -> \key { |(key,self.ISINSET(key.WHICH)) }
     }
     multi method values(Setty:D:) {
-        %!elems.values.quickmap: -> \key { self.ISINSET(key.WHICH) }
+        %!elems.values.map: -> \key { self.ISINSET(key.WHICH) }
     }
     multi method pairs(Setty:D:) {
-        %!elems.values.quickmap: -> \key { Pair.new(key,self.ISINSET(key.WHICH)) }
+        %!elems.values.map: -> \key { Pair.new(key,self.ISINSET(key.WHICH)) }
     }
     multi method antipairs(Setty:D:) {
-        %!elems.values.quickmap: -> \key { Pair.new(True,key) }
+        %!elems.values.map: -> \key { Pair.new(True,key) }
     }
 
     method elems(Setty:D: --> Int) { %!elems.elems }
@@ -65,14 +65,14 @@ my role Setty does QuantHash {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
-        ~ %!elems.values.quickmap( {.gist} ).join(', ')
+        ~ %!elems.values.map( {.gist} ).join(', ')
         ~ ')';
     }
     multi method perl(Setty:D $ : --> Str) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
-        ~ %!elems.values.quickmap( {.perl} ).join(',')
+        ~ %!elems.values.map( {.perl} ).join(',')
         ~ ')';
     }
 
@@ -80,7 +80,7 @@ my role Setty does QuantHash {
         (%!elems{ %!elems.keys.pick($count) }:delete).cache;
     }
     method grabpairs(Setty:D: $count = 1) {
-        (%!elems{ %!elems.keys.pick($count) }:delete).quickmap( { ($_=>True) } );
+        (%!elems{ %!elems.keys.pick($count) }:delete).map( { ($_=>True) } );
     }
 
     proto method pick(|) { * }

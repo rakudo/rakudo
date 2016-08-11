@@ -460,7 +460,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method fmt($format = '%s', $separator = ' ') {
-        self.quickmap({ .fmt($format) }).join($separator);
+        self.map({ .fmt($format) }).join($separator);
     }
 
     multi method elems(List:D:) is nodal {
@@ -735,7 +735,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
     multi method keys(List:D:) {
         self.is-lazy
-          ?? self.values.quickmap: { (state $)++ }
+          ?? self.values.map: { (state $)++ }
           !! Range.new( 0, self.elems - 1 )
     }
     multi method kv(List:D:) {
@@ -818,7 +818,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }.new(self.iterator))
     }
     multi method antipairs(List:D:) {
-        self.values.quickmap: { $_ => (state $)++ }
+        self.values.map: { $_ => (state $)++ }
     }
     multi method invert(List:D:) {
         self.map({ nqp::decont(.value) »=>» .key }).flat
@@ -912,7 +912,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method perl(List:D \SELF:) {
         SELF.perlseen('List', {
             '$' x nqp::iscont(SELF) ~ '('
-            ~ (self.elems == 1 ?? self[0].perl ~ ',' !! self.quickmap({.perl}).join(', '))
+            ~ (self.elems == 1 ?? self[0].perl ~ ',' !! self.map({.perl}).join(', '))
             ~ ')'
         })
     }

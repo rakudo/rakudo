@@ -10,6 +10,44 @@ class X::Cannot::Lazy { ... }
 use MONKEY-TYPING;
 augment class Any {
 
+    proto method quickmap(|) is nodal { * }
+    multi method quickmap(&block) {
+        Seq.new(class :: does Iterator {
+            has $!iter;
+            has &!block;
+
+            method !SET-SELF($!iter,&!block) { self }
+            method new(\iter,\block) { nqp::create(self)!SET-SELF(iter,block) }
+            method is-lazy() { $!iter.is-lazy }
+
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  &!block($pulled)
+                )
+            }
+            method push-all($target) {
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                    $target.push(&!block($pulled))
+                  ),
+                  IterationEnd
+                )
+            }
+            method sink-all() {
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                    &!block($pulled)
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new(self.iterator,&block))
+    }
+
     proto method map(|) is nodal { * }
     multi method map(Hash \h) {
         die "Cannot map a {self.^name} to a {h.^name}.

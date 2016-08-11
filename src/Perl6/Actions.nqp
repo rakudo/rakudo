@@ -93,13 +93,15 @@ sub wanted($ast,$by) {
                 $ast.name eq '&infix:<xx>') {
             WANTALL($ast,$byby);
         }
+        elsif $ast.op eq 'callmethod' {
+            WANTALL($ast,$byby);
+        }
         elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.wanted(1);
         }
         elsif $ast.op eq 'call' ||
               $ast.op eq 'callstatic' ||
-              $ast.op eq 'callmethod' ||
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||

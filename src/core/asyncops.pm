@@ -10,11 +10,11 @@ multi sub await() {
 multi sub await(Any $x) {
     die "Must specify a Promise or Channel to await on (got a $x.^name())";
 }
-multi sub await(Iterable:D $i) { $i.eager.quickmap({ await $_ }) }
+multi sub await(Iterable:D $i) { $i.eager.map({ await $_ }) }
 multi sub await(Promise:D $p)  { $p.result }
 multi sub await(Channel:D $c)  { $c.receive }
 multi sub await(Supply:D $s)   { $s.wait }
-multi sub await(*@awaitables)  { @awaitables.eager.quickmap({await $_}) }
+multi sub await(*@awaitables)  { @awaitables.eager.map({await $_}) }
 
 sub awaiterator(@promises) {
     Seq.new(class :: does Iterator {

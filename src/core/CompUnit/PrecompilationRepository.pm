@@ -197,7 +197,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
-        %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.quickmap(*.path-spec).join(',');
+        %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
         my $rakudo_precomp_loading = %ENV<RAKUDO_PRECOMP_LOADING>;
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];

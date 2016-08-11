@@ -72,7 +72,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.quickmap(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
@@ -132,7 +132,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
 
         return self.next-repo.load($file) if self.next-repo;
-        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.quickmap(*.Str).join("\n").indent(4));
+        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
     method short-id() { 'file' }

@@ -28,13 +28,13 @@ my class Rakudo::Internals::JSON {
         }
 
         method arraylist($/) {
-            make [$<value>.quickmap(*.made)];
+            make [$<value>.map(*.made)];
         }
 
         method string($/) {
             make $0.elems == 1
                 ?? ($0[0].<str> || $0[0].<str_escape>).ast
-                !! join '', $0.list.quickmap({ (.<str> || .<str_escape>).ast });
+                !! join '', $0.list.map({ (.<str> || .<str_escape>).ast });
         }
         method value:sym<number>($/) { make +$/.Str }
         method value:sym<string>($/) { make $<string>.ast }
@@ -111,12 +111,12 @@ my class Rakudo::Internals::JSON {
     }
     multi sub to-json(Positional:D $d, :$indent = 0, :$first = 0) {
         (' ' x $first) ~ "\["
-                ~ ($d ?? $d.quickmap({ "\n" ~ to-json($_, :indent($indent + 2), :first($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+                ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + 2), :first($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
                 ~ ']';
     }
     multi sub to-json(Associative:D $d, :$indent = 0, :$first = 0) {
         (' ' x $first) ~ "\{"
-                ~ ($d ?? $d.quickmap({ "\n" ~ to-json(.key, :first($indent + 2)) ~ ' : ' ~ to-json(.value, :indent($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+                ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + 2)) ~ ' : ' ~ to-json(.value, :indent($indent + 2)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
                 ~ '}';
     }
 

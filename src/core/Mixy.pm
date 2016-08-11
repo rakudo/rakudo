@@ -24,7 +24,7 @@ my role Mixy does Baggy  {
     }
     multi method roll(Mixy:D: $count) {
         my $roller = Rakudo::Internals::WeightedRoll.new(self);
-        (1 .. $count).quickmap: { $roller.roll }
+        map { $roller.roll }, 1 .. $count;
     }
 }
 

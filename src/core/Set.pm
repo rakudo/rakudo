@@ -27,10 +27,10 @@ my class Set does Setty {
     }
 
     multi method pairs(Set:D:) {    # must copy else we can change the Set
-        %!elems.values.quickmap: { Pair.new($_,True) };
+        %!elems.values.map: { Pair.new($_,True) };
     }
     multi method antipairs(Set:D:) { # must copy else we can change the Set
-        %!elems.values.quickmap: { Pair.new(True,nqp::decont($_)) };
+        %!elems.values.map: { Pair.new(True,nqp::decont($_)) };
     }
 
     method Set { self }

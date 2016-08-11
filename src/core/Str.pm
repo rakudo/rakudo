@@ -399,7 +399,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).quickmap: { .Str }
+            !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
     # A temporary routine for differential testing of .match overhead.
@@ -772,7 +772,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
-          nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).quickmap(*.key),
+          nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).map(*.key),
         ).throw if nqp::isgt_i($any,1);
         $any
     }
@@ -1915,7 +1915,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        self.comb(/:r ^^ \N* \n?/).quickmap({
+        self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -1951,7 +1951,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     sub de-indent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).quickmap({
+        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 
@@ -1970,7 +1970,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         });
 
         # Figure out the amount * should de-indent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).quickmap({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
         return $obj if $common-prefix === Inf;
 
         # Set the actual de-indent amount here
@@ -1984,7 +1984,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # Work forwards from the left end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)
         # the specified de-indent amount.
-        @lines.quickmap(-> $l {
+        @lines.map(-> $l {
             my $pos = 0;
             while $l<indent-chars> and $pos < $de-indent {
                 if $l<indent-chars>.shift.key eq "\t" {
@@ -2362,7 +2362,7 @@ multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
-multi sub uninames(Str:D $str) { $str.NFC.quickmap: { uniname($_) } }
+multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
@@ -2427,7 +2427,7 @@ multi sub unival(Int:D $code) {
 }
 
 proto sub univals(|) {*}
-multi sub univals(Str:D $str) { $str.ords.quickmap: { unival($_) } }
+multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
 proto sub unimatch(|) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }

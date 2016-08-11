@@ -306,7 +306,7 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' {
             if $node.name ne 'sink' && !$node.nosink {
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
                 $ast.sunk(1);
                 return $ast;
             }

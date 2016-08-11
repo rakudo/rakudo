@@ -105,7 +105,7 @@ my sub MAIN_HELPER($retval = 0) {
                     }
                     else {
                         my @names  = $param.named_names.reverse;
-                        $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
+                        $argument  = @names.quickmap({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
                         $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
                         if $param.optional {
                             @optional-named.push("[$argument]");
@@ -116,7 +116,7 @@ my sub MAIN_HELPER($retval = 0) {
                     }
                 }
                 else {
-                    my $constraints  = $param.constraint_list.map(*.gist).join(' ');
+                    my $constraints  = $param.constraint_list.quickmap(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? "<$param.usage-name()>" !!
                                 $simple-const ??       $constraints                !!
@@ -137,11 +137,11 @@ my sub MAIN_HELPER($retval = 0) {
 
         if @arg-help {
             @help-msgs.push('');
-            my $offset = max(@arg-help.map: { .key.chars }) + 4;
-            @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
+            my $offset = max(@arg-help.quickmap: { .key.chars }) + 4;
+            @help-msgs.append(@arg-help.quickmap: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
-        my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
+        my $usage = "Usage:\n" ~ @help-msgs.quickmap('  ' ~ *).join("\n");
         $usage;
     }
 

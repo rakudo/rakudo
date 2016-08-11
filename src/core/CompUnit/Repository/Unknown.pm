@@ -6,7 +6,7 @@ class CompUnit::Repository::Unknown does CompUnit::Repository {
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp?,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(
-            self.repo-chain.map(*.precomp-store).grep(*.defined)
+            self.repo-chain.quickmap(*.precomp-store).grep(*.defined)
         ),
     )
         returns CompUnit:D

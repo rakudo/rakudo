@@ -1118,7 +1118,7 @@ my class array does Iterable is repr('VMArray') {
 
     multi method perl(array:D:) {
         'array[' ~ self.of.perl ~ '].new(' ~
-            self.map(*.perl).join(', ') ~ ')'
+            self.quickmap(*.perl).join(', ') ~ ')'
     }
 
     method FLATTENABLE_LIST() { self }

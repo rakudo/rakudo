@@ -60,7 +60,7 @@ my class IO::Spec::Unix is IO::Spec {
 
     method path {
         if %*ENV<PATH> -> $PATH {
-            $PATH.split( ':' ).map: { $_ || '.' };
+            $PATH.split( ':' ).quickmap: { $_ || '.' };
         }
         else {
             ();

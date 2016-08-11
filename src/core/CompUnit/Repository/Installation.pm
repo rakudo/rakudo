@@ -213,7 +213,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
     multi method install(Distribution $distribution, Bool :$force) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
-        my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
+        my %files = $dist.meta<files>.grep(*.defined).quickmap: -> $link {
             $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
         }
 
@@ -397,10 +397,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         if $lookup.e {
             my $repo-version = self!repository-version;
             my @dists = $repo-version < 1
-                ?? $lookup.lines.unique.map({
+                ?? $lookup.lines.unique.quickmap({
                         self!read-dist($_)
                     })
-                !! $lookup.dir.map({
+                !! $lookup.dir.quickmap({
                         my ($ver, $auth, $api) = $_.slurp.split("\n");
                         (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
                     });
@@ -423,10 +423,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             if $lookup.e {
                 my @dists = (
                         $repo-version < 1
-                        ?? $lookup.lines.unique.map({
+                        ?? $lookup.lines.unique.quickmap({
                                 $_ => self!read-dist($_)
                             })
-                        !! $lookup.dir.map({
+                        !! $lookup.dir.quickmap({
                                 my ($ver, $auth, $api) = $_.slurp.split("\n");
                                 $_.basename => {ver => Version.new( $ver || 0 ), auth => $auth, api => $api}
                             })
@@ -469,7 +469,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.quickmap(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
@@ -534,7 +534,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method installed() returns Iterable {
         my $dist-dir = self.prefix.child('dist');
         $dist-dir.e
-            ?? $dist-dir.dir.map({
+            ?? $dist-dir.dir.quickmap({
                     InstalledDistribution.new(self!read-dist($_.basename), :prefix(self.prefix))
                 })
             !! Nil

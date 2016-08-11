@@ -98,7 +98,7 @@ my class Complex is Cool does Numeric {
 
         my ($mag, $angle) = self.polar;
         $mag **= 1e0 / $n;
-        (^$n).map: { $mag.unpolar( ($angle + $_ * 2e0 * pi) / $n) };
+        (^$n).quickmap: { $mag.unpolar( ($angle + $_ * 2e0 * pi) / $n) };
     }
 
     method sin(Complex:D:) {

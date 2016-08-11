@@ -208,6 +208,126 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
+    my class IterateOneNotSlippingWithoutPhasers does Iterator {
+        has &!block;
+        has $!source;
+        has $!label;
+
+        method new(&block,$source,$label) {
+            my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '&!block', &block);
+            nqp::bindattr($iter, self, '$!source', $source);
+            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            $iter
+        }
+
+        method is-lazy() { $!source.is-lazy }
+
+        method pull-one() is raw {
+            my $pulled;
+            my int $redo;
+            my $result;
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+            nqp::if(
+              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                ($redo = 1),
+                nqp::while(
+                  $redo,
+                  nqp::stmts(
+                    ($redo = 0),
+                    nqp::handle(
+                      ($result := &!block($pulled)),
+                      'LABELED',
+                      $!label,
+                      'NEXT',
+                      nqp::if(
+                        nqp::eqaddr(
+                          ($pulled := $!source.pull-one),IterationEnd),
+                        ($result := IterationEnd),
+                        ($redo = 1)
+                      ),
+                      'REDO',
+                      ($redo = 1),
+                      'LAST',
+                      ($result := IterationEnd)
+                    ),
+                  ),
+                  :nohandler
+                ),
+                $result
+              )
+            )
+} # needed for some reason
+        }
+
+        method push-all($target --> IterationEnd) {
+            my $pulled;
+            my int $redo;
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+            nqp::until(
+              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+              nqp::stmts(
+                ($redo = 1),
+                nqp::while(
+                  $redo,
+                  nqp::stmts(
+                    ($redo = 0),
+                    nqp::handle(
+                      $target.push(&!block($pulled)),
+                      'LABELED',
+                      $!label,
+                      'REDO',
+                      ($redo = 1),
+                      'LAST',
+                      return
+                    )
+                  ),
+                  :nohandler
+                )
+              )
+            )
+} # needed for some reason
+        }
+
+        method sink-all(--> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr((my $pulled := $!source.pull-one),IterationEnd),
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+              nqp::stmts(
+                (my int $redo = 1),
+                nqp::while(
+                  $redo,
+                  nqp::stmts(
+                    ($redo = 0),
+                    nqp::handle(
+                      &!block($pulled),
+                      'LABELED',
+                      $!label,
+                      'REDO',
+                      ($redo = 1),
+                      'LAST',
+                      return
+                    )
+                  ),
+                  :nohandler
+                )
+              )
+} # needed for some reason
+            )
+        }
+    }
+
     my class IterateOneWithoutPhasers does SlippyIterator {
         has &!block;
         has $!source;
@@ -669,7 +789,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               ?? IterateOneWithPhasers.new(&block,source,$label)
               !! IterateMoreWithPhasers.new(&block,source,$count,$label)
             !! $count < 2 || $count === Inf
-              ?? IterateOneWithoutPhasers.new(&block,source,$label)
+              ?? nqp::istype(Slip,&block.returns)
+                ?? IterateOneWithoutPhasers.new(&block,source,$label)
+                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,$label)
               !! $count == 2
                 ?? IterateTwoWithoutPhasers.new(&block,source,$label)
                 !! IterateMoreWithPhasers.new(&block,source,$count,$label)

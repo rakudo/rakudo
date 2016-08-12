@@ -5179,6 +5179,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.unshift($*W.add_string_constant($past.name))
                 if $past.name ne '';
             $past.name('dispatch' ~ $*W.canonicalize_pair('', ~$<sym>));
+            $past.nosink(1);
         }
         make $past;
     }

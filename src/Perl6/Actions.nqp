@@ -1857,10 +1857,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
             );
         }
-        my $require_past := QAST::Op.new(:node($/), :op<call>,
+        my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
-                                        );
+                                        ),'require');
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);

@@ -171,7 +171,7 @@ sub wanted($ast,$by) {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
                 }
             }
-            elsif $node.op eq 'callstatic' {
+            elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }
             elsif $node.op eq 'p6for' {
@@ -253,12 +253,33 @@ sub unwanted($ast, $by) {
         }
         elsif $ast.op eq 'call' ||
               $ast.op eq 'callstatic' ||
-              $ast.op eq 'callmethod' ||
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'handlepayload' ||
               $ast.op eq 'ifnull' {
+            $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            $ast.sunk(1);
+        }
+        elsif $ast.op eq 'hllize' {
+            my $node := $ast[0];
+            if $node.op eq 'callmethod' && !$ast.nosink {
+                if $node.name ne 'sink' && !$node.nosink && !$*COMPILING_CORE_SETTING {
+                    $ast.sunk(1);
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                    $ast.sunk(1);
+                    return $ast;
+                }
+            }
+            $ast.sunk(1);
+        }
+        elsif $ast.op eq 'callmethod' {
+            if $ast.name ne 'sink' && !$ast.nosink && !$*COMPILING_CORE_SETTING {
+                $ast.sunk(1);
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                $ast.sunk(1);
+                return $ast;
+            }
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.sunk(1);
         }
@@ -299,6 +320,9 @@ sub unwanted($ast, $by) {
             if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                 $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
             }
+        }
+        elsif nqp::istype($node,QAST::Op) && $node.op eq 'hllize' {
+            $ast[0] := UNWANTED($node,$byby);
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
             $node.sunk(1);

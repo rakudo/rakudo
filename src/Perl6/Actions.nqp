@@ -6363,7 +6363,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $result := $_;
         }
 
-        WANTED($result,'make_feed');
+        # WANTED($result,'make_feed');
         $result
     }
 

@@ -171,6 +171,9 @@ sub wanted($ast,$by) {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
                 }
             }
+            elsif $node.op eq 'call' {
+                $ast[0] := WANTED($node,$byby);
+            }
             elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }

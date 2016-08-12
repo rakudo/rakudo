@@ -399,7 +399,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
         $match
             ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).map: { .Str }
+            !! self.match(:g, :$x, $pat).map: -> \match --> Str { match.Str }
     }
 
     # A temporary routine for differential testing of .match overhead.

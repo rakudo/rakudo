@@ -212,6 +212,8 @@ sub WANTED($ast, $by) {
     $ast;
 }
 
+my %nosink := nqp::hash('sink',1,'push',1,'append',1,'unshift',1,'prepend',1,'splice',1);
+
 sub unwanted($ast, $by) {
     my $byby := $by ~ ' u';
     return $ast unless nqp::can($ast,'ann');
@@ -264,7 +266,7 @@ sub unwanted($ast, $by) {
         elsif $ast.op eq 'hllize' {
             my $node := $ast[0];
             if $node.op eq 'callmethod' && !$ast.nosink {
-                if $node.name ne 'sink' && !$node.nosink && !$*COMPILING_CORE_SETTING {
+                if !$node.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$node.name} {
                     $ast.sunk(1);
                     $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
                     $ast.sunk(1);
@@ -274,7 +276,7 @@ sub unwanted($ast, $by) {
             $ast.sunk(1);
         }
         elsif $ast.op eq 'callmethod' {
-            if $ast.name ne 'sink' && !$ast.nosink && !$*COMPILING_CORE_SETTING {
+            if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 $ast.sunk(1);
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
                 $ast.sunk(1);
@@ -329,7 +331,7 @@ sub unwanted($ast, $by) {
             unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
         }
         elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' {
-            if $node.name ne 'sink' && !$node.nosink {
+            if !$node.nosink && !%nosink{$node.name} {
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
                 $ast.sunk(1);
                 return $ast;

@@ -14,10 +14,14 @@ my role Setty does QuantHash {
         %!elems.values.map: -> \key { self.ISINSET(key.WHICH) }
     }
     multi method pairs(Setty:D:) {
-        %!elems.values.map: -> \key { Pair.new(key,self.ISINSET(key.WHICH)) }
+        %!elems.values.map: -> \key --> Pair {
+            Pair.new(key,self.ISINSET(key.WHICH))
+        }
     }
     multi method antipairs(Setty:D:) {
-        %!elems.values.map: -> \key { Pair.new(True,key) }
+        %!elems.values.map: -> \key --> Pair {
+            Pair.new(True,key)
+        }
     }
 
     method elems(Setty:D: --> Int) { %!elems.elems }

@@ -18,7 +18,7 @@ my class X::Promise::Vowed is Exception {
 my class Promise {
     has $.scheduler;
     has $.status;
-    has $!result;
+    has $!result is default(Nil);
     has int $!vow_taken;
     has $!lock;
     has $!cond;

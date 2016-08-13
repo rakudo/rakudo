@@ -818,10 +818,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }.new(self.iterator))
     }
     multi method antipairs(List:D:) {
-        self.values.map: { $_ => (state $)++ }
+        my $laze = self.is-lazy;
+        self.values.map: { $_ => (state $)++ }.lazy-if($laze);
     }
     multi method invert(List:D:) {
-        self.map({ nqp::decont(.value) »=>» .key }).flat
+        my $laze = self.is-lazy;
+        self.map(-> Pair \listelem {
+            my \result = nqp::decont(listelem.value) »=>» listelem.key;
+            result ~~ Pair ?? result !! |result  # Don't make slip where we don't need it.
+        }).lazy-if($laze)
     }
 
     # Store in List targets containers with in the list. This handles list

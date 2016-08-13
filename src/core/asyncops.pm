@@ -40,7 +40,7 @@ sub awaiterator(@promises) {
                 IterationEnd
             }
         }
-        method sink-all() { Promise.allof(@promises).result }
+        method sink-all(--> IterationEnd) { Promise.allof(@promises).result }
     }.new(@promises))
 }
 

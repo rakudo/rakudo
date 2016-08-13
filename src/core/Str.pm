@@ -1007,7 +1007,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     }
                     $target.push(self!last-part) if nqp::isle_i($!pos,$!chars);
                 }
-                method sink-all() { IterationEnd }
+                method sink-all(--> IterationEnd) { }
             }.new(self,$match,$limit));
         }
 
@@ -1076,7 +1076,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
                 method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
                 method bool-only() { nqp::p6bool($!todo + $!first + $!last) }
-                method sink-all() { IterationEnd }
+                method sink-all(--> IterationEnd) { }
             }.new(self,$limit,$skip-empty));
         }
     }

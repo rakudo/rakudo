@@ -28,10 +28,7 @@ my class Rakudo::Internals {
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
-        method sink-all() {
-            $!iter := Mu;
-            IterationEnd
-        }
+        method sink-all(--> IterationEnd) { $!iter := Mu }
     }
 
     our role BlobbyIterator does Iterator {
@@ -61,10 +58,7 @@ my class Rakudo::Internals {
         method count-only() {
             nqp::p6box_i($!elems)
         }
-        method sink-all() {
-            $!i = $!elems;
-            IterationEnd
-        }
+        method sink-all(--> IterationEnd) { $!i = $!elems }
     }
 
     our class WhateverIterator does Iterator {

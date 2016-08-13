@@ -271,13 +271,12 @@ for $*IN.lines -> $line {
                       ?? nqp::atposref_#postfix#($!array,$!i)
                       !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
                     $target.push(nqp::atposref_#postfix#($!array,$i))
                       while ($i = $i + 1) < $elems;
                     $!i = $i;
-                    IterationEnd
                 }
             }.new(self)
         }

@@ -101,7 +101,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   IterationEnd
                 )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(
                   $!iter,
                   nqp::stmts(  # doesn't sink
@@ -109,8 +109,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                      $target.push(
                        Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self))
     }
@@ -121,12 +120,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   ?? nqp::iterkey_s(nqp::shift($!iter))
                   !! IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(
                   $!iter,
                   $target.push(nqp::iterkey_s(nqp::shift($!iter)))
-                );
-                IterationEnd
+                )
             }
         }.new(self))
     }
@@ -151,15 +149,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
                   nqp::stmts(
                     $target.push(nqp::iterkey_s(nqp::shift($!iter))),
                     $target.push(nqp::iterval($!iter))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self))
     }
@@ -170,12 +167,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   ?? nqp::iterval(nqp::shift($!iter))
                   !! IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
                   $target.push(nqp::iterval(nqp::shift($!iter)))
-                );
-                IterationEnd
+                )
             }
         }.new(self))
     }
@@ -191,7 +187,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   IterationEnd
                 );
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(
                   $!iter,
                   nqp::stmts(  # doesn't sink
@@ -199,8 +195,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     $target.push(
                       Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self))
     }

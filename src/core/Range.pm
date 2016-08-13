@@ -114,12 +114,11 @@ my class Range is Cool does Iterable does Positional {
                 method pull-one() {
                     ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i = $!i;
                     my int $n = $!n;
                     $target.push(nqp::p6box_i($i)) while ($i = $i + 1) <= $n;
                     $!i = $i;
-                    IterationEnd
                 }
                 method count-only() { nqp::p6box_i($!n - $!i) }
                 method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
@@ -171,12 +170,11 @@ my class Range is Cool does Iterable does Positional {
                              ?? nqp::chr($!i)
                              !! IterationEnd
                        }
-                       method push-all($target) {
+                       method push-all($target --> IterationEnd) {
                            my int $i = $!i;
                            my int $n = $!n;
                            $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
                            $!i = $i;
-                           IterationEnd
                        }
                        method count-only() { nqp::p6box_i($!n - $!i) }
                        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
@@ -212,7 +210,7 @@ my class Range is Cool does Iterable does Positional {
                         IterationEnd
                     }
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my Mu $i = $!i;
                     my Mu $e = $!e;
                     if $!exclude {
@@ -227,7 +225,6 @@ my class Range is Cool does Iterable does Positional {
                             $i = $i.succ;
                         }
                     }
-                    IterationEnd
                 }
                 method sink-all {
                     $!i = $!e;
@@ -254,12 +251,11 @@ my class Range is Cool does Iterable does Positional {
                 method pull-one() {
                     ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i = $!i;
                     my int $n = $!n;
                     $target.push(nqp::p6box_i($i)) while ($i = $i - 1) >= $n;
                     $!i = $i;
-                    IterationEnd
                 }
                 method count-only() { nqp::p6box_i($!i - $!n) }
                 method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
@@ -311,12 +307,11 @@ my class Range is Cool does Iterable does Positional {
                              ?? nqp::chr($!i)
                              !! IterationEnd
                        }
-                       method push-all($target) {
+                       method push-all($target --> IterationEnd) {
                            my int $i = $!i;
                            my int $n = $!n;
                            $target.push(nqp::chr($i)) while ($i = $i - 1) >= $n;
                            $!i = $i;
-                           IterationEnd
                        }
                        method count-only() { nqp::p6box_i($!i - $!n) }
                        method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
@@ -352,7 +347,7 @@ my class Range is Cool does Iterable does Positional {
                         IterationEnd
                     }
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my Mu $i = $!i;
                     my Mu $e = $!e;
                     if $!exclude {
@@ -367,7 +362,6 @@ my class Range is Cool does Iterable does Positional {
                             $i = $i.pred;
                         }
                     }
-                    IterationEnd
                 }
                 method sink-all {
                     $!i = $!e;
@@ -511,10 +505,9 @@ my class Range is Cool does Iterable does Positional {
                           ?? $!min + nqp::rand_I($!elems, Int)
                           !! IterationEnd
                     }
-                    method push-all($target) {
+                    method push-all($target --> IterationEnd) {
                         $target.push($!min + nqp::rand_I($!elems, Int))
                           while $!todo--;
-                        IterationEnd
                     }
                 }.new($!min + $!excludes-min,$elems,0 max $todo))
               !! self.list.roll($todo)
@@ -559,7 +552,7 @@ my class Range is Cool does Iterable does Positional {
                             IterationEnd
                         }
                     }
-                    method push-all($target) {
+                    method push-all($target --> IterationEnd) {
                         my str $key;
                         while $!todo {
                             my Int $value = $!min + nqp::rand_I($!elems, Int);
@@ -570,7 +563,6 @@ my class Range is Cool does Iterable does Positional {
                                 nqp::bindkey($!seen,$key,1);
                             }
                         }
-                        IterationEnd
                     }
                 }.new($!min + $!excludes-min,$elems,0 max $todo))
               !! self.list.pick($todo)

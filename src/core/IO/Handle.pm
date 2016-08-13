@@ -180,7 +180,7 @@ my class IO::Handle does IO {
                   )
                 )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my str $str = $!handle.readchars($!size);
                 nqp::while(
                   nqp::iseq_i(nqp::chars($str),$!size), 
@@ -191,7 +191,6 @@ my class IO::Handle does IO {
                 );
                 $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
-                IterationEnd
             }
         }.new(self, $size, +$close));
     }
@@ -280,7 +279,7 @@ my class IO::Handle does IO {
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 while $!elems {
                     while $!elems {
                         $target.push(nqp::p6box_s(nqp::shift_s($!strings)));
@@ -289,7 +288,6 @@ my class IO::Handle does IO {
                     self!next-chunk until $!elems || $!done;
                 }
                 $!handle.close if $!close;
-                IterationEnd
             }
         }.new(self, $comber, +$close));
     }
@@ -340,7 +338,7 @@ my class IO::Handle does IO {
                     IterationEnd;
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 $target.push('') if $!first;
                 while $!index < $!chars {
                     $target.push(
@@ -350,7 +348,6 @@ my class IO::Handle does IO {
                 }
                 $target.push('') if $!last;
                 $!handle.close if $!close;
-                IterationEnd
             }
         }.new(self, +$close, $COMB));
     }
@@ -438,7 +435,7 @@ my class IO::Handle does IO {
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 while $!elems {
                     while $!elems {
                         $target.push(nqp::p6box_s(nqp::shift($!strings)));
@@ -448,7 +445,6 @@ my class IO::Handle does IO {
                 }
                 $target.push(nqp::p6box_s($!str));
                 $!handle.close if $!close;
-                IterationEnd
             }
         }.new(self, $splitter, +$close));
     }
@@ -518,7 +514,7 @@ my class IO::Handle does IO {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my int $chars;
                 my int $left;
                 my int $nextpos;
@@ -541,7 +537,6 @@ my class IO::Handle does IO {
                 $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
                   if $!pos < $chars;
                 $!handle.close if $close;
-                IterationEnd
             }
         }.new(self, $close));
     }
@@ -571,11 +566,10 @@ my class IO::Handle does IO {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $line;
                 $target.push($line) while ($line := $!handle.get).DEFINITE;
                 $!handle.close if $close;
-                IterationEnd
             }
         }.new(self, $close));
     }

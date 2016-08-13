@@ -47,7 +47,7 @@ my role Iterable {
                 );
                 $result
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $got;
                 my $nested;
                 nqp::until(
@@ -63,8 +63,7 @@ my role Iterable {
                     ),
                     $target.push($got)
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self.iterator))
     }

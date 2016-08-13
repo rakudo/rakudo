@@ -664,13 +664,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       IterationEnd
                     )
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $elems = nqp::elems($!reified);
                     nqp::while(  # doesn't sink
                       nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
                       $target.push(nqp::atpos($!reified,$!i))
                     );
-                    IterationEnd
                 }
             }.new(self),
 
@@ -773,7 +772,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   )
                 )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $pulled;
                 my int $key;
                 nqp::until(
@@ -786,8 +785,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     $target.push($pulled),
                     ($key = nqp::add_i($key,1))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self.iterator))
     }
@@ -806,14 +804,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
                 )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $pulled;
                 my int $key = -1;
                 nqp::until(
                   nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
                   $target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
-                );
-                IterationEnd
+                )
             }
         }.new(self.iterator))
     }
@@ -1054,7 +1051,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my int $i;
                 nqp::while(
                   ($!number = nqp::sub_i($!number,1)),
@@ -1063,8 +1060,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     (nqp::bindpos($!list,$i,
                       nqp::atpos($!list,nqp::unbox_i(--$!elems))))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self,$elems,$number))
     }

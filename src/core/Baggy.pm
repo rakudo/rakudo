@@ -166,12 +166,11 @@ my role Baggy does QuantHash {
                   ?? nqp::iterval(nqp::shift($!iter))
                   !! IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
                   $target.push(nqp::iterval(nqp::shift($!iter)))
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }
@@ -182,12 +181,11 @@ my role Baggy does QuantHash {
                   ?? nqp::iterval(nqp::shift($!iter)).key
                   !! IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
                   $target.push(nqp::iterval(nqp::shift($!iter)).key)
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }
@@ -210,7 +208,7 @@ my role Baggy does QuantHash {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $tmp;
                 nqp::while(
                   $!iter,
@@ -219,8 +217,7 @@ my role Baggy does QuantHash {
                     ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
                     ($target.push(nqp::getattr($tmp,Pair,'$!value')))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }
@@ -232,13 +229,12 @@ my role Baggy does QuantHash {
                          nqp::iterval(nqp::shift($!iter))),Pair,'$!value')
                     !! IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
                   $target.push(nqp::getattr(nqp::decont(
                     nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }
@@ -253,7 +249,7 @@ my role Baggy does QuantHash {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $tmp;
                 nqp::while(
                   $!iter,
@@ -261,8 +257,7 @@ my role Baggy does QuantHash {
                     ($tmp := nqp::iterval(nqp::shift($!iter))),
                     ($target.push(Pair.new($tmp.value,$tmp.key)))
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }
@@ -287,7 +282,7 @@ my role Baggy does QuantHash {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $tmp;
                 nqp::while(
                   $!iter,
@@ -300,8 +295,7 @@ my role Baggy does QuantHash {
                       ($target.push($!key))
                     )
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(%!elems))
     }

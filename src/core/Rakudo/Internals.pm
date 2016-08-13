@@ -51,13 +51,12 @@ my class Rakudo::Internals {
             )
         }
         method new(\blob) { nqp::create(self).SET-SELF(blob) }
-        method push-all($target) {
+        method push-all($target --> IterationEnd) {
             my $blob      := $!blob;  # attribute access is slower
             my int $i      = $!i;
             my int $elems  = $!elems;
             $target.push(nqp::atpos_i($blob,$i))
               while nqp::islt_i(++$i,$elems);
-            IterationEnd
         }
         method count-only() {
             nqp::p6box_i($!elems)

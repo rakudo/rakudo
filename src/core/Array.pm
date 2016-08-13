@@ -160,7 +160,7 @@ my class Array { # declared in BOOTSTRAP
                     )
                 }
 
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $elems = nqp::elems($!reified);
                     nqp::while(   # doesn't sink
                       nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
@@ -173,8 +173,7 @@ my class Array { # declared in BOOTSTRAP
                           -> { nqp::bindpos($!reified,$!i,v) }
                         )
                       ))
-                    );
-                    IterationEnd
+                    )
                 }
             }.new(self)
         }

@@ -34,7 +34,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -267,13 +267,12 @@ my class array does Iterable is repr('VMArray') {
                       ?? nqp::atposref_s($!array,$!i)
                       !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
                     $target.push(nqp::atposref_s($!array,$i))
                       while ($i = $i + 1) < $elems;
                     $!i = $i;
-                    IterationEnd
                 }
             }.new(self)
         }
@@ -295,7 +294,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -528,13 +527,12 @@ my class array does Iterable is repr('VMArray') {
                       ?? nqp::atposref_i($!array,$!i)
                       !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
                     $target.push(nqp::atposref_i($!array,$i))
                       while ($i = $i + 1) < $elems;
                     $!i = $i;
-                    IterationEnd
                 }
             }.new(self)
         }
@@ -573,7 +571,7 @@ my class array does Iterable is repr('VMArray') {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-08-08T16:41:22+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -806,13 +804,12 @@ my class array does Iterable is repr('VMArray') {
                       ?? nqp::atposref_n($!array,$!i)
                       !! IterationEnd
                 }
-                method push-all($target) {
+                method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
                     $target.push(nqp::atposref_n($!array,$i))
                       while ($i = $i + 1) < $elems;
                     $!i = $i;
-                    IterationEnd
                 }
             }.new(self)
         }

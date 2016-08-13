@@ -206,4 +206,15 @@ multi sub postcircumfix:<{; }>(\SELF, @indices) {
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
 
+multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
+    sub recurse-at-key(\SELF, \indices, \counter){
+        my $idx = indices[counter];
+        (counter < indices.elems)
+            ?? SELF.EXISTS-KEY($idx) && recurse-at-key(SELF{$idx}, indices, counter + 1)
+            !! True
+    }
+
+    recurse-at-key(SELF, @indices, 0)
+}
+
 # vim: ft=perl6 expandtab sw=4

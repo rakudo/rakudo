@@ -1,7 +1,7 @@
 New in 2016.08
  + Fixes:
     + Numerous improvements to content of error messages and addition
-        of new previously-undetected warnings, such us on sinks and ... terms
+        of new previously-undetected warnings, such as on sinks and ... terms
     + Removed redeclaration error for anon subs
     + Concatenation/substr with strings constructed with repeat operator
         no longer results in incorrect strings

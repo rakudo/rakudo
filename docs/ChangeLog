@@ -1,7 +1,86 @@
 New in 2016.08
  + Fixes:
+    + Numerous improvements to content of error messages and addition
+        of new previously-undetected warnings, such us on sinks and ... terms
+    + Removed redeclaration error for anon subs
+    + Concatenation/substr with strings constructed with repeat operator
+        no longer results in incorrect strings
+    + Fixed error for unknown symbol in parametric type
+    + Things that produce a Seq no longer get constant-folded, avoiding
+        bogus Seq exhaustion errors
+    + where {} clause on unit sub MAIN no longer produces bogus errors
+    + Fixed compilation and behaviour of :D on subsets
+    + Assigning Nil to a :D variable now fails (unless its default is :D)
+    + Fixed CURF's resolve generating the wrong repo-id
+    + Fixed precomp file for Staging repo containing build path
+    + Fixed merge global symbols failures when changing repositories
+    + Fixed <[a..z]> ranges breaking grapheme awareness
+    + Fixed possible race conditions in Supplies and Channels
+    + Numerous stability improvements in async
+    + .squish, .unique, .repeated, and .grep now correctly pass on .is-lazy
+    + Fixed segfault on "multi cross{}"
+    + .sort stored in a Callable no longer incorrectly returns BOOTArray
+    + Smartmatch with two signatures, only one of which has slurpy hash,
+        no longer produces spurious exception
+    + @a.splice now returns array with correct descriptor
+    + .rotor with negative gap that lands out of range now throws
+    + Range.rotor with Rat arguments no longer crashes
+    + .hash on Bag, Mix, BagHash, and MixHash types no longer stringifies keys
+    + .abspath on filenames starting with '-' no longer results in empty string
+    + generated setting file now has empty lines for those that were
+        skipped in the past, allowing to directly map the line in a setting
+        to the source code it was generated from
+    + loop and repeat now properly self-sink
+    + for { ... .map } now properly sinks
+    + Backtrace::Frame.is-(hidden|routine) now returns Bool
  + Additions:
+    + Str.samemark('') now returns self instead of failing
+    + Test.pm now provides bail-out()
+    + Implemented $?MODULE and ::?MODULE
+    + Implemented CompUnit::Repository::Installation::installed
+    + InstalledDistribution now gets returned where appropriate
+    + returns in signatures of many builtins now marked as --> Nil
+    + .min/.max can now be called on Hashes
+    + Invocant marker (:) can now be used in bare signatures
+    + Added X::Syntax::NonListAssociative exception type
+    + Hash[Any].new.perl now roundtrips
+    + start blocks get their own $! and $/
+    + Buf.push|append|unshift|prepend also allow Blob:D
+    + .succ now increments additional 29 digit ranges, such as Thai digits
+    + List.sum is now marked as nodal
+    + Can now return Nil as a result of a Promise
+    + CONTROL-c in REPL now makes it stop waiting for completion of
+       the running code
+    + Implemented :exists on multi-dim assoc subscript literals
  + Efficiency:
+    + Streamlined multiple internal code paths that may or may not
+      result in performance improvements in user code
+    + Improved dynamic variable lookup (2x as fast)
+    + Hash.AT-KEY is about 35% faster
+    + Hash.ASSIGN-KEY about 2x as fast
+    + Hash.DELETE-KEY about 2x as fast
+    + Hash[Any,Any].AT-KEY about 20% faster
+    + Hash[Any,Any].ASSIGN-KEY about 15% faster
+    + Hash[Any,Any].BIND-KEY about 15% faster
+    + Hash[Any,Any].EXISTS-KEY about 10% faster
+    + Hash[Any,Any].DELETE-KEY 10% faster
+    + Repeated calls on Bag.WHICH now 5x as fast
+    + Backtrace creation 25% faster
+    + .first/.first(:end) iteration is now about 10% faster
+        after testing 1000 elements
+    + .minmax about 25% faster
+    + .min/.max about 40% faster
+    + min/max/minmax on native arrays is between 15x and 25x faster than
+        non-native equivalent
+    + Array.splice() almost infinitely faster and is much easier on memory (no
+        longer copies anything but instead transplants internals)
+    + Array.splice(offset,size) is now 20x to 40x faster for
+        small offsets and sizes
+    + Array.splice(offset,size,@) is about 10x faster
+    + 10% improvement to .map/for in special cases of one-argument block that
+        has a return signature that excludes Slips,
+        such as -> Int $_ --> Str { .Str }
+    + Set/SetHash.pairs|antipairs about 10% faster
 
 New in 2016.07.1
  + Fixes:

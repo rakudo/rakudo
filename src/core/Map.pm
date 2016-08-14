@@ -161,19 +161,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method values(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
-            method pull-one() is raw {
-                $!iter
-                  ?? nqp::iterval(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)))
-                )
-            }
-        }.new(self))
+        Seq.new(Rakudo::Internals::MappyIterator-values.new(self))
     }
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {

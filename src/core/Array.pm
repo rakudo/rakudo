@@ -1189,21 +1189,17 @@ my class Array { # declared in BOOTSTRAP
                 self!splice-size-fail($size,$offset)
               ),
               nqp::if(
-                nqp::getattr(self,List,'$!reified').DEFINITE,
-                nqp::if(
-                  nqp::isge_i(
-                    nqp::elems(nqp::getattr(self,List,'$!reified')),
-                    nqp::unbox_i($offset)),
-                  self!splice-offset-size-new(
-                    nqp::unbox_i($offset),nqp::unbox_i($size),@new),
-                  self!splice-size-fail($size,$offset)
+                nqp::isge_i(
+                  nqp::elems(nqp::if(
+                    nqp::getattr(self,List,'$!reified').DEFINITE,
+                    nqp::getattr(self,List,'$!reified'),
+                    nqp::bindattr(self,List,'$!reified',nqp::list)
+                  )),
+                  nqp::unbox_i($offset),
                 ),
-                nqp::if(
-                  nqp::iseq_i(nqp::unbox_i($offset),0),
-                  nqp::p6bindattrinvres(     # nothing to return, create new
-                    nqp::create(self),Array,'$!descriptor',$!descriptor),
-                  self!splice-offset-fail($offset)
-                )
+                self!splice-offset-size-new(
+                  nqp::unbox_i($offset),nqp::unbox_i($size),@new),
+                self!splice-offset-fail($offset)
               )
             )
           )

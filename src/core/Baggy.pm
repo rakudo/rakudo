@@ -160,19 +160,7 @@ my role Baggy does QuantHash {
 
 #--- iterator methods
     multi method pairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
-            method pull-one() {
-                $!iter
-                  ?? nqp::iterval(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)))
-                )
-            }
-        }.new(%!elems))
+        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
     }
     multi method keys(Baggy:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {

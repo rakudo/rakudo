@@ -1,3 +1,8 @@
+New in 2016.08
+ + Fixes:
+ + Additions:
+ + Efficiency:
+
 New in 2016.07.1
  + Fixes:
    + `make DESTDIR` now correctly finds CompUnit::Repository::Staging

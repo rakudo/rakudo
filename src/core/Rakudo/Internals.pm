@@ -31,6 +31,20 @@ my class Rakudo::Internals {
         method sink-all(--> IterationEnd) { $!iter := Mu }
     }
 
+    our class MappyIterator-values does MappyIterator {
+        method pull-one() is raw {
+            $!iter
+              ?? nqp::iterval(nqp::shift($!iter))
+              !! IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              $target.push(nqp::iterval(nqp::shift($!iter)))
+            )
+        }
+    }
+
     our role BlobbyIterator does Iterator {
         has $!blob;
         has int $!elems;

@@ -22,10 +22,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method WHICH(|) {*}
-    multi method WHICH(Mu:U:) {
-        nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
-    }
-    multi method WHICH(Mu:D:) {
+    multi method WHICH(Mu:) {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|'),

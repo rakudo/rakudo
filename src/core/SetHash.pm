@@ -10,15 +10,13 @@ my class SetHash does Setty {
         );
     }
 
-    method Set (:$view) {
-        if $view {
-            Set.bless( :elems(%!elems) );
-        }
-        else {
-            Set.new(self.keys);
-        }
+    method !SET-SELF(%!elems) { self }
+    method Set(SetHash:D: :$view) {
+        $view
+          ?? nqp::p6bindattrinvres(nqp::create(Set),Set,'%!elems',%!elems)
+          !! Set.new(self.keys)
     }
-    method SetHash { self }
+    method SetHash(SetHash:D:) { self }
 
     multi method AT-KEY(SetHash:D: \k --> Bool) is raw {
         Proxy.new(

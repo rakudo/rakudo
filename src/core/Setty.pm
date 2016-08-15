@@ -1,8 +1,38 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    submethod BUILD(:%!elems --> Nil)  { }
-    method default(--> Bool) { False }
+    method !SET-SELF(%!elems) { self }
+    multi method new(Setty: +@args --> Setty) {
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iter  := @args.iterator),
+          nqp::until(
+            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+            nqp::bindkey($elems,$pulled.WHICH,$pulled)
+          ),
+          nqp::create(self)!SET-SELF($elems)
+        )
+    }
+    method new-from-pairs(*@pairs --> Setty) {
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iter  := @pairs.iterator),
+          nqp::until(
+            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::if(
+                $pulled.value,
+                nqp::bindkey($elems,$pulled.key.WHICH,$pulled.key)
+              ),
+              nqp::bindkey($elems,$pulled.WHICH,$pulled)
+            )
+          ),
+          nqp::create(self)!SET-SELF($elems)
+        )
+    }
+
+    method default(--> False) { }
 
     multi method keys(Setty:D:) {
         %!elems.values
@@ -34,24 +64,6 @@ my role Setty does QuantHash {
         my \e = Hash.^parameterize(Bool, Any).new;
         e{$_} = True for %!elems.values;
         e;
-    }
-
-    multi method new(Setty: +@args) {
-        my %e;
-        %e{$_.WHICH} = $_ for @args;
-        self.bless(:elems(%e))
-    }
-    method new-from-pairs(*@pairs --> Setty) {
-        my %e;
-        for @pairs {
-            when Pair {
-                %e{.key.WHICH} //= $_.key if .value;
-            }
-            default {
-                %e{.WHICH} //= $_;
-            }
-        }
-        self.bless(:elems(%e));
     }
 
     multi method ACCEPTS(Setty:U: $other) {

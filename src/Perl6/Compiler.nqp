@@ -60,19 +60,8 @@ class Perl6::Compiler is HLL::Compiler {
     method interactive(*%adverbs) {
         my $p6repl;
 
-        try {
-            my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
-            $p6repl := $repl-class.new(self, %adverbs);
-
-            CATCH {
-                nqp::say("Couldn't load Rakudo REPL.pm: $_");
-                nqp::say("Falling back to nqp REPL.");
-                my $super := nqp::findmethod(HLL::Compiler, 'interactive');
-                my $result := $super(self, :interactive(1), |%adverbs);
-                return $result;
-            }
-        }
-
+        my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
+        $p6repl := $repl-class.new(self, %adverbs);
         my $stdin    := nqp::getstdin();
         my $encoding := ~%adverbs<encoding>;
         if $encoding && $encoding ne 'fixed_8' {

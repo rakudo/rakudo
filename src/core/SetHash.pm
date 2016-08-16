@@ -24,9 +24,10 @@ my class SetHash does Setty {
     }
 
     method Set(SetHash:D: :$view) {
-        $view
-          ?? nqp::p6bindattrinvres(nqp::create(Set),Set,'%!elems',%!elems)
-          !! Set.new(self.keys)
+        nqp::p6bindattrinvres(
+          nqp::create(Set),Set,'%!elems',
+          $view ?? %!elems !! %!elems.clone
+        )
     }
     method SetHash(SetHash:D:) { self }
 

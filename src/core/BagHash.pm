@@ -29,10 +29,9 @@ my class BagHash does Baggy {
 
 #--- introspection methods
     method Bag(:$view) {
-        nqp::if(
-          $view,
-          nqp::p6bindattrinvres(nqp::create(Bag),Bag,'%!elems',%!elems),
-          Bag.new-from-pairs(%!elems.values)
+        nqp::p6bindattrinvres(
+          nqp::create(Bag),Bag,'%!elems',
+          $view ?? %!elems !! %!elems.clone
         )
     }
     method BagHash { self }

@@ -3939,6 +3939,15 @@ class Perl6::World is HLL::World {
         my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
         my %seen;
         %seen{$name} := 1;
+
+        # RT 126264
+        # Since there's no programmatic way to get a list of all phasers
+        # applicable to the current scope, just check against this list
+        # of all of them that aren't already the names of routines
+        for <&BEGIN &CHECK &INIT &ENTER &LEAVE &KEEP &UNDO &PRE &POST &CATCH &CONTROL> -> $phaser {
+            &inner-evaluator($phaser, %seen);
+        }
+
         sub evaluate($name, $value, $has_value, $hash) {
             return 1 unless nqp::eqat($name, '&', 0);
             return 1 if nqp::existskey(%seen, $name);

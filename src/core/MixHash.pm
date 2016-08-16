@@ -29,10 +29,9 @@ my class MixHash does Mixy {
 
 #--- coercion methods
     method Mix(:$view) {
-        nqp::if(
-          $view,
-          nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems),
-          Mix.new-from-pairs(%!elems.values)
+        nqp::p6bindattrinvres(
+          nqp::create(Mix),Mix,'%!elems',
+          $view ?? %!elems !! %!elems.clone
         )
     }
     method MixHash { self }

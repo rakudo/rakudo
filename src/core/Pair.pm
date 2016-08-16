@@ -2,9 +2,16 @@ my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
 
-    multi method new(Pair: Cool:D \key, Mu \value) {
+    multi method new(Pair: Cool:D \key, Mu \value) { # this candidate optimizes
         my \p := nqp::p6bindattrinvres(
           nqp::create(self),Pair,'$!key',nqp::decont(key));
+        nqp::bindattr(p,Pair,'$!value',value);
+        p
+    }
+    multi method new(Pair: Scalar:D \key, Mu \value) {
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',  # prevent mutable key
+            nqp::decont(nqp::getattr(key,Scalar,'$!value')));
         nqp::bindattr(p,Pair,'$!value',value);
         p
     }
@@ -14,12 +21,7 @@ my class Pair does Associative {
         nqp::bindattr(p,Pair,'$!value',value);
         p
     }
-    multi method new(Pair: Mu :$key, Mu :$value) {
-        my \p := nqp::p6bindattrinvres(
-          nqp::create(self),Pair,'$!key',$key);
-        nqp::bindattr(p,Pair,'$!value',$value);
-        p
-    }
+    multi method new(Pair: Mu :$key, Mu :$value) { self.new($key,$value) }
 
     multi method WHICH(Pair:D:) {
         nqp::iscont($!value)

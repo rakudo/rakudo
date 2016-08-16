@@ -1649,7 +1649,7 @@ class Perl6::Optimizer {
                                 $op[1],
                                 $op[2]) );
                 } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var) && +@($op) == 3;
                     return QAST::Op.new( :op('call'), :name($metaop[0].name),
                                 $op[2],
                                 $op[1]);

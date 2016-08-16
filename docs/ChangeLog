@@ -15,8 +15,10 @@ New in 2016.08
     + Fixed precomp file for Staging repo containing build path
     + Fixed merge global symbols failures when changing repositories
     + Fixed <[a..z]> ranges breaking grapheme awareness
-    + Fixed possible race conditions in Supplies and Channels
-    + Numerous stability improvements in async
+    + Fixed a race condition in Channel.Supply
+    + Fixed an occasional deadlock when using the supply/react syntax
+    + Fixed a race condition involving tearing down listening async sockets
+    + start blocks now get their own fresh $! and $/
     + .squish, .unique, .repeated, and .grep now correctly pass on .is-lazy
     + Fixed segfault on "multi cross{}"
     + .sort stored in a Callable no longer incorrectly returns BOOTArray

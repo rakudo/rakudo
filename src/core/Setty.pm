@@ -35,23 +35,7 @@ my role Setty does QuantHash {
     method default(--> False) { }
 
     multi method keys(Setty:D:) {
-        %!elems.values
-    }
-    multi method kv(Setty:D:) {
-        %!elems.values.map: -> \key { |(key,self.ISINSET(key.WHICH)) }
-    }
-    multi method values(Setty:D:) {
-        %!elems.values.map: -> \key { self.ISINSET(key.WHICH) }
-    }
-    multi method pairs(Setty:D:) {
-        %!elems.values.map: -> \key --> Pair {
-            Pair.new(key,self.ISINSET(key.WHICH))
-        }
-    }
-    multi method antipairs(Setty:D:) {
-        %!elems.values.map: -> \key --> Pair {
-            Pair.new(True,key)
-        }
+        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
     }
 
     method elems(Setty:D: --> Int) { %!elems.elems }

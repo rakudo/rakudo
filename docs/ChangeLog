@@ -46,7 +46,6 @@ New in 2016.08
     + Invocant marker (:) can now be used in bare signatures
     + Added X::Syntax::NonListAssociative exception type
     + Hash[Any].new.perl now roundtrips
-    + start blocks get their own $! and $/
     + Buf.push|append|unshift|prepend also allow Blob:D
     + .succ now increments additional 29 digit ranges, such as Thai digits
     + List.sum is now marked as nodal

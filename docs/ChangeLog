@@ -35,6 +35,9 @@ New in 2016.08
     + loop and repeat now properly self-sink
     + for { ... .map } now properly sinks
     + Backtrace::Frame.is-(hidden|routine) now returns Bool
+    + Bool.Int now properly returns an Int
+    + Starting the REPL with a module loading error, will now just exit
+    + Names of phasers (such as BEGIN) will now be included in suggestions
  + Additions:
     + Str.samemark('') now returns self instead of failing
     + Test.pm now provides bail-out()
@@ -81,7 +84,9 @@ New in 2016.08
     + 10% improvement to .map/for in special cases of one-argument block that
         has a return signature that excludes Slips,
         such as -> Int $_ --> Str { .Str }
-    + Set/SetHash.pairs|antipairs about 10% faster
+    + Many Set/SetHash methods are now at least 5% faster
+    + Coercing a MixHash/BagHash to a Mix/Bag is now 300x faster
+    + Coercing a SetHash to a Set is now 80x faster
 
 New in 2016.07.1
  + Fixes:

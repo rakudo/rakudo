@@ -2014,19 +2014,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<gather>($/) {
-        my $past := block_closure(unwanted($<blorst>.ast,'gather'));
+        my $past := unwanted($<blorst>.ast,'gather');
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
     method statement_prefix:sym<supply>($/) {
-        my $past := block_closure($<blorst>.ast);
+        my $past := $<blorst>.ast;
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
     }
 
     method statement_prefix:sym<react>($/) {
-        my $past := block_closure($<blorst>.ast);
+        my $past := $<blorst>.ast;
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&REACT'), $past );
     }

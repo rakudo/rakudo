@@ -9538,7 +9538,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                         :op('callmethod')
                     )
                 ),
-                QAST::Op.new( :op<call>, QAST::Op.new( :op('p6capturelex'), $blockref ) )
+                QAST::Op.new( :op<call>, block_closure($blockref) )
             );
         make $past;
     }

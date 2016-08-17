@@ -5,6 +5,7 @@ unit module Test;
 
 # settable from outside
 my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
+my int $die_on_fail      = ?%*ENV<PERL6_TEST_DIE_ON_FAIL>;
 
 # global state
 my @vars;
@@ -17,7 +18,6 @@ my int $todo_upto_test_num;
 my $todo_reason;
 my $num_of_tests_planned;
 my int $no_plan;
-my int $die_on_fail;
 my num $time_before;
 my num $time_after;
 
@@ -54,11 +54,6 @@ our sub failure_output is rw {
 
 our sub todo_output is rw {
     $todo_output
-}
-
-# you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
-sub die_on_fail(int $fail=1) {
-    $die_on_fail = $fail;
 }
 
 # "plan 'no_plan';" is now "plan *;"
@@ -592,8 +587,12 @@ sub proclaim($cond, $desc is copy ) {
           !! "\nFailed test at {$caller.file} line {$caller.line}";
     }
 
-    die "Test failed.  Stopping test"
-      if !$cond && nqp::iseq_i($die_on_fail,1) && !$todo_reason;
+    if !$cond && !$todo_reason && nqp::iseq_i($die_on_fail,1) {
+        _diag 'Test failed. Stopping test suite, because'
+                ~ ' PERL6_TEST_DIE_ON_FAIL environmental variable is set'
+                ~ ' to a true value.';
+        exit 255;
+    }
 
     # must clear this between tests
     $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
@@ -629,7 +628,6 @@ sub _init_vars {
     $todo_reason          = '';
     $num_of_tests_planned = Any;
     $no_plan              = 1;
-    $die_on_fail          = 0;
     $time_before          = NaN;
     $time_after           = NaN;
     $done_testing_has_been_run = 0;
@@ -643,7 +641,6 @@ sub _push_vars {
       $todo_reason,
       $num_of_tests_planned,
       $no_plan,
-      $die_on_fail,
       $time_before,
       $time_after,
       $done_testing_has_been_run,
@@ -658,7 +655,6 @@ sub _pop_vars {
       $todo_reason,
       $num_of_tests_planned,
       $no_plan,
-      $die_on_fail,
       $time_before,
       $time_after,
       $done_testing_has_been_run,

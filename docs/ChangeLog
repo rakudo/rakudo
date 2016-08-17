@@ -56,6 +56,8 @@ New in 2016.08
     + CONTROL-c in REPL now makes it stop waiting for completion of
        the running code
     + Implemented :exists on multi-dim assoc subscript literals
+    + Added PERL6_TEST_DIE_ON_FAIL env var in Test.pm6 to bail out of the
+        test suite on first failure
  + Efficiency:
     + Streamlined multiple internal code paths that may or may not
       result in performance improvements in user code

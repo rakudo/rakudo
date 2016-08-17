@@ -5122,6 +5122,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    method revO($/) {
+        my $O := nqp::clone($*FROM);
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        make $O;
+    }
+
     method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
     method dotty:sym<.*>($/) {
@@ -6126,8 +6133,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $key := nqp::lc($KEY // 'infix');
         $key := 'infix' if $key eq 'list';
         my $sym := ~$/{$key}<sym>;
-        my $O := $/{$key}<O>;
-        my $thunky := $O<thunky>;
+        my $thunky := $/{$key} ?? $/{$key}<O>.made<thunky> !! 0;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -6162,8 +6168,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         unless $past {
-            if $<OPER><O><pasttype> {
-                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
+            if $<OPER><O>.made<pasttype> {
+                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O>.made<pasttype> ) );
             }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
@@ -6850,7 +6856,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
-            my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+            my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
@@ -6858,7 +6864,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), WANTED($basepast,'infixish') );
-            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>.made)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
@@ -6900,9 +6906,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $base<OPER><sym>)),
                                            :scope<lexical>);
-        my $metaop   := baseop_reduce($base<OPER><O>);
+        my $metaop   := baseop_reduce($base<OPER><O>.made);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), WANTED($basepast,'reduce'));
-        my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+        my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }

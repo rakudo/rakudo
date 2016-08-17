@@ -3831,7 +3831,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
             | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
                 {
-                    $<variable><O> := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive') unless $<variable><O>;
+                    $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
                     $*OPER := $<variable>;
                     self.check_variable($<variable>)
                 }
@@ -3908,8 +3908,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token prefix_postfix_meta_operator { <...> }
 
     method can_meta($op, $meta, $reason = "fiddly") {
-        if $op<OPER><O>{$reason} == 1 {
-            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => "too $reason";
+        if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
     }
@@ -3932,9 +3932,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.can_meta($op, "reduce with")>
 
         [
-        || <!{ $op<OPER><O><diffy> }>
-        || <?{ $op<OPER><O><pasttype> eq 'chain' }>
-        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O><dba>, reason => 'diffy and not chaining' }
+        || <!{ $op<OPER><O>.made<diffy> }>
+        || <?{ $op<OPER><O>.made<pasttype> eq 'chain' }>
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
         ]
 
         <args>
@@ -3970,14 +3970,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         nqp::bindattr($cur, NQPCursor, '$!match', $v);
         $cur
     }
-    method revO($from) {
-        my $O   := nqp::clone($from<OPER><O>);
-        my $cur := self.'!cursor_start_cur'();
-        $cur.'!cursor_pass'(self.pos());
-        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
-        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
-        nqp::bindattr($cur, NQPCursor, '$!match', $O);
-        $cur
+
+    token revO($from) {
+        :my $*FROM := $from<OPER><O>.made;
+        <?>
     }
 
     proto token dotty { <...> }
@@ -4271,8 +4267,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O(|%chaining)>
-        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O><iffy> }> <O=.AS_MATCH($<infixish><OPER><O>)>
-        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O><dba>, reason => "not iffy enough" }
+        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }> <O=.AS_MATCH($<infixish><OPER><O>)>
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
         ]
     }
 
@@ -4323,10 +4319,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '='
         { %fudge_oper<OPER> := $*OPER }
         <.can_meta(%fudge_oper, "make assignment out of")>
-        [ <!{ $*OPER<O><diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
+        [ <!{ $*OPER<O>.made<diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
         {
             $<sym> := $*OPER<sym> ~ '=';
-            if $*OPER<O><prec> gt 'g=' {
+            if $*OPER<O>.made<prec> gt 'g=' {
                 %prec := %item_assignment;
             }
             else {
@@ -4679,7 +4675,7 @@ if $*COMPILING_CORE_SETTING {
 
         # Declarand should get precedence traits.
         if $is_oper && nqp::isconcrete($declarand) {
-            my $base_prec := self.O(|%prec).MATCH<prec>;
+            my $base_prec := %prec<prec>;
             $*W.apply_trait(self.MATCH, '&trait_mod:<is>', $declarand,
                 :prec(nqp::hash('prec', $base_prec)));
         }

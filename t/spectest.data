@@ -304,7 +304,7 @@ S04-phasers/next.t
 S04-phasers/pre-post.t
 S04-phasers/rvalue.t
 S04-statement-modifiers/for.t
-S04-statement-modifiers/given.t 
+S04-statement-modifiers/given.t
 S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
@@ -633,7 +633,7 @@ S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/lastcall.t
 S12-methods/lvalue.t
-S12-methods/method-vs-sub.t 
+S12-methods/method-vs-sub.t
 S12-methods/multi.t
 S12-methods/parallel-dispatch.t
 S12-methods/private.t
@@ -660,7 +660,7 @@ S14-roles/crony.t
 S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
-S14-roles/namespaced.t 
+S14-roles/namespaced.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
@@ -841,6 +841,7 @@ S19-command-line-options/03-dash-p.t
 S22-package-format/local.t
 S24-testing/0-compile.t
 S24-testing/3-output.t
+S24-testing/8-die_on_fail.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -1070,7 +1071,7 @@ integration/99problems-11-to-20.t
 integration/99problems-21-to-30.t
 integration/99problems-31-to-40.t
 integration/99problems-41-to-50.t
-integration/99problems-51-to-60.t 
+integration/99problems-51-to-60.t
 integration/99problems-61-to-70.t
 integration/advent2009-day01.t
 integration/advent2009-day02.t
@@ -1179,5 +1180,5 @@ integration/substr-after-match-in-gather-in-for.t
 integration/topic_in_double_loop.t
 integration/variables-in-do.t
 integration/weird-errors.t     # slow
-rosettacode/greatest_element_of_a_list.t  
+rosettacode/greatest_element_of_a_list.t
 rosettacode/sierpinski_triangle.t

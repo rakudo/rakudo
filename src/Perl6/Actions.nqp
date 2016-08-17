@@ -7618,7 +7618,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # a temporary variable etc.
 
         # Build the regex.
-        my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
+        my $rx_block := $*SUBST_LHS_BLOCK;
+        $rx_block.push(QAST::Stmts.new);
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
@@ -7638,7 +7639,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ));
             $right.push(WANTED($<sibble><right>.ast,'quote:s'));
         }
-        my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
+        my $rep_block := $*SUBST_RHS_BLOCK;
+        $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
+        $*W.cur_lexpad()[0].push($rep_block);
+        my $closure := block_closure(reference_to_code_object(
+            $*W.create_simple_code_object($rep_block, 'Code'),
+            $rep_block));
 
         # self.match($rx_coderef, |%options);
         my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),

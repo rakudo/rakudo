@@ -3615,10 +3615,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $lang;
         :my $start;
         :my $stop;
+
         <babble($l)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
+        { $*SUBST_LHS_BLOCK := $*W.push_lexpad($/) }
         $start <left=.nibble($lang)> [ $stop || <.panic("Couldn't find terminator $stop")> ]
+        { $*W.pop_lexpad() }
+        { $*SUBST_RHS_BLOCK := $*W.push_lexpad($/) }
         [ <?{ $start ne $stop }>
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
@@ -3630,12 +3634,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
             <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
         ]
+        { $*W.pop_lexpad() }
     }
 
     token quote:sym<s> {
         <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        :my $*SUBST_LHS_BLOCK;
+        :my $*SUBST_RHS_BLOCK;
         {
             %*RX<s> := 1 if $/[0]
         }

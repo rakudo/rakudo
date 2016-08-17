@@ -34,7 +34,9 @@ my class Bag does Baggy {
 #--- coercion methods
     method Bag     { self }
     method BagHash { BagHash.new-from-pairs(%!elems.values) }
-    method Mix     {     Mix.new-from-pairs(%!elems.values) }
+    method Mix {
+        nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
+    }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 

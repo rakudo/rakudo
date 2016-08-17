@@ -4,6 +4,7 @@ BEGIN {
     Bool.^add_method('gist',    my proto method gist(|)    { * });
     Bool.^add_method('Str',     my proto method Str(|)     { * });
     Bool.^add_method('Numeric', my proto method Numeric(|) { * });
+    Bool.^add_method('Int',     my proto method Int(|)     { * });
     Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) { * });
     Bool.^add_method('pick',    my proto method pick(|) { * });
     Bool.^add_method('roll',    my proto method roll(|) { * });
@@ -14,6 +15,7 @@ BEGIN {
     Bool.^add_multi_method('gist',    my multi method gist(Bool:D:)    { self ?? 'True' !! 'False' });
     Bool.^add_multi_method('Str',     my multi method Str(Bool:D:)     { self ?? 'True' !! 'False' });
     Bool.^add_multi_method('Numeric', my multi method Numeric(Bool:D:) { self ?? 1 !! 0 });
+    Bool.^add_multi_method('Int',     my multi method Int(Bool:D:)     { self ?? 1 !! 0 });
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
     Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 

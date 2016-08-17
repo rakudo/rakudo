@@ -9215,10 +9215,9 @@ class Perl6::QActions is HLL::Actions does STDActions {
         $blast.annotate('past_block', WANTALL($blast.ann('past_block'),'escape{}'));
         make QAST::Op.new(
             :op('callmethod'), :name('Stringy'),
-            WANTED(QAST::Op.new(
-                :op('call'),
-                QAST::Op.new( :op('p6capturelex'), $blast ),
-                :node($/)), 'escape{}'));
+            WANTED(
+                QAST::Op.new( :op('call'), block_closure($blast), :node($/)),
+                'escape{}'));
     }
 
     # The next three are currently only used for tr///.

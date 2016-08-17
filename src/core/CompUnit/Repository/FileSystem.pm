@@ -1,6 +1,7 @@
 class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does CompUnit::Repository {
     has %!loaded;
     has $!precomp;
+    has $!id;
 
     my %extensions =
       Perl6 => <pm6 pm>,
@@ -55,6 +56,25 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method !comp-unit-id($name) {
         nqp::sha1($name ~ self.id);
+    }
+
+    method id() {
+        unless ($!id) {
+            my @dirs = self.prefix;
+            $!id = "";
+            while @dirs {
+                for @dirs.pop.dir -> $file {
+                    if $file.d {
+                        push @dirs, $file unless $file.basename eq ".precomp";
+                    }
+                    else {
+                        $!id = nqp::sha1($!id ~ nqp::sha1($file.slurp(:enc<latin1>)));
+                    }
+                }
+            }
+            $!id = nqp::sha1($!id ~ self.next-repo.id) if self.next-repo;
+        }
+        $!id
     }
 
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {

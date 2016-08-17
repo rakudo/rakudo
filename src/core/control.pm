@@ -114,12 +114,14 @@ multi sub succeed(| --> Nil) {
 sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
 my &callwith := -> |c {
+    my $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('callwith');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_args(|c)
 };
 
 my &nextwith := -> |c {
+    my $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
@@ -127,6 +129,7 @@ my &nextwith := -> |c {
 };
 
 my &callsame := -> {
+    my $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('callsame');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_capture(
@@ -134,6 +137,7 @@ my &callsame := -> {
 };
 
 my &nextsame := -> {
+    my $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
@@ -150,6 +154,7 @@ my &nextcallee := -> {
 };
 
 sub samewith(|c) {
+    $/ := nqp::getlexcaller('$/');
     my Mu $ctx := nqp::ctxcaller(nqp::ctx());
     until nqp::isnull($ctx) {
         my $caller := nqp::getcodeobj(nqp::ctxcode($ctx));

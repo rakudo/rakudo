@@ -55,7 +55,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !comp-unit-id($name) {
-        nqp::sha1($name ~ self.id);
+        nqp::sha1($name);
     }
 
     method id() {

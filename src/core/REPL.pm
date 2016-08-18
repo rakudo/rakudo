@@ -318,18 +318,6 @@ do {
             my $prompt = self.interactive_prompt;
             my $code = "";
 
-            my $ctrl-c  = Promise.new;
-            my $running = False;
-            signal(SIGINT).tap: {
-                if $running {
-                    $running = False;
-                    $ctrl-c.keep("\nAborted")
-                }
-                else {
-                    exit 0;
-                }
-            }
-
             REPL: loop {
 
                 my $newcode = self.repl-read(~$prompt);
@@ -347,36 +335,13 @@ do {
                     next;
                 }
 
-                sub reset(--> Nil) {
-                    $code = '';
-                    $prompt = self.interactive_prompt;
-                }
-
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $output;
 
-                await Promise.anyof(
-                  start {
-                      ENTER $running = True;
-                      LEAVE $running = False;
-                      CATCH {
-                          say $_;
-                          reset;
-                      }
-                      $output :=
-                        self.repl-eval($code,:outer_ctx($!save_ctx),|%adverbs);
-                  },
-                  $ctrl-c
-                );
-
-                if $ctrl-c.status == Kept {
-                    # XXX somehow kill the running thread
-                    say $ctrl-c.result;
-                    $ctrl-c = Promise.new;
-                    reset;
-                    next;
-                }
+                my $output := self.repl-eval(
+                    $code,
+                    :outer_ctx($!save_ctx),
+                    |%adverbs);
 
                 if self.input-incomplete($output) {
                     $prompt = '* ';
@@ -387,16 +352,18 @@ do {
                     $!save_ctx := $*MAIN_CTX;
                 }
 
-                reset;
+                $code = "";
+                $prompt = self.interactive_prompt;
 
                 # Only print the result if there wasn't some other output
                 if $initial_out_position == $*OUT.tell {
-                    self.repl-print($output);
+                  self.repl-print($output);
                 }
-                
+
                 CATCH {
                     say $_;
-                    reset;
+                    $code = '';
+                    $prompt = self.interactive_prompt;
                     next REPL;
                 }
             }

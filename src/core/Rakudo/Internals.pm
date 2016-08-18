@@ -1157,6 +1157,16 @@ my class Rakudo::Internals {
           !! path;
     }
 
+    method DIR-RECURSE(Str(Cool) \abspath, Mu :$test = none(<. .. .precomp>)) {
+        my @paths = Rakudo::Internals.FILETEST-E(abspath)
+            ?? dir(abspath, :$test)
+            !! ();
+        gather while ( @paths.pop ) -> Str(Cool) $path {
+            @paths.append( dir($path, :$test) ) if Rakudo::Internals.FILETEST-D($path);
+            take $path;
+        }
+    }
+
     method FILETEST-E(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }

@@ -59,27 +59,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        unless ($!id) {
-            if self.prefix.e {
-                my @dirs = self.prefix;
-                $!id = "";
-                while @dirs {
-                    for @dirs.pop.dir -> $file {
-                        if $file.d {
-                            push @dirs, $file unless $file.basename eq ".precomp";
-                        }
-                        else {
-                            $!id = nqp::sha1($!id ~ nqp::sha1($file.slurp(:enc<latin1>)));
-                        }
-                    }
-                }
-                $!id = nqp::sha1($!id ~ self.next-repo.id) if self.next-repo;
+        $!id //= !self.prefix.e
+            ?? nqp::sha1('')
+            !! do {
+                my $content-id =
+                        reduce { nqp::sha1($^a ~ $^b)               },
+                        map    { nqp::sha1(slurp($_, :enc<latin1>)) },
+                        grep   { Rakudo::Internals.FILETEST-F($_)   },
+                        Rakudo::Internals.DIR-RECURSE(self.prefix.absolute);
+                nqp::sha1($content-id ~ self.next-repo.id) if self.next-repo;
             }
-            else {
-                $!id = nqp::sha1('');
-            }
-        }
-        $!id
     }
 
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {

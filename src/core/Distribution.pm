@@ -124,21 +124,9 @@ class Distribution::Path does Distribution::Locally {
         die "No meta file located at {$path.abspath}" unless $path.e;
         my $meta = Rakudo::Internals::JSON.from-json(slurp($path));
 
-        my sub ls-files($prefix, $subdir) {
-            my $dir   = $prefix.child($subdir);
-            my @stack = dir($dir) if $dir.e;
-            my @files = eager gather while ( @stack ) {
-                my IO::Path $current = @stack.pop;
-                my Str      $relpath = $current.relative($prefix);
-                take $relpath and next if $current.f;
-                next if $current.basename eq '.precomp';
-                @stack.append( |dir($current.absolute) ) if $current.d;
-            }
-        }
-
         # generate `files` (special directories) directly from the file system
-        my @bins      = ls-files($prefix, 'bin');
-        my @resources = ls-files($prefix, 'resources');
+        my @bins      = grep *.IO.f, Rakudo::Internals.DIR-RECURSE( $prefix.child('bin').absolute );
+        my @resources = grep *.IO.f, Rakudo::Internals.DIR-RECURSE( $prefix.child('resources').absolute );
         my @files     = grep *.defined, unique(|$meta<files>, |@bins, |@resources);
         $meta<files>  = @files;
 

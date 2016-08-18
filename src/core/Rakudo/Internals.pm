@@ -1162,7 +1162,7 @@ my class Rakudo::Internals {
             ?? dir(abspath, :$test)
             !! ();
         gather while ( @paths.pop ) -> Str(Cool) $path {
-            @paths.append( dir($path, :$test) ) if Rakudo::Internals.FILETEST-D($path);
+            @paths.append( dir($path, :$test) ) if try Rakudo::Internals.FILETEST-D($path);
             take $path;
         }
     }

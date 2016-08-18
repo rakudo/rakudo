@@ -63,7 +63,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                         nqp::sha1($handle ?? $handle.slurp-rest(:enc<latin1>) !! '')
                     },
                     grep   {
-                        Rakudo::Internals.FILETEST-F($_)
+                        try Rakudo::Internals.FILETEST-F($_)
                         and Rakudo::Internals.MAKE-EXT($_) eq @extensions.any
                     },
                     Rakudo::Internals.DIR-RECURSE(self.prefix.absolute)

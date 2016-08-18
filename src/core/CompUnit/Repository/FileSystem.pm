@@ -3,11 +3,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!precomp;
     has $!id;
 
-    my %extensions =
-      Perl6 => <pm6 pm>,
-      Perl5 => <pm5 pm>,
-      NQP   => <nqp>,
-      JVM   => ();
+    my @extensions = <pm6 pm>;
 
     # global cache of files seen
     my %seen;
@@ -41,11 +37,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             unless ?$found {
                 # deduce path to compilation unit from package name
-                if %extensions<Perl6> -> @extensions {
-                    for @extensions -> $extension {
-                        my $path = $base ~ $extension;
-                        $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
-                    }
+                for @extensions -> $extension {
+                    my $path = $base ~ $extension;
+                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
                 }
             }
 
@@ -62,11 +56,18 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $!id //= !self.prefix.e
             ?? nqp::sha1('')
             !! do {
-                my $content-id =
-                        reduce { nqp::sha1($^a ~ $^b)               },
-                        map    { nqp::sha1(slurp($_, :enc<latin1>)) },
-                        grep   { Rakudo::Internals.FILETEST-F($_)   },
-                        Rakudo::Internals.DIR-RECURSE(self.prefix.absolute);
+                my $content-id = nqp::sha1(
+                    [~]
+                    map    {
+                        my $handle := $_.IO.open;
+                        nqp::sha1($handle ?? $handle.slurp-rest(:enc<latin1>) !! '')
+                    },
+                    grep   {
+                        Rakudo::Internals.FILETEST-F($_)
+                        and Rakudo::Internals.MAKE-EXT($_) eq @extensions.any
+                    },
+                    Rakudo::Internals.DIR-RECURSE(self.prefix.absolute)
+                );
                 nqp::sha1($content-id ~ self.next-repo.id) if self.next-repo;
             }
     }

@@ -323,6 +323,10 @@ W: http://ingy.net/
 S: Seattle, WA, USA
 D: Make is() work like Perl 5; add .pm6 to extensions searched.
 
+N: Itsuki Toyota
+U: titsuki
+E: titsuki@cpan.org
+
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
 U: jkeenan

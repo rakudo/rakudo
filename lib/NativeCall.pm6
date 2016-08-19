@@ -321,7 +321,7 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
             X::TypeCheck::Argument.new(
                 :objname($.name),
                 :arguments(args.list.map(*.^name))
-                :signature("    Expected: " ~ try $r.signature.perl),
+                :signature(try $r.signature.gist),
             ).throw
         }
 

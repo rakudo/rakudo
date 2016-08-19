@@ -45,6 +45,7 @@ New in 2016.08
     + Caller $/ is now propagated through deferral
     + Fixed inconsistent coersions to Bool
     + Fixed over-assuming optimization of R meta operator
+    + Fixed endless recursion in Any::BIND-POS under certain conditions
  + Additions:
     + Str.samemark('') now returns self instead of failing
     + Test.pm now provides bail-out()

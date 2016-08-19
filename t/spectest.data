@@ -23,6 +23,8 @@
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
+S01-perl-5-integration/context.t            # perl5
+S01-perl-5-integration/eval_lex.t           # perl5
 S01-perl-5-integration/exception_handling.t # perl5
 S01-perl-5-integration/hash.t               # perl5
 S01-perl-5-integration/import.t             # perl5
@@ -78,12 +80,14 @@ S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
 S02-magicals/file_line.t
+S02-magicals/GROUP.t
 S02-magicals/KERNEL.t
 S02-magicals/PERL.t
 S02-magicals/pid.t
 S02-magicals/progname.t
 S02-magicals/sub.t
 S02-magicals/subname.t
+S02-magicals/USER.t
 S02-magicals/VM.t
 S02-names/bare-sigil.t
 S02-names/caller.t
@@ -419,10 +423,12 @@ S05-modifier/perl5_9.t
 S05-modifier/pos.t
 S05-modifier/repetition-exhaustive.t
 S05-modifier/repetition.t
+S05-modifier/samemark.t
 S05-modifier/sigspace.t
 S05-substitution/67222.t
 S05-substitution/match.t
 S05-substitution/subst.t
+S05-syntactic-categories/new-symbols.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
@@ -596,6 +602,7 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
+S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-enums/anonymous.t
@@ -732,6 +739,8 @@ S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
 S15-normalization/nfkd-sanity.t # moar
+S15-string-types/NF-types.t
+S15-string-types/NFK-types.t
 S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
@@ -745,7 +754,9 @@ S16-filehandles/filetest.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/io.t
+S16-filehandles/misc.t
 S16-filehandles/mkdir_rmdir.t
+S16-filehandles/mode.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
@@ -755,10 +766,12 @@ S16-io/comb.t
 S16-io/cwd.t
 S16-io/eof.t
 S16-io/getc.t
+S16-io/handles-between-threads.t
 S16-io/lines.t
 S16-io/newline.t
 S16-io/note.t
 S16-io/print.t
+S16-io/quoting-syntax.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/split.t
@@ -776,6 +789,7 @@ S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar
 S17-procasync/many-processes-no-close-stdin.t # moar
+S17-procasync/stress.t   # moar
 S17-promise/allof.t      # slow
 S17-promise/at.t
 S17-promise/anyof.t
@@ -838,9 +852,13 @@ S19-command-line/help.t
 S19-command-line/repl.t
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
+S19-command-line-options/04-negation.t
+S19-command-line-options/05-delimited-options.t
+S19-command-line-options/06-dash-rxtrace.t
 S22-package-format/local.t
 S24-testing/0-compile.t
 S24-testing/3-output.t
+S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
@@ -912,6 +930,7 @@ S32-hash/exists-adverb.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t
+S32-hash/map.t
 S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
@@ -934,6 +953,7 @@ S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
+S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t

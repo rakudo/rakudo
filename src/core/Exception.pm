@@ -321,9 +321,9 @@ do {
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 nqp::printfh($err, $e.gist);
                 nqp::printfh($err, "\n");
-                if $v and $v.Str -> $location {
+                if $v {
                    nqp::printfh($err, "Actually thrown at:\n");
-                   nqp::printfh($err, $location);
+                   nqp::printfh($err, $v.Str);
                    nqp::printfh($err, "\n");
                 }
             }

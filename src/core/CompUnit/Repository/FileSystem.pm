@@ -60,7 +60,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     [~]
                     map    {
                         my $handle := $_.IO.open;
-                        nqp::sha1($handle ?? $handle.slurp-rest(:enc<latin1>) !! '')
+                        $handle ?? nqp::sha1($handle.slurp-rest(:enc<latin1>)) !! ''
                     },
                     grep   {
                         try Rakudo::Internals.FILETEST-F($_)

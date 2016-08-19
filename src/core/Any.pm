@@ -341,6 +341,7 @@ my class Any { # declared in BOOTSTRAP
         my int $i = -1;
         $target := $target.AT-POS(@indices.AT-POS($i))
           while nqp::islt_i(++$i,$elems);
+        X::Bind.new.throw if $target =:= self;
         $target.BIND-POS($final, value)
     }
 

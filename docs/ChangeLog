@@ -39,6 +39,12 @@ New in 2016.08
     + Bool.Int now properly returns an Int
     + Starting the REPL with a module loading error, will now just exit
     + Names of phasers (such as BEGIN) will now be included in suggestions
+    + Fixed loading of modules when a FileSystem repo doesn't actually exist
+    + Fixed mis-scoping of blocks in s///
+    + Closure clones are no longer double code-generated
+    + Caller $/ is now propagated through deferral
+    + Fixed inconsistent coersions to Bool
+    + Fixed over-assuming optimization of R meta operator
  + Additions:
     + Str.samemark('') now returns self instead of failing
     + Test.pm now provides bail-out()
@@ -87,6 +93,7 @@ New in 2016.08
         such as -> Int $_ --> Str { .Str }
     + Many Set/SetHash methods are now at least 5% faster
     + Coercing a MixHash/BagHash to a Mix/Bag is now 300x faster
+    + Coercing a Bag/BagHash to Mix coercion is now 1000x faster
     + Coercing a SetHash to a Set is now 80x faster
 
 New in 2016.07.1

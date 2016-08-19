@@ -529,6 +529,7 @@ class Reporter::Console does Reporter {
             my $header = sprintf '===( %7d;%d', $!tests, $now - $start;
             my @items = @!active.map(*.summary);
             my $ruler = ($header, |@items).join('  ') ~ ')===';
+            $ruler = $ruler.substr(0,70) if $ruler.chars > 70;
             $handle.print($!formatter.format-return($ruler));
         }
         multi receive('update', Str $name, Str $header, Int $number, Int $plan) {

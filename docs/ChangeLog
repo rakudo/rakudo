@@ -14,6 +14,7 @@ New in 2016.08
     + Fixed CURF's resolve generating the wrong repo-id
     + Fixed precomp file for Staging repo containing build path
     + Fixed merge global symbols failures when changing repositories
+    + Fixed -Ilib and friends not overriding installed dependencies
     + Fixed <[a..z]> ranges breaking grapheme awareness
     + Fixed a race condition in Channel.Supply
     + Fixed an occasional deadlock when using the supply/react syntax

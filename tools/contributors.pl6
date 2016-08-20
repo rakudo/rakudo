@@ -25,10 +25,22 @@ note qq:to/END/;
     END
 
 say "Contributors to Rakudo since the release on $last_release:";
-say
-@repos.map({
+my @contributors = @repos.map({
   |get-committers($_,$last_release)
-}).unique(:as(*.key))>>.value.Bag.sort(*.value).reverse>>.key.join(', ');
+}).unique(:as(*.key))».value.Bag.sort(*.value).reverse».key;
+
+for @contributors -> $name is rw {
+    state $length = 0;
+    $length += $name.chars + 2; # 2 extra for the comma and space after the name
+    if $length > 78 {
+        # prepend newline to name, so when we join and print the entire list,
+        # this name will start on the new line
+        $name = "\n$name";
+        $length = $name.chars + 2;
+    }
+
+}
+say @contributors.join(', ');
 
 sub get-committers($repo, $since) {
     die "Expected a repo in `$repo` but did not find one"

@@ -76,10 +76,11 @@ my role Baggy does QuantHash {
         }
         self
     }
-    method ACCEPTS(Baggy:_: $other) {
-        self.defined
-          ?? $other (<+) self && self (<+) $other
-          !! $other.^does(self);
+    multi method ACCEPTS(Baggy:U: $other) {
+        $other.^does(self)
+    }
+    multi method ACCEPTS(Baggy:D: $other) {
+        $other (<+) self && self (<+) $other
     }
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         my $elems    := nqp::getattr(%!elems,Map,'$!storage');

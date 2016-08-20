@@ -26,9 +26,9 @@ my $output;
 my $failure_output;
 my $todo_output;
 
-## If done_testing hasn't been run when we hit our END block, we need to know
+## If done-testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
-## plans and don't call done_testing.
+## plans and don't call done-testing.
 my int $done_testing_has_been_run = 0;
 
 # make sure we have initializations
@@ -662,7 +662,7 @@ sub _pop_vars {
 }
 
 END {
-    ## In planned mode, people don't necessarily expect to have to call done
+    ## In planned mode, people don't necessarily expect to have to call done-testing
     ## So call it for them if they didn't
     done-testing
       if nqp::iseq_i($done_testing_has_been_run,0)

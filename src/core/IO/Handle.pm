@@ -5,9 +5,15 @@ my class Proc { ... }
 my class IO::Handle does IO {
     has $.path;
     has $!PIO;
-    has $.chomp is rw = Bool::True;
+    has Bool $.chomp is rw;
+    has Str $.enc;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
+
+    my role Binary {
+        method get { callsame.?encode(self.enc) }
+        method getc { self.read(1).[0] }
+    }
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -17,12 +23,15 @@ my class IO::Handle does IO {
       :$append is copy,
       :$truncate is copy,
       :$exclusive is copy,
-      :$bin,
-      :$chomp = True,
-      :$enc   = 'utf8',
-      :$nl-in is copy = ["\x0A", "\r\n"],
-      Str:D :$nl-out is copy = "\n",
+      :$bin = False,
+      :$!chomp = True,
+      :$enc = $bin ?? 'latin1' !! 'utf8',
+      :$!nl-in = $!nl-in,
+      :$!nl-out = $!nl-out,
     ) {
+
+        self does Binary if $bin;
+        $!enc = Rakudo::Internals.NORMALIZE_ENCODING($enc);
 
         $mode //= do {
             when so ($r && $w) || $rw { $create              = True; 'rw' }
@@ -63,13 +72,10 @@ my class IO::Handle does IO {
             else {
                 die "Don't know how to open '$_' especially";
             }
-            $!chomp = $chomp;
-            $!nl-out = $nl-out;
 #?if !jvm
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in);
 #?endif
-            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
+            nqp::setencoding($!PIO, $!enc);
             return self;
         }
 
@@ -97,11 +103,8 @@ my class IO::Handle does IO {
             );
         }
 
-        $!chomp = $chomp;
-        $!nl-out = $nl-out;
-        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          unless $bin;
+        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in);
+        nqp::setencoding($!PIO, $!enc);
         self;
     }
 

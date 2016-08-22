@@ -1126,7 +1126,7 @@ class Perl6::World is HLL::World {
 
         if $use {
             $RMD("Attempting to load '$name'") if $RMD;
-            my $comp_unit := self.load_module($/, $name, %cp, $*GLOBALish);
+            my $comp_unit := self.load_module($/, $name, %cp, self.cur_lexpad);
             $RMD("Performing imports for '$name'") if $RMD;
             self.do_import($/, $comp_unit.handle, $name, $arglist);
             self.import_EXPORTHOW($/, $comp_unit.handle);
@@ -1197,7 +1197,8 @@ class Perl6::World is HLL::World {
         self.add_object($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
         my $comp_unit := $registry.head.need($spec);
-        $cur_GLOBALish.WHO.merge-symbols($comp_unit.handle.globalish-package.WHO);
+        my $globalish := $comp_unit.handle.globalish-package.WHO;
+        nqp::gethllsym('perl6','ModuleLoader').merge_globals_lexically($cur_GLOBALish, $globalish);
 
         return $comp_unit;
     }

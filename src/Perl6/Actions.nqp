@@ -852,7 +852,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             my $renderer := "Pod::To::$doc";
 
-            my $module := $*W.load_module($/, $renderer, {}, $*GLOBALish);
+            my $module := $*W.load_module($/, $renderer, {}, $block);
 
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),

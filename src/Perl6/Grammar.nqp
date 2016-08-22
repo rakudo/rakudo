@@ -150,9 +150,16 @@ role STD {
     }
 
     role herestop {
+        has $!warned_about_broken_heredoc;
         token starter { <!> }
-        token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ [\r\n | \v]? }
+        token stopper { ^^ {} $<ws>=(\h*) $*DELIM [ \h* $$ || \h* $<garbage>=[\H \V*?] \h* $$ { self.worry_broken_heredoc_stopper($<garbage>) } <!> ] [\r\n | \v]? }
         method parsing_heredoc() { 1 }
+        method worry_broken_heredoc_stopper($garbage) {
+            unless $!warned_about_broken_heredoc {
+                $!warned_about_broken_heredoc := 1;
+                self.worry("Ignored the heredoc delimiter '$*DELIM' earlier, because there was some garbage before the end-of-line: '{ nqp::escape($garbage) }'.");
+            }
+        }
     }
 
     method heredoc () {

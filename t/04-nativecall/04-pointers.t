@@ -3,6 +3,7 @@ use v6;
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
+use NativeCall::Types;
 use Test;
 
 plan 12;

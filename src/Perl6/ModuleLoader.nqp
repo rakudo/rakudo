@@ -89,6 +89,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     # moment. We'll see how far this takes us.
     my $stub_how := 'Perl6::Metamodel::PackageHOW';
     my $nqp_stub_how := 'KnowHOW';
+    sub is_stub($how) {
+        $how.HOW.name($how) eq $stub_how || $how.HOW.name($how) eq $nqp_stub_how
+    }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
@@ -105,12 +108,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $source_mo := $_.value.HOW;
-                my $source_is_stub := $source_mo.HOW.name($source_mo) eq $stub_how
-                                   || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
-                my $target_mo := ($target){$sym}.HOW;
-                my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how
-                                   || $target_mo.HOW.name($target_mo) eq $nqp_stub_how;
+                my $source_is_stub := is_stub($_.value.HOW);
+                my $target_is_stub := is_stub(($target){$sym}.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
@@ -131,6 +130,55 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 elsif nqp::eqat($_.key, '&', 0) {
                     # "Latest wins" semantics for functions
                     ($target){$sym} := $_.value;
+                }
+                else {
+                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                }
+            }
+        }
+    }
+    method merge_globals_lexically($target, $source) {
+        # Start off merging top-level symbols. Easy when there's no
+        # overlap. Otherwise, we need to recurse.
+        my %known_symbols;
+        for $target.symtable {
+            %known_symbols{$_.key} := 1;
+        }
+        for stash_hash($source) {
+            my $sym := $_.key;
+            if !%known_symbols{$sym} {
+                $target.symbol($sym, :scope('lexical'), :value($_.value));
+                $target[0].push(QAST::Var.new(
+                    :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
+                ));
+            }
+            elsif nqp::decont($target.symbol($sym)<value>) =:= nqp::decont($_.value) { # Stash entries are containerized
+                # No problemo; a symbol can't conflict with itself.
+            }
+            else {
+                my $existing := $target.symbol($sym)<value>;
+                my $source_is_stub := is_stub($_.value.HOW);
+                my $target_is_stub := is_stub($existing.HOW);
+                if $source_is_stub && $target_is_stub {
+                    # Both stubs. We can safely merge the symbols from
+                    # the source into the target that's importing them.
+                    self.merge_globals($existing.WHO, $_.value.WHO);
+                }
+                elsif $source_is_stub {
+                    # The target has a real package, but the source is a
+                    # stub. Also fine to merge source symbols into target.
+                    self.merge_globals($existing.WHO, $_.value.WHO);
+                }
+                elsif $target_is_stub {
+                    # The tricky case: here the interesting package is the
+                    # one in the module. So we merge the other way around
+                    # and install that as the result.
+                    self.merge_globals($_.value.WHO, $existing.WHO);
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                }
+                elsif nqp::eqat($_.key, '&', 0) {
+                    # "Latest wins" semantics for functions
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");

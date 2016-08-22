@@ -79,9 +79,41 @@ my role Baggy does QuantHash {
     multi method ACCEPTS(Baggy:U: $other) {
         $other.^does(self)
     }
-    multi method ACCEPTS(Baggy:D: $other) {
+    multi method ACCEPTS(Baggy:D: Mu $other) {
         $other (<+) self && self (<+) $other
     }
+    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool) {
+        nqp::p6bool(
+          nqp::unless(
+            nqp::eqaddr(self,$other),
+            nqp::if(
+              (%!elems.elems
+                == nqp::getattr($other,$other.WHAT,'%!elems').elems),
+              nqp::stmts(
+                (my $iter := nqp::iterator(
+                  nqp::getattr(%!elems,Map,'$!storage'))),
+                (my $oelems := nqp::getattr(
+                  nqp::getattr($other,$other.WHAT,'%!elems'),Map,'$!storage')),
+                nqp::while(
+                  $iter,
+                  nqp::stmts(
+                    nqp::shift($iter),
+                    nqp::unless(
+                      (nqp::existskey($oelems,nqp::iterkey_s($iter))
+                        && nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                        == nqp::getattr(nqp::atkey(
+                             $oelems,nqp::iterkey_s($iter)),Pair,'$!value')),
+                      return False
+                    )
+                  )
+                ),
+                1
+              )
+            )
+          )
+        )
+    }
+
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         my $elems    := nqp::getattr(%!elems,Map,'$!storage');
         my str $which = nqp::unbox_s(k.WHICH);

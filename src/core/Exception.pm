@@ -312,6 +312,15 @@ do {
 
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
+
+        if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
+            my $class := ::("Exceptions::$handler");
+            unless nqp::istype($class,Failure) {
+                temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                return $class.process(EXCEPTION($ex))
+            }
+        }
+
         try {
             my $e := EXCEPTION($ex);
             my $v := $e.vault-backtrace;
@@ -2574,6 +2583,20 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
                         ~ " a single colon for it: $<name>:from<...>\n"
                     !! ''
                 )
+    }
+}
+
+my class Exceptions::JSON {
+    method process($ex) {
+        nqp::printfh(
+          nqp::getstderr,
+          Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
+            (message => $ex.message),
+            $ex.^attributes.grep(*.has_accessor).map: {
+                $_ => $ex."$_"() with .name.substr(2)
+            }
+          ))
+        )
     }
 }
 

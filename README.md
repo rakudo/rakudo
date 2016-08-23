@@ -120,9 +120,7 @@ trackers on github for perl6/nqp or moarvm/moarvm.
 If you have a patch that fixes a bug or adds a new feature, please
 create a pull request using github's pull request infrastructure.
 
-Please separate your commits for different issues into different
-branches, and please squash out any intermediate commits, like
-adding/removing debug output.
+See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/nom/CONTRIBUTING.md) for more information.
 
 ## Line editing and tab completion
 

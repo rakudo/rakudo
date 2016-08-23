@@ -30,6 +30,10 @@ Perl Foundation.
 For small contributions, you agree to place your code under the terms of the
 license of the code that Rakudo is under.
 
+Please separate your commits for different issues into different
+branches, and please squash out any intermediate commits, like
+adding/removing debug output.
+
 ## Test Coverage
 
 New features should be accompanied by test cases in the [roast

@@ -1154,43 +1154,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method first(Bool:D $t) {
         Failure.new(X::Match::Bool.new( type => '.first' ))
     }
+    # need to handle Regex differently, since it is also Callable
     multi method first(Regex:D $test, :$end, *%a) is raw {
-        if $end {
-            nqp::stmts(
-              (my $elems = +self),
-              nqp::if(
-                ($elems && nqp::not_i($elems == Inf)),
-                nqp::stmts(
-                  (my int $index = $elems),
-                  nqp::while(
-                    nqp::isge_i(($index = nqp::sub_i($index,1)),0),
-                    nqp::if(
-                      ($_ := self.AT-POS($index)).match($test),
-                      return self!first-result($index,$_,'first :end',%a)
-                    )
-                  ),
-                  Nil
-                ),
-                Nil
-              )
-            )
-        }
-        else {
-            nqp::stmts(
-              (my $iter := self.iterator),
-              (my int $index),
-              nqp::until(
-                (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
-                  || .match($test)),
-                ($index = nqp::add_i($index,1))
-              ),
-              nqp::if(
-                nqp::eqaddr($_,IterationEnd),
-                Nil,
-                self!first-result($index,$_,'first',%a)
-              )
-            )
-        }
+        $end
+          ?? self!first-accepts-end($test,%a)
+          !! self!first-accepts($test,%a)
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
@@ -1203,8 +1171,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   nqp::while(
                     nqp::isge_i(($index = nqp::sub_i($index,1)),0),
                     nqp::if(
-                      $test($_ := self.AT-POS($index)),
-                      return self!first-result($index,$_,'first :end',%a)
+                      $test(self.AT-POS($index)),
+                      return self!first-result(
+                        $index,self.AT-POS($index),'first :end',%a)
                     )
                   ),
                   Nil
@@ -1231,42 +1200,46 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
     multi method first(Mu $test, :$end, *%a) is raw {
-        if $end {
+        $end
+          ?? self!first-accepts-end($test,%a)
+          !! self!first-accepts($test,%a)
+    }
+    method !first-accepts($test,%a) is raw {
+        nqp::stmts(
+          (my $iter := self.iterator),
+          (my int $index),
+          nqp::until(
+            (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+              || $test.ACCEPTS($_)),
+            ($index = nqp::add_i($index,1))
+          ),
+          nqp::if(
+            nqp::eqaddr($_,IterationEnd),
+            Nil,
+            self!first-result($index,$_,'first',%a)
+          )
+        )
+    }
+    method !first-accepts-end($test,%a) is raw {
+        nqp::stmts(
+          (my $elems = +self),
+          nqp::if(
+            ($elems && nqp::not_i($elems == Inf)),
             nqp::stmts(
-              (my $elems = +self),
-              nqp::if(
-                ($elems && nqp::not_i($elems == Inf)),
-                nqp::stmts(
-                  (my int $index = $elems),
-                  nqp::while(
-                    nqp::isge_i(($index = nqp::sub_i($index,1)),0),
-                    nqp::if(
-                      $test.ACCEPTS($_ := self.AT-POS($index)),
-                      return self!first-result($index,$_,'first :end',%a)
-                    )
-                  ),
-                  Nil
-                ),
-                Nil
-              )
-            )
-        }
-        else {
-            nqp::stmts(
-              (my $iter := self.iterator),
-              (my int $index),
-              nqp::until(
-                (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
-                  || $test.ACCEPTS($_)),
-                ($index = nqp::add_i($index,1))
+              (my int $index = $elems),
+              nqp::while(
+                nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+                nqp::if(
+                  $test.ACCEPTS(self.AT-POS($index)),
+                  return self!first-result(
+                    $index,self.AT-POS($index),'first :end',%a)
+                )
               ),
-              nqp::if(
-                nqp::eqaddr($_,IterationEnd),
-                Nil,
-                self!first-result($index,$_,'first',%a)
-              )
-            )
-        }
+              Nil
+            ),
+            Nil
+          )
+        )
     }
     method !iterator-and-first($what,\first) is raw {
         nqp::if(

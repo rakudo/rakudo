@@ -921,28 +921,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
     }
-    method !grep-regex(Regex:D $test) {
-        Seq.new(class :: does Grepper {
-            method pull-one() is raw {
-                nqp::until(
-                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                    || $_.match($!test),
-                  Nil
-                );
-                $_
-            }
-            method push-all($target) {
-                nqp::until(
-                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                  nqp::if(  # doesn't sink
-                    $_.match($!test),
-                    $target.push($_)
-                  )
-                );
-                IterationEnd
-            }
-        }.new(self, $test))
-    }
     method !grep-callable(Callable:D $test) {
         if ($test.count == 1) {
             $test.?has-phasers
@@ -1082,7 +1060,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my $storage := nqp::getattr(%_,Map,'$!storage');
         if nqp::iseq_i(nqp::elems($storage),0) {
             nqp::istype($t,Regex:D)
-              ?? self!grep-regex: $t
+              ?? self!grep-accepts: $t
               !! nqp::istype($t,Callable:D)
                    ?? self!grep-callable: $t
                    !! self!grep-accepts: $t
@@ -1090,28 +1068,28 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         elsif nqp::iseq_i(nqp::elems($storage),1) {
             if nqp::atkey($storage,"k") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-k: { $_.match($t) }
+                  ?? self!grep-k: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-k: $t
                        !! self!grep-k: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"kv") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-kv: { $_.match($t) }
+                  ?? self!grep-kv: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-kv: $t
                        !! self!grep-kv: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"p") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-p: { $_.match($t) }
+                  ?? self!grep-p: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-p: $t
                        !! self!grep-p: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"v") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-regex: $t
+                  ?? self!grep-accepts: $t
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-callable: $t
                        !! self!grep-accepts: $t
@@ -1121,7 +1099,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   nqp::iterkey_s(nqp::shift(nqp::iterator($storage)));
                 if nqp::iseq_s($key,"k") || nqp::iseq_s($key,"kv") || nqp::iseq_s($key,"p") {
                     nqp::istype($t,Regex:D)
-                      ?? self!grep-regex: $t
+                      ?? self!grep-accepts: $t
                       !! nqp::istype($t,Callable:D)
                            ?? self!grep-callable: $t
                            !! self!grep-accepts: $t

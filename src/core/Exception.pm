@@ -312,17 +312,17 @@ do {
 
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
+        my $e := EXCEPTION($ex);
 
         if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                return $class.process(EXCEPTION($ex))
+                return unless $class.process($e)
             }
         }
 
         try {
-            my $e := EXCEPTION($ex);
             my $v := $e.vault-backtrace;
             my Mu $err := nqp::getstderr();
 
@@ -2596,7 +2596,8 @@ my class Exceptions::JSON {
                 $_ => $ex."$_"() with .name.substr(2)
             }
           ))
-        )
+        );
+        False  # done processing
     }
 }
 

@@ -577,4 +577,14 @@ my role Baggy does QuantHash {
     method SetHash() { SetHash.new(self.keys) }
 }
 
+multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::eqaddr(a.WHAT,b.WHAT)
+          && nqp::getattr(nqp::decont(a),a.WHAT,'%!elems')
+               eqv nqp::getattr(nqp::decont(b),b.WHAT,'%!elems')
+      )
+    )
+}
 # vim: ft=perl6 expandtab sw=4

@@ -2,7 +2,7 @@
 
 Contributions to Rakudo are very welcome.
 
-To make the process smother for you and the contributors, please read the note
+To make the process smoother for you and the contributors, please read the note
 below.
 
 ## The Contribution Process

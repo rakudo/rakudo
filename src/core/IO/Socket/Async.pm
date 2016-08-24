@@ -53,26 +53,50 @@ my class IO::Socket::Async {
         -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
     }
 
+    # Later, this will move off to the Rakudo::Internals package, to be
+    # used in other places.
+    my class VMBackedDecoder is repr('Decoder') {
+        method new(str $encoding) {
+            nqp::decoderconfigure(nqp::create(self), $encoding, nqp::hash())
+        }
+
+        method add-bytes(VMBackedDecoder:D: Blob $bytes --> Nil) {
+            nqp::decoderaddbytes(self, nqp::decont($bytes));
+        }
+
+        method consume-available-chars(VMBackedDecoder:D: --> Str) {
+            nqp::decodertakeavailablechars(self)
+        }
+
+        method consume-all-chars(VMBackedDecoder:D: --> Str) {
+            nqp::decodertakeallchars(self)
+        }
+    }
+
     method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$scheduler = $*SCHEDULER) {
-        my $cancellation;
-        Supply.on-demand:
-            -> $supply {
-                $cancellation := $bin
-                    ?? nqp::asyncreadbytes(
-                        $!VMIO,
-                        $scheduler.queue,
-                        capture($supply),
-                        nqp::decont($buf),
-                        SocketCancellation)
-                    !! nqp::asyncreadchars(
-                        $!VMIO,
-                        $scheduler.queue,
-                        capture($supply),
-                        SocketCancellation)
-          },
-          closing => {
-              $cancellation && nqp::cancel($cancellation)
-          }
+        if $bin {
+            my $cancellation;
+            Supply.on-demand:
+                -> $supply {
+                    $cancellation := nqp::asyncreadbytes($!VMIO, $scheduler.queue,
+                        capture($supply), nqp::decont($buf), SocketCancellation)
+                    },
+                    closing => {
+                        $cancellation && nqp::cancel($cancellation)
+                    }
+        }
+        else {
+            my $bin-supply = self.Supply(:bin);
+            supply {
+                my $decoder = VMBackedDecoder.new('utf8');
+                whenever $bin-supply {
+                    $decoder.add-bytes($_);
+                    emit $decoder.consume-available-chars();
+                    # XXX Phaser scoping bug needs tracking down
+                    # LAST emit $decoder.consume-all-chars();
+                }
+            }
+        }
     }
 
     method close(IO::Socket::Async:D: --> True) {

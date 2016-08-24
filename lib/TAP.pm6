@@ -23,7 +23,7 @@ class Test does Entry {
     has Str $.explanation;
 
     method is-ok() {
-        return $!ok || $!directive ~~ Todo;
+        $!ok || $!directive ~~ Todo;
     }
 }
 
@@ -46,7 +46,7 @@ class Sub-Test is Test {
         elsif @plans[0].tests != @tests.elems {
             @errors.push: "Subtest $usable-number expected { @plans[0].tests } but contains { @tests.elems } tests";
         }
-        return @errors;
+        @errors;
     }
 }
 
@@ -93,17 +93,17 @@ class Result {
     has Proc $.exit-status;
     has Duration $.time;
     method exit() {
-        return $!exit-status.defined ?? $!exit-status.exitcode !! Int;
+        $!exit-status.defined ?? $!exit-status.exitcode !! Int;
     }
     method wait() {
-        return $!exit-status.defined ?? $!exit-status.status !! Int;
+        $!exit-status.defined ?? $!exit-status.status !! Int;
     }
 
     method has-problems($ignore-exit) {
-        return @!failed || @!errors || (!$ignore-exit && self.exit-failed);
+        @!failed || @!errors || (!$ignore-exit && self.exit-failed);
     }
     method exit-failed() {
-        return $!exit-status.defined && $!exit-status.status;
+        $!exit-status.defined && $!exit-status.status;
     }
 }
 
@@ -144,7 +144,7 @@ class Aggregator {
     }
 
     method result-count {
-        return +@!parse-order;
+        +@!parse-order;
     }
     method results() {
         %!results-for{@!parse-order};
@@ -152,13 +152,13 @@ class Aggregator {
 
 
     method has-problems() {
-        return $!todo-passed || self.has-errors;
+        $!todo-passed || self.has-errors;
     }
     method has-errors() {
-        return $!failed || $!errors || $!exit-failed;
+        $!failed || $!errors || $!exit-failed;
     }
     method get-status() {
-        return self.has-errors || $!tests-run != $!passed ?? 'FAILED' !! $!tests-run ?? 'PASS' !! 'NOTESTS';
+        self.has-errors || $!tests-run != $!passed ?? 'FAILED' !! $!tests-run ?? 'PASS' !! 'NOTESTS';
     }
 }
 
@@ -232,7 +232,7 @@ grammar Grammar {
             %args<description> = $<description>.made if $<description>;
             %args<directive> = $<directive> ?? TAP::Directive::{~$<directive>.substr(0,4).tclc} !! TAP::No-Directive;
             %args<explanation> = ~$<explanation> if $<explanation>;
-            return %args;
+            %args;
         }
         method test($/) {
             make TAP::Test.new(:raw(~$/), |self!make_test($/));
@@ -328,7 +328,7 @@ class Formatter::Text does Formatter {
     method format-name($name) {
         my $periods = '.' x ( $!longest + 2 - $name.chars);
         my @now = $.timer ?? ~DateTime.new(now, :formatter{ '[' ~ .hour ~ ':' ~ .minute ~ ':' ~ .second.Int ~ ']' }) !! ();
-        return (|@now, $name, $periods).join(' ');
+        (|@now, $name, $periods).join(' ');
     }
     method format-summary(TAP::Aggregator $aggregator, Bool $interrupted, Duration $duration) {
         my $output = '';
@@ -377,16 +377,16 @@ class Formatter::Text does Formatter {
         $output ~= "Files={ $aggregator.result-count }, Tests={ $aggregator.tests-run }$timing\n";
         my $status = $aggregator.get-status;
         $output ~= "Result: $status\n";
-        return $output;
+        $output;
     }
     method format-success(Str $output) {
-        return $output;
+        $output;
     }
     method format-failure(Str $output) {
-        return $output;
+        $output;
     }
     method format-return(Str $output) {
-        return $output;
+        $output;
     }
     method format-result(Session $session, TAP::Result $result) {
         my $output;
@@ -401,7 +401,7 @@ class Formatter::Text does Formatter {
             my $time = self.timer && $result.time ?? sprintf ' %8d ms', Int($result.time * 1000) !! '';
             $output = self.format-return("$name ok$time\n");
         }
-        return $output;
+        $output;
     }
     method format-test-failure(Str $name, TAP::Result $result) {
         return if self.volume < Quiet;
@@ -436,7 +436,7 @@ class Formatter::Text does Formatter {
         }
 
         $output ~= "\n";
-        return $output;
+        $output;
     }
 }
 class Reporter::Text does Reporter {
@@ -449,7 +449,7 @@ class Reporter::Text does Reporter {
 
     method open-test(Str $name) {
         my $header = $!formatter.format-name($name);
-        return Reporter::Text::Session.new(:$name, :$header, :reporter(self));
+        Reporter::Text::Session.new(:$name, :$header, :reporter(self));
     }
     method summarize(TAP::Aggregator $aggregator, Bool $interrupted, Duration $duration) {
         self!output($!formatter.format-summary($aggregator, $interrupted, $duration));
@@ -465,13 +465,13 @@ class Reporter::Text does Reporter {
 class Formatter::Console is Formatter::Text {
     my &colored = sub ($text, $) { $text }
     method format-success(Str $output) {
-        return colored($output, 'green');
+        colored($output, 'green');
     }
     method format-failure(Str $output) {
-        return colored($output, 'red');
+        colored($output, 'red');
     }
     method format-return(Str $output) {
-        return "\r$output";
+        "\r$output";
     }
 }
 
@@ -500,7 +500,7 @@ class Reporter::Console::Session does Session {
     multi method handle-entry(TAP::Entry $) {
     }
     method summary() {
-        return ($!number, $!plan // '?').join("/");
+        ($!number, $!plan // '?').join("/");
     }
 }
 class Reporter::Console does Reporter {
@@ -574,7 +574,7 @@ class Reporter::Console does Reporter {
         my $header = $!formatter.format-name($name);
         my $ret = Reporter::Console::Session.new(:$name, :$header, :reporter(self));
         @!active.push($ret);
-        return $ret;
+        $ret;
     }
 }
 
@@ -681,7 +681,7 @@ package Runner {
             $!done.keep;
         }
         method finalize(Str $name, Proc $exit-status, Duration $time) {
-            return TAP::Result.new(:$name, :$!tests-planned, :$!tests-run, :$!passed, :@!failed, :@!errors, :$!skip-all,
+            TAP::Result.new(:$name, :$!tests-planned, :$!tests-run, :$!passed, :@!failed, :@!errors, :$!skip-all,
                 :$!actual-passed, :$!actual-failed, :$!todo, :@!todo-passed, :$!skipped, :$!unknowns, :$exit-status, :$time);
         }
         method !add-error(Str $error) {
@@ -694,7 +694,7 @@ package Runner {
     role Source {
         has Str $.name;
         method make-parser(:@handlers, Promise :$promise) {
-            return Async.new(:source(self), :@handlers, :$promise);
+            Async.new(:source(self), :@handlers, :$promise);
         }
     }
     my class Run {
@@ -708,10 +708,10 @@ package Runner {
             $!killer.kill if $!process;
         }
         method exit-status() {
-            return $!process.result ~~ Proc ?? $.process.result !! Proc;
+            $!process.result ~~ Proc ?? $.process.result !! Proc;
         }
         method time() {
-            return $!timer.defined ?? $!timer.result !! Duration;
+            $!timer.defined ?? $!timer.result !! Duration;
         }
     }
     class Source::Proc does Source {
@@ -794,7 +794,7 @@ package Runner {
             my $process = $async.start;
             my $start-time = now;
             my $timer = $process.then({ now - $start-time });
-            return Run.new(:$process, :killer($async), :$timer);
+            Run.new(:$process, :killer($async), :$timer);
         }
         multi get_runner(Source::Supply $supply; TAP::Entry::Handler @handlers) {
             my $parser = TAP::Parser.new(:@handlers);
@@ -802,15 +802,15 @@ package Runner {
             my $process = Promise.new;
             my $timer = $process.then({ now - $start-time });
             $supply.supply.act({ $parser.add-data($^data) }, :done({ $parser.close-data(); $process.keep }));
-            return Run.new(:$process, :$timer);
+            Run.new(:$process, :$timer);
         }
         multi get_runner(Source::Through $through; TAP::Entry::Handler @handlers) {
             $through.staple(@handlers);
-            return Run.new(:process($through.promise));
+            Run.new(:process($through.promise));
         }
         multi get_runner(Source::File $file; TAP::Entry::Handler @handlers) {
             my $parser = TAP::Parser.new(:@handlers);
-            return Run.new(:process(start {
+            Run.new(:process(start {
                 $parser.add-data($file.filename.IO.slurp);
                 $parser.close-data();
             }));
@@ -821,20 +821,20 @@ package Runner {
             $parser.close-data();
             my $done = Promise.new;
             $done.keep;
-            return Run.new(:process($done));
+            Run.new(:process($done));
         }
 
         method new(Source :$source, :@handlers, Promise :$bailout) {
             my $state = State.new(:$bailout);
             my TAP::Entry::Handler @all_handlers = $state, |@handlers;
             my $run = get_runner($source, @all_handlers);
-            return Async.bless(:name($source.name), :$state, :$run);
+            Async.bless(:name($source.name), :$state, :$run);
         }
 
         has TAP::Result $!result;
         method result {
             await $!waiter;
-            return $!result //= $!state.finalize($!name, $!run.exit-status, $!run.time);
+            $!result //= $!state.finalize($!name, $!run.exit-status, $!run.time);
         }
 
     }
@@ -920,7 +920,7 @@ class Harness {
         has Str:D $.path is required;
         has @.args;
         method make-source(Str:D $name, Any:D :$err) {
-            return TAP::Runner::Source::Proc.new(:$name, :$!path, :args[ |@!args, $name ], :$err);
+            TAP::Runner::Source::Proc.new(:$name, :$!path, :args[ |@!args, $name ], :$err);
         }
     }
     class SourceHandler::Perl6 does SourceHandler::Proc {
@@ -928,15 +928,15 @@ class Harness {
             @!args = @incdirs.map("-I" ~ *);
         }
         method can-handle(Str $name) {
-            return 0.5;
+            0.5;
         }
     }
     class SourceHandler::Exec does SourceHandler::Proc {
         method new (*@ ($path, *@args)) {
-            return self.bless(:$path, :@args);
+            self.bless(:$path, :@args);
         }
         method can-handle(Str $name) {
-            return 1;
+            1;
         }
     }
 
@@ -961,13 +961,13 @@ class Harness {
     }
 
     method make-aggregator() {
-        return TAP::Aggregator.new(:$!ignore-exit);
+        TAP::Aggregator.new(:$!ignore-exit);
     }
     method make-handlers(Str $name) {
-        return ();
+        ();
     }
     method make-source(Str $name) {
-        return @!handlers.max(*.can-handle($name)).make-source($name, :$!err);
+        @!handlers.max(*.can-handle($name)).make-source($name, :$!err);
     }
     my &sigint = sub { signal(SIGINT) }
 

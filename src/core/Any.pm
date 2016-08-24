@@ -420,7 +420,8 @@ multi sub infix:<===>($?)    { Bool::True }
 multi sub infix:<===>(\a, \b) {
     nqp::p6bool(
       nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH))
+      && (nqp::eqaddr(a,b)
+           || nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
     )
 }
 

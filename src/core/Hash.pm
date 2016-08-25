@@ -319,10 +319,8 @@ my class Hash { # declared in BOOTSTRAP
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
-                    nqp::push(
-                      nqp::getattr(nqp::decont($hash{$last} //= []), List, '$!reified'),
-                      &as ?? as($value) !! $value
-                    );
+                    ($hash{$last} //= []).push(
+                      &as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     $tested := test($value);
                 };
@@ -331,10 +329,7 @@ my class Hash { # declared in BOOTSTRAP
             # simple classify to store a specific value
             elsif &as {
                 loop {
-                    nqp::push(
-                      nqp::getattr(nqp::decont(self{$tested} //= []), List, '$!reified'),
-                      as($value)
-                    );
+                    (self{$tested} //= []).push(as($value));
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     $tested := test($value);
                 };
@@ -343,10 +338,7 @@ my class Hash { # declared in BOOTSTRAP
             # just a simple classify
             else {
                 loop {
-                    nqp::push(
-                      nqp::getattr(nqp::decont(self{$tested} //= []), List, '$!reified'),
-                      $value
-                    );
+                    (self{$tested} //= []).push($value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     $tested := test($value);
                 };

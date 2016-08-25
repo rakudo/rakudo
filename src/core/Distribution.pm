@@ -126,7 +126,16 @@ class Distribution::Path does Distribution::Locally {
 
         # generate `files` (special directories) directly from the file system
         my @bins      = grep *.IO.f, Rakudo::Internals.DIR-RECURSE( $prefix.child('bin').absolute );
-        my @resources = grep *.IO.f, Rakudo::Internals.DIR-RECURSE( $prefix.child('resources').absolute );
+        my $resources-dir = $prefix.child('resources');
+        my @resources = ($meta<resources> // []).map: {
+            $_ ~~ m/^libraries\/(.*)/
+                ?? (
+                    "resources/$_" => ~$resources-dir.child('libraries').child(
+                        $*VM.platform-library-name($0.Str.IO)
+                    ).absolute
+                ).hash
+                !! ~$resources-dir.child($_).absolute
+        };
         my @files     = grep *.defined, unique(|$meta<files>, |@bins, |@resources);
         $meta<files>  = @files;
 

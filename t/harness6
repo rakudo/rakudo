@@ -81,7 +81,7 @@ multi sub MAIN(
     }
 
     multi all-in(Str $start) {
-        return all-in($start.IO);
+        all-in($start.IO);
     }
     multi all-in(IO::Path $start) {
         return ~$start unless $start.d;
@@ -105,7 +105,7 @@ multi sub MAIN(
 
     sub fudge(@files) {
         my $cmd = run($perl5path, 't/spec/fudgeall', '--keep-exit-code', "rakudo.$vm", |@files, :out);
-        return $cmd.out.slurp-rest.split(' ').map(*.chomp);
+        $cmd.out.slurp-rest.split(' ').map(*.chomp);
     }
 
 #    multi sub get-handler('jvm') {

@@ -330,18 +330,9 @@ sub skip-rest($reason = '<unknown>') is export {
     $time_before = nqp::time_n;
 }
 
-sub subtest($first, $second?) is export {
-    my &subtests;
-    my $desc;
-
-    if $first ~~ Pair {
-        ( &subtests, $desc ) = $first.value, $first.key;
-    } elsif $second ~~ Code {
-        ( &subtests, $desc ) = $second, $first;
-    } else {
-        ( &subtests, $desc ) = $first, $second // '';
-    }
-
+multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
+multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
+multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
     $indents ~= "    ";

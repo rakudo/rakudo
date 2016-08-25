@@ -1020,7 +1020,7 @@ class Harness {
                 }
                 @working = @new-working;
             }
-            return Run.new(:$waiter, :$killed);
+            Run.new(:$waiter, :$killed);
         }
         else {
             my $waiter = start {
@@ -1042,7 +1042,7 @@ class Harness {
                 $int.close if $int;
                 $aggregator;
             }
-            return Run.new(:$waiter, :$killed);
+            Run.new(:$waiter, :$killed);
         }
     }
 }

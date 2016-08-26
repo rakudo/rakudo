@@ -300,10 +300,15 @@ do {
                 when X::ControlFlow::Return {
                     return $!control-not-allowed;
                 }
+
+                default {
+                  # Use the exception as the result of the eval, to be printed
+                  return $_;
+                }
             }
 
             CONTROL {
-                return $!control-not-allowed unless $*exception-handled;
+                return $!control-not-allowed;
             }
 
             self.compiler.eval($code, |%adverbs)
@@ -324,8 +329,6 @@ do {
             reset;
 
             REPL: loop {
-                my $*exception-handled = False;
-
                 my $newcode = self.repl-read(~$prompt);
 
                 my $initial_out_position = $*OUT.tell;
@@ -371,13 +374,6 @@ do {
                     self.repl-print($output);
                 }
 
-                CATCH {
-                    say $_;
-                    reset;
-                    # prevent 'next' from generating error
-                    $*exception-handled = True;
-                    next REPL;
-                }
 
             }
 
@@ -396,6 +392,9 @@ do {
 
         method repl-print(Mu $value) {
             say $value;
+            CATCH {
+                default { say $_ }
+            }
         }
 
         method history-file returns Str {

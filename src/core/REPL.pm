@@ -315,8 +315,13 @@ do {
 
             say "To exit type 'exit' or '^D'";
 
-            my $prompt = self.interactive_prompt;
-            my $code = "";
+            my $prompt;
+            my $code;
+            sub reset(--> Nil) {
+                $code = '';
+                $prompt = self.interactive_prompt;
+            }
+            reset;
 
             REPL: loop {
                 my $*exception-handled = False;
@@ -351,8 +356,7 @@ do {
 
                 if $output.WHERE == $!control-not-allowed.WHERE {
                     say "Control flow commands not allowed in toplevel";
-                    $code = '';
-                    $prompt = self.interactive_prompt;
+                    reset;
                     next;
                 }
 
@@ -360,8 +364,7 @@ do {
                     $!save_ctx := $*MAIN_CTX;
                 }
 
-                $code = "";
-                $prompt = self.interactive_prompt;
+                reset;
 
                 # Only print the result if there wasn't some other output
                 if $initial_out_position == $*OUT.tell {
@@ -370,9 +373,9 @@ do {
 
                 CATCH {
                     say $_;
-                    $code = '';
-                    $prompt = self.interactive_prompt;
-                    $*exception-handled = True; # prevent 'next' from generating error
+                    reset;
+                    # prevent 'next' from generating error
+                    $*exception-handled = True;
                     next REPL;
                 }
 

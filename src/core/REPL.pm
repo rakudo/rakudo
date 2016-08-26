@@ -354,7 +354,7 @@ do {
                     next;
                 }
 
-                if $output.WHERE == $!control-not-allowed.WHERE {
+                if self.input-toplevel-control($output) {
                     say "Control flow commands not allowed in toplevel";
                     reset;
                     next;
@@ -392,6 +392,10 @@ do {
 
         method input-incomplete(Mu $value) {
             $value.WHERE == $!need-more-input.WHERE
+        }
+
+        method input-toplevel-control($value) {
+            $value.WHERE == $!control-not-allowed.WHERE
         }
 
         method repl-print(Mu $value) {

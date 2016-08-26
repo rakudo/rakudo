@@ -6,7 +6,7 @@ use v6;
 my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, @libpaths) = @*ARGS;
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
 
-if ($*DISTRO eq 'MSWin32') {
+if ($*DISTRO eq 'mswin32') {
     exit if $toolchain;
     $install_to ~= '.bat';
     my $fh = open $install_to, :w;

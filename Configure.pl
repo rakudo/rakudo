@@ -367,9 +367,9 @@ General Options:
     --backends=jvm,moar
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
-                       Download and build a copy of NQP
+                       Download, build, and install a copy of NQP before writing the Makefile
     --gen-moar[=branch]
-                       Download and build a copy of MoarVM to use
+                       Download, build, and install a copy of MoarVM to use before writing the Makefile
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
@@ -383,6 +383,11 @@ General Options:
                        Folders 'nqp' and 'MoarVM' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
     --no-clean         Skip cleanup before installation
+
+Please note that the --gen-moar and --gen-nqp options are there for convenience
+only and will actually immediately - at Configure time - compile and install
+moar and nqp respectively. They will live under the path given to --prefix,
+unless other targeting options are used.
 
 Configure.pl also reads options from 'config.default' in the current directory.
 END

@@ -6,7 +6,7 @@ use v6;
 my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, @libpaths) = @*ARGS;
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
 
-if ($*DISTRO eq 'mswin32') {
+if $*DISTRO.is-win {
     exit if $toolchain;
     $install_to ~= '.bat';
     my $fh = open $install_to, :w;
@@ -14,7 +14,7 @@ if ($*DISTRO eq 'mswin32') {
             $moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc));
     $fh.close;
 }
-elsif ($toolchain eq 'gdb') {
+elsif $toolchain eq 'gdb' {
     my $fh = open $install_to, :w;
     $fh.print(sprintf(q:to/EOS/, ($moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc) xx 2));
 #!/bin/sh

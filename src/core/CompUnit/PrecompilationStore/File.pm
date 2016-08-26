@@ -43,7 +43,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method bytecode(--> Buf) {
             self!read-dependencies;
-            $!bytecode //= $!file.slurp-rest(:bin)
+            $!bytecode //= do {
+                LEAVE $!file.close;
+                $!file.slurp-rest(:bin);
+            }
         }
 
         method bytecode-handle(--> IO::Handle) {

@@ -419,6 +419,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-07-16   Rakudo #101 "2016.07"           (Zoffix)
   2016-07-18   2016.07.1                       (Zoffix)
   2016-08-20   Rakudo #102 "2016.08"           (Zoffix)
+  2016-08-20   2016.08.1                       (Zoffix)
 
 =head1 COPYRIGHT
 

@@ -39,14 +39,20 @@ any administrator privileges for carrying out this step.
 
 ### Configuring Rakudo to run on MoarVM
 
-To automatically download and build a fresh MoarVM and NQP, run:
+To automatically download, build, and install a fresh MoarVM and NQP, run:
 
     perl Configure.pl --gen-moar --gen-nqp --backends=moar
+
+Please be aware, that this will install MoarVM and NQP into your given
+--prefix before Configure.pl exits.
+
+Alternatively, feel free to git clone https://github.com/perl6/nqp and
+https://github.com/MoarVM/MoarVM manually and install them individually.
 
 ### Configuring Rakudo to run on the JVM
 
 Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically
-download an build a fresh NQP, run:
+download, build, and install a fresh NQP, run:
 
     perl Configure.pl --gen-nqp --backends=jvm
 
@@ -54,6 +60,12 @@ If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. edit the
 nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
 `install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
+
+Please be aware, that this will install NQP into your given --prefix
+before Configure.pl exits.
+
+Alternatively, feel free to git clone https://github.com/perl6/nqp manually
+and install it individually.
 
 ### Multiple backends at the same time
 

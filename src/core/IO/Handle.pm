@@ -8,6 +8,7 @@ my class IO::Handle does IO {
     has $.chomp is rw = Bool::True;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
+    has str $!encoding;
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -68,8 +69,7 @@ my class IO::Handle does IO {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
+            self.encoding( $bin ?? 'bin' !! $enc );
             return self;
         }
 
@@ -100,8 +100,7 @@ my class IO::Handle does IO {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          unless $bin;
+        self.encoding( $bin ?? 'bin' !! $enc );
         self;
     }
 
@@ -723,10 +722,13 @@ my class IO::Handle does IO {
         nqp::flushfh($!PIO);
     }
 
-    method encoding(IO::Handle:D: $enc?) {
-        $enc.defined
-          ?? nqp::setencoding($!PIO,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          !! $!PIO.encoding
+    proto method encoding(|) { * }
+    multi method encoding(IO::Handle:D:) { $!encoding }
+    multi method encoding(IO::Handle:D: $enc) {
+        $enc eq 'bin'
+          ?? ($!encoding = 'bin')
+          !! nqp::setencoding($!PIO,
+               $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc))
     }
 
     submethod DESTROY(IO::Handle:D:) {

@@ -115,9 +115,12 @@ do {
     }
 
     my role Completions {
-        has @!completions = CORE::.keys.flatmap({
-            /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
-        }).sort;
+        # RT #129092: jvm can't do CORE::.keys
+        has @!completions = $*VM.name eq 'jvm'
+            ?? ()
+            !! CORE::.keys.flatmap({
+                    /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
+                }).sort;
 
         method update-completions {
             my $context := self.compiler.context;

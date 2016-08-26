@@ -3,8 +3,6 @@ use nqp;
 class REPL { ... }
 
 do {
-    my $more-code-sentinel = {};
-
     my sub sorted-set-insert(@values, $value) {
         my $low        = 0;
         my $high       = @values.end;
@@ -176,6 +174,10 @@ do {
 
         has $!save_ctx;
 
+        # Unique internal values for out-of-band eval results
+        has $!need-more-input = {};
+        has $!control-not-allowed = {};
+
         sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
             my Bool $problem = False;
             try {
@@ -273,40 +275,35 @@ do {
             self.?teardown-line-editor;
         }
 
-        method partial-eval(Mu \code, Mu \adverbs) {
-            my &needs_more_input = adverbs<needs_more_input>;
+        method repl-eval($code, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
-                    if $!multi-line-enabled && .pos == code.chars {
-                        return needs_more_input();
+                    if $!multi-line-enabled && .pos == $code.chars {
+                        return $!need-more-input;
                     } else {
                         .throw;
                     }
                 }
 
                 when X::Comp::FailGoal {
-                    if $!multi-line-enabled && .pos == code.chars {
-                        return needs_more_input();
+                    if $!multi-line-enabled && .pos == $code.chars {
+                        return $!need-more-input;
                     } else {
                         .throw;
                     }
                 }
+
+                when X::ControlFlow::Return {
+                    return $!control-not-allowed;
+                }
             }
 
-            self.compiler.eval(code, |%(adverbs))
-        }
-
-        method repl-eval($code, *%adverbs) {
-            my $needs_more_input = False;
-            %adverbs<needs_more_input> := sub () {
-                $needs_more_input = True;
-            };
-            my $result := self.partial-eval($code, %adverbs);
-            if $needs_more_input {
-                return $more-code-sentinel;
+            CONTROL {
+                return $!control-not-allowed unless $*exception-handled;
             }
-            $result
+
+            self.compiler.eval($code, |%adverbs)
         }
 
         method interactive_prompt() { '> ' }
@@ -319,6 +316,7 @@ do {
             my $code = "";
 
             REPL: loop {
+                my $*exception-handled = False;
 
                 my $newcode = self.repl-read(~$prompt);
 
@@ -338,13 +336,20 @@ do {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
 
-                my $output := self.repl-eval(
+                my $output = self.repl-eval(
                     $code,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
                 if self.input-incomplete($output) {
                     $prompt = '* ';
+                    next;
+                }
+
+                if $output.WHERE == $!control-not-allowed.WHERE {
+                    say "Control flow commands not allowed in toplevel";
+                    $code = '';
+                    $prompt = self.interactive_prompt;
                     next;
                 }
 
@@ -357,15 +362,17 @@ do {
 
                 # Only print the result if there wasn't some other output
                 if $initial_out_position == $*OUT.tell {
-                  self.repl-print($output);
+                    self.repl-print($output);
                 }
 
                 CATCH {
                     say $_;
                     $code = '';
                     $prompt = self.interactive_prompt;
+                    $*exception-handled = True; # prevent 'next' from generating error
                     next REPL;
                 }
+
             }
 
             self.teardown;
@@ -378,7 +385,7 @@ do {
         }
 
         method input-incomplete(Mu $value) {
-            $value.WHERE == $more-code-sentinel.WHERE
+            $value.WHERE == $!need-more-input.WHERE
         }
 
         method repl-print(Mu $value) {

@@ -166,4 +166,12 @@ my @input-lines;
         'Print-time error error gives the expected error';
 }
 
+{
+    for <return redo next last warn proceed succeed> -> $cmd {
+        @input-lines = $cmd;
+        like feed_repl_with(@input-lines), / "Control flow commands not allowed in topleve" /,
+            "Raises error when you run control flow command '$cmd'";
+    }
+}
+
 done-testing;

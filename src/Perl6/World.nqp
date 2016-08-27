@@ -1338,7 +1338,7 @@ class Perl6::World is HLL::World {
         my $longname := '';
         if +@parts {
             try {
-                $cur_pkg := self.find_symbol([@parts[0]]);
+                $cur_pkg := self.find_symbol([@parts[0]], :upgrade_to_global);
                 $cur_lex := 0;
                 $create_scope := 'our';
                 $longname := @parts.shift();
@@ -3742,7 +3742,7 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_symbol(@name, :$setting-only, :$cur-package = $*PACKAGE) {
+    method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package = $*PACKAGE) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -3767,7 +3767,11 @@ class Perl6::World is HLL::World {
                 while $scope {
                     my %sym := $scope.symbol($final_name);
                     if +%sym {
-                        return self.force_value(%sym, $final_name, 1);
+                        my $value := self.force_value(%sym, $final_name, 1);
+                        if $upgrade_to_global {
+                            ($*GLOBALish.WHO){$final_name} := $value;
+                        }
+                        return $value;
                     }
                     $scope := $scope.ann('outer');
                 }
@@ -3778,7 +3782,11 @@ class Perl6::World is HLL::World {
                     $i := $i - 1;
                     my %sym := @BLOCKS[$i].symbol($final_name);
                     if +%sym {
-                        return self.force_value(%sym, $final_name, 1);
+                        my $value := self.force_value(%sym, $final_name, 1);
+                        if $upgrade_to_global && $value.HOW.HOW.name($value.HOW) eq 'Perl6::Metamodel::PackageHOW' {
+                            ($*GLOBALish.WHO){$final_name} := $value;
+                        }
+                        return $value;
                     }
                 }
             }

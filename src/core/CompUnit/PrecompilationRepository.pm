@@ -200,6 +200,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
         my $rakudo_precomp_loading = %ENV<RAKUDO_PRECOMP_LOADING>;
+        note "parsing json via CU::PrecompRepo" if $rakudo_precomp_loading;
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
         die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
         %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];

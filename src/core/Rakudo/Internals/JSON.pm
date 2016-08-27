@@ -6,6 +6,9 @@ my class JSONException is Exception {
     }
 }
 
+my $total_time = 0e0;
+my %cache;
+
 my class Rakudo::Internals::JSON {
     my class JSONPrettyActions {
         method TOP($/) {
@@ -126,9 +129,21 @@ my class Rakudo::Internals::JSON {
     }
 
     method from-json($text) {
+        if %cache{$text}:exists {
+            note "already in cache." 
+        }
+        else { 
+            note $text.perl;
+            %cache{$text} = 1;
+        }
+        my $start = now;
         my $a = JSONPrettyActions.new();
         my $o = JSONPrettyGrammar.parse($text, :actions($a));
         JSONException.new(:$text).throw unless $o;
+        my $took = now - $start;
+        note "--" if $total_time == 0e0;
+        $total_time = $total_time + $took;
+        note "json parse took { now - $start }s  -  $total_time";
         $o.ast;
     }
     method to-json(|c) { to-json(|c) }

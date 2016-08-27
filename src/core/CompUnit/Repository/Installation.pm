@@ -146,6 +146,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !read-dist($id) {
+        note "read dist $id via CU::R::Installation";
+        note "my identity is:";
+        note self.perl;
+        note "--------";
         my $dist = Rakudo::Internals::JSON.from-json($.prefix.child('dist').child($id).slurp);
         $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
         $dist
@@ -181,6 +185,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         }
         if ($version < 2) {
             for $dist-dir.dir -> $dist-file {
+                note "upgrading dist $dist-file via CU::R::Installation upgrade-repository";
                 my %meta = Rakudo::Internals::JSON.from-json($dist-file.slurp);
                 my $files = %meta<files> //= [];
                 for eager $files.keys -> $file {

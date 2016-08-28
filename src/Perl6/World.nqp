@@ -3883,7 +3883,6 @@ class Perl6::World is HLL::World {
                 QAST::Op.new( :op('getcurhllsym'),
                     QAST::SVal.new( :value('GLOBAL') ) );
             if @name[0] eq 'GLOBAL' {
-                @name := nqp::clone(@name);
                 @name.shift();
             }
             for @name {

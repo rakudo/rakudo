@@ -60,8 +60,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     [~]
                     map    {
                         if $_.IO.open -> $handle {
-                            LEAVE $handle.close;
-                            nqp::sha1($handle.slurp-rest(:enc<latin1>));
+                            nqp::sha1($handle.slurp-rest(:enc<latin1>,:close));
                         }
                         else {
                             ''

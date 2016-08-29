@@ -260,7 +260,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin);
+            my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }
@@ -285,7 +285,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             self!add-short-name($name-path, $dist);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin);
+            my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }
@@ -298,7 +298,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $destination    = $resources-dir.child($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin);
+            my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }

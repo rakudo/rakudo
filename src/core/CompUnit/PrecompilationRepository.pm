@@ -242,10 +242,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             $RMD("Precomping $path failed: $proc.status()") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $proc.err.slurp-rest;
+            die $proc.err.slurp-rest(:close);
         }
 
-        if $proc.err.slurp-rest -> $warnings {
+        if $proc.err.slurp-rest(:close) -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

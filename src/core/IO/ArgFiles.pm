@@ -131,8 +131,7 @@ my class IO::ArgFiles is IO::Handle {
 
         my @chunks;
         if $!io.defined && $!io.opened {
-            @chunks.push: nqp::p6box_s($!io.slurp-rest);
-            $!io.close;
+            @chunks.push: nqp::p6box_s($!io.slurp-rest(:close));
         }
         while $!args {
             @chunks.push: slurp $!args.shift;

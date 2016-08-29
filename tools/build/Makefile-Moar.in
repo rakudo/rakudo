@@ -278,6 +278,8 @@ m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist
 	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)
+	$(CP) tools/raccoon $(DESTDIR)$(PREFIX)/bin/raccoon
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/raccoon
 @m_install@
 
 m-runner-default-install: m-install

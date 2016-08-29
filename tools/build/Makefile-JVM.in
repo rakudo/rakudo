@@ -399,6 +399,8 @@ j-runner-default-install: j-install
 	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
+	$(CP) tools/raccoon $(DESTDIR)$(PREFIX)/bin/raccoon
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/raccoon
 
 ##  cleaning
 j-clean:

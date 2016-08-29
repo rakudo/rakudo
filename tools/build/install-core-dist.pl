@@ -11,6 +11,7 @@ my %provides =
     "newline"                       => "lib/newline.pm6",
     "experimental"                  => "lib/experimental.pm6",
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm",
+    "Distribution::Builder"         => "lib/Distribution/Builder.pm",
 ;
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

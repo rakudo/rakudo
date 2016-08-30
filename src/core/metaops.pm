@@ -192,7 +192,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
             return op.() if first =:= IterationEnd;
 
             my \second = iter.pull-one;
-            return op.count <= 1 ?? op.(first) !! first if second =:= IterationEnd;
+            return op.arity <= 1 ?? op.(first) !! first if second =:= IterationEnd;
 
             my $result := op.(first, second);
             until (my \value = iter.pull-one) =:= IterationEnd {

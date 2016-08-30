@@ -45,7 +45,7 @@ multi method expand-value('library', $value) {
 }
 
 multi method expand-value('run', $value) {
-    run($value, :out).out.lines.join('');
+    shell($value, :out).out.lines.join('')
 }
 
 # vim: ft=perl6

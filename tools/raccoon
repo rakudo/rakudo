@@ -7,11 +7,18 @@ sub find-meta-file($dir) {
     ('META6.json', 'META.info').map({$dir.child($_)}).first: {$_ ~~ :f}
 }
 
+sub build(Distribution::Locally $dist) {
+    return unless $dist.meta<builder>:exists;
+
+    my Distribution::Builder $builder = (require ::($dist.meta<builder>));
+    $builder.new(:$dist).configure.build;
+}
+
 multi sub MAIN($from is copy = '.', :$to!, :$for!) {
     $from = $from.IO;
     my $dist = Distribution::Path.new($from, :file(find-meta-file($from)));
 
-    Distribution::Builder.new(:$dist).configure.build;
+    build($dist);
 
     CompUnit::Repository::Staging.new(
         :prefix($to),
@@ -28,7 +35,7 @@ multi sub MAIN($from is copy = '.', :$to = 'site', Bool :$force) {
     $from = $from.IO;
     my $dist = Distribution::Path.new($from, :file(find-meta-file($from)));
 
-    Distribution::Builder.new(:$dist).configure.build;
+    build($dist);
 
     my $repo = $to ~~ /^\w+$/
         ?? CompUnit::RepositoryRegistry.repository-for-name($to)

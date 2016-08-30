@@ -12,6 +12,7 @@ my %provides =
     "experimental"                  => "lib/experimental.pm6",
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm",
     "Distribution::Builder"         => "lib/Distribution/Builder.pm",
+    "Distribution::Builder::MakeFromJSON" => "lib/Distribution/Builder/MakeFromJSON.pm",
 ;
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

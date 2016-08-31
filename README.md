@@ -105,27 +105,9 @@ For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs
 
-Bug reports should be sent to "rakudobug@perl.org", which will
-automatically create a ticket in 
-[the RT system](https://rt.perl.org/rt3/).
-Please include or attach any sample source code that exhibits the bug,
-and include either the release name/date or the git commit identifier.
-You find that information in the output from `perl6 --version` (or in
-the first line of `git log`, if Rakudo fails to build). There's no need
-to cc: the perl6-compiler mailing list, as the RT system will handle
-this on its own. Please start your subject with one (or more) of the
-following text, including the brackets:
-
-* [BUG]    - this is an actual bug
-* [LTA]    - a "Less Than Awesome" diagnostic or warning is being generated
-* [JVM]    - issue only occurs on the JVM
-* [PERF]   - any performance related issue
-* [UNI]    - related to unicode support
-* [@LARRY] - this ticket requires a decision from the design team
-
-If you find a bug in MoarVM or NQP, you can either discuss it on the IRC
-and have it reported for you, or you can submit an issue to the issue
-trackers on github for perl6/nqp or moarvm/moarvm.
+Please see https://github.com/rakudo/rakudo/wiki/rt-introduction
+for more information about how and where to report issues with
+Rakudo, its components, and the Perl 6 language specification.
 
 ## Submitting patches
 

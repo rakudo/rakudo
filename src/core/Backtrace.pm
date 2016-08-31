@@ -138,9 +138,22 @@ my class Backtrace {
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');
-            if $file.ends-with('NQPHLL.nqp') {
-                $!bt-next = $elems;
-                last;
+            if $file.ends-with('NQPHLL.nqp') || $file.ends-with('NQPHLL.moarvm') {
+                # This could mean we're at the end of the interesting backtrace,
+                # or it could mean that we're in something like sprintf (which
+                # uses an NQP grammar to parse the format string).
+                while $!bt-next < $elems {
+                    my $frame := $!bt.AT-POS($!bt-next++);
+                    my $annotations := $frame<annotations>;
+                    next unless $annotations;
+                    my $file := $annotations<file>;
+                    next unless $file;
+                    if $file.ends-with('.setting') {
+                        $!bt-next--; # re-visit this frame
+                        last;
+                    }
+                }
+                next;
             }
 
             my $line := $annotations<line>;

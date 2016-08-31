@@ -187,18 +187,29 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         nqp::eqaddr(op,&infix:<+>)
         ?? &sum
         !! sub (+values) {
-            my \iter = values.iterator;
-            my \first = iter.pull-one;
-            return op.() if nqp::eqaddr(first,IterationEnd);
-
-            my \second = iter.pull-one;
-            return op.arity <= 1 ?? op.(first) !! first if nqp::eqaddr(second,IterationEnd);
-
-            my $result := op.(first, second);
-            until nqp::eqaddr((my \value = iter.pull-one),IterationEnd) {
-                $result := op.($result, value);
-            }
-            $result;
+            nqp::stmts(
+              (my $iter := values.iterator),
+              nqp::if(
+                nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),
+                op.(),                         # identity
+                nqp::if(
+                  nqp::eqaddr((my $value := $iter.pull-one),IterationEnd),
+                  nqp::if(
+                    nqp::isle_i(op.arity,1),
+                    op.($result),              # can call with 1 param
+                    $result                    # what we got
+                  ),
+                  nqp::stmts(
+                    ($result := op.($result,$value)),
+                    nqp::until(
+                      nqp::eqaddr(($value := $iter.pull-one),IterationEnd),
+                      ($result := op.($result,$value))
+                    ),
+                    $result                    # final result
+                  )
+                )
+              )
+            )
         }
     }
 }

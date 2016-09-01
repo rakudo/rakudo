@@ -370,9 +370,7 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
                 $current := $next;
             }
             unless $state {
-                until nqp::eqaddr((my \v = iter.pull-one),IterationEnd) {
-                    take False;
-                }
+                take False until nqp::eqaddr(iter.pull-one,IterationEnd);
             }
         }.lazy-if(values.is-lazy);
     }

@@ -364,6 +364,7 @@ do {
               (my Mu $err := nqp::getstderr),
               (my str $msg = nqp::getmessage($ex)),
               nqp::printfh($err,nqp::if(nqp::chars($msg),$msg,"Warning")),
+              nqp::printfh($err, "\n"),
               nqp::printfh($err, $backtrace.first-none-setting-line),
               nqp::resume($ex)
             )

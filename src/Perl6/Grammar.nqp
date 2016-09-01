@@ -1797,7 +1797,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | $<num> = [\d+] <identifier> [ <?before <[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
-            { $*key := $<identifier>.Str; $*value := nqp::radix(10, $<num>, 0, 0)[0]; }
+            { $*key := $<identifier>.Str; $*value := nqp::radix_I(10, $<num>, 0, 0, $*W.find_symbol(['Int']))[0]; }
         | <identifier>
             { $*key := $<identifier>.Str; }
             [

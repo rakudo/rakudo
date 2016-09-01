@@ -1,0 +1,117 @@
+# Guide for Automated Release of Rakudo Compiler
+
+This document describes the step to perform an automated release of the Rakudo
+Compiler. While not required, it can be useful to be familiar with the 
+[manual release process](release_guide.pod), so you know what steps the build
+robot is performing.
+
+## Dates
+
+Currently, the release happens on the third Saturday of the month, shortly
+after [MoarMV](https://github.com/MoarVM/MoarVM/) is released by a separate
+team. You can inquire the release robot in #perl6-dev IRC channel on when
+the next release date is or view it on [Perl6.Fail release stats
+page](http://perl6.fail/release/stats):
+
+> &lt;Zoffix&gt; NeuralAnomaly: status<br>
+> &lt;NeuralAnomaly&gt; Zoffix, [✘] Next release will be in 2 weeks and 2 days.
+Since last release, there are 25 new still-open tickets (4 unreviewed and 0
+blockers). See https://perl6.fail/release/stats for details
+
+## Preparation
+
+### Perl6.Fail Web App
+
+The [perl6.fail](https://perl6.fail) web app helps track RT tickets and
+changelog entries, to ensure on the release date there are no release-blockers
+and all changes have been recorded in [the changelog](ChangeLog).
+
+See [perl6.fail/about](https://perl6.fail/about) for login credentials
+information. Only release managers can mark tickets as reviewed. If the app
+doesn't recognize you as a release manager, [ask
+Zoffix](https://twitter.com/zoffix) to add you.
+
+### Release-Blocking Tickets
+
+Throughout the month, log in on [perl6.fail](https://perl6.fail) regularly and
+review new tickets for whether they are blockers. Click the checkmark next to
+reviewed tickets. Click the warning-sign to indicate the ticket is a release
+blocker. Which tickets are blockers is left to your discretion, but anything
+that has a large impact on users is worth being addressed prior to release.
+
+### ChangeLog Entries
+
+The app also lets you [track which commits](http://perl6.fail/release/changelog)
+have been added to the [the changelog](ChangeLog).
+
+<!-- TODO: expound the section once the interface is finalized -->
+
+### Reminders
+
+About a week before the release, NeuralAnomaly will automatically remind 
+#perl6-dev users about the upcoming release. You can also trigger the
+reminder manually with the `remind` command:
+
+> &lt;Zoffix&gt; NeuralAnomaly: remind<br>
+> &lt;NeuralAnomaly&gt; Reminder! Next release will be in 1 week and 0 days.
+Since last release, there are 125 new still-open tickets (15 unreviewed and 0
+blockers). See https://perl6.fail/release/stats for details
+
+Also, a few days before the release. Remind users to double check
+[the changelog](ChangeLog) to ensure the changes you've been adding during the
+month accurately reflect what the commits introduced.
+
+## Release Date
+
+The NeuralAnomaly release bot will accept some commands only from release
+managers. Ensure you are connected to the IRC with the nick and hostname the
+bot recognizes. [Ask Zoffix](https://twitter.com/zoffix) to add you to the
+list, if needed.
+
+### Initiate Release
+
+On the release date, wait until the MoarVM release has been completed, then
+issue the `release` command to NeuralAnomaly. If MoarVM hasn't been released,
+there are unreviewed tickets, or blocking tickets, the bot will not proceed
+and will tell you about it.
+
+If the prerequisites are good, the bot will ask for the "secret number" to
+proceed. This is mostly to prevent accidental triggering of the command. Tell
+the bot the current day of the month—that's the secret number:
+
+> &lt;Zoffix&gt; NeuralAnomaly, release<br>
+> &lt;NeuralAnomaly&gt; test mode is OFF. This is the real deal—we are
+releasing! Guess the number I'm think of to proceed.<br>
+> &lt;Zoffix&gt; NeuralAnomaly: 17<br>
+> &lt;NeuralAnomaly&gt; Good guess! Starting release [...]
+
+The bot will then proceed with testing and releasing NQP and Rakudo,
+informing about completed steps occasionally. You can watch the progress
+live, at the URL given by NeuralAnomaly. **You can abort the process at any
+time, by issuing `abort` command to the bot**
+
+> &lt;Zoffix&gt; NeuralAnomaly: abort
+> &lt;NeuralAnomaly&gt; Zoffix, what? Why?! What happened‽‽ Release process aborted.
+
+The process will be automatically aborted if any test failures are encountered or
+if any of the commands used during the release return a non-zero exit status.
+
+An aborted process cannot be restarted, and you must start from the beginning.
+
+### Final Confirmation
+
+Once NeuralAnomaly successfully completes all of the testing and prepares the
+tarballs, the bot will ask for the final confirmation. You confirm it by
+issuing `go` command. This will cause the bot to upload the release tarballs to
+[Rakudo.org](http://rakudo.org) and email the release announcement. Once that is
+completed, NeuralAnomaly will announce on IRC that release has been completed.
+
+> &lt;NeuralAnomaly&gt; all tests passed. Ready to finalized the release. Just say go<br> 
+> &lt;Zoffix&gt; NeuralAnomaly: go
+
+### Wikipedia
+
+Update the Wikipedia entry at http://en.wikipedia.org/wiki/Rakudo with the new
+release version.
+
+### Celebrate with the appropriate amount of fun

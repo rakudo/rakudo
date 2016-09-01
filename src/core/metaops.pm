@@ -229,7 +229,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
             my @args.unshift: first;
             GATHER({
                 take first;
-                while nqp::not_i(nqp::eqaddr((my \current = source.pull-one),IterationEnd)) {
+                until nqp::eqaddr((my \current = source.pull-one),IterationEnd) {
                     @args.unshift: current;
                     if @args.elems == $count {
                         my \val = op.(|@args);
@@ -249,7 +249,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 
             gather {
                 take $result;
-                while nqp::not_i(nqp::eqaddr((my $elem := iter.pull-one),IterationEnd)) {
+                until nqp::eqaddr((my $elem := iter.pull-one),IterationEnd) {
                     take $result := op.($elem, $result)
                 }
             }.lazy-if(values.is-lazy);
@@ -370,7 +370,7 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
                 $current := $next;
             }
             unless $state {
-                while nqp::not_i(nqp::eqaddr((my \v = iter.pull-one),IterationEnd)) {
+                until nqp::eqaddr((my \v = iter.pull-one),IterationEnd) {
                     take False;
                 }
             }
@@ -387,7 +387,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
         my $current := iter.pull-one;
         return True if nqp::eqaddr($current,IterationEnd);
 
-        while nqp::not_i(nqp::eqaddr((my $next := iter.pull-one),IterationEnd)) {
+        until nqp::eqaddr((my $next := iter.pull-one),IterationEnd) {
             $state := op.($current, $next);
             return $state unless $state;
             $current := $next;

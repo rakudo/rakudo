@@ -138,12 +138,14 @@ class Perl6::Pod {
                 } else {
                     $val := ~$val<semilist>;
                 }
+
+                $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             } else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
                 my $truth := !nqp::eqat($colonpair, '!', 1);
 
-                $val := $*W.add_constant('Int', 'int', $truth).compile_time_value;
+                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
             if $key eq "allow" {
@@ -164,7 +166,6 @@ class Perl6::Pod {
             }
 
             $key := $*W.add_constant('Str', 'str', $key).compile_time_value;
-            $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)

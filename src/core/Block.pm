@@ -93,23 +93,21 @@ my class Block { # declared in BOOTSTRAP
                     }
                     $type = ~$1;
                     unless soft_indirect_name_lookup(~$0) {
-                        $perl = "";
+                        $perl = '';
                         last
                     };
                 }
-                $perl = "" unless soft_indirect_name_lookup($type);
+                $perl = '' unless soft_indirect_name_lookup($type);
             }
-#Introspection fail.  There is no introspection to access these flags.
-#Skipped for now.
-#            if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-#                $perl ~= ':D' if $perl ne '';
-#            } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-#                $perl ~= ':U' if $perl ne '';
-#            }
+            $perl ~= $parm.modifier if $perl ne '';
+
             my $name = $parm.name;
-            if not $name.defined or !$name.starts-with($sigil) {
-                $name = $sigil ~ $parm.twigil ~ ($name // "");
+            if !$name and $parm.raw {
+                $name = '$';
+            } elsif !$name or !$name.starts-with($sigil) {
+                $name = $sigil ~ $parm.twigil ~ ($name // '');
             }
+
             if $parm.slurpy {
                 $name = '*' ~ $name;
             } elsif $parm.named {
@@ -120,23 +118,14 @@ my class Block { # declared in BOOTSTRAP
             } elsif $parm.optional or $parm.default {
                 $name ~= '?';
             }
+
             if $parm.rw {
                 $rest ~= ' is rw';
             } elsif $parm.copy {
                 $rest ~= ' is copy';
             }
-            if  $parm.raw {
-                if     not $.name {
-                    if $name eq '$' and not $rest {
-                        $name = '\\';
-                    }
-                    elsif $name.starts-with('\\') and ($rest or $name ne '\\') {
-                        $name = '$' ~ $name.substr(1);
-                    }
-                }
-                if !$name.starts-with('\\') {
-                    $rest ~= ' is raw';
-                }
+            if $parm.raw {
+                $rest ~= ' is raw' unless $name.starts-with('\\');
             }
             if $name or $rest {
                 $perl ~= ($perl ?? ' ' !! '') ~ $name;
@@ -300,6 +289,7 @@ my class Block { # declared in BOOTSTRAP
         my $f;
         my $primed_sig = (flat @plist.map(&strip_parm), @phash,
                           ($slurp_p ?? strip_parm($slurp_p) !! ())).join(", ");
+        $primed_sig ~= ' --> ' ~ $sig.returns.^name;
 
         $f = EVAL sprintf(
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });

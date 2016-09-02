@@ -300,15 +300,16 @@ my class Block { # declared in BOOTSTRAP
         my $f;
         my $primed_sig = (flat @plist.map(&strip_parm), @phash,
                           ($slurp_p ?? strip_parm($slurp_p) !! ())).join(", ");
+        my $returns = $sig.returns.^name;
 
         $f = EVAL sprintf(
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
-               my multi __PRIMED_ANON (|%s(%s)) {
+               my multi __PRIMED_ANON (|%s(%s)) returns %s {
                    my %%chash := %s.hash;
                    $self(%s%s |{ %%ahash, %%chash }); # |{} workaround RT#77788
                };
                $res }()',
-            $primed_sig, $capwrap, $primed_sig, $capwrap,
+            $primed_sig, $capwrap, $primed_sig, $returns, $capwrap,
             (flat @clist).join(", "),
             (@clist ?? ',' !! '')
         );

@@ -455,7 +455,7 @@ multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$d
     my @keys = %keyset.keys;
     my $type = left.WHAT;
     my \result := $type.new;
-    result = @keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right);
+    result = quietly @keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right);
     nqp::iscont(left) ?? result.item !! result;
 }
 

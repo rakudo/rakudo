@@ -8,10 +8,10 @@ multi sub await() {
     die "Must specify a Promise or Channel to await on (got an empty list)";
 }
 multi sub await(Any:U $x) {
-    die "Must specify a defined Promise or Channel to await on (got an undefined $x.^name())";
+    die "Must specify a defined Promise, Channel, or Supply to await on (got an undefined $x.^name())";
 }
 multi sub await(Any:D $x) {
-    die "Must specify a Promise or Channel to await on (got a $x.^name())";
+    die "Must specify a Promise, Channel, or Supply to await on (got a $x.^name())";
 }
 multi sub await(Iterable:D $i) { $i.eager.map({ await $_ }) }
 multi sub await(Promise:D $p)  { $p.result }

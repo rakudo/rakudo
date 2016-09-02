@@ -2148,7 +2148,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         [
             [ <longname> { $longname := $*W.dissect_longname($<longname>); } ]?
-            <.newpad>
+            [ <?{ $*SCOPE eq 'unit' }> || <.newpad> ]
 
             [ :dba('generic role')
             <?{ ($*PKGDECL//'') eq 'role' }>
@@ -2362,7 +2362,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     { $*IN_DECL := ''; }
                     <.finishpad>
                     <statementlist(1)>     # whole rest of file, presumably
-                    { $*CURPAD := $*W.pop_lexpad() }
+                    { $*CURPAD := $*SCOPE eq 'unit' ?? $outer !! $*W.pop_lexpad() }
                 || { $/.CURSOR.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
                 ]
             || <.panic("Unable to parse $*PKGDECL definition")>

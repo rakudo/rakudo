@@ -127,6 +127,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         for $short-dir.dir -> $dir {
             $dir.child($id).unlink;
+            $dir.rmdir unless $dir.dir;
         }
     }
 

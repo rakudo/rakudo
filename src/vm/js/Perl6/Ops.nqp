@@ -11,6 +11,30 @@ register_op_desugar('', -> $qast {
     QAST::Op.new(:op('null'));
 });
 
+register_op_desugar('p6sink', -> $qast {
+    my $name := $qast.unique('sink');
+    QAST::Stmts.new(
+        QAST::Op.new(:op<bind>,
+            QAST::Var.new(:$name, :scope<local>, :decl<var>),
+            $qast[0],
+        ),
+        QAST::Op.new(:op<if>,
+            QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<isconcrete>,
+                    QAST::Var.new(:$name, :scope<local>),
+                ),
+                QAST::Op.new(:op<can>,
+                    QAST::Var.new(:$name, :scope<local>),
+                    QAST::SVal.new(:value('sink')),
+                )
+            ),
+            QAST::Op.new(:op<callmethod>, :name<sink>,
+                QAST::Var.new(:$name, :scope<local>),
+            ),
+        ),
+    );
+});
+
 # Signature binding related bits.
 
 $ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :sideffects, sub ($binder) {"nqp.p6binder = $binder"});

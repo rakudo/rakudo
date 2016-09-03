@@ -2667,11 +2667,17 @@ BEGIN {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
     Method.HOW.compose_invocation(Method);
+#if js
+    Method.HOW.cheating_publish_method_cache(Method);
+#endif
 
     # class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
     Submethod.HOW.compose_invocation(Submethod);
+#if js
+    Submethod.HOW.cheating_publish_method_cache(Submethod);
+#endif
 
     # class Regex is Method {
     #     has Mu $!caps;

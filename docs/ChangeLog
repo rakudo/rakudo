@@ -229,7 +229,7 @@ New in 2016.06
    + return, next, last, and redo are now all faster
    + infix:<,> about 40% faster
    + numerous other smaller or edge-case speed improvements
-+ Deprecations:
+ + Deprecations:
    + The "is_approx" sub (note underscore) from Test
 
 New in 2016.05
@@ -548,7 +548,7 @@ New in 2015.10:
     + The new .self method is the identity method on anything
     + Negative integers are now allowed in the parameter slot
     + List associative operators can now be autoprimed, including Xop and Zop
-  + Incompatible Changes
+ + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for 'unshift'/'prepend'
     + Basic arithmetic operations ('+', '*', '-', '/') on Range objects
@@ -772,7 +772,7 @@ New in 2015.05
    + Make List.pick about 3% faster, List.pick(*) about 7% faster
    + Implement new @*INC handling (about 30% faster startup time)
      (bare startup time is now below 100 ms on some machines)
-+ NativeCall:
+ + NativeCall:
    + Implemented CUnions which map to the union C type definition
    + Implemented HAS declarator for attributes to mark it embedded into the
      CStruct or CUnion

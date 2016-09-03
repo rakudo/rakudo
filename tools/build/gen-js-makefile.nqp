@@ -63,18 +63,18 @@ sub combine(:$sources, :$file) {
 my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<js-ModuleLoader.nqp>);
 
 
-my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6/ModuleLoader.js");
-my $Perl6-Ops := nqp('src/vm/js/Perl6/Ops.nqp', "$blib/Perl6/Ops.js");
-my $Perl6-Pod := nqp('src/Perl6/Pod.nqp', "$blib/Perl6/Pod.js");
-my $Perl6-World := nqp('src/Perl6/World.nqp', "$blib/Perl6/World.js", :deps([$Perl6-Ops, $Perl6-Pod, $Perl6-ModuleLoader]));
-my $Perl6-Actions := nqp('src/Perl6/Actions.nqp', "$blib/Perl6/Actions.js", :deps([$Perl6-Ops, $Perl6-World]));
-my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6/Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
+my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6-ModuleLoader.js");
+my $Perl6-Ops := nqp('src/vm/js/Perl6/Ops.nqp', "$blib/Perl6-Ops.js");
+my $Perl6-Pod := nqp('src/Perl6/Pod.nqp', "$blib/Perl6-Pod.js");
+my $Perl6-World := nqp('src/Perl6/World.nqp', "$blib/Perl6-World.js", :deps([$Perl6-Ops, $Perl6-Pod, $Perl6-ModuleLoader]));
+my $Perl6-Actions := nqp('src/Perl6/Actions.nqp', "$blib/Perl6-Actions.js", :deps([$Perl6-Ops, $Perl6-World]));
+my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6-Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
 
 my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<js-Perl6-Optimizer.nqp>);
 
-my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6/Optimizer.js", :deps([$Perl6-Ops]));
+my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6-Optimizer.js", :deps([$Perl6-Ops]));
 
-my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6/Compiler.js", :deps([$Perl6-Optimizer]));
+my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6-Compiler.js", :deps([$Perl6-Optimizer]));
 
 my $main-version := $build_dir ~ '/main-version';
 
@@ -93,9 +93,9 @@ rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
 
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<js-Perl6-BOOTSTRAP.nqp>);
 
-my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6/Metamodel.js",  :deps([$Perl6-Ops]));
+my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));
 
-my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6/BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
+my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
 
 #$(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
 

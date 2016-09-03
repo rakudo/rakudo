@@ -58,7 +58,7 @@ $ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :sideffects,
 });
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :sideffects);
-$ops.add_simple_op('p6init', $ops.OBJ, [], :sideffects, -> {'require("perl6-runtime")'});
+$ops.add_simple_op('p6init', $ops.OBJ, [], :sideffects, -> {'require(process.env.RAKUDOJS_RUNTIME)'});
 $ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :sideffects);
 
 $ops.add_simple_op('p6box_s', $ops.OBJ, [$ops.STR]);

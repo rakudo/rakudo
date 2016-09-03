@@ -620,7 +620,6 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my $decont := $*REGALLOC.fresh_o();
             my $istype := $*REGALLOC.fresh_i();
             my $isdefinite;
-            my $str_failure := $*REGALLOC.fresh_s();
             my $failure_o := $niltype_res.result_reg;
 
             unless $emit_definite_check == -1 {
@@ -650,7 +649,6 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
             $*REGALLOC.release_register($decont, $MVM_reg_obj);
             $*REGALLOC.release_register($istype, $MVM_reg_int64);
-            $*REGALLOC.release_register($str_failure, $MVM_reg_str);
             $*REGALLOC.release_register($failure_o, $MVM_reg_obj);
 
             unless $emit_definite_check == -1 {

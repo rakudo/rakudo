@@ -42,24 +42,19 @@ $ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     my $ops := nqp::getcomp('QAST').operations;
     my $tmp := $*BLOCK.add_tmp;
     $ops.new_chunk($ops.VOID, "", [
-        "$tmp = nqp.p6binder.bind_sig($*CTX, null, nqp.op.savecapture(Array.prototype.slice.call(arguments)));\n",
+        "$tmp = nqp.p6binder.bind_sig($*CTX, null, nqp.p6binder, nqp.op.savecapture(Array.prototype.slice.call(arguments)));\n",
         "if ($tmp !== null) return $tmp;\n"
     ]);
 });
 
 $ops.add_simple_op('p6isbindable', $ops.INT, [$ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $cap) {
-    "nqp.p6binder.is_bindable($*CTX, null, $sig, $cap)"
+    "nqp.p6binder.is_bindable($*CTX, null, nqp.p6binder, $sig, $cap)"
 });
 
-$ops.add_simple_op('p6bindattrinvres', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.STR, $ops.OBJ], :sideffects,
-    sub ($obj, $type, $attr, $value) {
-        # TODO take second argument into account
-        "($obj[$attr] = $value, $obj)";
-    }
-);
+$ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));
 
 $ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :sideffects, sub ($fake, $code) {
-    "$code.\$call($*CTX, null)"
+    "$code.\$\$call($*CTX, null)"
 });
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :sideffects);

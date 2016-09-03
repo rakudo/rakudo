@@ -1,3 +1,7 @@
+New in 2016.08.1
+ + Fixes:
+    + Updated NQP version to avoid broken tag
+
 New in 2016.08
  + Fixes:
     + Numerous improvements to content of error messages and addition

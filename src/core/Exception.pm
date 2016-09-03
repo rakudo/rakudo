@@ -15,7 +15,7 @@ my class Exception {
 
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {
-	nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+        nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
     }
     method reset-backtrace(Exception:D:) {
         nqp::bindattr(self, Exception, '$!ex', Nil)
@@ -80,9 +80,8 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-        $return($fail) unless nqp::isnull($return);
-        $fail.exception.throw
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+        CATCH { $fail.exception.throw }
     }
 
     method is-compile-time { False }
@@ -106,7 +105,8 @@ my class X::SecurityPolicy::Eval is X::SecurityPolicy {
                     .Str;
                 }
             }
-        } ~ " (use MONKEY-SEE-NO-EVAL to override,\nbut only if you're VERY sure your data contains no injection attacks)";
+        } ~ " (use the MONKEY-SEE-NO-EVAL pragma to override this error,\n"
+          ~ "but only if you're VERY sure your data contains no injection attacks)";
     }
     method Numeric() { $.payload.Numeric }
     method from-slurpy (|cap) {
@@ -237,6 +237,9 @@ my class CX::Succeed does X::Control {
 my class CX::Proceed does X::Control {
     method message() { "<proceed control exception>" }
 }
+my class CX::Return does X::Control {
+    method message() { "<return control exception>" }
+}
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -247,13 +250,13 @@ sub EXCEPTION(|) {
     } else {
         my int $type = nqp::getextype($vm_ex);
         my $ex;
-        if $type == nqp::const::CONTROL_NEXT {
+        if $type +& nqp::const::CONTROL_NEXT {
             $ex := CX::Next.new();
         }
-        elsif $type == nqp::const::CONTROL_REDO {
+        elsif $type +& nqp::const::CONTROL_REDO {
             $ex := CX::Redo.new();
         }
-        elsif $type == nqp::const::CONTROL_LAST {
+        elsif $type +& nqp::const::CONTROL_LAST {
             $ex := CX::Last.new();
         }
         elsif $type == nqp::const::CONTROL_TAKE {
@@ -270,6 +273,9 @@ sub EXCEPTION(|) {
         elsif $type == nqp::const::CONTROL_PROCEED {
             $ex := CX::Proceed.new();
         }
+        elsif $type == nqp::const::CONTROL_RETURN {
+            $ex := CX::Return.new();
+        }
         elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
                 nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
             $ex := X::Method::NotFound.new(
@@ -279,7 +285,7 @@ sub EXCEPTION(|) {
         }
         else {
             $ex := nqp::create(X::AdHoc);
-            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex) // 'unknown exception'));
         }
         nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
         $ex;
@@ -306,8 +312,17 @@ do {
 
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
+        my $e := EXCEPTION($ex);
+
+        if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
+            my $class := ::("Exceptions::$handler");
+            unless nqp::istype($class,Failure) {
+                temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                return unless $class.process($e)
+            }
+        }
+
         try {
-            my $e := EXCEPTION($ex);
             my $v := $e.vault-backtrace;
             my Mu $err := nqp::getstderr();
 
@@ -339,39 +354,47 @@ do {
     }
 
     sub print_control(|) {
-        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
-        my int $type = nqp::getextype($ex);
-        my $backtrace = Backtrace.new(nqp::backtrace($ex), 0);
-        if ($type == nqp::const::CONTROL_WARN) {
-            my Mu $err := nqp::getstderr();
-            my $msg = nqp::p6box_s(nqp::getmessage($ex));
-            nqp::printfh($err, $msg.chars ?? "$msg" !! "Warning");
-            nqp::printfh($err, $backtrace.first-none-setting-line);
-            nqp::resume($ex)
+        nqp::stmts(
+          (my Mu $ex := nqp::atpos(nqp::p6argvmarray(),0)),
+          (my int $type = nqp::getextype($ex)),
+          (my $backtrace = Backtrace.new(nqp::backtrace($ex))),
+          nqp::if(
+            nqp::iseq_i($type,nqp::const::CONTROL_WARN),
+            nqp::stmts(
+              (my Mu $err := nqp::getstderr),
+              (my str $msg = nqp::getmessage($ex)),
+              nqp::printfh($err,nqp::if(nqp::chars($msg),$msg,"Warning")),
+              nqp::printfh($err, "\n"),
+              nqp::printfh($err, $backtrace.first-none-setting-line),
+              nqp::resume($ex)
+            )
+          )
+        );
+
+        my $label = $type +& nqp::const::CONTROL_LABELED ?? "labeled " !! "";
+        if $type +& nqp::const::CONTROL_LAST {
+            X::ControlFlow.new(illegal => "{$label}last", enclosing => 'loop construct', :$backtrace).throw;
         }
-        if $type == nqp::const::CONTROL_LAST {
-            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct', :$backtrace).throw;
+        elsif $type +& nqp::const::CONTROL_NEXT {
+            X::ControlFlow.new(illegal => "{$label}next", enclosing => 'loop construct', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_NEXT {
-            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct', :$backtrace).throw;
+        elsif $type +& nqp::const::CONTROL_REDO {
+            X::ControlFlow.new(illegal => "{$label}redo", enclosing => 'loop construct', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_REDO {
-            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct', :$backtrace).throw;
-        }
-        elsif $type == nqp::const::CONTROL_PROCEED {
+        elsif $type +& nqp::const::CONTROL_PROCEED {
             X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_SUCCEED {
+        elsif $type +& nqp::const::CONTROL_SUCCEED {
             # XXX: should work like leave() ?
             X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_TAKE {
+        elsif $type +& nqp::const::CONTROL_TAKE {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_EMIT {
+        elsif $type +& nqp::const::CONTROL_EMIT {
             X::ControlFlow.new(illegal => 'emit', enclosing => 'supply or react', :$backtrace).throw;
         }
-        elsif $type == nqp::const::CONTROL_DONE {
+        elsif $type +& nqp::const::CONTROL_DONE {
             X::ControlFlow.new(illegal => 'done', enclosing => 'supply or react', :$backtrace).throw;
         }
         else {
@@ -541,7 +564,11 @@ my role X::Comp is Exception {
             my ($red,$clear,$green,$yellow,$eject) =
               Rakudo::Internals.error-rcgye;
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= "$.message\nat $.filename():$.line";
+            $r ~= $.filename eq '<unknown file>'
+              ?? $.line == 1
+                ?? $.message
+                !! "$.message\nat line $.line"
+              !! "$.message\nat $.filename():$.line";
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
@@ -563,7 +590,11 @@ my role X::Comp is Exception {
     }
     method sorry_heading() {
         my ($red, $clear) = Rakudo::Internals.error-rcgye;
-        "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
+        "$red==={$clear}SORRY!$red===$clear Error while compiling{
+          $.filename eq '<unknown file>'
+            ?? ':'
+            !! " $.filename"
+        }\n"
     }
     method SET_FILE_LINE($file, $line) {
         $!filename = $file;
@@ -710,8 +741,14 @@ Parenthesize as \\(...) if you intended a capture of a single numeric value./
 my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     has $.value;
     method message {
-qq/Leading 0 does not indicate octal in Perl 6.
-Please use 0o$!value if you mean that./
+        if $!value ~~ /<[89]>/ {
+            "Leading 0 is not allowed. For octals, use '0o' prefix,"
+            ~ " but note that $!value is not a valid octal number";
+        }
+        else {
+            'Leading 0 does not indicate octal in Perl 6.'
+                ~ " Please use 0o$!value if you mean that.";
+        }
     }
 }
 
@@ -911,7 +948,9 @@ my class X::Redeclaration does X::Comp {
     has $.postfix = '';
     has $.what    = 'symbol';
     method message() {
-        "Redeclaration of $.what $.symbol$.postfix";
+        my $m = "Redeclaration of $.what '$.symbol$.postfix'";
+        $m ~= " (did you mean to declare a multi-sub?)" if $.what eq 'routine';
+        $m
     }
 }
 
@@ -1356,7 +1395,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
       '$,'  => '$*OUT.output_field_separator()',
-      '$.'  => "the filehandle's .ins method",
+      '$.'  => "the .kv method on e.g. .lines",
       '$/'  => "the filehandle's .nl-in attribute",
       '$\\' => "the filehandle's .nl-out attribute",
       '$|'  => ':autoflush on open',
@@ -1450,6 +1489,12 @@ my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
     method message() {
+        "Operators '$.left' and '$.right' are non-associative and require parentheses";
+    }
+}
+
+my class X::Syntax::NonListAssociative is X::Syntax::NonAssociative {
+    method message() {
         "Only identical operators may be list associative; since '$.left' and '$.right' differ, they are non-associative and you need to clarify with parentheses";
     }
 }
@@ -1491,7 +1536,10 @@ my class X::Syntax::Regex::NullRegex does X::Syntax {
 }
 
 my class X::Syntax::Regex::MalformedRange does X::Syntax {
-    method message() { 'Malformed Range' }
+    method message() {
+        'Malformed Range. If attempting to use variables for end points, '
+        ~ 'wrap the entire range in curly braces.'
+    }
 }
 
 my class X::Syntax::Regex::Unspace does X::Syntax {
@@ -1593,7 +1641,7 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        "Preceding context expects a term, but found infix $.infix instead";
+        "Preceding context expects a term, but found infix {$.infix.trim} instead";
     }
 }
 
@@ -1617,7 +1665,19 @@ my class X::Attribute::NoPackage does X::Comp {
 }
 my class X::Attribute::Required does X::MOP {
     has $.name;
-    method message() { "The attribute '$.name' is required, but you did not provide a value for it." }
+    has $.why;
+    method message() {
+        $.why && nqp::istype($.why,Str)
+          ?? "The attribute '$.name' is required because $.why,\nbut you did not provide a value for it."
+          !! "The attribute '$.name' is required, but you did not provide a value for it."
+    }
+}
+my class X::Attribute::Scope::Package does X::Comp {
+    has $.scope;
+    has $.allowed;
+    has $.disallowed;
+    method message() { "Cannot use {$.scope}-scoped attribute in $.disallowed"
+        ~ ($.allowed ?? ", only $.allowed." !! ".") }
 }
 my class X::Declaration::Scope does X::Comp {
     has $.scope;
@@ -1665,7 +1725,21 @@ my class X::Constructor::Positional is Exception {
 }
 
 my class X::Hash::Store::OddNumber is Exception {
-    method message() { "Odd number of elements found where hash initializer expected" }
+    has $.found;
+    has $.last;
+    method message() {
+        my $msg =
+          "Odd number of elements found where hash initializer expected";
+        if $.found == 1 {
+            $msg ~= $.last
+              ?? ":\nOnly saw: $.last.perl()"
+              !! ":\nOnly saw 1 element"
+        }
+        else {
+            $msg ~= ":\nFound $.found (implicit) elements";
+            $msg ~= ":\nLast element seen: $.last.perl()" if $.last;
+        }
+    }
 }
 
 my class X::Pairup::OddNumber is Exception {
@@ -1887,30 +1961,36 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     has $.symbol;
     method operation { 'binding' }
     method message() {
-        if $.symbol {
-            self.priors() ~
-            "Type check failed in $.operation $.symbol; expected $.expectedn but got $.gotn";
-        } else {
-            self.priors() ~
-            "Type check failed in $.operation; expected $.expectedn but got $.gotn";
-        }
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to $.symbol" !! "";
+        my $expected = $.expected =:= $.got
+            ?? "expected type $.expectedn cannot be itself"
+            !! "expected $.expectedn but got $.gotn";
+        self.priors() ~ "Type check failed in $.operation$to; $expected";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
+        my $expected = $.expected =:= $.got
+            ?? "expected return type $.expectedn cannot be itself " ~
+               "(perhaps $.operation a :D type object?)"
+            !! "expected $.expectedn but got $.gotn";
         self.priors() ~
-        "Type check failed for return value; expected $.expectedn but got $.gotn";
+        "Type check failed for return value; $expected";
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
-        self.priors() ~ do
-            $.symbol.defined && $.symbol ne '$'
-            ?? "Type check failed in assignment to $.symbol; expected $.expectedn but got $.gotn"
-            !! "Type check failed in assignment; expected $.expectedn but got $.gotn";
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to $.symbol" !! "";
+        my $expected = $.expected =:= $.got
+            ?? "expected type $.expectedn cannot be itself " ~
+               "(perhaps Nil was assigned to a :D which had no default?)"
+            !! "expected $.expectedn but got $.gotn";
+        self.priors() ~ "Type check failed in assignment$to; $expected";
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {
@@ -2214,7 +2294,7 @@ my class X::Multi::NoMatch is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~
         join "\n    ",
-            "Cannot call $.dispatcher.name()$cap; none of these signatures match:",
+            "Cannot resolve caller $.dispatcher.name()$cap; none of these signatures match:",
             @cand;
     }
 }
@@ -2252,7 +2332,7 @@ my class X::PhaserExceptions is Exception {
 }
 
 nqp::bindcurhllsym('P6EX', nqp::hash(
-  'X::TypeCheck::Binding', 
+  'X::TypeCheck::Binding',
   sub (Mu $got, Mu $expected, $symbol?) {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
@@ -2444,6 +2524,13 @@ my class X::TooManyDimensions is Exception {
     }
 }
 
+my class X::IllegalDimensionInShape is Exception {
+    has $.dim;
+    method message() {
+        "Illegal dimension in shape: $.dim. All dimensions must be integers bigger than 0"
+    }
+}
+
 my class X::Assignment::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;
@@ -2489,9 +2576,31 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     method message() {
         my $name = $.specification.short-name;
+        my $line = $.specification.source-line-number;
         is-core($name)
-            ?? "{$name} is a builtin type. You can use it without loading a module."
-            !! "Could not find $.specification in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+            ?? "{$name} is a builtin type, not an external module"
+            !! "Could not find $.specification at line $line in:\n"
+                ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+                ~ ($.specification ~~ / $<name>=.+ '::from' $ /
+                    ?? "\n\nIf you meant to use the :from adverb, use"
+                        ~ " a single colon for it: $<name>:from<...>\n"
+                    !! ''
+                )
+    }
+}
+
+my class Exceptions::JSON {
+    method process($ex) {
+        nqp::printfh(
+          nqp::getstderr,
+          Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
+            (message => $ex.message),
+            $ex.^attributes.grep(*.has_accessor).map: {
+                $_ => $ex."$_"() with .name.substr(2)
+            }
+          ))
+        );
+        False  # done processing
     }
 }
 

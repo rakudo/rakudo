@@ -180,11 +180,11 @@ sub git_checkout {
 
     # get an up-to-date repository
     if (! -d $dir) {
-    	my @args = ('git', 'clone');
-    	push @args, $reference if $reference ne '';
-    	push @args, $depth if $depth ne '';
-    	push @args, $repo;
-    	push @args, $dir;
+        my @args = ('git', 'clone');
+        push @args, $reference if $reference ne '';
+        push @args, $depth if $depth ne '';
+        push @args, $repo;
+        push @args, $dir;
         system_or_die(@args);
         chdir($dir);
         system('git', 'config', 'remote.origin.pushurl', $pushurl)

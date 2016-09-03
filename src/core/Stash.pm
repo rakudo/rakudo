@@ -43,9 +43,8 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        if $globalish !=== Stash {
-            nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(self, $globalish);
-        }
+        nqp::gethllsym('perl6','ModuleLoader').merge_globals(self,$globalish)
+          unless $globalish === Stash;
     }
 }
 

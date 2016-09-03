@@ -109,13 +109,11 @@ my class Cool { # declared in BOOTSTRAP
     method uniprop-str(|c)  { uniprop-str(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
-    method chomp() {
-        self.Str.chomp;
-    }
+    method chomp(Cool:D:) { self.Str.chomp }
 
-    method chop(Int() $n = 1) {
-        self.Str.chop($n)
-    }
+    proto method chop(|)                { * }
+    multi method chop(Cool:D:)          { self.Str.chop }
+    multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
     method ord(--> Int) {
         self.Str.ord
@@ -134,101 +132,46 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D: Str(Cool) $needle) {
-        nqp::p6bool(
-          nqp::eqat(nqp::unbox_s(self.Str),nqp::unbox_s($needle),0)
-        );
+        self.Str.starts-with($needle)
     }
 
-    proto method ends-with(Str(Cool) $suffix) { * }
+    proto method ends-with(|) {*}
     multi method ends-with(Cool:D: Str(Cool) $suffix) {
-        my str $str    = nqp::unbox_s(self.Str);
-        my str $needle = nqp::unbox_s($suffix);
-        nqp::p6bool(
-          nqp::eqat($str,$needle,nqp::chars($str) - nqp::chars($needle))
-        );
+        self.Str.ends-with($suffix)
     }
 
     proto method substr-eq(|) {*}
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $start?) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $pos =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        $pos >= 0 && nqp::p6bool(nqp::eqat($str, nqp::unbox_s($needle), $pos));
+    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
+        self.Str.substr-eq($needle,$pos)
     }
 
     proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle, Cool $start?) {
-        my str $str = nqp::unbox_s(self.Str);
-        my int $pos =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        nqp::index($str, nqp::unbox_s($needle), $pos) != -1;
+    multi method contains(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
+        self.Str.contains($needle,$pos.Int)
     }
 
     proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, Cool $start?, :$overlap) {
-        my str $str  = nqp::unbox_s(self.Str);
-        my int $pos  =
-          nqp::defined($start) ?? nqp::chars($str) min $start.Int !! 0;
-        my str $need = nqp::unbox_s($needle);
-        my int $add  = $overlap ?? 1 !! nqp::chars($need) || 1;
-
-        my $rpa := nqp::list();
-        my int $i;
-        while ($i = nqp::index($str, $need, $pos)) >= 0 {
-            nqp::push($rpa,nqp::p6box_i($i));
-            $pos = $i + $add;
-        }
-        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
+    multi method indices(Cool:D: Str(Cool) $needle, :$overlap) {
+        self.Str.indices($needle,:$overlap)
+    }
+    multi method indices(Cool:D: Str(Cool) $needle,Int(Cool) $start,:$overlap) {
+        self.Str.indices($needle,$start,:$overlap)
     }
 
     proto method index(|) {*}
     multi method index(Cool:D: Str(Cool) $needle) {
-        my int $i = nqp::index(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.index($needle)
     }
     multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        fail X::OutOfRange.new(
-          :what("Position in index"),
-          :got($pos),
-          :range("0..{self.chars}"),
-        ) if nqp::isbig_I(nqp::decont($pos));
-        my int $i = nqp::unbox_i($pos);
-        fail X::OutOfRange.new(
-          :what("Position in index"),
-          :got($i),
-          :range("0..{self.chars}"),
-        ) if $i < 0;
-        $i = nqp::index(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          $i
-        );
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.index($needle,$pos)
     }
 
     proto method rindex(|) {*}
     multi method rindex(Cool:D: Str(Cool) $needle) {
-        my int $i = nqp::rindex(nqp::unbox_s(self.Str), nqp::unbox_s($needle));
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.rindex($needle)
     }
     multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        fail X::OutOfRange.new(
-          :what("Position in rindex"),
-          :got($pos),
-          :range("0..{self.chars}"),
-        ) if nqp::isbig_I(nqp::decont($pos));
-        my int $i = nqp::unbox_i($pos);
-        fail X::OutOfRange.new(
-          :what("Position in rindex"),
-          :got($i),
-          :range("0..{self.chars}"),
-        ) if $i < 0;
-        $i = nqp::rindex(
-          nqp::unbox_s(self.Str),
-          nqp::unbox_s($needle),
-          $i
-        );
-        $i < 0 ?? Nil !! nqp::box_i($i,Int);
+        self.Str.rindex($needle,$pos)
     }
 
     multi method split(Cool: Regex:D $pat, $limit = Inf;; :$all) {
@@ -292,29 +235,58 @@ my class Cool { # declared in BOOTSTRAP
         EVAL(self, context => CALLER::, |%opts);
     }
 
-    multi method Real() { self.Numeric.Real }
+    multi method Real() {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Real
+        )
+    }
 
     proto method Int(|) { * }
-    multi method Int()  { self.Numeric.Int }
+    multi method Int()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Int
+        )
+    }
 
     proto method UInt(|) { * }
     multi method UInt()  {
         my $got := self.Int;
-        fail X::OutOfRange.new(
-          :what('Coercion to UInt'),
-          :$got,
-          :range("0..Inf")
-        ) if $got < 0;
-        $got;
+        $got < 0
+          ?? Failure.new(X::OutOfRange.new(
+               :what('Coercion to UInt'),
+               :$got,
+               :range("0..Inf")))
+          !! $got
     }
 
-    method Num()  { self.Numeric.Num }
-    method Rat()  { self.Numeric.Rat }
+    method Num()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Num
+        )
+    }
+
+    method Rat()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Rat
+        )
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
-sub chop(Cool $s, Int() $n = 1) returns Str { $s.chop($n) }
-sub chomp(Cool $s) returns Str     { $s.chomp }
+proto sub chop(|) { * }
+multi sub chop(Cool:D $s)           returns Str { $s.chop }
+multi sub chop(Cool:D $s, Int() $n) returns Str { $s.chop($n) }
+
+sub chomp(Cool:D $s) returns Str { $s.chomp }
+
 sub flip(Cool $s) returns Str      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }

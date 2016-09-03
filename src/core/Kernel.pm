@@ -97,8 +97,13 @@ class Kernel does Systemic {
         $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
     }
 
-#?if moar
     has @!signals;  # Signal
+#?if jvm
+    method signals (Kernel:D:) {
+        @!signals //= [2, 9]
+    }
+#?endif
+#?if moar
     method signals (Kernel:D:) {
         once {
             my @names;
@@ -120,6 +125,7 @@ class Kernel does Systemic {
         }
         @!signals
     }
+#?endif
 
     has %!signals_by_Str;
     proto method signal (|) { * }
@@ -141,7 +147,6 @@ class Kernel does Systemic {
     }
 
     multi method signal(Kernel:D: Int:D $signal --> Int) { $signal }
-#?endif
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

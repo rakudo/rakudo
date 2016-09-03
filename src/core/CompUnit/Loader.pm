@@ -8,13 +8,13 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Decode the specified byte buffer as source code, and compile it
-    method load-source(Buf:D $bytes) returns CompUnit::Handle {
+    method load-source(Blob:D $bytes) returns CompUnit::Handle {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
 
-        my $*CTXSAVE := self;
+        my $handle   := CompUnit::Handle.new;
+        my $*CTXSAVE := $handle;
         my $eval     := nqp::getcomp('perl6').compile($bytes.decode);
 
-        my $*MAIN_CTX;
         $eval();
 
         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
@@ -26,27 +26,37 @@ class CompUnit::Loader is repr('Uninstantiable') {
             }
         }
 
-        CompUnit::Handle.new($*MAIN_CTX)
+        $handle
     }
 
     # Load a pre-compiled file
-    method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
-        my $*CTXSAVE := self;
+    proto method load-precompilation-file(|) { * }
+    multi method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
+        my $handle     := CompUnit::Handle.new;
+        my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
-        my Mu $*MAIN_CTX;
         nqp::loadbytecode($path.Str);
-        CompUnit::Handle.new($*MAIN_CTX)
+        $handle
+    }
+
+    multi method load-precompilation-file(IO::Handle $file) returns CompUnit::Handle {
+        my $handle     := CompUnit::Handle.new;
+        my $*CTXSAVE   := $handle;
+        my %*COMPILING := nqp::hash();
+#?if moar
+        nqp::loadbytecodefh(nqp::getattr($file, IO::Handle, '$!PIO'), $file.path.Str);
+#?endif
+        $handle
     }
 
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
-    method load-precompilation(Buf:D $bytes) returns CompUnit::Handle {
-        ... # XXX this one needs MoarVM/JVM backends to expose a new API
-    }
-
-    method ctxsave() {
-        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
-        $*CTXSAVE := 0;
+    method load-precompilation(Blob:D $bytes) returns CompUnit::Handle {
+        my $handle     := CompUnit::Handle.new;
+        my $*CTXSAVE   := $handle;
+        my %*COMPILING := nqp::hash();
+        nqp::loadbytecodebuffer($bytes);
+        $handle
     }
 }
 

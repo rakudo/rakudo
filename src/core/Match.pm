@@ -6,13 +6,13 @@ my class Match is Capture is Cool {
     has $.made;
 
     # new/!SET-SELF here only for performance reasons
-    method !SET-SELF(:$!orig,:$from,:$to,:$!CURSOR,:$!made) {
+    method !SET-SELF($!orig,$from,$to,$!CURSOR,$!made) {
         $!from   = $from // 0;  # cannot assign to int in sig
         $!to     = $to   // 0;  # cannot assign to int in sig
         self;
     }
     method new(:$orig,:$from,:$to,:$CURSOR,:$made) {
-        nqp::create(self)!SET-SELF(:$orig,:$from,:$to,:$CURSOR,:$made);
+        nqp::create(self)!SET-SELF($orig,$from,$to,$CURSOR,$made);
     }
 
     method ast(Match:D:) { $!made }
@@ -95,6 +95,20 @@ my class Match is Capture is Cool {
         );
     }
 }
+
+multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+    $a =:= $b
+    ||
+    [&&] (
+        $a.to   eqv $b.to,
+        $a.from eqv $b.from,
+        $a.orig eqv $b.orig,
+        $a.made eqv $b.made,
+        $a.list eqv $b.list,
+        $a.hash eqv $b.hash
+    );
+}
+
 
 sub make(Mu \made) {
     my $slash := nqp::getlexcaller('$/');

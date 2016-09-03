@@ -81,7 +81,10 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
 multi sub trait_mod:<is>(Attribute $attr, :$required!) {
-    $attr.set_required();
+    die "'is required' must be Cool" unless nqp::istype($required,Cool);
+    $attr.set_required(
+      nqp::istype($required,Bool) ?? +$required !! $required
+    );
 }
 multi sub trait_mod:<is>(Attribute $attr, :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));

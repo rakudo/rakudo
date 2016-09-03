@@ -3,10 +3,22 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!loaded;
     has $!precomp;
     has $!id;
+    has Int $!version;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
+
+    my class InstalledDistribution is Distribution::Hash {
+        method content($address) {
+            my $entry = $.meta<provides>.values.first: { $_{$address}:exists };
+            my $file = $entry
+                ?? $.prefix.child('sources').child($entry{$address}<file>)
+                !! $.prefix.child('resources').child($.meta<files>{$address});
+
+            $file.open(:r)
+        }
+    }
 
     method writeable-path {
         $.prefix.w ?? $.prefix !! IO::Path;
@@ -97,11 +109,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !add-short-name($name, $dist) {
         my $short-dir = $.prefix.child('short');
-        $short-dir.mkdir unless $short-dir.e;
         my $id = nqp::sha1($name);
-        my $lookup = $short-dir.child($id).open(:a);
-        $lookup.say: $dist.id;
-        $lookup.close;
+        my $lookup = $short-dir.child($id);
+        $lookup.mkdir;
+        $lookup.child($dist.id).spurt(
+                "{$dist.meta<ver>  // ''}\n"
+            ~   "{$dist.meta<auth> // ''}\n"
+            ~   "{$dist.meta<api>  // ''}\n"
+        );
     }
 
     method !remove-dist-from-short-name-lookup-files($dist) {
@@ -110,14 +125,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         my $id = $dist.id;
 
-        for $short-dir.dir -> $file {
-            my $filtered = ($file.lines ∖ $id);
-            if $filtered.elems > 0 {
-                $file.spurt: $filtered.keys.sort.map({"$_\n"}).join('');
-            }
-            else {
-                $file.unlink;
-            }
+        for $short-dir.dir -> $dir {
+            $dir.child($id).unlink;
+            $dir.rmdir unless $dir.dir;
         }
     }
 
@@ -126,19 +136,96 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
+    method name(--> Str) {
+        CompUnit::RepositoryRegistry.name-for-repository(self)
+    }
 
     method !repo-prefix() {
-        my $repo-prefix = CompUnit::RepositoryRegistry.name-for-repository(self) // '';
+        my $repo-prefix = self.name // '';
         $repo-prefix ~= '#' if $repo-prefix;
         $repo-prefix
     }
 
-    method install(Distribution $dist, %sources, %scripts?, %resources?, :$force) {
+    method !read-dist($id) {
+        my $dist = Rakudo::Internals::JSON.from-json($.prefix.child('dist').child($id).slurp);
+        $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
+        $dist
+    }
+
+    method !repository-version(--> Int) {
+        return $!version if defined $!version;
+        my $version-file = $.prefix.child('version');
+        return $!version = 0 unless $version-file ~~ :f;
+        $!version = $version-file.slurp.Int
+    }
+
+    method upgrade-repository() {
+        my $version = self!repository-version;
+        my $short-dir = $.prefix.child('short');
+        mkdir $short-dir unless $short-dir.e;
+        my $precomp-dir = $.prefix.child('precomp');
+        mkdir $precomp-dir unless $precomp-dir.e;
+        self!sources-dir;
+        my $resources-dir = self!resources-dir;
+        my $dist-dir = self!dist-dir;
+        self!bin-dir;
+        if ($version < 1) {
+            for $short-dir.dir -> $file {
+                my @ids = $file.lines.unique;
+                $file.unlink;
+                $file.mkdir;
+                for @ids -> $id {
+                    my $dist = self!read-dist($id);
+                    $file.child($id).spurt("{$dist<ver> // ''}\n{$dist<auth> // ''}\n{$dist<api> // ''}\n");
+                }
+            }
+        }
+        if ($version < 2) {
+            for $dist-dir.dir -> $dist-file {
+                my %meta = Rakudo::Internals::JSON.from-json($dist-file.slurp);
+                my $files = %meta<files> //= [];
+                for eager $files.keys -> $file {
+                    $files{"resources/$file"} = $files{$file}:delete
+                        if $resources-dir.child($files{$file}).e
+                        and not $.prefix.child($file).e; # bin/ is already included in the path
+                }
+                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
+            }
+        }
+        $.prefix.child('version').spurt('2');
+        $!version = 2;
+    }
+
+    proto method install(|) {*}
+    multi method install($dist, %sources, %scripts?, %resources?, Bool :$force) {
+        # XXX: Deprecation shim
+        my %files;
+        %files{"bin/$_.key()"} = $_.value for %scripts.pairs;
+        %files{"resources/$_.key()"} = $_.value for %resources.pairs;
+        my %meta6 = %(
+            name     => $dist.?name,
+            ver      => $dist.?ver // $dist.?version,
+            auth     => $dist.?auth // $dist.?authority,
+            provides => %sources,
+            files    => %files,
+        );
+
+        return samewith(Distribution::Hash.new(%meta6, :prefix($*CWD)), :$force);
+    }
+    multi method install(Distribution $distribution, Bool :$force) {
+        my $dist  = CompUnit::Repository::Distribution.new($distribution);
+        my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
+            $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
+        }
+
         $!lock.protect( {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
-        my $lock //= $.prefix.child('repo.lock').open(:create, :w);
+        my $lock = $.prefix.child('repo.lock').open(:create, :w);
         $lock.lock(2);
+
+        my $version = self!repository-version;
+        self.upgrade-repository unless $version == 2;
 
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
@@ -152,69 +239,98 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $bin-dir       = self!bin-dir;
         my $is-win        = Rakudo::Internals.IS-WIN;
 
-        self!add-short-name($dist.name, $dist); # so scripts can find their dist
+        self!add-short-name($dist.meta<name>, $dist); # so scripts can find their dist
 
-        # Walk the to be installed files, decide whether we put them into
-        # "provides" or just "files".
-        for %sources.kv -> $name, $file is copy {
-            $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
+        my %links; # map name-path to new content address
+        my %provides; # meta data gets added, but the format needs to change to
+                      # only extend the structure, not change it
+
+        # the following 3 `for` loops should be a single loop, but has been
+        # left this way due to impeding precomp changes
+
+        # lib/ source files
+        for $dist.meta<provides>.kv -> $name, $file is copy {
             # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
-            my $id          = self!file-id($name, $dist-id);
+            my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.child($id);
             self!add-short-name($name, $dist);
-            $dist.provides{ $name } = {
-                pm => {
-                    :file($id),
-                    :time(try $file.IO.modified.Num),
-                    :$!cver
-                }
+            %provides{ $name } = ~$file => {
+                :file($id),
+                :time(try $file.IO.modified.Num),
+                :$!cver
             };
-            note("Installing {$name} for {$dist.name}") if $verbose and $name ne $dist.name;
-            copy($file, $destination);
+            note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
+            my $handle  = $dist.content($file);
+            my $content = $handle.open.slurp-rest(:bin,:close);
+            $destination.spurt($content);
+            $handle.close;
         }
 
-        for %scripts.kv -> $basename, $file is copy {
-            $file           = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            my $id          = self!file-id($file, $dist-id);
-            my $destination = $resources-dir.child($id);
-            my $withoutext  = $basename.subst(/\.[exe|bat]$/, '');
+        # bin/ scripts
+        for %files.kv -> $name-path, $file is copy {
+            next unless $name-path.starts-with('bin/');
+            my $id          = self!file-id(~$file, $dist-id);
+            my $destination = $resources-dir.child($id); # wrappers are put in bin/; originals in resources/
+            my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
-                "$path/bin/$withoutext$be".IO.spurt:
-                    $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be").subst('#dist-name#', $dist.name);
+                $.prefix.child("$withoutext$be").IO.spurt:
+                    $perl_wrapper.subst('#name#', $name-path.IO.basename, :g).subst('#perl#', "perl6$be").subst('#dist-name#', $dist.meta<name>);
                 if $is-win {
-                    "$path/bin/$withoutext$be.bat".IO.spurt:
+                    $.prefix.child("$withoutext$be.bat").IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);
                 }
                 else {
-                    "$path/bin/$withoutext$be".IO.chmod(0o755);
+                    $.prefix.child("$withoutext$be").IO.chmod(0o755);
                 }
             }
-            self!add-short-name($basename, $dist);
-            $dist.files{"bin/$basename"} = $id;
-            copy($file, $destination);
+            self!add-short-name($name-path, $dist);
+            %links{$name-path} = $id;
+            my $handle  = $dist.content($file);
+            my $content = $handle.open.slurp-rest(:bin,:close);
+            $destination.spurt($content);
+            $handle.close;
         }
 
-        for %resources.kv -> $name, $file is copy {
-            $file              = $is-win ?? ~$file.subst('\\', '/', :g) !! ~$file;
-            # $name is 'libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
-            my $id             = self!file-id($name, $dist-id) ~ '.' ~ $file.IO.extension;
+        # resources/
+        for %files.kv -> $name-path, $file is copy {
+            next unless $name-path.starts-with('resources/');
+            # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
+            my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.child($id);
-            $dist.files{$name} = $id;
-            copy($file, $destination);
+            %links{$name-path} = $id;
+            my $handle  = $dist.content($file);
+            my $content = $handle.open.slurp-rest(:bin,:close);
+            $destination.spurt($content);
+            $handle.close;
         }
 
-        $dist-dir.child($dist-id).spurt: to-json($dist.Hash);
+        my %meta = %($dist.meta);
+        %meta<files>    = %links;    # add our new name-path => conent-id mapping
+        %meta<provides> = %provides; # new meta data added to provides
+        $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
 
-        my $precomp = $*REPO.precomp-repository;
-        my $repo-prefix = self!repo-prefix;
-        if $precomp.may-precomp {
+        # reset cached id so it's generated again on next access.
+        # identity changes with every installation of a dist.
+        $!id = Any;
+
+        {
+            my $head = $*REPO;
+            PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
+            my $precomp = $*REPO.precomp-repository;
+            my $repo-prefix = self!repo-prefix;
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
-            for $dist.provides.kv -> $source-name, $ext {
-                my $id = $ext.values[0]<file>;
+
+            my $compiler-id = $*PERL.compiler.id;
+            for %provides.kv -> $source-name, $source-meta {
+                my $id = $source-meta.values[0]<file>;
+                $precomp.store.delete($compiler-id, $id);
+            }
+
+            for %provides.kv -> $source-name, $source-meta {
+                my $id = $source-meta.values[0]<file>;
                 my $source = $sources-dir.child($id);
-                my $rev-deps-file = ($precomp.store.path($*PERL.compiler.id, $id) ~ '.rev-deps').IO;
-                my @rev-deps      = $rev-deps-file.e ?? $rev-deps-file.lines !! ();
+                my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
                 if %done{$id} {
                     note "(Already did $id)" if $verbose;
@@ -224,73 +340,77 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $precomp.precompile(
                     $source.IO,
                     $id,
-                    :force,
-                    :source-name("$repo-prefix$source.relative($.prefix) ($source-name)"),
+                    :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
-                for @rev-deps -> $rev-dep-id {
-                    if %done{$rev-dep-id} {
-                        note "(Already did $rev-dep-id)" if $verbose;
-                        next;
-                    }
-                    note("Precompiling rev-dep $rev-dep-id") if $verbose;
-                    my $source = $sources-dir.child($rev-dep-id);
-                    $precomp.precompile(
-                        $source,
-                        $rev-dep-id,
-                        :force,
-                        :source-name($repo-prefix ~ $source.relative($.prefix))
-                    ) if $source.e;
-                    %done{$rev-dep-id} = 1;
-                }
             }
+            PROCESS::<$REPO> := $head;
         }
 
-        # reset cached id so it's generated again on next access.
-        # identity changes with every installation of a dist.
-        $!id = Any;
         $lock.unlock;
     } ) }
 
-    method uninstall(Distribution $dist) {
-        my %provides      = $dist.provides;
-        my %files         = $dist.files;
+    method uninstall(Distribution $distribution) {
+        my $repo-version = self!repository-version;
+        self.upgrade-repository unless $repo-version == 2;
+
+        # xxx: currently needs to be passed in a distribution object that
+        # has meta<files> pointing at content-ids, so you cannot yet just
+        # pass in the original meta data and have it discovered and deleted
+        # (i.e. update resolve to return such a ::Installation::Distribution)
+        my $dist  = CompUnit::Repository::Distribution.new($distribution);
+        my %provides      = $dist.meta<provides>;
+        my %files         = $dist.meta<files>;
         my $sources-dir   = self.prefix.child('sources');
         my $resources-dir = self.prefix.child('resources');
         my $bin-dir       = self.prefix.child('bin');
         my $dist-dir      = self.prefix.child('dist');
 
         self!remove-dist-from-short-name-lookup-files($dist);
-        $bin-dir.child($_.value).unlink for %files.grep: {$_.key ~~ /^bin\//};
-        $sources-dir.child($_).unlink for %provides.map(*.value<pm><file>);
-        $resources-dir.child($_).unlink for %files.values;
-        $dist-dir.child($dist.id).unlink;
+        my sub unlink-if-exists($path) { unlink($path) if $path.IO.e }
+
+        # delete special directory files
+        for %files.kv -> $name-path, $file {
+            given $name-path {
+                when /^bin\/(.*)/ {
+                    # wrappers are located in $bin-dir
+                    unlink-if-exists( $bin-dir.child("$0$_") ) for '', '-m', '-j';
+                    # original bin scripts are in $resources-dir
+                    unlink-if-exists( $resources-dir.child($file) )
+                }
+                when /^resources\// {
+                    unlink-if-exists( $resources-dir.child($file) )
+                }
+            }
+        }
+
+        # delete sources
+        unlink-if-exists( $sources-dir.child($_) ) for %provides.values.flatmap(*.values.map(*.<file>));
+
+        # delete the meta file
+        unlink( $dist-dir.child($dist.id) )
     }
 
-    method files($file, :$name, :$auth, :$ver) {
+    method files($file, :$name!, :$auth, :$ver) {
         my @candi;
         my $prefix = self.prefix;
         my $lookup = $prefix.child('short').child(nqp::sha1($name));
         if $lookup.e {
-            my $dist-dir = self!dist-dir;
-            for $lookup.lines -> $dist-id {
-                my $dist = from-json($dist-dir.child($dist-id).slurp);
-                my $dver = $dist<ver>
-                        ?? nqp::istype($dist<ver>,Version)
-                            ?? $dist<ver>
-                            !! Version.new( $dist<ver> )
-                        !! Version.new('0');
-
-                if (!$name || $dist<name> ~~ $name)
-                && (!$auth || $dist<auth> ~~ $auth)
-                && (!$ver  || $dver ~~ $ver) {
-                    with $dist<files>{$file} {
-                        my $candi   = %$dist;
-                        $candi<ver> = $dver;
-                        $candi<files>{$file} = $prefix.abspath ~ '/resources/' ~ $candi<files>{$file}
-                            unless $candi<files>{$file} ~~ /^$prefix/;
-                        @candi.push: $candi;
-                    }
+            my $repo-version = self!repository-version;
+            my @dists = $repo-version < 1
+                ?? $lookup.lines.unique.map({
+                        self!read-dist($_)
+                    })
+                !! $lookup.dir.map({
+                        my ($ver, $auth, $api) = $_.slurp.split("\n");
+                        (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
+                    });
+            for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
+                $dist = self!read-dist($dist<id>) if $repo-version >= 1;
+                with $dist<files>{$file} {
+                    my $candi = %$dist;
+                    $candi<files>{$file} = self!resources-dir.child($candi<files>{$file});
+                    @candi.push: $candi;
                 }
             }
         }
@@ -299,19 +419,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         if $spec.from eq 'Perl6' {
+            my $repo-version = self!repository-version;
             my $lookup = $.prefix.child('short').child(nqp::sha1($spec.short-name));
             if $lookup.e {
-                my $dist-dir = $.prefix.child('dist');
-                my @dists = $lookup.lines.unique.map({
-                    $_ => from-json($dist-dir.child($_).slurp)
-                }).grep({
-                    $_.value<auth> ~~ $spec.auth-matcher
-                    and Version.new(~$_.value<ver> || '0') ~~ $spec.version-matcher
-                    and $_.value<provides>{$spec.short-name}:exists
-                });
+                my @dists = (
+                        $repo-version < 1
+                        ?? $lookup.lines.unique.map({
+                                $_ => self!read-dist($_)
+                            })
+                        !! $lookup.dir.map({
+                                my ($ver, $auth, $api) = $_.slurp.split("\n");
+                                $_.basename => {ver => Version.new( $ver || 0 ), auth => $auth, api => $api}
+                            })
+                    ).grep({
+                        $_.value<auth> ~~ $spec.auth-matcher
+                        and $_.value<ver> ~~ $spec.version-matcher
+                    });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
-                    return ($dist-id, $dist);
+                    return ($dist-id, $repo-version < 1 ?? $dist !! self!read-dist($dist-id));
                 }
             }
         }
@@ -325,10 +450,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
-            my $loader = $.prefix.child('sources').child(
-                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
-            );
-            my $id = $loader.basename;
+            my $id = $dist<provides>{$spec.short-name}.values[0]<file>;
+
+            # xxx: replace :distribution with meta6
             return CompUnit.new(
                 :handle(CompUnit::Handle),
                 :short-name($spec.short-name),
@@ -336,7 +460,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :auth($dist<auth> // Str),
                 :repo(self),
                 :repo-id($id),
-                :distribution(Distribution.new(|$dist)),
+                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
             );
         }
         return self.next-repo.resolve($spec) if self.next-repo;
@@ -346,27 +470,32 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
     )
         returns CompUnit:D
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
-
             my $loader = $.prefix.child('sources').child(
-                $dist<provides>{$spec.short-name}<pm pm6>.first(*.so)<file>
+                $dist<provides>{$spec.short-name}.values[0]<file>
             );
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $id = $loader.basename;
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
-                $id,
-                $loader,
-                :source-name("$repo-prefix$loader.relative($.prefix) ($spec.short-name())"),
+                CompUnit::PrecompilationDependency::File.new(
+                    :$id,
+                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.abspath),
+                    :$spec,
+                ),
+                :source($loader),
+                :@precomp-stores,
             );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
 
+            # xxx: replace :distribution with meta6
             my $compunit = CompUnit.new(
                 :$handle,
                 :short-name($spec.short-name),
@@ -375,24 +504,26 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :repo(self),
                 :repo-id($id),
                 :$precompiled,
-                :distribution(Distribution.new(|$dist)),
+                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
             );
             return %!loaded{$compunit.short-name} = $compunit;
         }
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method resource($dist-id, $key) {
-        my $dist = from-json(self!dist-dir.child($dist-id).slurp);
-        self!resources-dir.child($dist<files>{$key})
+        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
+        # need to strip the leading resources/ on old repositories
+        self!resources-dir.child($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }
 
     method id() {
         return $!id if $!id;
-        $!id = self.CompUnit::Repository::Locally::id();
+        my $name = self.path-spec;
+        $name ~= ',' ~ self.next-repo.id if self.next-repo;
         my $dist-dir = $.prefix.child('dist');
-        $!id = nqp::sha1($!id ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
+        $!id = nqp::sha1(nqp::sha1($name) ~ ($dist-dir.e ?? $dist-dir.dir !! ''))
     }
 
     method short-id() { 'inst' }
@@ -401,13 +532,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
+    method installed() returns Iterable {
+        my $dist-dir = self.prefix.child('dist');
+        $dist-dir.e
+            ?? $dist-dir.dir.map({
+                    InstalledDistribution.new(self!read-dist($_.basename), :prefix(self.prefix))
+                })
+            !! Nil
+    }
+
+    method precomp-store() returns CompUnit::PrecompilationStore {
+        CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.child('precomp')),
+        )
+    }
+
     method precomp-repository() returns CompUnit::PrecompilationRepository {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('precomp')),
-                )
-            ),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

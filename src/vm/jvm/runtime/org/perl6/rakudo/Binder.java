@@ -324,6 +324,7 @@ public final class Binder {
          * further checking. */
         SixModelObject decontValue = null;
         boolean didHLLTransform = false;
+        SixModelObject nomType = null;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
@@ -339,7 +340,7 @@ public final class Binder {
                 /* Is the nominal type generic and in need of instantiation? (This
                  * can happen in (::T, T) where we didn't learn about the type until
                  * during the signature bind). */
-                SixModelObject nomType = param.get_attribute_boxed(tc, gcx.Parameter,
+                nomType = param.get_attribute_boxed(tc, gcx.Parameter,
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
                     SixModelObject HOW = nomType.st.HOW;
@@ -355,11 +356,18 @@ public final class Binder {
 
                 /* If the expected type is Positional, see if we need to do the
                  * positional bind failover. */
-                if (nomType == gcx.Positional && Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
-                    SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
-                    Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
-                    arg_o = Ops.result_o(tc.curFrame);
-                    decontValue = Ops.decont(arg_o, tc);
+                if (nomType == gcx.Positional) {
+                    if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
+                        SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
+                        Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
+                        arg_o = Ops.result_o(tc.curFrame);
+                        decontValue = Ops.decont(arg_o, tc);
+                    }
+                    else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
+                        SixModelObject ig = Ops.findmethod(tc, decontValue, "cache");
+                        Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
+                        decontValue = Ops.result_o(tc.curFrame);
+                    }
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then
@@ -524,15 +532,25 @@ public final class Binder {
                  * container and store it, for copy or ro case (the rw bit
                  * in the container descriptor takes care of the rest). */
                 else {
-                    STable stScalar = gcx.Scalar.st;
-                    SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
-                    SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
-                        "$!container_descriptor", HINT_container_descriptor);
-                    new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-                        RakudoContainerSpec.HINT_descriptor, desc);
-                    new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                        RakudoContainerSpec.HINT_value, decontValue);
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+                    boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
+                    if (!wrap && nomType != null && gcx.Iterable != null) {
+                        wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
+                            || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                    }
+                    if (wrap || varName.equals("$_")) {
+                        STable stScalar = gcx.Scalar.st;
+                        SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
+                        SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
+                            "$!container_descriptor", HINT_container_descriptor);
+                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
+                            RakudoContainerSpec.HINT_descriptor, desc);
+                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
+                            RakudoContainerSpec.HINT_value, decontValue);
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+                    }
+                    else {
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                    }
                 }
             }
         }

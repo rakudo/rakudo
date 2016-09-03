@@ -99,26 +99,49 @@ my class Attribute { # declared in BOOTSTRAP
     }
 
     method get_value(Mu $obj) {
-        my $decont := nqp::decont($obj);
-        given nqp::p6box_i(nqp::objprimspec($!type)) {
-            when 0 { nqp::getattr($decont, $!package, $!name) }
-            when 1 { nqp::p6box_i(nqp::getattr_i($decont, $!package, $!name)) }
-            when 2 { nqp::p6box_n(nqp::getattr_n($decont, $!package, $!name)) }
-            when 3 { nqp::p6box_s(nqp::getattr_s($decont, $!package, $!name)) }
-        }
+        nqp::if(
+          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
+          nqp::getattr(nqp::decont($obj),$!package,$!name),
+          nqp::if(
+            nqp::iseq_i($t,1),
+            nqp::p6box_i(nqp::getattr_i(nqp::decont($obj),$!package,$!name)),
+            nqp::if(
+              nqp::iseq_i($t,2),
+              nqp::p6box_n(nqp::getattr_n(nqp::decont($obj),
+                $!package,$!name)),
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::getattr_s(nqp::decont($obj),
+                  $!package,$!name))
+              )
+            )
+          )
+        )
     }
 
     method set_value(Mu $obj, Mu \value) {
-        my $decont := nqp::decont($obj);
-        given nqp::p6box_i(nqp::objprimspec($!type)) {
-            when 0 { nqp::bindattr($decont, $!package, $!name, value) }
-            when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, value)) }
-            when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, value)) }
-            when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, value)) }
-        }
+        nqp::if(
+          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
+          nqp::bindattr(nqp::decont($obj),$!package,$!name,value),
+          nqp::if(
+            nqp::iseq_i($t,1),
+            nqp::p6box_i(nqp::bindattr_i(nqp::decont($obj),
+              $!package,$!name,value)),
+            nqp::if(
+              nqp::iseq_i($t,2),
+              nqp::p6box_n(nqp::bindattr_n(nqp::decont($obj),
+                $!package,$!name,value)),
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::bindattr_s(nqp::decont($obj),
+                  $!package,$!name,value))
+              )
+            )
+          )
+        )
     }
 
-    method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
+    method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }
     method readonly() { !self.rw }
     method package() { $!package }
     method inlined() { $!inlined }

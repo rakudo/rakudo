@@ -46,20 +46,27 @@ my class Channel {
         Nil
     }
 
-    method receive(Channel:D:) {
+    method !receive(Channel:D: $fail-on-close) {
         my \msg := nqp::shift($!queue);
         if nqp::istype(msg, CHANNEL_CLOSE) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.keep(Nil);
             X::Channel::ReceiveOnClosed.new(channel => self).throw
+              if $fail-on-close;
+            Nil
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
             die msg.error;
         }
-        msg
+        else {
+            msg
+        }
     }
+
+    method receive(Channel:D:)              { self!receive(1) }
+    method receive-nil-on-close(Channel:D:) { self!receive(0) }
 
     method poll(Channel:D:) {
         my \msg := nqp::queuepoll($!queue);
@@ -101,17 +108,7 @@ my class Channel {
 
     method Supply(Channel:D:) {
         supply {
-            loop {
-                my Mu \got = self.poll;
-                last if nqp::eqaddr(got, Nil);
-                emit got;
-            }
-            self!peek();
-            if $!closed_promise {
-                $!closed_promise.status == Kept
-                    ?? done()
-                    !! die $!closed_promise.cause
-            }
+            # Tap the async notification for new values supply.
             whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {
                 my Mu \got = self.poll;
                 if nqp::eqaddr(got, Nil) {
@@ -125,12 +122,40 @@ my class Channel {
                     emit got;
                 }
             }
+
+            # Grab anything that's in the channel and emit it. Note that
+            # it's important to do this after tapping the supply, or a
+            # value sent between us draining it and doing the tap would
+            # not result in a notification, and so we'd not emit it on
+            # the supply. This lost event can then cause a deadlock.
+            loop {
+                my Mu \got = self.poll;
+                last if nqp::eqaddr(got, Nil);
+                emit got;
+            }
+            self!peek();
+            if $!closed_promise {
+                $!closed_promise.status == Kept
+                    ?? done()
+                    !! die $!closed_promise.cause
+            }
         }
     }
 
-    multi method list(Channel:D:) {
-        self.Supply.list
+    method iterator(Channel:D:) {
+        class :: does Iterator {
+            has $!channel;
+            method !SET-SELF($!channel) { self }
+            method new(\c) { nqp::create(self)!SET-SELF(c) }
+            method pull-one() {
+                my Mu \got = $!channel.receive-nil-on-close;
+                nqp::eqaddr(got, Nil) ?? IterationEnd !! got
+            }
+        }.new(self)
     }
+
+    method Seq(Channel:D:)  { Seq.new(self.iterator) }
+    method list(Channel:D:) { self.Seq.list }
 
     method close() {
         $!closed = 1;

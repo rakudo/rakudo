@@ -10,9 +10,9 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
     # The only valid way to create a HyperSeq directly is by giving it the
     # hyper-iterator it will expose and maybe memoize.
     method new(HyperIterator:D $hyper-iter) {
-        my \hseq := nqp::create(self);
-        nqp::bindattr(hseq, HyperSeq, '$!hyper-iter', nqp::decont($hyper-iter));
-        hseq
+        nqp::p6bindattrinvres(
+          nqp::create(self),HyperSeq,'$!hyper-iter',nqp::decont($hyper-iter)
+        )
     }
 
     # Obtains the hyper-iterator (meaning we're being consumed as part of a

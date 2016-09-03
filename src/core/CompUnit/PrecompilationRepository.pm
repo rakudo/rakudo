@@ -1,14 +1,11 @@
 {
-    my $i;
     role CompUnit::PrecompilationRepository {
-        has $!i = $i++;
-
-        method load(CompUnit::PrecompilationId $id) returns CompUnit {
-            CompUnit
+        method load(CompUnit::PrecompilationId $id) {
+            Nil
         }
 
         method may-precomp() {
-            $i < 3 # number of next repo after None and the first Default
+            True # would be a good place to check an environment variable
         }
     }
 }
@@ -18,23 +15,36 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
-    has %!loaded;
+    my %loaded;
+    my $first-repo-id;
 
     my $lle;
     my $profile;
 
-    method try-load(CompUnit::PrecompilationId $id, IO::Path $source, :$source-name) returns CompUnit::Handle {
-        my $handle = (
+    method try-load(
+        CompUnit::PrecompilationDependency::File $dependency,
+        IO::Path :$source = $dependency.src.IO,
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+    ) returns CompUnit::Handle {
+        my $RMD = $*RAKUDO_MODULE_DEBUG;
+        my $id = $dependency.id;
+        $RMD("try-load $id: $source") if $RMD;
+
+        # Even if we may no longer precompile, we should use already loaded files
+        return %loaded{$id} if %loaded{$id}:exists;
+
+        my ($handle, $checksum) = (
             self.may-precomp and (
-                self.load($id, :since($source.modified)) # already precompiled?
-                or self.precompile($source, $id, :$source-name) and self.load($id) # if not do it now
+                my $loaded = self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
+                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
+                    and self.load($id, :@precomp-stores) # if not do it now
             )
         );
-        my $precompiled = ?$handle;
 
-        if $*W and $*W.is_precompilation_mode {
-            if $precompiled {
-                say "$id $source";
+        if $*W and $*W.record_precompilation_dependencies {
+            if $handle {
+                $dependency.checksum = $checksum;
+                say $dependency.serialize;
             }
             else {
                 nqp::exit(0);
@@ -44,10 +54,15 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $handle ?? $handle !! Nil
     }
 
-    method !load-handle-for-path(IO::Path $path) {
+    method !load-handle-for-path(CompUnit::PrecompilationUnit $unit) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
-        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$path") }
-        my $handle := CompUnit::Loader.load-precompilation-file($path);
+        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
+#?if moar
+        my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
+#?endif
+#?if !moar
+        my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
+#?endif
         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
         CATCH {
             default {
@@ -55,98 +70,170 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 .throw;
             }
         }
-        LEAVE {
-            self.store.unlock;
-        }
         $handle
     }
 
-    method !load-dependencies(IO::Path $path, Instant $since) {
+    method !load-file(
+        CompUnit::PrecompilationStore @precomp-stores,
+        CompUnit::PrecompilationId $id,
+        :$repo-id,
+    ) {
         my $compiler-id = $*PERL.compiler.id;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        for ($path ~ '.deps').IO.lines -> $dependency {
-            Rakudo::Internals.KEY_SPACE_VALUE($dependency,my $id,my $src);
-            my $file = self.store.path($compiler-id, $id);
-            my $modified = $file.modified;
-            $RMD("$file\nmtime: $modified\nsince: $since\n  src: {$src.IO.modified}")
-              if $RMD;
+        for @precomp-stores -> $store {
+            $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
+            my $file = $repo-id
+                ?? $store.load-repo-id($compiler-id, $id)
+                !! $store.load-unit($compiler-id, $id);
+            return $file if $file;
+        }
+        Nil
+    }
 
-            return False if $modified > $since;
-            my $srcIO = $src.IO;
-            return False if not $srcIO.e or $modified <= $srcIO.modified;
+    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores) {
+        my $compiler-id = $*PERL.compiler.id;
+        my $RMD = $*RAKUDO_MODULE_DEBUG;
+        my $resolve = False;
+        my $repo = $*REPO;
+        $first-repo-id //= $repo.id;
+        my $repo-id = self!load-file(@precomp-stores, $precomp-unit.id, :repo-id);
+        if $repo-id ne $repo.id {
+            $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
+            $resolve = True;
+        }
+        if $repo-id ne $first-repo-id {
+            $RMD("Repo chain changed: $repo-id ne {$first-repo-id}. Need to re-check dependencies.") if $RMD;
+            $resolve = True;
+        }
+        my @dependencies;
+        for $precomp-unit.dependencies -> $dependency {
+            $RMD("dependency: $dependency") if $RMD;
+                if $resolve {
+                    my $comp-unit = $repo.resolve($dependency.spec);
+                    $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
+                    return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+                }
+                my $file;
+                my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $dependency.id); $file.e });
+                $RMD("Could not find $dependency.spec()") if $RMD and not $store;
+                return False unless $store;
+                my $modified = $file.modified;
+                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since")
+                  if $RMD;
 
-            %!loaded{$id} //= self!load-handle-for-path(self.store.load($compiler-id, $id));
+                my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
+                $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD and $srcIO.e;
+                return False if not $srcIO.e or $modified < $srcIO.modified;
 
-            # report back id and source location of dependency to dependant
-            say "$id $src" if $*W and $*W.is_precompilation_mode;
+                my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
+                $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
+                return False if $dependency-precomp.checksum ne $dependency.checksum;
+
+                @dependencies.push: $dependency-precomp;
+        }
+
+        for @dependencies -> $dependency-precomp {
+            unless %loaded{$dependency-precomp.id}:exists {
+                %loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
+            }
+        }
+
+        # report back id and source location of dependency to dependant
+        if $*W and $*W.record_precompilation_dependencies {
+            for $precomp-unit.dependencies -> $dependency {
+                say $dependency.serialize;
+            }
+        }
+
+        if $resolve {
+            self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
         }
         True
     }
 
-    method load(CompUnit::PrecompilationId $id, Instant :$since) returns CompUnit::Handle {
+    method load(
+        CompUnit::PrecompilationId $id,
+        Instant :$since,
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+    ) {
+        return %loaded{$id} if %loaded{$id}:exists;
+        my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = $*PERL.compiler.id;
-        my $path = self.store.load($compiler-id, $id);
-        if $path {
-            my $modified = $path.modified;
-            if (not $since or $modified > $since) and self!load-dependencies($path, $modified) {
-                %!loaded{$id} //= self!load-handle-for-path($path)
+        my $unit = self!load-file(@precomp-stores, $id);
+        if $unit {
+            my $modified = $unit.modified;
+            if (not $since or $modified > $since)
+                and self!load-dependencies($unit, $modified, @precomp-stores)
+            {
+                return (%loaded{$id} = self!load-handle-for-path($unit)), $unit.checksum;
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Removing precompiled $path\nmtime: $modified\nsince: $since")
+                    $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
                 }
-                # remove outdated file so we precompile again
-                self.store.delete($compiler-id, $id);
-                self.store.unlock;
-                CompUnit::Handle
+                fail "Outdated precompiled $unit";
             }
         }
-        else {
-            self.store.unlock;
-            CompUnit::Handle
-        }
+        Nil
     }
 
-    method precompile(IO::Path:D $path, CompUnit::PrecompilationId $id, Bool :$force = False, :$source-name) {
+    method precompile(
+        IO::Path:D $path,
+        CompUnit::PrecompilationId $id,
+        Bool :$force = False,
+        :$source-name = $path.Str
+    ) {
         my $compiler-id = $*PERL.compiler.id;
         my $io = self.store.destination($compiler-id, $id);
+        return False unless $io;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
-            $RMD("$path\nalready precompiled into\n$io") if $RMD;
+            $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
             self.store.unlock;
             return True;
         }
-
-        my $rev-deps = ($io ~ '.rev-deps').IO;
-        if $rev-deps.e {
-            for $rev-deps.lines {
-                $RMD("removing outdated rev-dep $_") if $RMD;
-                self.store.delete($compiler-id, $_);
-            }
-        }
+        my $bc = "$io.bc".IO;
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
-        %ENV<RAKUDO_PRECOMP_LOADING> = to-json @*MODULES // [];
+
+        my $rakudo_precomp_loading = %ENV<RAKUDO_PRECOMP_LOADING>;
+        my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
+        die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
+        %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
+
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        $RMD("Precompiling $path into $io") if $RMD;
-        my $perl6 = $*EXECUTABLE.subst('perl6-debug', 'perl6'); # debugger would try to precompile it's UI
+        $RMD("Precompiling $path into $bc") if $RMD;
+        my $perl6 = $*EXECUTABLE
+            .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
+            .subst('perl6-gdb', 'perl6')
+            .subst('perl6-jdb-server', 'perl6-j') ;
+        if %*ENV<RAKUDO_PRECOMP_NESTED_JDB> {
+            $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
+            note "starting jdb on port " ~ ++%*ENV<RAKUDO_JDB_PORT>;
+        }
         my $proc = run(
           $perl6,
           $lle,
           $profile,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-          "--output=$io",
+          "--output=$bc",
           "--source-name=$source-name",
           $path,
           :out,
           :err,
         );
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
+        if $rakudo_precomp_loading {
+            %ENV<RAKUDO_PRECOMP_LOADING> = $rakudo_precomp_loading;
+        }
+        else {
+            %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
+        }
         %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
         %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 
@@ -155,28 +242,39 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             $RMD("Precomping $path failed: $proc.status()") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $proc.err.slurp-rest;
+            die $proc.err.slurp-rest(:close);
         }
 
-        if $proc.err.slurp-rest -> $warnings {
+        if $proc.err.slurp-rest(:close) -> $warnings {
             $*ERR.print($warnings);
         }
-        $RMD("Precompiled $path into $io") if $RMD;
+        unless $bc.e {
+            $RMD("$path aborted precompilation without failure") if $RMD;
+            self.store.unlock;
+            return False;
+        }
+        $RMD("Precompiled $path into $bc") if $RMD;
         my str $dependencies = '';
-        for @result -> $dependency {
-            unless $dependency ~~ /^<[A..Z0..9]> ** 40 \s .+/ {
-                say $dependency;
+        my CompUnit::PrecompilationDependency::File @dependencies;
+        my %dependencies;
+        for @result -> $dependency-str {
+            unless $dependency-str ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
+                say $dependency-str;
                 next
             }
-            Rakudo::Internals.KEY_SPACE_VALUE(
-              $dependency,my $dependency-id,my $dependency-src);
-            my $path = self.store.path($compiler-id, $dependency-id);
-            if $path.e {
-                $dependencies ~= "$dependency\n";
-                spurt($path ~ '.rev-deps', "$id\n", :append);
-            }
+            my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
+            next if %dependencies{$dependency.Str}++; # already got that one
+            $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
+            @dependencies.push: $dependency;
         }
-        spurt($io ~ '.deps', $dependencies);
+        $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;
+        self.store.store-unit(
+            $compiler-id,
+            $id,
+            self.store.new-unit(:$id, :@dependencies, :bytecode($bc.slurp(:bin))),
+        );
+        $bc.unlink;
+        self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
         self.store.unlock;
         True
     }

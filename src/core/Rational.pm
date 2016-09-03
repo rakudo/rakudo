@@ -16,27 +16,38 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method new(NuT \nu = 0, DeT \de = 1) {
-        my $new     := nqp::create(self);
-        my $gcd     := de == 0 ?? 1 !! nu gcd de;
-        my $numerator   = nu div $gcd;
-        my $denominator = de div $gcd;
-        if $denominator < 0 {
-            $numerator   = -$numerator;
-            $denominator = -$denominator;
+        my $new := nqp::create(self);
+
+        # 0 denominator take it verbatim to support Inf/-Inf/NaN
+        if de == 0 {
+            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont(nu));
+            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont(de));
         }
-        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::decont($numerator));
-        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::decont($denominator));
-        $new;
+
+        # normalize
+        else {
+            my $gcd        := nu gcd de;
+            my $numerator   = nu div $gcd;
+            my $denominator = de div $gcd;
+            if $denominator < 0 {
+                $numerator   = -$numerator;
+                $denominator = -$denominator;
+            }
+            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont($numerator));
+            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont($denominator));
+        }
+
+        $new
     }
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
-        $!denominator == 0
-          ?? ($!numerator < 0 ?? -Inf !! Inf)
-          !! nqp::p6box_n(nqp::div_In(
-                nqp::decont($!numerator),
-                nqp::decont($!denominator)
-             ));
+        nqp::istype($!numerator,Int)
+          ?? nqp::p6box_n(nqp::div_In(
+               nqp::decont($!numerator),
+               nqp::decont($!denominator)
+             ))
+          !! $!numerator
     }
 
     method floor(Rational:D:) {
@@ -58,27 +69,32 @@ my role Rational[::NuT, ::DeT] does Real {
     method Bridge() { self.Num }
 
     multi method Str(::?CLASS:D:) {
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
-        $r -= $i;
-        $s ~= $i;
-        if $r {
-            $s ~= '.';
-            my $want = $!denominator < 100_000
-                       ?? 6
-                       !! $!denominator.Str.chars + 1;
-            my $f = '';
-            while $r and $f.chars < $want {
-                $r *= 10;
-                $i = $r.floor;
-                $f ~= $i;
-                $r -= $i;
+        if nqp::istype($!numerator,Int) {
+            my $s = $!numerator < 0 ?? '-' !! '';
+            my $r = self.abs;
+            my $i = $r.floor;
+            $r -= $i;
+            $s ~= $i;
+            if $r {
+                $s ~= '.';
+                my $want = $!denominator < 100_000
+                           ?? 6
+                           !! $!denominator.Str.chars + 1;
+                my $f = '';
+                while $r and $f.chars < $want {
+                    $r *= 10;
+                    $i = $r.floor;
+                    $f ~= $i;
+                    $r -= $i;
+                }
+                $f++ if  2 * $r >= 1;
+                $s ~= $f;
             }
-            $f++ if  2 * $r >= 1;
-            $s ~= $f;
+            $s
         }
-        $s;
+        else {
+            $!numerator.Str
+        }
     }
 
     method base($base, Any $digits? is copy) {

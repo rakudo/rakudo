@@ -10,8 +10,11 @@ my class Tap {
     }
 
     method close() {
-        &!on-close() if &!on-close;
-        True;
+        if &!on-close {
+            my \close-result = &!on-close();
+            await close-result if nqp::istype(close-result, Promise);
+        }
+        True
     }
 }
 
@@ -26,7 +29,7 @@ my role Tappable {
     method tap() { ... }
     method live() { ... }    # Taps into a live data source
     method serial() { ... }  # Promises no concurrent emits
-    method sane() { ... }    # Matches emit* [done|quit] grammar
+    method sane() { ... }    # Matches emit* [done|quit]? grammar
 }
 
 # A few Supply-related exception types.
@@ -619,7 +622,7 @@ my class Supply {
     method unique(Supply:D $self: :&as, :&with, :$expires) {
         supply {
             if $expires {
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {
@@ -686,7 +689,7 @@ my class Supply {
                 }
             }
             else { # !$!expires
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {
@@ -743,20 +746,20 @@ my class Supply {
             if &as {
                 whenever self -> \val {
                     $target = &as(val);
-                    if $first || !&with($target,$last) {
+                    if $first || !&with($last,$target) {
                         $first = 0;
-                        $last  = $target;
                         emit(val);
                     }
+                    $last  = $target;
                 }
             }
             else {
                 whenever self -> \val {
-                    if $first || !&with(val,$last) {
+                    if $first || !&with($last, val) {
                         $first = 0;
-                        $last = val;
                         emit(val);
                     }
+                    $last = val;
                 }
             }
         }
@@ -1061,7 +1064,10 @@ my class Supply {
             my $min;
             my $max;
             whenever self -> \val {
-                if val.defined {
+                if nqp::istype(val,Failure) {
+                    val.throw;  # XXX or just ignore ???
+                }
+                elsif val.defined {
                     if !$min.defined {
                         emit( Range.new($min = val, $max = val) );
                     }
@@ -1216,8 +1222,6 @@ my class Supply {
                     @buffer.push(val);
                 }
                 LAST {
-                    $control.done if $control;
-                    $status.done  if $status;
                     if $status {
                         emit-status("done");
                         $status.done;
@@ -1405,7 +1409,7 @@ my class Supplier {
             })
         }
 
-        method emit(\value) {
+        method emit(\value --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1415,7 +1419,7 @@ my class Supplier {
             }
         }
 
-        method done() {
+        method done(--> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1425,7 +1429,7 @@ my class Supplier {
             }
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1518,7 +1522,7 @@ my class Supplier::Preserving is Supplier {
             })
         }
 
-        method emit(\value) {
+        method emit(\value --> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
@@ -1533,7 +1537,7 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method done() {
+        method done(--> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
@@ -1548,7 +1552,7 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             my int $sent = 0;
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
@@ -1588,10 +1592,40 @@ sub SUPPLY(&block) {
         has &.emit;
         has &.done;
         has &.quit;
-        has $.lock;
         has $.active is rw;
         has %.active-taps;
         has @.close-phasers;
+        has $.lock;
+        has @.queued-operations;
+
+        method run-operation(&op --> Nil) {
+            my $run-now = False;
+            $!lock.protect({
+                if @!queued-operations {
+                    @!queued-operations.push({
+                        op();
+                        self!maybe-another();
+                    });
+                }
+                else {
+                    @!queued-operations.push(&op);
+                    $run-now = True;
+                }
+            });
+            if $run-now {
+                op();
+                self!maybe-another();
+            }
+        }
+
+        method !maybe-another(--> Nil) {
+            my &another;
+            $!lock.protect({
+                @!queued-operations.shift;
+                &another = @!queued-operations[0] if @!queued-operations;
+            });
+            &another && another();
+        }
     }
 
     Supply.new(class :: does Tappable {
@@ -1611,63 +1645,65 @@ sub SUPPLY(&block) {
         }
 
         method !run-supply-code(&code, $state) {
-            my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
-                $state.active++;
-                my $tap = $supply.tap(
-                    -> \value {
-                        self!run-supply-code({ whenever-block(value) }, $state)
-                    },
-                    done => {
-                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
-                        my @phasers := &whenever-block.phasers('LAST');
-                        if @phasers {
-                            self!run-supply-code({ .() for @phasers }, $state)
-                        }
-                        self!deactivate-one($state);
-                    },
-                    quit => -> \ex {
-                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
-                        my $handled;
-                        my $phaser := &whenever-block.phasers('QUIT')[0];
-                        if $phaser.DEFINITE {
-                            self!run-supply-code({ $handled = $phaser(ex) === Nil }, $state)
-                        }
-                        if $handled {
+            $state.run-operation({
+                my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
+                    $state.active++;
+                    my $tap = $supply.tap(
+                        -> \value {
+                            self!run-supply-code({ whenever-block(value) }, $state)
+                        },
+                        done => {
+                            $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
+                            my @phasers := &whenever-block.phasers('LAST');
+                            if @phasers {
+                                self!run-supply-code({ .() for @phasers }, $state)
+                            }
                             self!deactivate-one($state);
-                        }
-                        elsif $state.active {
-                            $state.quit().(ex) if $state.quit;
-                            $state.active = 0;
-                            self!teardown($state);
-                        }
-                    });
-                $state.active-taps{nqp::objectid($tap)} = $tap;
-            }
+                        },
+                        quit => -> \ex {
+                            $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
+                            my $handled;
+                            my $phaser := &whenever-block.phasers('QUIT')[0];
+                            if $phaser.DEFINITE {
+                                self!run-supply-code({ $handled = $phaser(ex) === Nil }, $state)
+                            }
+                            if $handled {
+                                self!deactivate-one($state);
+                            }
+                            elsif $state.active {
+                                $state.quit().(ex) if $state.quit;
+                                $state.active = 0;
+                                self!teardown($state);
+                            }
+                        });
+                    $state.active-taps{nqp::objectid($tap)} = $tap;
+                }
 
-            my $emitter = {
-                my \ex := nqp::exception();
-                $state.emit().(nqp::getpayload(ex)) if $state.emit;
-                nqp::resume(ex)
-            }
-            my $done = {
-                $state.done().() if $state.done;
-                $state.active = 0;
-                self!teardown($state);
-            }
-            my $catch = {
-                my \ex = EXCEPTION(nqp::exception());
-                $state.quit().(ex) if $state.quit;
-                $state.active = 0;
-                self!teardown($state);
-            }
-            nqp::handle($state.lock.protect(&code),
-                'EMIT', $emitter(),
-                'DONE', $done(),
-                'CATCH', $catch());
+                my $emitter = {
+                    my \ex := nqp::exception();
+                    $state.emit().(nqp::getpayload(ex)) if $state.emit;
+                    nqp::resume(ex)
+                }
+                my $done = {
+                    $state.done().() if $state.done;
+                    $state.active = 0;
+                    self!teardown($state);
+                }
+                my $catch = {
+                    my \ex = EXCEPTION(nqp::exception());
+                    $state.quit().(ex) if $state.quit;
+                    $state.active = 0;
+                    self!teardown($state);
+                }
+                nqp::handle(code(),
+                    'EMIT', $emitter(),
+                    'DONE', $done(),
+                    'CATCH', $catch());
+            });
         }
 
         method !deactivate-one($state) {
-            $state.lock.protect({
+            $state.run-operation({
                 if --$state.active == 0 {
                     $state.done().() if $state.done;
                     self!teardown($state);

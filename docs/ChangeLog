@@ -1,3 +1,274 @@
+New in 2016.08
+ + Fixes:
+    + Numerous improvements to content of error messages and addition
+        of new previously-undetected warnings, such as on sinks and ... terms
+    + Removed redeclaration error for anon subs
+    + Concatenation/substr with strings constructed with repeat operator
+        no longer results in incorrect strings
+    + Fixed error for unknown symbol in parametric type
+    + Things that produce a Seq no longer get constant-folded, avoiding
+        bogus Seq exhaustion errors
+    + where {} clause on unit sub MAIN no longer produces bogus errors
+    + Fixed compilation and behaviour of :D on subsets
+    + Assigning Nil to a :D variable now fails (unless its default is :D)
+    + Fixed CURF's resolve generating the wrong repo-id
+    + Fixed precomp file for Staging repo containing build path
+    + Fixed merge global symbols failures when changing repositories
+    + Fixed -Ilib and friends not overriding installed dependencies
+    + Fixed <[a..z]> ranges breaking grapheme awareness
+    + Fixed a race condition in Channel.Supply
+    + Fixed an occasional deadlock when using the supply/react syntax
+    + Fixed a race condition involving tearing down listening async sockets
+    + start blocks now get their own fresh $! and $/
+    + .squish, .unique, .repeated, and .grep now correctly pass on .is-lazy
+    + Fixed segfault on "multi cross{}"
+    + .sort stored in a Callable no longer incorrectly returns BOOTArray
+    + Smartmatch with two signatures, only one of which has slurpy hash,
+        no longer produces spurious exception
+    + @a.splice now returns array with correct descriptor
+    + .rotor with negative gap that lands out of range now throws
+    + Range.rotor with Rat arguments no longer crashes
+    + .hash on Bag, Mix, BagHash, and MixHash types no longer stringifies keys
+    + .abspath on filenames starting with '-' no longer results in empty string
+    + generated setting file now has empty lines for those that were
+        skipped in the past, allowing to directly map the line in a setting
+        to the source code it was generated from
+    + loop and repeat now properly self-sink
+    + for { ... .map } now properly sinks
+    + Backtrace::Frame.is-(hidden|routine) now returns Bool
+    + Bool.Int now properly returns an Int
+    + Starting the REPL with a module loading error, will now just exit
+    + Names of phasers (such as BEGIN) will now be included in suggestions
+    + Fixed loading of modules when a FileSystem repo doesn't actually exist
+    + Fixed mis-scoping of blocks in s///
+    + Closure clones are no longer double code-generated
+    + Caller $/ is now propagated through deferral
+    + Fixed inconsistent coersions to Bool
+    + Fixed over-assuming optimization of R meta operator
+    + Fixed endless recursion in Any::BIND-POS under certain conditions
+ + Additions:
+    + Str.samemark('') now returns self instead of failing
+    + Test.pm now provides bail-out()
+    + Implemented $?MODULE and ::?MODULE
+    + Implemented CompUnit::Repository::Installation::installed
+    + InstalledDistribution now gets returned where appropriate
+    + returns in signatures of many builtins now marked as --> Nil
+    + .min/.max can now be called on Hashes
+    + Invocant marker (:) can now be used in bare signatures
+    + Added X::Syntax::NonListAssociative exception type
+    + Hash[Any].new.perl now roundtrips
+    + Buf.push|append|unshift|prepend also allow Blob:D
+    + .succ now increments additional 29 digit ranges, such as Thai digits
+    + List.sum is now marked as nodal
+    + Can now return Nil as a result of a Promise
+    + Implemented :exists on multi-dim assoc subscript literals
+    + Added PERL6_TEST_DIE_ON_FAIL env var in Test.pm6 to bail out of the
+        test suite on first failure
+ + Efficiency:
+    + Streamlined multiple internal code paths that may or may not
+      result in performance improvements in user code
+    + Improved dynamic variable lookup (2x as fast)
+    + Hash.AT-KEY is about 35% faster
+    + Hash.ASSIGN-KEY about 2x as fast
+    + Hash.DELETE-KEY about 2x as fast
+    + Hash[Any,Any].AT-KEY about 20% faster
+    + Hash[Any,Any].ASSIGN-KEY about 15% faster
+    + Hash[Any,Any].BIND-KEY about 15% faster
+    + Hash[Any,Any].EXISTS-KEY about 10% faster
+    + Hash[Any,Any].DELETE-KEY 10% faster
+    + Repeated calls on Bag.WHICH now 5x as fast
+    + Backtrace creation 25% faster
+    + .first/.first(:end) iteration is now about 10% faster
+        after testing 1000 elements
+    + .minmax about 25% faster
+    + .min/.max about 40% faster
+    + min/max/minmax on native arrays is between 15x and 25x faster than
+        non-native equivalent
+    + Array.splice() almost infinitely faster and is much easier on memory (no
+        longer copies anything but instead transplants internals)
+    + Array.splice(offset,size) is now 20x to 40x faster for
+        small offsets and sizes
+    + Array.splice(offset,size,@) is about 10x faster
+    + 10% improvement to .map/for in special cases of one-argument block that
+        has a return signature that excludes Slips,
+        such as -> Int $_ --> Str { .Str }
+    + Many Set/SetHash methods are now at least 5% faster
+    + Coercing a MixHash/BagHash to a Mix/Bag is now 300x faster
+    + Coercing a Bag/BagHash to Mix coercion is now 1000x faster
+    + Coercing a SetHash to a Set is now 80x faster
+
+New in 2016.07.1
+ + Fixes:
+   + `make DESTDIR` now correctly finds CompUnit::Repository::Staging
+   + .polymod with a lazy list no longer loses mods if the list runs out
+   + Output from Test.pm6's diag() is no longer lost in non-verbose prove output
+     when called at the start of the test file or during TODO tests
+   + Bitwise operators that return int/Int no longer fail with candidate error
+     when given a native int argument
+ + Additions:
+   + Improved error message when IO::Path.new is given incorrect arguments
+   + Improved error message when .polymod is given a zero as divisor
+ + Efficiency:
+   + Str.samecase is now 5x faster
+   + Str.indices is 10% faster
+   + Str.rindex is 30% faster
+   + Str.index is 30% faster
+
+New in 2016.07
+ + Fixes:
+   + Mu can now be the result of a Promise
+   + samewith() now also works on non-multi's
+   + Many fixes in the area of pre-compilation and installing modules
+   + Maps now correctly identify themselves as value objects
+   + BagHashes and MixHashes no longer identify themselves as value objects
+   + count-only and bool-only now are optional methods in Iterators
+     (only to be implemented if they can work without generating anything)
+   + Hash.Map now properly creates immutable Map
+   + IO::ArgFiles.slurp / IO::ArgFiles.eof are fixed
+   + Several wrapper file fixes
+   + If a file is unknown in an error report, it is no longer shown
+     (This typically happens in the REPL, or when doing an EVAL)
+   + REPL whitespace and error handling
+   + CompUnit::Repository::Installation no longer considers `bin/xxx` and
+     `resources/bin/xxx` the same content address
+   + Callable in a Signatures stringifies correctly
+   + BEGIN time EVAL no longer negatively affects MAIN_CTX
+   + Str.chop correctly works when given very large arguments
+   + min/max on Failures throw instead of returning ±Inf
+   + NativeCall's is mangled trait no longer ignored for CPPStruct
+ + Additions:
+   + The "is required" trait on Attributes can now take a Bool or a Str
+   + Support for new leap-second at 31-12-2016 added
+   + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
+   + Fixed LTA error message with Str.samemark when no pattern present
+   + Distribution is now a role interface that enables encapsulating IO
+     used for distribution installation
+   + CompUnit::Repository::Installation now uses the new Distribution interface
+   + The original distribution META `provides` data is now preserved
+   + Custom repository implementations now supported, including precompilation
+   + List.BIND-POS now fails instead of throwing
+   + RAKUDO_JDB_PORT and RAKUDO_PRECOMP_NESTED_JDB debug environmental
+     variables
+   + Failures in Cool.Numeric and related coercers now get propagated
+   + Improved warning message for literals with leading zeros
+   + Improved error message for attempts to `use` core types
+ + Efficiency:
+   + The MMD cache accepts candidates with named parameters if it can.
+     (This made adverbed slices about 18x as fast)
+   + Str.samemark is 50x faster
+   + Str.contains is 6x faster
+   + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
+   + Array.List is 5x faster
+   + List.elems is 4.5x faster
+   + for/map with 2 arguments is 4x faster (e.g. for @a.kv -> $i, $v { })
+   + Str.substr-eq is 4x faster
+   + List.Bool is 4x faster
+   + Str.chop is about 3.5x faster, Str.chop(N) 20% faster
+   + Map eqv Map is 3x faster
+   + Make "for List.pairs {}" 2.5x faster
+   + Array.pop is 2.5x faster
+   + List.AT-POS/EXISTS-POS are 2.5x faster
+   + Creating arrays with [] is 2.5x faster
+   + Array.AT-POS/ASSIGN-POS/BIND-POS at least 2x faster for unreified elements
+   + Array.DELETE-POS is 7x faster
+   + Str.starts-with is 2x faster
+   + Array.shift is 2x faster
+   + Baggy.roll(*) is 2x faster
+   + Blob/Buf.AT-POS is 2x faster (underlying method of e.g. "$buf[2]")
+   + List.STORE is 2x faster (e.g. "my ($a,$b,$c) = (1,2,3)")
+   + Make "for List.kv {}" 1.8x faster
+   + Array.push/append is 40% faster
+   + Str.comb 30% faster
+   + Map/Hash initializations are now 30% faster
+   + A slurpy taking a list is 30% faster ("sub a(*@a) { }; a(1,2,3,4)")
+   + Str.ends-with is 25% faster.
+   + Str.chomp is 20% faster
+   + single element for/map in sink context without phasers, is 20% faster
+   + Pair.new is 10% faster
+   + val() is 5% faster
+   + {}|[]:adverb is 2.5x faster
+   + foo xx Int is 10% faster
+   + Str.Int is 5% faster
+   + Code.arity|count are 2x faster
+
+New in 2016.06
+ + Fixes:
+   + Arrays with holes (e.g. from :delete) now correctly iterate/auto-vivify
+   + Hash.keyof now correctly returns Str(Any)
+   + Precompilation from a debug Perl 6 now uses "normal" Perl 6 executor
+   + Inf,NaN,-Inf now can be coerced to Rat, and back to Num
+   + Creating an Enum from a List/Range no longer warns
+   + Precompilation on file systems with coarse timestamps no longer fails
+   + An issue with reverse dependencies of installed modules was fixed
+   + Fixed issue with comparing v6 and v6.c Version objects
+   + Fixed ≅ ignoring the signs of compared numbers
+ + Additions:
+   + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
+   + The "is-approx" sub from Test now allows for relative/absolute tolerance
+   + The "cmp-ok" sub from Test now can take any infix as Str, even custom ones
+   + A fail in a custom BUILD will now be returned, rather than thrown
+   + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
+ + Efficiency:
+   + .map between 10% and 30% faster
+   + .unique, .repeated and .squish 10% to 20% faster
+   + gather/take about 10% faster
+   + Basic object creation (using either .new or .bless) now up to 3x faster
+   + (+@a), (*@a) and (**@a) signature handling between 20% and 4x faster
+   + Iterating List/Array now uses less memory and is faster
+   + All routines now have less overhead, thanks to improved implementation of
+     return handlers (including those that do not use return)
+   + return, next, last, and redo are now all faster
+   + infix:<,> about 40% faster
+   + numerous other smaller or edge-case speed improvements
++ Deprecations:
+   + The "is_approx" sub (note underscore) from Test
+
+New in 2016.05
+ + Fixes:
+   + Fix EVAL during precompilation
+   + .substr fixes
+   + many precompilation fixes
+   + clean up error messages
+   + Streamline some core classes
+   + Harden Mu.Str against moving GC
+   + JVM fixes
+   + Simplify $*USER/$*GROUP initialization
+ + Additions:
+   + Ability to use a customer debugger module
+   + $*MAIN-ALLOW-NAMED-ANYWHERE allows MAIN to be friendlier about where it accepts flags
+   + Add richer set of comparison operators for Versions
+   + Many improvements to precompilation - building OS packages with precomp'd code should now be possible!
+   + Introduce .Map coercer
+   + Implement alternate ways to call subtest
+ + Efficiency:
+   + Version comparisons are now 2x faster
+   + List.minmax is about 3.5x faster
+   + Num.perl is about 2.4x faster
+   + Int division/modulus is about 1.5x faster
+   + LoL accesses are about 3x faster
+   + autothreader is about 2-3x faster
+   + Make Any junction methods 14x faster
+   + Make Junctions faster
+   + Map.kv is about 10% faster
+
+New in 2016.04
+ + Fixes:
+   + .combinations cleanup
+   + "magic" inc/dec cleanup
+   + utf8-c8 encoding crashes that occurred on random data
+   + fix missing pre-comp store unlock
+   + missing module error mentions line number
+   + some JVM fixes
+ + Additions:
+   + Improved REPL
+   + Add :kv to .first
+   + Add provisional $*DEFAULT-READ-ELEMS
+ + Efficiency:
+   + Removed leaks associated with EVAL
+   + Speed up .minpairs/.maxpairs
+   + Speed up Object:D cmp Object:D
+   + Speed up sort 3-15%
+
 New in 2016.03
  + Fixes:
    + Buf.push|append|unshift|prepend now can take int arrays

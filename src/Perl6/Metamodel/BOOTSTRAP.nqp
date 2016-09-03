@@ -121,6 +121,7 @@ my class Binder {
     my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
     my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
+    my int $SIG_ELEM_CODE_SIGIL          := 33554432;
 
     # Binding reuslt flags.
     my int $BIND_RESULT_OK       := 0;
@@ -166,7 +167,7 @@ my class Binder {
         } elsif $count < 0 {
             return "$error_prefix positionals passed; expected at least $arity argument$s but got only $num_pos_args";
         } else {
-	    my str $conj := $count == $arity+1 ?? "or" !! "to";
+            my str $conj := $count == $arity+1 ?? "or" !! "to";
             return "$error_prefix positionals passed; expected $arity $conj $count arguments but got $num_pos_args";
         }
     }
@@ -199,7 +200,7 @@ my class Binder {
             if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
                 unless !$got_native && nqp::iscont_i($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native int argument for '$varname'";
+                        $error[0] := "Expected a modifiable native int argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -207,7 +208,7 @@ my class Binder {
             elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                 unless !$got_native && nqp::iscont_n($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native num argument for '$varname'";
+                        $error[0] := "Expected a modifiable native num argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -215,7 +216,7 @@ my class Binder {
             elsif $desired_native == $SIG_ELEM_NATIVE_STR_VALUE {
                 unless !$got_native && nqp::iscont_s($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a native str argument for '$varname'";
+                        $error[0] := "Expected a modifiable native str argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -312,7 +313,7 @@ my class Binder {
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            my $class := $oval.HOW.name($oval);
+                            my $class := $nom_type.HOW.name($nom_type);
                             my $what  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Invocant"
                               !! "Parameter '$varname'";
@@ -324,7 +325,7 @@ my class Binder {
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            my $class := $oval.HOW.name($oval);
+                            my $class := $nom_type.HOW.name($nom_type);
                             my $what  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Invocant"
                               !! "Parameter '$varname'";
@@ -749,10 +750,10 @@ my class Binder {
                     }
                     my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
                     my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
-			?? $slurpy_type.from-slurpy-onearg($temp)
-			!! $flags +& $SIG_ELEM_SLURPY_POS
-			    ?? $slurpy_type.from-slurpy-flat($temp)
-			    !! $slurpy_type.from-slurpy($temp);
+                        ?? $slurpy_type.from-slurpy-onearg($temp)
+                        !! $flags +& $SIG_ELEM_SLURPY_POS
+                        ?? $slurpy_type.from-slurpy-flat($temp)
+                        !! $slurpy_type.from-slurpy($temp);
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                         0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
@@ -1117,7 +1118,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
@@ -1202,13 +1203,13 @@ BEGIN {
                 Attribute, '$!ro', 1);
             nqp::p6bool(1)
         }));
-    Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self) {
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!required', 1);
+    Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
+            nqp::bindattr(nqp::decont($self),
+                Attribute, '$!required', $value);
             nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!required');
         }));
     Attribute.HOW.add_method(Attribute, 'default_to_rw', nqp::getstaticcode(sub ($self) {
@@ -1421,6 +1422,9 @@ BEGIN {
             }
             nqp::bindattr($ins, Signature, '$!params', @ins_params);
             $ins
+        }));
+    Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self),Signature,'$!returns')
         }));
     Signature.HOW.add_method(Signature, 'set_returns', nqp::getstaticcode(sub ($self, $type) {
             nqp::bindattr(nqp::decont($self),
@@ -1883,6 +1887,15 @@ BEGIN {
                 my @coerce_type_idxs;
                 my @coerce_type_objs;
                 for @params -> $param {
+                    # If it's got a sub-signature, also need a bind check and
+                    # to check constraint on every dispatch. Same if it's got a
+                    # `where` clause.
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
+                           nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                        %info<bind_check> := 1;
+                        %info<constrainty> := 1;
+                    }
+
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
@@ -1897,11 +1910,6 @@ BEGIN {
                             %info<bind_check> := 1;
                         }
                         next;
-                    }
-
-                    # If it's got a sub-signature, also need a bind check.
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) {
-                        %info<bind_check> := 1;
                     }
 
                     # If it's named slurpy, we're done, also we don't need a bind
@@ -1926,6 +1934,7 @@ BEGIN {
                     # Record type info for this parameter.
                     if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
                         %info<bind_check> := 1;
+                        %info<constrainty> := 1;
                         %info<types>[$significant_param] := Any;
                     }
                     else {
@@ -1934,7 +1943,6 @@ BEGIN {
                     }
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
                         %info<constraints>[$significant_param] := 1;
-                        %info<bind_check> := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                         $num_types++;
@@ -2244,7 +2252,7 @@ BEGIN {
                                 
                                 # Since we had to do a bindability check, this is not
                                 # a result we can cache on nominal type.
-                                $pure_type_result := 0;
+                                $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
                                 
                                 # If we haven't got a possibles storage space, allocate it now.
                                 $new_possibles := [] unless nqp::islist($new_possibles);
@@ -2360,14 +2368,15 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-                unless nqp::capturehasnameds($capture) {
-                    nqp::scwbdisable();
-                    nqp::bindattr($dcself, Routine, '$!dispatch_cache',
-                        nqp::multicacheadd(
-                            nqp::getattr($dcself, Routine, '$!dispatch_cache'),
-                            $capture, $entry));
-                    nqp::scwbenable();
-                }
+#?if jvm
+                return 0 if nqp::capturehasnameds($capture);
+#?endif
+                nqp::scwbdisable();
+                nqp::bindattr($dcself, Routine, '$!dispatch_cache',
+                    nqp::multicacheadd(
+                        nqp::getattr($dcself, Routine, '$!dispatch_cache'),
+                        $capture, $entry));
+                nqp::scwbenable();
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
                 add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
@@ -3225,6 +3234,20 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::die("Method '$name' not found for invocant of class '$type'");
     },
 #?endif
+    'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
+        if $cat == nqp::const::CONTROL_RETURN {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
+                nqp::atkey(%ex, 'X::ControlFlow::Return')();
+            }
+            nqp::die('Attempt to return outside of any Routine');
+        }
+        else {
+            my $ex := nqp::newexception();
+            nqp::setextype($ex, $cat);
+            nqp::getcomp('perl6').handle-control($ex);
+        }
+    },
     'finalize_handler', -> @objs {
         for @objs -> $o {
             for $o.HOW.destroyers($o) -> $d {

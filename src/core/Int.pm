@@ -59,33 +59,58 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    method base(Int:D: Cool $base, $digits = 0) {
-        fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
-        fail X::OutOfRange.new(
-          what => 'digits argument to base', got => $digits, range => "0..*"
-        ) if $digits.defined and $digits < 0;
-        my int $b = nqp::unbox_i($base.Int);
-        nqp::p6box_s(nqp::base_I(self, $b)) ~ ($digits ?? '.' ~ '0' x $digits !! '');
+    proto method base(|) { * }
+    multi method base(Int:D: Int:D $base) {
+        2 <= $base <= 36
+          ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+          !! Failure.new(X::OutOfRange.new(
+               what => "base argument to base", :got($base), :range<2..36>))
+    }
+    multi method base(Int:D: Int(Cool) $base, $digits?) {
+        2 <= $base <= 36
+          ?? $digits
+            ?? $digits < 0
+              ?? Failure.new(X::OutOfRange.new(
+                   :what('digits argument to base'),:got($digits),:range<0..*>))
+              !!  nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+                    ~ '.'
+                    ~ '0' x $digits
+            !! nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
+          !! Failure.new(X::OutOfRange.new(
+               :what('base argument to base'),:got($base),:range<2..36>))
     }
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
     # If do-not-want, user should cast invocant to proper domain.
     method polymod(Int:D: +@mods) {
-        my $more = self;
-        my $inf = @mods.is-lazy;
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => $more, range => "0..*"
-        ) if $more < 0;
+          what => 'invocant to polymod', got => self, range => "0..*"
+        ) if self < 0;
+
         gather {
-            for @mods -> $mod {
-                last if $inf and not $more;
-                fail X::Numeric::DivideByZero.new(
-                  using => 'polymod', numerator => $more
-                ) unless $mod;
-                take $more mod $mod;
-                $more div= $mod;
+            my $more = self;
+            if @mods.is-lazy {
+                for @mods -> $mod {
+                    $more
+                      ?? $mod
+                        ?? take $more mod $mod
+                        !! Failure.new(X::Numeric::DivideByZero.new:
+                             using => 'polymod', numerator => $more)
+                      !! last;
+                    $more = $more div $mod;
+                }
+                take $more if $more;
             }
-            take $more unless $inf;
+            else {
+                for @mods -> $mod {
+                    $mod
+                      ?? take $more mod $mod
+                      !! Failure.new(X::Numeric::DivideByZero.new:
+                           using => 'polymod', numerator => $more);
+                    $more = $more div $mod;
+                }
+                take $more;
+            }
         }
     }
 
@@ -237,10 +262,9 @@ multi sub infix:<*>(int $a, int $b) returns int {
 }
 
 multi sub infix:<div>(Int:D \a, Int:D \b) {
-    fail X::Numeric::DivideByZero.new(
-      using => 'div', numerator => a,
-    ) unless b;
-    nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
+    b
+      ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator(a)))
 }
 multi sub infix:<div>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0
@@ -248,25 +272,24 @@ multi sub infix:<div>(int $a, int $b) returns int {
 }
 
 multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
-    fail X::Numeric::DivideByZero.new(
-      using => 'infix:<%>', numerator => a
-    ) unless b;
-    nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
+    b
+      ?? nqp::mod_I(nqp::decont(a), nqp::decont(b), Int)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
 multi sub infix:<%>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0
-    nqp::mod_i($a, $b)
+    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
 
 multi sub infix:<**>(Int:D \a, Int:D \b) {
     b >= 0 ?? nqp::pow_I(nqp::decont(a), nqp::decont(b), Num, Int)
            !! 1 / nqp::pow_I(nqp::decont(a), nqp::decont(-b), Num, Int)
-    or a == 0 ?? 0 !! fail X::Numeric::Overflow.new;
+    or a == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new)
 }
 
 multi sub infix:<**>(int $a, int $b) returns int {
     nqp::pow_i($a, $b)
-        or $a == 0 ?? 0 !! fail X::Numeric::Overflow.new;
+        or $a == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new)
 }
 
 multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {
@@ -284,7 +307,10 @@ multi sub infix:<gcd>(int $a, int $b) returns int {
 }
 
 multi sub infix:<===>(Int:D \a, Int:D \b) {
-    a.WHAT =:= b.WHAT && nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a.WHAT,b.WHAT)
+      && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
+    )
 }
 multi sub infix:<===>(int $a, int $b) {
     # hey, the optimizer is smart enough to figure that one out for us, no?
@@ -333,49 +359,50 @@ multi sub infix:«>=»(int $a, int $b) {
 multi sub infix:<+|>(Int:D \a, Int:D \b) {
     nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+|>(int $a, int $b) {
-    nqp::bitor_i($a, $b)
-}
+#multi sub infix:<+|>(int $a, int $b) {
+#    nqp::bitor_i($a, $b)
+#}
 
 multi sub infix:<+&>(Int:D \a, Int:D \b) {
     nqp::bitand_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+&>(int $a, int $b) {
-    nqp::bitand_i($a, $b)
-}
+#multi sub infix:<+&>(int $a, int $b) {
+#    nqp::bitand_i($a, $b)
+#}
 
 multi sub infix:<+^>(Int:D \a, Int:D \b) {
     nqp::bitxor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+^>(int $a, int $b) {
-    nqp::bitxor_i($a, $b);
-}
+#multi sub infix:<+^>(int $a, int $b) {
+#    nqp::bitxor_i($a, $b);
+#}
 
 multi sub infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
     nqp::isbig_I(nqp::decont(b))
-      ?? fail X::NYI::BigInt.new(:op('+<'),:big(b))
+      ?? Failure.new(X::NYI::BigInt.new(:op('+<'),:big(b)))
       !! nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-multi sub infix:«+<»(int $a, int $b) {
-    nqp::bitshiftl_i($a, $b);
-}
+#multi sub infix:«+<»(int $a, int $b) {
+#    nqp::bitshiftl_i($a, $b);
+#}
 
 multi sub infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
     nqp::isbig_I(nqp::decont(b))
-      ?? fail X::NYI::BigInt.new(:op('+>'),:big(b))
-      !! a < 0 && b > 31 ?? -1 # temp fix for #126942, remove if fixed otherwise
-      !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
+      ?? Failure.new(X::NYI::BigInt.new(:op('+>'),:big(b)))
+      !! a < 0 && b > 31
+        ?? -1 # temp fix for #126942, remove if fixed otherwise
+        !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-multi sub infix:«+>»(int $a, int $b) {
-    nqp::bitshiftr_i($a, $b)
-}
+#multi sub infix:«+>»(int $a, int $b) {
+#    nqp::bitshiftr_i($a, $b)
+#}
 
 multi sub prefix:<+^>(Int:D \a) {
     nqp::bitneg_I(nqp::decont(a), Int);
 }
-multi sub prefix:<+^>(int $a) {
-    nqp::bitneg_i($a);
-}
+#multi sub prefix:<+^>(int $a) {
+#    nqp::bitneg_i($a);
+#}
 
 proto sub chr($) is pure  {*}
 multi sub chr(Int:D  \x) returns Str:D { x.chr     }

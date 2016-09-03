@@ -74,6 +74,7 @@ src/core/Match.pm
 src/core/Cursor.pm
 src/core/Grammar.pm
 src/core/Regex.pm
+src/core/allomorphs.pm
 src/core/IO.pm
 src/core/IO/Spec.pm
 src/core/IO/Spec/Unix.pm
@@ -89,7 +90,6 @@ src/core/io_operators.pm
 src/core/IO/ArgFiles.pm
 src/core/AST.pm
 src/core/CallFrame.pm
-src/core/allomorphs.pm
 src/core/Main.pm
 src/core/Instant.pm
 src/core/Duration.pm
@@ -141,11 +141,13 @@ src/core/Kernel.pm
 src/core/Compiler.pm
 src/core/Perl.pm
 src/core/OS.pm
+src/core/Rakudo/Internals/JSON.pm
 src/core/JSON/Pretty.pm
 src/core/Distribution.pm
 src/core/CompUnit/DependencySpecification.pm
 src/core/CompUnit/Handle.pm
 src/core/CompUnit/Loader.pm
+src/core/CompUnit/PrecompilationUnit.pm
 src/core/CompUnit/PrecompilationStore.pm
 src/core/CompUnit/PrecompilationStore/File.pm
 src/core/CompUnit/PrecompilationRepository.pm
@@ -159,6 +161,7 @@ src/core/CompUnit/Repository/Installation.pm
 src/core/CompUnit/Repository/AbsolutePath.pm
 src/core/CompUnit/Repository/NQP.pm
 src/core/CompUnit/Repository/Perl5.pm
+src/core/CompUnit/Repository/Unknown.pm
 src/core/Argfiles.pm
 src/core/Process.pm
 src/core/StrDistance.pm

@@ -1,8 +1,13 @@
 class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
 class CompUnit::Repository::AbsolutePath { ... }
+class CompUnit::Repository::Unknown      { ... }
 class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
+
+#?if jvm
+class CompUnit::Repository::JavaRuntime { ... }
+#?endif
 
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
@@ -12,9 +17,9 @@ class CompUnit::RepositoryRegistry {
         state $lock = Lock.new;
 
         my ($short-id,%options,$path) := parse-include-spec($spec);
-        my $class = short-id2class($short-id);
-        die "No class loaded for short-id '$short-id': $spec -> $path"
-          if $class === Any;
+        my $class := short-id2class($short-id);
+        return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
+            if so $class && nqp::istype($class, Failure) or $class === Any;
 
         my $abspath = $class.?absolutify($path) // $path;
         my $id      = "$short-id#$abspath";
@@ -33,10 +38,12 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
 
         # starting up for creating precomp
-        if nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH') {
+        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
+            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
+            !! False;
+        if $precomp-specs {
             # assume well formed strings
-            $raw-specs :=
-              nqp::split(',',nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'));
+            $raw-specs := nqp::split(',', $precomp-specs);
         }
 
         # normal start up
@@ -55,69 +62,67 @@ class CompUnit::RepositoryRegistry {
                 nqp::push($raw-specs,nqp::unbox_s($_))
                   for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }
-
-#?if jvm
-            for nqp::hllize(nqp::jvmclasspaths()) -> $path {
-                nqp::push($raw-specs,nqp::unbox_s($_))
-                  for parse-include-specS($path);
-            }
-#?endif
-
-            my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
-              ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-              !! nqp::concat(
-                   nqp::atkey(nqp::backendconfig,'prefix'),
-                   '/share/perl6'
-                 );
-
-            # XXX Various issues with this stuff on JVM , TEMPORARY
-            my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-            try {
-                if nqp::existskey($ENV,'HOME')
-                  ?? nqp::atkey($ENV,'HOME')
-                  !! nqp::concat(
-                       (nqp::existskey($ENV,'HOMEDRIVE')
-                         ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
-                       (nqp::existskey($ENV,'HOMEPATH')
-                         ?? nqp::atkey($ENV,'HOMEPATH') !! '')
-                     ) -> $home {
-                    my str $path = "inst#$home/.perl6";
-                    nqp::bindkey($custom-lib,'home',$path);
-                    nqp::push($raw-specs,$path);
-                }
-            }
-
-            # set up custom libs
-            my str $site = "inst#$prefix/site";
-            nqp::bindkey($custom-lib,'site',$site);
-            nqp::push($raw-specs,$site);
-
-            my str $vendor = "inst#$prefix/vendor";
-            nqp::bindkey($custom-lib,'vendor',$vendor);
-            nqp::push($raw-specs,$vendor);
-
-            my str $perl = "inst#$prefix";
-            nqp::bindkey($custom-lib,'perl',$perl);
-            nqp::push($raw-specs,$perl);
         }
+
+        my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+          ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
+          !! nqp::concat(
+               nqp::atkey(nqp::backendconfig,'prefix'),
+               '/share/perl6'
+             );
+
+        # XXX Various issues with this stuff on JVM , TEMPORARY
+        my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
+        try {
+            if nqp::existskey($ENV,'HOME')
+              ?? nqp::atkey($ENV,'HOME')
+              !! nqp::concat(
+                   (nqp::existskey($ENV,'HOMEDRIVE')
+                     ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
+                   (nqp::existskey($ENV,'HOMEPATH')
+                     ?? nqp::atkey($ENV,'HOMEPATH') !! '')
+                 ) -> $home {
+                my str $path = "inst#$home/.perl6";
+                nqp::bindkey($custom-lib,'home',$path);
+                nqp::push($raw-specs, $path) unless $precomp-specs;
+            }
+        }
+
+        # set up custom libs
+        my str $site = "inst#$prefix/site";
+        nqp::bindkey($custom-lib,'site',$site);
+        nqp::push($raw-specs, $site) unless $precomp-specs;
+
+        my str $vendor = "inst#$prefix/vendor";
+        nqp::bindkey($custom-lib,'vendor',$vendor);
+        nqp::push($raw-specs, $vendor) unless $precomp-specs;
+
+        my str $perl = "inst#$prefix";
+        nqp::bindkey($custom-lib,'perl',$perl);
+        nqp::push($raw-specs, $perl) unless $precomp-specs;
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
-          CompUnit::Repository::AbsolutePath.new(
-            :next-repo( CompUnit::Repository::NQP.new(
-              :next-repo(CompUnit::Repository::Perl5.new)
+            $precomp-specs
+            ?? CompUnit::Repository
+            !! CompUnit::Repository::AbsolutePath.new(
+                :next-repo( CompUnit::Repository::NQP.new(
+                    :next-repo(CompUnit::Repository::Perl5.new(
+#?if jvm
+                        :next-repo(CompUnit::Repository::JavaRuntime.new)
+#?endif
+                    ))
+                )
             )
-          )
         );
 
         my %repos;
         my $SPEC := $*SPEC;
         sub normalize(\spec){
-            my $parts := nqp::split('#',spec);
-            nqp::concat(
-              nqp::concat(nqp::atpos($parts,0),'#'),
-              nqp::unbox_s($SPEC.canonpath(nqp::atpos($parts,1)))
-            );
+            my $parts := nqp::split('#', spec);
+            my $path := nqp::elems($parts) - 1;
+            nqp::bindpos($parts, $path, nqp::unbox_s($SPEC.canonpath(nqp::atpos($parts, $path))));
+            nqp::join('#', $parts)
         };
 
         # create reverted, unique list of path-specs
@@ -146,8 +151,13 @@ class CompUnit::RepositoryRegistry {
         $iter := nqp::iterator($custom-lib);
         while $iter {
             my \pair = nqp::shift($iter);
-            nqp::bindkey($custom-lib,nqp::iterkey_s(pair),
-              nqp::atkey($repos,normalize(nqp::iterval(pair))));
+            my $repo := nqp::atkey($repos, normalize(nqp::iterval(pair)));
+            if nqp::isnull($repo) {
+                nqp::deletekey($custom-lib, nqp::iterkey_s(pair));
+            }
+            else {
+                nqp::bindkey($custom-lib, nqp::iterkey_s(pair), $repo);
+            }
         }
 
         $next-repo
@@ -189,8 +199,44 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
+    method file-for-spec(Str $spec) {
+        my @parts = $spec.split('#', 2);
+        if @parts.elems == 2 {
+            my $repo = self.repository-for-name(@parts[0]);
+            return $repo.source-file(@parts[1]) if $repo.can('source-file');
+        }
+        Nil
+    }
+
     method head() { # mostly usefull for access from NQP
         $*REPO
+    }
+
+    method resolve-unknown-repos(@repos) {
+        for @repos.pairs {
+            if nqp::istype($_.value, CompUnit::Repository::Unknown) {
+                my $i = $_.key;
+                my $next-repo := @repos[$i + 1];
+
+                my $head := PROCESS<$REPO>;
+                PROCESS::<$REPO> := $next-repo;
+                my $comp_unit = $next-repo.need(
+                    CompUnit::DependencySpecification.new(:short-name($_.value.short-name))
+                );
+                PROCESS::<$REPO> := $head;
+
+                my $global := nqp::list(); # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
+                nqp::push($global, "GLOBAL");
+                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package.WHO);
+                my $new-repo = self.repository-for-spec($_.value.path-spec, :$next-repo);
+                if $i > 0 {
+                    @repos[$i - 1].next-repo = $new-repo if $i > 0;
+                }
+                else {
+                    PROCESS::<$REPO> := $new-repo;
+                }
+            }
+        }
     }
 
     # Handles any object repossession conflicts that occurred during module load,
@@ -221,16 +267,19 @@ class CompUnit::RepositoryRegistry {
                       my $type = try ::($short-id);
                       if $type !=== Any {
                           if $type.?short-id -> $id {
-                              die "Have '$id' already registered for %short-id2class{$id}.^name()"
-                                if %short-id2class.EXISTS-KEY($id);
-                              %short-id2class.BIND-KEY($id,$type);
+                              if %short-id2class.EXISTS-KEY($id) {
+                                  %short-id2class.AT-KEY($id);
+                              }
+                              else {
+                                  %short-id2class.BIND-KEY($id, $type);
+                              }
                           }
                           else {
                               die "Class '$type.^name()' is not a CompUnit::Repository";
                           }
                       }
                       else {
-                          die "No CompUnit::Repository known by '$short-id'";
+                          Any
                       }
                   }
               } );
@@ -249,6 +298,10 @@ class CompUnit::RepositoryRegistry {
     short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
     short-id2class('nqp')   = 'CompUnit::Repository::NQP';
     short-id2class('perl5') = 'CompUnit::Repository::Perl5';
+#?if jvm
+    short-id2class('javart')  = 'CompUnit::Repository::JavaRuntime';
+    short-id2class('java')  = 'CompUnit::Repository::Java';
+#?endif
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
         my %options;

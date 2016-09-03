@@ -2,30 +2,41 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
+B<<NOTE: this guide is for a manual release process. You may want
+to use the automated process described in L<release_guide_automated.md> >>
+
 Rakudo’s development release cycle is the third Saturday of
 each month.
 
-Each development release is given a sequential number and a code name
-based on an active Perl Mongers group. 
+Each development release is given a sequential number and a name based
+on the release year and month.  Older releases had code names based on
+an active Perl Mongers group.
 
 For releases made so far, see the list of development releases at the
 end of this document.
 
 =head2 Planned future releases
 
-Note that we are trying very hard to insure there are no backward
+Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
-some releases to insure any compatibility issues are resolved.
+some releases to ensure any compatibility issues are resolved.
 
-  2016-04-16   Rakudo #98 (Coke)
-  2016-05-21   Rakudo #99
-  2016-06-18   Rakudo #100
-  2016-07-16   Rakudo #101
-  2016-08-20   Rakudo #102
-  2016-09-17   Rakudo #103
+  2016-09-17   Rakudo #103 (Zoffix; but space open for anyone wanting to learn to do a release)
   2016-10-15   Rakudo #104
   2016-11-19   Rakudo #105
   2016-12-17   Rakudo #106
+  2017-01-21   Rakudo #107
+  2017-02-18   Rakudo #108
+  2017-03-18   Rakudo #109
+  2017-04-15   Rakudo #110
+  2017-05-20   Rakudo #111
+  2017-06-17   Rakudo #112
+  2017-07-15   Rakudo #113
+  2017-08-19   Rakudo #114
+  2017-09-16   Rakudo #115
+  2017-10-21   Rakudo #116
+  2017-11-18   Rakudo #117
+  2017-12-16   Rakudo #118
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
 
@@ -55,7 +66,7 @@ any occurrences, remove the code and make sure the spectest is still ok.
 
 Review the RT queue for tickets that might need resolving
 prior to the release, addressing them as needed.  “Tickets
-that need resolving” is left your discretion.  Any problem
+that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).
@@ -67,8 +78,16 @@ markdown format.  You can often use the previous release’s file as a
 starting point, updating the release number, version information, name,
 etc. as appropriate.
 
-  $ git add docs/announce/YYYY.MM.md
-  $ git commit docs
+  git add docs/announce/YYYY.MM.md
+  git commit docs
+
+There is a helper script C<tools/create-release-announcement.pl> that
+will create a basic release announcement for you based on the state
+of the repository and the current date.  Feel free to use it to
+save yourself some time, but please look over its output if you decide
+to use it:
+
+    ./perl6 tools/create-release-announcement.pl > docs/announce/YYYY.MM.md
 
 =item *
 
@@ -84,12 +103,13 @@ in a year not reflected by the file’s copyright notice.)
 
 Update Rakudo’s leap-second tables:
 
-  $ perl tools/update-tai-utc.pl
+  perl tools/update-tai-utc.pl
 
-If a new leap second has been announced, F<tai-utc.pm> will be modified, so
-commit the new version:
+If a new leap second has been announced, F<src/core/Rakudo/Internals.pm>
+will be modified, so commit the new version. B<Note:> be sure to double
+check the modifications are correct before committing.
 
-  $ git commit src
+  git commit src
 
 But probably there won’t be any new leap seconds, in which case the file
 will be unchanged.
@@ -103,9 +123,9 @@ As the actual release date nears, review the git log history
 to see if any additional items need to be added to the ChangeLog.
 This can be conveniently done with
 
-  $ git log --since=yyyy-mm-dd --reverse # find commits
+  git log --since=yyyy-mm-dd --reverse # find commits
   # update ChangeLog
-  $ git commit docs/ChangeLog # commit changes
+  git commit docs/ChangeLog # commit changes
 
 =item 4.
 
@@ -117,12 +137,17 @@ new release is significant.
 Include a list of contributors since the last release in the announcement.
 You can get an automatically generated list by running
 
-  $ perl6 tools/contributors.pl6
+  ./perl6 tools/contributors.pl6
 
-Please check the result manually for duplicates and other errors.
+To obtain all contributors, ensure you have all supporting repositories
+checked out, before running (this can be achieved by building rakudo
+and running a spectest). Please check the result manually for duplicates
+and other errors. Note that you may not be able to run your system perl6
+in a local checkout, you may have to wait until you build in this
+directory and use C<./perl6>.
 
-  $ git add docs/announce/YYYY.MM.md
-  $ git commit docs
+  git add docs/announce/YYYY.MM.md
+  git commit docs
 
 =item 5.
 
@@ -130,66 +155,94 @@ Update the release dates and names at the bottom of this file
 (F<docs/release_guide.pod>).  Also improve these instructions if
 you find any steps that are missing.
 
-  $ git commit docs/release_guide.pod
+  git commit docs/release_guide.pod
 
 =item 6.
 
-Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP’s C<docs/release_guide.pod> file to do that.
+Ensure that a monthly MoarVM release has been completed. Those
+releases are typically handled by a separate team.
 
 =item 7.
 
-Go back to the Rakudo repository, and update the NQP dependency:
-
-  $ echo YYYY.MM > tools/build/NQP_REVISION
-  $ git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
+Create an NQP release with the same C<YYYY.MM> version number
+as Rakudo. Follow NQP’s
+L<docs/release_guide.pod|https://github.com/perl6/nqp/blob/master/docs/release_guide.pod>
+file to do that.
 
 =item 8.
 
-Enter the new version into the F<VERSION> file, and commit the changes:
+Go back to the Rakudo repository, and update the NQP dependency:
 
-  $ echo YYYY.MM > VERSION
-  $ git commit -m '[release] bump VERSION' VERSION
+  echo YYYY.MM > tools/build/NQP_REVISION
+  git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
 
 =item 9.
 
-Make sure any locally modified files have been pushed back to github.
+Enter the new version into the F<VERSION> file, and commit the changes:
 
-  $ git status
-  $ git push
+  echo YYYY.MM > VERSION
+  git commit -m '[release] bump VERSION' VERSION
 
 =item 10.
 
+Make sure any locally modified files have been pushed back to github.
+
+  git status
+  git push
+
+=item 11.
+
 Make sure everything compiles and runs from a known clean state:
 
-  $ make realclean
-  $ perl Configure.pl --gen-moar --backends=ALL
-  $ make
-  $ make install
-  $ make test
-  $ (cd t/spec & git checkout master)     # test latest language spec
-  $ make stresstest
-  $ (cd t/spec & git checkout 6.c-errata) # test stable language spec
-  $ make stresstest
+  make realclean
+  perl Configure.pl --gen-moar --backends=ALL
+  make
+  make install
+  make test
+
+=item 12.
+
+Install Inline::Perl5 so stresstest can use it.
+
+  git clone https://github.com/tadzik/panda
+  export PATH=`pwd`/install/bin:$PATH
+  cd panda; perl6 bootstrap.pl
+  cd ..
+  export PATH=`pwd`/install/share/perl6/site/bin:$PATH
+  panda install Inline::Perl5
+
+=item 13.
+
+Now run the stresstests for stable and lastest specs. The following commands
+assume you already have a roast checkout in C<t/spec>. If not, run
+C<make spectest> (you can abort it  after the repository is retrieved).
+
+  (cd t/spec && git checkout master)     # test latest language spec
+  make stresstest
+  (cd t/spec && git checkout 6.c-errata) # test stable language spec
+  make stresstest
 
 There are many tests to run for the stresstest target.  If
 you have a machine with multiple CPU cores, you may want to
 execute that last as
 
-  $ TEST_JOBS=4 make stresstest
+  TEST_JOBS=4 make stresstest
 
 where 4 is the number of CPU cores.  This should make the
 total time to execute all of the tests dramatically less.
 
-Note that any failures against the stable language spec must be
-fixed before a release can be made.
+Note that any failures against the stable language spec B<must> be
+fixed before a release can be made. Also, you will see warnings about
+missing test files; this is because we only have one list of files,
+and new tests may have been added after the last version of the spec
+was frozen.
 
 Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
 
-=item 11.
+=item 14.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
@@ -201,18 +254,20 @@ So please make a backup if you have any important data in there.
 Because we tested the stable language spec last, above, those
 are the tests that will end up in the release tarball.
 
-=item 12.
+=item 15.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 10.
-If there are any problems, fix them and go back to step 10.
+builds and runs properly using the same process in steps 11-13.
+For step 13, just run "make stresstest"; you're only testing
+the official spec tests here, and cannot switch between branches.
+If there are any problems, fix them and go back to step 11.
 
-=item 13.
+=item 16.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
-  $ git tag -u <email> -s -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
-  $ git push --tags
+  git tag -u <email> -s -a -m "tag release #nnn" YYYY.MM    # e.g., 2013.08
+  git push --tags
 
 The C<-s> tells git to sign the release with your PGP/GPG key, so it will
 likely ask you for the passphrase of your secret key.
@@ -221,23 +276,30 @@ If you have no PGP key, you might need to
 L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
 that prove impossible, you can omit the C<-s> from the command line.
 
-=item 14.
+Be sure to upload your public key to your GitHub account, so that GitHub
+displays I<Verified> button next to the tag. You can do that by running
+C<< gpg --armor --export <email> >> and adding the output as the
+I<New GPG Key> at the bottom of the
+L<< settings -> keys page|https://github.com/settings/keys >>
+
+=item 17.
 
 Sign the tarball with your PGP key:
 
-    $ gpg -b --armor rakudo-YYYY-MM.tar.gz
+    gpg -b --armor rakudo-YYYY.MM.tar.gz
 
-=item 15.
+=item 18.
 
 Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
 
-  $ scp rakudo-YYYY.MM.tar.gz rakudo-YYY-MM.tar.gz.asc \
+  scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
        rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
-masak, tadzik, moritz, PerlJam,  [Coke], lizmat, timotimo, fsergot)) on #perl6 to do it for you.
+masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
+hoelzro, Zoffix) on #perl6 or #perl6-dev to do it for you.
 
-=item 16.
+=item 19.
 
 To avoid public confusion with Rakudo Star releases, we now publish
 compiler release announcements ONLY to perl6-compiler@perl.org.
@@ -248,11 +310,11 @@ announcement for both.)
 Don’t send out any announcements until the files are actually available
 per step 14 above.
 
-=item 17.
+=item 20.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 18.
+=item 21.
 
 You’re done!  Celebrate with the appropriate amount of fun.
 
@@ -354,6 +416,13 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-02-02   2016.01.1                       (Coke)
   2016-02-21   Rakudo #96 "2016.02"            (Coke)
   2016-03-23   Rakudo #97 "2016.03"            (Coke)
+  2016-04-19   Rakudo #98 "2016.04"            (Coke)
+  2016-05-21   Rakudo #99 "2016.05"            (hoelzro)
+  2016-06-18   Rakudo #100 "2016.06"           (Zoffix)
+  2016-07-16   Rakudo #101 "2016.07"           (Zoffix)
+  2016-07-18   2016.07.1                       (Zoffix)
+  2016-08-20   Rakudo #102 "2016.08"           (Zoffix)
+  2016-08-20   2016.08.1                       (Zoffix)
 
 =head1 COPYRIGHT
 

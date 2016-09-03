@@ -370,31 +370,6 @@ static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB 
         ins->info = MVM_op_get_op(MVM_OP_set);
 }
 
-static MVMuint8 s_p6routinereturn[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6routinereturn(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel(tc, str_return,
-        tc->cur_frame->caller);
-    MVMObject   *ret = (reg ? reg->o : NULL);
-    if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
-        tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
-        STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
-    }
-    else {
-        MVMObject *thrower = get_thrower(tc, str_cfr);
-        if (!MVM_is_null(tc, thrower)) {
-            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
-            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-            STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
-        } else {
-            MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
-        }
-    }
-}
-
 static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -424,7 +399,10 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
-        MVMFrame *find = tc->cur_frame;
+        MVMFrame *find;
+        MVMROOT(tc, vm_code_obj, {
+            find = MVM_frame_force_to_heap(tc, tc->cur_frame);
+        });
         while (find) {
             if (((MVMCode *)vm_code_obj)->body.sf->body.outer == find->static_info) {
                 MVMFrame *orig = tc->cur_frame;
@@ -439,7 +417,7 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     else {
         MVM_exception_throw_adhoc(tc, "p6capturelexwhere got non-code object");
     }
-    GET_REG(tc, 0).o = p6_code_obj;
+    GET_REG(tc, 0).o = GET_REG(tc, 2).o;
 }
 
 static MVMuint8 s_p6getouterctx[] = {
@@ -450,14 +428,10 @@ static void p6getouterctx(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
-    if (outer) {
-        MVMObject *ctx = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-        ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
-        GET_REG(tc, 0).o = ctx;
-    }
-    else {
+    if (outer)
+        GET_REG(tc, 0).o = MVM_frame_context_wrapper(tc, outer);
+    else
         MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
-    }
 }
 
 static MVMuint8 s_p6captureouters[] = {
@@ -480,9 +454,7 @@ static void p6captureouters(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
-            if (outer->outer)
-                MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, new_outer);
+            MVM_ASSIGN_REF(tc, &(outer->header), outer->outer, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
@@ -568,7 +540,7 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
     free(srd);
 }
 static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMFrame  *ctx = tc->cur_frame;
+    MVMFrame *ctx = MVM_frame_force_to_heap(tc, tc->cur_frame);
     while (ctx) {
         /* Do we have a dispatcher here? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
@@ -582,11 +554,14 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                     MVMObject *meth, *p6sub, *ctx_ref, *capture;
                     MVMRegister *res_reg = &GET_REG(tc, 0);
                     MVMROOT(tc, dispatcher, {
+                    MVMROOT(tc, ctx, {
                         ctx_ref = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-                        ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
+                        MVM_ASSIGN_REF(tc, &(ctx_ref->header),
+                                ((MVMContext *)ctx_ref)->body.context, ctx);
                         MVMROOT(tc, ctx_ref, {
                             capture = MVM_args_use_capture(tc, ctx);
                         });
+                    });
                     });
                     p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
 
@@ -647,7 +622,10 @@ static void p6argsfordispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have the dispatcher we're looking for? */
-        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        MVMRegister *disp_lex;
+        MVMROOT(tc, ctx, {
+            disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        });
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
             MVMObject *disp             = GET_REG(tc, 2).o;
@@ -756,7 +734,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, MVM_EXTOP_INVOKISH);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

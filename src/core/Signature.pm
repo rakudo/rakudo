@@ -57,7 +57,7 @@ my class Signature { # declared in BOOTSTRAP
             return False unless +$other == 1;
         }
 
-        my $here=$sclass{True}.SetHash;
+        my $here=($sclass{True}:v).SetHash;
         my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
         $here{@$hasslurpy} :delete;
         $hasslurpy .= Bool;
@@ -132,14 +132,15 @@ my class Signature { # declared in BOOTSTRAP
     multi method gist(Signature:D:) {
         self!gistperl(False, :elide-type(self!deftype))
     }
-
-    method returns() { $!returns }
 }
 
 multi sub infix:<eqv>(Signature \a, Signature \b) {
 
     # we're us
     return True if a =:= b;
+
+    # different container type
+    return False unless a.WHAT =:= b.WHAT;
 
     # arity or count mismatch
     return False if a.arity != b.arity || a.count != b.count;
@@ -154,7 +155,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
     # compare all positionals
     my int $i = -1;
     Nil
-      while nqp::islt_i($i = nqp::add_i($i,1),$elems)
+      while nqp::islt_i(++$i,$elems)
         && nqp::atpos($ap,$i) eqv nqp::atpos($bp,$i);
 
     # not all matching positionals
@@ -167,7 +168,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         # create lookup table
         my int $j = $i = $i - 1;
         my $lookup := nqp::hash;
-        while nqp::islt_i($j = nqp::add_i($j,1),$elems) {
+        while nqp::islt_i(++$j,$elems) {
             my $p  := nqp::atpos($ap,$j);
             my $nn := nqp::getattr($p,Parameter,'$!named_names');
             my str $key =
@@ -180,7 +181,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         }
 
         # named variable mismatch
-        while nqp::islt_i($i = nqp::add_i($i,1),$elems) {
+        while nqp::islt_i(++$i,$elems) {
             my $p  := nqp::atpos($bp,$i);
             my $nn := nqp::getattr($p,Parameter,'$!named_names');
             my str $key = nqp::defined($nn) && nqp::elems($nn)

@@ -274,13 +274,17 @@ role STD {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
     method missing_block() {
+        my $marked := self.MARKED('ws');
+        my $pos := $marked ?? $marked.from !! self.pos;
+
         if $*BORG<block> {
-            my $pos := self.pos;
             self.'!clear_highwater'();
             self.'!cursor_pos'($*BORG<block>.CURSOR.pos);
             self.typed_sorry('X::Syntax::BlockGobbled', what => ($*BORG<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($*BORG<name> ?? "'" ~ $*BORG<name> ~ "'" !! "expression") ~ ")");
+        } elsif nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
+            self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
         } elsif %*MYSTERY {
             self.missing("block (taken by some undeclared routine?)");
         } else {
@@ -301,6 +305,10 @@ role STD {
 
     method EXPR_nonassoc($cur, $left, $right) {
         self.typed_panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
+    }
+
+    method EXPR_nonlistassoc($cur, $left, $right) {
+        self.typed_panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
@@ -440,10 +448,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
                 ?? self.target() ~ $sc_id++
                 !! self.target());
-        my $*W := nqp::isnull($file) ??
-            Perl6::World.new(:handle($source_id)) !!
-            Perl6::World.new(:handle($source_id), :description($file));
-        $*W.add_initializations();
+        my $outer_world := nqp::getlexdyn('$*W');
+        my $is_nested := (
+            $outer_world
+            && nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+            && $outer_world.is_precompilation_mode()
+        );
+
+        my $*W := $is_nested
+            ?? $outer_world.create_nested()
+            !! nqp::isnull($file)
+                ?? Perl6::World.new(:handle($source_id))
+                !! Perl6::World.new(:handle($source_id), :description($file));
+
+        unless $is_nested {
+            $*W.add_initializations();
+        }
 
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT
@@ -673,7 +693,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method attach_leading_docs() {
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(
-                [Perl6::Pod::formatted_text(~$*DOC)]
+                [Perl6::Pod::normalize_text(~$*DOC)]
             ).compile_time_value;
             my $block := $*W.add_constant(
                 'Pod::Block::Declarator', 'type_new',
@@ -691,7 +711,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $pod_block;
             if $doc ne '' {
                 my $cont  := Perl6::Pod::serialize_aos(
-                    [Perl6::Pod::formatted_text($doc)]
+                    [Perl6::Pod::normalize_text($doc)]
                 ).compile_time_value;
                 my $block := $*W.add_constant(
                     'Pod::Block::Declarator', 'type_new',
@@ -1777,7 +1797,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | $<num> = [\d+] <identifier> [ <?before <[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
-            { $*key := $<identifier>.Str; $*value := +$<num>; }
+            { $*key := $<identifier>.Str; $*value := nqp::radix_I(10, $<num>, 0, 0, $*W.find_symbol(['Int']))[0]; }
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
@@ -2272,7 +2292,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
 
-                # Install $?PACKAGE, $?ROLE, $?CLASS, and :: variants as needed.
+                # Install $?PACKAGE, $?MODULE, $?ROLE, $?CLASS, and :: variants as needed.
                 my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
@@ -2285,7 +2305,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('::?CLASS')));
                     }
-                    elsif $*PKGDECL ne 'package' && $*PKGDECL ne 'module' {
+                    elsif $*PKGDECL eq 'module' {
+                        $*W.install_lexical_symbol($curpad, '$?MODULE', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?MODULE', $*PACKAGE);
+                    }
+                    elsif $*PKGDECL ne 'package'{
                         $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
@@ -2394,6 +2418,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<has>       {
+        :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        <sym>
+        :my $*HAS_SELF := 'partial';
+        :my $*ATTR_INIT_BLOCK;
+        <scoped('has')>
+    }
+    token scope_declarator:sym<HAS>       {
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         <sym>
         :my $*HAS_SELF := 'partial';
@@ -2559,7 +2590,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || ';'
             {
-                $/.CURSOR.missing_block() if $*BORG<block>;
                 if $<deflongname> ne 'MAIN' {
                     $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
                 }
@@ -2733,7 +2763,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token fakesignature {
         <.newpad>
-        <signature>
+        <signature('sig', 1)>
     }
 
     token signature($*IN_DECL = 'sig', $*ALLOW_INVOCANT = 0) {
@@ -3150,7 +3180,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.end_keyword>
     }
 
-    token term:sym<...> { [<sym>|'…'] <args> }
+    token term:sym<...> {
+        [<sym>|'…']
+        [ <?after ','\h*<[ . … ]>+> { self.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)") } ]?
+        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }> <?after <:L + [\]]>\h*<[ . … ]>+> { self.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)") } ]?
+        <args>
+    }
     token term:sym<???> { <sym> <args> }
     token term:sym<!!!> { <sym> <args> }
 
@@ -3418,7 +3453,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           }>
         ]
         # parametric/coercion type?
-        <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unsp>? [
+            <?[[]>
+            :my %*MYSTERY;
+            '[' ~ ']' <arglist>
+            <.explain_mystery> <.cry_sorrows>
+        ]?
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
@@ -3575,10 +3615,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $lang;
         :my $start;
         :my $stop;
+
         <babble($l)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
+        { $*SUBST_LHS_BLOCK := $*W.push_lexpad($/) }
         $start <left=.nibble($lang)> [ $stop || <.panic("Couldn't find terminator $stop")> ]
+        { $*W.pop_lexpad() }
+        { $*SUBST_RHS_BLOCK := $*W.push_lexpad($/) }
         [ <?{ $start ne $stop }>
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
@@ -3590,12 +3634,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
             <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
         ]
+        { $*W.pop_lexpad() }
     }
 
     token quote:sym<s> {
         <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        :my $*SUBST_LHS_BLOCK;
+        :my $*SUBST_RHS_BLOCK;
         {
             %*RX<s> := 1 if $/[0]
         }
@@ -3663,8 +3710,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <block>
     }
 
-    # XXX remove SEQ for xmas?
-    token circumfix:sym<SEQ( )> { 'SEQ(' <.panic: "Use of unsupported SEQ macro; please change to STATEMENT_LIST"> }
     token circumfix:sym<STATEMENT_LIST( )> { :dba('statement list') 'STATEMENT_LIST(' ~ ')' <sequence> }
 
     token circumfix:sym<( )> {
@@ -4311,8 +4356,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O('%comma, :fiddly<0>')>
-        # TODO: should be <.worry>, not <.panic>
-        [ <?before \h*['...'|'…']> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
         { $*INVOCANT_OK := 0 }
     }
     token infix:sym<:>    {

@@ -14,8 +14,8 @@
 # RT in the fudge message, and then add the test file to this file, sorted.
 #
 # Each file may have one or more markers that deselects the test:
-#     long   - run tests only if --long=1     (default is 1)
-#     stress - run tests only if --stress=1   (default is 0)
+#     long   - run tests unless --quick
+#     stress - run tests only if --stress
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
@@ -23,6 +23,8 @@
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
+S01-perl-5-integration/context.t            # perl5
+S01-perl-5-integration/eval_lex.t           # perl5
 S01-perl-5-integration/exception_handling.t # perl5
 S01-perl-5-integration/hash.t               # perl5
 S01-perl-5-integration/import.t             # perl5
@@ -78,12 +80,14 @@ S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
 S02-magicals/file_line.t
+S02-magicals/GROUP.t
 S02-magicals/KERNEL.t
 S02-magicals/PERL.t
 S02-magicals/pid.t
 S02-magicals/progname.t
 S02-magicals/sub.t
 S02-magicals/subname.t
+S02-magicals/USER.t
 S02-magicals/VM.t
 S02-names/bare-sigil.t
 S02-names/caller.t
@@ -148,7 +152,7 @@ S02-types/pair.t
 S02-types/list.t
 S02-types/parsing-bool.t
 S02-types/range.t
-S02-types/resolved-in-setting.t
+S02-types/resolved-in-setting.t    # moar
 S02-types/set.t
 S02-types/sethash.t
 S02-types/sigils-and-types.t
@@ -159,6 +163,7 @@ S02-types/type.t
 S02-types/undefined-types.t
 S02-types/unicode.t
 S02-types/version.t
+S02-types/version-stress.t   # stress
 S02-types/whatever.t
 S02-types/WHICH.t
 S03-binding/arrays.t
@@ -166,6 +171,7 @@ S03-binding/attributes.t
 S03-binding/closure.t
 S03-binding/hashes.t
 S03-binding/nested.t
+S03-binding/nonsense.t
 S03-binding/ro.t
 S03-binding/scalars.t
 S03-feeds/basic.t
@@ -302,7 +308,7 @@ S04-phasers/next.t
 S04-phasers/pre-post.t
 S04-phasers/rvalue.t
 S04-statement-modifiers/for.t
-S04-statement-modifiers/given.t 
+S04-statement-modifiers/given.t
 S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
@@ -417,10 +423,12 @@ S05-modifier/perl5_9.t
 S05-modifier/pos.t
 S05-modifier/repetition-exhaustive.t
 S05-modifier/repetition.t
+S05-modifier/samemark.t
 S05-modifier/sigspace.t
 S05-substitution/67222.t
 S05-substitution/match.t
 S05-substitution/subst.t
+S05-syntactic-categories/new-symbols.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
@@ -551,6 +559,8 @@ S11-modules/import-multi.t
 S11-modules/import-tag.t
 S11-modules/import.t
 S11-modules/lexical.t
+S11-modules/module.t
+S11-modules/module-file.t
 S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
@@ -592,6 +602,7 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
+S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-enums/anonymous.t
@@ -629,7 +640,7 @@ S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/lastcall.t
 S12-methods/lvalue.t
-S12-methods/method-vs-sub.t 
+S12-methods/method-vs-sub.t
 S12-methods/multi.t
 S12-methods/parallel-dispatch.t
 S12-methods/private.t
@@ -656,7 +667,7 @@ S14-roles/crony.t
 S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
-S14-roles/namespaced.t 
+S14-roles/namespaced.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
@@ -728,6 +739,8 @@ S15-normalization/nfkd-7.t      # moar stress
 S15-normalization/nfkd-8.t      # moar stress
 S15-normalization/nfkd-9.t      # moar stress
 S15-normalization/nfkd-sanity.t # moar
+S15-string-types/NF-types.t
+S15-string-types/NFK-types.t
 S15-string-types/Uni.t          # moar
 S15-string-types/Str.t
 S15-unicode-information/uniname.t
@@ -741,7 +754,9 @@ S16-filehandles/filetest.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/io.t
+S16-filehandles/misc.t
 S16-filehandles/mkdir_rmdir.t
+S16-filehandles/mode.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
@@ -749,11 +764,14 @@ S16-io/basic-open.t
 S16-io/bom.t
 S16-io/comb.t
 S16-io/cwd.t
+S16-io/eof.t
 S16-io/getc.t
+S16-io/handles-between-threads.t
 S16-io/lines.t
 S16-io/newline.t
 S16-io/note.t
 S16-io/print.t
+S16-io/quoting-syntax.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/split.t
@@ -763,6 +781,7 @@ S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-lowlevel/lock.t      # slow
+S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
@@ -770,6 +789,7 @@ S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar
 S17-procasync/many-processes-no-close-stdin.t # moar
+S17-procasync/stress.t   # moar
 S17-promise/allof.t      # slow
 S17-promise/at.t
 S17-promise/anyof.t
@@ -832,9 +852,14 @@ S19-command-line/help.t
 S19-command-line/repl.t
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
+S19-command-line-options/04-negation.t
+S19-command-line-options/05-delimited-options.t
+S19-command-line-options/06-dash-rxtrace.t
 S22-package-format/local.t
 S24-testing/0-compile.t
 S24-testing/3-output.t
+S24-testing/7-bail_out.t
+S24-testing/8-die_on_fail.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -905,6 +930,7 @@ S32-hash/exists-adverb.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t
+S32-hash/map.t
 S32-hash/pairs.t
 S32-hash/perl.t
 S32-hash/push.t
@@ -927,6 +953,7 @@ S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
+S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
@@ -1064,7 +1091,7 @@ integration/99problems-11-to-20.t
 integration/99problems-21-to-30.t
 integration/99problems-31-to-40.t
 integration/99problems-41-to-50.t
-integration/99problems-51-to-60.t 
+integration/99problems-51-to-60.t
 integration/99problems-61-to-70.t
 integration/advent2009-day01.t
 integration/advent2009-day02.t
@@ -1173,5 +1200,5 @@ integration/substr-after-match-in-gather-in-for.t
 integration/topic_in_double_loop.t
 integration/variables-in-do.t
 integration/weird-errors.t     # slow
-rosettacode/greatest_element_of_a_list.t  
+rosettacode/greatest_element_of_a_list.t
 rosettacode/sierpinski_triangle.t

@@ -85,13 +85,15 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     if (!obj) {
         MVM_exception_throw_adhoc(tc, "Cannot assign a null value to a Perl 6 scalar");
     }
-    else if (STABLE(obj)->WHAT == get_nil()) {
-        obj = rcd->the_default;
-    }
     else {
+        MVMint64 mode;
+        if (STABLE(obj)->WHAT == get_nil()) {
+            obj = rcd->the_default;
+            /* We still have to check the_default, for :D types */
+        }
         /* Check against the type-check cache first (common, fast-path
          * case). */
-        MVMint64 mode = STABLE(rcd->of)->mode_flags & MVM_TYPE_CHECK_CACHE_FLAG_MASK;
+        mode = STABLE(rcd->of)->mode_flags & MVM_TYPE_CHECK_CACHE_FLAG_MASK;
         if (rcd->of != get_mu() && !MVM_6model_istype_cache_only(tc, obj, rcd->of)) {
             /* Failed. If the cache is definitive, we certainly have an error. */
             if (STABLE(obj)->type_check_cache &&

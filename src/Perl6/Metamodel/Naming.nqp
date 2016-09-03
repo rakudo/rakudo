@@ -7,6 +7,9 @@ role Perl6::Metamodel::Naming {
         nqp::setdebugtypename($obj, $name);
         $!shortname := @parts ?? @parts[nqp::elems(@parts) - 1] !! '';
     }
+    method set_shortname($obj, $shortname) {
+        $!shortname := $shortname;
+    }
     method name($obj) {
         $!name
     }

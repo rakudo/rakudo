@@ -1,4 +1,5 @@
 my class X::Numeric::DivideByZero { ... };
+my role Rational { ... };
 
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool {
@@ -18,64 +19,68 @@ my class Num does Real { # declared in BOOTSTRAP
     method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {
-        nqp::isnanorinf(nqp::unbox_n(self)) ??
-            fail("Cannot coerce Inf or NaN to an Int") !!
-            nqp::fromnum_I(nqp::unbox_n(self), Int);
+        nqp::isnanorinf(nqp::unbox_n(self))
+          ?? Failure.new("Cannot coerce {self} to an Int")
+          !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
 
     multi method perl(Num:D:) {
-        my $res = self.Str;
-        if nqp::isnanorinf(nqp::unbox_n(self))
-           || $res.index('e').defined
-           || $res.index('E').defined {
-            $res;
-        } else {
-            $res ~ 'e0';
-        }
+        my str $res = self.Str;
+        nqp::isnanorinf(nqp::unbox_n(self))
+          || nqp::isge_i(nqp::index($res,'e'),0)
+          || nqp::isge_i(nqp::index($res,'E'),0)
+          ?? $res
+          !! nqp::concat($res,'e0')
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        if nqp::isnanorinf(nqp::unbox_n(self)) {
-            return self;
-        }
-
-        (self == Inf || self == -Inf) && fail("Cannot coerce Inf to a Rat");
+        return Rational[Num,Int].new(self,0)
+          if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;
-        my Int $signum = $num < 0 ?? -1 !! 1;
-        $num = -$num if $signum == -1;
-
-        # Find convergents of the continued fraction.
-
-        my Int $q = nqp::fromnum_I($num, Int);
+        $num = -$num if (my int $signum = $num < 0);
         my num $r = $num - floor($num);
-        my Int $a = 1;
-        my Int $b = $q;
-        my Int $c = 0;
-        my Int $d = 1;
 
-        while $r != 0e0 && abs($num - ($b / $d)) > $epsilon {
-            my num $modf_arg = 1e0 / $r;
-            $q = nqp::fromnum_I($modf_arg, Int);
-            $r = $modf_arg - floor($modf_arg);
-
-            my $orig_b = $b;
-            $b = $q * $b + $a;
-            $a = $orig_b;
-
-            my $orig_d = $d;
-            $d = $q * $d + $c;
-            $c = $orig_d;
+        # basically have an Int
+        if nqp::iseq_n($r,0e0) {
+            $fat
+              ?? FatRat.new(nqp::fromnum_I(self,Int),1)
+              !!    Rat.new(nqp::fromnum_I(self,Int),1)
         }
 
-        # Note that this result has less error than any Rational with a
-        # smaller denominator but it is not (necessarily) the Rational
-        # with the smallest denominator that has less than $epsilon error.
-        # However, to find that Rational would take more processing.
-        $fat ?? FatRat.new($signum * $b, $d) !! ($signum * $b) / $d;
+        # find convergents of the continued fraction.
+        else {
+            my Int $q = nqp::fromnum_I($num, Int);
+            my Int $a = 1;
+            my Int $b = $q;
+            my Int $c = 0;
+            my Int $d = 1;
+
+            while nqp::isne_n($r,0e0) && abs($num - ($b / $d)) > $epsilon {
+                my num $modf_arg = 1e0 / $r;
+                $q = nqp::fromnum_I($modf_arg, Int);
+                $r = $modf_arg - floor($modf_arg);
+
+                my $orig_b = $b;
+                $b = $q * $b + $a;
+                $a = $orig_b;
+
+                my $orig_d = $d;
+                $d = $q * $d + $c;
+                $c = $orig_d;
+            }
+
+            # Note that this result has less error than any Rational with a
+            # smaller denominator but it is not (necessarily) the Rational
+            # with the smallest denominator that has less than $epsilon error.
+            # However, to find that Rational would take more processing.
+            $fat
+              ?? FatRat.new($signum ?? -$b !! $b, $d)
+              !!    Rat.new($signum ?? -$b !! $b, $d)
+        }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
         self.Rat($epsilon, :fat);
@@ -327,39 +332,39 @@ multi sub infix:<*>(num $a, num $b) {
 }
 
 multi sub infix:</>(Num:D \a, Num:D \b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '/', numerator => a
-    ) unless b;
-    nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    b
+      ?? nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator(a)))
 }
 multi sub infix:</>(num $a, num $b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '/', numerator => $a
-    ) unless $b;
-    nqp::div_n($a, $b)
+    $b
+      ?? nqp::div_n($a, $b)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator($a)))
 }
 
 multi sub infix:<%>(Num:D \a, Num:D \b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '%', numerator => a
-    ) unless b;
-    nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    b
+      ?? nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
 multi sub infix:<%>(num $a, num $b) {
-    fail X::Numeric::DivideByZero.new(
-      using => '%', numerator => $a
-    ) unless $b;
-    nqp::mod_n($a, $b)
+    $b
+      ?? nqp::mod_n($a, $b)
+      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
 multi sub infix:<**>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
-        or a == 0e0 || b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
+      or a == 0e0 || b.abs == Inf
+        ?? 0e0
+        !! Failure.new(X::Numeric::Underflow.new)
 }
 multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
-        or $a == 0e0 || $b.abs == Inf ?? 0e0 !! fail X::Numeric::Underflow.new;
+      or $a == 0e0 || $b.abs == Inf
+        ?? 0e0
+        !! Failure.new(X::Numeric::Underflow.new)
 }
 
 # Here we sort NaN in with string "NaN"
@@ -383,7 +388,10 @@ multi sub infix:«<=>»(num $a, num $b) {
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {
-    a.WHAT =:= b.WHAT && nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a.WHAT,b.WHAT)
+      && nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b))
+    )
 }
 multi sub infix:<===>(NaN, NaN) {
     True;

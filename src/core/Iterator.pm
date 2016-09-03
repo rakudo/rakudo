@@ -18,18 +18,20 @@ my role Iterator {
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
-        my $pulled;
-        my $no-sink;
-        my int $i = -1;
-
-        # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          while nqp::islt_i($i = nqp::add_i($i,1),$n)
-            && !(IterationEnd =:= ($pulled := self.pull-one));
-
-        $pulled =:= IterationEnd
-            ?? IterationEnd
-            !! $i
+        nqp::stmts(
+          (my int $i = -1),
+          nqp::while(  # doesn't sink
+            nqp::islt_i($i = nqp::add_i($i,1),$n)
+              && nqp::not_i(nqp::eqaddr(
+                (my $pulled := self.pull-one),IterationEnd)),
+            $target.push($pulled) # don't .sink $pulled here, it can be a Seq
+          ),
+          nqp::if(
+            nqp::eqaddr($pulled,IterationEnd),
+            IterationEnd,
+            $i
+          )
+        )
     }
 
     # Has the iteration push at least a certain number of values into the
@@ -41,19 +43,13 @@ my role Iterator {
         self.push-exactly($target, $n)
     }
 
-    # Has the iterator produce all of its values into the target. This is
-    # mostly just for convenience/clarity; it calls push-at-least with a
-    # very large value in a loop, but will probably only ever need to do
-    # one call to it. Thus, overriding push-at-least or push-exactly is
-    # sufficient; you needn't override this. Returns IterationEnd.
-    method push-all($target) {
-        my $pulled;
-        my $no-sink;
-
-        # we may not .sink $pulled here, since it can be a Seq
-        $no-sink := $target.push($pulled)
-          until IterationEnd =:= ($pulled := self.pull-one);
-        IterationEnd
+    # Has the iterator produce all of its values into the target.  Typically
+    # called in .STORE if the iterator is non-lazy.  Returns IterationEnd.
+    method push-all($target --> IterationEnd) {
+        nqp::until( # we may not .sink $pulled here, since it can be a Seq
+          nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+          $target.push($pulled)
+        )
     }
 
     # Pushes things until we hit a lazy iterator (one whose is-lazy method returns
@@ -64,43 +60,41 @@ my role Iterator {
     # IterationEnd should be returned. Otherwise, return something else (Mu
     # will do fine).
     method push-until-lazy($target) {
-        self.is-lazy
-            ?? Mu
-            !! self.push-all($target)
+        nqp::unless(
+          self.is-lazy,
+          self.push-all($target)
+        )
     }
 
-    # Does not push anything but consumes the iterator to find out the number
-    # items that were generated, and returns that number.  Intended to be used
-    # in situations such as "foo".IO.lines.elems, where we're only interested
-    # in the number of lines in the file, rather than the contents of the
-    # lines.
-    method count-only() {
-        my int $i = 0;
-        $i = $i + 1 until self.pull-one() =:= IterationEnd;
-        $i
-    }
+    # The optional "count-only" method in an Iterator class returns the number
+    # of elements that the iterator would be return when generating values,
+    # but *without* actually generating any values.  This can e.g. be the case
+    # when an iterator is created for a hash, or for all the characters in a
+    # string, of which the number elements is already known.
+    # method count-only(--> Int) { ... }
 
-    # Does not push anything, but tries to consume the iterator once to find
-    # out if anything is there.  Intended to be used in situations such as
-    # if "foo".IO.lines { , where we're only interested whether there is *any*
-    # line in the file, rather than the content of the line.
-    method bool-only() {
-        !(self.pull-one() =:= IterationEnd)
-    }
+    # The optional "bool-only" method in an Iterator class returns a Bool
+    # to indicate whether the generator is able to generate *any* value,
+    # *without* actually generating any value.  This can e.g. be the case
+    # when an iterator is created for a hash.
+    # method bool-only(--> Bool) { ... }
 
     # Consumes all of the values in the iterator for their side-effects only.
     # May be overridden by iterators to either warn about use of things in
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
-    method sink-all() {
-        until self.pull-one() =:= IterationEnd { }
-        IterationEnd
+    method sink-all(--> IterationEnd) {
+        nqp::until(
+          nqp::eqaddr(self.pull-one,IterationEnd),
+          Nil
+        )
     }
 
     # Whether the iterator is lazy (True if yes, False if no).
-    method is-lazy() {
-        False
-    }
+    # If True, the iterator must *never* try to evaluate more than the
+    # user absolutely asks for.  This has e.g. effect on the behaviour
+    # on .STORE: a lazy iterator would not reify, a non-lazy would.
+    method is-lazy(--> False) { }
 }
 
 # vim: ft=perl6 expandtab sw=4

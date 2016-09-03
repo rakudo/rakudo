@@ -10,7 +10,9 @@ fast_finish: true
 
 install: "echo"
 
-script: "perl Configure.pl $RAKUDO_OPTIONS; make test"
+script: 
+    - "perl Configure.pl $RAKUDO_OPTIONS ; make test"
+    - "make install"
 
 branches:
    only:
@@ -20,7 +22,7 @@ branches:
 notifications:
   irc:
     channels:
-      - "irc.freenode.net#p6dev"
+      - "irc.freenode.net#perl6-dev"
     on_success: change
     on_failure: always
     template:
@@ -33,7 +35,7 @@ env:
     - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar=master"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"
+
 matrix:
   allow_failures:
-    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
-    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"
+

@@ -672,6 +672,11 @@ sub permutations(Int() $n) {
             #method is-lazy { True }
             method pull-one {
                 return (@!a = ^$!n).List unless @!a;
+
+                # stop if there is only one value
+                # ( only needed because $k starts as 0 in this case )
+                return IterationEnd if $!n == 1;
+
                 # Find the largest index k such that a[k] < a[k + 1].
                 # If no such index exists, the permutation is the last permutation.
                 my int $k = @!a.end - 1;
@@ -690,6 +695,7 @@ sub permutations(Int() $n) {
                 @!a.List;
             }
             method count-only { [*] 1 .. $!n }
+            method bool-only(--> True) { }
         }.new(:$n)
     );
 }

@@ -115,18 +115,18 @@ my MyStruct $obj .= new;
 $obj.init;
 
 is $obj.long,   42,     'getting long';
-is_approx $obj.num,   -3.7e0,  'getting num';
+is-approx $obj.num,   -3.7e0,  'getting num';
 is $obj.byte,   7,      'getting int8';
-is_approx $obj.float,  3.14e0, 'getting num32';
+is-approx $obj.float,  3.14e0, 'getting num32';
 is $obj.arr[1], 2,      'getting CArray and element';
 
 # C-side tests:
 my $cobj = ReturnAStruct;
 
 is $cobj.long,   17,      'getting long from C-created struct';
-is_approx $cobj.num,    4.2e0,   'getting num from C-created struct';
+is-approx $cobj.num,    4.2e0,   'getting num from C-created struct';
 is $cobj.byte,   13,      'getting int8 from C-created struct';
-is_approx $cobj.float,  -6.28e0, 'getting num32 from C-created struct';
+is-approx $cobj.float,  -6.28e0, 'getting num32 from C-created struct';
 is $cobj.arr[0], 2,       'C-created array member, elem 1';
 is $cobj.arr[1], 3,       'C-created array member, elem 2';
 is $cobj.arr[2], 5,       'C-created array member, elem 3';
@@ -135,8 +135,8 @@ my StructStruct $ss = ReturnAStructStruct();
 is $ss.a.first,   7, 'field 1 from struct 1 in struct';
 is $ss.a.second, 11, 'field 2 from struct 1 in struct';
 
-is_approx $ss.b.first,  3.7e0, 'field 1 from struct 2 in struct';
-is_approx $ss.b.second, 0.1e0, 'field 2 from struct 2 in struct';
+is-approx $ss.b.first,  3.7e0, 'field 1 from struct 2 in struct';
+is-approx $ss.b.second, 0.1e0, 'field 2 from struct 2 in struct';
 
 my PointerStruct $x = ReturnAPointerStruct();
 is $x.p.deref, 19, 'CPointer object in struct';

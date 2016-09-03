@@ -1,53 +1,53 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    submethod BUILD(:%!elems --> Nil)  { }
-    method default(--> Bool) { False }
+    method !SET-SELF(%!elems) { self }
+    multi method new(Setty: +@args --> Setty) {
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iter  := @args.iterator),
+          nqp::until(
+            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+            nqp::bindkey($elems,$pulled.WHICH,$pulled)
+          ),
+          nqp::create(self)!SET-SELF($elems)
+        )
+    }
+    method new-from-pairs(*@pairs --> Setty) {
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iter  := @pairs.iterator),
+          nqp::until(
+            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::if(
+                $pulled.value,
+                nqp::bindkey($elems,$pulled.key.WHICH,$pulled.key)
+              ),
+              nqp::bindkey($elems,$pulled.WHICH,$pulled)
+            )
+          ),
+          nqp::create(self)!SET-SELF($elems)
+        )
+    }
+
+    method default(--> False) { }
 
     multi method keys(Setty:D:) {
-        %!elems.values
-    }
-    multi method kv(Setty:D:) {
-        %!elems.values.map: -> \key { |(key,self.ISINSET(key.WHICH)) }
-    }
-    multi method values(Setty:D:) {
-        %!elems.values.map: -> \key { self.ISINSET(key.WHICH) }
-    }
-    multi method pairs(Setty:D:) {
-        %!elems.values.map: -> \key { Pair.new(key,self.ISINSET(key.WHICH)) }
-    }
-    multi method antipairs(Setty:D:) {
-        %!elems.values.map: -> \key { Pair.new(True,key) }
+        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
     }
 
     method elems(Setty:D: --> Int) { %!elems.elems }
     method total(Setty:D: --> Int) { %!elems.elems }
-    method minpairs() { self.pairs }
-    method maxpairs() { self.pairs }
+    multi method minpairs(Setty:D:) { self.pairs }
+    multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D:) { %!elems.Bool }
 
     multi method hash(Setty:D: --> Hash) {
         my \e = Hash.^parameterize(Bool, Any).new;
         e{$_} = True for %!elems.values;
         e;
-    }
-
-    multi method new(Setty: +@args) {
-        my %e;
-        %e{$_.WHICH} = $_ for @args;
-        self.bless(:elems(%e))
-    }
-    method new-from-pairs(*@pairs --> Setty) {
-        my %e;
-        for @pairs {
-            when Pair {
-                %e{.key.WHICH} //= $_.key if .value;
-            }
-            default {
-                %e{.WHICH} //= $_;
-            }
-        }
-        self.bless(:elems(%e));
     }
 
     multi method ACCEPTS(Setty:U: $other) {

@@ -6,11 +6,9 @@ my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
 my class X::Str::Sprintf::Directives::Count { ... };
 my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
-
-    # an empty hash for when we need to iterate over something
-    my \no-keys := nqp::hash;
 
     our role MappyIterator does Iterator {
         has $!storage;
@@ -18,18 +16,32 @@ my class Rakudo::Internals {
 
         method !SET-SELF(\hash) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!storage := no-keys unless $!storage.DEFINITE;
-            $!iter    := nqp::iterator($!storage);
-            self
+            nqp::if(
+              ($!storage.DEFINITE && nqp::elems($!storage)),
+              nqp::stmts(
+                ($!iter := nqp::iterator($!storage)),
+                self
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
         }
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
-        method count-only() {
-            $!iter := Mu;
-            nqp::p6box_i(nqp::elems($!storage))
+        method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
+        method bool-only(--> True) { }
+        method sink-all(--> IterationEnd) { $!iter := Mu }
+    }
+
+    our class MappyIterator-values does MappyIterator {
+        method pull-one() is raw {
+            $!iter
+              ?? nqp::iterval(nqp::shift($!iter))
+              !! IterationEnd
         }
-        method sink-all() {
-            $!iter := Mu;
-            IterationEnd
+        method push-all($target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              $target.push(nqp::iterval(nqp::shift($!iter)))
+            )
         }
     }
 
@@ -39,110 +51,140 @@ my class Rakudo::Internals {
         has Int $!i;   # cannot be an int yet sadly enough
 
         method SET-SELF(\blob) {
-            $!blob := blob;
-            $!i     = -1;
-            $!elems = nqp::elems($!blob);
-            self
+            nqp::if(
+              nqp::isgt_i($!elems = nqp::elems(blob),0),
+              nqp::stmts(
+                ($!blob := blob),
+                ($!i     = -1),
+                self
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
         }
         method new(\blob) { nqp::create(self).SET-SELF(blob) }
-        method push-all($target) {
+        method push-all($target --> IterationEnd) {
             my $blob      := $!blob;  # attribute access is slower
             my int $i      = $!i;
             my int $elems  = $!elems;
             $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-            IterationEnd
+              while nqp::islt_i(++$i,$elems);
         }
         method count-only() {
-            $!i = $!elems;
             nqp::p6box_i($!elems)
         }
-        method sink-all() {
-            $!i = $!elems;
-            IterationEnd
-        }
+        method sink-all(--> IterationEnd) { $!i = $!elems }
     }
 
     our class WhateverIterator does Iterator {
         has $!source;
         has $!last;
-        has $!whatever;
+        has int $!whatever;
         method new(\source) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!whatever', False);
             $iter
         }
         method pull-one() is raw {
-            if ($!whatever) {
-                $!last
-            }
-            else {
-                my \value := $!source.pull-one;
-                if value =:= IterationEnd {
-                    value
-                }
-                elsif nqp::istype(value, Whatever) {
-                    $!whatever := True;
-                    self.pull-one()
-                }
-                else {
-                    $!last := value;
-                    value
-                }
-            }
+            nqp::if(
+              $!whatever,
+              $!last,
+              nqp::if(
+                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                IterationEnd,
+                nqp::if(
+                  nqp::istype(value, Whatever),
+                  nqp::stmts(
+                    ($!whatever = 1),
+                    self.pull-one
+                  ),
+                  ($!last := value)
+                )
+              )
+            )
         }
     }
 
     our class DwimIterator does Iterator {
         has $!source;
         has $!buffer;
-        has $!ended;
-        has $!whatever;
-        has $!i;
-        has $!elems;
-        method new(\source) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!buffer', IterationBuffer.new);
-            nqp::bindattr($iter, self, '$!ended', False);
-            nqp::bindattr($iter, self, '$!whatever', False);
-            nqp::bindattr($iter, self, '$!i', 0);
-            nqp::bindattr($iter, self, '$!elems', 0);
-            $iter
+        has int $!ended;
+        has int $!whatever;
+        has int $!i;
+        has int $!elems;
+        method !SET-SELF(\source) {
+            $!source := source;
+            $!buffer := IterationBuffer.new;
+            self
         }
+        method new(\source) { nqp::create(self)!SET-SELF(source) }
+
         method pull-one() is raw {
-            if ($!ended) {
-                $!buffer.AT-POS( $!whatever
-                  ?? $!elems - 1
-                  !! (($!i := $!i + 1) - 1) % $!elems
-                );
-            }
-            else {
-                my \value := $!source.pull-one;
-                if value =:= IterationEnd {
-                    $!ended := True;
-                    $!elems == 0 ?? value !! self.pull-one()
-                }
-                elsif nqp::istype(value, Whatever) {
-                    $!whatever := True;
-                    $!ended := True;
-                    self.pull-one()
-                }
-                else {
-                    $!elems := $!elems + 1;
-                    $!buffer.push(value);
+            nqp::if(
+              $!ended,
+              nqp::if(
+                $!whatever,
+                $!buffer.AT-POS(nqp::sub_i($!elems,1)),
+                $!buffer.AT-POS(
+                  nqp::mod_i(nqp::sub_i(($!i = nqp::add_i($!i,1)),1),$!elems)
+                )
+              ),
+              nqp::if(
+                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  ($!ended = 1),
+                  nqp::if(
+                    nqp::iseq_i($!elems,0),
+                    IterationEnd,
+                    self.pull-one
+                  )
+                ),
+                nqp::if(
+                  nqp::istype(value,Whatever),
+                  nqp::stmts(
+                    ($!whatever = $!ended = 1),
+                    self.pull-one
+                  ),
+                  nqp::stmts(
+                    ($!elems = nqp::add_i($!elems,1)),
+                    $!buffer.push(value),
                     value
-                }
-            }
+                  )
+                )
+              )
+            )
         }
-        method ended() { $!ended }
+        method ended() { nqp::p6bool($!ended) }
         method count-elems() {
-            unless ($!ended) {
-                $!elems := $!elems + 1 until $!source.pull-one =:= IterationEnd;
-            }
+            nqp::unless(
+              $!ended,
+              nqp::until(
+                nqp::eqaddr($!source.pull-one,IterationEnd),
+                $!elems = nqp::add_i($!elems,1)
+              )
+            );
             $!elems
         }
+    }
+
+    method EmptyIterator() {
+        once class :: does Iterator {
+            method new() { nqp::create(self) }
+            method pull-one(--> IterationEnd)  { }
+            method push-all($ --> IterationEnd) { }
+            method sink-all(--> IterationEnd)  { }
+            method count-only(--> 0) { }
+            method bool-only(--> False) { }
+        }.new
+    }
+
+    method RollerIterator(\baggy) {
+        Seq.new(class :: does Iterator {
+            has $!baggy;
+            method !SET-SELF(\baggy) { $!baggy := baggy; self }
+            method new(\bag) { nqp::create(self)!SET-SELF(bag) }
+            method is-lazy() { True }
+            method pull-one() { $!baggy.roll }
+        }.new(baggy))
     }
 
     our class WeightedRoll {
@@ -396,28 +438,30 @@ my class Rakudo::Internals {
     }
 
     method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
-        my $key := nqp::list(meta-obj);
-        my $dims := nqp::list_i();
+        my $keys := nqp::list(meta-obj);
+        my $dims := nqp::list_i;
         for @dims {
-            if nqp::istype($_, Whatever) {
-                X::NYI.new(feature => 'Jagged array shapes');
-            }
-            nqp::push($key, type-key);
-            nqp::push_i($dims, $_.Int);
+            X::NYI.new(feature => 'Jagged array shapes').throw
+              if nqp::istype($_,Whatever);
+            my int $dim = $_.Int;
+            X::IllegalDimensionInShape.new(:$dim).throw
+              if nqp::isle_i($dim,0);
+
+            nqp::push($keys, type-key);
+            nqp::push_i($dims, $dim);
         }
-        my $storage := nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT, $key));
-        nqp::setdimensions($storage, $dims);
-        $storage
+
+        nqp::setdimensions(
+          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys)),$dims);
     }
 
     our role ShapedArrayCommon {
         method !illegal($operation) {
             X::IllegalOnFixedDimensionArray.new(:$operation).throw
         }
-        multi method pop(::?CLASS:D:)    { self!illegal("pop")    }
-        multi method shift(::?CLASS:D:)  { self!illegal("shift")  }
-        multi method splice(::?CLASS:D: *@) { self!illegal("splice") }
-        multi method plan(::?CLASS:D: *@)   { self!illegal("plan")   }
+        proto method pop(::?CLASS:D: |)    { self!illegal("pop")    }
+        proto method shift(::?CLASS:D: |)  { self!illegal("shift")  }
+        proto method splice(::?CLASS:D: |) { self!illegal("splice") }
 
         proto method push(|c) is nodal {
             self.DEFINITE ?? self!illegal("push")    !! self.Any::push(|c)
@@ -445,10 +489,10 @@ my class Rakudo::Internals {
             self.keys.map({ slip($_, self.AT-POS(|$_)) })
         }
         multi method pairs(::?CLASS:D:) {
-            self.keys.map({ $_ => self.AT-POS(|$_) })
+            self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
         }
         multi method antipairs(::?CLASS:D:) {
-            self.keys.map({ self.AT-POS(|$_) => $_ })
+            self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
@@ -617,7 +661,7 @@ my class Rakudo::Internals {
           :range("0.." ~ max),
           :comment( nqp::istype(from, Callable) || -from > max
             ?? ''
-            !! "use *{from} if you want to index relative to the end"),
+            !! "use *-{abs from} if you want to index relative to the end"),
         );
     }
     method SUBSTR-CHARS-OOR(\chars) {
@@ -625,7 +669,7 @@ my class Rakudo::Internals {
           :what('Number of characters argument to substr'),
           :got(chars.gist),
           :range("0..Inf"),
-          :comment("use *{chars} if you want to index relative to the end"),
+          :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }
     method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
@@ -830,6 +874,7 @@ my class Rakudo::Internals {
         '2008-12-31',
         '2012-06-30',
         '2015-06-30',
+        '2016-12-31',
         )
         #END leap-second-dates
     ;
@@ -871,6 +916,7 @@ my class Rakudo::Internals {
         1230768000,
         1341100800,
         1435708800,
+        1483228800,
         )
         #END leap-second-posix
     ;
@@ -910,26 +956,35 @@ my class Rakudo::Internals {
 #nqp::print("Registering ");
 #nqp::print(name);
 #nqp::print("\n");
-        my str $name = nqp::unbox_s(name);
-        my str $ver  = nqp::unbox_s($version);
-        my str $with = $ver ~ "\0" ~ $name;
-        nqp::existskey($initializers,$with)
-          ?? die "Already have initializer for '$name' ('$ver')"
-          !! nqp::bindkey($initializers,$with,&code);
-        nqp::bindkey($initializers,$name,&code)  # first come, first kept
-          unless nqp::existskey($initializers,$name);
+        nqp::stmts(
+          (my str $with = $version ~ "\0" ~ name),
+          nqp::if(
+            nqp::existskey($initializers,$with),
+            (die "Already have initializer for '{name}' ('$version')"),
+            nqp::bindkey($initializers,$with,&code)
+          ),
+          nqp::unless(                                 # first come, first kept
+            nqp::existskey($initializers,nqp::unbox_s(name)),
+            nqp::bindkey($initializers,nqp::unbox_s(name),&code)
+          )
+        )
     }
     method INITIALIZE-DYNAMIC(str \name) {
 #nqp::print("Initializing");
 #nqp::print(name);
 #nqp::print("\n");
-        my str $ver  = nqp::getcomp('perl6').language_version;
-        my str $with = $ver ~ "\0" ~ name;
-        nqp::existskey($initializers,$with)
-          ?? nqp::atkey($initializers,$with)()
-          !! nqp::existskey($initializers,name)
-            ?? nqp::atkey($initializers,name)()
-            !! X::Dynamic::NotFound.new(:name(name));
+        nqp::stmts(
+          (my str $with = nqp::getcomp('perl6').language_version ~ "\0" ~ name),
+          nqp::if(
+            nqp::existskey($initializers,$with),
+            nqp::atkey($initializers,$with)(),
+            nqp::if(
+              nqp::existskey($initializers,name),
+              nqp::atkey($initializers,name)(),
+              Failure.new(X::Dynamic::NotFound.new(:name(name)))
+            )
+          )
+        )
     }
 
     method EXPAND-LITERAL-RANGE(Str:D \x,$list) {
@@ -1102,31 +1157,51 @@ my class Rakudo::Internals {
           !! path;
     }
 
+    method DIR-RECURSE(Str(Cool) \abspath, Mu :$test = none(<. .. .precomp>)) {
+        my @paths = Rakudo::Internals.FILETEST-E(abspath)
+            ?? dir(abspath, :$test)
+            !! ();
+        gather while ( @paths.pop ) -> Str(Cool) $path {
+            @paths.append( dir($path, :$test) ) if try Rakudo::Internals.FILETEST-D($path);
+            take $path;
+        }
+    }
+
     method FILETEST-E(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }
     method FILETEST-D(Str:D \abspath) {
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
-        nqp::isge_i($d,0) ?? $d !! fail X::IO::Unknown.new(:trying<d>)
+        nqp::isge_i($d,0)
+          ?? $d
+          !! Failure.new(X::IO::Unknown.new(:trying<d>))
     }
     method FILETEST-F(Str:D \abspath) {
         my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
-        nqp::isge_i($f,0) ?? $f !! fail X::IO::Unknown.new(:trying<f>)
+        nqp::isge_i($f,0)
+          ?? $f
+          !! Failure.new(X::IO::Unknown.new(:trying<f>))
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
     method FILETEST-L(Str:D \abspath) {
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
-        nqp::isge_i($l,0) ?? $l !! fail X::IO::Unknown.new(:trying<l>)
+        nqp::isge_i($l,0)
+          ?? $l
+          !! Failure.new(X::IO::Unknown.new(:trying<l>))
     }
     method FILETEST-R(Str:D \abspath) {
         my int $r = nqp::filereadable(nqp::unbox_s(abspath));
-        nqp::isge_i($r,0) ?? $r !! fail X::IO::Unknown.new(:trying<r>)
+        nqp::isge_i($r,0)
+          ?? $r
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-W(Str:D \abspath) {
         my int $w = nqp::filewritable(nqp::unbox_s(abspath));
-        nqp::isge_i($w,0) ?? $w !! fail X::IO::Unknown.new(:trying<w>)
+        nqp::isge_i($w,0)
+          ?? $w
+          !! Failure.new(X::IO::Unknown.new(:trying<w>))
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1135,12 +1210,14 @@ my class Rakudo::Internals {
         nqp::isge_i($r,0)
           ?? nqp::isge_i($w,0)
             ?? nqp::bitand_i($r,$w)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-X(Str:D \abspath) {
         my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
-        nqp::isge_i($x,0) ?? $x !! fail X::IO::Unknown.new(:trying<x>)
+        nqp::isge_i($x,0)
+          ?? $x
+          !! Failure.new(X::IO::Unknown.new(:trying<x>))
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1151,9 +1228,9 @@ my class Rakudo::Internals {
           ?? nqp::isge_i($w,0)
             ?? nqp::isge_i($x,0)
               ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! fail X::IO::Unknown.new(:trying<x>)
-            !! fail X::IO::Unknown.new(:trying<w>)
-          !! fail X::IO::Unknown.new(:trying<r>)
+              !! Failure.new(X::IO::Unknown.new(:trying<x>))
+            !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! Failure.new(X::IO::Unknown.new(:trying<r>))
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(
@@ -1204,24 +1281,24 @@ my class Rakudo::Internals {
     }
 
 #- start of generated part of succ/pred ---------------------------------------
-#- Generated on 2016-03-31T13:19:02+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
+#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # normal increment magic chars & incremented char at same index
-    my $succ-nlook = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪';
-    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫'; 
+    my $succ-nlook = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨۰۱۲۳۴۵۶۷۸߀߁߂߃߄߅߆߇߈०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮௦௧௨௩௪௫௬௭௮౦౧౨౩౪౫౬౭౮೦೧೨೩೪೫೬೭೮൦൧൨൩൪൫൬൭൮෦෧෨෩෪෫෬෭෮๐๑๒๓๔๕๖๗๘໐໑໒໓໔໕໖໗໘༠༡༢༣༤༥༦༧༨၀၁၂၃၄၅၆၇၈႐႑႒႓႔႕႖႗႘០១២៣៤៥៦៧៨᠐᠑᠒᠓᠔᠕᠖᠗᠘᥆᥇᥈᥉᥊᥋᥌᥍᥎᧐᧑᧒᧓᧔᧕᧖᧗᧘᪀᪁᪂᪃᪄᪅᪆᪇᪈᪐᪑᪒᪓᪔᪕᪖᪗᪘᭐᭑᭒᭓᭔᭕᭖᭗᭘᮰᮱᮲᮳᮴᮵᮶᮷᮸᱀᱁᱂᱃᱄᱅᱆᱇᱈᱐᱑᱒᱓᱔᱕᱖᱗᱘⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾꘠꘡꘢꘣꘤꘥꘦꘧꘨꣐꣑꣒꣓꣔꣕꣖꣗꣘꣠꣡꣢꣣꣤꣥꣦꣧꣨꤀꤁꤂꤃꤄꤅꤆꤇꤈꧐꧑꧒꧓꧔꧕꧖꧗꧘꧰꧱꧲꧳꧴꧵꧶꧷꧸꩐꩑꩒꩓꩔꩕꩖꩗꩘꯰꯱꯲꯳꯴꯵꯶꯷꯸０１２３４５６７８🍺🐪';
+    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩۱۲۳۴۵۶۷۸۹߁߂߃߄߅߆߇߈߉१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯௧௨௩௪௫௬௭௮௯౧౨౩౪౫౬౭౮౯೧೨೩೪೫೬೭೮೯൧൨൩൪൫൬൭൮൯෧෨෩෪෫෬෭෮෯๑๒๓๔๕๖๗๘๙໑໒໓໔໕໖໗໘໙༡༢༣༤༥༦༧༨༩၁၂၃၄၅၆၇၈၉႑႒႓႔႕႖႗႘႙១២៣៤៥៦៧៨៩᠑᠒᠓᠔᠕᠖᠗᠘᠙᥇᥈᥉᥊᥋᥌᥍᥎᥏᧑᧒᧓᧔᧕᧖᧗᧘᧙᪁᪂᪃᪄᪅᪆᪇᪈᪉᪑᪒᪓᪔᪕᪖᪗᪘᪙᭑᭒᭓᭔᭕᭖᭗᭘᭙᮱᮲᮳᮴᮵᮶᮷᮸᮹᱁᱂᱃᱄᱅᱆᱇᱈᱉᱑᱒᱓᱔᱕᱖᱗᱘᱙ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿꘡꘢꘣꘤꘥꘦꘧꘨꘩꣑꣒꣓꣔꣕꣖꣗꣘꣙꣡꣢꣣꣤꣥꣦꣧꣨꣩꤁꤂꤃꤄꤅꤆꤇꤈꤉꧑꧒꧓꧔꧕꧖꧗꧘꧙꧱꧲꧳꧴꧵꧶꧷꧸꧹꩑꩒꩓꩔꩕꩖꩗꩘꩙꯱꯲꯳꯴꯵꯶꯷꯸꯹１２３４５６７８９🍻🐫'; 
 
     # magic increment chars at boundary & incremented char at same index
-    my $succ-blook = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
-    my $succ-bchrs = '10AAaaΑΑααאאААаа١٠१०১০੧੦૧૦୧୦ⁱ⁰₁₀ⅠⅠⅰⅰ①①⑴⑴⒜⒜▁▁⚀⚀❶❶１０🍻🍺🐫🐪';
+    my $succ-blook = '9ZzΩωתЯя٩۹߉९৯੯૯୯௯౯೯൯෯๙໙༩၉႙៩᠙᥏᧙᪉᪙᭙᮹᱉᱙⁹₉Ⅻⅻ⑳⒇⒵█⚅❿꘩꣙꣩꤉꧙꧹꩙꯹９🍻🐫';
+    my $succ-bchrs = '10AAaaΑΑααאאААаа١٠۱۰߁߀१०১০੧੦૧૦୧୦௧௦౧౦೧೦൧൦෧෦๑๐໑໐༡༠၁၀႑႐១០᠑᠐᥇᥆᧑᧐᪁᪀᪑᪐᭑᭐᮱᮰᱁᱀᱐᱐ⁱ⁰₁₀ⅠⅠⅰⅰ①①⑴⑴⒜⒜▁▁⚀⚀❶❶꘡꘠꣐꣐꣠꣠꤁꤀꧑꧐꧱꧰꩑꩐꯱꯰１０🍻🍺🐫🐪';
 
     # normal decrement magic chars & incremented char at same index
-    my $pred-nlook = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿１２３４５６７８９🍻🐫';
-    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾０１２３４５６７８🍺🐪'; 
+    my $pred-nlook = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩۱۲۳۴۵۶۷۸۹߁߂߃߄߅߆߇߈߉१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯௧௨௩௪௫௬௭௮௯౧౨౩౪౫౬౭౮౯೧೨೩೪೫೬೭೮೯൧൨൩൪൫൬൭൮൯෧෨෩෪෫෬෭෮෯๑๒๓๔๕๖๗๘๙໑໒໓໔໕໖໗໘໙༡༢༣༤༥༦༧༨༩၁၂၃၄၅၆၇၈၉႑႒႓႔႕႖႗႘႙១២៣៤៥៦៧៨៩᠑᠒᠓᠔᠕᠖᠗᠘᠙᥇᥈᥉᥊᥋᥌᥍᥎᥏᧑᧒᧓᧔᧕᧖᧗᧘᧙᪁᪂᪃᪄᪅᪆᪇᪈᪉᪑᪒᪓᪔᪕᪖᪗᪘᪙᭑᭒᭓᭔᭕᭖᭗᭘᭙᮱᮲᮳᮴᮵᮶᮷᮸᮹᱁᱂᱃᱄᱅᱆᱇᱈᱉᱑᱒᱓᱔᱕᱖᱗᱘᱙ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿꘡꘢꘣꘤꘥꘦꘧꘨꘩꣑꣒꣓꣔꣕꣖꣗꣘꣙꣡꣢꣣꣤꣥꣦꣧꣨꣩꤁꤂꤃꤄꤅꤆꤇꤈꤉꧑꧒꧓꧔꧕꧖꧗꧘꧙꧱꧲꧳꧴꧵꧶꧷꧸꧹꩑꩒꩓꩔꩕꩖꩗꩘꩙꯱꯲꯳꯴꯵꯶꯷꯸꯹１２３４５６７８９🍻🐫';
+    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨۰۱۲۳۴۵۶۷۸߀߁߂߃߄߅߆߇߈०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮௦௧௨௩௪௫௬௭௮౦౧౨౩౪౫౬౭౮೦೧೨೩೪೫೬೭೮൦൧൨൩൪൫൬൭൮෦෧෨෩෪෫෬෭෮๐๑๒๓๔๕๖๗๘໐໑໒໓໔໕໖໗໘༠༡༢༣༤༥༦༧༨၀၁၂၃၄၅၆၇၈႐႑႒႓႔႕႖႗႘០១២៣៤៥៦៧៨᠐᠑᠒᠓᠔᠕᠖᠗᠘᥆᥇᥈᥉᥊᥋᥌᥍᥎᧐᧑᧒᧓᧔᧕᧖᧗᧘᪀᪁᪂᪃᪄᪅᪆᪇᪈᪐᪑᪒᪓᪔᪕᪖᪗᪘᭐᭑᭒᭓᭔᭕᭖᭗᭘᮰᮱᮲᮳᮴᮵᮶᮷᮸᱀᱁᱂᱃᱄᱅᱆᱇᱈᱐᱑᱒᱓᱔᱕᱖᱗᱘⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾꘠꘡꘢꘣꘤꘥꘦꘧꘨꣐꣑꣒꣓꣔꣕꣖꣗꣘꣠꣡꣢꣣꣤꣥꣦꣧꣨꤀꤁꤂꤃꤄꤅꤆꤇꤈꧐꧑꧒꧓꧔꧕꧖꧗꧘꧰꧱꧲꧳꧴꧵꧶꧷꧸꩐꩑꩒꩓꩔꩕꩖꩗꩘꯰꯱꯲꯳꯴꯵꯶꯷꯸０１２３４５６７８🍺🐪'; 
 
     # magic decrement chars at boundary & incremented char at same index
-    my $pred-blook = '0AaΑαאАа٠०০੦૦୦⁰₀Ⅰⅰ①⑴⒜▁⚀❶０🍺🐪';
-    my $pred-bchrs = '9ZzΩωתЯя٩९৯੯૯୯⁹₉Ⅻⅻ⑳⒇⒵█⚅❿９🍻🐫';
+    my $pred-blook = '0AaΑαאАа٠۰߀०০੦૦୦௦౦೦൦෦๐໐༠၀႐០᠐᥆᧐᪀᪐᭐᮰᱀᱐⁰₀Ⅰⅰ①⑴⒜▁⚀❶꘠꣐꣠꤀꧐꧰꩐꯰０🍺🐪';
+    my $pred-bchrs = '9ZzΩωתЯя٩۹߉९৯੯૯୯௯౯೯൯෯๙໙༩၉႙៩᠙᥏᧙᪉᪙᭙᮹᱉᱙⁹₉Ⅻⅻ⑳⒇⒵█⚅❿꘩꣙꣩꤉꧙꧹꩙꯹９🍻🐫';
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of succ/pred -----------------------------------------
@@ -1340,8 +1417,18 @@ my class Rakudo::Internals {
                       nqp::substr($pred-nchrs,$at,1))
                 }
             }
-            fail('Decrement out of range');
+            Failure.new('Decrement out of range')
         }
+    }
+
+    method WALK-AT-POS(\target,\indices) is raw {
+        my $target   := target;
+        my $indices  := nqp::getattr(indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        $target := $target.AT-POS(nqp::atpos($indices,$i))
+          while nqp::islt_i(++$i,$elems);
+        $target
     }
 }
 

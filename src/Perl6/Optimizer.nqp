@@ -33,6 +33,7 @@ my class Symbols {
     has $!Routine;
     has $!Nil;
     has $!Failure;
+    has $!Seq;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -59,6 +60,7 @@ my class Symbols {
         $!Routine     := self.find_lexical('Routine');
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
+        $!Seq         := self.find_lexical('Seq');
         nqp::pop(@!block_stack);
     }
 
@@ -100,6 +102,7 @@ my class Symbols {
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
+    method Seq()         { $!Seq }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -1055,7 +1058,7 @@ class Perl6::Optimizer {
         note("method visit_op $!void_context\n" ~ $op.dump) if $!debug;
         # If it's a QAST::Op of type handle, needs some special attention.
         my str $optype := $op.op;
-        if $optype eq 'handle' {
+        if $optype eq 'handle' || $optype eq 'handlepayload' {
             return self.visit_handle($op);
         }
         elsif $optype eq 'locallifetime' {
@@ -1064,7 +1067,7 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
-        if $optype eq 'p6for' && $op.ann('context') eq 'sink' && @($op) == 2 {
+        if $optype eq 'p6for' && $op.sunk && @($op) == 2 {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
@@ -1263,7 +1266,7 @@ class Perl6::Optimizer {
                     $op.shift; # The QAST::WVal of the routine
                     return $op;
                 }
-                if nqp::eqat($last_op, '_i', -2) || 
+                if nqp::eqat($last_op, '_i', -2) ||
                       nqp::eqat($last_op, '_n', -2) ||
                       nqp::eqat($last_op, '_s', -2) {
                     return $value;
@@ -1387,7 +1390,7 @@ class Perl6::Optimizer {
                         try self.visit_children($op);
                     }
                     elsif $!void_context {
-                        my $suggest := ($op.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($op.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         my $warning := qq[Useless use of () in sink context$suggest];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);
@@ -1428,7 +1431,7 @@ class Perl6::Optimizer {
                             $survived := 0;
                         }
                     }
-                    if $survived && !nqp::istype($ret_value, $!symbols.Failure) {
+                    if $survived && self.constant_foldable_type($ret_value) {
                         return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
@@ -1560,6 +1563,13 @@ class Perl6::Optimizer {
         return NQPMu;
     }
 
+    method constant_foldable_type($value) {
+        !(
+            nqp::istype($value, $!symbols.Seq) ||
+            nqp::istype($value, $!symbols.Failure)
+        )
+    }
+
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
         if +@($op) > 0 {
@@ -1647,7 +1657,7 @@ class Perl6::Optimizer {
                                 $op[1],
                                 $op[2]) );
                 } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var) && +@($op) == 3;
                     return QAST::Op.new( :op('call'), :name($metaop[0].name),
                                 $op[2],
                                 $op[1]);
@@ -1780,7 +1790,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
-                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.ann('okifnil');
+                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);
             }
@@ -1816,14 +1826,14 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if $!void_context && !$decl && $var.name && !$var.ann('sink_ok') {
+        if $!void_context && !$decl && $var.name && !$var.sinkok {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
             if $name ne "Nil" && $name ne 'ctxsave' {  # (comes from nqp, which doesn't know about wanted)
-                my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                my $suggest := ($var.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                 my $warning := nqp::index(' $@%&', $sigil) < 1
                     ?? "Useless use of $name symbol in sink context$suggest"
                     !! $sigil eq $name
@@ -1961,15 +1971,15 @@ class Perl6::Optimizer {
                 $!in_declaration := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::can($visit,'ann') {
-                    if $visit.ann('WANTED') { $!void_context := 0 }
-                    elsif $visit.ann('context') eq 'sink' { $!void_context := 1 }
-                    elsif $visit.ann('final') {
+                    if $visit.wanted { $!void_context := 0 }
+                    elsif $visit.sunk { $!void_context := 1 }
+                    elsif $visit.final {
                         note("Undecided final " ~ $node.HOW.name($node)) if $!debug;
                         $!void_context := 0;  # assume wanted
                     }
                 }
                 else {
-                    note("Non-QAST node visited " ~ $visit.HOW.name($visit));
+                    note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -1991,14 +2001,23 @@ class Perl6::Optimizer {
                     my int $resultchild := $visit.resultchild // +@($visit) - 1;
                     if $resultchild >= 0 {
                         self.visit_children($visit, :$resultchild,:void_default);
-                        if !nqp::can($visit,'returns') { note("Child can't returns! " ~ $visit.HOW.name($visit)); next }
-                        if !nqp::can($visit[$resultchild],'returns') { note("Resultchild $resultchild can't returns! " ~ $visit[$resultchild].HOW.name($visit[$resultchild]) ~ "\n" ~ $node.dump); next; }
-                        $visit.returns($visit[$resultchild].returns);
-                        if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
-                            if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
-                                # Lexotic in something making no calls, which
-                                # means there's no way to use it.
-                                $node[$i] := $visit[0][0];
+                        if !nqp::can($visit,'returns') {
+                            note("Child can't returns! " ~ $visit.HOW.name($visit)) if $!debug;
+                        }
+                        elsif !nqp::can($visit[$resultchild],'returns') {
+                            note("Resultchild $resultchild can't returns! " ~
+                                $visit[$resultchild].HOW.name($visit[$resultchild]) ~
+                                "\n" ~ $node.dump)
+                                if $!debug;
+                        }
+                        else {
+                            $visit.returns($visit[$resultchild].returns);
+                            if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
+                                if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
+                                    # Lexotic in something making no calls, which
+                                    # means there's no way to use it.
+                                    $node[$i] := $visit[0][0];
+                                }
                             }
                         }
                     }
@@ -2011,7 +2030,7 @@ class Perl6::Optimizer {
                     if $!void_context && $visit.has_compile_time_value && $visit.node {
                         my $value := ~$visit.node;
                         $value := '""' if $value eq '';
-                        my $suggest := ($visit.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         unless $value eq 'Nil' {
                             my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
                             note($warning) if $!debug;
@@ -2029,7 +2048,7 @@ class Perl6::Optimizer {
                       nqp::istype($visit, QAST::VM)
                 { }
                 else {
-                    note("Weird node visited: " ~ $visit.HOW.name($visit));
+                    note("Weird node visited: " ~ $visit.HOW.name($visit)) if $!debug;
                 }
             }
             $i               := $first ?? $n !! $i + 1;

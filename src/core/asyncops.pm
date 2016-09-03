@@ -7,8 +7,11 @@ proto sub await(|) { * }
 multi sub await() {
     die "Must specify a Promise or Channel to await on (got an empty list)";
 }
-multi sub await(Any $x) {
-    die "Must specify a Promise or Channel to await on (got a $x.^name())";
+multi sub await(Any:U $x) {
+    die "Must specify a defined Promise, Channel, or Supply to await on (got an undefined $x.^name())";
+}
+multi sub await(Any:D $x) {
+    die "Must specify a Promise, Channel, or Supply to await on (got a $x.^name())";
 }
 multi sub await(Iterable:D $i) { $i.eager.map({ await $_ }) }
 multi sub await(Promise:D $p)  { $p.result }
@@ -40,7 +43,7 @@ sub awaiterator(@promises) {
                 IterationEnd
             }
         }
-        method sink-all() { Promise.allof(@promises).result }
+        method sink-all(--> IterationEnd) { Promise.allof(@promises).result }
     }.new(@promises))
 }
 

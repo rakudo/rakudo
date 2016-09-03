@@ -11,6 +11,17 @@ my class Backtrace::Frame {
     has Mu  $.code;
     has Str $.subname;
 
+    method !SET-SELF($!file,$!line,\code,$!subname) {
+        $!code := code;
+        self
+    }
+    multi method new(Backtrace::Frame: \file,\line,\code,\subname) {
+        nqp::create(self)!SET-SELF(file,line,code,subname)
+    }
+    multi method new(Backtrace::Frame: |c) {
+        self.bless(|c)
+    }
+
     method subtype(Backtrace::Frame:D:) {
         my $s = $!code.^name.lc.split('+', 2).cache[0];
         $s eq 'mu' ?? '' !! $s;
@@ -41,9 +52,15 @@ my class Backtrace::Frame {
         $text;
     }
 
-    method is-hidden(Backtrace::Frame:D:)  { $!code.?is-hidden-from-backtrace }
-    method is-routine(Backtrace::Frame:D:) { nqp::istype($!code,Routine) }
-    method is-setting(Backtrace::Frame:D:) { $!file.ends-with("CORE.setting") }
+    method is-hidden(Backtrace::Frame:D:) {
+        ?$!code.?is-hidden-from-backtrace
+    }
+    method is-routine(Backtrace::Frame:D:) {
+        nqp::p6bool(nqp::istype($!code,Routine))
+    }
+    method is-setting(Backtrace::Frame:D:) {
+        $!file.ends-with("CORE.setting")
+    }
 }
 
 my class Backtrace {
@@ -51,26 +68,44 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
-    submethod BUILD(:$!bt, :$!bt-next --> Nil) { $!frames := nqp::list }
-
-    multi method new(Mu $e, Int $offset = 0) {
-        $e.^name eq 'BOOTException'
-            ?? self.new(nqp::backtrace(nqp::decont($e)), $offset)
-            !! self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
+    method !SET-SELF($!bt,$!bt-next) {
+        once $RAKUDO-VERBOSE-STACKFRAME =
+          +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
+        $!frames := nqp::list;
+        self
     }
-
-    multi method new(Int $offset = 0) {
-        try { die() };
-        self.new($!, 2 + $offset);
+    multi method new() {
+        try X::AdHoc.new(:payload("Died")).throw;
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1)
     }
-
+    multi method new(Int:D $offset) {
+        try X::AdHoc.new(:payload("Died")).throw;
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1 + $offset)
+    }
+    multi method new(Mu \ex) {
+        nqp::create(self)!SET-SELF(
+          ex.^name eq 'BOOTException'
+            ?? nqp::backtrace(nqp::decont(ex))
+            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          0)
+    }
+    multi method new(Mu \ex, Int:D $offset) {
+        nqp::create(self)!SET-SELF(
+          ex.^name eq 'BOOTException'
+            ?? nqp::backtrace(nqp::decont(ex))
+            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          $offset)
+    }
     # note that backtraces are nqp::list()s, marshalled to us as a List
-    multi method new(List $bt, Int $bt-next = 0) {
-
-        # only check for verbose stack frames once
-        $RAKUDO-VERBOSE-STACKFRAME = +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
-
-        self.bless(:$bt, :$bt-next);
+    multi method new(List:D $bt) {
+        nqp::create(self)!SET-SELF($bt,0)
+    }
+    multi method new(List:D $bt, Int:D $offset) {
+        nqp::create(self)!SET-SELF($bt,$offset)
     }
 
     method AT-POS($pos) {
@@ -95,18 +130,30 @@ my class Backtrace {
             my $file := $annotations<file>;
             next unless $file;
 
-            my @parts = $file.split('#', 2);
-            if @parts.elems == 2 {
-                $file := CompUnit::RepositoryRegistry.repository-for-name(@parts[0]).prefix.child(@parts[1]).abspath;
+            if CompUnit::RepositoryRegistry.file-for-spec($file) -> $path {
+                $file := $path.abspath;
             }
 
             # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');
-            if $file.ends-with('NQPHLL.nqp') {
-                $!bt-next = $elems;
-                last;
+            if $file.ends-with('NQPHLL.nqp') || $file.ends-with('NQPHLL.moarvm') {
+                # This could mean we're at the end of the interesting backtrace,
+                # or it could mean that we're in something like sprintf (which
+                # uses an NQP grammar to parse the format string).
+                while $!bt-next < $elems {
+                    my $frame := $!bt.AT-POS($!bt-next++);
+                    my $annotations := $frame<annotations>;
+                    next unless $annotations;
+                    my $file := $annotations<file>;
+                    next unless $file;
+                    if $file.ends-with('.setting') {
+                        $!bt-next--; # re-visit this frame
+                        last;
+                    }
+                }
+                next;
             }
 
             my $line := $annotations<line>;
@@ -126,10 +173,10 @@ my class Backtrace {
 
             nqp::push($!frames,
               Backtrace::Frame.new(
-                :$code,
-                :$file,
-                :line($line.Int),
-                :subname($name.starts-with("_block") ?? '<anon>' !! $name),
+                $file,
+                $line.Int,
+                $code,
+                $name.starts-with("_block") ?? '<anon>' !! $name,
               )
             );
             last unless $todo = $todo - 1;

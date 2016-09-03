@@ -3,7 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
 
-    method enums() { self.^enum_values }
+    method enums() { self.^enum_values.Map }
 
     multi method kv(::?CLASS:D:) { ($!key, $!value) }
     method pair(::?CLASS:D:) { $!key => $!value }
@@ -53,10 +53,9 @@ sub ENUM_VALUES(*@args) {
             %res{$_} = $prev.=succ;
         }
     }
-    my $r := nqp::create(Map);
-    nqp::bindattr($r, Map, '$!storage',
-        nqp::getattr(%res, Map, '$!storage'));
-    $r;
+    nqp::p6bindattrinvres(
+      nqp::create(Map),Map,'$!storage',nqp::getattr(%res,Map,'$!storage')
+    )
 }
 
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {

@@ -41,27 +41,24 @@ my class Capture { # declared in BOOTSTRAP
 
     multi method AT-POS(Capture:D: int \pos) is raw {
         nqp::islt_i(pos,0)
-          ?? fail X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
           !! nqp::ifnull(nqp::atpos($!list,pos),Nil)
     }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
-          ?? fail X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
           !! nqp::ifnull(nqp::atpos($!list,$pos),Nil)
     }
 
     method hash(Capture:D:) {
-        if nqp::defined($!hash) && nqp::elems($!hash) {
-            my $map := nqp::create(Map);
-            nqp::bindattr($map,Map,'$!storage',$!hash);
-            $map
-        }
-        else {
-            nqp::create(Map)
-        }
+        nqp::if(
+          (nqp::defined($!hash) && nqp::elems($!hash)),
+          nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$!hash),
+          nqp::create(Map)
+        )
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key ) {
@@ -91,7 +88,7 @@ my class Capture { # declared in BOOTSTRAP
             my Mu $iter := nqp::iterator($!hash);
             while $iter {
                 my $kv := nqp::shift($iter);
-                nqp::push_s($str, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).Str));
+                nqp::push_s($str, nqp::unbox_s((nqp::p6box_s(nqp::iterkey_s($kv)) => nqp::iterval($kv).Str).Str));
             }
         }
         nqp::p6box_s(nqp::join(' ', $str))
@@ -146,8 +143,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture $a, Capture $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+multi sub infix:<eqv>(Capture \a, Capture \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.list eqv b.list && a.hash eqv b.hash)
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

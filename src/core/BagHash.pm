@@ -1,6 +1,7 @@
 my class BagHash does Baggy {
 
 #--- interface methods
+    multi method WHICH(BagHash:D:) { self.Mu::WHICH }
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
@@ -28,17 +29,15 @@ my class BagHash does Baggy {
 
 #--- introspection methods
     method Bag(:$view) {
-        if $view {
-            my \bag = nqp::create(Bag);
-            nqp::bindattr(bag,Bag,'%!elems',%!elems);
-            bag
-        }
-        else {
-           Bag.new-from-pairs(%!elems.values)
-        }
+        nqp::p6bindattrinvres(
+          nqp::create(Bag),Bag,'%!elems',
+          $view ?? %!elems !! %!elems.clone
+        )
     }
     method BagHash { self }
-    method Mix     { Mix.new-from-pairs(%!elems.values) }
+    method Mix {
+        nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone)
+    }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 

@@ -2,16 +2,24 @@ class CompUnit::Handle {
     has Mu $!module_ctx;
     has Mu $!unit;
 
-    submethod new(Mu \module_ctx) {
-        my $self := nqp::create(self);
-        nqp::bindattr($self, CompUnit::Handle, '$!module_ctx', module_ctx);
-        $self
+    multi submethod new() {
+        nqp::create(self)
+    }
+
+    method ctxsave() {
+        $!module_ctx := nqp::ctxcaller(nqp::ctx()) unless $!module_ctx;
+    }
+
+    multi submethod new(Mu \module_ctx) {
+        nqp::p6bindattrinvres(
+          nqp::create(self),CompUnit::Handle,'$!module_ctx', module_ctx
+        )
     }
 
     submethod from-unit(Stash $unit) {
-        my $self := nqp::create(self);
-        nqp::bindattr($self, CompUnit::Handle, '$!unit', nqp::decont($unit));
-        $self
+        nqp::p6bindattrinvres(
+          nqp::create(self),CompUnit::Handle,'$!unit',nqp::decont($unit)
+        )
     }
 
     # If the compilation unit has a callable EXPORT subroutine, it will
@@ -58,13 +66,11 @@ class CompUnit::Handle {
     # (the module's contributions to GLOBAL, for merging); a Stash
     # type object if none.
     method globalish-package() { # returns Stash {
-        if nqp::defined($!module_ctx) {
-            my $lexpad := nqp::ctxlexpad($!module_ctx);
-            nqp::isnull(nqp::atkey($lexpad, 'GLOBALish')) ?? Nil !! nqp::atkey($lexpad, 'GLOBALish')
-        }
-        else {
-            Nil
-        }
+        nqp::if(
+          nqp::defined($!module_ctx),
+          nqp::ifnull(nqp::atkey(nqp::ctxlexpad($!module_ctx),'GLOBALish'),Nil),
+          Nil
+        )
     }
 
     method unit() {

@@ -57,14 +57,14 @@ do {
         my &readline    = $WHO<&readline>;
         my &add_history = $WHO<&add_history>;
 
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
+        method repl-read(Mu \prompt) {
             my $line = readline(prompt);
 
             if $line.defined {
                 add_history($line);
             }
 
-            $line // nqp::null_s()
+            $line
         }
     }
 
@@ -95,7 +95,7 @@ do {
             }
         }
 
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
+        method repl-read(Mu \prompt) {
             self.update-completions;
             my $line = linenoise(prompt);
 
@@ -103,20 +103,24 @@ do {
                 linenoiseHistoryAdd($line);
             }
 
-            $line // nqp::null_s()
+            $line
         }
     }
 
     my role FallbackBehavior {
-        method readline(Mu \SELF, Mu \super, Mu \stdin, Mu \stdout, Mu \prompt) {
-            super.(SELF, stdin, stdout, prompt);
+        method repl-read(Mu \prompt) {
+            print prompt;
+            get
         }
     }
 
     my role Completions {
-        has @!completions = CORE::.keys.flatmap({
-            /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
-        }).sort;
+        # RT #129092: jvm can't do CORE::.keys
+        has @!completions = $*VM.name eq 'jvm'
+            ?? ()
+            !! CORE::.keys.flatmap({
+                    /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
+                }).sort;
 
         method update-completions {
             my $context := self.compiler.context;
@@ -146,7 +150,7 @@ do {
         method extract-last-word(Str $line) {
             my $m = $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
-            return ( ~$m<prefix>, ~$m<last_word> );
+            ( ~$m<prefix>, ~$m<last_word> )
         }
 
         method completions-for-line(Str $line, int $cursor-index) {
@@ -164,12 +168,6 @@ do {
         }
     }
 
-    # *** WARNING ***
-    #
-    # If you want to add new methods as hooks into Perl6::Compiler, you'll need to
-    # add support for them to Perl6::Compiler itself.  See the readline and eval
-    # methods both in this file and in Perl6::Compiler for guidance on how to do
-    # that
     class REPL {
         also does Completions;
 
@@ -177,55 +175,88 @@ do {
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
 
-        sub mixin-line-editor($self is copy) {
+        has $!save_ctx;
+
+        # Unique internal values for out-of-band eval results
+        has $!need-more-input = {};
+        has $!control-not-allowed = {};
+
+        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
             my Bool $problem = False;
-            my $loaded-readline = try {
+            try {
                 CATCH {
-                    when (X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Readline/ }) {
+                    when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /"$module-name"/ } {
                         # ignore it
                     }
                     default {
-                        say "I ran into a problem trying to set up Readline: $_";
-                        say 'Falling back to Linenoise (if present)';
-
+                        say "I ran into a problem while trying to set up $module-name: $_";
+                        if $fallback {
+                            say "Falling back to $fallback (if present)";
+                        }
                         $problem = True;
                     }
                 }
-                my $readline = do require Readline;
-                my $rl-self = $self but ReadlineBehavior[$readline.WHO<EXPORT>.WHO<ALL>.WHO];
-                $rl-self.?init-line-editor();
-                $self = $rl-self;
-                True
-            };
 
-            return $self if $loaded-readline;
-
-            my $loaded-linenoise = try {
-                CATCH {
-                    when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /Linenoise/ } {
-                        # ignore it
-                    }
-                    default {
-                        say "I ran into a problem while trying to set up Linenoise: $_";
-                        $problem = True;
-                    }
-                }
-                my $linenoise = do require Linenoise;
-                my $ln-self = $self but LinenoiseBehavior[$linenoise.WHO];
-                $ln-self.?init-line-editor();
-                $self = $ln-self;
-                True
+                my $module = do require ::($module-name);
+                my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
+                $new-self.?init-line-editor();
+                return ( $new-self, False );
             }
 
-            return $self if $loaded-linenoise;
+            ( Any, $problem )
+        }
 
-            if $problem {
-                say 'Continuing without tab completions or line editor';
-                say 'You may want to consider using rlwrap for simple line editor functionality';
+        sub mixin-readline($self, |c) {
+            do-mixin($self, 'Readline', ReadlineBehavior, |c)
+        }
+
+        sub mixin-linenoise($self, |c) {
+            do-mixin($self, 'Linenoise', LinenoiseBehavior, |c)
+        }
+
+        sub mixin-line-editor($self) {
+            my $new-self;
+            my Bool $problem;
+
+            my %editor-to-mixin = (
+                :Linenoise(&mixin-linenoise),
+                :Readline(&mixin-readline),
+                :none(-> $self { ( $self but FallbackBehavior, False ) }),
+            );
+
+            if %*ENV<RAKUDO_LINE_EDITOR> -> $line-editor {
+                if %editor-to-mixin{$line-editor} -> $mixin {
+                    ( $new-self, $problem ) = $mixin($self);
+
+                    if $new-self {
+                        return $new-self;
+                    } else {
+                        unless $problem {
+                            say "Could not find $line-editor module";
+                        }
+                        return $self but FallbackBehavior;
+                    }
+                } else {
+                    say "Unrecognized line editor '$line-editor'";
+                    return $self but FallbackBehavior;
+                }
             } else {
-                say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+                ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
+
+                return $new-self if $new-self;
+
+                ( $new-self, $problem ) = mixin-linenoise($self);
+
+                return $new-self if $new-self;
+
+                if $problem {
+                    say 'Continuing without tab completions or line editor';
+                    say 'You may want to consider using rlwrap for simple line editor functionality';
+                } else {
+                    say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+                }
+                say '';
             }
-            say '';
 
             $self but FallbackBehavior
         }
@@ -235,12 +266,11 @@ do {
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);
             $self = mixin-line-editor($self);
-
             $self
         }
 
         method init(Mu \compiler, $multi-line-enabled) {
-            $!compiler = compiler;
+            $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
         }
 
@@ -248,26 +278,126 @@ do {
             self.?teardown-line-editor;
         }
 
-        method eval(Mu \SELF, Mu \super, Mu \code, Mu \args, Mu \adverbs) {
-            try {
-                my &needs_more_input = adverbs<needs_more_input>;
-                CATCH {
-                    when X::Syntax::Missing {
-                        if $!multi-line-enabled && .pos == code.chars {
-                            return needs_more_input();
-                        }
-                        .throw;
-                    }
+        method repl-eval($code, *%adverbs) {
 
-                    when X::Comp::FailGoal {
-                        if $!multi-line-enabled && .pos == code.chars {
-                            return needs_more_input();
-                        }
+            CATCH {
+                when X::Syntax::Missing {
+                    if $!multi-line-enabled && .pos == $code.chars {
+                        return $!need-more-input;
+                    } else {
                         .throw;
                     }
                 }
 
-                super.(SELF, code, |@(args), |%(adverbs))
+                when X::Comp::FailGoal {
+                    if $!multi-line-enabled && .pos == $code.chars {
+                        return $!need-more-input;
+                    } else {
+                        .throw;
+                    }
+                }
+
+                when X::ControlFlow::Return {
+                    return $!control-not-allowed;
+                }
+
+                default {
+                  # Use the exception as the result of the eval, to be printed
+                  return $_;
+                }
+            }
+
+            CONTROL {
+                return $!control-not-allowed;
+            }
+
+            self.compiler.eval($code, |%adverbs)
+        }
+
+        method interactive_prompt() { '> ' }
+
+        method repl-loop(*%adverbs) {
+
+            say "To exit type 'exit' or '^D'";
+
+            my $prompt;
+            my $code;
+            sub reset(--> Nil) {
+                $code = '';
+                $prompt = self.interactive_prompt;
+            }
+            reset;
+
+            REPL: loop {
+                my $newcode = self.repl-read(~$prompt);
+
+                my $initial_out_position = $*OUT.tell;
+
+                # An undef $newcode implies ^D or similar
+                if !$newcode.defined {
+                    last;
+                }
+
+                $code = $code ~ $newcode ~ "\n";
+
+                if $code ~~ /^ <.ws> $/ {
+                    next;
+                }
+
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+
+                my $output = self.repl-eval(
+                    $code,
+                    :outer_ctx($!save_ctx),
+                    |%adverbs);
+
+                if self.input-incomplete($output) {
+                    $prompt = '* ';
+                    next;
+                }
+
+                if self.input-toplevel-control($output) {
+                    say "Control flow commands not allowed in toplevel";
+                    reset;
+                    next;
+                }
+
+                if $*MAIN_CTX {
+                    $!save_ctx := $*MAIN_CTX;
+                }
+
+                reset;
+
+                # Only print the result if there wasn't some other output
+                if $initial_out_position == $*OUT.tell {
+                    self.repl-print($output);
+                }
+
+
+            }
+
+            self.teardown;
+        }
+
+        # Inside of the EVAL it does like caller.ctxsave
+        method ctxsave() {
+            $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
+            $*CTXSAVE := 0;
+        }
+
+        method input-incomplete(Mu $value) {
+            $value.WHERE == $!need-more-input.WHERE
+        }
+
+        method input-toplevel-control($value) {
+            $value.WHERE == $!control-not-allowed.WHERE
+        }
+
+        method repl-print(Mu $value) {
+            say $value;
+            CATCH {
+                default { say $_ }
             }
         }
 

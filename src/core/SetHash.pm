@@ -10,15 +10,26 @@ my class SetHash does Setty {
         );
     }
 
-    method Set (:$view) {
-        if $view {
-            Set.bless( :elems(%!elems) );
-        }
-        else {
-            Set.new(self.keys);
-        }
+    multi method kv(SetHash:D:) {
+        %!elems.kv.map: -> \k,\v { |(v,self.ISINSET(k)) }
     }
-    method SetHash { self }
+    multi method values(SetHash:D:) {
+        %!elems.keys.map: -> \key { self.ISINSET(key) }
+    }
+    multi method pairs(SetHash:D:) {
+        %!elems.kv.map: -> \k,\v --> Pair { Pair.new(v,self.ISINSET(k)) }
+    }
+    multi method antipairs(SetHash:D:) {
+        %!elems.values.map: -> \key --> Pair { Pair.new(True,key) }
+    }
+
+    method Set(SetHash:D: :$view) {
+        nqp::p6bindattrinvres(
+          nqp::create(Set),Set,'%!elems',
+          $view ?? %!elems !! %!elems.clone
+        )
+    }
+    method SetHash(SetHash:D:) { self }
 
     multi method AT-KEY(SetHash:D: \k --> Bool) is raw {
         Proxy.new(
@@ -33,11 +44,13 @@ my class SetHash does Setty {
           });
     }
     multi method DELETE-KEY(SetHash:D: \k --> Bool) {
-        my $key := k.WHICH;
-        return False unless %!elems.EXISTS-KEY($key);
-
-        %!elems.DELETE-KEY($key);
-        True;
+        nqp::if(
+          %!elems.EXISTS-KEY(my $key := k.WHICH),
+          nqp::stmts(
+            %!elems.DELETE-KEY($key),
+            True
+          )
+        )
     }
 }
 

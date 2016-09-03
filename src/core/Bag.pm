@@ -3,8 +3,20 @@ my class Bag does Baggy {
     has $!WHICH;
 
 #--- introspection methods
-    multi method WHICH(Bag:D:)   { $!WHICH //= self!WHICH }
-    method total(Bag:D: --> Int) { $!total //= self!TOTAL }
+    multi method WHICH(Bag:D:)   {
+        nqp::if(
+          nqp::attrinited(self,Bag,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self!WHICH
+        )
+    }
+    method total(Bag:D: --> Int) {
+        nqp::if(
+          nqp::attrinited(self,Bag,'$!total'),
+          $!total,
+          $!total := self!TOTAL
+        )
+    }
 
 #--- interface methods
     multi method DELETE-KEY(Bag:D: \k) {
@@ -22,7 +34,9 @@ my class Bag does Baggy {
 #--- coercion methods
     method Bag     { self }
     method BagHash { BagHash.new-from-pairs(%!elems.values) }
-    method Mix     {     Mix.new-from-pairs(%!elems.values) }
+    method Mix {
+        nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
+    }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
 }
 

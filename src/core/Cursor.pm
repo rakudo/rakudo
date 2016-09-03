@@ -63,30 +63,25 @@ my class Cursor does NQPCursorRole {
             elsif $namecount == 1 && $onlyname ne '' && nqp::eqat($onlyname,'$!',0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
-                my int $csi;
+                my int $csi = -1;
                 my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
-                if nqp::ord($onlyname) < 58 {
-                    $dest := nqp::atpos($list, $onlyname);
-                }
-                else {
-                    $dest := nqp::atkey($hash, $onlyname);
-                }
-                while $csi < $cselems {
+                $dest := nqp::islt_i(nqp::ord($onlyname),58)
+                  ?? nqp::atpos($list, $onlyname)
+                  !! nqp::atkey($hash, $onlyname);
+
+                while nqp::islt_i(++$csi,$cselems) {
                     my $subcur := nqp::atpos($cs, $csi);
-                    my $name := nqp::getattr($subcur, $?CLASS, '$!name');
-                    if !nqp::isnull($name) && nqp::defined($name) {
-                        my $submatch := $subcur.MATCH();
-                        nqp::push($dest, $submatch);
-                    }
-                    $csi = nqp::add_i($csi, 1);
+                    my $name   := nqp::getattr($subcur, $?CLASS, '$!name');
+                    nqp::push($dest,$subcur.MATCH())
+                      if !nqp::isnull($name) && nqp::defined($name);
                 }
             }
             else {
                 my int $cselems = nqp::elems($cs);
-                my int $csi     = 0;
-                while $csi < $cselems {
+                my int $csi     = -1;
+                while nqp::islt_i(++$csi,$cselems) {
                     my Mu $subcur   := nqp::atpos($cs, $csi);
                     my Mu $name     := nqp::getattr($subcur, $?CLASS, '$!name');
                     if !nqp::isnull($name) && nqp::defined($name) && $name ne '' {
@@ -144,7 +139,6 @@ my class Cursor does NQPCursorRole {
                             }
                         }
                     }
-                    $csi = nqp::add_i($csi, 1);
                 }
             }
         }
@@ -163,7 +157,11 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
-        nqp::getattr_i(self, Cursor, '$!pos') < 0 ?? Nil !! self.MATCH()
+        nqp::if(
+          nqp::islt_i(nqp::getattr_i(self,Cursor,'$!pos'),0),
+          Nil,
+          self.MATCH
+        )
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
@@ -173,141 +171,186 @@ my class Cursor does NQPCursorRole {
     # $i is case insensitive flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, $i = 0, $m = 0, $monkey = 0, $s = 0, $a = 0, $context = PseudoStash) {
+    method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a = 0, $context = PseudoStash) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
-            my $maxlen := -1;
+
             my $maxmatch;
-            my $cur := self.'!cursor_start_cur'();
-            my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
-            my $tgt := $cur.target;
-            my $eos := nqp::chars($tgt);
-            my $fate   := 0;
-            my $count  := 0;
-            my $start  := 1;
-            my $im     := $i && $m;
-            my Mu $alts := nqp::list();
+            my $cur    := self.'!cursor_start_cur'();
+            my str $tgt = $cur.target;
+            my int $eos = nqp::chars($tgt);
+
+            my int $maxlen = -1;
+            my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
+            my int $start  = 1;
+            my int $nomod  = !($i || $m);
+
             my Mu $order := nqp::list();
 
+            # Looks something we need to loop over
             if nqp::istype(var, Iterable) and !nqp::iscont(var) {
+                my $varlist  := var.list;
+                my int $elems = $varlist.elems; # reifies
+                my $list     := nqp::getattr($varlist,List,'$!reified');
+
+                # Order matters for sequential matching, so no NFA involved.
                 if $s {
-                    # The order matters for sequential matching, therefor no NFA involved.
-                    nqp::push($order,$_) for var.list;
+                    $order := $list;
                 }
+
+                # prepare to run the NFA if var is array-ish.
                 else {
-                    my Mu $nfa := QRegex::NFA.new;
-                    # prepare to run the NFA if var is array-ish.
-                    for var.list -> $topic {
-                        nqp::push($alts, $topic);
+                    my Mu $nfa  := QRegex::NFA.new;
+                    my Mu $alts := nqp::setelems(nqp::list,$elems);
+                    my int $fate = 0;
+                    my int $j    = -1;
+
+                    while nqp::islt_i(++$j,$elems) {
+                        my Mu $topic := nqp::atpos($list,$j);
+                        nqp::bindpos($alts,$j,$topic);
+
+                        # We are in a regex assertion, the strings we get will
+                        # be treated as regex rules.
                         if $a {
-                            # We are in a regex assertion, the strings we get will be treated as
-                            # regex rules.
                             return $cur.'!cursor_start_cur'()
                               if nqp::istype($topic,Associative);
-                            my $rx := MAKE_REGEX($topic, :$i, :$m, :$monkey, :$context);
-                            my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
-                            $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
+
+                            my $rx := MAKE_REGEX($topic,$i,$m,$monkey,$context);
+                            $nfa.mergesubstates($start,0,nqp::decont($fate),
+                              nqp::findmethod($rx,'NFA')($rx),
+                              Mu);
                         }
+
+                        # A Regex already.
                         elsif nqp::istype($topic,Regex) {
-                            # A Regex already.
-                            my Mu $nfas := nqp::findmethod($topic, 'NFA')($topic);
-                            $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
+                            $nfa.mergesubstates($start,0,nqp::decont($fate),
+                              nqp::findmethod($topic,'NFA')($topic),
+                              Mu);
                         }
+
+                        # The pattern is a string.
                         else {
-                            # The pattern is a string.
-                            my Mu $lit  := QAST::Regex.new( :rxtype<literal>, $topic,
-                                                            :subtype( $im ?? 'ignorecase+ignoremark' !!
-                                                                      $i  ?? 'ignorecase' !!
-                                                                      $m  ?? 'ignoremark' !! '') );
+                            my Mu $lit  := QAST::Regex.new(
+                              :rxtype<literal>, $topic,
+                              :subtype( $nomod
+                                ?? ''
+                                !! $m
+                                  ?? $i
+                                    ?? 'ignorecase+ignoremark'
+                                    !! 'ignoremark'
+                                  !! 'ignorecase')
+                            );
                             my Mu $nfa2 := QRegex::NFA.new;
-                            my Mu $node := nqp::findmethod($nfa2, 'addnode')($nfa2, $lit);
-                            my Mu $save := nqp::findmethod($node, 'save')($node, :non_empty(1));
-                            $nfa.mergesubstates($start, 0, $fate, $save, Mu);
+                            my Mu $node := nqp::findmethod($nfa2,'addnode')($nfa2,$lit);
+                            $nfa.mergesubstates($start,0,nqp::decont($fate),
+                              nqp::findmethod($node,'save')($node,:non_empty(1)),
+                              Mu);
                         }
-                        $fate := $fate + 1;
+                        ++$fate;
                     }
 
                     # Now run the NFA
-                    my Mu $fates := nqp::findmethod($nfa, 'run')($nfa, $tgt, $pos);
-                    $fate        := 0;
-                    $count       := nqp::elems($fates);
-                    while nqp::islt_i($fate, $count) {
-                        my $thing := nqp::atpos_i($fates, $fate);
-                        nqp::push($order, nqp::atpos($alts, $thing));
-                        $fate := nqp::add_i($fate, 1);
-                    }
+                    my Mu $fates := nqp::findmethod($nfa,'run')($nfa,$tgt,$pos);
+                    my int $count = nqp::elems($fates);
+                    nqp::setelems($order,$count);
+                    $j = -1;
+                    nqp::bindpos($order,$j,
+                      nqp::atpos($alts,nqp::atpos_i($fates,$j)))
+                      while nqp::islt_i(++$j,$count);
                 }
             }
+
+            # Use the var as it is if it's not array-ish.
             else {
-                # Use the var as it is if it's not array-ish.
                 nqp::push($order, var);
             }
 
+            my str $topic_str;
             my int $omax = nqp::elems($order);
-            loop (my int $o = 0; $o < $omax; $o = $o + 1) {
+            my int $o    = -1;
+            while nqp::islt_i(++$o,$omax) {
                 my Mu $topic := nqp::atpos($order,$o);
                 my $match;
-                my $len;
+                my int $len;
 
+                # We are in a regex assertion, the strings we get will be
+                # treated as regex rules.
                 if $a {
-                    # We are in a regex assertion, the strings we get will be treated as
-                    # regex rules.
                     return $cur.'!cursor_start_cur'()
                       if nqp::istype($topic,Associative);
-                    my $rx := MAKE_REGEX($topic, :$i, :$m, :$monkey, :$context);
+
+                    my $rx := MAKE_REGEX($topic,$i,$m,$monkey,$context);
                     $match := self.$rx;
-                    $len   := $match.pos - $match.from;
-                }
-                elsif nqp::istype($topic,Regex) {
-                    # A Regex already.
-                    $match := self.$topic;
-                    $len   := $match.pos - $match.from;
-                }
-                elsif ($len := nqp::chars(my str $topic_str = $topic.Str)) < 1 {
-                    # The pattern is a string. $len and and $topic_str are used later on
-                    # if this condition does not hold.
-                    $match := 1
-                }
-                elsif $im {
-                    # ignorecase+ignoremark
-                    $match       := 1;
-                    my $k        := 0;
-                    my $tgt_lc   := nqp::lc(nqp::substr($tgt, $pos, $len));
-                    my $topic_lc := nqp::lc($topic_str);
-                    while $match && nqp::islt_i($k, $len) {
-                        $match := $match && nqp::ordbaseat($tgt_lc, $pos + $k) == nqp::ordbaseat($topic_lc, $k);
-                        $k     := nqp::add_i($k, 1);
-                    }
-                }
-                elsif $m {
-                    # ignoremark
-                    $match := 1;
-                    my $k  := 0;
-                    while $match && nqp::islt_i($k, $len) {
-                        $match := $match && nqp::ordbaseat($tgt, $pos + $k) == nqp::ordbaseat($topic_str, $k);
-                        $k     := nqp::add_i($k, 1);
-                    }
-                }
-                elsif $i {
-                    # ignorecase
-                    $match := nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
-                }
-                else {
-                    # no modifier, match literally
-                    $match := nqp::eqat($tgt, $topic_str, $pos)
+                    $len    = $match.pos - $match.from;
                 }
 
-                if $match && $len > $maxlen && $pos + $len <= $eos {
-                    $maxlen := $len;
+                # A Regex already.
+                elsif nqp::istype($topic,Regex) {
+                    $match := self.$topic;
+                    $len    = $match.pos - $match.from;
+                }
+
+                # The pattern is a string. $len and and $topic_str are used
+                # later on if this condition does not hold.
+                elsif nqp::iseq_i(($len = nqp::chars($topic_str = $topic.Str)),0) {
+                    $match = 1;
+                }
+
+                # no modifier, match literally
+                elsif $nomod {
+                    $match = nqp::eqat($tgt, $topic_str, $pos)
+                }
+
+                # ignoremark(+ignorecase?)
+                elsif $m {
+                    my int $k = -1;
+
+                    # ignorecase+ignoremark
+                    if $i {
+                        my str $tgt_lc   = nqp::lc(nqp::substr($tgt,$pos,$len));
+                        my str $topic_lc = nqp::lc($topic_str);
+                        Nil while nqp::islt_i(++$k,$len)
+                          && nqp::iseq_i(
+                            nqp::ordbaseat($tgt_lc, nqp::add_i($pos,$k)),
+                            nqp::ordbaseat($topic_lc, $k)
+                          );
+                    }
+
+                    # ignoremark
+                    else {
+                        Nil while nqp::islt_i(++$k, $len)
+                          && nqp::iseq_i(
+                            nqp::ordbaseat($tgt, nqp::add_i($pos,$k)),
+                            nqp::ordbaseat($topic_str, $k)
+                          );
+                    }
+
+                    $match = nqp::iseq_i($k,$len); # match if completed
+                }
+
+                # ignorecase
+                else {
+                    $match = nqp::iseq_s(
+                      nqp::lc(nqp::substr($tgt, $pos, $len)),
+                      nqp::lc($topic_str)
+                    )
+                }
+
+                if $match
+                  && nqp::isgt_i($len,$maxlen)
+                  && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
+                    $maxlen    = $len;
                     $maxmatch := $match;
                     last if $s; # stop here for sequential alternation
                 }
             }
 
-            return $maxmatch if nqp::istype($maxmatch, Cursor);
-            $cur.'!cursor_pass'($pos + $maxlen, '') if $maxlen >= 0;
-            $cur
+            nqp::istype($maxmatch,Cursor)
+              ?? $maxmatch
+              !! nqp::isge_i($maxlen,0)
+                ?? $cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+                !! $cur
         }
         else {
             self."!cursor_start_cur"()
@@ -319,15 +362,17 @@ my class Cursor does NQPCursorRole {
     }
 
     method DYNQUANT_LIMITS($mm) {
-        if nqp::istype($mm,Range) {
-            die 'Range minimum in quantifier (**) cannot be +Inf' if $mm.min ==  Inf;
-            die 'Range maximum in quantifier (**) cannot be -Inf' if $mm.max == -Inf;
-            nqp::list_i($mm.min < 0 ?? 0 !! $mm.min.Int, $mm.max == Inf ?? -1 !! $mm.max.Int)
-        }
-        else {
-            fail 'Fixed quantifier cannot be infinite' if $mm == -Inf || $mm == Inf;
-            nqp::list_i($mm.Int, $mm.Int)
-        }
+        nqp::istype($mm,Range)
+          ?? $mm.min == Inf
+            ?? die 'Range minimum in quantifier (**) cannot be +Inf'
+            !! $mm.max == -Inf
+              ?? die 'Range maximum in quantifier (**) cannot be -Inf'
+              !! nqp::list_i(
+                   $mm.min  <   0 ??  0 !! $mm.min.Int,
+                   $mm.max == Inf ?? -1 !! $mm.max.Int)
+          !! $mm == -Inf || $mm == Inf
+            ?? Failure.new('Fixed quantifier cannot be infinite')
+            !! nqp::list_i($mm.Int, $mm.Int)
     }
 
     method OTHERGRAMMAR($grammar, $name, |) {
@@ -346,28 +391,31 @@ my class Cursor does NQPCursorRole {
     method RECURSE() {
         nqp::getlexdyn('$?REGEX')(self)
     }
-}
 
-sub MAKE_REGEX($arg, :$i, :$m, :$monkey, :$context) {
-    my role CachedCompiledRegex {
-        has $.regex;
-    }
-    if nqp::istype($arg,Regex) {
-        $arg
-    }
-    elsif nqp::istype($arg, CachedCompiledRegex) {
-        $arg.regex
-    }
-    else {
-        my $*RESTRICTED = "Prohibited regex interpolation"
-            unless $monkey;  # Comes from when regex was originally compiled.
+    sub MAKE_REGEX($arg, int $i, int $m, int $monkey, $context) {
+        my role CachedCompiledRegex {
+            has $.regex;
+        }
+        if nqp::istype($arg,Regex) {
+            $arg
+        }
+        elsif nqp::istype($arg, CachedCompiledRegex) {
+            $arg.regex
+        }
+        else {
+            my $*RESTRICTED = "Prohibited regex interpolation"
+             unless $monkey;  # Comes from when regex was originally compiled.
 
-        my $rx := $i && $m ?? EVAL("anon regex \{ :i :m $arg\}", :$context) !!
-                        $i ?? EVAL("anon regex \{ :i $arg\}",    :$context) !!
-                        $m ?? EVAL("anon regex \{ :m $arg\}",    :$context) !!
-                              EVAL("anon regex \{ $arg\}",       :$context);
-        $arg does CachedCompiledRegex($rx);
-        $rx
+            my $rx := $i
+              ?? $m
+                ?? EVAL("anon regex \{ :i :m $arg\}", :$context)
+                !! EVAL("anon regex \{ :i $arg\}",    :$context)
+              !! $m
+                ?? EVAL("anon regex \{ :m $arg\}",    :$context)
+                !! EVAL("anon regex \{ $arg\}",       :$context);
+            $arg does CachedCompiledRegex($rx);
+            $rx
+        }
     }
 }
 

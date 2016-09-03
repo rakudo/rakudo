@@ -37,6 +37,7 @@ public final class RakOps {
         public SixModelObject Str;
         public SixModelObject List;
         public SixModelObject ListIter;
+        public SixModelObject Iterable;
         public SixModelObject Array;
         public SixModelObject Nil;
         public SixModelObject Map;
@@ -87,6 +88,12 @@ public final class RakOps {
         }
         return null;
     }
+
+    public static SixModelObject p6setitertype(SixModelObject type, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        gcx.Iterable = type;
+        return type;
+    }
     
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
@@ -101,6 +108,7 @@ public final class RakOps {
         gcx.Str = conf.at_key_boxed(tc, "Str");
         gcx.List = conf.at_key_boxed(tc, "List");
         gcx.ListIter = conf.at_key_boxed(tc, "ListIter");
+        gcx.Iterable = conf.at_key_boxed(tc, "Iterable");
         gcx.Array = conf.at_key_boxed(tc, "Array");
         gcx.Nil = conf.at_key_boxed(tc, "Nil");
         gcx.Map = conf.at_key_boxed(tc, "Map");
@@ -565,25 +573,6 @@ public final class RakOps {
             curFrame = curFrame.outer;
         }
         return null;
-    }
-
-    public static SixModelObject p6routinereturn(SixModelObject in, ThreadContext tc) {
-        CallFrame ctx = tc.curFrame;
-        SixModelObject cont = getremotelex(ctx.caller, "RETURN");
-
-        if (!(cont instanceof LexoticInstance)) {
-            SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");
-            if (thrower == null)
-                ExceptionHandling.dieInternal(tc, "Attempt to return outside of any Routine");
-            else
-                Ops.invokeArgless(tc, thrower);
-        }
-
-        // rewinding is handled by finally blocks in the generated subs
-        LexoticException throwee = tc.theLexotic;
-        throwee.target = ((LexoticInstance)cont).target;
-        throwee.payload = in;
-        throw throwee;
     }
     
     public static String tclc(String in, ThreadContext tc) {

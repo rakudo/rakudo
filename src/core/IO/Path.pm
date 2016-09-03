@@ -29,6 +29,7 @@ my class IO::Path is Cool {
         self.bless(:$path, :$SPEC, :$CWD)!fap;
     }
 
+    proto method new(|) {*}
     multi method new(IO::Path: Str(Cool) $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
         die "Must specify something as a path: did you mean '.' for the current directory?" unless $path.chars;
         self.bless(:$path, :$SPEC, :$CWD);
@@ -47,9 +48,7 @@ my class IO::Path is Cool {
     }
 
     method abspath() {
-        $!abspath //= $!path.starts-with('-')
-          ?? ''
-          !! $!SPEC.rel2abs($!path,$!CWD);
+        $!abspath //= $!SPEC.rel2abs($!path,$!CWD);
     }
     method is-absolute() {
         $!is-absolute //= $!SPEC.is-absolute($!path);
@@ -73,7 +72,9 @@ my class IO::Path is Cool {
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        qq|"$.abspath".IO|;
+        $!is-absolute
+          ?? qq|"$.abspath".IO|
+          !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
         $!is-absolute  # attribute now set
@@ -402,17 +403,18 @@ my class IO::Path is Cool {
 
         CATCH { default {
             fail X::IO::Dir.new(
-              :path(nqp::box_s($.abspath,Str)), :os-error(.Str) );
+              :path($.abspath), :os-error(.Str) );
         } }
-        my $cwd_chars = $CWD.chars;
 
-#?if moar
-        my str $cwd = nqp::cwd();
-        nqp::chdir(nqp::unbox_s($.abspath));
-#?endif
-        my $abspath-sep := $.abspath eq $!SPEC.dir-sep
-          ?? $!SPEC.dir-sep
+        my str $abspath = $.abspath.ends-with($!SPEC.dir-sep)
+          ?? $.abspath
           !! $.abspath ~ $!SPEC.dir-sep;
+
+        my str $path = $.path eq '.' | $!SPEC.dir-sep
+          ?? ''
+          !! $.path.ends-with($!SPEC.dir-sep)
+            ?? $.path
+            !! $.path ~ $!SPEC.dir-sep;
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
         gather {
@@ -420,12 +422,12 @@ my class IO::Path is Cool {
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
                     $Str
-                      ?? $absolute
-                        ?? take $abspath-sep ~ $elem
-                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1)
-                      !! $absolute
-                        ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
-                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD);
+                      ?? !$absolute
+                        ?? take $path ~ $elem
+                        !! take $abspath ~ $elem
+                      !! !$absolute
+                        ?? take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
+                        !! take IO::Path.new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
                 }
             }
 #?endif
@@ -435,25 +437,16 @@ my class IO::Path is Cool {
                     nqp::closedir($dirh);
                     last;
                 }
-                my Str $elem = nqp::box_s($str_elem,Str);
-#?if jvm
-                if $test.ACCEPTS($!SPEC.basename($elem)) {
-#?endif
-#?if !jvm
-                if $test.ACCEPTS($elem) {
-                    $elem = $abspath-sep ~ $elem; # make absolute
-#?endif
+
+                if $test.ACCEPTS($str_elem) {
                     $Str
                       ?? !$absolute && !$.is-absolute
-                        ?? take substr($elem,$cwd_chars + 1)
-                        !! take $elem
+                        ?? take $path ~ $str_elem
+                        !! take $abspath ~ $str_elem
                       !! !$absolute && !$.is-absolute
-                        ?? take substr($elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
+                        ?? take IO::Path.new($path ~ $str_elem,:$!SPEC,:$CWD)
+                        !! take IO::Path.new-from-absolute-path($abspath ~ $str_elem,:$!SPEC,:$CWD);
                 }
-#?if moar
-                nqp::chdir($cwd);
-#?endif
             }
         }
     }
@@ -475,7 +468,7 @@ my class IO::Path is Cool {
                 loop {
                     my $buf := nqp::readfh($PIO,buf8.new,0x100000);
                     last unless nqp::elems($buf);
-                    $res.push($buf);
+                    $res.append($buf);
                 }
                 $handle.close;
                 $res
@@ -582,7 +575,7 @@ my class IO::Path is Cool {
     method rw(--> Bool) {
         $.e
           ?? Rakudo::Internals.FILETEST-RW($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<rw>)
     }
 
     method x(--> Bool) {
@@ -594,7 +587,7 @@ my class IO::Path is Cool {
     method rwx(--> Bool) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<rwx>)
     }
 
     method z(--> Bool) {
@@ -621,6 +614,15 @@ my class IO::Path is Cool {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
           !! fail X::IO::DoesNotExist.new(:path(~self),:trying<changed>)
+    }
+
+    method mode(--> IntStr) {
+        $.e
+          ?? nqp::stmts(
+              (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+              IntStr.new($mode, sprintf('%04o', $mode))
+            )
+          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<mode>)
     }
 }
 

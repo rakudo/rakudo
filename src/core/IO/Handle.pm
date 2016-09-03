@@ -8,6 +8,7 @@ my class IO::Handle does IO {
     has $.chomp is rw = Bool::True;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
+    has str $!encoding;
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -68,8 +69,7 @@ my class IO::Handle does IO {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
+            self.encoding( $bin ?? 'bin' !! $enc );
             return self;
         }
 
@@ -100,8 +100,7 @@ my class IO::Handle does IO {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::setencoding($!PIO, Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          unless $bin;
+        self.encoding( $bin ?? 'bin' !! $enc );
         self;
     }
 
@@ -152,9 +151,11 @@ my class IO::Handle does IO {
     multi method comb(IO::Handle:D: Int:D $size, :$close = False) {
         return self.split(:$close,:COMB) if $size <= 1;
 
+        X::NYI.new(:feature("{self.^name}.comb on binary handle")).throw
+          if self.binary;
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
-            has Mu  $!size;
+            has int $!size;
             has int $!close;
 
             method !SET-SELF(\handle, \size, \close) {
@@ -168,35 +169,29 @@ my class IO::Handle does IO {
             }
 
             method pull-one() {
-                my str $str = $!handle.readchars($!size);
-                if nqp::chars($str) {
-                    nqp::p6box_s($str)
-                }
-                else {
-                    $!handle.close if $!close;
+                nqp::if(
+                  nqp::chars(my str $str = $!handle.readchars($!size)),
+                  nqp::p6box_s($str),
+                  nqp::stmts(
+                    nqp::if(
+                      $!close,
+                      $!handle.close
+                    ),
                     IterationEnd
-                }
+                  )
+                )
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my str $str = $!handle.readchars($!size);
-                while nqp::chars($str) == $size {
-                    $target.push(nqp::p6box_s($str));
-                    $str = $!handle.readchars($!size);
-                }
+                nqp::while(
+                  nqp::iseq_i(nqp::chars($str),$!size), 
+                  nqp::stmts(
+                    $target.push(nqp::p6box_s($str)),
+                    ($str = $!handle.readchars($!size))
+                  )
+                );
                 $target.push(nqp::p6box_s($str)) if nqp::chars($str);
                 $!handle.close if $!close;
-                IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                my str $str = $!handle.readchars($!size);
-                while nqp::chars($str) == $size {
-                    $found = $found + 1;
-                    $str   = $!handle.readchars($!size);
-                }
-                $found = $found + 1 if nqp::chars($str);
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, $size, +$close));
     }
@@ -204,6 +199,8 @@ my class IO::Handle does IO {
         return self.split(:$close,:COMB)
           if nqp::istype($comber,Cool) && $comber.Str.chars == 0;
 
+        X::NYI.new(:feature("{self.^name}.comb on binary handle")).throw
+          if self.binary;
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has Mu  $!regex;
@@ -285,7 +282,7 @@ my class IO::Handle does IO {
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 while $!elems {
                     while $!elems {
                         $target.push(nqp::p6box_s(nqp::shift_s($!strings)));
@@ -294,22 +291,15 @@ my class IO::Handle does IO {
                     self!next-chunk until $!elems || $!done;
                 }
                 $!handle.close if $!close;
-                IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                while $!elems {
-                    $found  = $found + $!elems;
-                    $!elems = 0;
-                    self!next-chunk until $!elems || $!done;
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, $comber, +$close));
     }
 
     multi method split(IO::Handle:D: :$close = False, :$COMB) {
+        X::NYI.new(
+          :feature("{self.^name}.{$COMB ?? 'comb' !! 'split'} on binary handle")
+        ).throw if self.binary;
+
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has int $!close;
@@ -355,7 +345,7 @@ my class IO::Handle does IO {
                     IterationEnd;
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 $target.push('') if $!first;
                 while $!index < $!chars {
                     $target.push(
@@ -365,22 +355,16 @@ my class IO::Handle does IO {
                 }
                 $target.push('') if $!last;
                 $!handle.close if $!close;
-                IterationEnd
-            }
-            method count-only() {
-                my int $found = $!first + $!last;
-                while $!chars {
-                    $found = $found + $!chars;
-                    self!next-chunk();
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, +$close, $COMB));
     }
     multi method split(IO::Handle:D: $splitter, :$close = False, :$COMB) {
         return self.split(:$close,:$COMB)
           if nqp::istype($splitter,Cool) && $splitter.Str.chars == 0;
+
+        X::NYI.new(
+          :feature("{self.^name}.{$COMB ?? 'comb' !! 'split'} on binary handle")
+        ).throw if self.binary;
 
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
@@ -462,7 +446,7 @@ my class IO::Handle does IO {
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 while $!elems {
                     while $!elems {
                         $target.push(nqp::p6box_s(nqp::shift($!strings)));
@@ -472,17 +456,6 @@ my class IO::Handle does IO {
                 }
                 $target.push(nqp::p6box_s($!str));
                 $!handle.close if $!close;
-                IterationEnd
-            }
-            method count-only() {
-                my int $found = 1;
-                while $!elems {
-                    $found = $found + $!elems;
-                    $!elems = 0;
-                    self!next-chunk until $!elems || $!done;
-                }
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, $splitter, +$close));
     }
@@ -552,7 +525,7 @@ my class IO::Handle does IO {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my int $chars;
                 my int $left;
                 my int $nextpos;
@@ -575,30 +548,6 @@ my class IO::Handle does IO {
                 $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
                   if $!pos < $chars;
                 $!handle.close if $close;
-                IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                my int $chars;
-                my int $left;
-                my int $nextpos;
-
-                while ($chars = nqp::chars($!str)) && $!searching {
-                    while ($left = $chars - $!pos) > 0 {
-                        $nextpos = nqp::findcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
-                        last unless $left = $chars - $nextpos; # broken word
-
-                        $found = $found + 1;
-
-                        $!pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
-                    }
-                    self!next-chunk;
-                }
-                $found = $found + 1 if $!pos < $chars;
-                $!handle.close if $!close;
-                nqp::p6box_i($found)
             }
         }.new(self, $close));
     }
@@ -628,26 +577,16 @@ my class IO::Handle does IO {
                     IterationEnd
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $line;
                 $target.push($line) while ($line := $!handle.get).DEFINITE;
                 $!handle.close if $close;
-                IterationEnd
-            }
-            method count-only() {
-                my $line;
-                my int $seen;
-                $seen = $seen + 1 while ($line := $!handle.get).DEFINITE;
-                $!handle.close if $!close;
-                $seen
             }
         }.new(self, $close));
     }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
-        my $buf := buf8.new();
-        nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
-        $buf;
+        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
     }
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
@@ -666,10 +605,13 @@ my class IO::Handle does IO {
         if $bin {
             supply {
                 my $buf := self.read($size);
-                while nqp::elems($buf) {
-                    emit $buf;
-                    $buf := self.read($size);
-                }
+                nqp::while(
+                  nqp::elems($buf),
+                  nqp::stmts(
+                    (emit $buf),
+                    ($buf := self.read($size))
+                  )
+                );
                 done;
             }
         }
@@ -677,10 +619,13 @@ my class IO::Handle does IO {
             supply {
                 my int $chars = $size;
                 my str $str = self.readchars($chars);
-                while nqp::chars($str) {
-                    emit nqp::p6box_s($str);
-                    $str = self.readchars($chars);
-                }
+                nqp::while(
+                  nqp::chars($str),
+                  nqp::stmts(
+                    (emit nqp::p6box_s($str)),
+                    ($str = self.readchars($chars))
+                  )
+                );
                 done;
             }
         }
@@ -753,16 +698,18 @@ my class IO::Handle does IO {
     }
 
     proto method slurp-rest(|) { * }
-    multi method slurp-rest(IO::Handle:D: :$bin! where *.so) returns Buf {
-        my $res := buf8.new();
+    multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close) returns Buf {
+        LEAVE self.close if $close;
+        my $res := buf8.new;
         loop {
             my $buf := nqp::readfh($!PIO,buf8.new,0x100000);
-            last unless nqp::elems($buf);
-            $res.push($buf);
+            nqp::elems($buf)
+              ?? $res.append($buf)
+              !! return $res
         }
-        $res
     }
-    multi method slurp-rest(IO::Handle:D: :$enc, :$bin) returns Str {
+    multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close) returns Str {
+        LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         nqp::p6box_s(nqp::readallfh($!PIO));
     }
@@ -789,11 +736,15 @@ my class IO::Handle does IO {
         nqp::flushfh($!PIO);
     }
 
-    method encoding(IO::Handle:D: $enc?) {
-        $enc.defined
-          ?? nqp::setencoding($!PIO,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          !! $!PIO.encoding
+    proto method encoding(|) { * }
+    multi method encoding(IO::Handle:D:) { $!encoding }
+    multi method encoding(IO::Handle:D: $enc) {
+        $enc eq 'bin'
+          ?? ($!encoding = 'bin')
+          !! nqp::setencoding($!PIO,
+               $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc))
     }
+    method binary() { nqp::p6bool(nqp::iseq_s($!encoding,"bin")) }
 
     submethod DESTROY(IO::Handle:D:) {
         self.close;
@@ -811,6 +762,7 @@ my class IO::Handle does IO {
     method modified(IO::Handle:D:) { $!path.modified }
     method accessed(IO::Handle:D:) { $!path.accessed }
     method changed(IO::Handle:D:)  { $!path.changed  }
+    method mode(IO::Handle:D:)     { $!path.mode     }
 
 #?if moar
     method watch(IO::Handle:D:) {
@@ -824,7 +776,7 @@ my class IO::Handle does IO {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
-    PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<DEFAULT_READ_ELEMS> // 65536;
+    PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
 }
 
 # vim: ft=perl6 expandtab sw=4

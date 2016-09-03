@@ -18,7 +18,7 @@ my class X::Promise::Vowed is Exception {
 my class Promise {
     has $.scheduler;
     has $.status;
-    has $!result;
+    has $!result is default(Nil);
     has int $!vow_taken;
     has $!lock;
     has $!cond;
@@ -38,7 +38,7 @@ my class Promise {
     trusts Vow;
     my class Vow {
         has $.promise;
-        method keep(\result) {
+        method keep(Mu \result) {
             $!promise!Promise::keep(result)
         }
         method break(\exception) {
@@ -62,11 +62,11 @@ my class Promise {
     multi method keep(Promise:D:) {
         self.vow.keep(True)
     }
-    multi method keep(Promise:D: \result) {
+    multi method keep(Promise:D: Mu \result) {
         self.vow.keep(result)
     }
 
-    method !keep(\result) {
+    method !keep(Mu \result) {
         $!lock.protect({
             $!result := result;
             $!status = Kept;
@@ -105,8 +105,9 @@ my class Promise {
     method result(Promise:D:) {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
-        # thing that is blocking on it.
-        if $!status == Planned {
+        # thing that is blocking on it. (Note the while loop is there to cope
+        # with spurious wake-ups).
+        while $!status == Planned {
             $!lock.protect({
                 # Re-check planned to avoid data race.
                 $!cond.wait() if $!status == Planned;
@@ -223,8 +224,8 @@ my class Promise {
     method Numeric(Promise:D:) { self.result.Numeric }
 }
 
-multi sub infix:<eqv>(Promise:D $a, Promise:D $b) {
-    infix:<eqv>($a.result, $b.result);
+multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
+    a =:= b || a.result eqv b.result
 }
 
 # vim: ft=perl6 expandtab sw=4

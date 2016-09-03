@@ -64,7 +64,7 @@ class VM does Systemic {
 #?endif
 #?if jvm
         my $prefix = $is-win ?? '' !! 'lib';
-        my $platform-name = "$prefix$basename.{self.config<nativecall.so>}";
+        my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
 #?endif
 
         $platform-name ~= '.' ~ $version

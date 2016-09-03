@@ -7,7 +7,8 @@ role CompUnit::Repository {
     # matching dependency, throws X::CompUnit::UnsatisfiedDependency.
     method need(CompUnit::DependencySpecification $spec,
                 # If we're first in the chain, our precomp repo is the chosen one.
-                CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
+                CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+                CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($precomp.store))
         returns CompUnit:D
         { ... }
 
@@ -42,6 +43,10 @@ role CompUnit::Repository {
     method id()
         returns Str
         { ... }
+
+    method precomp-store()
+        returns CompUnit::PrecompilationStore
+        { CompUnit::PrecompilationStore }
 
     method precomp-repository()
         returns CompUnit::PrecompilationRepository

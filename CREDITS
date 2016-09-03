@@ -107,6 +107,9 @@ E: bslaabs@gmail.com
 N: Brian Gernhardt
 E: benji@silverinsanity.com
 
+N: Brian S. Julin
+U: skids
+
 N: Bruce Gray
 U: util
 E: bruce.gray@acm.org
@@ -169,6 +172,15 @@ E: christoph@mksig.org
 N: Christopher J. Madsen
 E: perl@cjmweb.net
 
+N: Claudio Ramirez
+U: nxadm
+U: El_Che
+E: pub.claudio@gmail.com
+
+N: Clifton Wood
+U: Xliff
+E: clifton.wood@gmail.com
+
 N: Colin Kuskie
 U: colink
 E: ckuskie@sterling.net
@@ -210,6 +222,10 @@ U: dan
 D: Architect emeritus (0.0.1-0.1.1)
 E: dan@sidhe.org
 W: http://www.sidhe.org/~dan/blog/
+
+N: Daniel Green
+U: MasterDuke17
+E: ddgreen@gmail.com
 
 N: Dave Rolsky
 U: autarch
@@ -318,6 +334,10 @@ E: ingy@ingy.net
 W: http://ingy.net/
 S: Seattle, WA, USA
 D: Make is() work like Perl 5; add .pm6 to extensions searched.
+
+N: Itsuki Toyota
+U: titsuki
+E: titsuki@cpan.org
 
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
@@ -535,7 +555,7 @@ N: Mikhail Khorkov
 E: m.s.khorkov@gmail.com
 
 N: Moritz Lenz
-E: moritz@faui2k3.org
+E: moritz.lenz@gmail.com
 U: moritz
 D: Test infrastructure, tests, general Rakudo hacking
 
@@ -558,9 +578,6 @@ E: nlogan@gmail.com
 
 N: Nick Wellnhofer
 E: wellnhofer@aevum.de
-
-N: niner
-E: nine@detonation.org
 
 N: Notfound
 E: julian.notfound@gmail.com
@@ -689,6 +706,7 @@ U: sorear
 E: stefanor@cox.net
 
 N: Stefan Seifert
+U: niner
 E: nine@detonation.org
 
 N: Stephane cognominal Payrard
@@ -772,6 +790,10 @@ E: thecrux@gmail.com
 
 N: Vyacheslav Matjukhin
 E: mmcleric@yandex-team.ru
+
+N: Wenzel P. P. Peppmeyer
+E: wenzel.peppmeyer@gmx.de
+U: gfldex
 
 N: Will "Coke" Coleda
 U: coke

@@ -21,59 +21,49 @@ my role Iterable {
             has Iterator $!nested;
 
             method new(\source) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!source', source);
-                iter
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
             }
 
             my constant NO_RESULT_YET = nqp::create(Mu);
             method pull-one() is raw {
                 my $result := NO_RESULT_YET;
                 my $got;
-                while nqp::eqaddr($result, NO_RESULT_YET) {
-                    if $!nested {
-                        $got := $!nested.pull-one;
-                        nqp::eqaddr($got, IterationEnd)
-                          ?? ($!nested := Iterator)
-                          !! ($result := $got);
-                    }
-                    else {
-                        $got := $!source.pull-one();
-                        nqp::istype($got, Iterable) && !nqp::iscont($got)
-                          ?? ($!nested := $got.flat.iterator)
-                          !! ($result := $got);
-                    }
-                }
+                nqp::while(
+                  nqp::eqaddr($result, NO_RESULT_YET),
+                  nqp::if(
+                    $!nested,
+                    nqp::if(
+                      nqp::eqaddr(($got := $!nested.pull-one),IterationEnd),
+                      ($!nested := Iterator),
+                      ($result := $got)
+                    ),
+                    nqp::if(
+                      nqp::istype(($got := $!source.pull-one),Iterable)
+                        && nqp::not_i(nqp::iscont($got)),
+                      ($!nested := $got.flat.iterator),
+                      ($result := $got)
+                    )
+                  )
+                );
                 $result
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my $got;
-                until ($got := $!source.pull-one) =:= IterationEnd {
-                    if nqp::istype($got, Iterable) && !nqp::iscont($got) {
-                        my $nested := $got.flat.iterator;
+                my $nested;
+                nqp::until(
+                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
+                  nqp::if(  # doesn't sink
+                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
+                    nqp::stmts(
+                      ($nested := $got.flat.iterator),
+                      nqp::until(  # doesn't sink
+                        nqp::eqaddr(($got := $nested.pull-one),IterationEnd),
                         $target.push($got)
-                          until ($got := $nested.pull-one) =:= IterationEnd;
-                    }
-                    else {
-                        $target.push($got);
-                    }
-                }
-                IterationEnd
-            }
-            method count-only() {
-                my int $found;
-                my $got;
-                until ($got := $!source.pull-one) =:= IterationEnd {
-                    if nqp::istype($got, Iterable) && !nqp::iscont($got) {
-                        my $nested := $got.flat.iterator;
-                        $found = $found + 1
-                          until ($got := $nested.pull-one) =:= IterationEnd;
-                    }
-                    else {
-                        $found = $found + 1;
-                    }
-                }
-                nqp::p6box_i($found)
+                      )
+                    ),
+                    $target.push($got)
+                  )
+                )
             }
         }.new(self.iterator))
     }
@@ -89,9 +79,9 @@ my role Iterable {
             has $!iterator;
 
             method new(\iterable) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!iterable', iterable);
-                iter
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!iterable',iterable
+                )
             }
 
             method pull-one() is raw {
@@ -109,10 +99,13 @@ my role Iterable {
     }
 
     method !valid-hyper-race($method,$batch,$degree --> Nil) {
-        fail X::Invalid::Value.new(:$method,:name<batch>,:value($batch))
-          if $batch <= 0;
-        fail X::Invalid::Value.new(:$method,:name<degree>,:value($degree))
-          if $degree <= 0;
+        $batch <= 0
+          ?? Failure.new(X::Invalid::Value.new(
+               :$method,:name<batch>,:value($batch)))
+          !! $degree <= 0
+            ?? Failure.new(X::Invalid::Value.new(
+                 :$method,:name<degree>,:value($degree)))
+            !! Nil
     }
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
@@ -147,5 +140,9 @@ my role Iterable {
         }.new(self.iterator, $configuration));
     }
 }
+
+#?if jvm
+nqp::p6setitertype(Iterable);
+#?endif
 
 # vim: ft=perl6 expandtab sw=4

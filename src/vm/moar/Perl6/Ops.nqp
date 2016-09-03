@@ -69,9 +69,6 @@ MAST::ExtOpRegistry.register_extop('p6setfirstflag',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6takefirstflag',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
-MAST::ExtOpRegistry.register_extop('p6routinereturn',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -227,7 +224,6 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('return_o'), $value_res.result_reg ));
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6routinereturn', 'p6routinereturn');
 $ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);

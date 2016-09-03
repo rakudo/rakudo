@@ -476,13 +476,28 @@ sub MAIN(*@ARGS) {
     
     # Set up END block list, which we'll run at exit.
     nqp::bindhllsym('perl6', '@END_PHASERS', []);
-    
+
     # Force loading of the debugger module.
+    my $debugger;
+    my $i := 1;
+    while @ARGS[$i] ~~ /^\-/ {
+        if @ARGS[$i] ~~ /^\-D/ {
+            $debugger := "-M" ~ nqp::substr(@ARGS[$i], 2);
+            nqp::splice(@ARGS, [], $i, 1);
+            last;
+        }
+        $i++;
+    }
+
+    if !(nqp::defined($debugger)) {
+        $debugger := '-MDebugger::UI::CommandLine';
+    }
+
     my $pname := @ARGS.shift();
     @ARGS.unshift('-Ilib');
-    @ARGS.unshift('-MDebugger::UI::CommandLine');
+    @ARGS.unshift($debugger);
     @ARGS.unshift($pname);
-    
+
     # Set up debug hooks object.
     my $*DEBUG_HOOKS := Perl6::DebugHooks.new();
 

@@ -32,6 +32,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 65536;
     my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;
+    my constant $SIG_ELEM_CODE_SIGIL         = 33554432;
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -61,7 +62,7 @@ my class Parameter { # declared in BOOTSTRAP
               ?? '@'
               !!  nqp::bitand_i($!flags,$SIG_ELEM_HASH_SIGIL)
                 ?? '%'
-                !! nqp::eqat(nqp::unbox_s($!nominal_type.^name),'Callable',0)
+                !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
                   !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
                     ?? '\\'
@@ -236,14 +237,14 @@ my class Parameter { # declared in BOOTSTRAP
                 my $lookup := nqp::hash;
                 my int $i   = -1;
                 nqp::bindkey($lookup,nqp::atpos($!named_names,$i),1)
-                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+                  while nqp::islt_i(++$i,$elems);
 
                 # make sure the other nameds are all here
                 $elems = nqp::elems($onamed_names);
                 $i     = -1;
                 return False unless
                   nqp::existskey($lookup,nqp::atpos($onamed_names,$i))
-                  while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+                  while nqp::islt_i(++$i,$elems);
             }
         }
 
@@ -301,10 +302,9 @@ my class Parameter { # declared in BOOTSTRAP
         my $modifier = self.modifier;
 
         $perl ~= "::$_ " for @($.type_captures);
-        # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
-            $type ~~ /^^ Callable >> / {
+            $!flags +& $SIG_ELEM_CODE_SIGIL {
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl ~= $/ ~ $modifier if $/;
         }
@@ -326,7 +326,7 @@ my class Parameter { # declared in BOOTSTRAP
                 $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
                 $name = '%';
-            } elsif $type ~~ /^^ Callable >> / {
+            } elsif $!flags +& $SIG_ELEM_CODE_SIGIL {
                 $name = '&';
             } else {
                 $name = '$';
@@ -388,15 +388,20 @@ multi sub infix:<eqv>(Parameter \a, Parameter \b) {
     # we're us
     return True if a =:= b;
 
+    # different container type
+    return False unless a.WHAT =:= b.WHAT;
+
     # different nominal or coerce type
+    my $acoerce := nqp::getattr(a,Parameter,'$!coerce_type');
+    my $bcoerce := nqp::getattr(b,Parameter,'$!coerce_type');
     return False
       unless nqp::iseq_s(
           nqp::getattr(a,Parameter,'$!nominal_type').^name,
           nqp::getattr(b,Parameter,'$!nominal_type').^name
         )
       && nqp::iseq_s(
-          nqp::getattr(a,Parameter,'$!coerce_type').^name,
-          nqp::getattr(b,Parameter,'$!coerce_type').^name
+          nqp::isnull($acoerce) ?? "" !! $acoerce.^name,
+          nqp::isnull($bcoerce) ?? "" !! $bcoerce.^name
         );
 
     # different flags

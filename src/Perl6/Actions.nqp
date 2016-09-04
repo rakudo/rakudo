@@ -3016,7 +3016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless nqp::istype($descriptor.default, $bind_constraint) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
-                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs><D> && !$*OFTYPE<colonpairs><U>
+                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
                          ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
                          !! 0
             );
@@ -5024,8 +5024,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
         %*PARAM_INFO<of_type_match> := $<typename>;
-        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
-        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
+        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
+        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
     }
 
     method post_constraint($/) {
@@ -5668,14 +5668,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs><D> {
+            if $<colonpairs> && $<colonpairs>.ast<D> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
                 my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
                 $past    := QAST::WVal.new( :value($type) );
             }
-            elsif $<colonpairs><U> {
+            elsif $<colonpairs> && $<colonpairs>.ast<U> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
@@ -7327,10 +7327,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
 
-                if $<colonpairs><D> {
+                if $<colonpairs> && $<colonpairs>.ast<D> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 1);
                 }
-                elsif $<colonpairs><U> {
+                elsif $<colonpairs> && $<colonpairs>.ast<U> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 

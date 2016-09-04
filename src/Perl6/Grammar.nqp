@@ -3268,7 +3268,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             }
-            [<?{ %colonpairs }> <colonpairs=.AS_MATCH(%colonpairs)>]?
+            [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
         || <args(1)>
             {
                 if !$<args><invocant> {
@@ -3475,7 +3475,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
         }
-        [<?{ %colonpairs }> <colonpairs=.AS_MATCH(%colonpairs)>]?
+        [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
     }
 
     token typo_typename($panic = 0) {

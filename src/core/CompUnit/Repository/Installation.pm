@@ -4,6 +4,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
     has Int $!version;
+    has $!precomp-stores;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -467,10 +468,16 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         Nil
     }
 
+    method !precomp-stores() {
+        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
+            self.repo-chain.map(*.precomp-store).grep(*.defined)
+        )
+    }
+
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
     )
         returns CompUnit:D
     {

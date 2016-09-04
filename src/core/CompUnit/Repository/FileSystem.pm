@@ -2,6 +2,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has %!loaded;
     has $!precomp;
     has $!id;
+    has $!precomp-stores;
 
     my @extensions = <pm6 pm>;
 
@@ -88,10 +89,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         Nil
     }
 
+    method !precomp-stores() {
+        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
+            self.repo-chain.map(*.precomp-store).grep(*.defined)
+        )
+    }
+
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
     )
         returns CompUnit:D
     {

@@ -17,12 +17,19 @@ New in 2016.09
     + CompUnit::Repository::Installation now cleans up short-name
         folders when empty
     + Added support for very large numbers in :42foo colon pairs
+    + Added a .Map coercer for object hashes
  + Efficiency:
     + Baggy.ACCEPTS(Baggy) is now about 25x faster
     + Baggy eqv Baggy is now at least 10x faster
     + Infix === now checks identicality, offering performance gains on large
         objects, such as a Bag with 1000 elements
     + Many metaops are now about 10% faster
+    + CompUnit::PrecompilationUnits loaded from a store are now cached
+    + List of default precomp-stores is now cached
+    + META6.json of a FileSystem repository is now read only once
+    + Distribution meta data is now cached between calls to .resource in CURI
+    + JSON META data is no longer read when loading modules and is read
+        lazily only when it's actually requested by the user
 
 New in 2016.08.1
  + Fixes:

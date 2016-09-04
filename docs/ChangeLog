@@ -1,7 +1,28 @@
 New in 2016.09
  + Fixes:
+    + Various improvements to the content of error messages
+    + Defaults on a slurpy params now throw instead of crashing at the VM level
+    + Distribution::Path now handles native libraries correctly
+    + Junctions now work in .classify
+    + Control statements (e.g. `next`) in toplevel REPL now show useful error
+    + IO::Handle.encoding now returns correct values
+    + .comb/.split on binary handles now throws X::NYI
+    + Fixed filehandle leak in precompilation
+    + Regex in .grep and .first on Pairs now works correctly
+    + Pod parser returns proper Bool instead of Int on passed config options
  + Additions:
+    + Coercions now work in return types
+    + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
+    + IO::Handle.slurp-rest now has :close flag
+    + CompUnit::Repository::Installation now cleans up short-name
+        folders when empty
+    + Added support for very large numbers in :42foo colon pairs
  + Efficiency:
+    + Baggy.ACCEPTS(Baggy) is now about 25x faster
+    + Baggy eqv Baggy is now at least 10x faster
+    + Infix === now checks identicality, offering performance gains on large
+        objects, such as a Bag with 1000 elements
+    + Many metaops are now about 10% faster
 
 New in 2016.08.1
  + Fixes:

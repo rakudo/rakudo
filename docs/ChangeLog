@@ -30,6 +30,14 @@ New in 2016.09
     + Distribution meta data is now cached between calls to .resource in CURI
     + JSON META data is no longer read when loading modules and is read
         lazily only when it's actually requested by the user
+ + Changed APIs:
+    + Rakudo now requires a version of NQP with the improved operator
+        precedence subrule `O()`; rather than taking a string containing
+        colonpairs, it now takes named arguments directly. This is not
+        strictly a Perl 6 change, but rather a change in NQP, and thus only
+        applies if you're doing fairly involved hacking on the grammar. If the
+        sentences above made no sense to you, your code is not affected by
+        this change.
 
 New in 2016.08.1
  + Fixes:

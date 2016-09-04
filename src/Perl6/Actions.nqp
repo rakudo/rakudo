@@ -3016,7 +3016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless nqp::istype($descriptor.default, $bind_constraint) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
-                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs><D> && !$*OFTYPE<colonpairs><U>
+                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
                          ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
                          !! 0
             );
@@ -5024,8 +5024,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
         %*PARAM_INFO<of_type_match> := $<typename>;
-        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
-        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
+        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
+        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
     }
 
     method post_constraint($/) {
@@ -5168,6 +5168,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $<postcircumfix>.ast
                  || QAST::Op.new( :name('&postcircumfix' ~ $*W.canonicalize_pair('', $<postcircumfix>.Str)), :op<call> );
         }
+    }
+
+    method revO($/) {
+        my $O := nqp::clone($*FROM);
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        make $O;
     }
 
     method dotty:sym<.>($/) { make $<dottyop>.ast; }
@@ -5661,14 +5668,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs><D> {
+            if $<colonpairs> && $<colonpairs>.ast<D> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
                 my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
                 $past    := QAST::WVal.new( :value($type) );
             }
-            elsif $<colonpairs><U> {
+            elsif $<colonpairs> && $<colonpairs>.ast<U> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
@@ -6175,8 +6182,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $key := nqp::lc($KEY // 'infix');
         $key := 'infix' if $key eq 'list';
         my $sym := ~$/{$key}<sym>;
-        my $O := $/{$key}<O>;
-        my $thunky := $O<thunky>;
+        my $thunky := $/{$key} ?? $/{$key}<O>.made<thunky> !! 0;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -6211,8 +6217,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         unless $past {
-            if $<OPER><O><pasttype> {
-                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
+            if $<OPER><O>.made<pasttype> {
+                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O>.made<pasttype> ) );
             }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
@@ -6899,7 +6905,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
-            my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+            my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
@@ -6907,7 +6913,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), WANTED($basepast,'infixish') );
-            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>.made)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
@@ -6949,9 +6955,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $base<OPER><sym>)),
                                            :scope<lexical>);
-        my $metaop   := baseop_reduce($base<OPER><O>);
+        my $metaop   := baseop_reduce($base<OPER><O>.made);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), WANTED($basepast,'reduce'));
-        my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+        my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }
@@ -7321,10 +7327,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
 
-                if $<colonpairs><D> {
+                if $<colonpairs> && $<colonpairs>.ast<D> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 1);
                 }
-                elsif $<colonpairs><U> {
+                elsif $<colonpairs> && $<colonpairs>.ast<U> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 

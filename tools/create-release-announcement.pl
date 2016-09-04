@@ -29,9 +29,6 @@ The changes in this release are outlined below:
 New in «release-name»:
 «changes»
 
-These are only some of the changes in this release. For a more
-detailed list, see “docs/ChangeLog”.
-
 The following people contributed to this release:
 
 «contributors»

@@ -3828,7 +3828,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $sig.set_returns($*OFTYPE.ast);
         }
-
+        # and mixin the parameterize callable for type checks
+        if $*SIG_OBJ.has_returns {
+            my $callable := $*W.find_symbol(['Callable']);
+            $code.HOW.mixin($code, $callable.HOW.parameterize($callable, $*SIG_OBJ.returns));
+        }
 
         # Document it
         Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);

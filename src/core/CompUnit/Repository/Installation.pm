@@ -4,6 +4,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
     has Int $!version;
+    has %!dist-metas;
     has $!precomp-stores;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
@@ -308,6 +309,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => conent-id mapping
         %meta<provides> = %provides; # new meta data added to provides
+        %!dist-metas{$dist-id} = %meta;
         $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
 
         # reset cached id so it's generated again on next access.
@@ -520,7 +522,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method resource($dist-id, $key) {
-        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
+        my $dist = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
         # need to strip the leading resources/ on old repositories
         self!resources-dir.child($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }

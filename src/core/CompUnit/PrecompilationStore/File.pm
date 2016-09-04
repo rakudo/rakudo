@@ -74,6 +74,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has IO::Path $.prefix is required;
     has IO::Handle $!lock;
     has int $!lock-count = 0;
+    has %!loaded;
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
     }
@@ -114,12 +115,9 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method load-unit(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        my $path = self.path($compiler-id, $precomp-id);
-        if $path ~~ :e {
-            CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path);
-        }
-        else {
-            Nil
+        %!loaded{$precomp-id} //= do {
+            my $path = self.path($compiler-id, $precomp-id);
+            $path ~~ :e ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path) !! Nil
         }
     }
 

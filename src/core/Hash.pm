@@ -693,6 +693,7 @@ my class Hash { # declared in BOOTSTRAP
                  }
               !! nqp::create(Capture)
         }
+        method Map() { self.pairs.Map }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

@@ -3,7 +3,8 @@
 =head1 release_guide.pod - guide to Rakudo releases
 
 B<< NOTE: this guide is for a manual release process. You may want
-to use the automated process described in L<release_guide_automated.md> >>
+to use the automated process described in
+L<docs/release_guide_automated.md|https://github.com/rakudo/rakudo/blob/nom/docs/release_guide_automated.md> >>
 
 Rakudo’s development release cycle is the third Saturday of
 each month.

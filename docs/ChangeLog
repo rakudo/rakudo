@@ -31,8 +31,8 @@ New in 2016.09
     + JSON META data is no longer read when loading modules and is read
         lazily only when it's actually requested by the user
  + Changed APIs:
-    + Rakudo now requires a version of NQP with the improved operator
-        precedence subrule `O()`; rather than taking a string containing
+    + The operator precedence configuration rule `O()` has been changed to be
+        more precompilation-friendly; rather than taking a string containing
         colonpairs, it now takes named arguments directly. This is not
         strictly a Perl 6 change, but rather a change in NQP, and thus only
         applies if you're doing fairly involved hacking on the grammar. If the

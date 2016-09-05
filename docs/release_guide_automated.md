@@ -5,6 +5,42 @@ Compiler. While not required, it can be useful to be familiar with the
 [manual release process](release_guide.pod), so you know what steps the build
 robot is performing.
 
+---
+
+## Missing Pieces
+
+Currently, the automated process does not handle the following items:
+
+### Leap Seconds
+
+Use the script to update the leap seconds table.
+**IMPORTANT:** ensure the changes are correct. If future known leap seconds
+were added manually, the script may end up removing them.
+
+```bash
+    perl tools/update-tai-utc.pl
+    git diff
+    # Ensure changes look good
+    git commit -m 'Update leap seconds table' src/core/Rakudo/Internals.pm
+    git push
+```
+
+### Copyright
+
+If it's a month relatively early in the calendar year, double-check that the
+copyright date in the README file includes the current year. (It's not necessary
+to update copyright dates in other files, unless you know that a given file has
+been modified in a year not reflected by the file’s copyright notice.)
+
+### Deprecations
+
+Check if any DEPRECATED code needs to be removed because the end of the
+deprecation cycle is reached.  One way of doing this, is to grep on the
+YYYYMM of the release (e.g. 201612 for the 2016.12 release).  If you find
+any occurrences, remove the code and make sure the spectest is still ok.
+
+---
+
 ## Dates
 
 Currently, the release happens on the third Saturday of the month, shortly

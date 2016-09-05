@@ -376,7 +376,10 @@ do {
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {
-                    default { say $_ }
+                    default {
+                        say $_;
+                        reset;
+                    }
                 }
 
             }

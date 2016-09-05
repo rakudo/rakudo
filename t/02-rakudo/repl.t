@@ -151,11 +151,13 @@ my @input-lines;
     like feed_repl_with(@input-lines), / "Unexpected closing bracket" /,
         'Syntax error gives the expected error';
 
-    @input-lines = 'sub }';
+    @input-lines = 'sub }', '6 * 7';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
         'Syntax error gives a compile-time error';
     like feed_repl_with(@input-lines), / "Missing block" /,
         'Syntax error gives the expected error';
+    like feed_repl_with(@input-lines), / "42" /,
+        'Syntax error continues execution';
 
     @input-lines = 'this-function-does-not-exist()';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,

@@ -98,7 +98,7 @@ Since last release, there are 125 new still-open tickets (15 unreviewed and 0
 blockers) and 4 unreviewed commits. See https://perl6.fail/release/stats for
 details
 
-Also, a few days before the release. Remind users to double check
+Also, a few days before the release, remind users to double check
 [the changelog](ChangeLog) to ensure the changes you've been adding during the
 month accurately reflect what the commits introduced.
 

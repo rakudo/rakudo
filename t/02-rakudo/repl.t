@@ -145,11 +145,13 @@ my @input-lines;
 }
 
 {
-    @input-lines = '}';
+    @input-lines = '}', '6 * 7';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
         'Syntax error gives a compile-time error';
     like feed_repl_with(@input-lines), / "Unexpected closing bracket" /,
         'Syntax error gives the expected error';
+    like feed_repl_with(@input-lines), / "42" /,
+        'Syntax error continues execution';
 
     @input-lines = 'sub }', '6 * 7';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
@@ -159,19 +161,25 @@ my @input-lines;
     like feed_repl_with(@input-lines), / "42" /,
         'Syntax error continues execution';
 
-    @input-lines = 'this-function-does-not-exist()';
+    @input-lines = 'this-function-does-not-exist()', '6 * 7';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
         'EVAL-time compile error gives a compile-time error';
     like feed_repl_with(@input-lines), / "Undeclared routine" /,
         'EVAL-time compile error error gives the expected error';
+    like feed_repl_with(@input-lines), / "42" /,
+        'EVAL-time compile error continues execution';
 
-    @input-lines = 'sub f { this-function-does-not-exist() } ; f()';
+    @input-lines = 'sub f { this-function-does-not-exist() } ; f()', '6 * 7';
     like feed_repl_with(@input-lines), / "Undeclared routine" /,
         'EVAL-time compile error error gives the expected error';
+    like feed_repl_with(@input-lines), / "42" /,
+        'EVAL-time compile error continues execution';
 
-    @input-lines = '[1].map:{[].grep:Str}';
+    @input-lines = '[1].map:{[].grep:Str}', '6 * 7';
     like feed_repl_with(@input-lines), / "Cannot resolve caller" /,
         'Print-time error error gives the expected error';
+    like feed_repl_with(@input-lines), / "42" /,
+        'Print-time error continues execution';
 }
 
 {

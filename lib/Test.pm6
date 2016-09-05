@@ -161,7 +161,8 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
         my $test = $got !=== $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            _diag "twice: ($got.^name())";
+            _diag "expected: anything except '$expected.perl()'";
+            _diag "     got: '$got.perl()'";
         }
     }
     $time_before = nqp::time_n;
@@ -175,7 +176,8 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got ne $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            _diag "twice: '$got'";
+            _diag "expected: anything except '$expected.perl()'";
+            _diag "     got: '$got.perl()'";
         }
     }
     else {

@@ -10,6 +10,7 @@ New in 2016.09
     + Fixed filehandle leak in precompilation
     + Regex in .grep and .first on Pairs now works correctly
     + Pod parser returns proper Bool instead of Int on passed config options
+    + Fixed PERL6_TEST_DIE_ON_FAIL=1 exiting the test suite too soon
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output

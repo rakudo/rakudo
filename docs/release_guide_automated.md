@@ -39,6 +39,13 @@ deprecation cycle is reached.  One way of doing this, is to grep on the
 YYYYMM of the release (e.g. 201612 for the 2016.12 release). If you find
 any occurrences, remove the code and make sure the spectest is still ok.
 
+### JVM Backend
+
+Due to several issues (test failures, failure with Inline::Perl5 loading)
+JVM *Rakudo* backend is currently not made and tested. You can follow the
+[manual release process](release_guide.pod) and [ask
+Zoffix](https://twitter.com/zoffix) to enable the JVM backend logic.
+
 ---
 
 ## Dates

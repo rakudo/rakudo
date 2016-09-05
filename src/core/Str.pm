@@ -2093,9 +2093,16 @@ multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
 multi sub infix:<~>(*@args) returns Str:D { @args.join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
-    nqp::if(nqp::islt_i($repetition, 0),
+    my Int $max = int.Range.max;
+    nqp::if(
+        nqp::islt_I(nqp::decont($repetition), 0),
         '',
-        nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition))))
+        nqp::if(
+            nqp::isgt_I(nqp::decont($repetition), nqp::decont($max)),
+            nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($max))),
+            nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
+        )
+    )
 }
 multi sub infix:<x>(str $s, int $repetition) returns str {
     nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))

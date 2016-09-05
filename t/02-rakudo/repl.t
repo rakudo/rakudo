@@ -151,11 +151,14 @@ my @input-lines;
     like feed_repl_with(@input-lines), / "Unexpected closing bracket" /,
         'Syntax error gives the expected error';
 
-    @input-lines = 'sub }';
-    like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
+    @input-lines = 'sub }', 'say 1+1';
+    like feed_repl_with(@input-lines),
+        / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
         'Syntax error gives a compile-time error';
     like feed_repl_with(@input-lines), / "Missing block" /,
         'Syntax error gives the expected error';
+    is   feed_repl_with(@input-lines).comb('Error while compiling').elems, 1,
+        'Syntax error clears on further input';
 
     @input-lines = 'this-function-does-not-exist()';
     like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,

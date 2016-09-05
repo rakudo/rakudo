@@ -76,6 +76,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has int $!lock-count = 0;
     has %!loaded;
     has %!compiler-cache;
+    has %!dir-cache;
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
     }
@@ -87,8 +88,9 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method !dir(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
-            .child($precomp-id.substr(0, 2).IO)
+        %!dir-cache{$compiler-id}{$precomp-id} //=
+            (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
+                .child($precomp-id.substr(0, 2).IO)
     }
 
     method path(CompUnit::PrecompilationId $compiler-id,

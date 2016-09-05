@@ -26,6 +26,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     has CompUnit::PrecompilationId $.id;
     has Str $.src;
     has Str $.checksum is rw;
+    has Str $!serialized-spec;
     has CompUnit::DependencySpecification $.spec;
 
     method source-name() {
@@ -33,21 +34,32 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     }
 
     method deserialize(Str $str) {
+        my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
+        nqp::p6bindattrinvres(
+            self.new(:$id, :$src, :$checksum),
+            CompUnit::PrecompilationDependency::File,
+            '$!serialized-spec',
+            $spec,
+        );
+    }
+
+    method spec(--> CompUnit::DependencySpecification) {
+        $!spec //= $!serialized-spec
+            ?? do {
 #?if jvm
-        my ($id, $src, $checksum, *@spec) = $str.split("\0", 7);
-        my @spec-pairs;
-        for @spec>>.match(/(<-[:]>+)':'(.+)/) {
-            @spec-pairs.push: .[0].Str => (.[1] ~~ / ^ \d+ $ / ?? .[1].Int !! .[1].Str);
-        }
-        note @spec-pairs if %*ENV<SPECIFIC_DEBUG>;
-        my CompUnit::DependencySpecification $spec .= new: |%(|@spec-pairs);
+                my @spec = $!serialized-spec.split("\0", 3);
+                my @spec-pairs;
+                for @spec>>.match(/(<-[:]>+)':'(.+)/) {
+                    @spec-pairs.push: .[0].Str => (.[1] ~~ / ^ \d+ $ / ?? .[1].Int !! .[1].Str);
+                }
+                CompUnit::DependencySpecification.new: |%(|@spec-pairs);
 #?endif
 #?if moar
-        use MONKEY-SEE-NO-EVAL;
-        my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
-        $spec = EVAL $spec;
+                use MONKEY-SEE-NO-EVAL;
+                EVAL $!serialized-spec;
 #?endif
-        self.new(:$id, :$src, :$checksum, :$spec);
+            }
+            !! Nil;
     }
 
     method serialize(--> Str) {

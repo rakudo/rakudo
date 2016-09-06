@@ -232,7 +232,7 @@ my class IO::Path is Cool {
     }
 
     method child (IO::Path:D: $child) {
-        self.bless(:path($!SPEC.catfile($!path,$child)), :$!SPEC, :$!CWD);
+        self.bless(:path($!SPEC.join('', $!path, $child)), :$!SPEC, :$!CWD);
     }
 
     proto method chdir(|) { * }

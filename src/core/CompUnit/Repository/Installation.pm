@@ -325,9 +325,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my $compiler-id = $*PERL.compiler.id;
+            my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
             for %provides.kv -> $source-name, $source-meta {
-                my $id = $source-meta.values[0]<file>;
+                my $id = CompUnit::PrecompilationId.new($source-meta.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
             }
 
@@ -343,7 +343,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 note("Precompiling $id ($source-name)") if $verbose;
                 $precomp.precompile(
                     $source.IO,
-                    $id,
+                    CompUnit::PrecompilationId.new($id),
                     :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
@@ -516,7 +516,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
-                    :$id,
+                    :id(CompUnit::PrecompilationId.new($id)),
                     :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.abspath),
                     :$spec,
                 ),

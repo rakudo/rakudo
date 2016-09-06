@@ -46,7 +46,7 @@ my $source = $*REPO.prefix.child('sources').child($source-id);
 my $source-file = $source.relative($*REPO.prefix);
 $*REPO.precomp-repository.precompile(
         $source,
-        $source-id,
+        CompUnit::PrecompilationId.new($source-id),
         :source-name("perl#$source-file (CompUnit::Repository::Staging)"),
         :force,
     );

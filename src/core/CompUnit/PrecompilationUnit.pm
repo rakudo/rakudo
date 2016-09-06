@@ -1,5 +1,14 @@
-subset CompUnit::PrecompilationId of Str:D
-    where { 2 < .chars < 64 && $_ ~~ /^<[A..Za..z0..9._-]>+$/ };
+class CompUnit::PrecompilationId {
+    has $.id;
+
+    method new(Str:D $id where { 2 < .chars < 64 && $_ ~~ /^<[A..Za..z0..9._-]>+$/ }) {
+        self.bless(:$id)
+    }
+
+    method Str()      { $!id }
+    method IO()       { $!id.IO }
+    method substr(|c) { $!id.substr(|c) }
+}
 
 role CompUnit::PrecompilationDependency {
     method id(--> CompUnit::PrecompilationId) { ... }
@@ -36,7 +45,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     method deserialize(Str $str) {
         my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
         nqp::p6bindattrinvres(
-            self.new(:$id, :$src, :$checksum),
+            self.new(:id(CompUnit::PrecompilationId.new($id)), :$src, :$checksum),
             CompUnit::PrecompilationDependency::File,
             '$!serialized-spec',
             $spec,

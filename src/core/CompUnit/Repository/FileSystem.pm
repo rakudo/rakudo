@@ -52,7 +52,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !comp-unit-id($name) {
-        nqp::sha1($name);
+        CompUnit::PrecompilationId.new(nqp::sha1($name));
     }
 
     method id() {
@@ -84,7 +84,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         return CompUnit.new(
             :short-name($spec.short-name),
-            :repo-id(self!comp-unit-id($spec.short-name)),
+            :repo-id(self!comp-unit-id($spec.short-name).Str),
             :repo(self)
         ) if $base;
         return self.next-repo.resolve($spec) if self.next-repo;
@@ -127,7 +127,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 :short-name($name),
                 :$handle,
                 :repo(self),
-                :repo-id($id),
+                :repo-id($id.Str),
                 :$precompiled,
             );
         }

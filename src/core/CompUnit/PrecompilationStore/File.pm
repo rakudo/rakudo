@@ -88,7 +88,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method !dir(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        %!dir-cache{$compiler-id}{$precomp-id} //=
+        %!dir-cache{$compiler-id ~ $precomp-id} //=
             (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
                 .child($precomp-id.substr(0, 2).IO)
     }

@@ -171,7 +171,18 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Nil
     }
 
-    method precompile(
+    proto method precompile(|) {*}
+
+    multi method precompile(
+        IO::Path:D $path,
+        Str $id,
+        Bool :$force = False,
+        :$source-name = $path.Str
+    ) {
+        self.precompile($path, CompUnit::PrecompilationId.new($id), :$force, :$source-name)
+    }
+
+    multi method precompile(
         IO::Path:D $path,
         CompUnit::PrecompilationId $id,
         Bool :$force = False,

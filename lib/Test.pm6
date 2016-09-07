@@ -20,6 +20,7 @@ my $num_of_tests_planned;
 my int $no_plan;
 my num $time_before;
 my num $time_after;
+my int $subtest_level = 0;
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
 my $output;
@@ -338,7 +339,9 @@ multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
     $indents ~= "    ";
+    $subtest_level++;
     subtests();
+    $subtest_level--;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
@@ -535,7 +538,7 @@ sub _is_deeply(Mu $got, Mu $expected) {
 ## 'private' subs
 
 sub die-on-fail {
-    if !$todo_reason && nqp::iseq_i($die_on_fail,1) {
+    if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
         _diag 'Test failed. Stopping test suite, because'
                 ~ ' PERL6_TEST_DIE_ON_FAIL environmental variable is set'
                 ~ ' to a true value.';

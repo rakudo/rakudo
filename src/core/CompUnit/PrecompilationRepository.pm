@@ -145,7 +145,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         True
     }
 
-    method load(
+    proto method load(|) {*}
+
+    multi method load(
+        Str $id,
+        Instant :$since,
+        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+    ) {
+        self.load(CompUnit::PrecompilationId.new($id), :$since, :@precomp-stores)
+    }
+
+    multi method load(
         CompUnit::PrecompilationId $id,
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),

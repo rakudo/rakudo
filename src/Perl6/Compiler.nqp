@@ -84,6 +84,7 @@ class Perl6::Compiler is HLL::Compiler {
       -v, --version        display version information
       --stagestats         display time spent in the compilation stages
       --ll-exception       display a low level backtrace on errors
+      --grammar-errors     display grammar errors when running under -e
       --profile[=kind]     write profile information to an HTML file (MoarVM)
                              instrumented - performance measurements (default)
                              heap - record heap snapshots after every

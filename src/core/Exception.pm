@@ -570,7 +570,7 @@ my role X::Comp is Exception {
                 !! "$.message\nat line $.line"
               !! "$.message\nat $.filename():$.line";
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
-            if $expect && @.highexpect {
+            if $expect && @.highexpect && !($*PROGRAM-NAME eq '-e' and !Rakudo::Internals.GRAMMAR-ERRORS) {
                 $r ~= "\n    expecting any of:";
                 for @.highexpect {
                     $r ~= "\n        $_";

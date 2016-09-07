@@ -1,5 +1,3 @@
-use nqp;
-
 class REPL { ... }
 
 do {

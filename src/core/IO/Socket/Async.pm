@@ -91,7 +91,8 @@ my class IO::Socket::Async {
                 my $decoder = VMBackedDecoder.new('utf8');
                 whenever $bin-supply {
                     $decoder.add-bytes($_);
-                    emit $decoder.consume-available-chars();
+                    my $available = $decoder.consume-available-chars();
+                    emit $available if $available ne '';
                     LAST {
                         # XXX The `with` is required due to a bug where the
                         # LAST phaser is not properly scoped if we don't get

@@ -38,7 +38,7 @@ my class Date does Dateish {
           invalid-str => $date,
           target      => 'Date',
           format      => 'yyyy-mm-dd',
-        ).throw unless $date ~~ /^
+        ).throw unless $date.codes == $date.chars and $date ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month

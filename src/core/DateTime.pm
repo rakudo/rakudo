@@ -163,7 +163,7 @@ my class DateTime does Dateish {
           invalid-str => $datetime,
           target      => 'DateTime',
           format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-        ).throw unless $datetime ~~ /^
+        ).throw unless $datetime.chars == $datetime.codes and $datetime ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month

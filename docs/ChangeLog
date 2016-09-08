@@ -11,6 +11,9 @@ New in 2016.09
     + Regex in .grep and .first on Pairs now works correctly
     + Pod parser returns proper Bool instead of Int on passed config options
     + Fixed PERL6_TEST_DIE_ON_FAIL=1 exiting the test suite too soon
+        or dieing on failing tests inside TODOed subtests
+    + Fixed failure to accept enums as types for optional arguments
+    + Fixed blocking bug when using socket accept and threads
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
@@ -20,17 +23,14 @@ New in 2016.09
     + Added support for very large numbers in :42foo colon pairs
     + Added a .Map coercer for object hashes
  + Efficiency:
+    + Numerous improvements in CUR, offering up to 10x faster module loading
     + Baggy.ACCEPTS(Baggy) is now about 25x faster
     + Baggy eqv Baggy is now at least 10x faster
     + Infix === now checks identicality, offering performance gains on large
         objects, such as a Bag with 1000 elements
     + Many metaops are now about 10% faster
-    + CompUnit::PrecompilationUnits loaded from a store are now cached
-    + List of default precomp-stores is now cached
-    + META6.json of a FileSystem repository is now read only once
-    + Distribution meta data is now cached between calls to .resource in CURI
-    + JSON META data is no longer read when loading modules and is read
-        lazily only when it's actually requested by the user
+    + Made Junction.Bool|ACCEPTS about 2x faster
+    + Improvement in performance of IO::Path::child
  + Changed APIs:
     + The operator precedence configuration rule `O()` has been changed to be
         more precompilation-friendly; rather than taking a string containing

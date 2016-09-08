@@ -62,6 +62,73 @@ my sub combinations(Int() $n, Int() $k) {
     }.new($n, $k))
 }
 
+sub permutations(Int() $n) {
+    return ((),) if $n < 1;
+    my $max = $*KERNEL.bits == 32 ?? 13 !! 20;
+    fail "Cowardly refusing to permutate more than $max elements, tried $n"
+      if $n > $max;
+
+    # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+    Seq.new( class :: does Iterator {
+        has int $!n;
+        has int $!todo;
+        has $!next;
+        method !SET-SELF(int $n) {
+            $!n     = $n;  # cannot set native int in sig yet
+            $!todo  = self.count-only;
+            $!next := nqp::setelems(nqp::list,$n);
+            nqp::bindpos($!next,$_,$_) for ^$n;
+            self
+        }
+        method new(\n) { nqp::create(self)!SET-SELF(n) }
+        method pull-one {
+            nqp::if(
+              nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0),
+              nqp::stmts(
+                (my $permuted := nqp::clone($!next)),
+                nqp::if(
+                  $!todo,     # need to calculate next one
+                  nqp::stmts( # find largest index k such that a[k] < a[k + 1].
+                    (my int $k = nqp::sub_i($!n,2)),
+                    nqp::until(
+                      nqp::islt_i(
+                        nqp::atpos($!next,$k),
+                        nqp::atpos($!next,nqp::add_i($k,1))
+                      ),
+                      ($k = nqp::sub_i($k,1)),
+                    ),
+                    (my int $l = nqp::sub_i($!n,1)),
+                    nqp::until(
+                      nqp::islt_i( # find largest index l > k where a[k] < a[l].
+                        nqp::atpos($!next,$k),
+                        nqp::atpos($!next,$l)
+                      ),
+                      ($l = nqp::sub_i($l,1))
+                    ),
+                    self!swap($k,$l),
+                  )
+                ),
+                ($l = $!n),
+                nqp::until(
+                  nqp::isge_i(($k = nqp::add_i($k,1)),($l = nqp::sub_i($l,1))),
+                  self!swap($k,$l)
+                ),
+                nqp::p6bindattrinvres(
+                  nqp::create(List),List,'$!reified',$permuted)
+              ),
+              IterationEnd
+            )
+        }
+        method !swap(int $k,int $l --> Nil) {
+            my $tmp := nqp::atpos($!next,$k);
+            nqp::bindpos($!next,$k,nqp::atpos($!next,$l));
+            nqp::bindpos($!next,$l,$tmp)
+        }
+        method count-only { [*] 1 .. $!n }
+        method bool-only(--> True) { }
+    }.new($n))
+}
+
 sub find-reducer-for-op($op) {
     try my %prec := $op.prec;
     return &METAOP_REDUCE_LEFT if (nqp::isnull(%prec) or ! %prec);
@@ -1208,7 +1275,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     proto method permutations(|) is nodal {*}
-    multi method permutations() is nodal {
+    multi method permutations() {
         permutations(self.elems).map: { self[@$_] }
     }
 

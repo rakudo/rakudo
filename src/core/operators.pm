@@ -659,45 +659,4 @@ multi sub infix:<∘> (&f) { &f }
 multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
 my &infix:<o> := &infix:<∘>;
 
-# needs native arrays
-sub permutations(Int() $n) {
-    return ((),) if $n < 1;
-
-    Seq.new(
-        class :: does Iterator {
-            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
-            has int $!n;
-            has     @!a;
-            submethod BUILD(:$n --> Nil) { $!n = $n } # cannot set native in sig
-            #method is-lazy { True }
-            method pull-one {
-                return (@!a = ^$!n).List unless @!a;
-
-                # stop if there is only one value
-                # ( only needed because $k starts as 0 in this case )
-                return IterationEnd if $!n == 1;
-
-                # Find the largest index k such that a[k] < a[k + 1].
-                # If no such index exists, the permutation is the last permutation.
-                my int $k = @!a.end - 1;
-                $k-- or return IterationEnd until @!a[$k] < @!a[$k + 1];
-
-                # Find the largest index l greater than k such that a[k] < a[l].
-                my int $l = @!a.end;
-                $l-- until @!a[$k] < @!a[$l];
-                # use L<https://en.wikipedia.org/wiki/XOR_swap_algorithm>
-                # @!a[$k, $l].=reverse
-                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k];
-
-                # @!a[$k+1 .. @!a.end].=reverse;
-                $l = $!n;
-                (@!a[$k] +^= @!a[$l]) +^= @!a[$l] +^= @!a[$k] until ++$k >= --$l;
-                @!a.List;
-            }
-            method count-only { [*] 1 .. $!n }
-            method bool-only(--> True) { }
-        }.new(:$n)
-    );
-}
-
 # vim: ft=perl6 expandtab sw=4

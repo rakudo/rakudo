@@ -2,6 +2,7 @@ my class IO::Socket::Async {
     my class SocketCancellation is repr('AsyncTask') { }
 
     has $!VMIO;
+    has int $!udp;
 
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
@@ -87,19 +88,28 @@ my class IO::Socket::Async {
         }
         else {
             my $bin-supply = self.Supply(:bin);
-            supply {
-                my $decoder = VMBackedDecoder.new('utf8');
-                whenever $bin-supply {
-                    $decoder.add-bytes($_);
-                    my $available = $decoder.consume-available-chars();
-                    emit $available if $available ne '';
-                    LAST {
-                        # XXX The `with` is required due to a bug where the
-                        # LAST phaser is not properly scoped if we don't get
-                        # any bytes. Since that means there's nothing to emit
-                        # anyway, we'll not worry about this case for now.
-                        with $decoder {
-                            emit .consume-all-chars();
+            if $!udp {
+                supply {
+                    whenever $bin-supply {
+                        emit .decode('utf-8');
+                    }
+                }
+            }
+            else {
+                supply {
+                    my $decoder = VMBackedDecoder.new('utf8');
+                    whenever $bin-supply {
+                        $decoder.add-bytes($_);
+                        my $available = $decoder.consume-available-chars();
+                        emit $available if $available ne '';
+                        LAST {
+                            # XXX The `with` is required due to a bug where the
+                            # LAST phaser is not properly scoped if we don't get
+                            # any bytes. Since that means there's nothing to emit
+                            # anyway, we'll not worry about this case for now.
+                            with $decoder {
+                                emit .consume-all-chars();
+                            }
                         }
                     }
                 }
@@ -171,6 +181,7 @@ my class IO::Socket::Async {
                 else {
                     my $client_socket := nqp::create(self);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr_i($client_socket, IO::Socket::Async, '$!udp', 1);
                     $p.keep($client_socket);
                 }
             },
@@ -191,6 +202,7 @@ my class IO::Socket::Async {
                 else {
                     my $client_socket := nqp::create(self);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr_i($client_socket, IO::Socket::Async, '$!udp', 1);
                     $p.keep($client_socket);
                 }
             },

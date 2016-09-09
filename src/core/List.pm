@@ -1276,7 +1276,40 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() {
-        permutations(self.elems).map: { self[@$_] }
+        if self.elems -> $elems {
+            Seq.new(class :: does Iterator {
+                has $!iter;
+                has $!list;
+                method !SET-SELF(\list,\elems) {
+                    $!iter := permutations(elems).iterator;
+                    $!list := nqp::getattr(list,List,'$!reified');
+                    self
+                }
+                method new(\list,\elems) {
+                    nqp::create(self)!SET-SELF(list,elems)
+                }
+                method pull-one() {
+                    nqp::if(
+                      nqp::eqaddr((my $result := $!iter.pull-one),IterationEnd),
+                      IterationEnd,
+                      nqp::stmts(
+                        (my $reified := nqp::getattr($result,List,'$!reified')),
+                        (my int $elems = nqp::elems($reified)),
+                        (my int $i = -1),
+                        nqp::while(  # repurpose permutation List as result
+                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                          nqp::bindpos($reified,$i,
+                            nqp::atpos($!list,nqp::atpos($reified,$i)))
+                        ),
+                        $result
+                      )
+                    )
+                }
+            }.new(self,$elems))
+        }
+        else {   # XXX this only seems to satisfy the spectest
+            permutations(0).map: { self[@$_] }
+        }
     }
 
     method join(List:D: $separator = '') is nodal {

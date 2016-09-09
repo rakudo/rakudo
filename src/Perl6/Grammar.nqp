@@ -4844,17 +4844,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role ww {
-        token escape:sym<' '> {
-            <?[']> <quote=.LANG('MAIN','quote')>
-        }
-        token escape:sym<‘ ’> {
-            <?[‘]> <quote=.LANG('MAIN','quote')>
-        }
-        token escape:sym<" "> {
-            <?["]> <quote=.LANG('MAIN','quote')>
-        }
-        token escape:sym<“ ”> {
-            <?[“]> <quote=.LANG('MAIN','quote')>
+        token escape:sym<'> {
+            <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')>
         }
         token escape:sym<colonpair> {
             <?[:]> <!RESTRICTED> <colonpair=.LANG('MAIN','colonpair')>

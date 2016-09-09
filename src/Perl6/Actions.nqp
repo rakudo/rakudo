@@ -9237,10 +9237,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method escape:sym<%>($/) { make $<EXPR>.ast; }
     method escape:sym<&>($/) { make $<EXPR>.ast; }
 
-    method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<‘ ’>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<“ ”>($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<'>($/) { make mark_ww_atom($<quote>.ast); }
     method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
     sub mark_ww_atom($ast) {
         $ast.annotate('ww_atom', 1);

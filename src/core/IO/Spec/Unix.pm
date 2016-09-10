@@ -6,7 +6,9 @@ my class IO::Spec::Unix is IO::Spec {
 
         $path.subst-mutate: rx[ '//' '/'* ], '/', :g if $path.contains('//');     # xx////xx  -> xx/xx
         $path.subst-mutate: rx[ '/.'+ ['/' | $] ], '/', :g if $path.contains('/.');     # xx/././xx -> xx/xx
-        $path.subst-mutate: rx[ ^ './' <!before $> ], '' if $path.starts-with('.'); # ./xx      -> xx
+        if $path.starts-with('./') && $path.chars > 2 {
+            $path .= substr(2);
+        }
         if $parent {
             Nil while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '';
             $path = '.' if $path eq '';

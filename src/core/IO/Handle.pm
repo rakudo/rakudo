@@ -127,16 +127,24 @@ my class IO::Handle does IO {
 
     method get(IO::Handle:D:) {
         my str $str;
-        if $!chomp {
-            $str = nqp::readlinechompfh($!PIO);
-            # loses last empty line because EOF is set too early, RT #126598
-            nqp::chars($str) || !nqp::eoffh($!PIO) ?? $str !! Nil
-        }
-        else {
-            $str = nqp::readlinefh($!PIO);
-            # no need to check EOF
-            nqp::chars($str) ?? $str !! Nil
-        }
+        nqp::if($!chomp,
+            nqp::stmts(
+                ($str = nqp::readlinechompfh($!PIO)),
+                # loses last empty line because EOF is set too early, RT #126598
+                nqp::if(nqp::chars($str) || !nqp::eoffh($!PIO),
+                    $str,
+                    Nil
+                )
+            ),
+            nqp::stmts(
+                ($str = nqp::readlinefh($!PIO)),
+                # no need to check EOF
+                nqp::if(nqp::chars($str),
+                    $str,
+                    Nil
+                )
+            )
+        )
     }
 
     method getc(IO::Handle:D:) {

@@ -4,7 +4,7 @@ my class IO::Spec::Unix is IO::Spec {
         my $path = $patharg.Str;
         return '' unless $path.chars;
 
-        $path.subst-mutate: rx[ '//' '/'* ], '/', :g if $path.contains('//');     # xx////xx  -> xx/xx
+        $path.subst-mutate('//', '/', :g) while $path.contains('//');
         $path.subst-mutate: rx[ '/.'+ ['/' | $] ], '/', :g if $path.contains('/.');     # xx/././xx -> xx/xx
         if $path.starts-with('./') && $path.chars > 2 {
             $path .= substr(2);

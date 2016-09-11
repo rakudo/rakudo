@@ -75,14 +75,13 @@ my class Promise does Awaitable {
         self.vow.keep(result)
     }
 
-    method !keep(Mu \result) {
+    method !keep(Mu \result --> Nil) {
         $!lock.protect({
             $!result := result;
             $!status = Kept;
             self!schedule_thens();
             $!cond.signal_all;
         });
-        Nil
     }
 
     proto method break(|) { * }
@@ -93,7 +92,7 @@ my class Promise does Awaitable {
         self.vow.break(result)
     }
 
-    method !break(\result) {
+    method !break(\result --> Nil) {
         $!lock.protect({
             $!result = nqp::istype(result, Exception)
                 ?? result
@@ -102,10 +101,9 @@ my class Promise does Awaitable {
             self!schedule_thens();
             $!cond.signal_all;
         });
-        Nil
     }
 
-    method !schedule_thens() {
+    method !schedule_thens(--> Nil) {
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }

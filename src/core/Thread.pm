@@ -61,9 +61,8 @@ my class Thread {
         "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
     }
 
-    method yield(Thread:U:) {
+    method yield(Thread:U: --> Nil) {
         nqp::threadyield();
-        Nil
     }
 }
 

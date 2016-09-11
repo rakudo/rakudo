@@ -599,7 +599,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms) {
+sub REQUIRE_IMPORT($compunit, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
@@ -617,7 +617,6 @@ sub REQUIRE_IMPORT($compunit, *@syms) {
     }
     # Merge GLOBAL from compunit.
     GLOBAL::.merge-symbols($GLOBALish);
-    Nil;
 }
 
 sub infix:<andthen>(+a) {

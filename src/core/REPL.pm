@@ -39,7 +39,7 @@ do {
         splice(@values, $insert_pos, 0, $value);
     }
 
-    my sub mkpath(IO::Path $full-path) {
+    my sub mkpath(IO::Path $full-path --> Nil) {
         my ( :$directory, *% ) := $full-path.parts;
         my @parts = $*SPEC.splitdir($directory);
 
@@ -120,7 +120,7 @@ do {
                     /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
                 }).sort;
 
-        method update-completions {
+        method update-completions(--> Nil) {
             my $context := self.compiler.context;
 
             return unless $context;
@@ -267,7 +267,7 @@ do {
             $self
         }
 
-        method init(Mu \compiler, $multi-line-enabled) {
+        method init(Mu \compiler, $multi-line-enabled --> Nil) {
             $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
         }
@@ -383,7 +383,7 @@ do {
         }
 
         # Inside of the EVAL it does like caller.ctxsave
-        method ctxsave() {
+        method ctxsave(--> Nil) {
             $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
             $*CTXSAVE := 0;
         }
@@ -396,7 +396,7 @@ do {
             $value.WHERE == $!control-not-allowed.WHERE
         }
 
-        method repl-print(Mu $value) {
+        method repl-print(Mu $value --> Nil) {
             say $value;
             CATCH {
                 default { say $_ }

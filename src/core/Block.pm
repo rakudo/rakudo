@@ -319,7 +319,7 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
     }
 }

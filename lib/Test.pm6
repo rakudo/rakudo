@@ -339,9 +339,11 @@ multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
     $indents ~= "    ";
-    $subtest_level++;
+    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
+    $subtest_level += 1;
     subtests();
-    $subtest_level--;
+    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<--> does not die here
+    $subtest_level -= 1;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status =
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;

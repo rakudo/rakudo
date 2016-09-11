@@ -1264,8 +1264,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     proto method combinations($?) is nodal {*}
-    multi method combinations( Int $of ) {
-        combinations(self.elems, $of).map: { self[@$_] }
+    multi method combinations(Int() $of) {
+        Rakudo::Internals.ListsFromSeq(self,combinations(self.elems,$of))
     }
     multi method combinations( Range $ofrange = 0 .. * ) {
         my $over := ($ofrange.first max 0)
@@ -1276,40 +1276,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() {
-        if self.elems -> $elems {
-            Seq.new(class :: does Iterator {
-                has $!iter;
-                has $!list;
-                method !SET-SELF(\list,\elems) {
-                    $!iter := permutations(elems).iterator;
-                    $!list := nqp::getattr(list,List,'$!reified');
-                    self
-                }
-                method new(\list,\elems) {
-                    nqp::create(self)!SET-SELF(list,elems)
-                }
-                method pull-one() {
-                    nqp::if(
-                      nqp::eqaddr((my $result := $!iter.pull-one),IterationEnd),
-                      IterationEnd,
-                      nqp::stmts(
-                        (my $reified := nqp::getattr($result,List,'$!reified')),
-                        (my int $elems = nqp::elems($reified)),
-                        (my int $i = -1),
-                        nqp::while(  # repurpose permutation List as result
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                          nqp::bindpos($reified,$i,
-                            nqp::atpos($!list,nqp::atpos($reified,$i)))
-                        ),
-                        $result
-                      )
-                    )
-                }
-            }.new(self,$elems))
-        }
-        else {   # an empty list should occur once in its permutations
-            ((),).Seq
-        }
+        Rakudo::Internals.ListsFromSeq(self,permutations(self.elems))
     }
 
     method join(List:D: $separator = '') is nodal {

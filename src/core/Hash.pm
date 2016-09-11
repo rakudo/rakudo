@@ -169,7 +169,7 @@ my class Hash { # declared in BOOTSTRAP
           nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
     }
 
-    multi method DELETE-KEY(Hash:U:) { Nil }
+    multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
         nqp::if(
           (nqp::getattr(self,Map,'$!storage').DEFINITE

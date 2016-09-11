@@ -94,7 +94,7 @@ my class Attribute { # declared in BOOTSTRAP
         self.apply_handles($package);
     }
 
-    method apply_handles(Mu $pkg) {
+    method apply_handles(Mu $pkg --> Nil) {
         # None by default.
     }
 
@@ -119,7 +119,7 @@ my class Attribute { # declared in BOOTSTRAP
         )
     }
 
-    method set_value(Mu $obj, Mu \value) {
+    method set_value(Mu $obj, Mu \value --> Nil) {
         nqp::if(
           nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
           nqp::bindattr(nqp::decont($obj),$!package,$!name,value),

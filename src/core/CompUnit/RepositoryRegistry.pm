@@ -163,7 +163,7 @@ class CompUnit::RepositoryRegistry {
         $next-repo
     }
 
-    method !remove-from-chain(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
+    method !remove-from-chain(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO --> Nil) {
         my $item = $current;
         while $item {
             if $item.next-repo === $repo {
@@ -212,7 +212,7 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
-    method resolve-unknown-repos(@repos) {
+    method resolve-unknown-repos(@repos --> Nil) {
         for @repos.pairs {
             if nqp::istype($_.value, CompUnit::Repository::Unknown) {
                 my $i = $_.key;
@@ -241,7 +241,7 @@ class CompUnit::RepositoryRegistry {
 
     # Handles any object repossession conflicts that occurred during module load,
     # or complains about any that cannot be resolved.
-    method resolve_repossession_conflicts(@conflicts) {
+    method resolve_repossession_conflicts(@conflicts --> Nil) {
         for @conflicts -> $orig is raw, $current is raw {
             # If it's a Stash in conflict, we make sure any original entries get
             # appropriately copied.

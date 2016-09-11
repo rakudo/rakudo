@@ -14,6 +14,8 @@ New in 2016.09
         or dieing on failing tests inside TODOed subtests
     + Fixed failure to accept enums as types for optional arguments
     + Fixed blocking bug when using socket accept and threads
+    + Fixed fatal bug when using Non-ASCII tokens in regex/grammars
+    + Fixed missing adverbs and candidates in Cool.split; made same as Str.split
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
@@ -22,6 +24,8 @@ New in 2016.09
         folders when empty
     + Added support for very large numbers in :42foo colon pairs
     + Added a .Map coercer for object hashes
+    + All Unicode quotes can now be used as quoters inside qqww/qww
+    + LEFT/RIGHT DOUBLE PARENTHESIS characters can now be used with q and others
  + Efficiency:
     + Numerous improvements in CUR, offering up to 10x faster module loading
     + Baggy.ACCEPTS(Baggy) is now about 25x faster
@@ -31,6 +35,9 @@ New in 2016.09
     + Many metaops are now about 10% faster
     + Made Junction.Bool|ACCEPTS about 2x faster
     + Improvement in performance of IO::Path::child
+    + Made permutations() about 5x faster
+    + Made List.permutations about 8x faster
+    + Made Unix's canonpath several times faster for simple paths
  + Changed APIs:
     + The operator precedence configuration rule `O()` has been changed to be
         more precompilation-friendly; rather than taking a string containing

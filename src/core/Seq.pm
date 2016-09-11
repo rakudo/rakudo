@@ -155,9 +155,8 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.perl ~ '.Seq';
     }
 
-    method sink() {
+    method sink(--> Nil) {
         self.iterator.sink-all if $!iter.DEFINITE;
-        Nil
     }
 
     multi method AT-POS(Seq:D: Int $idx) is raw {

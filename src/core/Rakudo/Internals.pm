@@ -210,7 +210,7 @@ my class Rakudo::Internals {
         }
     }
 
-    method SET_LEADING_DOCS($obj, $docs) {
+    method SET_LEADING_DOCS($obj, $docs --> Nil) {
         my $current_why := $obj.WHY;
 
         if $current_why {
@@ -231,7 +231,7 @@ my class Rakudo::Internals {
         }
     }
 
-    method SET_TRAILING_DOCS($obj, $docs) {
+    method SET_TRAILING_DOCS($obj, $docs --> Nil) {
         my $current_why := $obj.WHY;
 
         if $current_why {
@@ -273,7 +273,7 @@ my class Rakudo::Internals {
         0;
     }
 
-    method THE_END {
+    method THE_END(--> Nil) {
         my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
             nqp::getcurhllsym("@END_PHASERS"));
         for @END -> $end { $end() };
@@ -290,7 +290,6 @@ my class Rakudo::Internals {
         trimmed = nqp::islt_i($pos, $left)
           ?? ''
           !! nqp::substr(string, $left, $pos + 1 - $left);
-        Nil
     }
 
     # fast key:value split: Str to split, str to store key, str to store value
@@ -309,7 +308,6 @@ my class Rakudo::Internals {
             key = '';
             self.TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
         }
-        Nil
     }
 
     # key space value split: Str to split, str to store key, str to store value
@@ -328,7 +326,6 @@ my class Rakudo::Internals {
             key   = '';
             value = nqp::substr($str,1,nqp::chars($str) - 1);
         }
-        Nil
     }
 
     my $encodings := nqp::hash(
@@ -367,7 +364,7 @@ my class Rakudo::Internals {
         }
     }
 
-    method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
+    method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending --> Nil) {
         if nqp::istype($ending, Iterable) {
             my \endings = nqp::list_s();
             for @$ending -> $e {
@@ -383,7 +380,6 @@ my class Rakudo::Internals {
         else {
             nqp::setinputlinesep(handle, nqp::unbox_s($ending.Str))
         }
-        Nil
     }
 
     # True if given array does not just contain objects of given type
@@ -563,7 +559,7 @@ my class Rakudo::Internals {
             }
         }
 
-        method !STORE-PATH(@path, @rest, \in) {
+        method !STORE-PATH(@path, @rest, \in --> Nil) {
             my int $cur-pos = 0;
             if @rest.elems == 1 {
                 for in -> \item {

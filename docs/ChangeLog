@@ -36,7 +36,7 @@ New in 2016.09
     + Made Junction.Bool|ACCEPTS about 2x faster
     + Improvement in performance of IO::Path::child
     + Made permutations() about 5x faster
-    + Made List.permutations about 8x faster
+    + Made List.permutations about 40x faster
     + Made Unix's canonpath several times faster for simple paths
  + Changed APIs:
     + The operator precedence configuration rule `O()` has been changed to be

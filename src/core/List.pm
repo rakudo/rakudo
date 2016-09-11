@@ -5,7 +5,7 @@ my class Supplier { ... }
 
 my sub combinations(Int() $n, Int() $k) {
     return () if $k < 0;
-    return ((),) if $n < 1 || $k < 1;
+    return ((),).Seq if $n < 1 || $k < 1;
 
     fail X::OutOfRange.new(
       :what("First parameter"),
@@ -63,7 +63,7 @@ my sub combinations(Int() $n, Int() $k) {
 }
 
 sub permutations(Int() $n) {
-    return ((),) if $n < 1;
+    return ((),).Seq if $n < 1;
     my $max = $*KERNEL.bits == 32 ?? 13 !! 20;
     fail "Cowardly refusing to permutate more than $max elements, tried $n"
       if $n > $max;
@@ -1307,8 +1307,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 }
             }.new(self,$elems))
         }
-        else {   # XXX this only seems to satisfy the spectest
-            permutations(0).map: { self[@$_] }
+        else {   # an empty list should occur once in its permutations
+            ((),).Seq
         }
     }
 

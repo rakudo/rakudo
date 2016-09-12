@@ -1685,7 +1685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<fatarrow>           { <fatarrow> }
     token term:sym<colonpair>          { <colonpair> }
-    token term:sym<variable>           { <variable> { $*VAR := $<variable> } }
+    token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }  # maybe desigilname already set it
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
@@ -2015,7 +2015,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
             <variable> {
                 $*VAR := $<variable>;
-                self.check_variable($*VAR);
             }
         | <longname>
         ]
@@ -3792,11 +3791,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
             ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
-            || { $*VAR := 0 } <!>
             ]
         || <!{ $*QSIGIL }> <postfixish>*
         ]
-        { self.check_variable($*VAR) if $*VAR; $*ARG_FLAT_OK := $orig_arg_flat_ok; }
+        {
+            if $*VAR {
+                self.check_variable($*VAR);
+                $*VAR := 0;
+            }
+            $*ARG_FLAT_OK := $orig_arg_flat_ok;
+        }
     }
 
     token arg_flat_nok {

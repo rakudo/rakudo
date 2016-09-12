@@ -1263,15 +1263,23 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method combinations($?) is nodal {*}
+    proto method combinations(|) is nodal {*}
+    multi method combinations() {
+        Rakudo::Internals.SeqFromSeqs(
+            Range.new(0,self.elems).map( { self.combinations($_) } )
+        )
+    }
+
     multi method combinations(Int() $of) {
         Rakudo::Internals.ListsFromSeq(self,combinations(self.elems,$of))
     }
-    multi method combinations( Range $ofrange = 0 .. * ) {
-        my $over := ($ofrange.first max 0)
-                 .. (($ofrange.first(:end) // -1) min self.elems);
-
-        $over.map: { |combinations(self.elems, $_).map: { self[@$_] } }
+    multi method combinations(Range:D $ofrange) {
+        Rakudo::Internals.SeqFromSeqs(
+          Range.new(
+            ($ofrange.first max 0),
+            (($ofrange.first(:end) // -1) min self.elems)
+          ).map( { self.combinations($_) } )
+        )
     }
 
     proto method permutations(|) is nodal {*}

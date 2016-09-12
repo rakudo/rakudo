@@ -108,15 +108,19 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
             $RMD("dependency: $dependency") if $RMD;
-                if $resolve {
-                    my $comp-unit = $repo.resolve($dependency.spec);
-                    $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
-                    return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
-                }
-                my $file;
-                my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $dependency.id); $file.e });
-                $RMD("Could not find $dependency.spec()") if $RMD and not $store;
-                return False unless $store;
+
+            if $resolve {
+                my $comp-unit = $repo.resolve($dependency.spec);
+                $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
+                return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+            }
+
+            my $file;
+            my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $dependency.id); $file.e });
+            $RMD("Could not find $dependency.spec()") if $RMD and not $store;
+            return False unless $store;
+
+            if $resolve { # a repo changed, so maybe it's a change in our source file
                 my $modified = $file.modified;
                 $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since")
                   if $RMD;
@@ -124,12 +128,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
                 $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD and $srcIO.e;
                 return False if not $srcIO.e or $modified < $srcIO.modified;
+            }
 
-                my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
-                $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
-                return False if $dependency-precomp.checksum ne $dependency.checksum;
+            my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
+            $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
+            return False if $dependency-precomp.checksum ne $dependency.checksum;
 
-                @dependencies.push: $dependency-precomp;
+            @dependencies.push: $dependency-precomp;
         }
 
         for @dependencies -> $dependency-precomp {

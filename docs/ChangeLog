@@ -16,6 +16,7 @@ New in 2016.09
     + Fixed blocking bug when using socket accept and threads
     + Fixed fatal bug when using Non-ASCII tokens in regex/grammars
     + Fixed missing adverbs and candidates in Cool.split; made same as Str.split
+    + Fixed NativeCall CArray hanging when created from empty list
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output

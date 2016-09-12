@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 33;
+plan 34;
 
 compile_test_lib('05-arrays');
 
@@ -132,6 +132,12 @@ compile_test_lib('05-arrays');
     @parr[0] = 12.3e0;
     @parr[1] = 45.6e0;
     is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+}
+
+# RT #129256
+{
+    is CArray[uint8].new(())[0], 0,
+        'creating CArray with () as argument does not hang';
 }
 
 # vim:ft=perl6

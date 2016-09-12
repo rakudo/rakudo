@@ -128,7 +128,7 @@ my class Cool { # declared in BOOTSTRAP
     method flip() {
         self.Str.flip
     }
-    method trans(*@a) { self.Str.trans(@a) }
+    method trans(|c) { self.Str.trans(|c) }
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D: Str(Cool) $needle) {

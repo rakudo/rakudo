@@ -110,6 +110,7 @@ S02-names-vars/signature.t
 S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t
 S02-one-pass-parsing/less-than.t
+S02-one-pass-parsing/misc.t
 S02-packages/package-lookup.t
 S02-types/anon_block.t
 S02-types/array_extending.t
@@ -524,6 +525,7 @@ S06-traits/native-is-copy.t
 S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S07-slip/slip.t
+S07-iterators/range-iterator.t
 S07-hyperrace/hyper.t
 S07-hyperrace/race.t
 S06-traits/slurpy-is-rw.t

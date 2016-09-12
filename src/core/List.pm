@@ -27,39 +27,43 @@ my sub combinations(Int() $n, Int() $k) {
             $!n = n;
             $!k = k;
             $!stack       := nqp::list_i(0);
-            $!combination := nqp::list();
+            $!combination := nqp::list;
             self
         }
         method new(\n,\k) { nqp::create(self)!SET-SELF(n,k) }
 
         method pull-one() {
-            my int $n = $!n;
-            my int $k = $!k;
-
-            while (my int $elems = nqp::elems($!stack)) {
-                my int $index = $elems - 1;
-                my int $value = nqp::pop_i($!stack);
-
-                while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
-                    nqp::bindpos($!combination, $index, +$value);
-#?if jvm
-# temporary fix for RT #128123
-                    $index++;
-                    $value++;
-#?endif
-#?if !jvm
-                    ++$index;
-                    ++$value;
-#?endif
-                    nqp::push_i($!stack, $value);
-                }
-                return nqp::clone($!combination) if nqp::iseq_i($index, $k);
-            }
-            IterationEnd
+            nqp::stmts(
+              (my int $n = $!n),
+              (my int $k = $!k),
+              (my int $running = 1),
+              nqp::while(
+                ($running && (my int $elems = nqp::elems($!stack))),
+                nqp::stmts(
+                  (my int $index = $elems - 1),
+                  (my int $value = nqp::pop_i($!stack)),
+                  nqp::while(
+                    (nqp::islt_i($value, $n) && nqp::islt_i($index, $k)),
+                    nqp::stmts(
+                      nqp::bindpos($!combination, $index,+$value),
+                      ($index = nqp::add_i($index,1)),
+                      ($value = nqp::add_i($value,1)),
+                      nqp::push_i($!stack, $value)
+                    )
+                  ),
+                  ($running = nqp::isne_i($index,$k)),
+                )
+              ),
+              nqp::if(
+                nqp::iseq_i($index,$k),
+                nqp::clone($!combination),
+                IterationEnd
+              )
+            )
         }
         method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
         method bool-only(--> True) { }
-    }.new($n, $k))
+    }.new($n,$k))
 }
 
 sub permutations(Int() $n) {

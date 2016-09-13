@@ -166,11 +166,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method reverse(Blob:D:) {
         my int $elems = nqp::elems(self);
+        my int $last  = nqp::sub_i($elems,1);
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::bindpos_i($reversed,nqp::sub_i($elems,nqp::add_i($i,1)),
+          nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
             nqp::atpos_i(self,$i))
         );
         $reversed

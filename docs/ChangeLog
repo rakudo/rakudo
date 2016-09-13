@@ -16,10 +16,12 @@ New in 2016.09
     + Fixed blocking bug when using socket accept and threads
     + Fixed fatal bug when using Non-ASCII tokens in regex/grammars
     + Fixed missing adverbs and candidates in Cool.split; made same as Str.split
+    + Fixed missing adverbs in Cool.trans; made same as Str.trans
     + Fixed NativeCall CArray hanging when created from empty list
     + Fixed various issues with reading chars from an async socket (uncatchable
         exceptions on decode errors, and mis-handling of graphemes and multi-byte
         sequences over packet boundaries)
+    + Fixed "%%foo @@bar" interpolation trying to find %foo and @bar variables
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
@@ -45,6 +47,7 @@ New in 2016.09
     + Made List.combinations about 7x faster
     + Made Unix's canonpath several times faster for simple paths
     + Made Buf|Blob.reverse 1.5x faster
+    + Made .IO.lines about 10% faster on large files
  + Changed APIs:
     + The operator precedence configuration rule `O()` has been changed to be
         more precompilation-friendly; rather than taking a string containing

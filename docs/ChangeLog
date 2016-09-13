@@ -44,6 +44,7 @@ New in 2016.09
     + Made combinations() about 1.8x faster
     + Made List.combinations about 7x faster
     + Made Unix's canonpath several times faster for simple paths
+    + Made Buf|Blob.reverse 1.5x faster
  + Changed APIs:
     + The operator precedence configuration rule `O()` has been changed to be
         more precompilation-friendly; rather than taking a string containing

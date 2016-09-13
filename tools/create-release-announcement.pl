@@ -38,7 +38,7 @@ If you would like to contribute or find out more information, visit
 <perl6-compiler@perl.org> mailing list, or ask on IRC #perl6 on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation
-to sponsor Perl 6 development: https://donate.perlfoundation.org/
+to sponsor Perl 6 development: <https://donate.perlfoundation.org/>
 (put "Perl 6 Core Development Fund" in the 'Purpose' text field)
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».

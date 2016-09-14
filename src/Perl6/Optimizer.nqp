@@ -1452,7 +1452,7 @@ class Perl6::Optimizer {
                             return $want;
                         }
                         return $wval;
-                    } elsif nqp::istype($ret_value, $!symbols.Failure) {
+                    } elsif $survived && nqp::istype($ret_value, $!symbols.Failure) {
                         # Disarm the failure so it doesn't output its warning during GC.
                         $ret_value.Bool();
                     }

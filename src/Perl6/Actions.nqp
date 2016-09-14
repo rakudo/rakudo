@@ -9378,10 +9378,11 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(monkey_see_no_eval()) ),
-                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) )
-            ),
-            QAST::Op.new( :op<callmethod>, :name<new>,
-                QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                QAST::IVal.new( :value(0) ),
+                QAST::Op.new( :op<callmethod>, :name<new>,
+                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                )
             ),
             :rxtype<subrule>, :subtype<method>, :node($/));
     }

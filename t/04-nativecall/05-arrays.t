@@ -28,7 +28,7 @@ compile_test_lib('05-arrays');
     my @rarr := ReturnAStringArray();
     is @rarr[0], 'La Trappe', 'returning string array (1)';
     is @rarr[1], 'Leffe', 'returning string array (2)';
-    
+
     sub TakeAStringArrayAndReturnTotalLength(CArray[Str]) returns int32 is native("./05-arrays") { * }
     my @parr := CArray[Str].new();
     @parr[0] = "OMG";
@@ -110,7 +110,7 @@ compile_test_lib('05-arrays');
     @parr[2] = 30;
     is TakeAByteArray(@parr), 18, 'byte in position 0..2, C-side';
 }
-    
+
 {
     sub TakeAByteArray(Buf) returns int32 is native("./05-arrays") { * }
     my $buf = buf8.new;

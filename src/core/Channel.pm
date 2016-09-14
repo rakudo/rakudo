@@ -167,6 +167,10 @@ my class Channel {
         Nil
     }
 
+    method elems() {
+        Failure.new("Cannot determine number of elements on a {self.^name}")
+    }
+
     method fail($error is copy) {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);

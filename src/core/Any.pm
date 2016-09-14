@@ -28,13 +28,13 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-KEY(Any:D: $) { False }
 
     proto method DELETE-KEY(|) is nodal { * }
-    multi method DELETE-KEY(Any:U: $) { Nil }
+    multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
         Failure.new("Can not remove values from a {self.^name}")
     }
 
     proto method DELETE-POS(|) is nodal { * }
-    multi method DELETE-POS(Any:U: $pos) { Nil }
+    multi method DELETE-POS(Any:U: $pos --> Nil) { }
     multi method DELETE-POS(Any:D: $pos) {
         Failure.new("Can not remove elements from a {self.^name}")
     }

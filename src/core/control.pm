@@ -18,7 +18,6 @@ sub THROW-NIL(int $type --> Nil) {
 #    nqp::setpayload($ex, Nil);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
-    Nil
 }
 
 sub RETURN-LIST(Mu \list) is raw {

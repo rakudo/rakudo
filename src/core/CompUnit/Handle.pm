@@ -6,7 +6,7 @@ class CompUnit::Handle {
         nqp::create(self)
     }
 
-    method ctxsave() {
+    method ctxsave(--> Nil) {
         $!module_ctx := nqp::ctxcaller(nqp::ctx()) unless $!module_ctx;
     }
 

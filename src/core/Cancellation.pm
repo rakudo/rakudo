@@ -8,7 +8,7 @@ my class Cancellation {
         $!lock      = Lock.new;
     }
 
-    method cancel() {
+    method cancel(--> Nil) {
         $!lock.protect({
             unless $!cancelled {
                 for @!async_handles {

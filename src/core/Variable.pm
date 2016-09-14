@@ -138,7 +138,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
 multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $block($v.var); # no need to delay execution
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$check! --> Nil) {
     $*W.add_phaser($v.slash, 'CHECK', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
@@ -151,32 +151,32 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
       feature => "Variable trait 'will init {...}'",
     );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$end! --> Nil) {
     $*W.add_object($block);
     $*W.add_phaser($v.slash, 'END', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! --> Nil) {
     $v.block.add_phaser('ENTER', $v.willdo($block, 1) );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! --> Nil) {
     $v.block.add_phaser('LEAVE', $v.willdo($block) );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! --> Nil) {
     $v.block.add_phaser('KEEP', $v.willdo($block));
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! --> Nil) {
     $v.block.add_phaser('UNDO', $v.willdo($block));
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$first! --> Nil) {
     $v.block.add_phaser('FIRST', $v.willdo($block, 1));
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$next! --> Nil) {
     $v.block.add_phaser('NEXT', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$last! --> Nil) {
     $v.block.add_phaser('LAST', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! --> Nil) {
     $v.block.add_phaser('PRE', $v.willdo($block, 1));
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {

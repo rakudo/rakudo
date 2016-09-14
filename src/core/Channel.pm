@@ -39,11 +39,10 @@ my class Channel {
         $!async-notify = Supplier.new;
     }
 
-    method send(Channel:D: \item) {
+    method send(Channel:D: \item --> Nil) {
         X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
         nqp::push($!queue, nqp::decont(item));
         $!async-notify.emit(True);
-        Nil
     }
 
     method !receive(Channel:D: $fail-on-close) {
@@ -157,22 +156,20 @@ my class Channel {
     method Seq(Channel:D:)  { Seq.new(self.iterator) }
     method list(Channel:D:) { self.Seq.list }
 
-    method close() {
+    method close(--> Nil) {
         $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value
         self!peek();
         $!async-notify.emit(True);
-        Nil
     }
 
-    method fail($error is copy) {
+    method fail($error is copy --> Nil) {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
         nqp::push($!queue, CHANNEL_FAIL.new(:$error));
         $!async-notify.emit(True);
-        Nil
     }
 
     method closed() {

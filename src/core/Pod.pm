@@ -56,7 +56,7 @@ my class Pod::Block::Declarator is Pod::Block {
 
     submethod BUILD(:@!leading, :@!trailing --> Nil) {}
 
-    method set_docee($d) {
+    method set_docee($d --> Nil) {
         $!WHEREFORE = $d
     }
     method Str {
@@ -81,11 +81,11 @@ my class Pod::Block::Declarator is Pod::Block {
     method leading  { @!leading  ?? @!leading.join(' ')  !! Nil }
     method trailing { @!trailing ?? @!trailing.join(' ') !! Nil }
 
-    method _add_leading($addition) {
+    method _add_leading($addition --> Nil) {
         @!leading.push: ~$addition;
     }
 
-    method _add_trailing($addition) {
+    method _add_trailing($addition --> Nil) {
         @!trailing.push: ~$addition;
     }
 }

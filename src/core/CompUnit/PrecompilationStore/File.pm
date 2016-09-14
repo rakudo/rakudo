@@ -23,7 +23,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!path.modified
         }
 
-        method !read-dependencies() {
+        method !read-dependencies(--> Nil) {
             return if $!initialized;
             self!open(:r) unless $!file;
 

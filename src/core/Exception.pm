@@ -596,7 +596,7 @@ my role X::Comp is Exception {
             !! " $.filename"
         }\n"
     }
-    method SET_FILE_LINE($file, $line) {
+    method SET_FILE_LINE($file, $line --> Nil) {
         $!filename = $file;
         $!line     = $line;
         $!is-compile-time = True;

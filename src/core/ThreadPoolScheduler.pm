@@ -173,7 +173,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!loads
     }
 
-    method !initialize() {
+    method !initialize(--> Nil) {
         $!queue                  := nqp::create(Queue);
         $!thread_start_semaphore := Semaphore.new($!max_threads.Int);
         $!counts_lock             := nqp::create(Lock);

@@ -122,7 +122,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         );
     }
 
-    method !remove-dist-from-short-name-lookup-files($dist) {
+    method !remove-dist-from-short-name-lookup-files($dist --> Nil) {
         my $short-dir = $.prefix.child('short');
         return unless $short-dir.e;
 

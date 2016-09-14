@@ -1,8 +1,6 @@
 {
     role CompUnit::PrecompilationRepository {
-        method load(CompUnit::PrecompilationId $id) {
-            Nil
-        }
+        method load(CompUnit::PrecompilationId $id --> Nil) { }
 
         method may-precomp() {
             True # would be a good place to check an environment variable

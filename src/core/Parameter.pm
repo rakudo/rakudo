@@ -378,7 +378,7 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
     }
 }

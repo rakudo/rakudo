@@ -22,6 +22,11 @@ New in 2016.09
         exceptions on decode errors, and mis-handling of graphemes and multi-byte
         sequences over packet boundaries)
     + Fixed "%%foo @@bar" interpolation trying to find %foo and @bar variables
+    + Fixed mis-compilation and possible compiler crash when using a construct
+      like /$<cap>=@(1,2)/
+    + Fixed a memory leak involving EVAL
+    + Fixed a multi-dispatch cache unbounded growth bug involving calls with many
+      named arguments
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output

@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 34;
+plan 37;
 
 compile_test_lib('05-arrays');
 
@@ -136,8 +136,15 @@ compile_test_lib('05-arrays');
 
 # RT #129256
 {
-    is CArray[uint8].new(())[0], 0,
+    is CArray[uint8].new.elems, 0, 'creating CArray with no arguments works';
+    is CArray[uint8].new(()).elems, 0,
         'creating CArray with () as argument does not hang';
+    is-deeply CArray[uint8].new(1, 2, 3)[^3], (1, 2, 3),
+        'creating CArray with several positionals works';
+
+    my @arg = 1..3;
+    is-deeply CArray[uint8].new(@arg)[^3], (1, 2, 3),
+        'creating CArray with one Positional positional works';
 }
 
 # vim:ft=perl6

@@ -110,15 +110,15 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
     my $ok;
     if $got.defined { # also hack to deal with Failures
         $ok = proclaim(False, $desc);
-        _diag "expected: ($expected.^name())";
-        _diag "     got: '$got'";
+        _diag "expected: ($expected.^name())\n"
+            ~ "     got: '$got'";
     }
     else {
         my $test = $got === $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            _diag "expected: ($expected.^name())";
-            _diag "     got: ($got.^name())";
+            _diag "expected: ($expected.^name())\n"
+                ~ "     got: ($got.^name())";
         }
     }
     $time_before = nqp::time_n;
@@ -132,21 +132,23 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got eq $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            if try [eq] ($got, $expected)>>.Str>>.subst(/\s/, '', :g) {
+            if try    $got     .Str.subst(/\s/, '', :g)
+                   eq $expected.Str.subst(/\s/, '', :g)
+            {
                 # only white space differs, so better show it to the user
-                _diag "expected: {$expected.perl}";
-                _diag "     got: {$got.perl}";
+                _diag "expected: {$expected.perl}\n"
+                    ~ "     got: {$got.perl}";
             }
             else {
-                _diag "expected: '$expected'";
-                _diag "     got: '$got'";
+                _diag "expected: '$expected'\n"
+                    ~ "     got: '$got'";
             }
         }
     }
     else {
         $ok = proclaim(False, $desc);
-        _diag "expected: '$expected'";
-        _diag "     got: ($got.^name())";
+        _diag "expected: '$expected'\n"
+            ~ "     got: ($got.^name())";
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
@@ -162,8 +164,8 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
         my $test = $got !=== $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            _diag "expected: anything except '$expected.perl()'";
-            _diag "     got: '$got.perl()'";
+            _diag "expected: anything except '$expected.perl()'\n"
+                ~ "     got: '$got.perl()'";
         }
     }
     $time_before = nqp::time_n;
@@ -177,8 +179,8 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got ne $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
-            _diag "expected: anything except '$expected.perl()'";
-            _diag "     got: '$got.perl()'";
+            _diag "expected: anything except '$expected.perl()'\n"
+                ~ "     got: '$got.perl()'";
         }
     }
     else {
@@ -206,9 +208,9 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $matcher {
         $ok = proclaim(?$matcher($got,$expected), $desc);
         if !$ok {
-            _diag "expected: '{$expected // $expected.^name}'";
-            _diag " matcher: '{$matcher.?name || $matcher.^name}'";
-            _diag "     got: '$got'";
+            _diag "expected: '{$expected // $expected.^name}'\n"
+                ~ " matcher: '{$matcher.?name || $matcher.^name}'\n"
+                ~ "     got: '$got'";
         }
     }
     else {
@@ -233,8 +235,8 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     my $test = ($got - $expected).abs <= $tol;
     my $ok = proclaim(?$test, $desc);
     unless $test {
-        _diag("expected: $expected");
-        _diag("got:      $got");
+        _diag "expected: $expected\n"
+            ~ "got:      $got";
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
@@ -292,12 +294,12 @@ sub is-approx-calculate (
     my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);
     unless $ok {
         unless $abs-tol-ok {
-            _diag("maximum absolute tolerance: $abs-tol");
-            _diag("actual absolute difference: $abs-tol-got");
+            _diag "maximum absolute tolerance: $abs-tol\n"
+                ~ "actual absolute difference: $abs-tol-got";
         }
         unless $rel-tol-ok {
-            _diag("maximum relative tolerance: $rel-tol");
-            _diag("actual relative difference: $rel-tol-got");
+            _diag "maximum relative tolerance: $rel-tol\n"
+                ~ "actual relative difference: $rel-tol-got";
         }
     }
 
@@ -308,7 +310,7 @@ sub is-approx-calculate (
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = '# TODO ' ~ $reason.subst(:g, '#', '\\#');
+    $todo_reason = "# TODO $reason";
     $time_before = nqp::time_n;
 }
 
@@ -365,7 +367,7 @@ sub _diag(Mu $message, :$force-stderr) {
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
-    my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
+    my $str-message = nqp::join("\n# ", nqp::split("\n", "# $message"));
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
     $out.say: $indents ~ $str-message;
     $time_before = nqp::time_n;
@@ -408,8 +410,8 @@ multi sub like(Str $got, Regex $expected, $desc = '') is export {
     my $test = $got ~~ $expected;
     my $ok = proclaim(?$test, $desc);
     if !$test {
-        _diag sprintf "     expected: '%s'", $expected.perl;
-        _diag "     got: '$got'";
+        _diag "     expected: '$expected.perl()'\n"
+            ~ "     got: '$got'";
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
@@ -421,8 +423,8 @@ multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
     my $test = !($got ~~ $expected);
     my $ok = proclaim(?$test, $desc);
     if !$test {
-        _diag sprintf "     expected: '%s'", $expected.perl;
-        _diag "     got: '$got'";
+        _diag "     expected: '$expected.perl()'\n"
+            ~ "     got: '$got'";
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
@@ -485,8 +487,8 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
         my $got_perl      = try { $got.perl };
         my $expected_perl = try { $expected.perl };
         if $got_perl.defined && $expected_perl.defined {
-            _diag "expected: $expected_perl";
-            _diag "     got: $got_perl";
+            _diag "expected: $expected_perl\n"
+                ~ "     got: $got_perl";
         }
     }
     $time_before = nqp::time_n;
@@ -517,14 +519,14 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
-                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl);
-                            _diag "Got:      $got";
+                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl)
+                              ~ "\nGot:      $got";
                         }
                     }
                 } else {
-                    _diag "Expected: {$ex_type.^name}";
-                    _diag "Got:      {$_.^name}";
-                    _diag "Exception message: $_.message()";
+                    _diag "Expected: {$ex_type.^name}\n"
+                        ~ "Got:      {$_.^name}\n";
+                        ~ "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }

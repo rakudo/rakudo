@@ -30,6 +30,7 @@ New in 2016.09
     + Fixed warnings emitted when using hyper operators on two hashes
     + Channel.elems now returns a Failure rather than eating all values
     + Fixed type error ion IO::Path.rw
+    + Fixed …, ???, and !!! yadas not working to stub classes
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output

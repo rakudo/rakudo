@@ -2687,7 +2687,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
-        if nqp::eqat($<blockoid><statementlist><statement>[0], '...', 0) {
+        if is_yada($/) {
             unless $*PKGDECL eq 'role' {
                 $*W.add_stub_to_check($*PACKAGE);
             }

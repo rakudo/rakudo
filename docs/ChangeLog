@@ -25,8 +25,11 @@ New in 2016.09
     + Fixed mis-compilation and possible compiler crash when using a construct
       like /$<cap>=@(1,2)/
     + Fixed a memory leak involving EVAL
-    + Fixed a multi-dispatch cache unbounded growth bug involving calls with many
-      named arguments
+    + Fixed a multi-dispatch cache unbounded growth bug involving calls
+        with many named arguments
+    + Fixed warnings emitted when using hyper operators on two hashes
+    + Channel.elems now returns a Failure rather than eating all values
+    + Fixed type error ion IO::Path.rw
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
@@ -37,6 +40,8 @@ New in 2016.09
     + Added a .Map coercer for object hashes
     + All Unicode quotes can now be used as quoters inside qqww/qww
     + LEFT/RIGHT DOUBLE PARENTHESIS characters can now be used with q and others
+    + Unicode digits can now be used with Match variables ($١), quote
+        pairs (:۳<12>), negative numbers (-١), and radix bases (:۳("22"))
  + Efficiency:
     + Numerous improvements in CUR, offering up to 10x faster module loading
     + Baggy.ACCEPTS(Baggy) is now about 25x faster

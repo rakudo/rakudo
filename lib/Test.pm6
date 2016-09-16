@@ -572,7 +572,13 @@ sub proclaim($cond, $desc is copy ) {
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-    $desc = $desc ?? $desc.subst(/<[\\\#]>/, { "\\$_" }, :g) !! '';
+    $desc = $desc
+    ??  nqp::join('\\#',
+            nqp::split('#',
+                nqp::join('\\\\', nqp::split('\\', $desc.Str))
+            )
+        )
+    !! '';
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
         ?? "ok $num_of_tests_run - $desc$todo_reason"

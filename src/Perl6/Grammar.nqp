@@ -3402,11 +3402,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token rad_number {
         ':' $<radix> = [\d+] <.unsp>?
+        :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
         {}           # don't recurse in lexer
         :dba('number in radix notation')
         [
         || '<'
-                $<ohradix> = [ '0x' <?{ +$<radix> < 34 }> | '0o' <?{ +$<radix> < 25 }> | '0d' <?{ +$<radix> < 14 }> | '0b' <?{ +$<radix> < 12 }> ]**0..1
+                $<ohradix> = [ '0x' <?{ $r < 34 }> | '0o' <?{ $r < 25 }> | '0d' <?{ $r < 14 }> | '0b' <?{ $r < 12 }> ]**0..1
                 $<intpart> = [ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ [ _ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ ]* ]
                 $<fracpart> = [ '.' [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ [ _ [\d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]>]+ ]* ]**0..1
                 [ '*' <base=.radint> '**' <exp=.radint> ]**0..1

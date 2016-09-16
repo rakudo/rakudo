@@ -7224,7 +7224,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method rad_number($/) {
-        my $radix    := +($<radix>.Str);
+        my $radix    := nqp::radix(10, $<radix>, 0, 0)[0];
 
         if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),

@@ -2326,7 +2326,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('call'),
                 :name('&postcircumfix:<[ ]>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
-                $*W.add_constant('Int', 'int', +$<index>),
+                $*W.add_constant('Int', 'int', nqp::radix(10, $<index>, 0, 0)[0]),
             );
             if $<sigil> eq '@' || $<sigil> eq '%' {
                 my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
@@ -4974,7 +4974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $val := $ast.compile_time_value;
             }
             else {  # for negatives
-                my $i  := $*W.add_numeric_constant(NQPMu, 'Int', +$<value>.Str);
+                my $i := $*W.add_numeric_constant(NQPMu, 'Int', nqp::radix_I(10, $<value>, 0, 2, $*W.find_symbol(['Int']))[0]);
                 $val := $i.compile_time_value;
             }
             %*PARAM_INFO<nominal_type> := $val.WHAT;
@@ -7224,7 +7224,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method rad_number($/) {
-        my $radix    := +($<radix>.Str);
+        my $radix    := nqp::radix(10, $<radix>, 0, 0)[0];
 
         if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),

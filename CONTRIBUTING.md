@@ -59,7 +59,7 @@ very basic guidelines:
 * Use uncuddled `else`, so use a newline between a closing curly brace and
   the `else` keyword
 * Perl 5 code (part of the build system) should `use strict; use warnings;`
-  and loosly follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
+  and loosely follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
 
 ## Have Fun!
 

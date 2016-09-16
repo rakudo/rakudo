@@ -4974,7 +4974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $val := $ast.compile_time_value;
             }
             else {  # for negatives
-                my $i  := $*W.add_numeric_constant(NQPMu, 'Int', +$<value>.Str);
+                my $i := $*W.add_numeric_constant(NQPMu, 'Int', nqp::radix_I(10, $<value>, 0, 2, $*W.find_symbol(['Int']))[0]);
                 $val := $i.compile_time_value;
             }
             %*PARAM_INFO<nominal_type> := $val.WHAT;

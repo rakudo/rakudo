@@ -3,6 +3,8 @@
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 typedef signed __int64 int64_t;
 #else
 #define DLLEXPORT extern

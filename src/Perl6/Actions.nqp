@@ -2326,7 +2326,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('call'),
                 :name('&postcircumfix:<[ ]>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
-                $*W.add_constant('Int', 'int', +$<index>),
+                $*W.add_constant('Int', 'int', nqp::radix(10, $<index>, 0, 0)[0]),
             );
             if $<sigil> eq '@' || $<sigil> eq '%' {
                 my $name := $<sigil> eq '@' ?? 'list' !! 'hash';

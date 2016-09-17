@@ -5,6 +5,7 @@ my class Proc {
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
     has $.pid;
     has $.signal;
+    has @.args;
 
     has $!in_fh;
     has $!out_fh;
@@ -95,6 +96,7 @@ my class Proc {
 
     method spawn(*@args ($, *@), :$cwd = $*CWD, :$env) {
         my %env := $env ?? $env.hash !! %*ENV;
+        self.args = @args;
         self.status(nqp::p6box_i(nqp::spawn(
             CLONE-LIST-DECONTAINERIZED(@args),
             nqp::unbox_s($cwd.Str),
@@ -107,6 +109,7 @@ my class Proc {
 
     method shell($cmd, :$cwd = $*CWD, :$env) {
         my %env := $env ?? $env.hash !! %*ENV;
+        self.args = [$cmd];
         self.status(nqp::p6box_i(nqp::shell(
             nqp::unbox_s($cmd),
             nqp::unbox_s($cwd.Str),

@@ -148,6 +148,8 @@ do {
         method extract-last-word(Str $line) {
             my $m = $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
 
+            return ( $line, '') unless $m;
+
             ( ~$m<prefix>, ~$m<last_word> )
         }
 

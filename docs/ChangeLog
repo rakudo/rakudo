@@ -31,6 +31,7 @@ New in 2016.09
     + Channel.elems now returns a Failure rather than eating all values
     + Fixed type error ion IO::Path.rw
     + Fixed …, ???, and !!! yadas not working to stub classes
+    + Fixed tab-completion issues with non-identifiers in REPL
  + Additions:
     + Coercions now work in return types
     + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output

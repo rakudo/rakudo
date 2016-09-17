@@ -272,19 +272,19 @@ role STD {
     method malformed($what) {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
-    method missing_block() {
+    method missing_block($borg, $has_mystery) {
         my $marked := self.MARKED('ws');
         my $pos := $marked ?? $marked.from !! self.pos;
 
-        if $*BORG<block> {
+        if $borg<block> {
             self.'!clear_highwater'();
-            self.'!cursor_pos'($*BORG<block>.CURSOR.pos);
-            self.typed_sorry('X::Syntax::BlockGobbled', what => ($*BORG<name> // ''));
+            self.'!cursor_pos'($borg<block>.CURSOR.pos);
+            self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
             self.'!cursor_pos'($pos);
-            self.missing("block (apparently claimed by " ~ ($*BORG<name> ?? "'" ~ $*BORG<name> ~ "'" !! "expression") ~ ")");
+            self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
         } elsif nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
             self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
-        } elsif %*MYSTERY {
+        } elsif $has_mystery {
             self.missing("block (taken by some undeclared routine?)");
         } else {
             self.missing("block");
@@ -1303,6 +1303,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <.attach_leading_docs>
         :dba('block or pointy block')
+        :my $borg := $*BORG;
+        :my $has_mystery := $*MYSTERY ?? 1 !! 0;
+        { $*BORG := {} }
         [
         | <lambda>
             <.newpad>
@@ -1317,7 +1320,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?[{]>
             <.newpad>
             <blockoid>
-        || <.missing_block>
+        || <.missing_block($borg, $has_mystery)>
         ]
     }
 
@@ -1327,7 +1330,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
         :dba('scoped block')
-        [ <?[{]> || <.missing_block>]
+        :my $borg := $*BORG;
+        :my $has_mystery := $*MYSTERY ?? 1 !! 0;
+        { $*BORG := {} }
+        [ <?[{]> || <.missing_block($borg, $has_mystery)>]
         <.newpad>
         <blockoid>
     }
@@ -1337,6 +1343,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*HANDLERS;
         :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
         <.finishpad>
+        :my $borg := $*BORG;
+        :my $has_mystery := $*MYSTERY ?? 1 !! 0;
+        { $*BORG := {} }
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
@@ -1345,7 +1354,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
-        || <.missing_block>
+        || <.missing_block($borg, $has_mystery)>
         ]
         { $*CURPAD := $*W.pop_lexpad() }
     }

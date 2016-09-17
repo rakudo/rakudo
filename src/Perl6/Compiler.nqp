@@ -33,7 +33,7 @@ class Perl6::Compiler is HLL::Compiler {
             ?? $past
             !! Perl6::Optimizer.new.optimize($past, |%adverbs);
 
-        # Apply world clean-up tasks, we we will not trigger any more dynamic
+        # Apply world clean-up tasks, we will not trigger any more dynamic
         # compilation beyond this point.
         $past.ann('W').cleanup();
 
@@ -106,8 +106,8 @@ class Perl6::Compiler is HLL::Compiler {
 
     # TODO: create and install a man page for Perl 6; then add the following
     #       line to the end of the usage text above:
-    # 
-    #  For more information, see the perl6(1) man page.\n"); 
-    
+    #
+    #  For more information, see the perl6(1) man page.\n");
+
     }
 }

@@ -49,7 +49,7 @@ say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*
 say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 
 say "-" x 96;'
-valgrind %s --execname="$0" --libpath="%s" %s/%s "$@"
+valgrind %s --full-cleanup --execname="$0" --libpath="%s" %s/%s "$@"
 EOS
     $fh.close;
     chmod(0o755, $install_to);

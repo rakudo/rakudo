@@ -885,6 +885,7 @@ S26-documentation/why-leading.t
 S28-named-variables/cwd.t
 S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
+S29-any/deg-trans.t
 S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t

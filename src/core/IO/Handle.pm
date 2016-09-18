@@ -8,7 +8,7 @@ my class IO::Handle does IO {
     has $.chomp is rw = Bool::True;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
-    has str $!encoding;
+    has str $!encoding = 'utf8';
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,

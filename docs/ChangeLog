@@ -1,5 +1,6 @@
 New in 2016.10
  + Fixes:
+    + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
  + Additions:
  + Efficiency:
 

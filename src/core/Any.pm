@@ -168,7 +168,8 @@ my class Any { # declared in BOOTSTRAP
             ?? self.map({ .tree($count - 1) }).item
             !! self
     }
-    multi method tree(Any:D: *@ [&first, *@rest]) {
+    multi method tree(Any:D: @ [&first, *@rest]) { self.tree(&first, |@rest); }
+    multi method tree(Any:D: &first, *@rest) {
         nqp::istype(self, Iterable)
             ?? @rest ?? first(self.map({ .tree(|@rest) }))
                      !! first(self)

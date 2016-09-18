@@ -729,10 +729,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
 
                 method pull-one() is raw {
-                    # lists cannot have holes, so null indicates the end
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      IterationEnd
+                      nqp::if(
+                        nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                        nqp::null,                              # it's a hole
+                        IterationEnd                            # it's the end
+                      )
                     )
                 }
                 method push-all($target --> IterationEnd) {

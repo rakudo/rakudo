@@ -159,8 +159,6 @@ my class IO::Handle does IO {
     multi method comb(IO::Handle:D: Int:D $size, :$close = False) {
         return self.split(:$close,:COMB) if $size <= 1;
 
-        X::NYI.new(:feature("{self.^name}.comb on binary handle")).throw
-          if self.binary;
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has int $!size;
@@ -207,8 +205,6 @@ my class IO::Handle does IO {
         return self.split(:$close,:COMB)
           if nqp::istype($comber,Cool) && $comber.Str.chars == 0;
 
-        X::NYI.new(:feature("{self.^name}.comb on binary handle")).throw
-          if self.binary;
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has Mu  $!regex;
@@ -304,10 +300,6 @@ my class IO::Handle does IO {
     }
 
     multi method split(IO::Handle:D: :$close = False, :$COMB) {
-        X::NYI.new(
-          :feature("{self.^name}.{$COMB ?? 'comb' !! 'split'} on binary handle")
-        ).throw if self.binary;
-
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
             has int $!close;
@@ -369,10 +361,6 @@ my class IO::Handle does IO {
     multi method split(IO::Handle:D: $splitter, :$close = False, :$COMB) {
         return self.split(:$close,:$COMB)
           if nqp::istype($splitter,Cool) && $splitter.Str.chars == 0;
-
-        X::NYI.new(
-          :feature("{self.^name}.{$COMB ?? 'comb' !! 'split'} on binary handle")
-        ).throw if self.binary;
 
         Seq.new(class :: does Iterator {
             has Mu  $!handle;
@@ -752,7 +740,6 @@ my class IO::Handle does IO {
           !! nqp::setencoding($!PIO,
                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc))
     }
-    method binary() { nqp::p6bool(nqp::iseq_s($!encoding,"bin")) }
 
     submethod DESTROY(IO::Handle:D:) {
         self.close;

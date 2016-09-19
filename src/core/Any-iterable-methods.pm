@@ -1182,7 +1182,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           ?? self!first-accepts-end($test,%a)
           !! self!first-accepts($test,%a)
     }
-    method !first-accepts($test,%a) is raw {
+    method !first-accepts(Mu $test,%a) is raw {
         nqp::stmts(
           (my $iter := self.iterator),
           (my int $index),
@@ -1198,7 +1198,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           )
         )
     }
-    method !first-accepts-end($test,%a) is raw {
+    method !first-accepts-end(Mu $test,%a) is raw {
         nqp::stmts(
           (my $elems = +self),
           nqp::if(

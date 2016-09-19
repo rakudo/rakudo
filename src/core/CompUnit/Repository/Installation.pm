@@ -564,7 +564,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method distribution($id) {
-        InstalledDistribution.new(self!read-dist($_.basename), :prefix(self.prefix))
+        InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
     }
 
     method installed() returns Iterable {

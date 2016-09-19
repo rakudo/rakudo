@@ -1187,20 +1187,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method reverse() is nodal {
-        fail X::Cannot::Lazy.new(:action<reverse>) if self.is-lazy;
-        my $rlist   := nqp::create(self);
-        my $reified := $!reified;
-        if $reified {
-            my int $i     = -1;
-            my int $elems = nqp::elems($reified);
-            my int $last  = $elems - 1;
-            my $reversed := nqp::list;
-            nqp::setelems($reversed,$elems);
-            nqp::bindpos($reversed, $last - $i, nqp::atpos($reified, $i))
-                while ($i = $i + 1) < $elems;
-            nqp::bindattr($rlist, List, '$!reified', $reversed);
+        if self.is-lazy {   # reifies
+            Failure.new(X::Cannot::Lazy.new(:action<reverse>))
         }
-        $rlist
+        elsif $!reified {
+            my int $elems = nqp::elems($!reified);
+            my int $last  = nqp::sub_i($elems,1);
+            my int $i     = -1;
+            my $reversed := nqp::setelems(nqp::list,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($reversed,nqp::sub_i($last,$i),
+                nqp::atpos($!reified,$i))
+            );
+            nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',$reversed)
+        }
+        else {
+            nqp::create(self)
+        }
     }
 
     method rotate(Int(Cool) $rotate = 1) is nodal {

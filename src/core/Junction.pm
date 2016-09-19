@@ -175,22 +175,22 @@ my class Junction { # declared in BOOTSTRAP
 
         sub thread_junction(int $pos) {
             my $junction := nqp::decont(nqp::atpos($positionals, $pos));
-            my $threaded := nqp::clone($junction);
-
             my $storage := nqp::getattr($junction,Junction,'$!storage');
             my int $elems = nqp::elems($storage);
             my $result   := nqp::setelems(nqp::list,$elems);
             my int $i     = -1;
-            while nqp::islt_i(++$i,$elems) {
-                # Next line is Officially Naughty, since captures are
-                # meant to be immutable. But hey, it's our capture to
-                # be naughty with...
-                nqp::bindpos($positionals,$pos,nqp::atpos($storage,$i));
-                nqp::bindpos($result,$i,call(|args));
-            }
-            nqp::bindattr($threaded,Junction,'$!storage',$result);
-
-            $threaded
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              # Next line is Officially Naughty, since captures are
+              # meant to be immutable. But hey, it's our capture to
+              # be naughty with...
+              nqp::stmts(
+                nqp::bindpos($positionals,$pos,nqp::atpos($storage,$i)),
+                nqp::bindpos($result,$i,call(|args))
+              )
+            );
+            nqp::p6bindattrinvres(
+              nqp::clone($junction),Junction,'$!storage',$result)
         }
 
         # Look for a junctional arg in the positionals.

@@ -1883,7 +1883,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method head(|) { * }
-    multi method head(Any:D: Int(Cool) $n = 1) {
+    multi method head(Any:D:) is raw {
+        nqp::if(
+          nqp::eqaddr((my $pulled := self.iterator.pull-one),IterationEnd),
+          Nil,
+          $pulled
+        )
+    }
+    multi method head(Any:D: Int(Cool) $n) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {
@@ -1902,7 +1909,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method tail(|) { * }
-    multi method tail(Any:D: Int(Cool) $n = 1) {
+    multi method tail(Any:D:) is raw {
+        nqp::stmts(
+          (my $result := IterationEnd),
+          nqp::if(
+            (my $iter := self.iterator).is-lazy,
+            Failure.new(X::Cannot::Lazy.new(:action<tail>)),
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+                ($result := $pulled)
+              ),
+              nqp::if(
+                nqp::eqaddr($result,IterationEnd),
+                Nil,
+                $result
+              )
+            )
+          )
+        )
+    }
+    multi method tail(Any:D: Int(Cool) $n) {
         return () if $n <= 0;
 
         Seq.new( class :: does Iterator {

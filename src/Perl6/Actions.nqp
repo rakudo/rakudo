@@ -8357,17 +8357,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )));
                 }
                 else {
-                    $var.push(QAST::Op.new(
-                        :op('p6store'),
-                        QAST::Var.new(
-                            :name(%info<variable_name>), :scope('attribute'),
-                            QAST::Var.new( :name('self'), :scope('lexical') ),
-                            QAST::WVal.new( :value(%info<attr_package>) )
-                        ),
-                        QAST::Op.new(
-                            :op('decont'),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        )));
+                    my $attr_package := %info<attr_package>;
+                    my $attr_name := %info<variable_name>;
+                    my $attr_type := try $attr_package.HOW.get_attribute_for_usage($attr_package, $attr_name).type;
+                    if nqp::objprimspec($attr_type) {
+                         $var.push(QAST::Op.new(
+                             :op('bind'),
+                             QAST::Var.new(
+                                 :name($attr_name), :scope('attribute'), :returns($attr_type),
+                                 QAST::Var.new( :name('self'), :scope('lexical') ),
+                                 QAST::WVal.new( :value($attr_package) )
+                             ),
+                             QAST::Var.new( :name($name), :scope('local') )));
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new(
+                                :name($attr_name), :scope('attribute'),
+                                QAST::Var.new( :name('self'), :scope('lexical') ),
+                                QAST::WVal.new( :value($attr_package) )
+                            ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
                 }
             }
 

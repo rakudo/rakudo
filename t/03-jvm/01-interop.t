@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 26;
+plan 28;
 
 {
     use java::lang::String:from<JavaRuntime>;
@@ -146,12 +146,21 @@ plan 26;
 }
 
 {
+    use java::lang::String:from<JavaRuntime>;
+    {
+        dies-ok { String.new([1..*]) }, 'we die on marshalling lazy lists';
+    }
+}
+
+{
     my $r = run('javac', 't/03-jvm/Foo.java');
     if $r && "t/03-jvm/Foo.class".IO ~~ :e {
         my $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.bar; say Foo.new.quux;'", :out);
         is $out.out.lines, "baz womble", "(compiling and) loading a .class file via 'use lib' works";
+           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.trizzle([1, 2e0, <bar>])'", :out);
+        is $out.out.lines, "12.0bar", "passing arrays with mixed types to Object[] works";
     }
     else {
-        skip 1;
+        skip 2;
     }
 }

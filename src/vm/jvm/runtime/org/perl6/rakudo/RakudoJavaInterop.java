@@ -81,7 +81,6 @@ public class RakudoJavaInterop extends BootJavaInterop {
             Object[] outArgs = new Object[inArgs.length - offset];
             int i = offset;
             for(; i < inArgs.length; ++i) {
-                // /* debug
                 if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
                     outArgs[i - offset] = BootJavaInterop.marshalOutRecursive( (SixModelObject) inArgs[i], tc, null);
                 }
@@ -432,30 +431,49 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if( Ops.islist(in, tc) == 1 ) {
             return BootJavaInterop.marshalOutRecursive(in, tc, what);
         }
-        else if(Ops.istype(in, gcx.List, tc) == 1
-            || Ops.istype(in, gcx.Array, tc) == 1) {
-            SixModelObject list = null;
-            throw ExceptionHandling.dieInternal(tc, "List interop NYI after GLR");
-            //list = RakOps.p6listitems(Ops.decont(in, tc), tc);
-            //size = Ops.elems(list, tc);
-            //for( int i = 0; i < size; ++i ) {
-            //    Object cur = Ops.atpos(Ops.decont(list, tc), i, tc);
-            //    Object value = null;
-            //    if(Ops.islist((SixModelObject) cur, tc) == 1) {
-            //        ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
-            //    }
-            //    else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1
-            //        ||  Ops.istype((SixModelObject) cur, gcx.Array, tc) == 1) {
-            //        value = marshalOutRecursive((SixModelObject) cur, tc, what);
-            //    }
-            //    else {
-            //        value = parseSingleArg((SixModelObject) cur, tc);
-            //    }
-            //    if( out == null ) {
-            //        out = Array.newInstance(value.getClass(), (int)size);
-            //    }
-            //    Array.set(out, i, value);
-            //}
+        else if(Ops.istype(in, gcx.List, tc) == 1) {
+            SixModelObject reified = Ops.decont(in, tc);
+            boolean arrayish = true;
+            SixModelObject methElems = Ops.findmethod(reified, "elems", tc);
+            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { reified });
+            try {
+                size = Ops.result_i(tc.curFrame);
+            }
+            catch(Throwable t) {
+                ExceptionHandling.dieInternal(tc, "Cannot marshal a lazy list to Java");
+            }
+            // XXX: there *might* be a smarter way to do this
+            // where "this" means "figure out if we have a Positional of containers or of values"
+            SixModelObject methAtPos = Ops.findmethod(reified, "AT-POS", tc);
+            for(int i = 0; i < size; i++) {
+                Ops.invokeDirect(tc, methAtPos, 
+                    new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
+                    new Object[] { reified, Ops.box_i((long)i, gcx.Int, tc) });
+                if(Ops.iscont(Ops.result_o(tc.curFrame)) == 0) {
+                    arrayish = false;
+                    break;
+                }
+            }
+            for(int i = 0; i < size; i++) {
+                Ops.invokeDirect(tc, methAtPos, 
+                    new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
+                    new Object[] { reified, Ops.box_i((long)i, gcx.Int, tc) });
+                Object cur = Ops.result_o(tc.curFrame);
+                Object value = null;
+                if(Ops.islist((SixModelObject) cur, tc) == 1) {
+                    ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
+                }
+                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1) {
+                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
+                }
+                else {
+                    value = parseSingleArg((SixModelObject) cur, tc);
+                }
+                if( out == null ) {
+                    out = Array.newInstance(Object.class, (int)size);
+                }
+                Array.set(out, i, value);
+            }
         }
         return out;
     }

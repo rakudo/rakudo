@@ -1646,6 +1646,10 @@ BEGIN {
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
 
+#if js
+    Code.HOW.cheating_publish_method_cache(Code);
+#endif
+
     # class Block is Code {
     #     has Mu $!phasers;                # phasers for this block
     #     has Mu $!why;
@@ -1673,6 +1677,10 @@ BEGIN {
         }));
     Block.HOW.compose_repr(Block);
     Block.HOW.compose_invocation(Block);
+
+#if js
+    Block.HOW.cheating_publish_method_cache(Block);
+#endif
 
     # class Routine is Block {
     #     has Mu $!dispatchees;
@@ -2369,6 +2377,9 @@ BEGIN {
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
 #?if jvm
+                return 0 if nqp::capturehasnameds($capture);
+#?endif
+#?if js
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
                 nqp::scwbdisable();

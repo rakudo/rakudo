@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 33;
+plan 37;
 
 compile_test_lib('05-arrays');
 
@@ -28,7 +28,7 @@ compile_test_lib('05-arrays');
     my @rarr := ReturnAStringArray();
     is @rarr[0], 'La Trappe', 'returning string array (1)';
     is @rarr[1], 'Leffe', 'returning string array (2)';
-    
+
     sub TakeAStringArrayAndReturnTotalLength(CArray[Str]) returns int32 is native("./05-arrays") { * }
     my @parr := CArray[Str].new();
     @parr[0] = "OMG";
@@ -110,7 +110,7 @@ compile_test_lib('05-arrays');
     @parr[2] = 30;
     is TakeAByteArray(@parr), 18, 'byte in position 0..2, C-side';
 }
-    
+
 {
     sub TakeAByteArray(Buf) returns int32 is native("./05-arrays") { * }
     my $buf = buf8.new;
@@ -132,6 +132,19 @@ compile_test_lib('05-arrays');
     @parr[0] = 12.3e0;
     @parr[1] = 45.6e0;
     is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+}
+
+# RT #129256
+{
+    is CArray[uint8].new.elems, 0, 'creating CArray with no arguments works';
+    is CArray[uint8].new(()).elems, 0,
+        'creating CArray with () as argument does not hang';
+    is-deeply CArray[uint8].new(1, 2, 3)[^3], (1, 2, 3),
+        'creating CArray with several positionals works';
+
+    my @arg = 1..3;
+    is-deeply CArray[uint8].new(@arg)[^3], (1, 2, 3),
+        'creating CArray with one Positional positional works';
 }
 
 # vim:ft=perl6

@@ -110,6 +110,7 @@ S02-names-vars/signature.t
 S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t
 S02-one-pass-parsing/less-than.t
+S02-one-pass-parsing/misc.t
 S02-packages/package-lookup.t
 S02-types/anon_block.t
 S02-types/array_extending.t
@@ -524,6 +525,7 @@ S06-traits/native-is-copy.t
 S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S07-slip/slip.t
+S07-iterators/range-iterator.t
 S07-hyperrace/hyper.t
 S07-hyperrace/race.t
 S06-traits/slurpy-is-rw.t
@@ -883,6 +885,7 @@ S26-documentation/why-leading.t
 S28-named-variables/cwd.t
 S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
+S29-any/deg-trans.t
 S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t
@@ -957,6 +960,7 @@ S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
+S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t

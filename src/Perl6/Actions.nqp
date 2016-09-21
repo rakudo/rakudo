@@ -2323,7 +2323,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('call'),
                 :name('&postcircumfix:<[ ]>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
-                $*W.add_constant('Int', 'int', +$<index>),
+                $*W.add_constant('Int', 'int', nqp::radix(10, $<index>, 0, 0)[0]),
             );
             if $<sigil> eq '@' || $<sigil> eq '%' {
                 my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
@@ -2684,7 +2684,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
-        if nqp::eqat($<blockoid><statementlist><statement>[0], '...', 0) {
+        if is_yada($/) {
             unless $*PKGDECL eq 'role' {
                 $*W.add_stub_to_check($*PACKAGE);
             }
@@ -3013,7 +3013,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless nqp::istype($descriptor.default, $bind_constraint) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
-                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs><D> && !$*OFTYPE<colonpairs><U>
+                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
                          ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
                          !! 0
             );
@@ -4971,7 +4971,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $val := $ast.compile_time_value;
             }
             else {  # for negatives
-                my $i  := $*W.add_numeric_constant(NQPMu, 'Int', +$<value>.Str);
+                my $i := $*W.add_numeric_constant(NQPMu, 'Int', nqp::radix_I(10, $<value>, 0, 2, $*W.find_symbol(['Int']))[0]);
                 $val := $i.compile_time_value;
             }
             %*PARAM_INFO<nominal_type> := $val.WHAT;
@@ -5021,8 +5021,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
         %*PARAM_INFO<of_type_match> := $<typename>;
-        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
-        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
+        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
+        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
     }
 
     method post_constraint($/) {
@@ -5165,6 +5165,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $<postcircumfix>.ast
                  || QAST::Op.new( :name('&postcircumfix' ~ $*W.canonicalize_pair('', $<postcircumfix>.Str)), :op<call> );
         }
+    }
+
+    method revO($/) {
+        my $O := nqp::clone($*FROM);
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        make $O;
     }
 
     method dotty:sym<.>($/) { make $<dottyop>.ast; }
@@ -5658,14 +5665,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs><D> {
+            if $<colonpairs> && $<colonpairs>.ast<D> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
                 my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
                 $past    := QAST::WVal.new( :value($type) );
             }
-            elsif $<colonpairs><U> {
+            elsif $<colonpairs> && $<colonpairs>.ast<U> {
                 unless nqp::istype($past, QAST::WVal) {
                     $/.CURSOR.panic("Type too complex to form a definite type");
                 }
@@ -6173,8 +6180,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $key := nqp::lc($KEY // 'infix');
         $key := 'infix' if $key eq 'list';
         my $sym := ~$/{$key}<sym>;
-        my $O := $/{$key}<O>;
-        my $thunky := $O<thunky>;
+        my $thunky := $/{$key} ?? $/{$key}<O>.made<thunky> !! 0;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -6209,8 +6215,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         unless $past {
-            if $<OPER><O><pasttype> {
-                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
+            if $<OPER><O>.made<pasttype> {
+                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O>.made<pasttype> ) );
             }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
@@ -6897,7 +6903,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
-            my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+            my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
@@ -6905,7 +6911,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), WANTED($basepast,'infixish') );
-            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>.made)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
@@ -6947,9 +6953,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $base<OPER><sym>)),
                                            :scope<lexical>);
-        my $metaop   := baseop_reduce($base<OPER><O>);
+        my $metaop   := baseop_reduce($base<OPER><O>.made);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), WANTED($basepast,'reduce'));
-        my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+        my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }
@@ -7216,7 +7222,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method rad_number($/) {
-        my $radix    := +($<radix>.Str);
+        my $radix    := nqp::radix(10, $<radix>, 0, 0)[0];
 
         if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),
@@ -7319,10 +7325,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
 
-                if $<colonpairs><D> {
+                if $<colonpairs> && $<colonpairs>.ast<D> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 1);
                 }
-                elsif $<colonpairs><U> {
+                elsif $<colonpairs> && $<colonpairs>.ast<U> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 
@@ -8349,17 +8355,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )));
                 }
                 else {
-                    $var.push(QAST::Op.new(
-                        :op('p6store'),
-                        QAST::Var.new(
-                            :name(%info<variable_name>), :scope('attribute'),
-                            QAST::Var.new( :name('self'), :scope('lexical') ),
-                            QAST::WVal.new( :value(%info<attr_package>) )
-                        ),
-                        QAST::Op.new(
-                            :op('decont'),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        )));
+                    my $attr_package := %info<attr_package>;
+                    my $attr_name := %info<variable_name>;
+                    my $attr_type := try $attr_package.HOW.get_attribute_for_usage($attr_package, $attr_name).type;
+                    if nqp::objprimspec($attr_type) {
+                         $var.push(QAST::Op.new(
+                             :op('bind'),
+                             QAST::Var.new(
+                                 :name($attr_name), :scope('attribute'), :returns($attr_type),
+                                 QAST::Var.new( :name('self'), :scope('lexical') ),
+                                 QAST::WVal.new( :value($attr_package) )
+                             ),
+                             QAST::Var.new( :name($name), :scope('local') )));
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new(
+                                :name($attr_name), :scope('attribute'),
+                                QAST::Var.new( :name('self'), :scope('lexical') ),
+                                QAST::WVal.new( :value($attr_package) )
+                            ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
                 }
             }
 
@@ -9229,10 +9250,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method escape:sym<%>($/) { make $<EXPR>.ast; }
     method escape:sym<&>($/) { make $<EXPR>.ast; }
 
-    method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<‘ ’>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<“ ”>($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<'>($/) { make mark_ww_atom($<quote>.ast); }
     method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
     sub mark_ww_atom($ast) {
         $ast.annotate('ww_atom', 1);
@@ -9373,10 +9391,11 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(monkey_see_no_eval()) ),
-                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) )
-            ),
-            QAST::Op.new( :op<callmethod>, :name<new>,
-                QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                QAST::IVal.new( :value(0) ),
+                QAST::Op.new( :op<callmethod>, :name<new>,
+                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                )
             ),
             :rxtype<subrule>, :subtype<method>, :node($/));
     }

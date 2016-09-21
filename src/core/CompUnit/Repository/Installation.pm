@@ -4,6 +4,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
     has Int $!version;
+    has %!dist-metas;
+    has $!precomp-stores;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -107,7 +109,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $bin
     }
 
-    method !add-short-name($name, $dist) {
+    method !add-short-name($name, $dist, $source?) {
         my $short-dir = $.prefix.child('short');
         my $id = nqp::sha1($name);
         my $lookup = $short-dir.child($id);
@@ -116,6 +118,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 "{$dist.meta<ver>  // ''}\n"
             ~   "{$dist.meta<auth> // ''}\n"
             ~   "{$dist.meta<api>  // ''}\n"
+            ~   "{$source // ''}\n"
         );
     }
 
@@ -253,7 +256,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
             my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.child($id);
-            self!add-short-name($name, $dist);
+            self!add-short-name($name, $dist, $id);
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
@@ -307,6 +310,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => conent-id mapping
         %meta<provides> = %provides; # new meta data added to provides
+        %!dist-metas{$dist-id} = %meta;
         $dist-dir.child($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
 
         # reset cached id so it's generated again on next access.
@@ -321,9 +325,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my $compiler-id = $*PERL.compiler.id;
+            my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
             for %provides.kv -> $source-name, $source-meta {
-                my $id = $source-meta.values[0]<file>;
+                my $id = CompUnit::PrecompilationId.new($source-meta.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
             }
 
@@ -339,7 +343,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 note("Precompiling $id ($source-name)") if $verbose;
                 $precomp.precompile(
                     $source.IO,
-                    $id,
+                    CompUnit::PrecompilationId.new($id),
                     :source-name("$source-file ($source-name)"),
                 );
                 %done{$id} = 1;
@@ -428,19 +432,42 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                                 $_ => self!read-dist($_)
                             })
                         !! $lookup.dir.map({
-                                my ($ver, $auth, $api) = $_.slurp.split("\n");
-                                $_.basename => {ver => Version.new( $ver || 0 ), auth => $auth, api => $api}
+                                my ($ver, $auth, $api, $source) = $_.slurp.split("\n");
+                                $_.basename => {
+                                    ver    => Version.new( $ver || 0 ),
+                                    auth   => $auth,
+                                    api    => $api,
+                                    source => $source || Any,
+                                }
                             })
                     ).grep({
                         $_.value<auth> ~~ $spec.auth-matcher
                         and $_.value<ver> ~~ $spec.version-matcher
                     });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return ($dist-id, $repo-version < 1 ?? $dist !! self!read-dist($dist-id));
+                    return ($dist-id, $dist);
                 }
             }
         }
         Nil
+    }
+
+    method !lazy-distribution($dist-id) {
+        class :: does Distribution::Locally {
+            has $.dist-id;
+            has $.read-dist;
+            has $!installed-dist;
+            method !dist {
+                $!installed-dist //= InstalledDistribution.new($.read-dist()(), :$.prefix)
+            }
+            method meta(--> Hash)                      { self!dist.meta }
+            method content($content-id --> IO::Handle) { self!dist.content($content-id) }
+            method Str()                               { self!dist.Str }
+        }.new(
+            :$dist-id,
+            :read-dist(-> { self!read-dist($dist-id) })
+            :$.prefix,
+        )
     }
 
     method resolve(
@@ -450,8 +477,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
-            my $id = $dist<provides>{$spec.short-name}.values[0]<file>;
-
             # xxx: replace :distribution with meta6
             return CompUnit.new(
                 :handle(CompUnit::Handle),
@@ -459,18 +484,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :version($dist<ver>),
                 :auth($dist<auth> // Str),
                 :repo(self),
-                :repo-id($id),
-                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
+                :repo-id($dist<source> // self!read-dist($dist-id)<provides>{$spec.short-name}.values[0]<file>),
+                :distribution(self!lazy-distribution($dist-id)),
             );
         }
         return self.next-repo.resolve($spec) if self.next-repo;
         Nil
     }
 
+    method !precomp-stores() {
+        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
+            self.repo-chain.map(*.precomp-store).grep(*.defined)
+        )
+    }
+
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
     )
         returns CompUnit:D
     {
@@ -478,14 +509,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         if $dist-id {
             return %!loaded{$spec.short-name} if %!loaded{$spec.short-name}:exists;
             my $loader = $.prefix.child('sources').child(
-                $dist<provides>{$spec.short-name}.values[0]<file>
+                $dist<source> // self!read-dist($dist-id)<provides>{$spec.short-name}.values[0]<file>
             );
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $id = $loader.basename;
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
-                    :$id,
+                    :id(CompUnit::PrecompilationId.new($id)),
                     :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.abspath),
                     :$spec,
                 ),
@@ -504,7 +535,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :repo(self),
                 :repo-id($id),
                 :$precompiled,
-                :distribution(InstalledDistribution.new($dist.hash, :$.prefix)),
+                :distribution(self!lazy-distribution($dist-id)),
             );
             return %!loaded{$compunit.short-name} = $compunit;
         }
@@ -513,7 +544,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method resource($dist-id, $key) {
-        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
+        my $dist = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.child($dist-id).slurp);
         # need to strip the leading resources/ on old repositories
         self!resources-dir.child($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }
@@ -532,12 +563,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
+    method distribution($id) {
+        InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
+    }
+
     method installed() returns Iterable {
         my $dist-dir = self.prefix.child('dist');
         $dist-dir.e
-            ?? $dist-dir.dir.map({
-                    InstalledDistribution.new(self!read-dist($_.basename), :prefix(self.prefix))
-                })
+            ?? $dist-dir.dir.map({ self.distribution($_.basename) })
             !! Nil
     }
 

@@ -5,7 +5,7 @@ my class Supplier { ... }
 
 my sub combinations(Int() $n, Int() $k) {
     return () if $k < 0;
-    return ((),) if $n < 1 || $k < 1;
+    return ((),).Seq if $n < 1 || $k < 1;
 
     fail X::OutOfRange.new(
       :what("First parameter"),
@@ -27,39 +27,110 @@ my sub combinations(Int() $n, Int() $k) {
             $!n = n;
             $!k = k;
             $!stack       := nqp::list_i(0);
-            $!combination := nqp::list();
+            $!combination := nqp::list;
             self
         }
         method new(\n,\k) { nqp::create(self)!SET-SELF(n,k) }
 
         method pull-one() {
-            my int $n = $!n;
-            my int $k = $!k;
-
-            while (my int $elems = nqp::elems($!stack)) {
-                my int $index = $elems - 1;
-                my int $value = nqp::pop_i($!stack);
-
-                while nqp::islt_i($value, $n) && nqp::islt_i($index, $k) {
-                    nqp::bindpos($!combination, $index, +$value);
-#?if jvm
-# temporary fix for RT #128123
-                    $index++;
-                    $value++;
-#?endif
-#?if !jvm
-                    ++$index;
-                    ++$value;
-#?endif
-                    nqp::push_i($!stack, $value);
-                }
-                return nqp::clone($!combination) if nqp::iseq_i($index, $k);
-            }
-            IterationEnd
+            nqp::stmts(
+              (my int $n = $!n),
+              (my int $k = $!k),
+              (my int $running = 1),
+              nqp::while(
+                ($running && (my int $elems = nqp::elems($!stack))),
+                nqp::stmts(
+                  (my int $index = $elems - 1),
+                  (my int $value = nqp::pop_i($!stack)),
+                  nqp::while(
+                    (nqp::islt_i($value, $n) && nqp::islt_i($index, $k)),
+                    nqp::stmts(
+                      nqp::bindpos($!combination, $index,+$value),
+                      ($index = nqp::add_i($index,1)),
+                      ($value = nqp::add_i($value,1)),
+                      nqp::push_i($!stack, $value)
+                    )
+                  ),
+                  ($running = nqp::isne_i($index,$k)),
+                )
+              ),
+              nqp::if(
+                nqp::iseq_i($index,$k),
+                nqp::clone($!combination),
+                IterationEnd
+              )
+            )
         }
         method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
         method bool-only(--> True) { }
-    }.new($n, $k))
+    }.new($n,$k))
+}
+
+sub permutations(Int() $n) {
+    return ((),).Seq if $n < 1;
+    my $max = $*KERNEL.bits == 32 ?? 13 !! 20;
+    fail "Cowardly refusing to permutate more than $max elements, tried $n"
+      if $n > $max;
+
+    # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+    Seq.new( class :: does Iterator {
+        has int $!n;
+        has int $!todo;
+        has $!next;
+        method !SET-SELF(int $n) {
+            $!n     = $n;  # cannot set native int in sig yet
+            $!todo  = self.count-only;
+            $!next := nqp::setelems(nqp::list,$n);
+            nqp::bindpos($!next,$_,$_) for ^$n;
+            self
+        }
+        method new(\n) { nqp::create(self)!SET-SELF(n) }
+        method pull-one {
+            nqp::if(
+              nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0),
+              nqp::stmts(
+                (my $permuted := nqp::clone($!next)),
+                nqp::if(
+                  $!todo,     # need to calculate next one
+                  nqp::stmts( # find largest index k such that a[k] < a[k + 1].
+                    (my int $k = nqp::sub_i($!n,2)),
+                    nqp::until(
+                      nqp::islt_i(
+                        nqp::atpos($!next,$k),
+                        nqp::atpos($!next,nqp::add_i($k,1))
+                      ),
+                      ($k = nqp::sub_i($k,1)),
+                    ),
+                    (my int $l = nqp::sub_i($!n,1)),
+                    nqp::until(
+                      nqp::islt_i( # find largest index l > k where a[k] < a[l].
+                        nqp::atpos($!next,$k),
+                        nqp::atpos($!next,$l)
+                      ),
+                      ($l = nqp::sub_i($l,1))
+                    ),
+                    self!swap($k,$l),
+                  )
+                ),
+                ($l = $!n),
+                nqp::until(
+                  nqp::isge_i(($k = nqp::add_i($k,1)),($l = nqp::sub_i($l,1))),
+                  self!swap($k,$l)
+                ),
+                nqp::p6bindattrinvres(
+                  nqp::create(List),List,'$!reified',$permuted)
+              ),
+              IterationEnd
+            )
+        }
+        method !swap(int $k,int $l --> Nil) {
+            my $tmp := nqp::atpos($!next,$k);
+            nqp::bindpos($!next,$k,nqp::atpos($!next,$l));
+            nqp::bindpos($!next,$l,$tmp)
+        }
+        method count-only { [*] 1 .. $!n }
+        method bool-only(--> True) { }
+    }.new($n))
 }
 
 sub find-reducer-for-op($op) {
@@ -658,10 +729,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
 
                 method pull-one() is raw {
-                    # lists cannot have holes, so null indicates the end
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      IterationEnd
+                      nqp::if(
+                        nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                        nqp::null,                              # it's a hole
+                        IterationEnd                            # it's the end
+                      )
                     )
                 }
                 method push-all($target --> IterationEnd) {
@@ -1113,20 +1187,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method reverse() is nodal {
-        fail X::Cannot::Lazy.new(:action<reverse>) if self.is-lazy;
-        my $rlist   := nqp::create(self);
-        my $reified := $!reified;
-        if $reified {
-            my int $i     = -1;
-            my int $elems = nqp::elems($reified);
-            my int $last  = $elems - 1;
-            my $reversed := nqp::list;
-            nqp::setelems($reversed,$elems);
-            nqp::bindpos($reversed, $last - $i, nqp::atpos($reified, $i))
-                while ($i = $i + 1) < $elems;
-            nqp::bindattr($rlist, List, '$!reified', $reversed);
+        if self.is-lazy {   # reifies
+            Failure.new(X::Cannot::Lazy.new(:action<reverse>))
         }
-        $rlist
+        elsif $!reified {
+            my int $elems = nqp::elems($!reified);
+            my int $last  = nqp::sub_i($elems,1);
+            my int $i     = -1;
+            my $reversed := nqp::setelems(nqp::list,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($reversed,nqp::sub_i($last,$i),
+                nqp::atpos($!reified,$i))
+            );
+            nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',$reversed)
+        }
+        else {
+            nqp::create(self)
+        }
     }
 
     method rotate(Int(Cool) $rotate = 1) is nodal {
@@ -1196,20 +1274,28 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method combinations($?) is nodal {*}
-    multi method combinations( Int $of ) {
-        combinations(self.elems, $of).map: { self[@$_] }
+    proto method combinations(|) is nodal {*}
+    multi method combinations() {
+        Rakudo::Internals.SeqFromSeqs(
+            Range.new(0,self.elems).map( { self.combinations($_) } )
+        )
     }
-    multi method combinations( Range $ofrange = 0 .. * ) {
-        my $over := ($ofrange.first max 0)
-                 .. (($ofrange.first(:end) // -1) min self.elems);
 
-        $over.map: { |combinations(self.elems, $_).map: { self[@$_] } }
+    multi method combinations(Int() $of) {
+        Rakudo::Internals.ListsFromSeq(self,combinations(self.elems,$of))
+    }
+    multi method combinations(Range:D $ofrange) {
+        Rakudo::Internals.SeqFromSeqs(
+          Range.new(
+            ($ofrange.first max 0),
+            (($ofrange.first(:end) // -1) min self.elems)
+          ).map( { self.combinations($_) } )
+        )
     }
 
     proto method permutations(|) is nodal {*}
-    multi method permutations() is nodal {
-        permutations(self.elems).map: { self[@$_] }
+    multi method permutations() {
+        Rakudo::Internals.ListsFromSeq(self,permutations(self.elems))
     }
 
     method join(List:D: $separator = '') is nodal {

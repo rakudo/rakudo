@@ -570,7 +570,7 @@ my class Binder {
             my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
                 $no_nom_type_check, $error);
             unless $result == $BIND_RESULT_OK {
-                if $error {
+                if $error && nqp::isstr($error[0]) {
                     # Note in the error message that we're in a sub-signature.
                     $error[0] := $error[0] ~ " in sub-signature";
                     if $has_varname {

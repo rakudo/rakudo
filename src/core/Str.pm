@@ -1556,7 +1556,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $to   = what.value;
         $/ := nqp::getlexcaller('$/');
 
-        return self.trans(|%n, (what,))
+        return self.trans((what,), |%n)
           if !nqp::istype($from,Str)   # from not a string
           || !$from.defined            # or a type object
           || !nqp::istype($to,Str)     # or to not a string

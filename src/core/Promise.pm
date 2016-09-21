@@ -122,7 +122,7 @@ my class Promise {
     }
 
     multi method Bool(Promise:D:) {
-        so $!status == any(Broken, Kept)
+        so $!status == Broken || $!status == Kept
     }
 
     method cause(Promise:D:) {

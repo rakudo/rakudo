@@ -2,18 +2,20 @@ my class IO::Spec::Unix is IO::Spec {
 
     method canonpath( $patharg, :$parent --> Str) {
         my $path = $patharg.Str;
-        return '' if $path eq '';
+        return '' unless $path.chars;
 
-        $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx
-        $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx
-        $path ~~ s { ^ './' <!before $> }  = '';      # ./xx      -> xx
+        $path.subst-mutate('//', '/', :g) while $path.contains('//');
+        $path.subst-mutate: rx[ '/.'+ ['/' | $] ], '/', :g if $path.contains('/.');     # xx/././xx -> xx/xx
+        if $path.starts-with('./') && $path.chars > 2 {
+            $path .= substr(2);
+        }
         if $parent {
             Nil while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '';
             $path = '.' if $path eq '';
         }
-        $path ~~ s { ^ '/..'+ ['/' | $] }  = '/';     # /../..(/xx) -> /(xx)
-        unless $path eq "/" {
-            $path ~~ s { '/' $ }       = '';      # xx/       -> xx    :)
+        $path.subst-mutate: rx[ ^ '/..'+ ['/' | $] ],  '/' if $path.starts-with('/');     # /../..(/xx) -> /(xx)
+        unless $path.chars == 1 {
+            $path = $path.chop if $path.ends-with('/');
         }
         $path
     }

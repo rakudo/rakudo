@@ -1,5 +1,3 @@
-use nqp;
-
 class REPL { ... }
 
 do {
@@ -149,6 +147,8 @@ do {
 
         method extract-last-word(Str $line) {
             my $m = $line ~~ /^ $<prefix>=[.*?] <|w>$<last_word>=[\w*]$/;
+
+            return ( $line, '') unless $m;
 
             ( ~$m<prefix>, ~$m<last_word> )
         }
@@ -302,8 +302,8 @@ do {
                 }
 
                 default {
-                  # Use the exception as the result of the eval, to be printed
-                  return $_;
+                    # Use the exception as the result of the eval, to be printed
+                    return $_;
                 }
             }
 
@@ -311,7 +311,7 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval($code, |%adverbs)
+            self.compiler.eval($code, |%adverbs);
         }
 
         method interactive_prompt() { '> ' }
@@ -374,6 +374,10 @@ do {
                     self.repl-print($output);
                 }
 
+                # Why doesn't the catch-default in repl-eval catch all?
+                CATCH {
+                    default { say $_; reset }
+                }
 
             }
 

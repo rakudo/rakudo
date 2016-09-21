@@ -29,9 +29,6 @@ The changes in this release are outlined below:
 New in «release-name»:
 «changes»
 
-These are only some of the changes in this release. For a more
-detailed list, see “docs/ChangeLog”.
-
 The following people contributed to this release:
 
 «contributors»
@@ -39,6 +36,10 @@ The following people contributed to this release:
 If you would like to contribute or find out more information, visit
 <http://perl6.org>, <http://rakudo.org/how-to-help>, ask on the
 <perl6-compiler@perl.org> mailing list, or ask on IRC #perl6 on freenode.
+
+Additionally, we invite you to make a donation to The Perl Foundation
+to sponsor Perl 6 development: <https://donate.perlfoundation.org/>
+(put "Perl 6 Core Development Fund" in the 'Purpose' text field)
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 
@@ -85,18 +86,18 @@ sub prompt-with-default(Str $prompt, Str $default-value) returns Str {
 sub find-release-num() {
     my $offset = 14; # 14 releases aren't tagged with a year-month or
                      # year.month pattern
-    my $proc = run('git', 'tag', '--list', '????.??', '--list', '????-??', :out);
+    my $proc = run :out, :cwd($*RAKUDO_DIR),
+        'git', 'tag', '--list', '????.??', '--list', '????-??';
 
-    my $num-releases = $proc.out.lines.elems;
+    my $num-releases = $proc.out.slurp-rest(:close).lines.elems;
     $num-releases += $offset;
 
     $num-releases + 1
 }
 
 sub find-changes() {
-    unless 'docs/ChangeLog'.IO.e {
-        fail "Couldn't find docs/ChangeLog; are you running this from the Rakudo repository root?";
-    }
+    my $changelog = $*RAKUDO_DIR.child: 'docs/ChangeLog';
+    fail "Couldn't find $changelog" unless $changelog.e;
 
     my $today = Date.today;
     my $last-month = $today.earlier(:1month);
@@ -107,7 +108,7 @@ sub find-changes() {
     my $end = sprintf('%04d.%02d', $last-month.year, $last-month.month);
 
     my @lines = do
-        gather for 'docs/ChangeLog'.IO.lines -> $line {
+        gather for $changelog.lines -> $line {
             if $line ~~ m:s/New in "$start"/ ^ff^ $line ~~ m:s/New in "$end"/ {
                 take $line;
             }
@@ -120,20 +121,26 @@ sub find-release-name() {
     sprintf('%04d.%02d', $today.year, $today.month)
 }
 
-sub find-contributors() {
-    my $proc = run('./perl6-m', 'tools/contributors.pl6', :out);
+sub find-contributors(
+    :$last_release, :$rakudo, :$doc, :$nqp, :$moar, :$roast,
+) {
+    my $proc = run :out, :!err, $*EXECUTABLE,
+            $*RAKUDO_DIR.child('tools/contributors.pl6'),
+                "--rakudo=$rakudo",
+                "--doc=$doc",
+                "--nqp=$nqp",
+                "--moar=$moar",
+                "--roast=$roast",
+                |($last_release if $last_release);
 
-    my @lines = $proc.out.lines;
-    shift @lines;
-    @lines.join("\n")
+    $proc.out.slurp-rest(:close).lines[1..*].join: "\n";
 }
 
 sub find-next-release-date() {
-    unless 'docs/release_guide.pod'.IO.e {
-        fail "Couldn't find docs/release_guide.pod; are you running this from the Rakudo repository root?";
-    }
+    my $release_guide = $*RAKUDO_DIR.child: 'docs/release_guide.pod';
+    fail "Couldn't find $release_guide" unless $release_guide.e;
 
-    my @lines = 'docs/release_guide.pod'.IO.lines;
+    my @lines = $release_guide.lines;
     my $this-release = sprintf('%04d-%02d', Date.today.year, Date.today.month);
     my $this-release-index = @lines.first: /^ \s*"$this-release"/, :k;
     my $next-release = @lines[$this-release-index + 1];
@@ -144,23 +151,35 @@ sub find-next-release-date() {
     }
 }
 
-my %template-vars;
+sub MAIN (
+    $last_release? is copy,
+    :$rakudo = '.',
+    :$doc    = '../doc',
+    :$nqp    = 'nqp',
+    :$moar   = 'nqp/MoarVM',
+    :$roast  = 't/spec',
+) {
+    my $*RAKUDO_DIR = $rakudo.IO;
+    my %template-vars;
 
-%template-vars<release-num> = find-release-num();
-%template-vars<next-release-num> = %template-vars<release-num> + 1;
-%template-vars<release-name> = find-release-name();
-%template-vars<year> = Date.today.year;
-%template-vars<month> = @ENGLISH-MONTHS[Date.today.month];
-%template-vars<changes> = find-changes();
-%template-vars<contributors> = find-contributors();
-%template-vars<next-release-date> = find-next-release-date();
+    %template-vars<release-num> = find-release-num();
+    %template-vars<next-release-num> = %template-vars<release-num> + 1;
+    %template-vars<release-name> = find-release-name();
+    %template-vars<year> = Date.today.year;
+    %template-vars<month> = @ENGLISH-MONTHS[Date.today.month];
+    %template-vars<changes> = find-changes();
+    %template-vars<contributors> = find-contributors(
+        :$last_release, :$rakudo, :$doc, :$nqp, :$moar, :$roast,
+    );
+    %template-vars<next-release-date> = find-next-release-date();
 
-my $content = $template.subst(/'«' $<ident>=[[\w| '-']+] '»'/, -> $/ {
-    my $key = ~$<ident>;
-    my $value = %template-vars{$key};
+    my $content = $template.subst(/'«' $<ident>=[[\w| '-']+] '»'/, -> $/ {
+        my $key = ~$<ident>;
+        my $value = %template-vars{$key};
 
-    die "Undefined template variable '$key'" unless $value;
-    $value
-}, :g);
+        die "Undefined template variable '$key'" unless $value;
+        $value
+    }, :g);
 
-say $content;
+    say $content;
+}

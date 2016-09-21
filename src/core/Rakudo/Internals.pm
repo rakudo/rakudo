@@ -166,6 +166,88 @@ my class Rakudo::Internals {
         }
     }
 
+    # given a List and a Seq, use the lists with indexes of the Seq to
+    # map the List with another Seq
+    method ListsFromSeq(\list,\seq --> Seq) {
+        if list.elems -> $elems {
+            Seq.new(class :: does Iterator {
+                has $!iter;
+                has $!list;
+                method !SET-SELF(\list,\seq) {
+                    $!iter := seq.iterator;
+                    $!list := nqp::getattr(list,List,'$!reified');
+                    self
+                }
+                method new(\list,\seq) {
+                    nqp::create(self)!SET-SELF(list,seq)
+                }
+                method pull-one() {
+                    nqp::if(
+                      nqp::eqaddr((my $result := $!iter.pull-one),IterationEnd),
+                      IterationEnd,
+                      nqp::stmts(
+                        nqp::if(
+                          (my $reified :=
+                            nqp::getattr($result,List,'$!reified')),
+                          nqp::stmts(  # actually has elements, so map them
+                            (my int $elems = nqp::elems($reified)),
+                            (my int $i = -1),
+                            nqp::while(  # repurpose pulled List as result
+                              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                              nqp::bindpos($reified,$i,
+                                nqp::atpos($!list,nqp::atpos($reified,$i)))
+                            )
+                          )
+                        ),
+                        $result
+                      )
+                    )
+                }
+            }.new(list,seq))
+        }
+        else {
+            ((),).Seq # an empty list should occur once
+        }
+    }
+
+    method SeqFromSeqs(\seq-from-seqs) {
+        Seq.new(class :: does Iterator {
+            has $!sfs;
+            has $!current;
+            method !SET-SELF(\seq-from-seqs) {
+                nqp::stmts(
+                  ($!sfs := seq-from-seqs.iterator),
+                  nqp::if(
+                    nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
+                    Rakudo::Internals.EmptyIterator,
+                    nqp::stmts(
+                      ($!current := $!current.iterator),
+                      self
+                    )
+                  )
+                )
+            }
+            method new(\seq-from-seqs) {
+                nqp::create(self)!SET-SELF(seq-from-seqs)
+            }
+            method pull-one() {
+                nqp::stmts(
+                  nqp::while(
+                    nqp::eqaddr((my $value := $!current.pull-one),IterationEnd),
+                    nqp::stmts(
+                      nqp::if(
+                        nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
+                        return IterationEnd  # really done
+                      ),
+                      ($!current := $!current.iterator)
+                    )
+                  ),
+                  $value
+                )
+            }
+        }.new(seq-from-seqs))
+    }
+
     method EmptyIterator() {
         once class :: does Iterator {
             method new() { nqp::create(self) }

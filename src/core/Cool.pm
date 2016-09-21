@@ -128,7 +128,7 @@ my class Cool { # declared in BOOTSTRAP
     method flip() {
         self.Str.flip
     }
-    method trans(*@a) { self.Str.trans(@a) }
+    method trans(|c) { self.Str.trans(|c) }
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D: Str(Cool) $needle) {
@@ -174,12 +174,10 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.rindex($needle,$pos)
     }
 
-    multi method split(Cool: Regex:D $pat, $limit = Inf;; :$all) {
-        self.Stringy.split($pat, $limit, :$all);
+    method split(Cool: |c) {
+        self.Stringy.split(|c);
     }
-    multi method split(Cool: Cool:D $pat, $limit = Inf;; :$all) {
-        self.Stringy.split($pat.Stringy, $limit, :$all);
-    }
+
     proto method match(|) {*}
     multi method match(Cool:D: $target, *%adverbs) {
         self.Stringy.match($target, |%adverbs)

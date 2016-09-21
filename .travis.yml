@@ -38,4 +38,5 @@ env:
 
 matrix:
   allow_failures:
-
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
+    - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"

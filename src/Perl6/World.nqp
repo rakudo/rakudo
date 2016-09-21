@@ -1055,7 +1055,7 @@ class Perl6::World is HLL::World {
 
     method handle_OFTYPE_for_pragma($/, $pragma) {
         my $colonpairs := $*OFTYPE<colonpairs>;
-        if $colonpairs<D> || $colonpairs<U> || $colonpairs<_> {
+        if $colonpairs && ($colonpairs.ast<D> || $colonpairs.ast<U> || $colonpairs.ast<_>) {
             # This is handled in typename and value:sym<name> directly.
         }
 

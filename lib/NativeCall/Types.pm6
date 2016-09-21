@@ -162,16 +162,20 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     multi method new() { nqp::create(self) }
     multi method new(*@values) { self.new(@values) }
     multi method new(@values) {
-        nextsame unless @values;
-        my $result := self.new();
-        my int $n = @values.elems;
-        my int $i;
-        $result.ASSIGN-POS($n - 1, @values.AT-POS($n - 1));
-        while $i < $n {
-            $result.ASSIGN-POS($i, @values.AT-POS($i));
-            $i = $i + 1;
+        if @values.elems -> $n {
+            my int $elems = $n - 1;
+            my $result   := nqp::create(self);  # XXX setelems would be nice
+            $result.ASSIGN-POS($elems,@values.AT-POS($elems)); # fake setelems
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              $result.ASSIGN-POS($i,@values.AT-POS($i)),
+            );
+            $result
         }
-        $result;
+        else {
+            nqp::create(self)
+        }
     }
 }
 

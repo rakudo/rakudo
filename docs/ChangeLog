@@ -1,3 +1,84 @@
+New in 2016.10
+ + Fixes:
+    + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
+ + Additions:
+ + Efficiency:
+
+New in 2016.09
+ + Fixes:
+    + Various improvements to the content of error messages
+    + Defaults on a slurpy params now throw instead of crashing at the VM level
+    + Distribution::Path now handles native libraries correctly
+    + Junctions now work in .classify
+    + Control statements (e.g. `next`) in toplevel REPL now show useful error
+    + IO::Handle.encoding now returns correct values
+    + .comb/.split on binary handles now throws X::NYI
+    + Fixed filehandle leak in precompilation
+    + Regex in .grep and .first on Pairs now works correctly
+    + Pod parser returns proper Bool instead of Int on passed config options
+    + Fixed PERL6_TEST_DIE_ON_FAIL=1 exiting the test suite too soon
+        or dieing on failing tests inside TODOed subtests
+    + Fixed failure to accept enums as types for optional arguments
+    + Fixed blocking bug when using socket accept and threads
+    + Fixed fatal bug when using Non-ASCII tokens in regex/grammars
+    + Fixed missing adverbs and candidates in Cool.split; made same as Str.split
+    + Fixed missing adverbs in Cool.trans; made same as Str.trans
+    + Fixed NativeCall CArray hanging when created from empty list
+    + Fixed various issues with reading chars from an async socket (uncatchable
+        exceptions on decode errors, and mis-handling of graphemes and multi-byte
+        sequences over packet boundaries)
+    + Fixed "%%foo @@bar" interpolation trying to find %foo and @bar variables
+    + Fixed mis-compilation and possible compiler crash when using a construct
+      like /$<cap>=@(1,2)/
+    + Fixed a memory leak involving EVAL
+    + Fixed a multi-dispatch cache unbounded growth bug involving calls
+        with many named arguments
+    + Fixed warnings emitted when using hyper operators on two hashes
+    + Channel.elems now returns a Failure rather than eating all values
+    + Fixed type error ion IO::Path.rw
+    + Fixed …, ???, and !!! yadas not working to stub classes
+    + Fixed tab-completion issues with non-identifiers in REPL
+ + Additions:
+    + Coercions now work in return types
+    + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
+    + IO::Handle.slurp-rest now has :close flag
+    + CompUnit::Repository::Installation now cleans up short-name
+        folders when empty
+    + Added support for very large numbers in :42foo colon pairs
+    + Added a .Map coercer for object hashes
+    + All Unicode quotes can now be used as quoters inside qqww/qww
+    + LEFT/RIGHT DOUBLE PARENTHESIS characters can now be used with q and others
+    + Unicode digits can now be used with Match variables ($١), quote
+        pairs (:۳<12>), negative numbers (-١), and radix bases (:۳("22"))
+ + Efficiency:
+    + Numerous improvements in CUR, offering up to 10x faster module loading
+    + Baggy.ACCEPTS(Baggy) is now about 25x faster
+    + Baggy eqv Baggy is now at least 10x faster
+    + Infix === now checks identicality, offering performance gains on large
+        objects, such as a Bag with 1000 elements
+    + Many metaops are now about 10% faster
+    + Made Junction.Bool|ACCEPTS about 2x faster
+    + Improvement in performance of IO::Path::child
+    + Made permutations() about 5x faster
+    + Made List.permutations about 40x faster
+    + Made combinations() about 1.8x faster
+    + Made List.combinations about 7x faster
+    + Made Unix's canonpath several times faster for simple paths
+    + Made Buf|Blob.reverse 1.5x faster
+    + Made .IO.lines about 10% faster on large files
+ + Changed APIs:
+    + The operator precedence configuration rule `O()` has been changed to be
+        more precompilation-friendly; rather than taking a string containing
+        colonpairs, it now takes named arguments directly. This is not
+        strictly a Perl 6 change, but rather a change in NQP, and thus only
+        applies if you're doing fairly involved hacking on the grammar. If the
+        sentences above made no sense to you, your code is not affected by
+        this change.
+
+New in 2016.08.1
+ + Fixes:
+    + Updated NQP version to avoid broken tag
+
 New in 2016.08
  + Fixes:
     + Numerous improvements to content of error messages and addition
@@ -220,7 +301,7 @@ New in 2016.06
    + return, next, last, and redo are now all faster
    + infix:<,> about 40% faster
    + numerous other smaller or edge-case speed improvements
-+ Deprecations:
+ + Deprecations:
    + The "is_approx" sub (note underscore) from Test
 
 New in 2016.05
@@ -539,7 +620,7 @@ New in 2015.10:
     + The new .self method is the identity method on anything
     + Negative integers are now allowed in the parameter slot
     + List associative operators can now be autoprimed, including Xop and Zop
-  + Incompatible Changes
+ + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for 'unshift'/'prepend'
     + Basic arithmetic operations ('+', '*', '-', '/') on Range objects
@@ -763,7 +844,7 @@ New in 2015.05
    + Make List.pick about 3% faster, List.pick(*) about 7% faster
    + Implement new @*INC handling (about 30% faster startup time)
      (bare startup time is now below 100 ms on some machines)
-+ NativeCall:
+ + NativeCall:
    + Implemented CUnions which map to the union C type definition
    + Implemented HAS declarator for attributes to mark it embedded into the
      CStruct or CUnion

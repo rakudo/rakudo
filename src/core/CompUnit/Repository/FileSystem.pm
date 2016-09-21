@@ -2,6 +2,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has %!loaded;
     has $!precomp;
     has $!id;
+    has %!meta;
+    has $!precomp-stores;
 
     my @extensions = <pm6 pm>;
 
@@ -19,19 +21,20 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             # find source file
             # pick a META6.json if it is there
-            if (my $meta = $!prefix.child('META6.json')) && $meta.f {
+            if not %!meta and (my $meta = $!prefix.child('META6.json')) and $meta.f {
                 try {
-                    my $json = Rakudo::Internals::JSON.from-json: $meta.slurp;
-                    if $json<provides>{$name} -> $file {
-                        my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
-                        $found = $path if $path.f;
-                    }
-
+                    %!meta = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     CATCH {
                         when JSONException {
                             fail "Invalid JSON found in META6.json";
                         }
                     }
+                }
+            }
+            if %!meta {
+                if %!meta<provides>{$name} -> $file {
+                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
+                    $found = $path if $path.f;
                 }
             }
 
@@ -49,7 +52,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !comp-unit-id($name) {
-        nqp::sha1($name);
+        CompUnit::PrecompilationId.new(nqp::sha1($name));
     }
 
     method id() {
@@ -81,17 +84,23 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         return CompUnit.new(
             :short-name($spec.short-name),
-            :repo-id(self!comp-unit-id($spec.short-name)),
+            :repo-id(self!comp-unit-id($spec.short-name).Str),
             :repo(self)
         ) if $base;
         return self.next-repo.resolve($spec) if self.next-repo;
         Nil
     }
 
+    method !precomp-stores() {
+        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
+            self.repo-chain.map(*.precomp-store).grep(*.defined)
+        )
+    }
+
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(self.repo-chain.map(*.precomp-store).grep(*.defined)),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
     )
         returns CompUnit:D
     {
@@ -118,7 +127,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 :short-name($name),
                 :$handle,
                 :repo(self),
-                :repo-id($id),
+                :repo-id($id.Str),
                 :$precompiled,
             );
         }

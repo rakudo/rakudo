@@ -72,7 +72,7 @@ and install it individually.
 By supplying combinations of backends to the `--backends` flag, you
 can get two or three backends built in the same prefix. The first
 backend you supply in the list is the one that gets the `perl6` name
-as a symlink, and all backends are installed seperately as
+as a symlink, and all backends are installed separately as
 `perl6-m` or `perl6-j` for Rakudo on
 MoarVM, or JVM respectively.
 

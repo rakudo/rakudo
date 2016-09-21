@@ -147,8 +147,9 @@ multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
     $result // $result.throw;
 }
 
-sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
-    my $result := $path.IO.spurt($contents, :$enc, |c);
+proto sub spurt(|) { * }
+multi sub spurt(Cool $path, $contents, |c) {
+    my $result := $path.IO.spurt($contents,|c);
     $result // $result.throw;
 }
 

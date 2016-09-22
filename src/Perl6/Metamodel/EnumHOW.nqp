@@ -78,6 +78,10 @@ class Perl6::Metamodel::EnumHOW
         %!values
     }
     
+    method elems($obj) {
+        nqp::elems(%!values)
+    }
+    
     method enum_from_value($obj, $value) {
         unless %!value_to_enum {
             for @!enum_value_list {

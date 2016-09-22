@@ -4,6 +4,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!id;
     has %!meta;
     has $!precomp-stores;
+    has $!precomp-store;
 
     my @extensions = <pm6 pm>;
 
@@ -184,7 +185,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method precomp-store() returns CompUnit::PrecompilationStore {
-        CompUnit::PrecompilationStore::File.new(
+        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('.precomp')),
         )
     }

@@ -360,7 +360,6 @@ my class Array { # declared in BOOTSTRAP
 
         proto method STORE(|) { * }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            allocate-shaped-storage(self, self.shape);
             my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
             if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
                 if self.shape eqv in-shape {
@@ -427,15 +426,12 @@ my class Array { # declared in BOOTSTRAP
         set-shape(nqp::create(self), values, shape)
     }
 
-    sub allocate-shaped-storage(\arr, @dims --> Nil) {
-        nqp::bindattr(arr, List, '$!reified',
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow, Mu))
-    }
-
     sub set-shape(\arr, \values, \shape) {
         if shape.DEFINITE {
             my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
-            allocate-shaped-storage(arr, list-shape);
+            nqp::bindattr(arr,List,'$!reified',
+              Rakudo::Internals.SHAPED-ARRAY-STORAGE(
+                list-shape,nqp::knowhow,Mu));
             arr does ShapedArray[Mu];
             arr.^set_name('Array');
             nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);

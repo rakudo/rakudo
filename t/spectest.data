@@ -791,7 +791,7 @@ S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar
 S17-procasync/many-processes-no-close-stdin.t # moar
-S17-procasync/stress.t   # moar
+S17-procasync/stress.t   # moar stress
 S17-promise/allof.t      # slow
 S17-promise/at.t
 S17-promise/anyof.t

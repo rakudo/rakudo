@@ -197,12 +197,6 @@ my class Array { # declared in BOOTSTRAP
         result
     }
 
-    sub allocate-shaped-storage(\arr, @dims) {
-        nqp::bindattr(arr, List, '$!reified',
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow(), Mu));
-        arr
-    }
-
     my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
@@ -430,7 +424,15 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method !new-internal(\values, \shape) {
-        my \arr = nqp::create(self);
+        set-shape(nqp::create(self), values, shape)
+    }
+
+    sub allocate-shaped-storage(\arr, @dims --> Nil) {
+        nqp::bindattr(arr, List, '$!reified',
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow, Mu))
+    }
+
+    sub set-shape(\arr, \values, \shape) {
         if shape.DEFINITE {
             my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
             allocate-shaped-storage(arr, list-shape);
@@ -1283,25 +1285,17 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method !new-internal(\values, \shape) {
-            my \arr = nqp::create(self);
-            nqp::bindattr(
-              arr,
-              Array,
-              '$!descriptor',
-              Perl6::Metamodel::ContainerDescriptor.new(
-                :of(TValue), :rw(1), :default(TValue))
-            );
-            if shape.DEFINITE {
-                my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
-                allocate-shaped-storage(arr, list-shape);
-                arr does ShapedArray[Mu];
-                arr.^set_name('Array');
-                nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-                arr.STORE(values) if values;
-            } else {
-                arr.STORE(values);
-            }
-            arr
+            set-shape(
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                Array,
+                '$!descriptor',
+                Perl6::Metamodel::ContainerDescriptor.new(
+                  :of(TValue), :rw(1), :default(TValue))
+              ),
+              values,
+              shape
+            )
         }
 
         proto method BIND-POS(|) { * }

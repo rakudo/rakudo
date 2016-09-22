@@ -21,7 +21,9 @@ my class array does Iterable is repr('VMArray') {
           ?? X::MustBeParametric.new(:type(self)).throw
           !! nqp::isconcrete($shape)
             ?? self!shaped($shape)
-            !! nqp::create(self)
+            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
+              ?? self!shaped($shape.^elems)
+              !! nqp::create(self)
     }
 
     proto method STORE(|) { * }

@@ -427,8 +427,11 @@ my class Array { # declared in BOOTSTRAP
     }
 
     sub set-shape(\arr, \values, \shape) {
-        if shape.DEFINITE {
-            my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
+        my $shape := Metamodel::EnumHOW.ACCEPTS(shape.HOW)
+          ?? shape.^elems
+          !! shape;
+        if $shape.DEFINITE {
+            my \list-shape = nqp::istype($shape,List) ?? $shape !! $shape.list;
             nqp::bindattr(arr,List,'$!reified',
               Rakudo::Internals.SHAPED-ARRAY-STORAGE(
                 list-shape,nqp::knowhow,Mu));

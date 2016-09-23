@@ -346,11 +346,14 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method classify-list( %test, $list, |c ) {
-        self.classify-list( { %test{$^a} }, $list, |c );
+    multi method classify-list( %test, |c ) {
+        self.classify-list( { %test{$^a} }, |c );
     }
-    multi method classify-list( @test, $list, |c ) {
-        self.classify-list( { @test[$^a] }, $list, |c );
+    multi method classify-list( @test, |c ) {
+        self.classify-list( { @test[$^a] }, |c );
+    }
+    multi method classify-list(&test, **@list, |c) {
+        self.classify-list(&test, @list, |c);
     }
 
     proto method categorize-list(|) { * }
@@ -390,11 +393,14 @@ my class Hash { # declared in BOOTSTRAP
        }
        self;
     }
-    multi method categorize-list( %test, $list ) {
-        self.categorize-list( { %test{$^a} }, $list );
+    multi method categorize-list( %test, |c ) {
+        self.categorize-list( { %test{$^a} }, |c );
     }
-    multi method categorize-list( @test, $list ) {
-        self.categorize-list( { @test[$^a] }, $list );
+    multi method categorize-list( @test, |c ) {
+        self.categorize-list( { @test[$^a] }, |c );
+    }
+    multi method categorize-list( &test, **@list, |c ) {
+        self.categorize-list( &test, @list, |c );
     }
 
     # push a value onto a hash slot, constructing an array if necessary

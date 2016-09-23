@@ -279,10 +279,10 @@ my class Backtrace {
 
     multi method Str(Backtrace:D:)  { self.nice }
     multi method flat(Backtrace:D:) { self.list }
-    multi method map(Backtrace:D: $block) {
+    multi method map(Backtrace:D: &block) {
         my $pos = 0;
         gather while self.AT-POS($pos++) -> $cand {
-            take $block($cand);
+            take block($cand);
         }
     }
     multi method first(Backtrace:D: Mu $test) {

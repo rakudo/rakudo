@@ -140,7 +140,6 @@ RakudoScalar.prototype.serialize = function(cursor) {
 
 RakudoScalar.prototype.deserialize = function(cursor) {
   console.log('* deserializing rakudo_scalar');
-  this.setupSTable();
 };
 
 RakudoScalar.prototype.name = 'rakudo_scalar';

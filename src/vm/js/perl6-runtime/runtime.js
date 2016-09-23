@@ -1,7 +1,8 @@
 var nqp = require('nqp-runtime');
+var CodeRef = require('nqp-runtime/code-ref');
 var op = {};
 
-var Scalar, True, False, Int, Num, Str;
+var Scalar, True, False, Int, Num, Str, Code;
 
 op.p6settypes = function(types) {
   Scalar = types.content.get('Scalar');
@@ -10,6 +11,7 @@ op.p6settypes = function(types) {
   Int = types.content.get('Int');
   Num = types.content.get('Num');
   Str = types.content.get('Str');
+  Code = types.content.get('Code');
   return types;
 };
 
@@ -51,6 +53,56 @@ op.p6box_s = function(str) {
   boxed.$$setStr(str);
   return boxed;
 };
+
+op.p6captureouters2 = function(ctx, capList, target) {
+  var cf = (target.outerCtx || closure.forcedOuter);
+
+  if (cf === null) {
+    return capList;
+  }
+
+  var elems = capList.$$elems();
+
+  for (var i = 0; i < elems; i++) {
+      var codeObj = capList.$$atpos(i);
+
+      var closure = codeObj.$$getattr(Code, "$!do");
+
+      var ctxToDiddle = (closure.outerCtx || closure.forcedOuter);
+      ctxToDiddle.$$outer = cf;
+  }
+
+  return capList;
+};
+
+op.p6captureouters = function(ctx, capList) {
+
+  var elems = capList.$$elems();
+
+  for (var i = 0; i < elems; i++) {
+      var codeObj = capList.$$atpos(i);
+      var closure = codeObj.$$getattr(Code, "$!do");
+      var ctxToDiddle = (closure.outerCtx || closure.forcedOuter);
+      ctxToDiddle.$$outer = ctx;
+  }
+
+  return capList;
+};
+
+op.p6capturelex = function(ctx, codeObj) {
+
+  var closure = codeObj.$$getattr(Code, "$!do");
+  var wantedStaticInfo = closure.staticCode.outerCodeRef;
+
+  if (ctx.codeRef().staticCode === wantedStaticInfo) {
+    closure.forcedOuter = ctx;
+  } else if (ctx.$$outer.codeRef().staticCode === wantedStaticInfo) {
+    closure.forcedOuter = ctx.$$outer;
+  }
+
+  return codeObj;
+};
+
 
 var containerSpecs = require('nqp-runtime/container-specs.js');
 

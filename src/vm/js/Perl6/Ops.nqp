@@ -70,3 +70,7 @@ $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ]);
 $ops.add_simple_op('p6decontrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ]);
 
 $ops.add_simple_op('p6definite', $ops.OBJ, [$ops.OBJ], :decont(0));
+
+$ops.add_simple_op('p6captureouters2', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
+$ops.add_simple_op('p6captureouters', $ops.OBJ, [$ops.OBJ], :ctx);
+$ops.add_simple_op('p6capturelex', $ops.OBJ, [$ops.OBJ], :ctx);

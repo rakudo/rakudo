@@ -120,6 +120,7 @@ S02-types/array.t
 S02-types/assigning-refs.t
 S02-types/autovivification.t
 S02-types/bag.t
+S02-types/baggy.t
 S02-types/baghash.t
 S02-types/bool.t
 S02-types/built-in.t

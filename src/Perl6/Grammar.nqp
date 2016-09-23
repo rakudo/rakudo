@@ -3410,7 +3410,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token rad_number {
-        ':' $<radix> = [\d+] <.unsp>?
+        ':' $<radix> =
+        [
+        || [\d+] <.unsp>?
+        || <:No+:Nl>+ {$/.CURSOR.typed_panic('X::Comp::AdHoc', payload => "Only 'Nd' digits are allowed, not 'No' or 'Nl' numbers", expected => ["colon pair", "radix base"])}
+        ]
         :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
         {}           # don't recurse in lexer
         :dba('number in radix notation')

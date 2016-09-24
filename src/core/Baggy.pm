@@ -509,33 +509,35 @@ my role Baggy does QuantHash {
 
 #--- classification method
     proto method classify-list(|) { * }
-    multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
-        if @list {
+    multi method classify-list( &test, \list) {
+        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
-            # multi-level classify
-            if nqp::istype(test(@list[0]),Iterable) {
-                for @list -> $l {
-                    my @keys  = test($l);
-                    my $last := @keys.pop;
-                    my $bag   = self;
-                    $bag = $bag{$_} //= self.new for @keys;
-                    $bag{$last}++;
-                }
+        while (my $value := iter.pull-one) !=:= IterationEnd {
+            my $tested := test($value);
+            if nqp::istype($tested, Iterable) { # multi-level classify
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<classify-list>,
+                    :value<an Iterable item>,
+                    :reason('BagHash cannot be nested and so does not support '
+                        ~ 'multi-level classification'),
+                ).throw;
             }
-
-            # just a simple classify
             else {
-                self{test $_}++ for @list;
+                self{$tested}++;
             }
         }
         self;
     }
-    multi method classify-list( %test, *@list ) {
-        self.classify-list( { %test{$^a} }, @list );
+    multi method classify-list( %test, |c ) {
+        self.classify-list( { %test{$^a} }, |c );
     }
-    multi method classify-list( @test, *@list ) {
-        self.classify-list( { @test[$^a] }, @list );
+    multi method classify-list( @test, |c ) {
+        self.classify-list( { @test[$^a] }, |c );
+    }
+    multi method classify-list(&test, **@list, |c) {
+        self.classify-list(&test, @list, |c);
     }
 
     proto method categorize-list(|) { * }

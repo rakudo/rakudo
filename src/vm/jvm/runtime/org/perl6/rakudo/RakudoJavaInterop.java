@@ -436,9 +436,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
             return BootJavaInterop.marshalOutRecursive(in, tc, what);
         }
         else if(Ops.istype(in, gcx.List, tc) == 1) {
-            SixModelObject reified = Ops.decont(in, tc);
-            SixModelObject methElems = Ops.findmethod(reified, "elems", tc);
-            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { reified });
+            SixModelObject p6list = Ops.decont(in, tc);
+            SixModelObject methElems = Ops.findmethod(p6list, "elems", tc);
+            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { p6list });
             try {
                 size = Ops.result_i(tc.curFrame);
             }
@@ -450,15 +450,15 @@ public class RakudoJavaInterop extends BootJavaInterop {
             //      i.e. the type mapping between Java and Rakudo, so we
             //      can actually do something with the "of" and thus
             //      can dispatch to e.g. int[] instead of just Object[]
-            SixModelObject methOf = Ops.findmethod(reified, "of", tc);
-            Ops.invokeDirect(tc, methOf, Ops.invocantCallSite, new Object[] { reified });
+            SixModelObject methOf = Ops.findmethod(p6list, "of", tc);
+            Ops.invokeDirect(tc, methOf, Ops.invocantCallSite, new Object[] { p6list });
             SixModelObject ofType = Ops.result_o(tc.curFrame);
-            SixModelObject methAtPos = Ops.findmethod(reified, "AT-POS", tc);
+            SixModelObject methAtPos = Ops.findmethod(p6list, "AT-POS", tc);
             
             for(int i = 0; i < size; i++) {
                 Ops.invokeDirect(tc, methAtPos, 
                     new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
-                    new Object[] { reified, Ops.box_i((long)i, gcx.Int, tc) });
+                    new Object[] { p6list, Ops.box_i((long)i, gcx.Int, tc) });
                 Object cur = Ops.result_o(tc.curFrame);
                 Object value = null;
                 if(Ops.islist((SixModelObject) cur, tc) == 1) {

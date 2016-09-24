@@ -376,7 +376,7 @@ my class Hash { # declared in BOOTSTRAP
                        $hash{$last}.push: $value;
                    }
                }
-           } else {    
+           } else {
            # just a simple categorize
                @list.map: -> $l {
                   my $value := &as ?? as($l) !! $l;

@@ -1206,6 +1206,17 @@ my class X::Invalid::Value is Exception {
     }
 }
 
+my class X::Invalid::ComputedValue is Exception {
+    has $.method;
+    has $.name;
+    has $.value;
+    has $.reason;
+    method message {
+        "$.name on $.method computed to '$.value', which cannot be used"
+            ~ (" because $.reason" if $.reason);
+    }
+}
+
 my class X::Value::Dynamic does X::Comp {
     has $.what;
     method message() { "$.what value must be known at compile time" }

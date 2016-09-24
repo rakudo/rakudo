@@ -15,6 +15,8 @@ import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ArrayList;
 
 import org.perl6.rakudo.RakOps;
@@ -309,7 +311,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     }
                     break;
                 default:
-
+                    throw new ArrayIndexOutOfBoundsException(1);
             }
 
             return retVal;
@@ -345,6 +347,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgArray(args);
+
+            Ops.debugnoop((SixModelObject) args[0], (ThreadContext) intc);
 
             /* debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
@@ -433,7 +437,6 @@ public class RakudoJavaInterop extends BootJavaInterop {
         }
         else if(Ops.istype(in, gcx.List, tc) == 1) {
             SixModelObject reified = Ops.decont(in, tc);
-            boolean arrayish = true;
             SixModelObject methElems = Ops.findmethod(reified, "elems", tc);
             Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { reified });
             try {
@@ -442,18 +445,16 @@ public class RakudoJavaInterop extends BootJavaInterop {
             catch(Throwable t) {
                 ExceptionHandling.dieInternal(tc, "Cannot marshal a lazy list to Java");
             }
-            // XXX: there *might* be a smarter way to do this
-            // where "this" means "figure out if we have a Positional of containers or of values"
+
+            // TODO get half the work of parseSingleArg() abstracted out of there
+            //      i.e. the type mapping between Java and Rakudo, so we
+            //      can actually do something with the "of" and thus
+            //      can dispatch to e.g. int[] instead of just Object[]
+            SixModelObject methOf = Ops.findmethod(reified, "of", tc);
+            Ops.invokeDirect(tc, methOf, Ops.invocantCallSite, new Object[] { reified });
+            SixModelObject ofType = Ops.result_o(tc.curFrame);
             SixModelObject methAtPos = Ops.findmethod(reified, "AT-POS", tc);
-            for(int i = 0; i < size; i++) {
-                Ops.invokeDirect(tc, methAtPos, 
-                    new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
-                    new Object[] { reified, Ops.box_i((long)i, gcx.Int, tc) });
-                if(Ops.iscont(Ops.result_o(tc.curFrame)) == 0) {
-                    arrayish = false;
-                    break;
-                }
-            }
+            
             for(int i = 0; i < size; i++) {
                 Ops.invokeDirect(tc, methAtPos, 
                     new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
@@ -474,7 +475,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 }
                 Array.set(out, i, value);
             }
+            if (List.class.isAssignableFrom(what)) {
+                out = Arrays.asList((Object[]) out);
+            }
         }
+        // TODO associative types, which could for starters default to Map<Object> similar 
+        //      to how Positionals currently do, but we will want "of" checking there too
         return out;
     }
 
@@ -538,13 +544,15 @@ public class RakudoJavaInterop extends BootJavaInterop {
     protected void marshalOut(MethodContext c, Class<?> what, int ix) {
         MethodVisitor mv = c.mv;
 
-        if(what.getComponentType() != null) {
+        if(what.getComponentType() != null
+        || List.class.isAssignableFrom(what)) {
             emitGetFromNQP(c, ix, storageForType(what));
             mv.visitVarInsn(Opcodes.ALOAD, c.tcLoc);
             mv.visitLdcInsn(Type.getType(what));
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "marshalOutRecursive",
                 Type.getMethodDescriptor(Type.getType(Object.class), TYPE_SMO, TYPE_TC, Type.getType(Class.class)));
         }
+
         else {
             super.marshalOut(c, what, ix);
         }

@@ -308,40 +308,18 @@ my class Hash { # declared in BOOTSTRAP
     multi method classify-list( &test, \list, :&as ) {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
-        my $value := iter.pull-one;
-        unless $value =:= IterationEnd {
+
+        while (my $value := iter.pull-one) !=:= IterationEnd {
             my $tested := test($value);
-
-            # multi-level classify
-            if nqp::istype($tested, Iterable) {
-                loop {
-                    my @keys  = @$tested;
-                    my $last := @keys.pop;
-                    my $hash  = self;
-                    $hash = $hash{$_} //= self.new for @keys;
-                    ($hash{$last} //= []).push(
-                      &as ?? as($value) !! $value);
-                    last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
-                };
+            if nqp::istype($tested, Iterable) { # multi-level classify
+                my @keys  = @$tested;
+                my $last := @keys.pop;
+                my $hash  = self;
+                $hash = $hash{$_} //= self.new for @keys;
+                ($hash{$last} //= []).push( &as ?? as($value) !! $value );
             }
-
-            # simple classify to store a specific value
-            elsif &as {
-                loop {
-                    (self{$tested} //= []).push(as($value));
-                    last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
-                };
-            }
-
-            # just a simple classify
             else {
-                loop {
-                    (self{$tested} //= []).push($value);
-                    last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
-                };
+                (self{$tested} //= []).push( &as ?? as($value) !! $value );
             }
         }
         self;

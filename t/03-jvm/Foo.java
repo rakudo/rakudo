@@ -15,4 +15,13 @@ public class Foo {
         }
         return out;
     }
+    public static String foozzle(java.util.Map in) {
+        String out = "";
+        Object[] keys = in.keySet().toArray();
+        java.util.Arrays.sort(keys);
+        for(Object key : keys) {
+            out += key + " => " + in.get(key) + ", ";
+        }
+        return out;
+    }
 }

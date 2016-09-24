@@ -457,7 +457,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             
             for(int i = 0; i < size; i++) {
                 Ops.invokeDirect(tc, methAtPos, 
-                    new CallSiteDescriptor(new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null), 
+                    Ops.storeCallSite,
                     new Object[] { p6list, Ops.box_i((long)i, gcx.Int, tc) });
                 Object cur = Ops.result_o(tc.curFrame);
                 Object value = null;
@@ -477,6 +477,41 @@ public class RakudoJavaInterop extends BootJavaInterop {
             }
             if (List.class.isAssignableFrom(what)) {
                 out = Arrays.asList((Object[]) out);
+            }
+        }
+        else if(Ops.istype(in, gcx.Hash, tc) == 1) {
+            SixModelObject p6hash = Ops.decont(in, tc);
+            SixModelObject methElems = Ops.findmethod(p6hash, "elems", tc);
+            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { p6hash });
+            try {
+                size = Ops.result_i(tc.curFrame);
+            }
+            catch(Throwable t) {
+                ExceptionHandling.dieInternal(tc, "Cannot marshal a lazy hash to Java");
+            }
+            SixModelObject methKeys = Ops.findmethod(p6hash, "keys", tc);
+            Ops.invokeDirect(tc, methKeys, Ops.invocantCallSite, new Object[] { p6hash });
+            SixModelObject p6keyList = Ops.result_o(tc.curFrame);
+            SixModelObject methAtPos = Ops.findmethod(p6keyList, "AT-POS", tc);
+            SixModelObject methAtKey = Ops.findmethod(p6hash, "AT-KEY", tc);
+            
+            out = new HashMap<String, Object>();
+            for(int i = 0; i < size; i++) {
+                Ops.invokeDirect(tc, methAtPos, Ops.storeCallSite, new Object[] { p6keyList, Ops.box_i((long)i, gcx.Int, tc) });
+                SixModelObject p6key = Ops.result_o(tc.curFrame);
+                Ops.invokeDirect(tc, methAtKey, Ops.storeCallSite, new Object[] { p6hash, p6key });
+                Object cur = Ops.result_o(tc.curFrame);
+                Object value = null;
+                if(Ops.islist((SixModelObject) cur, tc) == 1) {
+                    value = BootJavaInterop.marshalOutRecursive(in, tc, what);
+                }
+                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1) {
+                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
+                }
+                else {
+                    value = parseSingleArg((SixModelObject) cur, tc);
+                }
+                ((HashMap) out).put(Ops.unbox_s(p6key, tc), value);
             }
         }
         // TODO associative types, which could for starters default to Map<Object> similar 
@@ -545,7 +580,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
         MethodVisitor mv = c.mv;
 
         if(what.getComponentType() != null
-        || List.class.isAssignableFrom(what)) {
+            || List.class.isAssignableFrom(what)
+            || Map.class.isAssignableFrom(what)) {
             emitGetFromNQP(c, ix, storageForType(what));
             mv.visitVarInsn(Opcodes.ALOAD, c.tcLoc);
             mv.visitLdcInsn(Type.getType(what));

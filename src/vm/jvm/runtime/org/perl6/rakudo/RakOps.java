@@ -51,6 +51,7 @@ public final class RakOps {
         public SixModelObject AutoThreader;
         public SixModelObject Positional;
         public SixModelObject PositionalBindFailover;
+        public SixModelObject Associative;
         public SixModelObject EMPTYARR;
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
@@ -119,6 +120,7 @@ public final class RakOps {
         gcx.ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         gcx.False = conf.at_key_boxed(tc, "False");
         gcx.True = conf.at_key_boxed(tc, "True");
+        gcx.Associative = conf.at_key_boxed(tc, "Associative");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
         
         SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,

@@ -1,6 +1,7 @@
 New in 2016.10
  + Fixes:
     + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
+    + Fixed broken multi-level Hash.classify-list with @ or % mappers
  + Additions:
  + Efficiency:
 

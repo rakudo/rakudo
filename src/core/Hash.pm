@@ -315,7 +315,7 @@ my class Hash { # declared in BOOTSTRAP
             # multi-level classify
             if nqp::istype($tested, Iterable) {
                 loop {
-                    my @keys  = $tested;
+                    my @keys  = @$tested;
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;

@@ -45,7 +45,7 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method multi() {
-        self.dispatcher.defined
+        self.dispatcher.defined || +self.candidates > 1
     }
 
     multi method perl(Routine:D:) {

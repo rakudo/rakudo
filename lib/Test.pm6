@@ -351,7 +351,7 @@ multi sub subtest(&subtests, $desc = '') is export {
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
     $indents .= chop(4);
-    proclaim($status,$desc);
+    proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
 sub diag(Mu $message) is export {

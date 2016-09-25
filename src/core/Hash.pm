@@ -1,3 +1,5 @@
+my class X::Invalid::ComputedValue { ... };
+
 my class Hash { # declared in BOOTSTRAP
     # my class Hash is Map {
     #     has Mu $!descriptor;
@@ -314,8 +316,18 @@ my class Hash { # declared in BOOTSTRAP
 
             # multi-level classify
             if nqp::istype($tested, Iterable) {
+                my $els = $tested.elems;
                 loop {
-                    my @keys  = @$tested;
+                    my @keys = @$tested;
+                    @keys == $els or X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<classify-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
@@ -325,22 +337,21 @@ my class Hash { # declared in BOOTSTRAP
                     $tested := test($value);
                 };
             }
-
-            # simple classify to store a specific value
-            elsif &as {
-                loop {
-                    (self{$tested} //= []).push(as($value));
-                    last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
-                };
-            }
-
             # just a simple classify
             else {
                 loop {
-                    (self{$tested} //= []).push($value);
+                    (self{$tested} //= []).push(&as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
+                    nqp::istype(($tested := test($value)), Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<classify-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
                 };
             }
         }

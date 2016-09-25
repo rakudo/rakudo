@@ -966,6 +966,7 @@ S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
+S32-list/categorize-list.t
 S32-list/classify.t
 S32-list/classify-list.t
 S32-list/create.t

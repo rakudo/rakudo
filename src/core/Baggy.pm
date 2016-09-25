@@ -520,8 +520,8 @@ my role Baggy does QuantHash {
                     :name<mapper>,
                     :method<classify-list>,
                     :value<an Iterable item>,
-                    :reason('BagHash cannot be nested and so does not support '
-                        ~ 'multi-level classification'),
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level classification'),
                 ).throw;
             }
             else {

@@ -367,39 +367,59 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method categorize-list(|) { * }
-    # XXX GLR possibly more efficient taking an Iterable, not a @list
-    # XXX GLR replace p6listitems op use
-    # XXX GLR I came up with simple workarounds but this can probably
-    #         be done more efficiently better.
-    multi method categorize-list( &test, @list, :&as ) {
-       fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-       if @list {
-           # multi-level categorize
-           if nqp::istype(test(@list[0])[0],Iterable) {
-               @list.map: -> $l {
-                   my $value := &as ?? as($l) !! $l;
-                   for test($l) -> $k {
-                       my @keys = @($k);
+    multi method categorize-list( &test, \list, :&as ) {
+       fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
+
+            # multi-level categorize
+            if nqp::istype($tested[0],Iterable) {
+                my $els = $tested[0].elems;
+                loop {
+                    for $tested.cache -> $cat {
+                       my @keys = @$cat or next;
                        my $last := @keys.pop;
                        my $hash  = self;
                        $hash = $hash{$_} //= self.new for @keys;
-                       $hash{$last}.push: $value;
-                   }
-               }
-           } else {
-           # just a simple categorize
-               @list.map: -> $l {
-                  my $value := &as ?? as($l) !! $l;
-                  (self{$_} //= []).push: $value for test($l);
-               }
-               # more efficient (maybe?) nom version that might
-               # yet be updated for GLR
-               # @list.map: -> $l {
-               #     my $value := &as ?? as($l) !! $l;
-               #     nqp::push(
-               #       nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
-               #       for test($l);
-           }
+                       $hash{$last}.push(&as ?? as($value) !! $value);
+                    }
+
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    $tested := test($value);
+
+                    nqp::istype($tested[0],Iterable)
+                        and $els == $tested[0]
+                        or X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                }
+            }
+            # simple categorize
+            else {
+                loop {
+                    self{$_}.push(&as ?? as($value) !! $value)
+                        for @$tested;
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    nqp::istype(($tested := test($value))[0], Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                };
+            }
        }
        self;
     }

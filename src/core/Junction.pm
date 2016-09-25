@@ -258,7 +258,7 @@ sub AUTOTHREAD(|c) {
 
 sub AUTOTHREAD_METHOD($name, |c) {
     Junction.AUTOTHREAD(
-        -> $obj, |c { $obj."$name"(|c) },
+        -> \obj, |c { obj."$name"(|c) },
         |c);
 }
 

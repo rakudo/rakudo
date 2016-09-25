@@ -541,37 +541,51 @@ my role Baggy does QuantHash {
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-        if @list {
+    multi method categorize-list( &test, \list ) {
+        fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
 
             # multi-level categorize
-            if nqp::istype(test(@list[0])[0],List) {
-                for @list -> $l {
-                    for test($l) -> $k {
-                        my @keys  = @($k);
-                        my $last := @keys.pop;
-                        my $bag   = self;
-                        $bag = $bag{$_} //= self.new for @keys;
-                        $bag{$last}++;
-                    }
-                }
+            if nqp::istype($tested[0],Iterable) {
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<categorize-list>,
+                    :value<a nested Iterable item>,
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level categorization'),
+                ).throw;
             }
-
-            # just a simple categorize
+            # simple categorize
             else {
-                for @list -> $l {
-                    self{$_}++ for test($l);
-                }
+                loop {
+                    self{$_}++ for @$tested;
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    nqp::istype(($tested := test($value))[0], Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                };
             }
-        }
-        self;
+       }
+       self;
     }
-    multi method categorize-list( %test, *@list ) {
-        self.categorize-list( { %test{$^a} }, @list );
+    multi method categorize-list( %test, |c ) {
+        self.categorize-list( { %test{$^a} }, |c );
     }
-    multi method categorize-list( @test, *@list ) {
-        self.categorize-list( { @test[$^a] }, @list );
+    multi method categorize-list( @test, |c ) {
+        self.categorize-list( { @test[$^a] }, |c );
+    }
+    multi method categorize-list( &test, **@list, |c ) {
+        self.categorize-list( &test, @list, |c );
     }
 
 #--- coercion methods

@@ -42,6 +42,9 @@ my class Bag does Baggy {
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }
+    proto method categorize-list(|) {
+        X::Immutable.new(:method<categorize-list>, :typename(self.^name)).throw;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

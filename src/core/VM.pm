@@ -37,6 +37,7 @@ class VM does Systemic {
         $!prefix         = $!properties<perl6.prefix>;
         $!precomp-ext    = "jar";
         $!precomp-target = "jar";
+        $!config<os.name> = $!properties<os.name> // "unknown";
 #?endif
         $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please

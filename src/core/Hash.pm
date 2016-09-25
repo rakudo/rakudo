@@ -331,8 +331,7 @@ my class Hash { # declared in BOOTSTRAP
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
-                    ($hash{$last} //= []).push(
-                      &as ?? as($value) !! $value);
+                    $hash{$last}.push(&as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     $tested := test($value);
                 };
@@ -340,7 +339,7 @@ my class Hash { # declared in BOOTSTRAP
             # just a simple classify
             else {
                 loop {
-                    (self{$tested} //= []).push(&as ?? as($value) !! $value);
+                    self{$tested}.push(&as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     nqp::istype(($tested := test($value)), Iterable)
                         and X::Invalid::ComputedValue.new(

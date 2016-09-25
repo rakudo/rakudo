@@ -1212,7 +1212,7 @@ my class X::Invalid::ComputedValue is Exception {
     has $.value;
     has $.reason;
     method message {
-        "$.name on $.method computed to '$.value', which cannot be used"
+        "$.name on $.method computed to $.value, which cannot be used"
             ~ (" because $.reason" if $.reason);
     }
 }

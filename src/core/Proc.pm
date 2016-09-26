@@ -13,8 +13,9 @@ my class Proc {
     has int $!flags;
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
-                    Bool :$bin, Bool :$chomp = True, Bool :$merge,
+                    Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
                     Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$signal --> Nil) {
+        @!command = |$command if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
             $!in_fh := nqp::getattr(nqp::decont($in), IO::Handle, '$!PIO');
             $!flags += nqp::const::PIPE_INHERIT_IN;

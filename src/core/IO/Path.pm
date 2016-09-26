@@ -555,7 +555,7 @@ my class IO::Path is Cool {
     }
 
     method l(--> Bool) {
-        $.e
+        ?Rakudo::Internals.FILETEST-LE($.abspath)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<l>))
     }

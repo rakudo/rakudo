@@ -1252,6 +1252,9 @@ my class Rakudo::Internals {
     method FILETEST-E(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }
+    method FILETEST-LE(Str:D \abspath) {
+        nqp::lstat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    }
     method FILETEST-D(Str:D \abspath) {
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
         nqp::isge_i($d,0)

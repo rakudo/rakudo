@@ -110,7 +110,7 @@ multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
-multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b() }
+multi sub infix:<^^>(Mu \a, &b)           { a ^^ b() }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<^^>(+@a) {
     my Mu $a = shift @a;

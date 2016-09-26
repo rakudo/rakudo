@@ -54,6 +54,7 @@ my class Proc::Async {
     has $!exit_promise;
     has @!promises;
 
+    proto method new(|) { * }
     multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
 
     method !supply(\what,\the-supply,\type,\value) {

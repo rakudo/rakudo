@@ -682,7 +682,7 @@ multi sub nodemap(\op, Associative \h) {
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    nodemap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj);
+    nodemap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
 }
 
 multi sub duckmap(\op, Associative \h) {

@@ -399,18 +399,17 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
     1;
 }
 
-sub nativecast($target-type, $source) is export(:DEFAULT) {
-    if $target-type ~~ Signature {
-        my $r := sub { };
-        $r does Native[$r, Str];
-        nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
-        nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
-        $r
-    }
-    else {
-        nqp::nativecallcast(nqp::decont($target-type),
-            nqp::decont(map_return_type($target-type)), nqp::decont($source));
-    }
+multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
+    my $r := sub { };
+    $r does Native[$r, Str];
+    nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
+    nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
+    $r
+}
+
+multi sub nativecast($target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {

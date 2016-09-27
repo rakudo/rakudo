@@ -3203,6 +3203,10 @@ nqp::sethllconfig('perl6', nqp::hash(
                 nqp::atkey(%ex, 'X::Assignment::RO')($type);
             }
         }
+        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Method::NotFound') {
+            nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $type);
+        }
         nqp::die("Method '$name' not found for invocant of class '$type'");
     },
 #?endif

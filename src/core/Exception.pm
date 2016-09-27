@@ -149,7 +149,7 @@ my class X::Dynamic::NotFound is Exception {
     }
 }
 my class X::Method::NotFound is Exception {
-    has $.invocant;
+    has Mu $.invocant;
     has $.method;
     has $.typename;
     has Bool $.private = False;
@@ -275,13 +275,6 @@ sub EXCEPTION(|) {
         }
         elsif $type == nqp::const::CONTROL_RETURN {
             $ex := CX::Return.new();
-        }
-        elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
-                nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
-            $ex := X::Method::NotFound.new(
-                method   => ~$0,
-                typename => ~$1,
-            );
         }
         else {
             $ex := nqp::create(X::AdHoc);
@@ -2368,7 +2361,7 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  sub ($invocant, $method, $typename, $private = False) {
+  sub (Mu $invocant, $method, $typename, $private = False) {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
   },
   'X::Multi::Ambiguous',

@@ -557,7 +557,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches              = self.match($matcher, |%options);
 
-        if !@matches || (@matches == 1 && !@matches[0]) {
+        if nqp::istype(@matches[0], Failure) {
+            @matches[0];
+        }
+        elsif !@matches || (@matches == 1 && !@matches[0]) {
             Nil;
         }
         else {
@@ -602,18 +605,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = self.match($matcher, :g($g || $global), |%options);
 
-        !@matches || (@matches == 1 && !@matches[0])
-          ?? self
-          !! self!APPLY-MATCHES(
-               @matches,
-               $replacement,
-               $caller_dollar_slash,
-               $SET_DOLLAR_SLASH,
-               $word_by_word,
-               $samespace,
-               $samecase,
-               $samemark,
-             );
+        nqp::istype(@matches[0], Failure)
+            ?? @matches[0]
+            !! !@matches || (@matches == 1 && !@matches[0])
+                  ?? self
+                  !! self!APPLY-MATCHES(
+                       @matches,
+                       $replacement,
+                       $caller_dollar_slash,
+                       $SET_DOLLAR_SLASH,
+                       $word_by_word,
+                       $samespace,
+                       $samecase,
+                       $samemark,
+                     );
     }
 
     method !APPLY-MATCHES(\matches,$replacement,\cds,\SDS,\word_by_word,\space,\case,\mark) {

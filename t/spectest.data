@@ -972,6 +972,7 @@ S32-list/classify.t
 S32-list/classify-list.t
 S32-list/create.t
 S32-list/combinations.t
+S32-list/duckmap.t
 S32-list/end.t
 S32-list/first.t
 S32-list/first-end.t

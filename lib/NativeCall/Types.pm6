@@ -33,7 +33,12 @@ our class Pointer                               is repr('CPointer') {
         nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
     }
 
-    method deref(::?CLASS:D \ptr:) { nativecast(void, ptr) }
+    proto method Bool() {*}
+    multi method Bool(::?CLASS:U: --> False) { }
+    multi method Bool(::?CLASS:D:) { so self.Int }
+
+
+    method deref(::?CLASS:D \ptr:) { self ?? nativecast(void, ptr) !! fail("Can't dereference a Null Pointer") }
 
     multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
     multi method gist(::?CLASS:D:) {
@@ -50,7 +55,7 @@ our class Pointer                               is repr('CPointer') {
 
     my role TypedPointer[::TValue] {
         method of() { TValue }
-        method deref(::?CLASS:D \ptr:) { nativecast(TValue, ptr) }
+        method deref(::?CLASS:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
     }
     method ^parameterize(Mu:U \p, Mu:U \t) {
         die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"

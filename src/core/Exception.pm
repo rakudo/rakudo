@@ -276,6 +276,16 @@ sub EXCEPTION(|) {
         elsif $type == nqp::const::CONTROL_RETURN {
             $ex := CX::Return.new();
         }
+#?if !moar
+        # for MoarVM this check is done in src/Perl6/Metamodel/BOOTSTRAP.nqp, cmp 222d16b0b9
+        elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
+                nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
+            $ex := X::Method::NotFound.new(
+                method   => ~$0,
+                typename => ~$1,
+            );
+        }
+#?endif
         else {
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex) // 'unknown exception'));

@@ -218,10 +218,6 @@ my class Promise {
             });
         }
     }
-
-    # experimental
-    method Str(Promise:D:)     { self.result.Str     }
-    method Numeric(Promise:D:) { self.result.Numeric }
 }
 
 multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {

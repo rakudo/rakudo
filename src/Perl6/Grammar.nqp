@@ -2800,8 +2800,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | $<quant>=['\\'|'|'] <param_var> {
                 $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
             }
-            | $<quant>=['\\'|'|'|'+'] <defterm>?
-
+            | $<quant>=['\\'|'|'|'+'] <param_term>
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
@@ -2809,7 +2808,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | $<quant>=['\\'|'|'] <param_var> {
             $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
         }
-        | $<quant>=['\\'|'|'|'+'] <defterm>?
+        | $<quant>=['\\'|'|'|'+'] <param_term>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>
             {
@@ -2902,6 +2901,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                <postcircumfix>
           ]?
         ]
+    }
+
+    token param_term {
+        <defterm>?
     }
 
     token named_param {

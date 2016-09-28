@@ -4652,15 +4652,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method parameter($/) {
-        # If it's a defterm, need to do parameter setup here.
-        if $<defterm> {
-            my $name := $<defterm>.ast;
-            %*PARAM_INFO<variable_name> := $name;
-            %*PARAM_INFO<desigilname>   := $name;
-            %*PARAM_INFO<sigil>         := '';
-            self.declare_param($/, $name);
-        }
-
         # Sanity checks.
         my $quant := $<quant>;
         if $<default_value> {
@@ -4904,6 +4895,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var')
                     )));
             %*PARAM_INFO<post_constraints>.push($where);
+        }
+    }
+
+    method param_term($/) {
+        if $<defterm> {
+            my $name := $<defterm>.ast;
+            %*PARAM_INFO<variable_name> := $name;
+            %*PARAM_INFO<desigilname>   := $name;
+            %*PARAM_INFO<sigil>         := '';
+            self.declare_param($/, $name);
         }
     }
 

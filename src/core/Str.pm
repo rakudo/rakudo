@@ -575,7 +575,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samemark,
             );
             nqp::if(
-              $global,
+              $global || %options<x>,
               nqp::p6bindattrinvres(
                 nqp::create(List),
                 List,

@@ -51,31 +51,13 @@ multi sub return(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
-# RT #122732 - control operator crossed continuation barrier
-#?if jvm
-my &take-rw := -> | {
-    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray));
-}
-#?endif
-#?if !jvm
 proto sub take-rw(|) { * }
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
-#?endif
 
-# RT #122732 - control operator crossed continuation barrier
-#?if jvm
-my &take := -> | {
-    THROW(
-      nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
-    )
-}
-#?endif
-#?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
@@ -87,7 +69,6 @@ multi sub take(|) {
       nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
     )
 }
-#?endif
 
 proto sub goto(|) { * }
 multi sub goto(Label:D \x --> Nil) { x.goto }

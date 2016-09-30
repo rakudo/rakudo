@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 26;
+plan 27;
 
 compile_test_lib('06-struct');
 
@@ -170,6 +170,10 @@ is $sis.a.second, 77, 'nested second is 77';
     class AB is repr<CStruct> { HAS A $.a; HAS B $.b };
 
     is nativesizeof(AB), 2, 'struct with inlined structs has correct size';
+}
+
+{
+    throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no fields'/ };
 }
 
 # vim:ft=perl6

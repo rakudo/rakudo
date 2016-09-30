@@ -132,6 +132,10 @@ RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$getInt', function(ctx) {
     return this.$$decont().$$getInt();
   });
+
+  this.STable.addInternalMethod('$$iscont', function() {
+    return 1;
+  });
 };
 
 RakudoScalar.prototype.serialize = function(cursor) {

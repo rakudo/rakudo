@@ -400,27 +400,27 @@ public final class Binder {
                        seeing as we don't have a isconcrete_nodecont */
                     if ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1) {
                         if (error != null) {
-                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
-                                error[0] = "Invocant requires a type object, but an object instance was passed";
-                            }
-                            else {
-                                error[0] = String.format(
-                                    "Parameter '%s' requires a type object, but an object instance was passed",
-                                    varName);
-                            }
+                            String typeName = Ops.typeName(param.get_attribute_boxed(tc,
+                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
+                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+                                ? "Invocant"
+                                : String.format("Parameter '%s'", varName);
+                            error[0] = String.format(
+                                "%s requires a type object of type %s, but an object instance was passed.  Did you forget a 'multi'?",
+                                what, typeName);
                         }
                         return juncOrFail(tc, gcx, decontValue);
                     }
                     if ((paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1) {
                         if (error != null) {
-                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
-                                error[0] = "Invocant requires an instance, but a type object was passed";
-                            }
-                            else {
-                                error[0] = String.format(
-                                    "Parameter '%s' requires an instance, but a type object was passed",
-                                    varName);
-                            }
+                            String typeName = Ops.typeName(param.get_attribute_boxed(tc,
+                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
+                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+                                ? "Invocant"
+                                : String.format("Parameter '%s'", varName);
+                            error[0] = String.format(
+                                "%s requires an instance of type %s, but a type object was passed.  Did you forget a .new?",
+                                what, typeName);
                         }
                         return juncOrFail(tc, gcx, decontValue);
                     }

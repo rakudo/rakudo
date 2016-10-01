@@ -54,7 +54,7 @@ my class Array { # declared in BOOTSTRAP
                 method !SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
-                    $!reified    := 
+                    $!reified    :=
                       nqp::ifnull(
                         nqp::getattr( array,List,'$!reified'),
                         nqp::bindattr(array,List,'$!reified',
@@ -1015,7 +1015,7 @@ my class Array { # declared in BOOTSTRAP
           nqp::splice(
             nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$size),
           $result
-        ) 
+        )
     }
     method !splice-offset-fail($got) {
         Failure.new(X::OutOfRange.new(
@@ -1095,7 +1095,7 @@ my class Array { # declared in BOOTSTRAP
           nqp::splice(
             nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$removed),
           $result
-        ) 
+        )
     }
     method !splice-save(int $offset,int $size, \removed) {
         nqp::stmts(

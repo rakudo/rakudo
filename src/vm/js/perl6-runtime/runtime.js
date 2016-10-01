@@ -103,6 +103,15 @@ op.p6capturelex = function(ctx, codeObj) {
   return codeObj;
 };
 
+op.p6var = function(cont) {
+  if (cont != null && cont.$$iscont && cont.$$iscont()) {
+    var wrapper = Scalar._STable.REPR.allocate(Scalar._STable);
+    wrapper.$$bindattr(Scalar, '$!value', cont);
+    return wrapper;
+  } else {
+    return cont;
+  }
+}
 
 var containerSpecs = require('nqp-runtime/container-specs.js');
 

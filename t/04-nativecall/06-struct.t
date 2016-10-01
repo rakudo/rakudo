@@ -173,7 +173,7 @@ is $sis.a.second, 77, 'nested second is 77';
 }
 
 {
-    throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no fields'/ };
+    throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no attributes'/ };
 }
 
 # vim:ft=perl6

@@ -6027,8 +6027,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $elem := $elem[0];
             }
             $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
-            if $elem ~~ QAST::Op && $elem.op eq 'p6capturelex' {
-                my $subelem := $elem[0];
+            my $subelem := $elem;
+            while $subelem ~~ QAST::Op && ($subelem.op eq 'p6capturelex' || $subelem.op eq 'if' || $subelem.op eq 'unless') {
+                $subelem := $subelem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
                     if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'], :setting-only)) {

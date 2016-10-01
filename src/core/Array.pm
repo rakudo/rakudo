@@ -1031,6 +1031,10 @@ my class Array { # declared in BOOTSTRAP
     multi method splice(Array:D: Whatever $, Int:D $size) {
         self.splice(self.elems,$size)
     }
+    multi method splice(Array:D: Whatever $, Callable:D $size) {
+        my int $elems = self.elems;
+        self.splice($elems,$size(nqp::sub_i($elems,$elems)));
+    }
     multi method splice(Array:D: Callable:D $offset, Callable:D $size) {
         nqp::stmts(
           (my int $elems = self.elems),
@@ -1158,6 +1162,10 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method splice(Array:D: Whatever $, Int:D $size, @new) {
         self.splice(self.elems,$size,@new)
+    }
+    multi method splice(Array:D: Whatever $, Callable:D $size, @new) {
+        my int $elems = self.elems;
+        self.splice($elems,$size(nqp::sub_i($elems,$elems)),@new);
     }
     multi method splice(Array:D: Callable:D $offset, Callable:D $size, @new) {
         nqp::stmts(

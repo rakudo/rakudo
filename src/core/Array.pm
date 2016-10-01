@@ -1139,9 +1139,21 @@ my class Array { # declared in BOOTSTRAP
         )
     }
     #------ splice(offset,size,array) candidates
-    multi method splice(Array:D: $offset, $size, **@new) {
+
+    # we have these three multies to avoid infiniloop when an attempt to pass
+    # a replacement array as $size is made. So we restrict size to just the
+    # acceptable types and we don't use the `where` clause for performance
+    multi method splice(Array:D: $offset, Whatever $size, **@new) {
         self.splice($offset, $size, @new)
     }
+    multi method splice(Array:D: $offset, Callable:D $size, **@new) {
+        self.splice($offset, $size, @new)
+    }
+    multi method splice(Array:D: $offset, Int:D $size, **@new) {
+        self.splice($offset, $size, @new)
+    }
+
+
     multi method splice(Array:D: Whatever $, Whatever $, @new) {
         self.splice(self.elems,0,@new)
     }

@@ -320,7 +320,7 @@ public final class RakOps {
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
-        new byte[] { }, null);
+        new byte[] { CallSiteDescriptor.ARG_STR }, null);
     public static SixModelObject p6store(SixModelObject cont, SixModelObject value, ThreadContext tc) {
         ContainerSpec spec = cont.st.ContainerSpec;
         if (spec != null) {
@@ -338,7 +338,7 @@ public final class RakOps {
                     ExceptionHandling.dieInternal(tc, "Cannot assign to a non-container");
                 else
                     Ops.invokeDirect(tc, thrower,
-                        storeThrower, new Object[] { });
+                        storeThrower, new Object[] { Ops.typeName(cont, tc) });
             }
         }
         return cont;

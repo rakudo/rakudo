@@ -13,7 +13,7 @@ my class IO::Path is Cool {
         nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.abspath)));
     }
 
-    multi method ACCEPTS(IO::Path:D: Mu \that) {
+    multi method ACCEPTS(IO::Path:D: Cool:D \that) {
         nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 

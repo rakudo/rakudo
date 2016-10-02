@@ -3,6 +3,7 @@ New in 2016.10
     + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
     + Fixed broken multi-level Hash.classify-list with @ or % mappers
     + Fixed hang on Array.splice with incorrect arguments
+    + Fixed unwanted errors when smartmatching objects against IO::Path
  + Additions:
  + Efficiency:
 

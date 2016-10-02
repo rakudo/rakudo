@@ -282,7 +282,12 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
         $a.Bag(:view) (<+) $b.Bag(:view);
     }
 }
-multi sub infix:<<(<+)>>(QuantHash $a, QuantHash $b --> Bool) {
+multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
+multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:D $b --> True ) {}
+multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:U $b --> Bool ) {
+    not $a.keys;
+}
+multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:D $b --> Bool ) {
     for $a.keys {
         return False if $a{$_} > $b{$_};
     }
@@ -294,7 +299,12 @@ only sub infix:<≼>($a, $b --> Bool) is pure {
 }
 
 proto sub infix:<<(>+)>>($, $ --> Bool) is pure {*}
-multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
+multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
+multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:U $b --> True ) {}
+multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:D $b --> Bool ) {
+    not $b.keys;
+}
+multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:D $b --> Bool) {
     for $b.keys {
         return False if $b{$_} > $a{$_};
     }

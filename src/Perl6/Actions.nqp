@@ -3408,7 +3408,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $code.name,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
                 );
@@ -3505,7 +3505,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $*W.throw($/, ['X', 'Redeclaration'],
                             symbol  => ~$<deflongname>.ast,
                             what    => 'routine',
-                            postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                            postfix => '(already defined in package ' ~ $package.HOW.name($package) ~ ')'
                         );
                     }
                     $*W.install_package_symbol($/, $package, $name, $code, 'sub');
@@ -3821,7 +3821,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $code.name,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
                 );
@@ -4024,7 +4024,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, ['X', 'Redeclaration'],
                     symbol  => $name,
                     what    => 'method',
-                    postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                    postfix => '(already defined in package ' ~ $package.HOW.name($package) ~ ')'
                 );
             }
             $*W.install_package_symbol($/, $package, '&' ~ $name, $code, 'method');
@@ -4707,7 +4707,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $<param_var>.Str,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $<type_constraint>[0].Str
                                 ~ ')',
                 );
@@ -8496,7 +8496,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if +%existing && !%existing<placeholder_parameter> {
             $*W.throw($/, ['X', 'Redeclaration'],
                 symbol  => ~$/,
-                postfix => ' as a placeholder parameter',
+                postfix => 'as a placeholder parameter',
             );
         }
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));

@@ -951,9 +951,9 @@ my class X::Redeclaration does X::Comp {
     has $.postfix = '';
     has $.what    = 'symbol';
     method message() {
-        my $m = "Redeclaration of $.what '$.symbol$.postfix'";
-        $m ~= " (did you mean to declare a multi-sub?)" if $.what eq 'routine';
-        $m
+        "Redeclaration of $.what '$.symbol'"
+          ~ (" $.postfix" if $.postfix)
+          ~ (" (did you mean to declare a multi-sub?)" if $.what eq 'routine');
     }
 }
 

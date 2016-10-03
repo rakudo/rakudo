@@ -2319,10 +2319,9 @@ my class X::Multi::NoMatch is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~ "Cannot resolve caller $.dispatcher.name()$cap; " ~ (
             @un-rw-cand
-            ?? "arguments that are expected to be\nin writable containers "
-                ~ 'do not have them, for these candidates:'
-                ~  join("\n    ", '', @un-rw-cand) ~ (
-                        "\n\nThese candidates are also available:"
+            ?? "the following candidates\nmatch the type but require "
+                ~ 'mutable arguments:' ~  join("\n    ", '', @un-rw-cand) ~ (
+                        "\n\nThe following do not match for other reasons:"
                         ~  join("\n    ", '', sort keys @cand ∖ @un-rw-cand)
                     unless @cand == @un-rw-cand
                 )

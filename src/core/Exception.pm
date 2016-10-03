@@ -2302,8 +2302,8 @@ my class X::Multi::NoMatch is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)($($where ?? .value.?perl !! .value.WHAT.?perl ))");
-                    @bits.push($_.value.^name) if $!;
+                    try @bits.push(":$(.key)\($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    @bits.push(':' ~ .value.^name) if $!;
                 }
             }
         }

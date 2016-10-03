@@ -2272,6 +2272,17 @@ my class X::Multi::NoMatch is Exception {
     has $.capture;
     method message {
         my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my @un-rw-cand;
+        if first / 'is rw' /, @cand {
+            my $rw-capture = Capture.new(
+                :list( $!capture.list.map({ $ = $_ })                  ),
+                :hash( $!capture.hash.map({ .key => $ = .value }).hash ),
+            );
+            @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
+                $rw-capture ~~ $^cand
+            })».gist;
+        }
+
         my $where = so first / where /, @cand;
         my @bits;
         my @priors;
@@ -2306,10 +2317,19 @@ my class X::Multi::NoMatch is Exception {
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
-        @priors.join ~
-        join "\n    ",
-            "Cannot resolve caller $.dispatcher.name()$cap; none of these signatures match:",
-            @cand;
+        @priors.join ~ "Cannot resolve caller $.dispatcher.name()$cap; " ~ (
+            @un-rw-cand
+            ?? "arguments that are expected to be\nin writable containers "
+                ~ 'do not have them, for these candidates:'
+                ~  join("\n    ", '', @un-rw-cand) ~ (
+                        "\n\nThese candidates are also available:"
+                        ~  join("\n    ", '', sort keys @cand ∖ @un-rw-cand)
+                    unless @cand == @un-rw-cand
+                )
+            !! join "\n    ",
+                'none of these signatures match:',
+                @cand
+        );
     }
 }
 

@@ -4,6 +4,7 @@ New in 2016.10
     + Fixed broken multi-level Hash.classify-list with @ or % mappers
     + Fixed hang on Array.splice with incorrect arguments
     + Fixed unwanted errors when smartmatching objects against IO::Path
+    + Fixed is-deeply with Seqs showing Seq.new-consumed() in failure text
  + Additions:
  + Efficiency:
 

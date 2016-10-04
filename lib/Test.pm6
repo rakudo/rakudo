@@ -479,6 +479,15 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+multi sub is-deeply(Seq $got, Seq $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected.cache, $reason;
+}
+multi sub is-deeply(Seq $got, Mu $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected, $reason;
+}
+multi sub is-deeply(Mu $got, Seq $expected, $reason = '') is export {
+    is-deeply $got, $expected.cache, $reason;
+}
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     $time_after = nqp::time_n;
     my $test = _is_deeply( $got, $expected );

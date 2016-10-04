@@ -94,7 +94,9 @@ my class IO::Handle does IO {
         {
             CATCH {
                 fail X::IO::DoesNotExist.new(:$!path, :trying<open>)
-                    unless $!path.e;
+                    unless $create || $!path.e;
+                fail X::IO::DoesExist.new(:$!path, :trying<open>)
+                    if $exclusive && $!path.e;
                 fail X::IO::Directory.new(:$!path, :trying<open>)
                     if $!path.d;
                 fail X::IO.new(:os-error(.message));

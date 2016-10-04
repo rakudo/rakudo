@@ -467,6 +467,14 @@ my class X::IO::DoesNotExist does X::IO {
     }
 }
 
+my class X::IO::DoesExist does X::IO {
+    has $.path;
+    has $.trying;
+    method message() {
+        "Found preexisting file '$.path' while trying to do '.$.trying'"
+    }
+}
+
 my class X::IO::NotAFile does X::IO {
     has $.path;
     has $.trying;

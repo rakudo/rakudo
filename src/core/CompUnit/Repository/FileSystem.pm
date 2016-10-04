@@ -75,8 +75,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                   nqp::existskey($extensions,nqp::unbox_s(
                     Rakudo::Internals.MAKE-EXT($pulled))),
                   nqp::if(
-                    Rakudo::Internals.FILETEST-E($pulled)
-                      && Rakudo::Internals.FILETEST-F($pulled),
+                    Rakudo::Internals.FILETEST-F($pulled),
                     nqp::if(
                       (my $handle := open($pulled)),
                       nqp::push_s($parts,

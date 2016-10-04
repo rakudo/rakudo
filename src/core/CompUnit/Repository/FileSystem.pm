@@ -61,6 +61,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $parts := nqp::list_s;
         my $prefix = self.prefix;
         my &test  := -> $path { !$path.starts-with('.') };
+        my &file  := -> $path {
+            ($path.ends-with('.pm') || $path.ends-with('.pm6'))
+            && Rakudo::Internals.FILETEST-F($path)
+        };
         nqp::if(
           $!id,
           $!id,
@@ -68,20 +72,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             $prefix.e,
             nqp::stmts(
               (my $iter := Rakudo::Internals.DIR-RECURSE(
-                $prefix.absolute,:&test).iterator),
+                $prefix.absolute,:&test,:&file).iterator),
               nqp::until(
                 nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                  nqp::existskey($extensions,nqp::unbox_s(
-                    Rakudo::Internals.MAKE-EXT($pulled))),
-                  nqp::if(
-                    Rakudo::Internals.FILETEST-F($pulled),
-                    nqp::if(
-                      (my $handle := open($pulled)),
-                      nqp::push_s($parts,
-                        nqp::sha1($handle.slurp-rest(:enc<latin1>,:close)))
-                    )
-                  )
+                  (my $handle := open($pulled)),
+                  nqp::push_s($parts,
+                    nqp::sha1($handle.slurp-rest(:enc<latin1>,:close)))
                 )
               ),
               nqp::if(

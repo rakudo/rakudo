@@ -1240,12 +1240,17 @@ my class Rakudo::Internals {
     }
 
     method DIR-RECURSE(Str(Cool) \abspath, Mu :$test = none(<. .. .precomp>)) {
-        my @paths = Rakudo::Internals.FILETEST-E(abspath)
-            ?? dir(abspath, :$test)
-            !! ();
-        gather while ( @paths.pop ) -> Str(Cool) $path {
-            @paths.append( dir($path, :$test) ) if try Rakudo::Internals.FILETEST-D($path);
-            take $path;
+        if Rakudo::Internals.FILETEST-E(abspath) {
+            my @paths = dir(abspath, :$test, :Str);
+            gather while @paths.pop -> $path {
+                Rakudo::Internals.FILETEST-D($path)
+                  ?? @paths.append( dir($path, :$test, :Str) )
+                  !! take $path
+                  if Rakudo::Internals.FILETEST-E($path)
+            }
+        }
+        else {
+            Rakudo::Internals.EmptyIterator
         }
     }
 

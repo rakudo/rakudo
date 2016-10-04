@@ -7,6 +7,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!precomp-store;
 
     my @extensions = <pm6 pm>;
+    my $extensions := nqp::hash('pm6',1,'pm',1);
 
     # global cache of files seen
     my %seen;
@@ -57,27 +58,42 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        $!id //= !self.prefix.e
-            ?? nqp::sha1('')
-            !! do {
-                my $content-id = nqp::sha1(
-                    [~]
-                    map    {
-                        if $_.IO.open -> $handle {
-                            nqp::sha1($handle.slurp-rest(:enc<latin1>,:close));
-                        }
-                        else {
-                            ''
-                        }
-                    },
-                    grep   {
-                        try Rakudo::Internals.FILETEST-F($_)
-                        and Rakudo::Internals.MAKE-EXT($_) eq @extensions.any
-                    },
-                    Rakudo::Internals.DIR-RECURSE(self.prefix.absolute)
-                );
-                nqp::sha1($content-id ~ self.next-repo.id) if self.next-repo;
-            }
+        my $parts := nqp::list_s;
+        my $prefix = self.prefix;
+        my &test  := -> $path { !$path.starts-with('.') };
+        nqp::if(
+          $!id,
+          $!id,
+          ($!id = nqp::if(
+            $prefix.e,
+            nqp::stmts(
+              (my $iter := Rakudo::Internals.DIR-RECURSE(
+                $prefix.absolute,:&test).iterator),
+              nqp::until(
+                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::existskey($extensions,nqp::unbox_s(
+                    Rakudo::Internals.MAKE-EXT($pulled))),
+                  nqp::if(
+                    Rakudo::Internals.FILETEST-E($pulled)
+                      && Rakudo::Internals.FILETEST-F($pulled),
+                    nqp::if(
+                      (my $handle := open($pulled)),
+                      nqp::push_s($parts,
+                        nqp::sha1($handle.slurp-rest(:enc<latin1>,:close)))
+                    )
+                  )
+                )
+              ),
+              nqp::if(
+                (my $next := self.next-repo),
+                nqp::push_s($parts,$next.id),
+              ),
+              nqp::sha1(nqp::join('',$parts))
+            ),
+            nqp::sha1('')
+          ))
+        )
     }
 
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {

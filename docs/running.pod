@@ -1,5 +1,3 @@
-=begin pod
-
 =head1 NAME
 
 perl6 - Rakudo Perl 6 Compiler
@@ -147,5 +145,3 @@ Written by the Rakudo contributors, see the CREDITS file.
 
 This manual page was written by Reini Urban, Moritz Lenz and the Rakudo
 contributors.
-
-=end pod

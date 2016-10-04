@@ -1239,14 +1239,24 @@ my class Rakudo::Internals {
           !! path;
     }
 
-    method DIR-RECURSE(Str(Cool) \abspath, Mu :$test = none(<. .. .precomp>)) {
+    method DIR-RECURSE(
+      Str(Cool) \abspath,
+      Mu :$test = none(<. .. .precomp>),
+      Mu :$file = True) {
         if Rakudo::Internals.FILETEST-E(abspath) {
             my @paths = dir(abspath, :$test, :Str);
             gather while @paths.pop -> $path {
-                Rakudo::Internals.FILETEST-D($path)
-                  ?? @paths.append( dir($path, :$test, :Str) )
-                  !! take $path
-                  if Rakudo::Internals.FILETEST-E($path)
+                nqp::if(
+                  Rakudo::Internals.FILETEST-E($path),
+                  nqp::if(
+                    Rakudo::Internals.FILETEST-D($path),
+                    @paths.append( dir($path, :$test, :Str) ),
+                    nqp::if(
+                      $file.ACCEPTS($path),
+                      take $path
+                    )
+                  )
+                )
             }
         }
         else {

@@ -125,7 +125,7 @@ class Distribution::Path does Distribution::Locally {
         my $meta = Rakudo::Internals::JSON.from-json(slurp($path));
 
         # generate `files` (special directories) directly from the file system
-        my @bins      = grep *.IO.f, Rakudo::Internals.DIR-RECURSE( $prefix.child('bin').absolute );
+        my @bins = Rakudo::Internals.DIR-RECURSE($prefix.child('bin').absolute);
         my $resources-dir = $prefix.child('resources');
         my @resources = ($meta<resources> // []).map: {
             $_ ~~ m/^libraries\/(.*)/
@@ -136,7 +136,7 @@ class Distribution::Path does Distribution::Locally {
                 ).hash
                 !! ~$resources-dir.child($_).absolute
         };
-        my @files     = grep *.defined, unique(|$meta<files>, |@bins, |@resources);
+        my @files = grep *.defined, unique(|$meta<files>, |@bins, |@resources);
         $meta<files>  = @files;
 
         self.bless(:$meta, :$prefix);

@@ -1240,28 +1240,75 @@ my class Rakudo::Internals {
     }
 
     method DIR-RECURSE(
-      Str(Cool) \abspath,
-      Mu :$test = none(<. .. .precomp>),
-      Mu :$file = True) {
-        if Rakudo::Internals.FILETEST-E(abspath) {
-            my @paths = dir(abspath, :$test, :Str);
-            gather while @paths.pop -> $path {
-                nqp::if(
-                  Rakudo::Internals.FILETEST-E($path),
-                  nqp::if(
-                    Rakudo::Internals.FILETEST-D($path),
-                    @paths.append( dir($path, :$test, :Str) ),
+      \abspath,
+      Mu :$dir  = -> str $elem { nqp::not_i(nqp::eqat($elem,'.',0)) },
+      Mu :$file = True
+    ) {
+        Seq.new(class :: does Iterator {
+            has str $!abspath;
+            has $!handle;
+            has $!dir;
+            has $!file,
+            has str $!dir-sep;
+            has $!todo;
+            method !SET-SELF(\abspath,$!dir,$!file) {
+                $!abspath = abspath;
+                if nqp::stat($!abspath,nqp::const::STAT_EXISTS)
+                  && nqp::stat($!abspath,nqp::const::STAT_ISDIR) {
+                    $!handle := nqp::opendir($!abspath);
+                    $!dir-sep = $*SPEC.dir-sep;
+                    $!abspath = nqp::concat($!abspath,$!dir-sep);
+                    $!todo   := nqp::list_s;
+                    self
+                }
+                else {
+                    Rakudo::Internals.EmptyIterator
+                }
+            }
+            method new(\ap,\d,\f) { nqp::create(self)!SET-SELF(ap,d,f) }
+
+            method !next() {
+                nqp::while(
+                  nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
+                    || nqp::iseq_i(nqp::chars($elem),0),
+                  nqp::stmts(
+                    nqp::closedir($!handle),
                     nqp::if(
-                      $file.ACCEPTS($path),
-                      take $path
+                      nqp::elems($!todo),
+                      nqp::stmts(
+                        ($!abspath = nqp::pop_s($!todo)),
+                        ($!handle := nqp::opendir($!abspath)),
+                        ($!abspath = nqp::concat($!abspath,$!dir-sep))
+                      ),
+                      return ''
                     )
                   )
-                )
+                );
+                $elem
             }
-        }
-        else {
-            Rakudo::Internals.EmptyIterator
-        }
+            method pull-one() {
+                nqp::while(
+                  nqp::chars(my str $entry = self!next),
+                  nqp::if(
+                    nqp::stat(
+                      (my str $path = nqp::concat($!abspath,$entry)),
+                      nqp::const::STAT_EXISTS
+                    ),
+                    nqp::if(
+                      nqp::stat($path,nqp::const::STAT_ISREG)
+                        && $!file.ACCEPTS($entry),
+                      (return $path),
+                      nqp::if(
+                        nqp::stat($path,nqp::const::STAT_ISDIR)
+                          && $!dir.ACCEPTS($entry),
+                        nqp::push_s($!todo,$path)
+                      )
+                    )
+                  )
+                );
+                IterationEnd
+            }
+        }.new(abspath,$dir,$file))
     }
 
     method FILETEST-E(Str:D \abspath) {

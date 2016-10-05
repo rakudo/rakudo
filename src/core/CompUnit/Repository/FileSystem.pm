@@ -60,10 +60,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method id() {
         my $parts := nqp::list_s;
         my $prefix = self.prefix;
-        my &test  := -> $path { !$path.starts-with('.') };
-        my &file  := -> $path {
-            ($path.ends-with('.pm') || $path.ends-with('.pm6'))
-            && Rakudo::Internals.FILETEST-F($path)
+        my $file  := -> str $file {
+            nqp::eqat($file,'.pm',nqp::sub_i(nqp::chars($file),3))
+            || nqp::eqat($file,'.pm6',nqp::sub_i(nqp::chars($file),4))
         };
         nqp::if(
           $!id,
@@ -72,7 +71,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             $prefix.e,
             nqp::stmts(
               (my $iter := Rakudo::Internals.DIR-RECURSE(
-                $prefix.absolute,:&test,:&file).iterator),
+                $prefix.absolute,:$file).iterator),
               nqp::until(
                 nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
                 nqp::if(

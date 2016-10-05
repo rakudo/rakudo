@@ -1,6 +1,3 @@
-my role  IO         { ... }
-my class IO::Path   { ... }
-
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any {
 

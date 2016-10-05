@@ -1,4 +1,6 @@
 my class DateTime { ... }
+my role  IO { ... }
+my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
@@ -1251,14 +1253,16 @@ my class Rakudo::Internals {
             has $!file,
             has str $!dir-sep;
             has $!todo;
+            has $!seen;
             method !SET-SELF(\abspath,$!dir,$!file) {
                 $!abspath = abspath;
                 if nqp::stat($!abspath,nqp::const::STAT_EXISTS)
                   && nqp::stat($!abspath,nqp::const::STAT_ISDIR) {
                     $!handle := nqp::opendir($!abspath);
                     $!dir-sep = $*SPEC.dir-sep;
-                    $!abspath = nqp::concat($!abspath,$!dir-sep);
                     $!todo   := nqp::list_s;
+                    $!seen   := nqp::hash($!abspath,1);
+                    $!abspath = nqp::concat($!abspath,$!dir-sep);
                     self
                 }
                 else {
@@ -1302,7 +1306,20 @@ my class Rakudo::Internals {
                           ($path = nqp::concat($!abspath,$entry)),
                           nqp::const::STAT_EXISTS
                         ) && nqp::stat($path,nqp::const::STAT_ISDIR),
-                      nqp::push_s($!todo,$path)
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::fileislink($path),
+                          $path =
+                            IO::Path.new($path,:CWD($!abspath)).resolve.abspath
+                        ),
+                        nqp::unless(
+                          nqp::existskey($!seen,$path),
+                          nqp::stmts(
+                            nqp::bindkey($!seen,$path,1),
+                            nqp::push_s($!todo,$path)
+                          )
+                        )
+                      )
                     )
                   )
                 );

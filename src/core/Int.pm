@@ -261,6 +261,7 @@ multi sub infix:<*>(Int:D \a, Int:D \b) returns Int {
 }
 multi sub infix:<*>(int $a, int $b) returns int {
     nqp::mul_i($a, $b)
+        or $a == 0 || $b == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new);
 }
 
 multi sub infix:<div>(Int:D \a, Int:D \b) {

@@ -9,6 +9,7 @@ my class Complex is Cool does Numeric {
         self
     }
     proto method new(|) { * }
+    multi method new() { self.new: 0, 0 }
     multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
 
     multi method WHICH(Complex:D:) {

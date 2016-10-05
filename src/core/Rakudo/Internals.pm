@@ -1290,19 +1290,19 @@ my class Rakudo::Internals {
                 nqp::while(
                   nqp::chars(my str $entry = self!next),
                   nqp::if(
-                    nqp::stat(
-                      (my str $path = nqp::concat($!abspath,$entry)),
-                      nqp::const::STAT_EXISTS
-                    ),
+                    $!file.ACCEPTS($entry)
+                      && nqp::stat(
+                        (my str $path = nqp::concat($!abspath,$entry)),
+                        nqp::const::STAT_EXISTS
+                      ) && nqp::stat($path,nqp::const::STAT_ISREG),
+                    (return $path),
                     nqp::if(
-                      nqp::stat($path,nqp::const::STAT_ISREG)
-                        && $!file.ACCEPTS($entry),
-                      (return $path),
-                      nqp::if(
-                        nqp::stat($path,nqp::const::STAT_ISDIR)
-                          && $!dir.ACCEPTS($entry),
-                        nqp::push_s($!todo,$path)
-                      )
+                      $!dir.ACCEPTS($entry)
+                        && nqp::stat(
+                          ($path = nqp::concat($!abspath,$entry)),
+                          nqp::const::STAT_EXISTS
+                        ) && nqp::stat($path,nqp::const::STAT_ISDIR),
+                      nqp::push_s($!todo,$path)
                     )
                   )
                 );

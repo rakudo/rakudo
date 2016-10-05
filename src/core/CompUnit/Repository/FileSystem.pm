@@ -60,7 +60,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method id() {
         my $parts := nqp::list_s;
         my $prefix = self.prefix;
-        my $file  := -> str $file {
+        my $dir  := { ?/ ^ <.ident> [ <[ ' - ]> <.ident> ]* $ / }; # ' hl
+        my $file := -> str $file {
             nqp::eqat($file,'.pm',nqp::sub_i(nqp::chars($file),3))
             || nqp::eqat($file,'.pm6',nqp::sub_i(nqp::chars($file),4))
         };
@@ -71,7 +72,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             $prefix.e,
             nqp::stmts(
               (my $iter := Rakudo::Internals.DIR-RECURSE(
-                $prefix.absolute,:$file).iterator),
+                $prefix.absolute,:$dir,:$file).iterator),
               nqp::until(
                 nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
                 nqp::if(

@@ -19,7 +19,9 @@ my class Int does Real { # declared in BOOTSTRAP
         );
     }
     multi method new($value) {
-        nqp::box_i($value, self.WHAT);
+        # clone to ensure we return a new object for any cached
+        # numeric constants
+        $value.Int.clone;
     }
     multi method perl(Int:D:) {
         self.Str;

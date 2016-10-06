@@ -1294,29 +1294,29 @@ my class Rakudo::Internals {
                 nqp::while(
                   nqp::chars(my str $entry = self!next),
                   nqp::if(
-                    $!file.ACCEPTS($entry)
-                      && nqp::stat(
-                        (my str $path = nqp::concat($!abspath,$entry)),
-                        nqp::const::STAT_EXISTS
-                      ) && nqp::stat($path,nqp::const::STAT_ISREG),
-                    (return $path),
+                    nqp::stat(
+                      (my str $path = nqp::concat($!abspath,$entry)),
+                      nqp::const::STAT_EXISTS
+                    ),
                     nqp::if(
-                      $!dir.ACCEPTS($entry)
-                        && nqp::stat(
-                          ($path = nqp::concat($!abspath,$entry)),
-                          nqp::const::STAT_EXISTS
-                        ) && nqp::stat($path,nqp::const::STAT_ISDIR),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::fileislink($path),
-                          $path =
-                            IO::Path.new($path,:CWD($!abspath)).resolve.abspath
-                        ),
-                        nqp::unless(
-                          nqp::existskey($!seen,$path),
-                          nqp::stmts(
-                            nqp::bindkey($!seen,$path,1),
-                            nqp::push_s($!todo,$path)
+                      nqp::stat($path,nqp::const::STAT_ISREG)
+                        && $!file.ACCEPTS($entry),
+                      (return $path),
+                      nqp::if(
+                        nqp::stat($path,nqp::const::STAT_ISDIR)
+                          && $!dir.ACCEPTS($entry),
+                        nqp::stmts(
+                          nqp::if(
+                            nqp::fileislink($path),
+                            $path = IO::Path.new(
+                              $path,:CWD($!abspath)).resolve.abspath
+                          ),
+                          nqp::unless(
+                            nqp::existskey($!seen,$path),
+                            nqp::stmts(
+                              nqp::bindkey($!seen,$path,1),
+                              nqp::push_s($!todo,$path)
+                            )
                           )
                         )
                       )

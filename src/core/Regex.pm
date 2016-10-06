@@ -39,16 +39,22 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method Bool(Regex:D:) {
-        my $underscore;
-        my $ctx := nqp::ctx();
-        until nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx)) {
-            if ($underscore := nqp::getlexrelcaller($ctx,'$_')).DEFINITE {
-                my $slash := nqp::getlexrelcaller($ctx,'$/');
-                $slash = $underscore.match(self);
-                return $slash.Bool()
-            }
-        }
-        False
+        nqp::stmts(
+          (my $ctx := nqp::ctx),
+          nqp::until(
+            nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
+              || (my $underscore := nqp::getlexrelcaller($ctx,'$_')).DEFINITE,
+            nqp::null
+          ),
+          nqp::if(
+            nqp::isnull($ctx),
+            False,
+            nqp::stmts(
+              (my $slash := nqp::getlexrelcaller($ctx,'$/')),
+              ($slash = $underscore.match(self)).Bool
+            )
+          )
+        )
     }
 
     multi method gist(Regex:D:) {

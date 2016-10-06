@@ -60,7 +60,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     method id() {
         my $parts := nqp::list_s;
         my $prefix = self.prefix;
-        my $dir  := { ?/ ^ <.ident> [ <[ ' - ]> <.ident> ]* $ / }; # ' hl
+        my $dir  := { .match(/ ^ <.ident> [ <[ ' - ]> <.ident> ]* $ /) }; # ' hl
         my $file := -> str $file {
             nqp::eqat($file,'.pm',nqp::sub_i(nqp::chars($file),3))
             || nqp::eqat($file,'.pm6',nqp::sub_i(nqp::chars($file),4))
@@ -76,9 +76,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
               nqp::until(
                 nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                  (my $handle := open($pulled)),
-                  nqp::push_s($parts,
-                    nqp::sha1($handle.slurp-rest(:enc<latin1>,:close)))
+                  nqp::filereadable($pulled)
+                    && (my $pio := nqp::open($pulled,'r')),
+                  nqp::stmts(
+                    nqp::setencoding($pio,'iso-8859-1'),
+                    nqp::push_s($parts,nqp::sha1(nqp::readallfh($pio))),
+                    nqp::closefh($pio)
+                  )
                 )
               ),
               nqp::if(

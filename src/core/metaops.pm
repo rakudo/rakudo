@@ -109,9 +109,6 @@ proto sub METAOP_REDUCE_LEFT(|) { * }
 multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \source = values.iterator;
 
@@ -134,9 +131,6 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         }
     }
     else {
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \source = values.iterator;
 
@@ -157,9 +151,6 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 multi sub METAOP_REDUCE_LEFT(\op) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \iter = values.iterator;
             my \first = iter.pull-one;
@@ -180,10 +171,6 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         }
     }
     else {
-#?if jvm
-        my $ :=
-#?endif
-
         nqp::eqaddr(op,&infix:<+>)
         ?? &sum
         !! sub (+values) {
@@ -218,9 +205,6 @@ proto sub METAOP_REDUCE_RIGHT(|) { * }
 multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \source = values.reverse.iterator;
             my \first = source.pull-one;
@@ -259,9 +243,6 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 multi sub METAOP_REDUCE_RIGHT(\op) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \iter = values.reverse.iterator;
             my \first = iter.pull-one;
@@ -282,9 +263,6 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
         }
     }
     else {
-#?if jvm
-        my $ :=
-#?endif
         sub (+values) {
             my \iter = values.reverse.iterator;
             my \first = iter.pull-one;
@@ -304,9 +282,6 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
 
 proto sub METAOP_REDUCE_LIST(|) { * }
 multi sub METAOP_REDUCE_LIST(\op, \triangle) {
-#?if jvm
-    my $ :=
-#?endif
     sub (+values) {
         GATHER({
             my @list;
@@ -318,17 +293,11 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     }
 }
 multi sub METAOP_REDUCE_LIST(\op) {
-#?if jvm
-    my $ :=
-#?endif
     sub (+values) { op.(|values) }
 }
 
 proto sub METAOP_REDUCE_LISTINFIX(|) { * }
 multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
-#?if jvm
-    my $ :=
-#?endif
     sub (|values) {
         my \p = values[0];
         return () unless p.elems;
@@ -345,9 +314,6 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
-#?if jvm
-    my $ :=
-#?endif
     sub (+values) {
         op.(|values.map({nqp::decont($_)}));
     }
@@ -355,9 +321,6 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
 
 proto sub METAOP_REDUCE_CHAIN(|) { * }
 multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
-#?if jvm
-    my $ :=
-#?endif
     sub (+values) {
         my $state = True;
         my \iter = values.iterator;
@@ -376,9 +339,6 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
     }
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {
-#?if jvm
-    my $ :=
-#?endif
     sub (+values) {
         my $state := True;
         my \iter = values.iterator;

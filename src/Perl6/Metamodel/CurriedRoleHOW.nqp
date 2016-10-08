@@ -150,4 +150,11 @@ class Perl6::Metamodel::CurriedRoleHOW
         
         0;
     }
+
+    method shortname($curried_role) {
+        $curried_role.HOW.name($curried_role);
+    }
+
 }
+
+# vim: expandtab sw=4

@@ -44,38 +44,63 @@ typedef struct {
     char  buz1;
 } Buz;
 
-DLLEXPORT int SizeofFoo() {
-    return sizeof(Foo);
-}
+struct foo1 {
+    char *p;
+    char c;
+    long x;
+};
 
-DLLEXPORT int SizeofBar() {
-    return sizeof(Bar);
-}
+struct foo2 {
+    char *p;
+    short x;
+};
 
-DLLEXPORT int SizeofBaz() {
-    return sizeof(Baz);
-}
+struct foo3 {
+    char *p;
+    char c;
+};
 
-DLLEXPORT int SizeofBuz() {
-    return sizeof(Buz);
-}
+struct foo4 {
+    short s;
+    char c;
+};
 
-DLLEXPORT int SizeofInt() {
-    return sizeof(int);
-}
+struct foo5 {
+    char c;
+    struct foo2 s;
+};
 
-DLLEXPORT int SizeofLng() {
-    return sizeof(long);
-}
+struct foo6 {
+    char c;
+    struct foo10 *p;
+    short x;
+};
 
-DLLEXPORT int SizeofPtr() {
-    return sizeof(void *);
-}
+struct foo7 {
+    struct foo11 *p;
+    short x;
+    char c;
+};
 
-DLLEXPORT int SizeofBool() {
-    return sizeof(bool);
-}
+struct foo8 {
+    struct foo2 s;
+    char c;
+};
 
-DLLEXPORT int SizeofSizeT() {
-    return sizeof(size_t);
-}
+DLLEXPORT int SizeofFoo() { return sizeof(Foo); }
+DLLEXPORT int SizeofBar() { return sizeof(Bar); }
+DLLEXPORT int SizeofBaz() { return sizeof(Baz); }
+DLLEXPORT int SizeofBuz() { return sizeof(Buz); }
+DLLEXPORT int SizeofInt() { return sizeof(int); }
+DLLEXPORT int SizeofLng() { return sizeof(long); }
+DLLEXPORT int SizeofPtr() { return sizeof(void *); }
+DLLEXPORT int SizeofBool() { return sizeof(bool); }
+DLLEXPORT int SizeofSizeT() { return sizeof(size_t); }
+DLLEXPORT int SizeofFoo1() { return sizeof(struct foo1); }
+DLLEXPORT int SizeofFoo2() { return sizeof(struct foo2); }
+DLLEXPORT int SizeofFoo3() { return sizeof(struct foo3); }
+DLLEXPORT int SizeofFoo4() { return sizeof(struct foo4); }
+DLLEXPORT int SizeofFoo5() { return sizeof(struct foo5); }
+DLLEXPORT int SizeofFoo6() { return sizeof(struct foo6); }
+DLLEXPORT int SizeofFoo7() { return sizeof(struct foo7); }
+DLLEXPORT int SizeofFoo8() { return sizeof(struct foo8); }

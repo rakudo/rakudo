@@ -533,11 +533,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @matches := $matches.list;
         }
         if $multi {
-            try $caller_dollar_slash = @matches;
+            $caller_dollar_slash = @matches;
             @matches
         }
         else {
-            try $caller_dollar_slash = (@matches[0] // $cur.MATCH_SAVE);
+            $caller_dollar_slash = (@matches[0] // $cur.MATCH_SAVE);
             (@matches[0] // $cur.MATCH_SAVE)
         }
     }

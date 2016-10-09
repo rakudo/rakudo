@@ -58,7 +58,10 @@ our class Pointer                               is repr('CPointer') {
         method deref(::?CLASS:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
     }
     method ^parameterize(Mu:U \p, Mu:U \t) {
-        die "A typed pointer can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+        die "A typed pointer can only hold:\n" ~
+            "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
+            "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion" ~
+            "not: {t.^name}"
             unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
         my $w := p.^mixin: TypedPointer[t.WHAT];
         $w.^set_name: "{p.^name}[{t.^name}]";
@@ -149,7 +152,10 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             $mixin := NumTypedCArray[t.WHAT];
         }
         else {
-            die "A C array can only hold integers, numbers, strings, CStructs, CPointers or CArrays (not {t.^name})"
+            die "A C array can only hold:\n" ~
+                "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
+                "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion\n" ~
+                "not: {t.^name}"
                 unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CUnion' | 'CPointer' | 'CArray';
             $mixin := TypedCArray[t];
         }

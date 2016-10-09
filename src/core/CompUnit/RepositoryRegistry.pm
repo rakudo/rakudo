@@ -329,8 +329,8 @@ class CompUnit::RepositoryRegistry {
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
         # for all possible specs
-        for $specs.split(/ \s* ',' \s* /) -> $spec {
-            if parse-include-spec($spec, $default-short-id) -> $triplet {
+        for $specs.split(',') -> $spec {
+            if parse-include-spec($spec.trim, $default-short-id) -> $triplet {
                 @found.push: join "#",
                   $triplet[0],
                   $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),

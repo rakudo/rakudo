@@ -2627,7 +2627,7 @@ my class Exceptions::JSON {
         nqp::printfh(
           nqp::getstderr,
           Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
-            (message => $ex.message),
+            (message => $ex.?message),
             $ex.^attributes.grep(*.has_accessor).map: {
                 with .name.substr(2) -> $attr {
                     $attr => (

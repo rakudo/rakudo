@@ -2814,7 +2814,7 @@ BEGIN {
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
-    Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!longname>, :type(str), :package(Attribute)));
+    Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!longname>, :type(str), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.

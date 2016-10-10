@@ -1,12 +1,61 @@
 New in 2016.10
  + Fixes:
+    + Many fixes and additions improving JVM backend support
+    + Several improvements to error messages
     + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
-    + Fixed broken multi-level Hash.classify-list with @ or % mappers
-    + Fixed hang on Array.splice with incorrect arguments
     + Fixed unwanted errors when smartmatching objects against IO::Path
     + Fixed is-deeply with Seqs showing Seq.new-consumed() in failure text
+    + Fixed concurrency race when setting up NativeCall routines
+    + Fixed Match.list treating inner unmatched captures as end of list
+    + .first now correctly handles Junction matchers
+    + Fixed GLOBAL symbol clash re-compiling due to a repo change
+    + Fixed Backtrace.map candidate being uncallable
+    + Fixed multiple bugs in Hash/Baggy.classify-list/categorize-list
+    + Fixed PERL6_TEST_DIE_ON_FAIL not exiting on failed subtests
+    + Fixed autovification using Junctions as keys
+    + Fixed infix:<^^>(Mu, Callable) candidate being uncallable
+    + Fixed IO.l for dangling symlinks
+    + Fixed infinite recursion in duckmap when mapper returned Any
+    + Fixed .subst/.subst-mutate treating incorrect arguments as failed matches
+    + Fixed .subst-mutate not returning all matches with :x
+    + Fixed hang on smartmatching Promises against numerics
+    + Fixed failure to smartmatch Numeric:U against Numeric:D
+    + Fixed hang on incorrect .splice arguments
+    + Fixed hang on incorrect .split offset
+    + Fixed multi-argument WhateverCode not detected in double closures
+    + Fixed Baggy:U ~~ Baggy:D emitting gut-referencing warnings
+    + Fixed uncallable Dateish.IO
+    + Fixed Exceptions::JSON for exceptions with no `message` method
+    + Fixed Exceptions::JSON for exceptions with non-JSON-friendly attributes
+ + Removals:
+   + Removed argument-taking Dateish candidates for is-leap-year,
+       days-in-month, and day-of-week [were never part of the spec]
  + Additions:
+    + Added basic Unicode 9 support (more work needed for full support)
+    + X::Proc::Unsuccessful now includes command that was run
+    + IO::Handle.new now uses 'utf8' encoding by default
+    + Bare `put` now requires parentheses to call as sub
+    + .head/.tail with no arguments now return the item and not a 1-item List
+    + Added basic native attribute parameter binding
+    + Made nativecast and spurt multies
+    + Added .^elems metamodel method to enums
+    + Enums can now be used to declare array shapes
+    + Added X::Invalid::ComputedValue exception
+    + Throw when dereferencing a null pointer in NativeCall
+    + It's now possible to refer to sigiless parameters inside `where` clauses
+    + Added extra candidates to .splice to allow for all combinations of
+        Int|Whatever|Callable for both $start and $elems arguments
+    + Made enums able to typecheck against the roles they do
+    + Made Complex.new() return 0+0i
+    + Int.new can now handle any value that can .Int
+    + Can now detect and throw on overflow in infix:<*>(int, int)
+    + Added shortname() method to CurriedRoleHOW
  + Efficiency:
+    + Made List.reverse about 5% faster
+    + Made auto-threading about 10% faster
+    + Made huge improvement to CUR::Filesystem.id performance
+    + Made dir() about 20% faster
+    + Made Regex.Bool about 2x as fast
 
 New in 2016.09
  + Fixes:

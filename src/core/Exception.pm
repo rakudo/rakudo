@@ -2629,7 +2629,11 @@ my class Exceptions::JSON {
           Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
             (message => $ex.message),
             $ex.^attributes.grep(*.has_accessor).map: {
-                $_ => $ex."$_"().Str with .name.substr(2)
+                with .name.substr(2) -> $attr {
+                    $attr => (
+                        (not .defined or $_ ~~ Numeric) ?? $_ !! .Str
+                    ) given $ex."$attr"()
+                }
             }
           ))
         );

@@ -2631,7 +2631,8 @@ my class Exceptions::JSON {
             $ex.^attributes.grep(*.has_accessor).map: {
                 with .name.substr(2) -> $attr {
                     $attr => (
-                        (not .defined or $_ ~~ Numeric) ?? $_ !! .Str
+                        (.defined and not $_ ~~ Real|Positional|Associative)
+                        ?? .Str !! $_
                     ) given $ex."$attr"()
                 }
             }

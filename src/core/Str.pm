@@ -426,15 +426,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $patrx := nqp::istype($pat,Code) ?? $pat !! / "$pat": /;
         my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
 
-        %opts<ov> = $ov if $ov;
-        %opts<ex> = $ex if $ex;
-
-        my $matches := gather {
-            while $cur.pos >= 0 {
-                take $cur.MATCH_SAVE;
-                $cur := $cur.'!cursor_more'(|%opts);
-            }
-        }
+        my $matches := $ex
+          ?? gather {
+                 while $cur.pos >= 0 {
+                     take $cur.MATCH_SAVE;
+                     $cur := $cur.CURSOR_NEXT;
+                 }
+             }
+          !! gather {
+                 while $cur.pos >= 0 {
+                     take $cur.MATCH_SAVE;
+                     $cur := $cur.CURSOR_MORE($ov);
+                 }
+             };
 
         my $multi = $g || $ov || $ex;
 

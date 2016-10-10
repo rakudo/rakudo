@@ -532,14 +532,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
             @matches := $matches.list;
         }
-        if $multi {
-            $caller_dollar_slash = @matches;
-            @matches
-        }
-        else {
-            $caller_dollar_slash = (@matches[0] // $cur.MATCH_SAVE);
-            (@matches[0] // $cur.MATCH_SAVE)
-        }
+
+        nqp::decont($caller_dollar_slash = nqp::if(
+          $multi,
+          @matches,
+          nqp::ifnull(@matches.AT-POS(0),$cur.MATCH_SAVE)
+        ))
     }
 
     multi method subst-mutate(

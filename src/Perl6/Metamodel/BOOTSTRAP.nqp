@@ -1580,9 +1580,9 @@ BEGIN {
     #     has Mu $!signature;         # Signature object
     #     has Mu $!compstuff;         # Place for the compiler to hang stuff
     Code.HOW.add_parent(Code, Any);
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!compstuff>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!compstuff>, :type(Mu), :package(Code)));
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
@@ -2767,8 +2767,8 @@ BEGIN {
     #     has Mu $!list;
     #     has Mu $!hash;
     Capture.HOW.add_parent(Capture, Any);
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
+    Capture.HOW.add_attribute(Capture, Attribute.new(:name<$!list>, :type(Mu), :package(Capture)));
+    Capture.HOW.add_attribute(Capture, Attribute.new(:name<$!hash>, :type(Mu), :package(Capture)));
     Capture.HOW.compose_repr(Capture);
     
     # class Junction is Mu {
@@ -2783,8 +2783,8 @@ BEGIN {
     #     has str $!key;
     #     has int $!value;
     Bool.HOW.set_base_type(Bool, Int);
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!key>, :type(str), :package(Bool)));
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!key>, :type(str), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!value>, :type(int), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
@@ -2806,7 +2806,7 @@ BEGIN {
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
-    ForeignCode.HOW.add_attribute(ForeignCode, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
+    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
@@ -2814,7 +2814,7 @@ BEGIN {
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
-    Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!longname>, :type(str), :package(Attribute)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.

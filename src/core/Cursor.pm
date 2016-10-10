@@ -164,6 +164,34 @@ my class Cursor does NQPCursorRole {
         )
     }
 
+    method CURSOR_NEXT() {   # from !cursor_next in nqp
+        nqp::if(
+          nqp::defined($!restart),
+          $!restart(self),
+          nqp::stmts(
+            (my $cur := self."!cursor_start_cur"()),
+            $cur."!cursor_fail"(),
+            $cur
+          )
+        )
+    }
+
+    method CURSOR_MORE($overlap) {  # from !cursor_more in nqp
+        nqp::stmts(
+          (my $new := nqp::create(self)),
+          nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
+          nqp::bindattr_i($new,$?CLASS,'$!from',-1),
+          nqp::bindattr_i($new,$?CLASS,'$!pos',
+            nqp::if(
+              $overlap || nqp::isge_i($!from,$!pos),
+              nqp::add_i($!from,1),
+              $!pos
+            )
+          ),
+          $!regexsub($new)
+        )
+    }
+
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
     # If it can't match against pattern var (or any element of var if it is an array)
     # it will increment $pos and try again. Therefor it is important to only match

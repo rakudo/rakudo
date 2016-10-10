@@ -12,6 +12,7 @@ op.p6settypes = function(types) {
   Num = types.content.get('Num');
   Str = types.content.get('Str');
   Code = types.content.get('Code');
+  Mu = types.content.get('Mu');
   return types;
 };
 
@@ -112,6 +113,17 @@ op.p6var = function(cont) {
     return cont;
   }
 }
+
+op.p6bindassert = function(ctx, value, type) {
+  console.log("in p6bindassert");
+  if (type !== Mu) {
+    var decont = nqp.op.decont(ctx, value);
+    if (nqp.op.istype(decont, type) == 0) {
+      ctx.die("Type check failed in binding");
+    }
+  }
+  return value;
+};
 
 var containerSpecs = require('nqp-runtime/container-specs.js');
 

@@ -151,7 +151,7 @@ my class Date does Dateish {
     }
 
     proto method DateTime()  { * }
-    multi method DateTime(Date:D:) { DateTime.new: :$!year, :$!month, :$!day; }
+    multi method DateTime(Date:D:) { DateTime.new(:$!year, :$!month, :$!day) }
     multi method DateTime(Date:U:) { DateTime }
     method Date() { self }
 }

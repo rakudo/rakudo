@@ -1411,7 +1411,7 @@ role XX-Whatever does Iterator {
     method is-lazy() { True }
 }
 
-proto sub infix:<xx>(Mu $, $, *%) { * }
+proto sub infix:<xx>(|) { * }
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num $n) {

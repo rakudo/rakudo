@@ -360,7 +360,10 @@ my class DateTime does Dateish {
     method utc()   { self.in-timezone(0) }
     method local() { self.in-timezone($*TZ) }
 
-    method Date() { Date.new($!year,$!month,$!day) }
+    proto method Date() { * }
+    multi method Date(DateTime:D:) { Date.new($!year,$!month,$!day) }
+    multi method Date(DateTime:U:) { Date }
+    method DateTime() { self }
 
     multi method perl(DateTime:D:) {
         self.^name

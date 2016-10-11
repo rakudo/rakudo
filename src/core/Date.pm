@@ -149,6 +149,11 @@ my class Date does Dateish {
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
+
+    proto method DateTime()  { * }
+    multi method DateTime(Date:D:) { DateTime.new: :$!year, :$!month, :$!day; }
+    multi method DateTime(Date:U:) { DateTime }
+    method Date() { self }
 }
 
 multi sub infix:<+>(Date:D $d, Int:D $x) {

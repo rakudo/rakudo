@@ -76,23 +76,7 @@ my class IO::Socket::Async {
                 }
             }
             else {
-                supply {
-                    my $decoder = Rakudo::Internals::VMBackedDecoder.new('utf8');
-                    whenever $bin-supply {
-                        $decoder.add-bytes($_);
-                        my $available = $decoder.consume-available-chars();
-                        emit $available if $available ne '';
-                        LAST {
-                            # XXX The `with` is required due to a bug where the
-                            # LAST phaser is not properly scoped if we don't get
-                            # any bytes. Since that means there's nothing to emit
-                            # anyway, we'll not worry about this case for now.
-                            with $decoder {
-                                emit .consume-all-chars();
-                            }
-                        }
-                    }
-                }
+                Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, 'utf8')
             }
         }
     }

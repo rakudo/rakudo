@@ -90,19 +90,7 @@ my class Proc::Async {
     }
 
     method !wrap-decoder(Supply:D $bin-supply) {
-        supply {
-            my $decoder = Rakudo::Internals::VMBackedDecoder.new('utf8');
-            whenever $bin-supply {
-                $decoder.add-bytes($_);
-                my $available = $decoder.consume-available-chars();
-                emit $available if $available ne '';
-                LAST {
-                    with $decoder {
-                        emit .consume-all-chars();
-                    }
-                }
-            }
-        }
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, 'utf8')
     }
 
     method !capture(\callbacks,\std,\the-supply) {

@@ -4036,6 +4036,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 unless
                 # It's a simple operation.
                 nqp::istype($past, QAST::Op)
+                    && $past.op ne 'callmethod' # May be .return or similar
                     && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
                 # Just a variable lookup.
                 nqp::istype($past, QAST::Var) ||

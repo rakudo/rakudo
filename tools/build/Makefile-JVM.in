@@ -97,6 +97,7 @@ J_CORE_SOURCES = \
   src/core/Num.pm \
   src/core/Buf.pm \
   src/core/Str.pm \
+  src/core/Rakudo/Internals/VMBackedDecoder.pm \
   src/core/Capture.pm \
   src/core/IterationBuffer.pm \
   src/core/HyperConfiguration.pm \

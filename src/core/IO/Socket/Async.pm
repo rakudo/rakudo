@@ -54,26 +54,6 @@ my class IO::Socket::Async {
         -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
     }
 
-    # Later, this will move off to the Rakudo::Internals package, to be
-    # used in other places.
-    my class VMBackedDecoder is repr('Decoder') {
-        method new(str $encoding) {
-            nqp::decoderconfigure(nqp::create(self), $encoding, nqp::hash())
-        }
-
-        method add-bytes(VMBackedDecoder:D: Blob $bytes --> Nil) {
-            nqp::decoderaddbytes(self, nqp::decont($bytes));
-        }
-
-        method consume-available-chars(VMBackedDecoder:D: --> Str) {
-            nqp::decodertakeavailablechars(self)
-        }
-
-        method consume-all-chars(VMBackedDecoder:D: --> Str) {
-            nqp::decodertakeallchars(self)
-        }
-    }
-
     method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$scheduler = $*SCHEDULER) {
         if $bin {
             my $cancellation;
@@ -97,7 +77,7 @@ my class IO::Socket::Async {
             }
             else {
                 supply {
-                    my $decoder = VMBackedDecoder.new('utf8');
+                    my $decoder = Rakudo::Internals::VMBackedDecoder.new('utf8');
                     whenever $bin-supply {
                         $decoder.add-bytes($_);
                         my $available = $decoder.consume-available-chars();

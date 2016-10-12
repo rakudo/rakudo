@@ -1368,19 +1368,25 @@ BEGIN {
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
-    # Attribute instance, complete with container desciptor and auto-viv
+    # Attribute instance, complete with container descriptor and auto-viv
     # container.
-    sub scalar_attr($name, $type, $package, :$associative_delegate) {
+    sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-            :of($type), :rw(1), :name($name));
-        my $scalar := nqp::create(Scalar);
-        nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-        nqp::bindattr($scalar, Scalar, '$!value', $type);
-        return Attribute.new( :name($name), :type($type), :package($package),
-            :container_descriptor($cd), :auto_viv_container($scalar),
-            :$associative_delegate);
+            :of($type), :rw(1), :$name);
+        if $auto_viv_container {
+            my $scalar := nqp::create(Scalar);
+            nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
+            nqp::bindattr($scalar, Scalar, '$!value', $type);
+            return Attribute.new( :$name, :$type, :$package,
+                :container_descriptor($cd), :auto_viv_container($scalar),
+                :$associative_delegate );
+        }
+        else {
+            return Attribute.new( :$name, :$type, :$package,
+                :container_descriptor($cd), :$associative_delegate );
+        }
     }
-        
+
     # class Signature is Any{
     #    has Mu $!params;
     #    has Mu $!returns;
@@ -1388,11 +1394,11 @@ BEGIN {
     #    has Mu $!count;
     #    has Mu $!code;
     Signature.HOW.add_parent(Signature, Any);
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!params>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!code>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Mu), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If any parameter is generic, so are we.
             my @params := nqp::getattr($self, Signature, '$!params');
@@ -1454,19 +1460,19 @@ BEGIN {
     #     has Mu $!attr_package;
     #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!coerce_type', Mu, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
@@ -1582,7 +1588,7 @@ BEGIN {
     Code.HOW.add_parent(Code, Any);
     Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Mu), :package(Code)));
     Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, Attribute.new(:name<$!compstuff>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, scalar_attr('$!compstuff', Mu, Code, :!auto_viv_container));
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
@@ -1642,7 +1648,7 @@ BEGIN {
     #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
-    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
             my $cloned    := nqp::clone($dcself);
@@ -1677,16 +1683,16 @@ BEGIN {
     #     has Mu $!dispatch_order;
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!rw>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, scalar_attr('$!dispatch_order', Mu, Routine, :!auto_viv_container));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
@@ -2748,7 +2754,7 @@ BEGIN {
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    Array.HOW.add_attribute(Array, scalar_attr('$!descriptor', Mu, Array, :!auto_viv_container));
     Array.HOW.compose_repr(Array);
 
     # my class Map is Cool {
@@ -2760,7 +2766,7 @@ BEGIN {
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
+    Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
     Hash.HOW.compose_repr(Hash);
 
     # class Capture is Any {
@@ -2813,6 +2819,7 @@ BEGIN {
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
+	#     has str $!longname;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
     Stash.HOW.compose_repr(Stash);

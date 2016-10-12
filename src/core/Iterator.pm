@@ -66,6 +66,22 @@ my role Iterator {
         )
     }
 
+    # Skip the given number of values produced before returning the next
+    # pulled value.  Given 0 it is an expensive way to do .pull-one
+    method skip-at-least-pull-one(\todrop) is raw {
+        nqp::stmts(
+          (my int $topull = todrop + 1),
+          nqp::while(
+            nqp::isge_i(($topull = nqp::sub_i($topull,1)),0),
+            nqp::if(
+              nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+              ($topull = 0),
+            )
+          ),
+          $pulled
+        )
+    }
+
     # The optional "count-only" method in an Iterator class returns the number
     # of elements that the iterator would be return when generating values,
     # but *without* actually generating any values.  This can e.g. be the case

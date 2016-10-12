@@ -27,11 +27,14 @@ New in 2016.10
     + Fixed uncallable Dateish.IO
     + Fixed Exceptions::JSON for exceptions with no `message` method
     + Fixed Exceptions::JSON for exceptions with non-JSON-friendly attributes
+    + Proc::Async decoding exceptions are now catchable
+    + Prevented return handler being optimized out in `sub { 42.return }()`
+    + Fixed error reporting when trying to invoke a native parameter
  + Removals:
    + Removed argument-taking Dateish candidates for is-leap-year,
        days-in-month, and day-of-week [were never part of the spec]
  + Additions:
-    + Added basic Unicode 9 support (more work needed for full support)
+    + Added basic Unicode 9 support (NFG changes for latest TR#29 still to do))
     + X::Proc::Unsuccessful now includes command that was run
     + IO::Handle.new now uses 'utf8' encoding by default
     + Bare `put` now requires parentheses to call as sub
@@ -50,6 +53,8 @@ New in 2016.10
     + Int.new can now handle any value that can .Int
     + Can now detect and throw on overflow in infix:<*>(int, int)
     + Added shortname() method to CurriedRoleHOW
+    + Proc::Async new, stdout, and stderr methods now take :enc
+    + IO::Socket::Async listen, connect, and Supply methods now take :enc
  + Efficiency:
     + Made List.reverse about 5% faster
     + Made auto-threading about 10% faster

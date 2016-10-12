@@ -69,21 +69,43 @@ my class Proc::Async {
 
     proto method stdout(|) { * }
     multi method stdout(Proc::Async:D:) {
-        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply;
+        self!wrap-decoder:
+            self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply;
     }
     multi method stdout(Proc::Async:D: :$bin!) {
-        self!supply('stdout',$!stdout_supply,$!stdout_type,$bin ?? Bytes !! Chars).Supply;
+        $bin
+            ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
+            !! self.stdout()
     }
 
     proto method stderr(|) { * }
     multi method stderr(Proc::Async:D:) {
-        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply;
+        self!wrap-decoder:
+            self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply;
     }
     multi method stderr(Proc::Async:D: :$bin!) {
-        self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars).Supply;
+        $bin
+            ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
+            !! self.stderr()
     }
 
-    method !capture(\callbacks,\std,\type,\the-supply) {
+    method !wrap-decoder(Supply:D $bin-supply) {
+        supply {
+            my $decoder = Rakudo::Internals::VMBackedDecoder.new('utf8');
+            whenever $bin-supply {
+                $decoder.add-bytes($_);
+                my $available = $decoder.consume-available-chars();
+                emit $available if $available ne '';
+                LAST {
+                    with $decoder {
+                        emit .consume-all-chars();
+                    }
+                }
+            }
+        }
+    }
+
+    method !capture(\callbacks,\std,\the-supply) {
         my $promise = Promise.new;
         my $vow = $promise.vow;
         my $ss = Rakudo::Internals::SupplySequencer.new(
@@ -91,7 +113,7 @@ my class Proc::Async {
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
         nqp::bindkey(callbacks,
-            std ~ ( type ?? '_chars' !! '_bytes' ),
+            std ~ '_bytes' ,
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });
         $promise;
     }
@@ -116,10 +138,10 @@ my class Proc::Async {
         });
 
         @!promises.push(
-          self!capture($callbacks,'stdout',$!stdout_type,$!stdout_supply)
+          self!capture($callbacks,'stdout',$!stdout_supply)
         ) if $!stdout_supply;
         @!promises.push(
-          self!capture($callbacks,'stderr',$!stderr_type,$!stderr_supply)
+          self!capture($callbacks,'stderr',$!stderr_supply)
         ) if $!stderr_supply;
 
         nqp::bindkey($callbacks, 'buf_type', buf8.new);

@@ -176,14 +176,24 @@ my class Cursor does NQPCursorRole {
         )
     }
 
-    method CURSOR_MORE($overlap) {  # from !cursor_more in nqp
+    method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
+        nqp::stmts(
+          (my $new := nqp::create(self)),
+          nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
+          nqp::bindattr_i($new,$?CLASS,'$!from',-1),
+          nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1)),
+          $!regexsub($new)
+        )
+    }
+
+    method CURSOR_MORE() {  # adapted from !cursor_more in nqp
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
           nqp::bindattr_i($new,$?CLASS,'$!from',-1),
           nqp::bindattr_i($new,$?CLASS,'$!pos',
             nqp::if(
-              $overlap || nqp::isge_i($!from,$!pos),
+              nqp::isge_i($!from,$!pos),
               nqp::add_i($!from,1),
               $!pos
             )

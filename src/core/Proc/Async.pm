@@ -45,6 +45,7 @@ my class Proc::Async {
     has $.path;
     has @.args;
     has $.w;
+    has $.enc;
     has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
@@ -55,7 +56,9 @@ my class Proc::Async {
     has @!promises;
 
     proto method new(|) { * }
-    multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
+    multi method new($path, *@args, :$w, :$enc = 'utf8') {
+        self.bless(:$path, :@args, :$w, :$enc)
+    }
 
     method !supply(\what,\the-supply,\type,\value) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
@@ -90,7 +93,7 @@ my class Proc::Async {
     }
 
     method !wrap-decoder(Supply:D $bin-supply) {
-        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, 'utf8')
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $!enc)
     }
 
     method !capture(\callbacks,\std,\the-supply) {
@@ -157,21 +160,7 @@ my class Proc::Async {
         X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritestr(
-            $!process_handle,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::unbox_s($str), ProcessCancellation);
-        $p
+        self.write($str.encode($!enc))
     }
 
     method put(Proc::Async:D: \x, |c) {
@@ -208,6 +197,7 @@ my class Proc::Async {
             nqp::decont($b), ProcessCancellation);
         $p
     }
+
     method close-stdin(Proc::Async:D:) {
         X::Proc::Async::OpenForWriting.new(:method<close-stdin>, proc => self).throw
           if !$!w;

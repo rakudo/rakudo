@@ -71,29 +71,31 @@ my class Proc::Async {
     }
 
     proto method stdout(|) { * }
-    multi method stdout(Proc::Async:D:) {
-        self!wrap-decoder:
-            self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply;
-    }
     multi method stdout(Proc::Async:D: :$bin!) {
         $bin
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
-            !! self.stdout()
+            !! self.stdout(|%_)
+    }
+    multi method stdout(Proc::Async:D: :$enc) {
+        self!wrap-decoder:
+            self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
+            $enc
     }
 
     proto method stderr(|) { * }
-    multi method stderr(Proc::Async:D:) {
-        self!wrap-decoder:
-            self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply;
-    }
     multi method stderr(Proc::Async:D: :$bin!) {
         $bin
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
-            !! self.stderr()
+            !! self.stderr(|%_)
+    }
+    multi method stderr(Proc::Async:D: :$enc) {
+        self!wrap-decoder:
+            self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
+            $enc
     }
 
-    method !wrap-decoder(Supply:D $bin-supply) {
-        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $!enc)
+    method !wrap-decoder(Supply:D $bin-supply, $enc) {
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc)
     }
 
     method !capture(\callbacks,\std,\the-supply) {

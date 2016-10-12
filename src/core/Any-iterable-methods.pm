@@ -1891,21 +1891,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
     multi method head(Any:D: Int(Cool) $n) {
-        return () if $n <= 0;
-
-        Seq.new( class :: does Iterator {
-            has Mu  $!iter;
-            has int $!todo;
-            method !SET-SELF(\list,\todo) {
-                $!iter = list.iterator;
-                $!todo = todo;
-                self
-            }
-            method new(\list,\todo) { nqp::create(self)!SET-SELF(list,todo) }
-            method pull-one() is raw {
-                $!todo-- ?? $!iter.pull-one !! IterationEnd
-            }
-        }.new(self,$n))
+        nqp::if(
+          nqp::isle_i($n,0),
+          (),
+          Rakudo::Internals.SeqNextNFromIterator(self.iterator,$n)
+        )
     }
 
     proto method tail(|) { * }

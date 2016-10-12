@@ -433,12 +433,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
                      $cur := $cur.CURSOR_NEXT;
                  }
              }
-          !! gather {
-                 while $cur.pos >= 0 {
-                     take $cur.MATCH_SAVE;
-                     $cur := $cur.CURSOR_MORE($ov);
-                 }
-             };
+          !! $ov
+            ?? gather {
+                    while $cur.pos >= 0 {
+                        take $cur.MATCH_SAVE;
+                        $cur := $cur.CURSOR_OVERLAP;
+                    }
+                }
+            !! gather {
+                   while $cur.pos >= 0 {
+                       take $cur.MATCH_SAVE;
+                       $cur := $cur.CURSOR_MORE;
+                   }
+               };
 
         my $multi = $g || $ov || $ex;
 

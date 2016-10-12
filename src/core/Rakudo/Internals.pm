@@ -259,6 +259,36 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
+    # create Seq for the next N elements of given iterator
+    method SeqNextNFromIterator(\iterator,\times) {
+        Seq.new(class :: does Iterator {
+            has $!iterator;
+            has int $!times;
+            method !SET-SELF($!iterator,$!times) { self }
+            method new(\i,\t) { nqp::create(self)!SET-SELF(i,t) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::isgt_i($!times,0),
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled := $!iterator.pull-one),
+                      IterationEnd
+                    ),
+                    nqp::stmts(
+                      ($!times = 0),
+                      IterationEnd
+                    ),
+                    nqp::stmts(
+                      ($!times = nqp::sub_i($!times,1)),
+                      $pulled
+                    )
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new(iterator,times))
+    }
+
     method EmptyIterator() {
         once class :: does Iterator {
             method new() { nqp::create(self) }

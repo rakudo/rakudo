@@ -37,7 +37,7 @@ op.p6decontrv = function(rountine, cont) {
 op.p6box_i = function(int) {
   var repr = Int._STable.REPR;
   var boxed = repr.allocate(Int._STable);
-  boxed.$$setInt(int.value);
+  boxed.$$setInt(int);
   return boxed;
 };
 

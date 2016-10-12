@@ -67,8 +67,9 @@ sub table2text($pod) {
     my @rows = $pod.contents;
     @rows.unshift($pod.headers.item) if $pod.headers;
     my @maxes;
-    for 0..(@rows[1].elems - 1) -> $i {
-        @maxes.push([max] @rows.map({ $_[$i].chars }));
+    my $cols = [max] @rows.map({ .elems });
+    for 0..^$cols -> $i {
+        @maxes.push([max] @rows.map({ $i < $_ ?? $_[$i].chars !! 0 }));
     }
     my $ret;
     if $pod.config<caption> {

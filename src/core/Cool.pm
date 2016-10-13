@@ -219,7 +219,8 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method IO(|) { * }
-    multi method IO(|c) { IO::Path.new(self) }
+    multi method IO(Cool:D:) { IO::Path.new(self) }
+    multi method IO(Cool:U:) { IO::Path }
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };

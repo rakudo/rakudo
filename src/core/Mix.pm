@@ -34,6 +34,8 @@ my class Mix does Mixy {
 #--- coercion methods
     method Mix { self }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
+    method Bag     {     Bag.new-from-pairs(%!elems.values) }
+    method BagHash { BagHash.new-from-pairs(%!elems.values) }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

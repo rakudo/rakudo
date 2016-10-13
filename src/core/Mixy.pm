@@ -26,9 +26,6 @@ my role Mixy does Baggy  {
         my $roller = Rakudo::Internals::WeightedRoll.new(self);
         map { $roller.roll }, 1 .. $count;
     }
-
-    method Bag     { Bag.new-from-pairs(%.elems.values) }
-    method BagHash { BagHash.new-from-pairs(%.elems.values) }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -810,6 +810,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my str $str   = nqp::unbox_s(self);
         my int $elems = +matches;  # make sure all reified
+        return (self,) unless $elems;
+
         my $matches  := nqp::getattr(matches,List,'$!reified');
         my $result   := nqp::list;
         my int $i = -1;

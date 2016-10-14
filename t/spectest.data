@@ -143,6 +143,7 @@ S02-types/lists.t
 S02-types/mix.t
 S02-types/mixhash.t
 S02-types/mixed_multi_dimensional.t
+S02-types/mu.t
 S02-types/multi_dimensional_array.t
 S02-types/nan.t
 S02-types/native.t

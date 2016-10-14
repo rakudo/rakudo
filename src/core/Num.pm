@@ -274,7 +274,7 @@ multi sub postfix:<++>(Num:D $a is rw) {
 }
 multi sub postfix:<++>(Num:U $a is rw) {
     $a = 1e0;
-    0
+    0e0
 }
 multi sub postfix:<++>(num $a is rw) {
     my num $b = $a;

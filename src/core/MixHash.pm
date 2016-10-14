@@ -35,8 +35,8 @@ my class MixHash does Mixy {
         )
     }
     method MixHash { self }
-    method Bag     {     Bag.new-from-pairs(%!elems.values.map({.key => .value.round})) }
-    method BagHash { BagHash.new-from-pairs(%!elems.values.map({.key => .value.round})) }
+    method Bag     {     Bag.new-from-pairs(%!elems.values.map({.key => .value.Int})) }
+    method BagHash { BagHash.new-from-pairs(%!elems.values.map({.key => .value.Int})) }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -24,7 +24,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
 
     # These suggest using Nil.new if they fall through, which is LTA
     method ords { self.Str.ords }
-    method chrs { self.Str.chrs }
+    method chrs { self.Int.chrs }
 
     method iterator() { self.list.iterator }
 }

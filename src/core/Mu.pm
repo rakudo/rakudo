@@ -683,10 +683,6 @@ my class Mu { # declared in BOOTSTRAP
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: \name, |c) is raw {
-        self.HOW."{name}"(SELF, |c)
-    }
-
     method dispatch:<.=>(\mutate: \name, |c) is raw {
         $/ := nqp::getlexcaller('$/');
         mutate = mutate."{name}"(|c)

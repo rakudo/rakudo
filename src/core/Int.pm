@@ -260,8 +260,7 @@ multi sub infix:<*>(Int:D \a, Int:D \b) returns Int {
     nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<*>(int $a, int $b) returns int {
-    nqp::mul_i($a, $b)
-        or $a == 0 || $b == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new);
+    nqp::mul_i($a, $b);
 }
 
 multi sub infix:<div>(Int:D \a, Int:D \b) {
@@ -291,8 +290,7 @@ multi sub infix:<**>(Int:D \a, Int:D \b) {
 }
 
 multi sub infix:<**>(int $a, int $b) returns int {
-    nqp::pow_i($a, $b)
-        or $a == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new)
+    nqp::pow_i($a, $b);
 }
 
 multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {

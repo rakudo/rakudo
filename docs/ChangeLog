@@ -39,6 +39,7 @@ New in 2016.10
    + Removed argument-taking Dateish candidates for is-leap-year,
        days-in-month, and day-of-week [were never part of the spec]
    + Cool.IO no longer accepts any arguments
+   + Overflow check has been removed from infix:<**>(int, int)
  + Additions:
     + Added basic Unicode 9 support (NFG changes for latest TR#29 still to do))
     + X::Proc::Unsuccessful now includes command that was run
@@ -57,7 +58,6 @@ New in 2016.10
     + Made enums able to typecheck against the roles they do
     + Made Complex.new() return 0+0i
     + Int.new can now handle any value that can .Int
-    + Can now detect and throw on overflow in infix:<*>(int, int)
     + Added shortname() method to CurriedRoleHOW
     + Proc::Async new, stdout, and stderr methods now take :enc
     + IO::Socket::Async listen, connect, and Supply methods now take :enc

@@ -6632,9 +6632,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub mixin_op($/, $sym) {
         my $rhs  := $/[1].ast;
+        my $lhs  := $/[0].ast;
+        $lhs := WANTED($lhs,'mixin_op') if $sym eq 'does';
         my $past := QAST::Op.new(
             :op('call'), :name('&infix' ~ $*W.canonicalize_pair('', $sym)),
-            $/[0].ast);
+            $lhs);
         if $rhs.isa(QAST::Op) && $rhs.op eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {

@@ -263,7 +263,12 @@ my class Rakudo::Internals {
     method SeqNextNFromIterator(\iterator,\times) {
         Seq.new(class :: does Iterator {
             has $!iterator;
+#?if !jvm
             has int $!times;
+#?endif
+#?if jvm
+            has Int $!times;
+#?endif
             method !SET-SELF($!iterator,$!times) { self }
             method new(\i,\t) { nqp::create(self)!SET-SELF(i,t) }
             method pull-one() is raw {

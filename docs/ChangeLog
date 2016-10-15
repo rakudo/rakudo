@@ -30,9 +30,15 @@ New in 2016.10
     + Proc::Async decoding exceptions are now catchable
     + Prevented return handler being optimized out in `sub { 42.return }()`
     + Fixed error reporting when trying to invoke a native parameter
+    + Fixed uncallable 0- and 1-arg candidates of infix:<xx>
+    + Fixed Cool.match not setting $/
+    + Fixed Cool:U.IO coercion emitting internal warnings
+    + Fixed Nil.chrs failing when called
+    + Num:U++ now returns a Num zero instead of an Int one
  + Removals:
    + Removed argument-taking Dateish candidates for is-leap-year,
        days-in-month, and day-of-week [were never part of the spec]
+   + Cool.IO no longer accepts any arguments
  + Additions:
     + Added basic Unicode 9 support (NFG changes for latest TR#29 still to do))
     + X::Proc::Unsuccessful now includes command that was run
@@ -55,12 +61,16 @@ New in 2016.10
     + Added shortname() method to CurriedRoleHOW
     + Proc::Async new, stdout, and stderr methods now take :enc
     + IO::Socket::Async listen, connect, and Supply methods now take :enc
+    + .Date and .DateTime are now supported on :U/:D Date/DateTime
+    + Trailing empty cells can now be omitted in Pod tables
+    + Mix/MixHash with non-Int weights can now be coerced to .Bag/.BagHash
  + Efficiency:
     + Made List.reverse about 5% faster
     + Made auto-threading about 10% faster
     + Made huge improvement to CUR::Filesystem.id performance
     + Made dir() about 20% faster
     + Made Regex.Bool about 2x as fast
+    + Made Str.match about 3% faster
 
 New in 2016.09
  + Fixes:

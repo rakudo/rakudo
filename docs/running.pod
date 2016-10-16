@@ -139,6 +139,8 @@ C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
 C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
 semicolon-delimited list.
 
+=back
+
 =head1 AUTHORS
 
 Written by the Rakudo contributors, see the CREDITS file.

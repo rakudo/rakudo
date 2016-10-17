@@ -116,7 +116,6 @@ op.p6var = function(cont) {
 }
 
 op.p6bindassert = function(ctx, value, type) {
-  console.log("in p6bindassert");
   if (type !== Mu) {
     var decont = nqp.op.decont(ctx, value);
     if (nqp.op.istype(decont, type) == 0) {

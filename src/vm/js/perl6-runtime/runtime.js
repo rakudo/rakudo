@@ -1,5 +1,6 @@
 var nqp = require('nqp-runtime');
 var CodeRef = require('nqp-runtime/code-ref');
+var NQPArray = require('nqp-runtime/array');
 var op = {};
 
 var Scalar, True, False, Int, Num, Str, Code;
@@ -137,6 +138,15 @@ op.p6store = function(ctx, cont, value) {
     }
   }
   return cont;
+};
+
+op.p6argvmarray = function(ctx, args) {
+  var array = [];
+  console.log("in p6argvmarray");
+  for (var i=0; i < args.length; i++) {
+    array[i] = nqp.op.hllizefor(ctx, args[i], 'perl6');
+  }
+  return new NQPArray(array);
 };
 
 var containerSpecs = require('nqp-runtime/container-specs.js');

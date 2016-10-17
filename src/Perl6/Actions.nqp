@@ -5835,7 +5835,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method arglist($/) {
         my class LackingPairClass {}
-        my $Pair := $*W.is_null_setting ?? LackingPairClass !! $*W.find_symbol(['Pair']);
+        my $Pair := LackingPairClass;
+        try {
+            $Pair := $*W.find_symbol(['Pair']);
+        };
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {

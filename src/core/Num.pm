@@ -203,6 +203,7 @@ my class Num does Real { # declared in BOOTSTRAP
         nqp::p6box_n(nqp::tanh_n(nqp::unbox_n(self)));
     }
     proto method atanh(|) {*}
+    multi method atanh(1e0:) { ∞ }
     multi method atanh(Num:D: ) {
         ((1e0 + self) / (1e0 - self)).log / 2e0;
     }

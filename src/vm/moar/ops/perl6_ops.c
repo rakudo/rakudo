@@ -22,21 +22,23 @@
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
 /* Dummy zero and one-arg callsite. */
-static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0, 0 };
-static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 1, 0 };
-static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
-static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 1, 0 };
+static MVMCallsite      no_arg_callsite = { { 0 }, 0, 0, 0, 0 };
+/*static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };*/
+static MVMCallsite     one_arg_callsite = { { MVM_CALLSITE_ARG_OBJ }, 1, 1, 1, 0 };
+/*static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };*/
+static MVMCallsite     one_str_callsite = { { MVM_CALLSITE_ARG_STR }, 1, 1, 1, 0 };
 
 /* Assignment type check failed callsite. */
-static MVMCallsiteEntry atcf_flags[] = { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, 
-                                         MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     atcf_callsite = { atcf_flags, 3, 3, 3, 0 };
+/*static MVMCallsiteEntry atcf_flags[] = { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, */
+                                         /*MVM_CALLSITE_ARG_OBJ };*/
+static MVMCallsite     atcf_callsite = { { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, 
+                                         MVM_CALLSITE_ARG_OBJ }, 3, 3, 3, 0 };
 
 /* Dispatcher vivify_for callsite. */
-static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
-                                         MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0 };
+/*static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, */
+                                         /*MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };*/
+static MVMCallsite     disp_callsite = { { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
+                                         MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ }, 4, 4, 4, 0 };
 
 /* Are we initialized yet? */
 static int initialized = 0;

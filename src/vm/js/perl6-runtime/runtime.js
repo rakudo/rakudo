@@ -125,6 +125,20 @@ op.p6bindassert = function(ctx, value, type) {
   return value;
 };
 
+op.p6store = function(ctx, cont, value) {
+  if (cont) {
+    cont.$$assign(nqp.op.decont(ctx, value));
+  } else {
+    if (!cont.STORE) {
+      // TODO throw typed exception X::Assignment::RO
+      ctx.die("Cannot assign to a non-container");
+    } else {
+      cont.STORE(ctx, null, cont, value);
+    }
+  }
+  return cont;
+};
+
 var containerSpecs = require('nqp-runtime/container-specs.js');
 
 function RakudoScalar(STable) {
@@ -138,12 +152,13 @@ RakudoScalar.prototype.configure = function(conf) {
 RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
     console.log('storing into rakudo_scalar unchecked');
-    process.exit();
+    return this.$$bindattr(Scalar, '$!value', value);
   });
 
   this.STable.addInternalMethod('$$assign', function(ctx, value) {
     console.log('storing into rakudo_scalar');
-    process.exit();
+    /* TODO - checking and WHENCE */
+    return this.$$bindattr(Scalar, '$!value', value);
   });
 
   this.STable.addInternalMethod('$$decont', function(ctx) {

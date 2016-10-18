@@ -294,6 +294,54 @@ my class Rakudo::Internals {
         }.new(iterator,times))
     }
 
+    # create Seq that skips N elements of given iterator
+    method SeqSkipNFromIterator(\iterator,\skipping) {
+        Seq.new(class :: does Iterator {
+            has $!iterator;
+#?if !jvm
+            has int $!skipping;
+#?endif
+#?if jvm
+            has Int $!skipping;
+#?endif
+            method !SET-SELF($!iterator,$!skipping) { self }
+            method new(\i,\s) { nqp::create(self)!SET-SELF(i,s) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i($!skipping,-1),
+                  IterationEnd,                  # exhausted before
+                  nqp::stmts(                    # not exhausted yet
+                    nqp::if(
+                      nqp::isgt_i($!skipping,0),
+                      nqp::until(                # still skipping
+                        nqp::iseq_i($!skipping,0),
+                        nqp::if(
+                          nqp::eqaddr($!iterator.pull-one,IterationEnd),
+                          nqp::stmts(            # exhausted now
+                            ($!skipping = -1),
+                            (return IterationEnd)
+                          ),
+                          ($!skipping = nqp::sub_i($!skipping,1)),
+                        )
+                      )
+                    ),
+                    nqp::stmts(                  # no longer skipping
+                      nqp::if(
+                        nqp::eqaddr(
+                          (my $pulled := $!iterator.pull-one),
+                          IterationEnd
+                        ),
+                        ($!skipping = -1),
+                      ),
+                      $pulled
+                    )
+                  )
+                )
+            }
+        }.new(iterator,skipping))
+    }
+
+    # Seq from a Seq using an index iterator and an offset
     method SeqUsingIndexIterator(\source,\index,\offset) {
         Seq.new( class :: does Iterator {
             has $!source;

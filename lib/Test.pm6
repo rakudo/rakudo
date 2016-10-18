@@ -388,7 +388,7 @@ sub _diag(Mu $message, :$force-stderr) {
     my $str-message = nqp::join(
         "\n$indents# ", nqp::split("\n", "$indents# $message")
     );
-    $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
+    $str-message .= subst(rx/^^ "$indents#" \s+ $$/, '', :g);
     $out.say: $str-message;
     $time_before = nqp::time_n;
 }

@@ -287,8 +287,15 @@ sub is-approx-calculate (
         $abs-tol-ok = $abs-tol-got <= $abs-tol;
     }
     if $rel-tol.defined {
-        $rel-tol-got = abs($got - $expected) / max($got.abs, $expected.abs);
-        $rel-tol-ok = $rel-tol-got <= $rel-tol;
+        if max($got.abs, $expected.abs) -> $max {
+            $rel-tol-got = abs($got - $expected) / $max;
+            $rel-tol-ok = $rel-tol-got <= $rel-tol;
+        }
+        else {
+            # if $max is zero, then both $got and $expected are zero
+            # and so our relative difference is also zero
+            $rel-tol-got = 0;
+        }
     }
 
     my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);

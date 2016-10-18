@@ -11,9 +11,11 @@ sub check-fail (&test-to-run) {
 }
 
 subtest 'two-arg version + optional description', {
+    is-approx 0, 0,
     is-approx 5, 5 + 1e-6;
     is-approx 5, 5 - 1e-6;
 
+    is-approx 0, 0,        'test desc zero';
     is-approx 5, 5 + 1e-6, 'test desc one';
     is-approx 5, 5 - 1e-6, 'test desc two';
 
@@ -22,10 +24,12 @@ subtest 'two-arg version + optional description', {
 }
 
 subtest 'tree-arg version + optional description', {
+    is-approx 0, 0, 1;
     is-approx 5, 6, 1;
     is-approx 5, 10, 10;
 
-    is-approx 5, 6, 1, 'test desc one';
+    is-approx 0, 0,   1, 'test desc zero';
+    is-approx 5, 6,   1, 'test desc one';
     is-approx 5, 10, 10, 'test desc two';
 
     check-fail { is-approx 5, 5 + 1e-6, 1e-10 };
@@ -33,11 +37,13 @@ subtest 'tree-arg version + optional description', {
 }
 
 subtest 'rel-tol version + optional description', {
+    is-approx   0,   0, :rel-tol<.9>;
     is-approx 1e1, 1e2, :rel-tol<.9>;
     is-approx 1e2, 1e3, :rel-tol<.9>;
     is-approx 1e3, 1e4, :rel-tol<.9>;
     is-approx 1e3, 1e6, :rel-tol<.999>;
 
+    is-approx   0,   0, :rel-tol<.9>,   'test desc zero';
     is-approx 1e1, 1e2, :rel-tol<.9>,   'test desc one';
     is-approx 1e2, 1e3, :rel-tol<.9>,   'test desc two';
     is-approx 1e3, 1e4, :rel-tol<.9>,   'test desc three';
@@ -48,11 +54,13 @@ subtest 'rel-tol version + optional description', {
 }
 
 subtest 'abs-tol version + optional description', {
+    is-approx   0,   0, :abs-tol<9>;
     is-approx 1e0, 1e1, :abs-tol<9>;
     is-approx 1e2, 1e3, :abs-tol<900>;
     is-approx 1e3, 1e5, :abs-tol<99e3>;
     is-approx   1, 1.5, :abs-tol<1>;
 
+    is-approx   0,   0, :abs-tol<9>,    'test desc one';
     is-approx 1e0, 1e1, :abs-tol<9>,    'test desc one';
     is-approx 1e2, 1e3, :abs-tol<900>,  'test desc two';
     is-approx 1e3, 1e5, :abs-tol<99e3>, 'test desc three';
@@ -63,11 +71,13 @@ subtest 'abs-tol version + optional description', {
 }
 
 subtest 'abs-tol + rel-tol version + optional description', {
+    is-approx   0,   0, :abs-tol<9>,    :rel-tol<.9>;
     is-approx 1e0, 1e1, :abs-tol<9>,    :rel-tol<.9>;
     is-approx 1e2, 1e3, :abs-tol<900>,  :rel-tol<.9>;
     is-approx 1e3, 1e5, :abs-tol<99e3>, :rel-tol<.99>;
     is-approx   1, 1.5, :abs-tol<1>,    :rel-tol<.4>;
 
+    is-approx   0,   0, :abs-tol<9>,    :rel-tol<.9>,  'test desc one';
     is-approx 1e0, 1e1, :abs-tol<9>,    :rel-tol<.9>,  'test desc one';
     is-approx 1e2, 1e3, :abs-tol<900>,  :rel-tol<.9>,  'test desc two';
     is-approx 1e3, 1e5, :abs-tol<99e3>, :rel-tol<.99>, 'test desc three';

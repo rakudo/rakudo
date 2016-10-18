@@ -242,8 +242,16 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+# We're picking and choosing which tolerance to use here, to make it easier
+# to test numbers close to zero, yet maintain relative tolerance elsewhere.
+# For example, relative tolerance works equally well with regular and huge,
+# but once we go down to zero, things break down: is-approx sin(τ), 0; would
+# fail, because the computed relative tolerance is 1. For such cases, absolute
+# tolerance is better suited, so we DWIM in the no-tol version of the sub.
 multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
-    is-approx-calculate($got, $expected, 1e-5, Nil, $desc);
+    $expected.abs < 1e-6
+        ?? is-approx-calculate($got, $expected, 1e-5, Nil, $desc) # abs-tol
+        !! is-approx-calculate($got, $expected, Nil, 1e-6, $desc) # rel-tol
 }
 
 multi sub is-approx(

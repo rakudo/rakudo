@@ -385,9 +385,11 @@ sub _diag(Mu $message, :$force-stderr) {
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
-    my $str-message = nqp::join("\n# ", nqp::split("\n", "# $message"));
+    my $str-message = nqp::join(
+        "\n$indents# ", nqp::split("\n", "$indents# $message")
+    );
     $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $out.say: $indents ~ $str-message;
+    $out.say: $str-message;
     $time_before = nqp::time_n;
 }
 

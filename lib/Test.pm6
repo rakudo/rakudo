@@ -308,6 +308,9 @@ sub is-approx-calculate (
 
     my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);
     unless $ok {
+            _diag "    expected approximately: $expected\n"
+                ~ "                       got: $got";
+
         unless $abs-tol-ok {
             _diag "maximum absolute tolerance: $abs-tol\n"
                 ~ "actual absolute difference: $abs-tol-got";

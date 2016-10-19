@@ -493,7 +493,7 @@ multi sub cotan(num $x) returns num {
     nqp::div_n(1e0, nqp::tan_n($x));
 }
 multi sub acotan(num $x) returns num {
-    nqp::div_n(1e0, nqp::atan_n($x));
+    nqp::atan_n(nqp::div_n(1e0, $x));
 }
 multi sub sinh(num $x) returns num {
     nqp::sinh_n($x);

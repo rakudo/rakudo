@@ -225,6 +225,10 @@ class Perl6::World is HLL::World {
         # Cache of container info and descriptor for magicals.
         has %!magical_cds;
 
+        # Cache some additional container descriptors in general.
+        has %!any_cd_cache;
+        has %!mu_cd_cache;
+
         method BUILD(:$handle, :$description) {
             @!BLOCKS := [];
             @!CODES := [];
@@ -237,6 +241,9 @@ class Perl6::World is HLL::World {
             %!const_cache := {};
             @!cleanup_tasks := [];
             %!magical_cds := {};
+
+            %!mu_cd_cache := {};
+            %!any_cd_cache := {};
         }
 
         method blocks() {
@@ -384,6 +391,13 @@ class Perl6::World is HLL::World {
 
         method magical_cds() {
             %!magical_cds
+        }
+
+        method any_cd_cache() {
+            %!any_cd_cache
+        }
+        method mu_cd_cache() {
+            %!mu_cd_cache
         }
 
         method sub_id_to_code_object() {
@@ -1486,42 +1500,29 @@ class Perl6::World is HLL::World {
         $cont
     }
 
-    has $!percent_underscore_mu_readonly_nodefault_descriptor;
-    has $!dollar_underscore_mu_readonly_nodefault_descriptor;
-    has $!backslash_c_any_readonly_nodefault_descriptor;
-
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $use_cache;
-        if $name eq '%_' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Mu']) {
-            unless $!percent_underscore_mu_readonly_nodefault_descriptor {
+        # Eligible for one of our caches?
+        if !$rw && $default =:= $of && !$dynamic {
+            my $cache_to_use;
+            my $cd;
+            if $of.HOW.name($of) eq 'Any' {
+                $cache_to_use := self.context().any_cd_cache();
+            } elsif $of.HOW.name($of) eq 'Mu' {
+                $cache_to_use := self.context().mu_cd_cache();
+            }
+            if !($cache_to_use =:= NQPMu) && nqp::existskey($cache_to_use, $name) {
+                $cd := nqp::atkey($cache_to_use, $name);
+            } elsif !($cache_to_use =:= NQPMu) {
                 my $cd_type := self.find_symbol(['ContainerDescriptor']);
-                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+                $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
                 self.add_object($cd);
-                $!percent_underscore_mu_readonly_nodefault_descriptor := $cd;
+                nqp::bindkey($cache_to_use, $name, $cd);
+                #nqp::say("Caching container descriptor: $name { $of.HOW.name($of) }, rw: $rw, { $default =:= $of ?? "defaults to 'of'" !! $default.HOW.name($default) } { $dynamic ?? "dynamic" !! "not dynamic" }");
             }
-            if $!percent_underscore_mu_readonly_nodefault_descriptor.of =:= $of {
-                $use_cache := $!percent_underscore_mu_readonly_nodefault_descriptor;
-            }
-        } elsif $name eq '$_' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Mu']) {
-            unless $!dollar_underscore_mu_readonly_nodefault_descriptor {
-                my $cd_type := self.find_symbol(['ContainerDescriptor']);
-                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
-                self.add_object($cd);
-                $!dollar_underscore_mu_readonly_nodefault_descriptor := $cd;
-            }
-            if $!dollar_underscore_mu_readonly_nodefault_descriptor.of =:= $of {
-                $use_cache := $!dollar_underscore_mu_readonly_nodefault_descriptor;
-            }
-        } elsif $name eq 'c' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Any']) {
-            unless $!backslash_c_any_readonly_nodefault_descriptor {
-                my $cd_type := self.find_symbol(['ContainerDescriptor']);
-                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
-                self.add_object($cd);
-                $!backslash_c_any_readonly_nodefault_descriptor := $cd;
-            }
-            if $!backslash_c_any_readonly_nodefault_descriptor.of =:= $of {
-                $use_cache := $!backslash_c_any_readonly_nodefault_descriptor;
+            if $cd && $cd.of =:= $of {
+                $use_cache := $cd;
             }
         }
         if $use_cache =:= NQPMu {

@@ -9551,21 +9551,18 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method codeblock($/) {
-        my $blockref := $<block>.ast;
-        my $past :=
-            QAST::Stmts.new(
+        make QAST::Stmts.new(
+            QAST::Op.new(
+                :op('p6store'),
+                QAST::Var.new( :name('$/'), :scope<lexical> ),
                 QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name('$/'), :scope<lexical> ),
-                    QAST::Op.new(
-                        QAST::Var.new( :name('$¢'), :scope<lexical> ),
-                        :name('MATCH'),
-                        :op('callmethod')
-                    )
-                ),
-                QAST::Op.new( :op<call>, QAST::Op.new( :op('p6capturelex'), $blockref ) )
-            );
-        make $past;
+                    QAST::Var.new( :name('$¢'), :scope<lexical> ),
+                    :name('MATCH'),
+                    :op('callmethod')
+                )
+            ),
+            QAST::Op.new( :op<call>, block_closure($<block>.ast) )
+        );
     }
 
     method arglist($/) {

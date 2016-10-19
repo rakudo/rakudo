@@ -1486,12 +1486,53 @@ class Perl6::World is HLL::World {
         $cont
     }
 
+    has $!percent_underscore_mu_readonly_nodefault_descriptor;
+    has $!dollar_underscore_mu_readonly_nodefault_descriptor;
+    has $!backslash_c_any_readonly_nodefault_descriptor;
+
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
-        my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
-        self.add_object($cd);
-        $cd
+        my $use_cache;
+        if $name eq '%_' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Mu']) {
+            unless $!percent_underscore_mu_readonly_nodefault_descriptor {
+                my $cd_type := self.find_symbol(['ContainerDescriptor']);
+                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+                self.add_object($cd);
+                $!percent_underscore_mu_readonly_nodefault_descriptor := $cd;
+            }
+            if $!percent_underscore_mu_readonly_nodefault_descriptor.of =:= $of {
+                $use_cache := $!percent_underscore_mu_readonly_nodefault_descriptor;
+            }
+        } elsif $name eq '$_' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Mu']) {
+            unless $!dollar_underscore_mu_readonly_nodefault_descriptor {
+                my $cd_type := self.find_symbol(['ContainerDescriptor']);
+                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+                self.add_object($cd);
+                $!dollar_underscore_mu_readonly_nodefault_descriptor := $cd;
+            }
+            if $!dollar_underscore_mu_readonly_nodefault_descriptor.of =:= $of {
+                $use_cache := $!dollar_underscore_mu_readonly_nodefault_descriptor;
+            }
+        } elsif $name eq 'c' && $rw == 0 && $default =:= $of && !$dynamic && $of =:= self.find_symbol(['Any']) {
+            unless $!backslash_c_any_readonly_nodefault_descriptor {
+                my $cd_type := self.find_symbol(['ContainerDescriptor']);
+                my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+                self.add_object($cd);
+                $!backslash_c_any_readonly_nodefault_descriptor := $cd;
+            }
+            if $!backslash_c_any_readonly_nodefault_descriptor.of =:= $of {
+                $use_cache := $!backslash_c_any_readonly_nodefault_descriptor;
+            }
+        }
+        if $use_cache =:= NQPMu {
+            my $cd_type := self.find_symbol(['ContainerDescriptor']);
+            my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+            self.add_object($cd);
+            #nqp::say("Container descriptor: $name { $of.HOW.name($of) }, rw: $rw, { $default =:= $of ?? "defaults to 'of'" !! $default.HOW.name($default) } { $dynamic ?? "dynamic" !! "not dynamic" }");
+            $cd
+        } else {
+            $use_cache
+        }
     }
 
     # Builds a container.

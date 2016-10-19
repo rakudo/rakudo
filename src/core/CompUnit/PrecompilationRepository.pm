@@ -186,6 +186,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
                     $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
                 }
+                $unit.close;
                 fail "Outdated precompiled $unit";
             }
         }

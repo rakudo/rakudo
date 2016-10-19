@@ -32,6 +32,7 @@ role CompUnit::PrecompilationUnit {
     method bytecode(--> Buf) { ... }
     method checksum(--> Str) { ... }
     method bytecode-handle(--> IO::Handle) { ... }
+    method close(--> Nil) { ... }
 }
 
 class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {

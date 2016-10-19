@@ -499,14 +499,26 @@ multi sub sinh(num $x) returns num {
     nqp::sinh_n($x);
 }
 multi sub asinh(num $x) returns num {
-    log($x + ($x * $x + 1e0));
+    # ln(x + √(x²+1))
+    nqp::log_n(
+        nqp::add_n(
+            $x,
+            nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+        )
+    )
 }
 
 multi sub cosh(num $x) returns num {
     nqp::cosh_n($x);
 }
 multi sub acosh(num $x) returns num {
-    log($x + ($x * $x - 1e0))
+    # ln(x + √(x²-1))
+    nqp::log_n(
+        nqp::add_n(
+            $x,
+            nqp::pow_n( nqp::sub_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+        )
+    )
 }
 multi sub tanh(num $x) returns num {
     nqp::tanh_n($x);

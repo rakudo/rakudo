@@ -464,21 +464,22 @@ my class IO::Path is Cool {
 
         my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
         if $bin {
+            my $res;
             # normal file
             if Rakudo::Internals.FILETEST-S(self.abspath) -> int $size {
-                nqp::readfh($PIO,buf8.new,$size)
+                $res := nqp::readfh($PIO,buf8.new,$size)
             }
             # spooky file with zero size?
             else {
-                my $res := buf8.new();
+                $res := buf8.new();
                 loop {
                     my $buf := nqp::readfh($PIO,buf8.new,0x100000);
                     last unless nqp::elems($buf);
                     $res.append($buf);
                 }
-                $handle.close;
-                $res
             }
+            $handle.close;
+            $res
         }
         else {
             $handle.encoding($enc) if $enc.defined;

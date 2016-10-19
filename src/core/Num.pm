@@ -188,7 +188,9 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method asinh(|) {*}
     multi method asinh(Num:D: ) {
-        (self + (self * self + 1e0).sqrt).log;
+        nqp::isnanorinf(self)
+            ?? self
+            !! (self + (self * self + 1e0).sqrt).log;
     }
     proto method cosh(|) {*}
     multi method cosh(Num:D: ) {
@@ -500,12 +502,14 @@ multi sub sinh(num $x) returns num {
 }
 multi sub asinh(num $x) returns num {
     # ln(x + √(x²+1))
-    nqp::log_n(
-        nqp::add_n(
-            $x,
-            nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+    nqp::isnanorinf($x)
+        ?? $x
+        !! nqp::log_n(
+            nqp::add_n(
+                $x,
+                nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+            )
         )
-    )
 }
 
 multi sub cosh(num $x) returns num {

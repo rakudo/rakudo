@@ -308,34 +308,29 @@ my class Rakudo::Internals {
             method new(\i,\s) { nqp::create(self)!SET-SELF(i,s) }
             method pull-one() is raw {
                 nqp::if(
-                  nqp::islt_i($!skipping,-1),
-                  IterationEnd,                  # exhausted before
-                  nqp::stmts(                    # not exhausted yet
-                    nqp::if(
+                  $!iterator,
+                  nqp::stmts(
+                    nqp::while(
                       nqp::isgt_i($!skipping,0),
-                      nqp::until(                # still skipping
-                        nqp::iseq_i($!skipping,0),
-                        nqp::if(
-                          nqp::eqaddr($!iterator.pull-one,IterationEnd),
-                          nqp::stmts(            # exhausted now
-                            ($!skipping = -1),
-                            (return IterationEnd)
-                          ),
-                          ($!skipping = nqp::sub_i($!skipping,1)),
+                      nqp::if(
+                        $!iterator.skip-one,   
+                        ($!skipping = nqp::sub_i($!skipping,1)), # skipped ok
+                        nqp::stmts(                              # exhausted
+                          ($!iterator := Mu),
+                          (return IterationEnd)
                         )
                       )
                     ),
-                    nqp::stmts(                  # no longer skipping
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $pulled := $!iterator.pull-one),
-                          IterationEnd
-                        ),
-                        ($!skipping = -1),
+                    nqp::if(                                     # done skipping
+                      nqp::eqaddr(
+                        (my $pulled := $!iterator.pull-one),
+                        IterationEnd
                       ),
-                      $pulled
-                    )
-                  )
+                      ($!iterator := Mu)                         # exhausted
+                    ),
+                    $pulled
+                  ),
+                  IterationEnd                   # exhausted before
                 )
             }
         }.new(iterator,skipping))

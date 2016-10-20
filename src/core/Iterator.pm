@@ -8,6 +8,14 @@ my role Iterator {
     # methods in this role, they'll all end up falling back to using this.
     method pull-one() { ... }
 
+    # Skip one value from the iterator.  Should return a true-like value to
+    # indicate the skip was successful.  Override this method if you can
+    # make an iterator that has significantly less to do when skipping a
+    # generated value.
+    method skip-one() {
+        nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
+    }
+
     # Has the iterator produce a certain number of values and push them into
     # the target. The only time the iterator may push less values than asked
     # for is when it reaches the end of the iteration. It may never push more
@@ -68,17 +76,18 @@ my role Iterator {
 
     # Skip the given number of values produced before returning the next
     # pulled value.  Given 0 it is an expensive way to do .pull-one
-    method skip-at-least-pull-one(\todrop) is raw {
+    method skip-at-least-pull-one(\toskip) is raw {
         nqp::stmts(
-          (my int $topull = todrop + 1),
-          nqp::while(
-            nqp::isge_i(($topull = nqp::sub_i($topull,1)),0),
-            nqp::if(
-              nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-              ($topull = 0),
-            )
+          (my int $left = toskip),
+          nqp::while(   # skipping
+            nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
+            Nil
           ),
-          $pulled
+          nqp::if(
+            nqp::islt_i($left,0),   # could skip all?
+            self.pull-one,
+            IterationEnd
+          )
         )
     }
 

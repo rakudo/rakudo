@@ -11,6 +11,11 @@ my role QuantHash does Associative {
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)
     }
+
+    multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
+        SELF = self.new;
+        SELF.AT-KEY($key);
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

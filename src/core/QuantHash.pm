@@ -13,8 +13,9 @@ my role QuantHash does Associative {
     }
 
     multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
-        SELF = self.new;
-        SELF.AT-KEY($key);
+        SELF.^name.chars == 3 # shoddy heuristic for Set/Bag/Mix
+          ?? die "Cannot auto-vivify an immutable {SELF.^name}"
+          !! (SELF = self.new).AT-KEY($key)
     }
 }
 

@@ -259,9 +259,9 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # create Seq for the next N elements of given iterator
-    method SeqNextNFromIterator(\iterator,\times) {
-        Seq.new(class :: does Iterator {
+    # create iterator for the next N elements of given iterator
+    method IterateNextNFromIterator(\iterator,\times) {
+        class :: does Iterator {
             has $!iterator;
 #?if !jvm
             has int $!times;
@@ -291,7 +291,7 @@ my class Rakudo::Internals {
                   IterationEnd
                 )
             }
-        }.new(iterator,times))
+        }.new(iterator,times)
     }
 
     # create Seq that skips N elements of given iterator

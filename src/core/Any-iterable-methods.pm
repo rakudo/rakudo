@@ -1894,7 +1894,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::if(
           nqp::isle_i($n,0),
           (),
-          Rakudo::Internals.SeqNextNFromIterator(self.iterator,$n)
+          Seq.new(Rakudo::Internals.IterateNextNFromIterator(self.iterator,$n))
         )
     }
 

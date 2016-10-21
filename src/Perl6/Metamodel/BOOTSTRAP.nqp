@@ -1368,8 +1368,8 @@ BEGIN {
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
-    # Attribute instance, complete with container descriptor and auto-viv
-    # container.
+    # Attribute instance, complete with container descriptor and optional
+    # auto-viv container.
     sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
             :of($type), :rw(1), :$name);
@@ -3260,3 +3260,5 @@ nqp::gethllsym('perl6', 'JavaModuleLoader').set_interop_loader(-> {
 });
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
+
+# vim: expandtab shiftwidth=4

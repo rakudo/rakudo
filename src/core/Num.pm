@@ -198,7 +198,9 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method acosh(|) {*}
     multi method acosh(Num:D: ) {
-        (self + (self * self - 1e0).sqrt).log;
+        self < 1e0
+            ?? NaN
+            !! (self + (self * self - 1e0).sqrt).log;
     }
     proto method tanh(|) {*}
     multi method tanh(Num:D: ) {
@@ -517,12 +519,14 @@ multi sub cosh(num $x) returns num {
 }
 multi sub acosh(num $x) returns num {
     # ln(x + √(x²-1))
-    nqp::log_n(
-        nqp::add_n(
-            $x,
-            nqp::pow_n( nqp::sub_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+    $x < 1e0
+        ?? NaN
+        !! nqp::log_n(
+            nqp::add_n(
+                $x,
+                nqp::pow_n( nqp::sub_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+            )
         )
-    )
 }
 multi sub tanh(num $x) returns num {
     nqp::tanh_n($x);

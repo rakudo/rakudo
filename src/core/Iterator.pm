@@ -74,20 +74,26 @@ my role Iterator {
         )
     }
 
-    # Skip the given number of values produced before returning the next
-    # pulled value.  Given 0 it is an expensive way to do .pull-one
-    method skip-at-least-pull-one(\toskip) is raw {
+    # Skip the given number of values.  Return true if succesful in
+    # skipping that many values.
+    method skip-at-least(int $toskip) {
         nqp::stmts(
-          (my int $left = toskip),
-          nqp::while(   # skipping
+          (my int $left = $toskip),
+          nqp::while(
             nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
             Nil
           ),
-          nqp::if(
-            nqp::islt_i($left,0),   # could skip all?
-            self.pull-one,
-            IterationEnd
-          )
+          nqp::islt_i($left,0)
+        )
+    }
+
+    # Skip the given number of values produced before returning the next
+    # pulled value.  Given 0 it is an expensive way to do .pull-one
+    method skip-at-least-pull-one(int $toskip) {
+        nqp::if(
+          self.skip-at-least($toskip),
+          self.pull-one,
+          IterationEnd
         )
     }
 

@@ -294,48 +294,6 @@ my class Rakudo::Internals {
         }.new(iterator,times)
     }
 
-    # create Seq that skips N elements of given iterator
-    method SeqSkipNFromIterator(\iterator,\skipping) {
-        Seq.new(class :: does Iterator {
-            has $!iterator;
-#?if !jvm
-            has int $!skipping;
-#?endif
-#?if jvm
-            has Int $!skipping;
-#?endif
-            method !SET-SELF($!iterator,$!skipping) { self }
-            method new(\i,\s) { nqp::create(self)!SET-SELF(i,s) }
-            method pull-one() is raw {
-                nqp::if(
-                  $!iterator,
-                  nqp::stmts(
-                    nqp::while(
-                      nqp::isgt_i($!skipping,0),
-                      nqp::if(
-                        $!iterator.skip-one,   
-                        ($!skipping = nqp::sub_i($!skipping,1)), # skipped ok
-                        nqp::stmts(                              # exhausted
-                          ($!iterator := Mu),
-                          (return IterationEnd)
-                        )
-                      )
-                    ),
-                    nqp::if(                                     # done skipping
-                      nqp::eqaddr(
-                        (my $pulled := $!iterator.pull-one),
-                        IterationEnd
-                      ),
-                      ($!iterator := Mu)                         # exhausted
-                    ),
-                    $pulled
-                  ),
-                  IterationEnd                   # exhausted before
-                )
-            }
-        }.new(iterator,skipping))
-    }
-
     # Seq from a Seq using an index iterator and an offset
     method SeqUsingIndexIterator(\source,\index,\offset) {
         Seq.new( class :: does Iterator {

@@ -532,7 +532,7 @@ multi sub tanh(num $x) returns num {
     nqp::tanh_n($x);
 }
 multi sub atanh(num $x) returns num {
-    log((1e0 + $x) / (1e0 - $x)) / 2e0;
+    $x == 1e0 ?? Inf !! log((1e0 + $x) / (1e0 - $x)) / 2e0;
 }
 multi sub sech(num $x) returns num {
     nqp::sech_n($x);

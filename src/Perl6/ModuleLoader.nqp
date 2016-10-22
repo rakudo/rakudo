@@ -137,7 +137,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
         }
     }
-    method merge_globals_lexically($target, $source) {
+    method merge_globals_lexically($world, $target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
         my %known_symbols;
@@ -151,6 +151,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 $target[0].push(QAST::Var.new(
                     :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
                 ));
+                $world.add_object_if_no_sc($_.value);
             }
             elsif nqp::decont($target.symbol($sym)<value>) =:= nqp::decont($_.value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.

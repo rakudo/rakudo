@@ -1,5 +1,3 @@
-class X::Cannot::Lazy { ... }
-
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to
 # define the various roles, and Attribute inherits from Any. We will do a
@@ -1920,58 +1918,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
     multi method tail(Any:D: Int(Cool) $n) {
-        return () if $n <= 0;
-
-        Seq.new( class :: does Iterator {
-            has Mu $!iter;
-            has Mu $!lastn;
-            has int $!size;
-            has int $!todo;
-            has int $!index;
-            method !SET-SELF(\list,\size) {
-                $!iter = list.iterator;
-                X::Cannot::Lazy.new(:action<tail>).throw if $!iter.is-lazy;
-
-                $!lastn := nqp::list;
-                $!size   = size;
-                nqp::setelems($!lastn,$!size);  # presize list
-                nqp::setelems($!lastn,0);
-                self
-            }
-            method new(\list,\size) { nqp::create(self)!SET-SELF(list,size) }
-            method !next() is raw {
-                my int $index = $!index;
-                $!index = ($!index + 1) % $!size;
-                $!todo  = $!todo - 1;
-                nqp::atpos($!lastn,$index)
-            }
-            method pull-one() is raw {
-                if $!todo {
-                    self!next;
-                }
-                elsif $!iter.DEFINITE {
-                    my Mu $pulled;
-                    my int $index;
-                    my int $size = $!size;
-                    until ($pulled := $!iter.pull-one) =:= IterationEnd {
-                        nqp::bindpos($!lastn,$index,$pulled);
-                        $index = ($index + 1) % $size;
-                    }
-                    if nqp::elems($!lastn) == $!size {   # full set for tail
-                        $!index = $index;
-                        $!todo  = $!size;
-                    }
-                    else {  # not a full tail, $!index already 0
-                        $!todo = nqp::elems($!lastn);
-                    }
-                    $!iter := Mu;  # mark we're done iterating
-                    $!todo ?? self!next !! IterationEnd
-                }
-                else {
-                    IterationEnd
-                }
-            }
-        }.new(self,$n))
+        Seq.new(
+          Rakudo::Internals.IterateLastNFromIterator(self.iterator,$n,'tail'))
     }
 
     proto method minpairs(|) { * }

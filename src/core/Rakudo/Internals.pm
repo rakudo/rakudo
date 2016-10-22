@@ -3,6 +3,7 @@ my role  IO { ... }
 my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
+my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
@@ -259,7 +260,7 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # create iterator for the next N elements of given iterator
+    # Create iterator for the next N elements of given iterator
     method IterateNextNFromIterator(\iterator,\times) {
         class :: does Iterator {
             has $!iterator;
@@ -292,6 +293,79 @@ my class Rakudo::Internals {
                 )
             }
         }.new(iterator,times)
+    }
+
+    # Create iterator for the last N values of a given iterator.  Needs
+    # to specify the :action part of X::Cannot::Lazy in case the given
+    # iterator is lazy.  Optionally returns an empty iterator if the
+    # given iterator produced fewer than N values.
+    method IterateLastNFromIterator(\iterator, \n, \action, $full = 0) {
+        class :: does Iterator {
+            has $!iterator;
+            has int $!size;
+            has int $!full;
+            has $!lastn;
+            has int $!todo;
+            has int $!index;
+            method !SET-SELF(\iterator, \size, $action, \full) {
+                nqp::if(
+                  ($!iterator := iterator).is-lazy,
+                  X::Cannot::Lazy.new(:$action).throw,
+                  nqp::if(
+                    nqp::isle_i(size, 0),
+                    Rakudo::Internals.EmptyIterator,
+                    nqp::stmts(
+                      ($!full = full),
+                      ($!lastn := nqp::setelems(nqp::list, $!size = size)),
+                      nqp::setelems($!lastn, 0),
+                      self
+                    )
+                  )
+                )
+            }
+            method new(\i,\n,\a,\f) { nqp::create(self)!SET-SELF(i,n,a,f) }
+            method !next() is raw {
+                nqp::stmts(
+                  (my int $index = $!index),
+                  ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
+                  ($!todo  = nqp::sub_i($!todo,1)),
+                  nqp::atpos($!lastn,$index)
+                )
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  $!todo,
+                  self!next,
+                  nqp::if(
+                    nqp::defined($!iterator),
+                    nqp::stmts(
+                      (my int $index),
+                      (my int $size = $!size),
+                      nqp::until(
+                        nqp::eqaddr(
+                          (my $pulled := $!iterator.pull-one),IterationEnd),
+                        nqp::stmts(
+                          nqp::bindpos($!lastn, $index, $pulled),
+                          ($index = nqp::mod_i(nqp::add_i($index,1),$size))
+                        )
+                      ),
+                      nqp::if(
+                        nqp::iseq_i(nqp::elems($!lastn),$size),   # full set
+                        nqp::stmts(
+                          ($!index = $index),
+                          ($!todo  = $!size)
+                        ),
+                        ($!todo =       # not a full set, $!index still at 0
+                          nqp::if($!full,0,nqp::elems($!lastn))),
+                      ),
+                      ($!iterator := Mu),                   # done iterating
+                      nqp::if($!todo, self!next, IterationEnd)
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+        }.new(iterator, n, action, $full)
     }
 
     # Iterate over a source iterator and an iterator generating index values

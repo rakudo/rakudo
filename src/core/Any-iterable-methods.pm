@@ -1898,23 +1898,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method tail(|) { * }
     multi method tail(Any:D:) is raw {
-        nqp::stmts(
-          (my $result := IterationEnd),
-          nqp::if(
-            (my $iter := self.iterator).is-lazy,
-            Failure.new(X::Cannot::Lazy.new(:action<tail>)),
-            nqp::stmts(
-              nqp::until(
-                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
-                ($result := $pulled)
-              ),
-              nqp::if(
-                nqp::eqaddr($result,IterationEnd),
-                Nil,
-                $result
-              )
-            )
-          )
+        nqp::if(
+          nqp::eqaddr((my $pulled :=
+            Rakudo::Internals.LastFromIterator(self.iterator,'tail')),
+            IterationEnd
+          ),
+          Nil,
+          $pulled
         )
     }
     multi method tail(Any:D: Int(Cool) $n) {

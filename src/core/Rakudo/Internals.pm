@@ -294,6 +294,77 @@ my class Rakudo::Internals {
         }.new(iterator,times)
     }
 
+    # Iterate over a source iterator and an iterator generating index values
+    # from a given offset.  Optionally, call block if an out-of-bounds index
+    # value is obtained, or simply return Nil for out of bounds index values
+    method IterateFromIterators(\source,\indexes,\offset,&out?) {
+        class :: does Iterator {
+            has $!source;
+            has $!indexes;
+            has int $!offset;
+            has &!out;
+            has $!cache;
+            method !SET-SELF($!source,$!indexes,\offset,&!out) {
+                $!cache := nqp::setelems(nqp::list,$!offset = offset);
+                self
+            }
+            method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $got := $!indexes.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::if(
+                    nqp::istype(                      # doesn't look like int
+                      (my Int $number = +$got),Failure),
+                    $number,
+                    nqp::if(                          # out of range
+                      nqp::islt_i((my int $index = $number),$!offset),
+                      Failure.new(
+                        X::OutOfRange.new(:$got,:range("$!offset..Inf"))),
+                      nqp::if(
+                        nqp::existspos($!cache,$index),
+                        nqp::atpos($!cache,$index),   # it's in the cache
+                        nqp::if(
+                          nqp::defined($!source),
+                          nqp::stmts(                 # can still search it
+                            nqp::until(
+                              nqp::existspos($!cache,$index)
+                                || nqp::eqaddr(
+                                     (my $pulled := $!source.pull-one),
+                                     IterationEnd
+                                   ),
+                              nqp::push($!cache,$pulled)
+                            ),
+                            nqp::if(
+                              nqp::eqaddr($pulled,IterationEnd),
+                              nqp::stmts(
+                                ($!source := Mu),
+                                nqp::if(
+                                  $!indexes.is-lazy,
+                                  IterationEnd,       # not going to be any more
+                                  nqp::stmts(         # didn't find it
+                                    nqp::if(&out,out($index)),
+                                    Nil       
+                                  )
+                                )
+                              ),
+                              $pulled                 # found it
+                            )
+                          ),
+                          nqp::stmts(                 # cannot be found
+                            nqp::if(&out,out($index)),
+                            Nil
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!source.is-lazy }
+        }.new(source,indexes,offset,&out)
+    }
+
     # Iterate over a source iterator and an iterator generating monotonically
     # increasing index values from a given offset.  Optionally, call block if
     # an out-of-sequence index value is obtained, or simply ignore out of
@@ -343,67 +414,6 @@ my class Rakudo::Internals {
                 )
             }
         }.new(source,indexes,offset,&out)
-    }
-
-    # Seq from a Seq using an index iterator and an offset
-    method SeqUsingIndexIterator(\source,\index,\offset) {
-        Seq.new( class :: does Iterator {
-            has $!source;
-            has $!index;
-            has int $!offset;
-            has $!cache;
-            method !SET-SELF($!source,$!index,\offset) {
-                $!cache := nqp::setelems(nqp::list,$!offset = offset);
-                self
-            }
-            method new(\s,\i,\o) { nqp::create(self)!SET-SELF(s,i,o) }
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::eqaddr((my $got := $!index.pull-one),IterationEnd),
-                  IterationEnd,
-                  nqp::if(                            # doesn't look like number
-                    nqp::istype((my $number = +$got),Failure),
-                    $number,
-                    nqp::if(                          # out of range
-                      nqp::islt_i((my int $index = $number),$!offset),
-                      Failure.new(
-                        X::OutOfRange.new(:$got,:range("$!offset..Inf"))),
-                      nqp::if(
-                        nqp::existspos($!cache,$got),
-                        nqp::atpos($!cache,$got),     # it's in the cache
-                        nqp::if(
-                          nqp::defined($!source),
-                          nqp::stmts(                 # can still search it
-                            nqp::until(
-                              nqp::existspos($!cache,$got)
-                                || nqp::eqaddr(
-                                     (my $pulled := $!source.pull-one),
-                                     IterationEnd
-                                   ),
-                              nqp::push($!cache,$pulled)
-                            ),
-                            nqp::if(
-                              nqp::eqaddr($pulled,IterationEnd),
-                              nqp::stmts(
-                                ($!source := Mu),
-                                nqp::if(
-                                  $!index.is-lazy,
-                                  IterationEnd,       # not going to be any more
-                                  Nil                 # didn't find it
-                                )
-                              ),
-                              $pulled                 # found it
-                            )
-                          ),
-                          Nil                         # cannot be found
-                        )
-                      )
-                    )
-                  )
-                )
-            }
-            method is-lazy() { $!source.is-lazy }
-        }.new(source.iterator,index,offset) )
     }
 
     method EmptyIterator() {

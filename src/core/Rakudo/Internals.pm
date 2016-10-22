@@ -315,12 +315,11 @@ my class Rakudo::Internals {
                   IterationEnd,
                   nqp::if(
                     nqp::istype(                      # doesn't look like int
-                      (my Int $number = +$got),Failure),
-                    $number,
+                      (my $number = +$got),Failure),
+                    $number.throw,
                     nqp::if(                          # out of range
-                      nqp::islt_i((my int $index = $number),$!offset),
-                      Failure.new(
-                        X::OutOfRange.new(:$got,:range("$!offset..Inf"))),
+                      nqp::islt_i((my int $index = $number.Int),$!offset),
+                      X::OutOfRange.new(:$got,:range("$!offset..Inf")).throw,
                       nqp::if(
                         nqp::existspos($!cache,$index),
                         nqp::atpos($!cache,$index),   # it's in the cache
@@ -388,10 +387,10 @@ my class Rakudo::Internals {
                       IterationEnd
                     ),
                     nqp::if(
-                      nqp::istype((my Int $number = +$got),Failure),
-                      (return $number),
+                      nqp::istype((my $number = +$got),Failure),
+                      $number.throw,
                       nqp::if(
-                        nqp::isle_i($!next,(my int $index = $number)),
+                        nqp::isle_i($!next,(my int $index = $number.Int)),
                         nqp::stmts(                      # possibly valid index
                           nqp::while(
                             nqp::islt_i($!next,$index) && $!source.skip-one,

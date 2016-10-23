@@ -414,141 +414,541 @@ my class Str does Stringy { # declared in BOOTSTRAP
         result;
     }
 
-    method match($pat,
-                 :continue(:$c), :pos(:$p),
-                 :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
-                 # :st(:nd(:rd(:th($nth)))) is cute, but slow
-                 :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
-        my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my %opts;
-        if $p.defined { %opts<p> = $p }
-        else { %opts<c> = $c // 0; }
-        my $patrx := nqp::istype($pat,Code) ?? $pat !! / "$pat": /;
-        my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
+    # matching ITeratorS same except for CURSOR_xxx, wish we had macros
+    my $MITS := nqp::list(
+      class :: does Iterator {  # global
+          has Mu $!cursor; # cannot put these 3 lines in role
+          method !SET-SELF(\cursor) { $!cursor := cursor; self }
+          method new(\cursor) { nqp::create(self)!SET-SELF(cursor) }
+          method pull-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                nqp::stmts(
+                  (my $pulled := $!cursor),
+                  ($!cursor := $!cursor.CURSOR_MORE),
+                  $pulled.MATCH
+                ),
+                IterationEnd
+              )
+          }
+          method skip-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                ($!cursor := $!cursor.CURSOR_MORE)
+              )
+          }
+      },
+      class :: does Iterator {  # overlap
+          has Mu $!cursor;
+          method !SET-SELF(\cursor) { $!cursor := cursor; self }
+          method new(\cursor) { nqp::create(self)!SET-SELF(cursor) }
+          method pull-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                nqp::stmts(
+                  (my $pulled := $!cursor),
+                  ($!cursor := $!cursor.CURSOR_OVERLAP),
+                  $pulled.MATCH
+                ),
+                IterationEnd
+              )
+          }
+          method skip-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                ($!cursor := $!cursor.CURSOR_OVERLAP)
+              )
+          }
+      },
+      class :: does Iterator {  # exhaustive
+          has Mu $!cursor;
+          method !SET-SELF(\cursor) { $!cursor := cursor; self }
+          method new(\cursor) { nqp::create(self)!SET-SELF(cursor) }
+          method pull-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                nqp::stmts(
+                  (my $pulled := $!cursor),
+                  ($!cursor := $!cursor.CURSOR_NEXT),
+                  $pulled.MATCH
+                ),
+                IterationEnd
+              )
+          }
+          method skip-one() is raw {
+              nqp::if(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                ($!cursor := $!cursor.CURSOR_NEXT)
+              )
+          }
+      },
+    );
 
-        my $matches := $ex
-          ?? gather {
-                 while $cur.pos >= 0 {
-                     take $cur.MATCH_SAVE;
-                     $cur := $cur.CURSOR_NEXT;
-                 }
-             }
-          !! $ov
-            ?? gather {
-                    while $cur.pos >= 0 {
-                        take $cur.MATCH_SAVE;
-                        $cur := $cur.CURSOR_OVERLAP;
-                    }
-                }
-            !! gather {
-                   while $cur.pos >= 0 {
-                       take $cur.MATCH_SAVE;
-                       $cur := $cur.CURSOR_MORE;
-                   }
-               };
+    # Look for short/long named parameter and remove it from the hash
+    sub fetch-short-long(\opts, str $short, str $long, \store --> Nil) {
+        nqp::if(
+          nqp::existskey(opts,$short)
+            && nqp::defined(nqp::atkey(opts,$short)),
+          nqp::stmts(
+            (store = nqp::atkey(opts,$short)),
+            nqp::deletekey(opts,$short)
+          ),
+          nqp::if(
+            nqp::existskey(opts,$long)
+              && nqp::defined(nqp::atkey(opts,$long)),
+            nqp::stmts(
+              (store = nqp::atkey(opts,$long)),
+              nqp::deletekey(opts,$long)
+            )
+          )
+        )
+    }
 
-        my $multi = $g || $ov || $ex;
+    # Look for named parameters, do not remove from hash
+    sub fetch-all-of(\opts, @names, \store --> Nil) {
+        nqp::stmts(
+          (my int $elems = @names.elems),   # reifies
+          (my $list := nqp::getattr(@names,List,'$!reified')),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::if(
+              nqp::existskey(opts,nqp::unbox_s(nqp::atpos($list,$i))),
+              (store = nqp::atkey(opts,nqp::unbox_s(nqp::atpos($list,$i)))),
+            )
+          )
+        )
+    }
 
-        my @matches;
+    sub die-before-first($got) {
+        die "Attempt to retrieve before :1st match -- :nth($got)"
+    }
 
-        if $nth.defined or $x.defined {
-            my $clip;
-            my $idxs;
+    # All of these !match methods take a nqp::getlexdyn value for the $/
+    # to be set as the first parameter.  The second parameter is usually
+    # the Cursor object to be used (or something from which a Cursor can
+    # be made).
 
-            # Translate :nth lists to monotonic 0-based indices
-            my sub nthidx($n is copy) {
+    # Generic fallback for matching with a pattern
+    method !match-pattern(\slash, $pattern, str $name, $value, \opts) {
+        nqp::stmts(
+          (my $opts := nqp::getattr(opts,Map,'$!storage')),
+          nqp::bindkey($opts,$name,$value),
+          fetch-short-long($opts, "p", "pos", my $p),
+          fetch-short-long($opts, "c", "continue", my int $c),
+          nqp::if(
+            nqp::elems($opts),
+            nqp::if(
+              nqp::defined($p),
+              self!match-cursor(slash,
+                $pattern(Cursor.'!cursor_init'(self,:$p)), '', 0, $opts),
+              self!match-cursor(slash,
+                $pattern(Cursor.'!cursor_init'(self,:$c)), '', 0, $opts)
+            ),
+            nqp::if(
+              nqp::defined($p),
+              self!match-one(slash,
+                $pattern(Cursor.'!cursor_init'(self,:$p))),
+              self!match-one(slash,
+                $pattern(Cursor.'!cursor_init'(self,:$c)))
+            )
+          )
+        )
+    }
 
-                if nqp::istype($n, Callable) or nqp::istype($n, Whatever) {
-                    # WhateverCode forces us to remember early
-                    once @matches := $matches.list;
-                    once $matches := Nil;
-                    # WhateverCode is 1-based
-                    $n = nqp::istype($n, Whatever) ?? +@matches !! $n(+@matches);
-                }
+    # Generic fallback for matching with a cursor.  This is typically
+    # called if more than one named parameter was specified.  Arguments
+    # 3/4 are the initial named parameter matched: instead of flattening
+    # the named parameter into another slurpy hash, we pass the name and
+    # the value as extra parameters, and add it back in the hash with
+    # named parameters.
+    method !match-cursor(\slash, \cursor, str $name, $value, \opts) {
+        nqp::stmts(
+          (my $opts := nqp::getattr(opts,Map,'$!storage')),
+          nqp::if(
+            nqp::chars($name),
+            nqp::bindkey($opts,$name,$value)
+          ),
+          fetch-short-long($opts, "ex", "exhaustive", my int $ex),
+          fetch-short-long($opts, "ov", "overlap",    my int $ov),
+          fetch-short-long($opts, "g",  "global",     my int $g),
+          (my int $mits-index = nqp::if($ex,2,nqp::if($ov,1,0))),
+          nqp::if(
+            nqp::elems($opts),
+            nqp::stmts(
+              fetch-short-long($opts, "x", "x", my $x),
+              fetch-all-of($opts, <st nd rd th nth>, my $nth),
+              nqp::if(
+                nqp::defined($nth),
+                nqp::if(
+                  nqp::defined($x),                             # :nth && :x
+                  self!match-x(slash,
+                    self!match-nth(slash,
+                      cursor, $mits-index, $nth, nqp::hash).iterator, $x),
+                  self!match-nth(slash,
+                      cursor, $mits-index, $nth, nqp::hash)     # nth
+                ),
+                nqp::if(
+                  nqp::defined($x),
+                  self!match-x(slash,                           # :x
+                    nqp::atpos($MITS, $mits-index).new(cursor), $x),
+                  nqp::if(                                      # only :ex|ov|g
+                    $ex || $ov || $g,
+                    self!match-list(slash, cursor, $mits-index),
+                    self!match-one(slash, cursor)
+                  )
+                )
+              )
+            ),
+            nqp::if(                                            # only :ex|ov|g
+              $ex || $ov || $g,
+              self!match-list(slash, cursor, $mits-index),
+              self!match-one(slash, cursor)
+            )
+          )
+        )
+    }
 
-                state $max = -Inf;
-
-                if ($n > $max or once $n == -Inf) {
-                    $max = $n;
-                    # After first positive, <= 0 are "ignored" per spec
-                    once die "Attempt to retrieve before :1st match -- :nth($n)"
-                       if $max < 1;
-                    $n - 1;
-                }
-                else {
-                    Slip.new();
-                }
-            }
-            if $nth.defined and not $x.defined {
-                $multi = Positional.ACCEPTS($nth);
-                $idxs := $nth.map(&nthidx).Array;
-                $clip := $idxs.elems..Inf;
-            }
-            if $x.defined {
-                $multi = True;
-                if nqp::istype($x, Int) {
-                    $clip := $x..$x;
-                }
-                elsif nqp::istype($x, Range) {
-                    my $mx = $x.max.floor;
-                    $mx = $mx - 1 unless $mx ~~ $x;
-                    my $mn = $x.min.ceiling;
-                    $mn = $mn + 1 unless $mn ~~ $x;
-                    $clip := $mn..$mx;
-                }
-                elsif nqp::istype($x, Whatever) {
-                    $clip := 0..Inf;
-                }
-                else {
-                    X::Str::Match::x.new(:got($x)).fail;
-                }
-                $clip := 0..($clip.max) if $clip.min < 0;
-                return Slip.new() if $clip.max < 1 or $clip.max < $clip.min;
-
-                if $nth.defined {
-                    $idxs := $nth.map(&nthidx).Array;
-                    return Slip.new()
-                        if $clip.min and not $idxs.EXISTS-POS($clip.min - 1);
-                }
-                else {
-                    $idxs := (0..Inf).Array;
-                }
-            }
-
-            unless $matches.defined {
-                # Whatever, we have an extra layer of memoization.
-                $matches := @matches.values;
-                @matches := ();
-            }
-
-            # Just "list $matches.grep", once we have True.last
-            @matches := (gather do for $matches -> $m {
-                state $i = 0;
-                state $took = 0;
-                state $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
-                last unless $n.defined;
-
-                if $i == $n {
-                    $n = $idxs.EXISTS-POS(0) ?? $idxs.shift !! Nil;
-                    take $m;
-                    $took++;
-                    last if $took >= $clip.max;
-                };
-                $i++;
-
-                last unless $n.defined;
-            }).cache;
-            @matches := () unless not $clip.min or @matches.EXISTS-POS($clip.min - 1);
-        }
-        else {
-            @matches := $matches.list;
-        }
-
-        nqp::decont($caller_dollar_slash = nqp::if(
-          $multi,
-          @matches,
-          nqp::ifnull(@matches.AT-POS(0),$cur.MATCH_SAVE)
+    # match object at given Cursor
+    method !match-one(\slash, \cursor) {
+        nqp::decont(slash = nqp::if(
+          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          cursor.MATCH,
+          Nil
         ))
+    }
+
+    # Create list from the appropriate Sequence given the type.
+    # Type values are 0 (normal :g), 1 (:overlap), 2 (:exhaustive)
+    method !match-list(\slash, \cursor, int $type) {
+        nqp::decont(slash = nqp::if(
+          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          Seq.new(nqp::atpos($MITS,$type).new(cursor)).list,
+          Slip.new,
+        ))
+    }
+
+    # Handle matching of the nth match specification.
+    method !match-nth(\slash, \cursor, $type, $nth, %opts) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%opts,Map,'$!storage')),
+          self!match-cursor(slash, cursor, 'nth', $nth, %opts),
+          nqp::if(
+            nqp::defined($nth),
+            nqp::if(
+              nqp::istype($nth,Whatever),
+              self!match-last(slash, nqp::atpos($MITS, $type).new(cursor)),
+              nqp::if(
+                nqp::istype($nth,Numeric),
+                nqp::if(
+                  $nth == Inf,
+                  self!match-last(slash, nqp::atpos($MITS, $type).new(cursor)),
+                  nqp::if(
+                    $nth < 1,
+                    die-before-first($nth),
+                    self!match-nth-int(slash, cursor, $type, $nth.Int)
+                  )
+                ),
+                nqp::if(
+                  nqp::istype($nth,WhateverCode),
+                  nqp::if(
+                    nqp::iseq_i((my int $tail = abs($nth(-1))),1),
+                    self!match-last(slash,nqp::atpos($MITS,$type).new(cursor)),
+                    self!match-nth-tail(slash, cursor, $type, $tail)
+                  ),
+                  nqp::if(
+                    nqp::istype($nth,Callable),
+                    self!match-nth-int(slash, cursor, $type, $nth()),
+                    self!match-nth-iterator(slash,
+                      nqp::atpos($MITS,$type).new(cursor), $nth.iterator)
+                  )
+                )
+              )
+            ),
+            self!match-one(slash, cursor)
+          )
+        )
+    }
+
+    # Give back the nth match found
+    method !match-nth-int(\slash, \cursor, int $type, int $nth) {
+        nqp::decont(slash = nqp::if(
+          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          nqp::if(
+            nqp::eqaddr(
+              (my $pulled := nqp::atpos($MITS, $type).new(cursor)
+                .skip-at-least-pull-one(nqp::sub_i($nth,1))),
+              IterationEnd
+            ),
+            Nil,              # not enough matches
+            $pulled           # found it!
+          ),
+          Nil                 # no matches whatsoever
+        ))
+    }
+
+    # Give back the N-tail match found
+    method !match-nth-tail(\slash, \cursor, int $type, int $tail) {
+        nqp::decont(slash = nqp::if(
+          nqp::eqaddr((my $pulled :=
+            Rakudo::Internals.IterateLastNFromIterator(
+              nqp::atpos($MITS,$type).new(cursor),
+              $tail, 'match', 1).pull-one),
+            IterationEnd
+          ),
+          Nil,
+          $pulled
+        ))
+    }
+
+    # These !match methods take an iterator instead of a cursor.
+    # Give last value of given iterator, or Nil if none
+    method !match-last(\slash, \iterator) {
+        nqp::decont(slash = nqp::if(
+          nqp::eqaddr((my $pulled =
+            Rakudo::Internals.LastFromIterator(iterator, 'match')),
+            IterationEnd
+          ),
+          Nil,
+          $pulled
+        ))
+    }
+
+    # Give list with matches found given a range with :nth
+    method !match-nth-range(\slash, \iterator, $min, $max) {
+        nqp::decont(slash = nqp::stmts(
+          (my int $skip = $min),
+          nqp::if(
+            nqp::islt_i($skip,1),
+            die-before-first($min),
+            nqp::stmts(
+              nqp::while(
+                nqp::isgt_i($skip,1) && iterator.skip-one,
+                ($skip = nqp::sub_i($skip,1))
+              ),
+              nqp::if(
+                nqp::iseq_i($skip,1),
+                nqp::if(                       # did not exhaust while skipping
+                  $max == Inf,                 # * is Inf in N..*
+                  nqp::stmts(                  # open ended
+                    (my $matches := nqp::list),
+                    nqp::until(
+                      nqp::eqaddr(
+                        (my $pulled := iterator.pull-one),
+                        IterationEnd
+                      ),
+                      nqp::push($matches,$pulled)
+                    ),
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',$matches)
+                  ),
+                  nqp::stmts(                  # upto the max index
+                    (my int $todo = $max - $min + 1),
+                    ($matches := nqp::setelems(nqp::list,$todo)),
+                    (my int $i = -1),
+                    nqp::until(
+                      nqp::iseq_i(($i = nqp::add_i($i,1)),$todo)
+                        || nqp::eqaddr(
+                             ($pulled := iterator.pull-one),IterationEnd),
+                      nqp::bindpos($matches,$i,$pulled)
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($i,$todo),
+                      nqp::p6bindattrinvres(  # found all values
+                        nqp::create(List),List,'$!reified',$matches),
+                      Slip.new                # no match, since not all values
+                    )
+                  )
+                ),
+                Slip.new                      # exhausted while skipping
+              )
+            )
+          )
+        ))
+    }
+
+    # Give list with matches found given an iterator with :nth
+    method !match-nth-iterator(\slash, \source, \indexes) {
+        nqp::decont(slash = nqp::stmts(
+          Seq.new(Rakudo::Internals.IterateMonotonicFromIterators(
+            source, indexes, 1,
+            -> $got,$next {
+              nqp::if(
+                $next == 1,
+                die-before-first($got),
+                (die "Attempt to fetch match #$got after #{$next - 1}")
+              )
+            }
+          )).list
+        ))
+    }
+
+    # Give list with matches found given an iterator with :x
+    method !match-x(\slash, \iterator, $x) {
+        nqp::if(
+          nqp::istype($x,Whatever),
+          Seq.new(iterator).list,
+          nqp::if(
+            nqp::istype($x,Numeric),
+            nqp::if(
+              $x == Inf,
+              Seq.new(iterator).list,
+              nqp::if(
+                nqp::istype($x,Int),
+                self!match-x-range(slash, iterator, $x, $x),
+                nqp::stmts(
+                  (my int $xint = $x.Int),
+                  self!match-x-range(slash, iterator, $xint, $xint)
+                )
+              )
+            ),
+            nqp::if(
+              nqp::istype($x,Range),
+              self!match-x-range(slash, iterator, $x.min, $x.max),
+              nqp::stmts(
+                (slash = Nil),
+                Failure.new(X::Str::Match::x.new(:got($x)))
+              )
+            )
+          )
+        )
+    }
+
+    # Give list with matches found given a range with :x
+    method !match-x-range(\slash, \iterator, $min, $max) {
+        nqp::decont(slash = nqp::stmts(
+          (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
+          (my $matches := nqp::list),
+          nqp::until(
+            nqp::islt_i(($todo = nqp::sub_i($todo,1)), 0) ||
+              nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::push($matches,$pulled)
+          ),
+          nqp::if(
+            nqp::elems($matches) >= $min,
+            nqp::p6bindattrinvres(
+              nqp::create(List),List,'$!reified',$matches),
+            Slip.new
+          )
+        ))
+    }
+
+    multi method match(Cool:D $pattern, |c) {
+        $/ := nqp::getlexdyn('$/');
+        self.match(/ "$pattern": /,|c)
+    }
+
+    # All of these .match candidates take a single required named parameter
+    # so that handling specification of a single named parameter can be much
+    # quicker.  Unfortunately, we cannot cheaply do MMD on an empty slurpy
+    # hash, which would make things much more simple.
+    multi method match(Regex:D $pattern, :continue(:$c)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-pattern(nqp::getlexdyn('$/'), $pattern, 'c', $c, %_),
+          self!match-one(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:$c)))
+        )
+    }
+    multi method match(Regex:D $pattern, :pos(:$p)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-pattern(nqp::getlexdyn('$/'), $pattern, 'p', $p, %_),
+          nqp::if(
+            nqp::defined($p),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:$p))),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)))
+          )
+        )
+    }
+    multi method match(Regex:D $pattern, :global(:$g)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)), 'g', $g, %_),
+          nqp::if(
+            $g,
+            self!match-list(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)), 0),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)))
+          )
+        )
+    }
+    multi method match(Regex:D $pattern, :overlap(:$ov)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)), 'ov', $ov, %_),
+          nqp::if(
+            $ov,
+            self!match-list(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)), 1),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)))
+          )
+        )
+    }
+    multi method match(Regex:D $pattern, :exhaustive(:$ex)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)), 'ex', $ex, %_),
+          nqp::if(
+            $ex,
+            self!match-list(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)), 2),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)))
+          )
+        )
+    }
+    multi method match(Regex:D $pattern, :$x!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)), 'x', $x, %_),
+          nqp::if(
+            nqp::defined($x),
+            self!match-x(nqp::getlexdyn('$/'),
+              nqp::atpos($MITS,0).new(
+                $pattern(Cursor.'!cursor_init'(self,:0c))
+              ), $x),
+            self!match-one(nqp::getlexdyn('$/'),
+              $pattern(Cursor.'!cursor_init'(self,:0c)), $x)
+          )
+        )
+    }
+    multi method match(Regex:D $pattern, :$st!, *%_) {
+        self!match-nth(nqp::getlexdyn('$/'),
+          $pattern(Cursor.'!cursor_init'(self,:0c)), 0, $st, %_)
+    }
+    multi method match(Regex:D $pattern, :$nd!, *%_) {
+        self!match-nth(nqp::getlexdyn('$/'),
+          $pattern(Cursor.'!cursor_init'(self,:0c)), 0, $nd, %_)
+    }
+    multi method match(Regex:D $pattern, :$rd!, *%_) {
+        self!match-nth(nqp::getlexdyn('$/'),
+          $pattern(Cursor.'!cursor_init'(self,:0c)), 0, $rd, %_)
+    }
+    multi method match(Regex:D $pattern, :$th!, *%_) {
+        self!match-nth(nqp::getlexdyn('$/'),
+          $pattern(Cursor.'!cursor_init'(self,:0c)), 0, $th, %_)
+    }
+    multi method match(Regex:D $pattern, :$nth!, *%_) {
+        self!match-nth(nqp::getlexdyn('$/'),
+          $pattern(Cursor.'!cursor_init'(self,:0c)), 0, $nth, %_)
+    }
+    multi method match(Regex:D $pattern, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)), '', 0, %_),
+          self!match-one(nqp::getlexdyn('$/'),
+            $pattern(Cursor.'!cursor_init'(self,:0c)))
+        )
     }
 
     multi method subst-mutate(

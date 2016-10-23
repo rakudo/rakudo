@@ -1370,6 +1370,9 @@ class Perl6::World is HLL::World {
 
         # Install final part of the symbol.
         if $create_scope eq 'my' || $cur_lex {
+            # upgrade a lexically imported package stub to package scope if it exists
+            try { self.find_symbol([$name], :upgrade_to_global); }
+
             self.install_lexical_symbol($cur_lex, $name, $symbol);
         }
         if $create_scope eq 'our' {

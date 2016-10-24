@@ -127,7 +127,7 @@ op.p6bindassert = function(ctx, value, type) {
 
 op.p6store = function(ctx, cont, value) {
   if (cont) {
-    cont.$$assign(nqp.op.decont(ctx, value));
+    cont.$$assign(ctx, nqp.op.decont(ctx, value));
   } else {
     if (!cont.STORE) {
       // TODO throw typed exception X::Assignment::RO

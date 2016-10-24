@@ -142,8 +142,8 @@ op.p6store = function(ctx, cont, value) {
 op.p6argvmarray = function(ctx, args) {
   var array = [];
   console.log("in p6argvmarray");
-  for (var i=0; i < args.length; i++) {
-    array[i] = nqp.op.hllizefor(ctx, args[i], 'perl6');
+  for (var i=2; i < args.length; i++) {
+    array[i-2] = nqp.op.hllizefor(ctx, args[i], 'perl6');
   }
   return new NQPArray(array);
 };
@@ -165,7 +165,6 @@ RakudoScalar.prototype.setupSTable = function() {
   });
 
   this.STable.addInternalMethod('$$assign', function(ctx, value) {
-    console.log('storing into rakudo_scalar');
     /* TODO - checking and WHENCE */
     return this.$$bindattr(Scalar, '$!value', value);
   });
@@ -184,11 +183,11 @@ RakudoScalar.prototype.setupSTable = function() {
 };
 
 RakudoScalar.prototype.serialize = function(cursor) {
-  console.log('serializing rakudo_scalar');
+  console.log('// serializing rakudo_scalar');
 };
 
 RakudoScalar.prototype.deserialize = function(cursor) {
-  console.log('* deserializing rakudo_scalar');
+  console.log('// deserializing rakudo_scalar');
 };
 
 RakudoScalar.prototype.name = 'rakudo_scalar';

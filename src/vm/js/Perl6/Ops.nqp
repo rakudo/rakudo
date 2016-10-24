@@ -83,3 +83,5 @@ $ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :sideffects); # TODO not reall
 $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :sideffects, sub () {
     "nqp.op.p6argvmarray($*CTX, Array.prototype.slice.call(arguments))"
 });
+
+$ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_marker });

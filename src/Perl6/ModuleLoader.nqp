@@ -142,22 +142,27 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         # overlap. Otherwise, we need to recurse.
         my %known_symbols;
         for $target.symtable {
-            %known_symbols{$_.key} := 1;
+            %known_symbols{$_.key} := $_.value<value>;
         }
         for stash_hash($source) {
             my $sym := $_.key;
-            if !%known_symbols{$sym} {
+            if !nqp::existskey(%known_symbols, $sym) {
+                try {
+                    %known_symbols{$sym} := $world.find_symbol([$sym]);
+                }
+            }
+            if !nqp::existskey(%known_symbols, $sym) {
                 $target.symbol($sym, :scope('lexical'), :value($_.value));
                 $target[0].push(QAST::Var.new(
                     :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
                 ));
                 $world.add_object_if_no_sc($_.value);
             }
-            elsif nqp::decont($target.symbol($sym)<value>) =:= nqp::decont($_.value) { # Stash entries are containerized
+            elsif nqp::decont(%known_symbols{$_.key}) =:= nqp::decont($_.value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $existing := $target.symbol($sym)<value>;
+                my $existing := %known_symbols{$_.key};
                 my $source_is_stub := is_stub($_.value.HOW);
                 my $target_is_stub := is_stub($existing.HOW);
                 if $source_is_stub && $target_is_stub {

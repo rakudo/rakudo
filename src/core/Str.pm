@@ -464,6 +464,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 ($!cursor := $!move($!cursor)),
               )
           }
+          method push-all($target --> IterationEnd) {
+              nqp::while(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                nqp::stmts(
+                  $target.push($!post($!cursor)),
+                  ($!cursor := $!move($!cursor))
+                )
+              )
+          }
       },
       class :: does Iterator { # iterate returning Cursors   ITERATE-CURSOR
           has Mu $!cursor;
@@ -489,6 +498,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::if(
                 nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
                 ($!cursor := $!move($!cursor)),
+              )
+          }
+          method push-all($target --> IterationEnd) {
+              nqp::while(
+                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+                nqp::stmts(
+                  $target.push($!cursor),
+                  ($!cursor := $!move($!cursor))
+                )
               )
           }
       },

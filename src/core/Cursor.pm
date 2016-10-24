@@ -4,13 +4,60 @@ my class Cursor does NQPCursorRole {
     my Mu $NO_CAPS    := nqp::hash();
 
     multi method Bool(Cursor:D:) {
-        nqp::getattr_i(self, Cursor, '$!pos') >= nqp::getattr_i(self, Cursor, '$!from')
+        nqp::p6bool(
+          nqp::isge_i(
+            nqp::getattr_i(self, Cursor, '$!pos'),
+            nqp::getattr_i(self, Cursor, '$!from')
+          )
+        )
+    }
+
+    method FROMLEN() {
+        nqp::if(
+          nqp::isgt_i(
+            nqp::getattr_i(self,Cursor,'$!pos'),
+            nqp::getattr_i(self,Cursor,'$!from')
+          ),
+          Pair.new(
+            nqp::getattr_i(self,Cursor,'$!from'),
+            nqp::sub_i(
+              nqp::getattr_i(self,Cursor,'$!pos'),
+              nqp::getattr_i(self,Cursor,'$!from')
+            )
+          ),
+          Nil
+        )
+    }
+
+    method STR() {
+        nqp::if(
+          nqp::isgt_i(
+            nqp::getattr_i(self,Cursor,'$!pos'),
+            nqp::getattr_i(self,Cursor,'$!from')
+          ),
+          nqp::substr(
+            nqp::findmethod(self,'orig')(self),
+            nqp::getattr_i(self,Cursor,'$!from'),
+            nqp::sub_i(
+              nqp::getattr_i(self,Cursor,'$!pos'),
+              nqp::getattr_i(self,Cursor,'$!from')
+            )
+          ),
+          Nil
+        )
     }
 
     method MATCH() {
-        my $match := nqp::getattr(self, Cursor, '$!match');
-        return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
-        $match := nqp::create(Match);
+        nqp::if(
+          nqp::istype((my $match := nqp::getattr(self,Cursor,'$!match')),Match)
+            && nqp::isconcrete($match),
+          $match,
+          self!MATCH
+        )
+    }
+
+    method !MATCH() {
+        my $match := nqp::create(Match);
         nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
         my int $from = nqp::getattr_i(self, Cursor, '$!from');
         my int $to   = nqp::getattr_i(self, Cursor, '$!pos');

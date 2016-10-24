@@ -394,7 +394,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           $match,
           self.match($pattern, :g),
-          self.match($pattern, :g, :ob(Str))
+          self.match($pattern, :g, :as(Str))
         )
     }
     multi method comb(Str:D: Regex:D $pattern, $limit, :$match) {
@@ -423,11 +423,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     constant POST-MATCH   = 0;  # return Match objects
     constant POST-STR     = 1;  # return Str objects
-    constant POST-FROMLEN = 2;  # return Pair with from/length
+    constant POST-RANGE   = 2;  # return Range with from/until
+    constant POST-FROMLEN = 3;  # return Pair with from/length
 
     my $cursor-post := nqp::list(
       Cursor.^can("MATCH"  ).AT-POS(0),  # Match object   POST-MATCH
       Cursor.^can("STR"    ).AT-POS(0),  # Str object     POST-STR
+      Cursor.^can("RANGE"  ).AT-POS(0),  # Range object   POST-RANGE
       Cursor.^can("FROMLEN").AT-POS(0),  # Pair object    POST-FROMLEN
     );
 
@@ -603,9 +605,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
           (my int $move-index = nqp::if($ex,CURSOR-EXHAUSTIVE,
             nqp::if($ov,CURSOR-OVERLAP,CURSOR-GLOBAL))),
 
-          fetch-short-long($opts, "ob", "object", my $ob),
-          (my int $post-index = nqp::if(nqp::istype($ob,Str),POST-STR,
-            nqp::if(nqp::istype($ob,Pair),POST-FROMLEN,POST-MATCH))),
+          fetch-short-long($opts, "as", "as", my $as),
+          (my int $post-index = nqp::if(
+            nqp::istype($as,Str), POST-STR, nqp::if(
+              nqp::istype($as,Range), POST-RANGE, nqp::if(
+                nqp::istype($as,Pair), POST-FROMLEN, POST-MATCH)))),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -654,20 +658,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    # Str object at given Cursor
-    method !match-str-one(\slash, \cursor) {
+    # Some object at given Cursor
+    method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          cursor.STR,
-          Nil
-        ))
-    }
-
-    # Pair object at given Cursor
-    method !match-fromlen-one(\slash, \cursor) {
-        nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          cursor.FROMLEN,
+          nqp::atpos($cursor-post, nqp::if(
+            nqp::istype(as,Str),   POST-STR, nqp::if(
+              nqp::istype(as,Range), POST-RANGE, nqp::if(
+                nqp::istype(as,Pair),  POST-FROMLEN,
+                  POST-MATCH))))(cursor),
           Nil
         ))
     }
@@ -1015,23 +1014,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
           $pattern($cursor-init(Cursor,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $nth, %_)
     }
-    multi method match(Regex:D $pattern, :object(:$ob)!, *%_) {
+    multi method match(Regex:D $pattern, :$as!, *%_) {
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexdyn('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'ob', $ob, %_),
-          nqp::if(
-            nqp::istype($ob,Str),
-            self!match-str-one(nqp::getlexdyn('$/'),
-              $pattern($cursor-init(Cursor,self,:0c))),
-            nqp::if(
-              nqp::istype($ob,Pair),
-              self!match-fromlen-one(nqp::getlexdyn('$/'),
-                $pattern($cursor-init(Cursor,self,:0c))),
-              self!match-one(nqp::getlexdyn('$/'),
-                $pattern($cursor-init(Cursor,self,:0c)))
-            )
-          )
+            $pattern($cursor-init(Cursor,self,:0c)), 'as', $as, %_),
+          self!match-as-one(nqp::getlexdyn('$/'),
+            $pattern($cursor-init(Cursor,self,:0c)), $as)
         )
     }
     multi method match(Regex:D $pattern, *%_) {

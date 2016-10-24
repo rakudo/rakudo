@@ -29,6 +29,20 @@ my class Cursor does NQPCursorRole {
         )
     }
 
+    method RANGE() {
+        nqp::if(
+          nqp::isgt_i(
+            nqp::getattr_i(self,Cursor,'$!pos'),
+            nqp::getattr_i(self,Cursor,'$!from')
+          ),
+          Range.new(
+            nqp::getattr_i(self,Cursor,'$!from'),
+            nqp::sub_i(nqp::getattr_i(self,Cursor,'$!pos'),1)
+          ),
+          Nil
+        )
+    }
+
     method STR() {
         nqp::if(
           nqp::isgt_i(

@@ -394,7 +394,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           $match,
           self.match($pattern, :g),
-          self.match($pattern, :g, :r(Str))
+          self.match($pattern, :g, :ob(Str))
         )
     }
     multi method comb(Str:D: Regex:D $pattern, $limit, :$match) {
@@ -404,7 +404,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             $match,
             self.match($pattern, :x(1..$limit)),
-            self.match($pattern, :x(1..$limit), :r(Str))
+            self.match($pattern, :x(1..$limit), :ob(Str))
           )
         )
     }
@@ -585,9 +585,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           (my int $move-index = nqp::if($ex,CURSOR-EXHAUSTIVE,
             nqp::if($ov,CURSOR-OVERLAP,CURSOR-GLOBAL))),
 
-          fetch-short-long($opts, "r", "return", my $r),
-          (my int $post-index = nqp::if(nqp::istype($r,Str),POST-STR,
-            nqp::if(nqp::istype($r,Pair),POST-FROMLEN,POST-MATCH))),
+          fetch-short-long($opts, "ob", "object", my $ob),
+          (my int $post-index = nqp::if(nqp::istype($ob,Str),POST-STR,
+            nqp::if(nqp::istype($ob,Pair),POST-FROMLEN,POST-MATCH))),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -997,17 +997,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
           $pattern($cursor-init(Cursor,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $nth, %_)
     }
-    multi method match(Regex:D $pattern, :return(:$r)!, *%_) {
+    multi method match(Regex:D $pattern, :object(:$ob)!, *%_) {
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexdyn('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'r', $r, %_),
+            $pattern($cursor-init(Cursor,self,:0c)), 'ob', $ob, %_),
           nqp::if(
-            nqp::istype($r,Str),
+            nqp::istype($ob,Str),
             self!match-str-one(nqp::getlexdyn('$/'),
               $pattern($cursor-init(Cursor,self,:0c))),
             nqp::if(
-              nqp::istype($r,Pair),
+              nqp::istype($ob,Pair),
               self!match-fromlen-one(nqp::getlexdyn('$/'),
                 $pattern($cursor-init(Cursor,self,:0c))),
               self!match-one(nqp::getlexdyn('$/'),

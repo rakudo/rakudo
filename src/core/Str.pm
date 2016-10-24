@@ -431,7 +431,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     constant POST-FROMLEN = 2;  # return Pair with from/length
 
     my $cursor-post := nqp::list(
-      Cursor.^can("MATCH").AT-POS(0),  # Match object   POST-MATCH
+      Cursor.^can("MATCH"  ).AT-POS(0),  # Match object   POST-MATCH
+      Cursor.^can("STR"    ).AT-POS(0),  # Str object     POST-STR
+      Cursor.^can("FROMLEN").AT-POS(0),  # Pair object    POST-FROMLEN
     );
 
     constant ITERATE-POST   = 0;
@@ -500,15 +502,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Look for short/long named parameter and remove it from the hash
     sub fetch-short-long(\opts, str $short, str $long, \store --> Nil) {
         nqp::if(
-          nqp::existskey(opts,$short)
-            && nqp::defined(nqp::atkey(opts,$short)),
+          nqp::existskey(opts,$short),
           nqp::stmts(
             (store = nqp::atkey(opts,$short)),
             nqp::deletekey(opts,$short)
           ),
           nqp::if(
-            nqp::existskey(opts,$long)
-              && nqp::defined(nqp::atkey(opts,$long)),
+            nqp::existskey(opts,$long),
             nqp::stmts(
               (store = nqp::atkey(opts,$long)),
               nqp::deletekey(opts,$long)
@@ -534,7 +534,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     sub die-before-first($got) {
-        die "Attempt to retrieve before :1st match -- :nth($got)"
+        die "Attempt to retrieve before :1st match -- :nth({
+            $got // $got.^name
+        })"
     }
 
     # All of these !match methods take a nqp::getlexdyn value for the $/
@@ -548,7 +550,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           (my $opts := nqp::getattr(opts,Map,'$!storage')),
           nqp::bindkey($opts,$name,$value),
           fetch-short-long($opts, "p", "pos", my $p),
-          fetch-short-long($opts, "c", "continue", my int $c),
+          fetch-short-long($opts, "c", "continue", my $c),
+          nqp::unless(nqp::defined($c), $c = 0),
           nqp::if(
             nqp::elems($opts),
             nqp::if(
@@ -582,10 +585,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::chars($name),
             nqp::bindkey($opts,$name,$value)
           ),
-          fetch-short-long($opts, "ex", "exhaustive", my int $ex),
-          fetch-short-long($opts, "ov", "overlap",    my int $ov),
-          fetch-short-long($opts, "g",  "global",     my int $g),
-          (my int $move-index = nqp::if($ex,2,nqp::if($ov,1,0))),
+          fetch-short-long($opts, "ex", "exhaustive", my $ex),
+          fetch-short-long($opts, "ov", "overlap",    my $ov),
+          (my int $move-index = nqp::if($ex,CURSOR-EXHAUSTIVE,
+            nqp::if($ov,CURSOR-OVERLAP,CURSOR-GLOBAL))),
+
+          fetch-short-long($opts, "r", "return", my $r),
+          (my int $post-index = nqp::if(nqp::istype($r,Str),POST-STR,
+            nqp::if(nqp::istype($r,Pair),POST-FROMLEN,POST-MATCH))),
+
+          fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
             nqp::elems($opts),
             nqp::stmts(
@@ -596,19 +605,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::defined($x),                             # :nth && :x
                   self!match-x(slash,
-                    self!match-nth(slash,
-                      cursor, $move-index, $nth, nqp::hash).iterator, $x),
-                  self!match-nth(slash,
-                      cursor, $move-index, $nth, nqp::hash)     # nth
+                    self!match-nth(slash, cursor,
+                      $move-index, $post-index, $nth, nqp::hash).iterator, $x),
+                  self!match-nth(slash, cursor,
+                    $move-index, $post-index, $nth, nqp::hash)  # nth
                 ),
                 nqp::if(
                   nqp::defined($x),
                   self!match-x(slash,                           # :x
                     nqp::atpos($MITS,ITERATE-POST)
-                      .new(cursor, $move-index, POST-MATCH), $x),
+                      .new(cursor, $move-index, $post-index), $x),
                   nqp::if(                                      # only :ex|ov|g
                     $ex || $ov || $g,
-                    self!match-list(slash, cursor, $move-index),
+                    self!match-list(slash, cursor, $move-index, $post-index),
                     self!match-one(slash, cursor)
                   )
                 )
@@ -616,14 +625,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ),
             nqp::if(                                            # only :ex|ov|g
               $ex || $ov || $g,
-              self!match-list(slash, cursor, $move-index),
+              self!match-list(slash, cursor, $move-index, $post-index),
               self!match-one(slash, cursor)
             )
           )
         )
     }
 
-    # match object at given Cursor
+    # Match object at given Cursor
     method !match-one(\slash, \cursor) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
@@ -632,19 +641,39 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    # Str object at given Cursor
+    method !match-str-one(\slash, \cursor) {
+        nqp::decont(slash = nqp::if(
+          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          cursor.STR,
+          Nil
+        ))
+    }
+
+    # Pair object at given Cursor
+    method !match-fromlen-one(\slash, \cursor) {
+        nqp::decont(slash = nqp::if(
+          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          cursor.FROMLEN,
+          Nil
+        ))
+    }
+
     # Create list from the appropriate Sequence given the move-index
     # Values are 0 (normal :g), 1 (:overlap), 2 (:exhaustive)
-    method !match-list(\slash, \cursor, int $move-index) {
+    method !match-list(\slash, \cursor, int $move-index, int $post-index) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           Seq.new(nqp::atpos($MITS,ITERATE-POST)
-            .new(cursor, $move-index, POST-MATCH)).list,
+            .new(cursor, $move-index, $post-index)).list,
           Slip.new,
         ))
     }
 
     # Handle matching of the nth match specification.
-    method !match-nth(\slash, \cursor, $move-index, $nth, %opts) {
+    method !match-nth(
+      \slash, \cursor, int $move-index, int $post-index, $nth, %opts
+    ) {
         nqp::if(
           nqp::elems(nqp::getattr(%opts,Map,'$!storage')),
           self!match-cursor(slash, cursor, 'nth', $nth, %opts),
@@ -661,7 +690,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::if(
                     $nth < 1,
                     die-before-first($nth),
-                    self!match-nth-int(slash, cursor, $move-index, $nth.Int)
+                    self!match-nth-int(slash,
+                      cursor, $move-index, $post-index, $nth.Int)
                   )
                 ),
                 nqp::if(
@@ -673,10 +703,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ),
                   nqp::if(
                     nqp::istype($nth,Callable),
-                    self!match-nth-int(slash, cursor, $move-index, $nth()),
+                    self!match-nth-int(slash,
+                      cursor, $move-index, $post-index, $nth()),
                     self!match-nth-iterator(slash,
                       nqp::atpos($MITS, ITERATE-POST)
-                        .new(cursor, $move-index, POST-MATCH), $nth.iterator)
+                        .new(cursor, $move-index, $post-index), $nth.iterator)
                   )
                 )
               )
@@ -687,13 +718,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Give back the nth match found
-    method !match-nth-int(\slash, \cursor, int $move-index, int $nth) {
+    method !match-nth-int(
+      \slash, \cursor, int $move-index, int $post-index, int $nth
+    ) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           nqp::if(
             nqp::eqaddr(
               (my $pulled := nqp::atpos($MITS, ITERATE-POST)
-                .new(cursor, $move-index, POST-MATCH)
+                .new(cursor, $move-index, $post-index)
                 .skip-at-least-pull-one(nqp::sub_i($nth,1))),
               IterationEnd
             ),
@@ -890,7 +923,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             $g,
             self!match-list(nqp::getlexdyn('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)), 0),
+              $pattern($cursor-init(Cursor,self,:0c)),
+              CURSOR-GLOBAL, POST-MATCH),
             self!match-one(nqp::getlexdyn('$/'),
               $pattern($cursor-init(Cursor,self,:0c)))
           )
@@ -904,7 +938,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             $ov,
             self!match-list(nqp::getlexdyn('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)), 1),
+              $pattern($cursor-init(Cursor,self,:0c)),
+              CURSOR-OVERLAP, POST-MATCH),
             self!match-one(nqp::getlexdyn('$/'),
               $pattern($cursor-init(Cursor,self,:0c)))
           )
@@ -918,7 +953,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             $ex,
             self!match-list(nqp::getlexdyn('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)), 2),
+              $pattern($cursor-init(Cursor,self,:0c)),
+              CURSOR-EXHAUSTIVE, POST-MATCH),
             self!match-one(nqp::getlexdyn('$/'),
               $pattern($cursor-init(Cursor,self,:0c)))
           )
@@ -943,23 +979,47 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method match(Regex:D $pattern, :$st!, *%_) {
         self!match-nth(nqp::getlexdyn('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)), 0, $st, %_)
+          $pattern($cursor-init(Cursor,self,:0c)),
+          CURSOR-GLOBAL, POST-MATCH, $st, %_)
     }
     multi method match(Regex:D $pattern, :$nd!, *%_) {
         self!match-nth(nqp::getlexdyn('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)), 0, $nd, %_)
+          $pattern($cursor-init(Cursor,self,:0c)),
+          CURSOR-GLOBAL, POST-MATCH, $nd, %_)
     }
     multi method match(Regex:D $pattern, :$rd!, *%_) {
         self!match-nth(nqp::getlexdyn('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)), 0, $rd, %_)
+          $pattern($cursor-init(Cursor,self,:0c)),
+          CURSOR-GLOBAL, POST-MATCH, $rd, %_)
     }
     multi method match(Regex:D $pattern, :$th!, *%_) {
         self!match-nth(nqp::getlexdyn('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)), 0, $th, %_)
+          $pattern($cursor-init(Cursor,self,:0c)),
+          CURSOR-GLOBAL, POST-MATCH, $th, %_)
     }
     multi method match(Regex:D $pattern, :$nth!, *%_) {
         self!match-nth(nqp::getlexdyn('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)), 0, $nth, %_)
+          $pattern($cursor-init(Cursor,self,:0c)),
+          CURSOR-GLOBAL, POST-MATCH, $nth, %_)
+    }
+    multi method match(Regex:D $pattern, :return(:$r)!, *%_) {
+        nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self!match-cursor(nqp::getlexdyn('$/'),
+            $pattern($cursor-init(Cursor,self,:0c)), 'r', $r, %_),
+          nqp::if(
+            nqp::istype($r,Str),
+            self!match-str-one(nqp::getlexdyn('$/'),
+              $pattern($cursor-init(Cursor,self,:0c))),
+            nqp::if(
+              nqp::istype($r,Pair),
+              self!match-fromlen-one(nqp::getlexdyn('$/'),
+                $pattern($cursor-init(Cursor,self,:0c))),
+              self!match-one(nqp::getlexdyn('$/'),
+                $pattern($cursor-init(Cursor,self,:0c)))
+            )
+          )
+        )
     }
     multi method match(Regex:D $pattern, *%_) {
         nqp::if(

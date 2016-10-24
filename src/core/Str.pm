@@ -398,22 +398,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self.match(:g, :$x, $pat).map: -> \match --> Str { match.Str }
     }
 
-    # A temporary routine for differential testing of .match overhead.
-    # This can only be used for a single non-multi match.
-    method simplematch($pat) {
-        my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my %opts;
-        %opts<c> = 0;
-        my $patrx := nqp::istype($pat,Code) ?? $pat !! / "$pat": /;
-        my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
-
-        my \result = $cur.pos >= 0
-            ?? $cur.MATCH_SAVE
-            !! Nil;
-        $caller_dollar_slash = result;
-        result;
-    }
-
     my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
 
     constant CURSOR-GLOBAL     = 0;

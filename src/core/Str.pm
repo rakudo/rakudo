@@ -390,12 +390,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }.new(self, $pat, $limit));
     }
-    multi method comb(Str:D: Regex $pat, $limit = Inf, :$match) {
-        my $x;
-        $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == Inf;
-        $match
-            ?? self.match(:g, :$x, $pat)
-            !! self.match(:g, :$x, $pat).map: -> \match --> Str { match.Str }
+    multi method comb(Str:D: Regex:D $pattern, :$match) {
+        nqp::if(
+          $match,
+          self.match($pattern, :g),
+          self.match($pattern, :g, :r(Str))
+        )
+    }
+    multi method comb(Str:D: Regex:D $pattern, $limit, :$match) {
+        nqp::if(
+          nqp::istype($limit,Whatever) || $limit == Inf,
+          self.comb($pattern, :$match),
+          nqp::if(
+            $match,
+            self.match($pattern, :x(1..$limit)),
+            self.match($pattern, :x(1..$limit), :r(Str))
+          )
+        )
     }
 
     my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);

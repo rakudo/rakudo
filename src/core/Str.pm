@@ -1068,14 +1068,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method subst(Str:D: $matcher, $replacement, :$global, :$g,
+    multi method subst(Str:D: $matcher, $replacement, :global(:$g),
                        :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
                        *%options) {
 
         # take the fast lane if we can
         return Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
           if nqp::istype($matcher,Str) && nqp::istype($replacement,Str)
-          && ($g || $global)
+          && $g
           && !$samecase && !$samespace && !$samemark && !%options;
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
@@ -1084,7 +1084,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches = self.match($matcher, :g($g || $global), |%options);
+        my @matches = self.match($matcher, :$g, |%options);
 
         nqp::istype(@matches[0], Failure)
             ?? @matches[0]

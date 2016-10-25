@@ -1288,7 +1288,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my \matches = $limit == Inf
           ?? self.match($pat, :g)
-          !! self.match($pat, :x(1..$limit-1), :g);
+          !! self.match($pat, :x(1..$limit-1));
 
         my str $str   = nqp::unbox_s(self);
         my int $elems = +matches;  # make sure all reified

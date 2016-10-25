@@ -737,9 +737,21 @@ my class Rakudo::Internals {
         False;
     }
 
-    method TRANSPOSE(Str \string, Str \original, Str \final) {
-        nqp::join(nqp::unbox_s(final),
-          nqp::split(nqp::unbox_s(original),nqp::unbox_s(string)))
+    method TRANSPOSE(str $string, str $original, str $final) {
+        nqp::join($final,nqp::split($original,$string))
+    }
+    method TRANSPOSE-ONE(str $string, str $original, str $final) {
+        nqp::if(
+          nqp::iseq_i((my int $index = nqp::index($string, $original)), -1),
+          $string,
+          nqp::concat(
+            nqp::substr($string,0,$index),
+            nqp::concat(
+              $final,
+              nqp::substr($string,nqp::add_i($index,nqp::chars($final)))
+            )
+          )
+        )
     }
 
 #?if moar

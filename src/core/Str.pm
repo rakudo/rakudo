@@ -1043,7 +1043,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches              = self.match($matcher, |%options);
+        my @matches = %options
+          ?? self.match($matcher, |%options)
+          !! self.match($matcher);  # 30% faster
 
         if nqp::istype(@matches[0], Failure) {
             @matches[0];
@@ -1091,7 +1093,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # nothing to do
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches = self.match($matcher, :$g, |%options);
+        my @matches = %options
+          ?? self.match($matcher, :$g, |%options)
+          !! self.match($matcher, :$g);  # 30% faster
 
         nqp::istype(@matches[0], Failure)
             ?? @matches[0]

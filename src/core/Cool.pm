@@ -199,21 +199,19 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexdyn('$/');
         {*}
     }
-    multi method subst($matcher, $replacement, *%adverbs) {
+    multi method subst(|c) {
         $/ := nqp::getlexdyn('$/');
-        self.Stringy.subst($matcher, $replacement, |%adverbs);
+        self.Stringy.subst(|c);
     }
 
     proto method subst-mutate(|) {
         $/ := nqp::getlexdyn('$/');
         {*}
     }
-    multi method subst-mutate(
-      Cool:D $self is rw: $matcher, $replacement, *%named
-    ) {
+    multi method subst-mutate(Cool:D $self is rw: |c) {
         $/ := nqp::getlexdyn('$/');
         my $str   = $self.Str;
-        my $match = $str.subst-mutate($matcher,$replacement,|%named);
+        my $match = $str.subst-mutate(|c);
         $self     = $str;
         $match
     }

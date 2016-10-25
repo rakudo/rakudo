@@ -421,16 +421,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
       Cursor.^can("CURSOR_NEXT"   ).AT-POS(0),  # :ex  CURSOR-EXHAUSTIVE
     );
 
-    constant POST-MATCH   = 0;  # return Match objects
-    constant POST-STR     = 1;  # return Str objects
-    constant POST-RANGE   = 2;  # return Range with from/until
-    constant POST-FROMLEN = 3;  # return Pair with from/length
+    constant POST-MATCH  = 0;  # return Match objects
+    constant POST-STR    = 1;  # return Str objects
+    constant POST-RANGE  = 2;  # return Range with from/until
+    constant POST-FROMTO = 3;  # return Pair with from/length
 
     my $cursor-post := nqp::list(
-      Cursor.^can("MATCH"  ).AT-POS(0),  # Match object   POST-MATCH
-      Cursor.^can("STR"    ).AT-POS(0),  # Str object     POST-STR
-      Cursor.^can("RANGE"  ).AT-POS(0),  # Range object   POST-RANGE
-      Cursor.^can("FROMLEN").AT-POS(0),  # Pair object    POST-FROMLEN
+      Cursor.^can("MATCH" ).AT-POS(0),  # Match object   POST-MATCH
+      Cursor.^can("STR"   ).AT-POS(0),  # Str object     POST-STR
+      Cursor.^can("RANGE" ).AT-POS(0),  # Range object   POST-RANGE
+      Cursor.^can("FROMTO").AT-POS(0),  # Pair object    POST-FROMTO
     );
 
     constant ITERATE-POST   = 0;
@@ -609,7 +609,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           (my int $post-index = nqp::if(
             nqp::istype($as,Str), POST-STR, nqp::if(
               nqp::istype($as,Range), POST-RANGE, nqp::if(
-                nqp::istype($as,Pair), POST-FROMLEN, POST-MATCH)))),
+                nqp::istype($as,Pair), POST-FROMTO, POST-MATCH)))),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -663,9 +663,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           nqp::atpos($cursor-post, nqp::if(
-            nqp::istype(as,Str),   POST-STR, nqp::if(
+            nqp::istype(as,Str), POST-STR, nqp::if(
               nqp::istype(as,Range), POST-RANGE, nqp::if(
-                nqp::istype(as,Pair),  POST-FROMLEN,
+                nqp::istype(as,Pair), POST-FROMTO,
                   POST-MATCH))))(cursor),
           Nil
         ))

@@ -12,7 +12,7 @@ my class Cursor does NQPCursorRole {
         )
     }
 
-    method FROMLEN() {
+    method FROMTO() {
         nqp::if(
           nqp::isgt_i(
             nqp::getattr_i(self,Cursor,'$!pos'),
@@ -20,10 +20,7 @@ my class Cursor does NQPCursorRole {
           ),
           Pair.new(
             nqp::getattr_i(self,Cursor,'$!from'),
-            nqp::sub_i(
-              nqp::getattr_i(self,Cursor,'$!pos'),
-              nqp::getattr_i(self,Cursor,'$!from')
-            )
+            nqp::getattr_i(self,Cursor,'$!pos'),
           ),
           Nil
         )

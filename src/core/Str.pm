@@ -404,7 +404,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             $match,
             self.match($pattern, :x(1..$limit)),
-            self.match($pattern, :x(1..$limit), :ob(Str))
+            self.match($pattern, :x(1..$limit), :as(Str))
           )
         )
     }

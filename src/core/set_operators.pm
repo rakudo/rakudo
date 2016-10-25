@@ -144,13 +144,16 @@ only sub infix:<⊖>($a, $b --> Setty) is pure {
     $a (^) $b;
 }
 
-# TODO: polymorphic eqv
-# multi sub infix:<eqv>(Any $a, Any $b --> Bool) {
-#     $a.Set(:view) eqv $b.Set(:view);
-# }
-# multi sub infix:<eqv>(Setty $a, Setty $b --> Bool) {
-#     $a == $b and so $a.keys.all (elem) $b
-# }
+multi sub infix:<eqv>(Setty:D \a, Setty:D \b) {
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::eqaddr(a.WHAT,b.WHAT)
+          && nqp::getattr(nqp::decont(a),a.WHAT,'%!elems')
+               eqv nqp::getattr(nqp::decont(b),b.WHAT,'%!elems')
+      )
+    )
+}
 
 proto sub infix:<<(<=)>>($, $ --> Bool) is pure {*}
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {

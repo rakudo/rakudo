@@ -642,6 +642,12 @@ class Perl6::World is HLL::World {
 
         # CHECK time.
         self.CHECK();
+
+        # Clean up compiler services.
+        if $!compiler_services {
+            my $cs := $!compiler_services;
+            nqp::bindattr($cs, $cs.WHAT, '$!compiler', nqp::null());
+        }
     }
 
     # Creates a new lexical scope and puts it on top of the stack.

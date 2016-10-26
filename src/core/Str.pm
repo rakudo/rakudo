@@ -418,8 +418,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my \POST-MATCH  := Cursor.^can("MATCH" ).AT-POS(0);  # Match object
     my \POST-STR    := Cursor.^can("STR"   ).AT-POS(0);  # Str object
-    my \POST-RANGE  := Cursor.^can("RANGE" ).AT-POS(0);  # Range object
-    my \POST-FROMTO := Cursor.^can("FROMTO").AT-POS(0);  # Pair object
 
     # iterate with post-processing
     class POST-ITERATOR does Iterator {
@@ -591,10 +589,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if($ov, CURSOR-OVERLAP, CURSOR-GLOBAL))),
 
           fetch-short-long($opts, "as", "as", my $as),
-          (my \post := nqp::if(
-            nqp::istype($as,Str), POST-STR, nqp::if(
-              nqp::istype($as,Range), POST-RANGE, nqp::if(
-                nqp::istype($as,Pair), POST-FROMTO, POST-MATCH)))),
+          (my \post := nqp::if(nqp::istype($as,Str), POST-STR, POST-MATCH)),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -646,10 +641,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          nqp::if(nqp::istype(as,Str), POST-STR,
-            nqp::if(nqp::istype(as,Range), POST-RANGE,
-              nqp::if(nqp::istype(as,Pair), POST-FROMTO,
-                POST-MATCH)))(cursor),
+          nqp::if(nqp::istype(as,Str), POST-STR, POST-MATCH)(cursor),
           Nil
         ))
     }

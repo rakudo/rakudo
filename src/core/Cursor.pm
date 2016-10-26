@@ -12,49 +12,12 @@ my class Cursor does NQPCursorRole {
         )
     }
 
-    method FROMTO() {
-        nqp::if(
-          nqp::isgt_i(
-            nqp::getattr_i(self,Cursor,'$!pos'),
-            nqp::getattr_i(self,Cursor,'$!from')
-          ),
-          Pair.new(
-            nqp::getattr_i(self,Cursor,'$!from'),
-            nqp::getattr_i(self,Cursor,'$!pos'),
-          ),
-          Nil
-        )
-    }
-
-    method RANGE() {
-        nqp::if(
-          nqp::isgt_i(
-            nqp::getattr_i(self,Cursor,'$!pos'),
-            nqp::getattr_i(self,Cursor,'$!from')
-          ),
-          Range.new(
-            nqp::getattr_i(self,Cursor,'$!from'),
-            nqp::sub_i(nqp::getattr_i(self,Cursor,'$!pos'),1)
-          ),
-          Nil
-        )
-    }
-
     method STR() {
         nqp::if(
-          nqp::isgt_i(
-            nqp::getattr_i(self,Cursor,'$!pos'),
-            nqp::getattr_i(self,Cursor,'$!from')
-          ),
-          nqp::substr(
-            nqp::findmethod(self,'orig')(self),
-            nqp::getattr_i(self,Cursor,'$!from'),
-            nqp::sub_i(
-              nqp::getattr_i(self,Cursor,'$!pos'),
-              nqp::getattr_i(self,Cursor,'$!from')
-            )
-          ),
-          Nil
+          nqp::istype((my $match := nqp::getattr(self,Cursor,'$!match')),Match)
+            && nqp::isconcrete($match),
+          $match.Str,
+          self!MATCH.Str
         )
     }
 

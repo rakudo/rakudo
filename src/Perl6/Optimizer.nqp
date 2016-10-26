@@ -939,9 +939,11 @@ class Perl6::Optimizer {
 
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
-        $vars_info.delete_unused_magicals($block);
-        $vars_info.delete_unused_autoslurpy();
-        $vars_info.simplify_takedispatcher();
+        if $!level >= 1 {
+            $vars_info.delete_unused_magicals($block);
+            $vars_info.delete_unused_autoslurpy();
+            $vars_info.simplify_takedispatcher();
+        }
 
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
@@ -979,7 +981,9 @@ class Perl6::Optimizer {
         }
 
         # Do any possible lexical => local lowering.
-        $vars_info.lexical_vars_to_locals($block);
+        if $!level >= 2 {
+            $vars_info.lexical_vars_to_locals($block);
+        }
 
         # Incorporate this block's info into outer block's info.
         @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)

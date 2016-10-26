@@ -433,86 +433,83 @@ my class Str does Stringy { # declared in BOOTSTRAP
       Cursor.^can("FROMTO").AT-POS(0),  # Pair object    POST-FROMTO
     );
 
-    constant ITERATE-POST   = 0;
-    constant ITERATE-CURSOR = 1;
+    # iterate with post-processing
+    class POST-ITERATOR does Iterator {
+        has Mu $!cursor; # cannot put these 3 lines in role
+        has Mu $!move;
+        has Mu $!post;
+        method !SET-SELF(\cursor,\move,\post) {
+            $!cursor := cursor;
+            $!move := nqp::atpos($cursor-move,move);
+            $!post := nqp::atpos($cursor-post,post);
+            self
+        }
+        method new(\c,\t,\p) { nqp::create(self)!SET-SELF(c,t,p) }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::stmts(
+                (my $pulled := $!cursor),
+                ($!cursor := $!move($!cursor)),
+                $!post($pulled)
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              ($!cursor := $!move($!cursor)),
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::stmts(
+                $target.push($!post($!cursor)),
+                ($!cursor := $!move($!cursor))
+              )
+            )
+        }
+    }
 
-    # Matching ITeratorS
-    my $MITS := nqp::list(
-      class :: does Iterator { # iterate with post-processing ITERATE-POST
-          has Mu $!cursor; # cannot put these 3 lines in role
-          has Mu $!move;
-          has Mu $!post;
-          method !SET-SELF(\cursor,\move,\post) {
-              $!cursor := cursor;
-              $!move := nqp::atpos($cursor-move,move);
-              $!post := nqp::atpos($cursor-post,post);
-              self
-          }
-          method new(\c,\t,\p) { nqp::create(self)!SET-SELF(c,t,p) }
-          method pull-one() is raw {
-              nqp::if(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
-                nqp::stmts(
-                  (my $pulled := $!cursor),
-                  ($!cursor := $!move($!cursor)),
-                  $!post($pulled)
-                ),
-                IterationEnd
-              )
-          }
-          method skip-one() is raw {
-              nqp::if(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+    # iterate returning Cursors
+    class CURSOR-ITERATOR does Iterator {
+        has Mu $!cursor;
+        has Mu $!move;
+        method !SET-SELF(\cursor,\move) {
+            $!cursor := cursor;
+            $!move := nqp::atpos($cursor-move,move);
+            self
+        }
+        method new(\c,\t) { nqp::create(self)!SET-SELF(c,t) }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::stmts(
+                (my $pulled := $!cursor),
                 ($!cursor := $!move($!cursor)),
+                $pulled
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              ($!cursor := $!move($!cursor)),
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::stmts(
+                $target.push($!cursor),
+                ($!cursor := $!move($!cursor))
               )
-          }
-          method push-all($target --> IterationEnd) {
-              nqp::while(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
-                nqp::stmts(
-                  $target.push($!post($!cursor)),
-                  ($!cursor := $!move($!cursor))
-                )
-              )
-          }
-      },
-      class :: does Iterator { # iterate returning Cursors   ITERATE-CURSOR
-          has Mu $!cursor;
-          has Mu $!move;
-          method !SET-SELF(\cursor,\move) {
-              $!cursor := cursor;
-              $!move := nqp::atpos($cursor-move,move);
-              self
-          }
-          method new(\c,\t) { nqp::create(self)!SET-SELF(c,t) }
-          method pull-one() is raw {
-              nqp::if(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
-                nqp::stmts(
-                  (my $pulled := $!cursor),
-                  ($!cursor := $!move($!cursor)),
-                  $pulled
-                ),
-                IterationEnd
-              )
-          }
-          method skip-one() is raw {
-              nqp::if(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
-                ($!cursor := $!move($!cursor)),
-              )
-          }
-          method push-all($target --> IterationEnd) {
-              nqp::while(
-                nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
-                nqp::stmts(
-                  $target.push($!cursor),
-                  ($!cursor := $!move($!cursor))
-                )
-              )
-          }
-      },
-    );
+            )
+        }
+    }
 
     # Look for short/long named parameter and remove it from the hash
     sub fetch-short-long(\opts, str $short, str $long, \store --> Nil) {
@@ -630,8 +627,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::defined($x),
                   self!match-x(slash,                           # :x
-                    nqp::atpos($MITS,ITERATE-POST)
-                      .new(cursor, $move-index, $post-index), $x),
+                    POST-ITERATOR.new(cursor, $move-index, $post-index), $x),
                   nqp::if(                                      # only :ex|ov|g
                     $ex || $ov || $g,
                     self!match-list(slash, cursor, $move-index, $post-index),
@@ -676,8 +672,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-list(\slash, \cursor, int $move-index, int $post-index) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          Seq.new(nqp::atpos($MITS,ITERATE-POST)
-            .new(cursor, $move-index, $post-index)).list,
+          Seq.new(POST-ITERATOR.new(cursor, $move-index, $post-index)).list,
           Slip.new,
         ))
     }
@@ -718,8 +713,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     self!match-nth-int(slash,
                       cursor, $move-index, $post-index, $nth()),
                     self!match-nth-iterator(slash,
-                      nqp::atpos($MITS, ITERATE-POST)
-                        .new(cursor, $move-index, $post-index), $nth.iterator)
+                      POST-ITERATOR.new(cursor, $move-index, $post-index),
+                      $nth.iterator)
                   )
                 )
               )
@@ -737,8 +732,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           nqp::if(
             nqp::eqaddr(
-              (my $pulled := nqp::atpos($MITS, ITERATE-POST)
-                .new(cursor, $move-index, $post-index)
+              (my $pulled := POST-ITERATOR.new(cursor, $move-index, $post-index)
                 .skip-at-least-pull-one(nqp::sub_i($nth,1))),
               IterationEnd
             ),
@@ -754,7 +748,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Internals.IterateLastNFromIterator(
-              nqp::atpos($MITS, ITERATE-CURSOR).new(cursor, $move-index),
+              CURSOR-ITERATOR.new(cursor, $move-index),
               $tail, 'match', 1).pull-one),
             IterationEnd
           ),
@@ -768,7 +762,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Internals.LastFromIterator(
-              nqp::atpos($MITS, ITERATE-CURSOR).new(cursor, $move-index),
+              CURSOR-ITERATOR.new(cursor, $move-index),
               'match')),
             IterationEnd
           ),
@@ -980,8 +974,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             nqp::defined($x),
             self!match-x(nqp::getlexdyn('$/'),
-              nqp::atpos($MITS, ITERATE-POST).new(
-                $pattern($cursor-init(Cursor,self,:0c)),
+              POST-ITERATOR.new($pattern($cursor-init(Cursor,self,:0c)),
                 CURSOR-GLOBAL, POST-MATCH
               ), $x),
             self!match-one(nqp::getlexdyn('$/'),

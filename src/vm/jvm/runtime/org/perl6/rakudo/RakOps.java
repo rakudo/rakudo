@@ -648,7 +648,7 @@ public final class RakOps {
     public static SixModelObject p6finddispatcher(String usage, ThreadContext tc) {
         SixModelObject dispatcher = null;
         
-        CallFrame ctx = tc.curFrame;
+        CallFrame ctx = tc.curFrame.caller;
         while (ctx != null) {
             /* Do we have a dispatcher here? */
             StaticCodeInfo sci = ctx.codeRef.staticInfo;

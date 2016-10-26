@@ -541,6 +541,7 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
 }
 static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMFrame *ctx = MVM_frame_force_to_heap(tc, tc->cur_frame);
+    ctx = tc->cur_frame->caller; /* Skip over routine using this op. */
     while (ctx) {
         /* Do we have a dispatcher here? */
         MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);

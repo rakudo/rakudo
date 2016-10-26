@@ -1343,7 +1343,7 @@ class Perl6::World is HLL::World {
         my $longname := '';
         if +@parts {
             try {
-                $cur_pkg := self.find_symbol([@parts[0]], :upgrade_to_global);
+                $cur_pkg := self.find_symbol([@parts[0]], :upgrade_to_global($create_scope ne 'my'));
                 $cur_lex := 0;
                 $create_scope := 'our';
                 $longname := @parts.shift();
@@ -3791,7 +3791,7 @@ class Perl6::World is HLL::World {
                     my %sym := @BLOCKS[$i].symbol($final_name);
                     if +%sym {
                         my $value := self.force_value(%sym, $final_name, 1);
-                        if $upgrade_to_global && $value.HOW.HOW.name($value.HOW) eq 'Perl6::Metamodel::PackageHOW' {
+                        if $upgrade_to_global {
                             ($*GLOBALish.WHO){$final_name} := $value;
                         }
                         return $value;

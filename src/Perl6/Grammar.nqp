@@ -2167,6 +2167,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <trait>*
 
             {
+                my $target_package := $longname && $longname.is_declared_in_global()
+                    ?? $*GLOBALish
+                    !! $*OUTERPACKAGE;
 
                 # Unless we're augmenting...
                 if $*SCOPE ne 'augment' {
@@ -2193,9 +2196,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my @name := $longname ??
                         $longname.type_name_parts('package name', :decl(1)) !!
                         [];
-                    my $target_package := $longname && $longname.is_declared_in_global()
-                        ?? $*GLOBALish
-                        !! $*OUTERPACKAGE;
                     if @name && $*SCOPE ne 'anon' {
                         if @name && $*W.already_declared($*SCOPE, $target_package, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name, cur-package => $target_package);
@@ -2285,8 +2285,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # Locate type.
                     my @name :=
                       $longname.type_name_parts('package name', :decl(1));
-                    my $found;
-                    try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
+                    my int $found;
+                    try {
+                        $*PACKAGE := $*W.find_symbol(@name, cur-package => $target_package);
+                        $found := 1
+                    }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
                             package-kind => $*PKGDECL,

@@ -2369,6 +2369,16 @@ multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
+#?if js
+multi sub unival(|)       { die 'unival NYI on js backend' }
+multi sub univals(|)      { die 'univals NYI on js backend' }
+multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
+multi sub uniprop-str(|)  { die 'uniprop-str NYI on js backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
+#?endif
+
 #?if moar
 proto sub uniprop(|) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }

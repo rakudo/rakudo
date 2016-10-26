@@ -1622,7 +1622,7 @@ multi sub infix:<Z>(+lol, :$with!) {
 multi sub infix:<Z>(+lol) {
     my $arity = lol.elems;
     my $laze = True;
-    return () if $arity == 0;
+    return ().Seq if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
         my \elem = lol[$i];
         if nqp::iscont(elem) {

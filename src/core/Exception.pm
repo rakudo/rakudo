@@ -1281,7 +1281,7 @@ my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.what = 'variable';
     has $.twigil;
     has $.scope;
-    has $.additional;
+    has $.additional = '';
     method message() { "Cannot use $.twigil twigil on '$.scope' $.what$.additional" }
 }
 

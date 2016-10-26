@@ -18,7 +18,11 @@ my class Match is Capture is Cool {
     method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {
-        $!to > $!from ?? substr($!orig,$!from,$!to-$!from) !! ''
+        nqp::if(
+          nqp::isgt_i($!to,$!from),
+          nqp::substr($!CURSOR.target,$!from,nqp::sub_i($!to,$!from)),
+          ''
+        )
     }
 
     multi method Numeric(Match:D:) {
@@ -30,10 +34,18 @@ my class Match is Capture is Cool {
     multi method ACCEPTS(Match:D: Any $) { self }
 
     method prematch(Match:D:) {
-        substr($!orig,0,$!from);
+        nqp::if(
+          nqp::isgt_i($!to,$!from),
+          nqp::substr($!CURSOR.target,0,$!from),
+          ''
+        )
     }
     method postmatch(Match:D:) {
-        substr($!orig,$!to)
+        nqp::if(
+          nqp::isgt_i($!to,$!from),
+          nqp::substr($!CURSOR.target,$!to),
+          ''
+        )
     }
 
     method caps(Match:D:) {

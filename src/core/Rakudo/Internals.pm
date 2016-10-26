@@ -1305,7 +1305,7 @@ my class Rakudo::Internals {
           nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
     }
 
-    my $initializers := nqp::hash;
+    my $initializers;
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
@@ -1316,7 +1316,10 @@ my class Rakudo::Internals {
         nqp::stmts(
           (my str $with = $version ~ "\0" ~ name),
           nqp::if(
-            nqp::existskey($initializers,$with),
+            nqp::existskey(
+              nqp::unless($initializers,$initializers := nqp::hash),
+              $with
+            ),
             (die "Already have initializer for '{name}' ('$version')"),
             nqp::bindkey($initializers,$with,&code)
           ),
@@ -1333,7 +1336,10 @@ my class Rakudo::Internals {
         nqp::stmts(
           (my str $with = nqp::getcomp('perl6').language_version ~ "\0" ~ name),
           nqp::if(
-            nqp::existskey($initializers,$with),
+            nqp::existskey(
+              nqp::unless($initializers,$initializers := nqp::hash),
+              $with
+            ),
             nqp::atkey($initializers,$with)(),
             nqp::if(
               nqp::existskey($initializers,name),

@@ -411,27 +411,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
 
-    constant CURSOR-GLOBAL     = 0;
-    constant CURSOR-OVERLAP    = 1;
-    constant CURSOR-EXHAUSTIVE = 2;
+    my \CURSOR-GLOBAL     := Cursor.^can("CURSOR_MORE"   ).AT-POS(0);  # :g
+    my \CURSOR-OVERLAP    := Cursor.^can("CURSOR_OVERLAP").AT-POS(0);  # :ov
+    my \CURSOR-EXHAUSTIVE := Cursor.^can("CURSOR_NEXT"   ).AT-POS(0);  # :ex
 
-    my $cursor-move := nqp::list(
-      Cursor.^can("CURSOR_MORE"   ).AT-POS(0),  # :g   CURSOR-GLOBAL
-      Cursor.^can("CURSOR_OVERLAP").AT-POS(0),  # :ov  CURSOR-OVERLAP
-      Cursor.^can("CURSOR_NEXT"   ).AT-POS(0),  # :ex  CURSOR-EXHAUSTIVE
-    );
-
-    constant POST-MATCH  = 0;  # return Match objects
-    constant POST-STR    = 1;  # return Str objects
-    constant POST-RANGE  = 2;  # return Range with from/until
-    constant POST-FROMTO = 3;  # return Pair with from/length
-
-    my $cursor-post := nqp::list(
-      Cursor.^can("MATCH" ).AT-POS(0),  # Match object   POST-MATCH
-      Cursor.^can("STR"   ).AT-POS(0),  # Str object     POST-STR
-      Cursor.^can("RANGE" ).AT-POS(0),  # Range object   POST-RANGE
-      Cursor.^can("FROMTO").AT-POS(0),  # Pair object    POST-FROMTO
-    );
+    my \POST-MATCH  := Cursor.^can("MATCH" ).AT-POS(0);  # Match object
+    my \POST-STR    := Cursor.^can("STR"   ).AT-POS(0);  # Str object
+    my \POST-RANGE  := Cursor.^can("RANGE" ).AT-POS(0);  # Range object
+    my \POST-FROMTO := Cursor.^can("FROMTO").AT-POS(0);  # Pair object
 
     # iterate with post-processing
     class POST-ITERATOR does Iterator {
@@ -440,8 +427,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Mu $!post;
         method !SET-SELF(\cursor,\move,\post) {
             $!cursor := cursor;
-            $!move := nqp::atpos($cursor-move,move);
-            $!post := nqp::atpos($cursor-post,post);
+            $!move   := move;
+            $!post   := post;
             self
         }
         method new(\c,\t,\p) { nqp::create(self)!SET-SELF(c,t,p) }
@@ -479,7 +466,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Mu $!move;
         method !SET-SELF(\cursor,\move) {
             $!cursor := cursor;
-            $!move := nqp::atpos($cursor-move,move);
+            $!move   := move;
             self
         }
         method new(\c,\t) { nqp::create(self)!SET-SELF(c,t) }
@@ -599,11 +586,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ),
           fetch-short-long($opts, "ex", "exhaustive", my $ex),
           fetch-short-long($opts, "ov", "overlap",    my $ov),
-          (my int $move-index = nqp::if($ex,CURSOR-EXHAUSTIVE,
-            nqp::if($ov,CURSOR-OVERLAP,CURSOR-GLOBAL))),
+          (my \move := nqp::if($ex, CURSOR-EXHAUSTIVE,
+            nqp::if($ov, CURSOR-OVERLAP, CURSOR-GLOBAL))),
 
           fetch-short-long($opts, "as", "as", my $as),
-          (my int $post-index = nqp::if(
+          (my \post := nqp::if(
             nqp::istype($as,Str), POST-STR, nqp::if(
               nqp::istype($as,Range), POST-RANGE, nqp::if(
                 nqp::istype($as,Pair), POST-FROMTO, POST-MATCH)))),
@@ -620,17 +607,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::defined($x),                             # :nth && :x
                   self!match-x(slash,
                     self!match-nth(slash, cursor,
-                      $move-index, $post-index, $nth, nqp::hash).iterator, $x),
+                      move, post, $nth, nqp::hash).iterator, $x),
                   self!match-nth(slash, cursor,
-                    $move-index, $post-index, $nth, nqp::hash)  # nth
+                    move, post, $nth, nqp::hash)  # nth
                 ),
                 nqp::if(
                   nqp::defined($x),
                   self!match-x(slash,                           # :x
-                    POST-ITERATOR.new(cursor, $move-index, $post-index), $x),
+                    POST-ITERATOR.new(cursor, move, post), $x),
                   nqp::if(                                      # only :ex|ov|g
                     $ex || $ov || $g,
-                    self!match-list(slash, cursor, $move-index, $post-index),
+                    self!match-list(slash, cursor, move, post),
                     self!match-one(slash, cursor)
                   )
                 )
@@ -638,7 +625,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ),
             nqp::if(                                            # only :ex|ov|g
               $ex || $ov || $g,
-              self!match-list(slash, cursor, $move-index, $post-index),
+              self!match-list(slash, cursor, move, post),
               self!match-one(slash, cursor)
             )
           )
@@ -658,29 +645,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          nqp::atpos($cursor-post, nqp::if(
-            nqp::istype(as,Str), POST-STR, nqp::if(
-              nqp::istype(as,Range), POST-RANGE, nqp::if(
-                nqp::istype(as,Pair), POST-FROMTO,
-                  POST-MATCH))))(cursor),
+          nqp::if(nqp::istype(as,Str), POST-STR,
+            nqp::if(nqp::istype(as,Range), POST-RANGE,
+              nqp::if(nqp::istype(as,Pair), POST-FROMTO,
+                POST-MATCH)))(cursor),
           Nil
         ))
     }
 
-    # Create list from the appropriate Sequence given the move-index
-    # Values are 0 (normal :g), 1 (:overlap), 2 (:exhaustive)
-    method !match-list(\slash, \cursor, int $move-index, int $post-index) {
+    # Create list from the appropriate Sequence given the move
+    method !match-list(\slash, \cursor, \move, \post) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
-          Seq.new(POST-ITERATOR.new(cursor, $move-index, $post-index)).list,
+          Seq.new(POST-ITERATOR.new(cursor, move, post)).list,
           Slip.new,
         ))
     }
 
     # Handle matching of the nth match specification.
-    method !match-nth(
-      \slash, \cursor, int $move-index, int $post-index, $nth, %opts
-    ) {
+    method !match-nth(\slash, \cursor, \move, \post, $nth, %opts) {
         nqp::if(
           nqp::elems(nqp::getattr(%opts,Map,'$!storage')),
           self!match-cursor(slash, cursor, 'nth', $nth, %opts),
@@ -688,32 +671,31 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::defined($nth),
             nqp::if(
               nqp::istype($nth,Whatever),
-              self!match-last(slash, cursor, $move-index),
+              self!match-last(slash, cursor, move),
               nqp::if(
                 nqp::istype($nth,Numeric),
                 nqp::if(
                   $nth == Inf,
-                  self!match-last(slash, cursor, $move-index),
+                  self!match-last(slash, cursor, move),
                   nqp::if(
                     $nth < 1,
                     die-before-first($nth),
-                    self!match-nth-int(slash,
-                      cursor, $move-index, $post-index, $nth.Int)
+                    self!match-nth-int(slash, cursor, move, post, $nth.Int)
                   )
                 ),
                 nqp::if(
                   nqp::istype($nth,WhateverCode),
                   nqp::if(
                     nqp::iseq_i((my int $tail = abs($nth(-1))),1),
-                    self!match-last(slash, cursor, $move-index),
-                    self!match-nth-tail(slash, cursor, $move-index, $tail)
+                    self!match-last(slash, cursor, move),
+                    self!match-nth-tail(slash, cursor, move, $tail)
                   ),
                   nqp::if(
                     nqp::istype($nth,Callable),
                     self!match-nth-int(slash,
-                      cursor, $move-index, $post-index, $nth()),
+                      cursor, move, post, $nth()),
                     self!match-nth-iterator(slash,
-                      POST-ITERATOR.new(cursor, $move-index, $post-index),
+                      POST-ITERATOR.new(cursor, move, post),
                       $nth.iterator)
                   )
                 )
@@ -725,14 +707,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Give back the nth match found
-    method !match-nth-int(
-      \slash, \cursor, int $move-index, int $post-index, int $nth
-    ) {
+    method !match-nth-int(\slash, \cursor, \move, \post, int $nth) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           nqp::if(
             nqp::eqaddr(
-              (my $pulled := POST-ITERATOR.new(cursor, $move-index, $post-index)
+              (my $pulled := POST-ITERATOR.new(cursor, move, post)
                 .skip-at-least-pull-one(nqp::sub_i($nth,1))),
               IterationEnd
             ),
@@ -744,11 +724,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Give back the N-tail match found
-    method !match-nth-tail(\slash, \cursor, int $move-index, int $tail) {
+    method !match-nth-tail(\slash, \cursor, \move, int $tail) {
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Internals.IterateLastNFromIterator(
-              CURSOR-ITERATOR.new(cursor, $move-index),
+              CURSOR-ITERATOR.new(cursor, move),
               $tail, 'match', 1).pull-one),
             IterationEnd
           ),
@@ -758,11 +738,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Give last value of given iterator, or Nil if none
-    method !match-last(\slash, \cursor, int $move-index) {
+    method !match-last(\slash, \cursor, \move) {
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Internals.LastFromIterator(
-              CURSOR-ITERATOR.new(cursor, $move-index),
+              CURSOR-ITERATOR.new(cursor, move),
               'match')),
             IterationEnd
           ),

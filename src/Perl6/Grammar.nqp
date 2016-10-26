@@ -2198,7 +2198,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         !! $*OUTERPACKAGE;
                     if @name && $*SCOPE ne 'anon' {
                         if @name && $*W.already_declared($*SCOPE, $target_package, $outer, @name) {
-                            $*PACKAGE := $*W.find_symbol(@name);
+                            $*PACKAGE := $*W.find_symbol(@name, cur-package => $target_package);
                             $exists := 1;
                         }
                     }

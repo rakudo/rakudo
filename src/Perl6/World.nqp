@@ -3740,7 +3740,7 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_symbol(@name, :$setting-only) {
+    method find_symbol(@name, :$setting-only, :$cur-package = $*PACKAGE) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -3757,7 +3757,7 @@ class Perl6::World is HLL::World {
             !! nqp::elems(@BLOCKS);
 
         # If it's a single-part name, look through the lexical
-        # scopes.
+        # scopes and try the current package.
         if +@name == 1 {
             my str $final_name := ~@name[0];
             if $*WANTEDOUTERBLOCK {
@@ -3780,15 +3780,19 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
+            if nqp::existskey($cur-package.WHO, $final_name) {
+                return nqp::atkey($cur-package.WHO, $final_name);
+            }
         }
 
         # If it's a multi-part name, see if the containing package
-        # is a lexical somewhere. Otherwise we fall back to looking
-        # in GLOBALish.
+        # is a lexical somewhere or can be found in the current
+        # package. Otherwise we fall back to looking in GLOBALish.
         my $result := $*GLOBALish;
         if +@name >= 2 {
             my str $first := ~@name[0];
             my int $i := $start_scope;
+            my int $found := 0;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @BLOCKS[$i].symbol($first);
@@ -3797,6 +3801,14 @@ class Perl6::World is HLL::World {
                     @name := nqp::clone(@name);
                     @name.shift();
                     $i := 0;
+                    $found := 1;
+                }
+            }
+            unless $found {
+                if nqp::existskey($cur-package.WHO, $first) {
+                    $result := nqp::atkey($cur-package.WHO, $first);
+                    @name := nqp::clone(@name);
+                    @name.shift();
                 }
             }
         }

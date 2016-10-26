@@ -177,6 +177,14 @@ RakudoScalar.prototype.setupSTable = function() {
     return this.$$decont().$$getInt();
   });
 
+  this.STable.addInternalMethod('$$getNum', function(ctx) {
+    return this.$$decont().$$getNum();
+  });
+
+  this.STable.addInternalMethod('$$getStr', function(ctx) {
+    return this.$$decont().$$getStr();
+  });
+
   this.STable.addInternalMethod('$$iscont', function() {
     return 1;
   });

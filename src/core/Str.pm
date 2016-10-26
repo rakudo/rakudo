@@ -1060,6 +1060,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           && $g
           && !$samecase && !$samespace && !$samemark && !%options;
 
+        die "Cannot use :$_ when doing a .subst" if %options{$_} for <ov ex>;
+
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;

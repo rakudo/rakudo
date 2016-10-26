@@ -3,6 +3,7 @@ my class Range  {... }
 my class Match  {... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
+my class X::Str::Subst::Adverb { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
@@ -1060,7 +1061,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           && $g
           && !$samecase && !$samespace && !$samemark && !%options;
 
-        die "Cannot use :$_ when doing a .subst" if %options{$_} for <ov ex>;
+        X::Str::Subst::Adverb.new(:name($_), :got(%options{$_})).throw
+          if %options{$_} for <ov ex>;
 
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);

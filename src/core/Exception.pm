@@ -1824,6 +1824,14 @@ my class X::Str::Match::x is Exception {
     }
 }
 
+my class X::Str::Subst::Adverb is Exception {
+    has $.name;
+    has $.got;
+    method message() {
+        "Cannot use :$.name adverb in Str.subst, got $.got"
+    }
+}
+
 my class X::Str::Trans::IllegalKey is Exception {
     has $.key;
     method message {

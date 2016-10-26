@@ -29,7 +29,7 @@ my class Match is Capture is Cool {
         self.Str.Numeric
     }
     multi method Bool(Match:D:) {
-        $!to >= $!from
+        nqp::p6bool(nqp::isge_i($!to,$!from))
     }
     multi method ACCEPTS(Match:D: Any $) { self }
 

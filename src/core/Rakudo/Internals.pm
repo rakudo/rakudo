@@ -1153,6 +1153,12 @@ my class Rakudo::Internals {
           ?? '--profile'
           !! Empty
     }
+    # running with --optimize=X
+    method OPTIMIZE() {
+        nqp::existskey($compiling-options, 'optimize')
+          ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
+          !! Empty
+    }
     # whatever specified with -I
     method INCLUDE() {
         nqp::existskey($compiling-options,'I')

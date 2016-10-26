@@ -20,6 +20,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     my $lle;
     my $profile;
+    my $optimize;
 
     method try-load(
         CompUnit::PrecompilationDependency::File $dependency,
@@ -223,6 +224,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
+        $optimize //= Rakudo::Internals.OPTIMIZE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
@@ -247,6 +249,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           $perl6,
           $lle,
           $profile,
+          $optimize,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
           "--output=$bc",
           "--source-name=$source-name",

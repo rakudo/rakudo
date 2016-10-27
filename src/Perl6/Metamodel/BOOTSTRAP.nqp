@@ -2747,7 +2747,7 @@ BEGIN {
     List.HOW.add_attribute(List, scalar_attr('$!WHICH', Str, List));
     List.HOW.compose_repr(List);
 
-    # class Slip is Cool {
+    # class Slip is List {
     Slip.HOW.add_parent(Slip, List);
     Slip.HOW.compose_repr(Slip);
 

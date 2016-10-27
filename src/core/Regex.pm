@@ -5,16 +5,32 @@ my class Regex { # declared in BOOTSTRAP
     #     has Mu $!alt_nfas;
     #     has Mu $!source;
 
+    # cache cursor initialization lookup
+    my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
+
     proto method ACCEPTS(|) { * }
-    multi method ACCEPTS(Regex:D: Mu:U \a) { False }
-    multi method ACCEPTS(Regex:U: Any \topic) { # use of Any on topic to force autothreading
-        nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
+    multi method ACCEPTS(Regex:D: Mu:U \a) {
+        False
     }
+
+    # use of Any on topic to force autothreading
+    # so that all(@foo) ~~ Type works as expected
+    multi method ACCEPTS(Regex:U: Any \topic) {
+        nqp::p6bool(nqp::istype(topic, self))
+    }
+
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
-        my $dollar_slash := nqp::getlexrelcaller(
-            nqp::ctxcallerskipthunks(nqp::ctx()),
-            '$/');
-        $dollar_slash = SELF.(Cursor."!cursor_init"(topic, :c(0))).MATCH_SAVE;
+        nqp::decont(
+          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
+          nqp::stmts(
+            (my \cursor := SELF.($cursor-init(Cursor, topic, :c(0)))),
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+              cursor.MATCH,
+              Nil
+            )
+          )
+        )
     }
 
     multi method ACCEPTS(Regex:D \SELF: @a) {

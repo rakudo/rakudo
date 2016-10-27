@@ -66,4 +66,9 @@ my class Regex { # declared in BOOTSTRAP
     }
 }
 
+multi sub infix:<~~>(Mu \topic, Regex:D \matcher) {
+    $/ := nqp::getlexdyn('$/');
+    matcher.ACCEPTS(topic)
+}
+
 # vim: ft=perl6 expandtab sw=4

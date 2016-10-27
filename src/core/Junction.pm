@@ -204,7 +204,7 @@ my class Junction { # declared in BOOTSTRAP
             # Junctional positional argument?
             my Mu $arg := nqp::atpos($positionals, $i);
             if nqp::istype($arg,Junction) {
-                my str $type = nqp::getattr(nqp::decont($arg),Junction,'$!type');
+                my str $type = nqp::getattr_s(nqp::decont($arg),Junction,'$!type');
                 nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
                   ?? $first_any_one == -1
                     ?? ($first_any_one = $i)

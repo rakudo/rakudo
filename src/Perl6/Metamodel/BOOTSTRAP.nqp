@@ -1390,13 +1390,13 @@ BEGIN {
     # class Signature is Any{
     #    has Mu $!params;
     #    has Mu $!returns;
-    #    has Mu $!arity;
+    #    has int $!arity;
     #    has Mu $!count;
     #    has Mu $!code;
     Signature.HOW.add_parent(Signature, Any);
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!params>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Mu), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {

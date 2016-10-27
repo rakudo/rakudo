@@ -2,7 +2,7 @@ my class Signature { # declared in BOOTSTRAP
     # class Signature is Any {
     #   has Mu $!params;          # VM's array of parameters
     #   has Mu $!returns;         # return type
-    #   has Mu $!arity;           # arity
+    #   has int $!arity;          # arity
     #   has Mu $!count;           # count
     #   has Mu $!code;
 

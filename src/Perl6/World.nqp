@@ -2076,8 +2076,7 @@ class Perl6::World is HLL::World {
             }
             $i++;
         }
-        nqp::bindattr($signature, $sig_type, '$!arity',
-            self.add_constant('Int', 'int', $arity).value);
+        nqp::bindattr_i($signature, $sig_type, '$!arity', $arity);
         if $count == -1 {
             nqp::bindattr($signature, $sig_type, '$!count',
                 self.add_constant('Num', 'num', nqp::inf()).value);

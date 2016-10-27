@@ -34,15 +34,30 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Regex:D \SELF: @a) {
-        my $dollar_slash := nqp::getlexrelcaller(
-            nqp::ctxcallerskipthunks(nqp::ctx()),
-            '$/');
-        for flat @a {
-            $dollar_slash = SELF.(Cursor.'!cursor_init'($_, :c(0))).MATCH_SAVE;
-            return $dollar_slash if $dollar_slash;
-        }
-        Nil;
+        nqp::decont(
+          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
+          nqp::stmts(
+            (my int $elems = @a.elems),  # reifies
+            (my int $i     = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)  # left to check?
+                && nqp::islt_i(                            # invalid match?
+                     nqp::getattr_i(
+                       (my \cursor := SELF.($cursor-init(Cursor,
+                         nqp::atpos(nqp::getattr(@a,List,'$!reified'),$i),
+                       :c(0)))),Cursor,'$!pos'),
+                   0),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::iseq_i($i,$elems),
+              Nil,               # exhausted list
+              cursor.MATCH       # found it!
+            )
+          )
+        )
     }
+
     multi method ACCEPTS(Regex:D \SELF: %h) {
         my $dollar_slash := nqp::getlexrelcaller(
             nqp::ctxcallerskipthunks(nqp::ctx()),

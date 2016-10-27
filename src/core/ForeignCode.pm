@@ -3,7 +3,7 @@
 
 my class ForeignCode does Callable { # declared in BOOTSTRAP
     # class ForeignCode {
-    #     has Mu $!do;                # Code object we delegate to
+    #     has Code $!do;                # Code object we delegate to
 
     method arity() { self.signature.arity }
 

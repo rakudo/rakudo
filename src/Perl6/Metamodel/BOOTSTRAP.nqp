@@ -2812,7 +2812,7 @@ BEGIN {
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
-    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
+    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Code), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);

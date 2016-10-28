@@ -3,7 +3,7 @@ my class Grammar is Cursor {
     # cache cursor initialization lookup
     my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
 
-    method parse(\target, :$rule, Capture() :$args, Mu :$actions) {
+    method parse(\target, :$rule, :$args, Mu :$actions) {
         nqp::decont(nqp::getlexdyn('$/') = nqp::stmts(
           (my $*ACTIONS = $actions),
           nqp::if(
@@ -11,12 +11,12 @@ my class Grammar is Cursor {
               $rule,
               nqp::if(
                 $args,
-                self!cursor-init(target, %_)."$rule"(|$args),
+                self!cursor-init(target, %_)."$rule"(|$args.Capture),
                 self!cursor-init(target, %_)."$rule"()
               ),
               nqp::if(
                 $args,
-                self!cursor-init(target, %_).TOP(|$args),
+                self!cursor-init(target, %_).TOP(|$args.Capture),
                 self!cursor-init(target, %_).TOP()
               ),
             )),
@@ -33,19 +33,19 @@ my class Grammar is Cursor {
         ))
     }
 
-    method subparse(\target, :$rule, Capture() :$args, Mu :$actions) {
+    method subparse(\target, :$rule, :$args, Mu :$actions) {
         nqp::decont(nqp::getlexdyn('$/') = nqp::stmts(
           (my $*ACTIONS = $actions),
           nqp::if(
             $rule,
             nqp::if(
               $args,
-              self!cursor-init(target, %_)."$rule"(|$args).MATCH,
+              self!cursor-init(target, %_)."$rule"(|$args.Capture).MATCH,
               self!cursor-init(target, %_)."$rule"().MATCH,
             ),
             nqp::if(
               $args,
-              self!cursor-init(target, %_).TOP(|$args).MATCH,
+              self!cursor-init(target, %_).TOP(|$args.Capture).MATCH,
               self!cursor-init(target, %_).TOP().MATCH
             ),
           )

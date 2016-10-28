@@ -520,14 +520,15 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
 } #SLICE_HUH
 
 sub DELETEKEY(Mu \d, str $key) {
-    if nqp::existskey(d,$key) {
-        my Mu $value := nqp::atkey(d,$key);
-        nqp::deletekey(d,$key);
-        $value;
-    }
-    else {
-        Nil;
-    }
+    nqp::if(
+      nqp::existskey(d,$key),
+      nqp::stmts(
+        (my Mu $value := nqp::atkey(d,$key)),
+        (nqp::deletekey(d,$key)),
+        $value
+      ),
+      Nil
+    )
 } #DELETEKEY
 
 sub dd(|) {

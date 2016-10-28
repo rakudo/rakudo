@@ -7968,11 +7968,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op('p6bindattrinvres'),
                                 QAST::Op.new( :op('create'), $Capture ),
                                 $Capture,
-                                QAST::SVal.new( :value('$!list') ),
+                                QAST::SVal.new( :value('@!list') ),
                                 QAST::Var.new( :name($name), :scope('local') )
                             ),
                             $Capture,
-                            QAST::SVal.new( :value('$!hash') ),
+                            QAST::SVal.new( :value('%!hash') ),
                             QAST::Var.new( :name($hash_name), :scope('local') )
                         )));
                 }

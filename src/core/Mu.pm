@@ -650,7 +650,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         }
         my $capture := nqp::create(Capture);
-        nqp::bindattr($capture,Capture,'$!hash',$attrs) if nqp::elems($attrs);
+        nqp::bindattr($capture,Capture,'%!hash',$attrs) if nqp::elems($attrs);
         $capture
     }
 

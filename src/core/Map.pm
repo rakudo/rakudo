@@ -267,7 +267,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method Capture(Map:D:) {
         nqp::defined($!storage)
           ?? nqp::p6bindattrinvres(
-               nqp::create(Capture),Capture,'$!hash',$!storage)
+               nqp::create(Capture),Capture,'%!hash',$!storage)
           !! nqp::create(Capture)
     }
 

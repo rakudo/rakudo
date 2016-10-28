@@ -678,13 +678,13 @@ my class Binder {
                         }
                         $k++;
                     }
-                    nqp::bindattr($capsnap, Capture, '$!list', @pos_args);
+                    nqp::bindattr($capsnap, Capture, '@!list', @pos_args);
 
                     if $named_args {
-                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::clone($named_args));
+                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::clone($named_args));
                     }
                     else {
-                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::hash());
+                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::hash());
                     }
 
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
@@ -927,9 +927,9 @@ my class Binder {
     
     sub make_vm_capture($capture) {
         sub vm_capture(*@pos, *%named) { nqp::savecapture() }                
-        my @list := nqp::getattr($capture, Capture, '$!list');
+        my @list := nqp::getattr($capture, Capture, '@!list');
         @list    := nqp::list() unless nqp::islist(@list);
-        my %hash := nqp::getattr($capture, Capture, '$!hash');
+        my %hash := nqp::getattr($capture, Capture, '%!hash');
         %hash    := nqp::hash() unless nqp::ishash(%hash);
         vm_capture(|@list, |%hash)
     }
@@ -2435,8 +2435,8 @@ BEGIN {
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
         sub assemble_capture(*@pos, *%named) {
             my $c := nqp::create(Capture);
-            nqp::bindattr($c, Capture, '$!list', @pos);
-            nqp::bindattr($c, Capture, '$!hash', %named);
+            nqp::bindattr($c, Capture, '@!list', @pos);
+            nqp::bindattr($c, Capture, '%!hash', %named);
             $c
         }
         nqp::invokewithcapture(&assemble_capture, $capture)
@@ -2769,11 +2769,11 @@ BEGIN {
     Hash.HOW.compose_repr(Hash);
 
     # class Capture is Any {
-    #     has Mu $!list;
-    #     has Mu $!hash;
+    #     has @!list;
+    #     has %!hash;
     Capture.HOW.add_parent(Capture, Any);
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
+    Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture, :!auto_viv_container));
+    Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture, :!auto_viv_container));
     Capture.HOW.compose_repr(Capture);
     
     # class Junction is Mu {

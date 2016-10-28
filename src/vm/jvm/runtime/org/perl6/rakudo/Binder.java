@@ -668,8 +668,8 @@ public final class Binder {
         capture = Ops.decont(capture, tc);
 
         SixModelObject capType = gcx.Capture;
-        SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
-        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
+        SixModelObject list = capture.get_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list);
+        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash);
         if (list == null)
             list = gcx.EMPTYARR;
         if (hash == null)
@@ -791,8 +791,8 @@ public final class Binder {
                     
                     SixModelObject capType = gcx.Capture;
                     SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list, posArgs);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list, posArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash, namedArgs);
                     
                     bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);               

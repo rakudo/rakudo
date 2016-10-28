@@ -163,8 +163,8 @@ my class Cursor does NQPCursorRole {
                 }
             }
         }
-        nqp::bindattr($match, Capture, '$!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
-        nqp::bindattr($match, Capture, '$!hash', $hash);
+        nqp::bindattr($match, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
+        nqp::bindattr($match, Capture, '%!hash', $hash);
         nqp::bindattr(self, Cursor, '$!match', $match);
 
         # Once we've produced the captures, and if we know we're finished and

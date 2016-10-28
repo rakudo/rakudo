@@ -1033,8 +1033,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
               !! nqp::push($list,$v)
               while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-            nqp::bindattr($capture,Capture,'$!list',$list) if nqp::elems($list);
-            nqp::bindattr($capture,Capture,'$!hash',$hash) if nqp::elems($hash);
+            nqp::bindattr($capture,Capture,'@!list',$list) if nqp::elems($list);
+            nqp::bindattr($capture,Capture,'%!hash',$hash) if nqp::elems($hash);
             $capture
         }
 

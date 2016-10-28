@@ -321,7 +321,7 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
     method CALL-ME(|args) {
         self!setup unless $!setup;
 
-        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '$!list');
+        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $r.signature.arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),

@@ -928,7 +928,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                          nqp::until(
                            nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
                              || $!test($_),
-                           Nil
+                           nqp::null
                          );
                          $_
                      }
@@ -981,7 +981,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
                     || $!test.ACCEPTS($_),
-                  Nil
+                  nqp::null
                 );
                 $_
             }

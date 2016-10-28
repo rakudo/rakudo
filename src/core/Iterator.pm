@@ -81,7 +81,7 @@ my role Iterator {
           (my int $left = $toskip),
           nqp::while(
             nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
-            Nil
+            nqp::null
           ),
           nqp::islt_i($left,0)
         )
@@ -117,7 +117,7 @@ my role Iterator {
     method sink-all(--> IterationEnd) {
         nqp::until(
           nqp::eqaddr(self.pull-one,IterationEnd),
-          Nil
+          nqp::null
         )
     }
 

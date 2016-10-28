@@ -743,7 +743,7 @@ my class Array { # declared in BOOTSTRAP
                     nqp::while(
                       (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
                         && nqp::not_i(nqp::existspos($reified,$i))),
-                      Nil
+                      nqp::null
                     ),
                     nqp::setelems($reified,nqp::add_i($i,1))
                   ),
@@ -1244,7 +1244,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::while(
                 (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                   && nqp::istype(nqp::atpos($new,$i),$expected)),
-                Nil
+                nqp::null
               ),
               nqp::if(
                 nqp::islt_i($i,$elems),   # exited loop because of wrong type

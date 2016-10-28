@@ -1365,7 +1365,7 @@ multi sub infix:<,>(|) {
     nqp::while(
       (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
         && nqp::not_i(nqp::istype(nqp::atpos(in,$i),Slip))),
-      Nil
+      nqp::null
     );
 
     nqp::if(

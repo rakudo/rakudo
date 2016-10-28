@@ -2144,7 +2144,7 @@ class Perl6::World is HLL::World {
     }
 
     # Takes a code object and the QAST::Block for its body. Finalizes the
-    # setup of the code object, including populated the $!compstuff array.
+    # setup of the code object, including populated the @!compstuff array.
     # This contains 3 elements:
     #   0 = the QAST::Block object
     #   1 = the compiler thunk
@@ -2174,9 +2174,9 @@ class Perl6::World is HLL::World {
         # Create the compiler stuff array and stick it in the code object.
         # Also add clearup task to remove it again later.
         my @compstuff;
-        nqp::bindattr($code, $code_type, '$!compstuff', @compstuff);
+        nqp::bindattr($code, $code_type, '@!compstuff', @compstuff);
         self.context().add_cleanup_task(sub () {
-            nqp::bindattr($code, $code_type, '$!compstuff', nqp::null());
+            nqp::bindattr($code, $code_type, '@!compstuff', nqp::null());
         });
 
         # For now, install stub that will dynamically compile the code if
@@ -2192,7 +2192,7 @@ class Perl6::World is HLL::World {
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
                 for nqp::getattr($code, $routine_type, '$!dispatchees') {
-                    my $cs := nqp::getattr($_, $code_type, '$!compstuff');
+                    my $cs := nqp::getattr($_, $code_type, '@!compstuff');
                     my $past := $cs[0] unless nqp::isnull($cs);
                     if $past {
                         self.compile_in_context($past, $code_type);
@@ -2223,7 +2223,7 @@ class Perl6::World is HLL::World {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
                 self.context().add_cleanup_task(sub () {
-                    nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                    nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                 });
                 self.context().add_clone_for_cuid($clone, $cuid);
             };
@@ -2241,7 +2241,7 @@ class Perl6::World is HLL::World {
                 @compstuff[2] := sub ($orig, $clone) {
                     self.add_object($clone);
                     self.context().add_cleanup_task(sub () {
-                        nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                        nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                     });
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
@@ -2519,7 +2519,7 @@ class Perl6::World is HLL::World {
                 my $code_obj := %sub_id_to_code_object{$subid};
                 nqp::setcodeobj(@coderefs[$i], $code_obj);
                 nqp::bindattr($code_obj, $code_type, '$!do', @coderefs[$i]);
-                nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+                nqp::bindattr($code_obj, $code_type, '@!compstuff', nqp::null());
             }
             my %sub_id_to_cloned_code_objects := self.context().sub_id_to_cloned_code_objects();
             if nqp::existskey(%sub_id_to_cloned_code_objects, $subid) {
@@ -2527,7 +2527,7 @@ class Perl6::World is HLL::World {
                     my $clone := nqp::clone(@coderefs[$i]);
                     nqp::setcodeobj($clone, $code_obj);
                     nqp::bindattr($code_obj, $code_type, '$!do', $clone);
-                    nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+                    nqp::bindattr($code_obj, $code_type, '@!compstuff', nqp::null());
                 }
             }
             my %sub_id_to_sc_idx := self.context().sub_id_to_sc_idx();

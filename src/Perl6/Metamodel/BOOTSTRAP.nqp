@@ -1582,13 +1582,13 @@ BEGIN {
     Parameter.HOW.compose_repr(Parameter);
     
     # class Code {
-    #     has Mu $!do;                # Low level code object
-    #     has Mu $!signature;         # Signature object
-    #     has Mu $!compstuff;         # Place for the compiler to hang stuff
+    #     has Code $!do;              # Low level code object
+    #     has Signature $!signature;  # Signature object
+    #     has @!compstuff;            # Place for the compiler to hang stuff
     Code.HOW.add_parent(Code, Any);
-    Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, scalar_attr('$!compstuff', Mu, Code, :!auto_viv_container));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Code), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Signature), :package(Code)));
+    Code.HOW.add_attribute(Code, scalar_attr('@!compstuff', List, Code, :!auto_viv_container));
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
@@ -1598,7 +1598,7 @@ BEGIN {
             my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
             }
@@ -1656,7 +1656,7 @@ BEGIN {
             my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
             }
@@ -2239,7 +2239,7 @@ BEGIN {
                             # Otherwise, may need full bind check.
                             elsif nqp::existskey(%info, 'bind_check') {
                                 my $sub := nqp::atkey(%info, 'sub');
-                                my $cs := nqp::getattr($sub, Code, '$!compstuff');
+                                my $cs := nqp::getattr($sub, Code, '@!compstuff');
                                 unless nqp::isnull($cs) {
                                     # We need to do the tie-break on something not yet compiled.
                                     # Get it compiled.

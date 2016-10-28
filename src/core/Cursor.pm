@@ -177,14 +177,6 @@ my class Cursor does NQPCursorRole {
         $match;
     }
 
-    method MATCH_SAVE() {
-        nqp::if(
-          nqp::islt_i(nqp::getattr_i(self,Cursor,'$!pos'),0),
-          Nil,
-          self.MATCH
-        )
-    }
-
     method CURSOR_NEXT() {   # from !cursor_next in nqp
         nqp::if(
           nqp::defined($!restart),

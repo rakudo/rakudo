@@ -149,7 +149,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool {
     #   The reified elements in the list so far (that is, those that we already
     #   have produced the values for).
-    #   has $!reified;
+    #   has List $!reified;
     #
     #   Object that reifies the rest of the list. We don't just inline it into
     #   the List class itself, because a STORE on Array can clear things and

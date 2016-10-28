@@ -2739,10 +2739,10 @@ BEGIN {
     Nil.HOW.compose_repr(Nil);
     
     # class List is Cool {
-    #     has Mu $!reified;
+    #     has List $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', List, List));
     List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
     List.HOW.compose_repr(List);
 

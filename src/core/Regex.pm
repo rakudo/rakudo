@@ -34,39 +34,39 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Regex:D \SELF: @a) {
-        nqp::decont(
-          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
-          nqp::stmts(
-            (my int $elems = @a.elems),  # reifies
-            (my int $i     = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)  # left to check?
-                && nqp::islt_i(                            # invalid match?
-                     nqp::getattr_i(
-                       (my \cursor := SELF.($cursor-init(Cursor,
-                         nqp::atpos(nqp::getattr(@a,List,'$!reified'),$i),
-                       :c(0)))),Cursor,'$!pos'),
-                   0),
-              nqp::null
-            ),
-            nqp::if(
-              nqp::iseq_i($i,$elems),
-              Nil,               # exhausted list
-              cursor.MATCH       # found it!
-            )
-          )
+        SELF!ACCEPT-ITERATOR(
+          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/'),
+          @a.iterator
         )
     }
 
     multi method ACCEPTS(Regex:D \SELF: %h) {
-        my $dollar_slash := nqp::getlexrelcaller(
-            nqp::ctxcallerskipthunks(nqp::ctx()),
-            '$/');
-        for %h.keys {
-            $dollar_slash = SELF.(Cursor.'!cursor_init'($_, :c(0))).MATCH_SAVE;
-            return $dollar_slash if $dollar_slash;
-        }
-        Nil;
+        SELF!ACCEPT-ITERATOR(
+          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/'),
+          %h.keys.iterator
+        )
+    }
+
+    method !ACCEPT-ITERATOR(Regex:D \SELF: \slash, Iterator:D \iter) {
+        nqp::decont(slash =
+          nqp::stmts(
+            nqp::until(
+              nqp::eqaddr(                                 # nothing to check?
+                (my $pulled := iter.pull-one),IterationEnd)
+                || nqp::isge_i(                            # valid match?
+                     nqp::getattr_i(
+                       (my \cursor := SELF.($cursor-init(Cursor,$pulled,:0c))),
+                       Cursor,'$!pos'),
+                   0),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::eqaddr($pulled,IterationEnd),
+              Nil,               # no match found
+              cursor.MATCH       # found it!
+            )
+          )
+        )
     }
 
     multi method Bool(Regex:D:) {

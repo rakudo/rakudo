@@ -570,7 +570,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
                 Nil
               )
-            )
+            ),
+            Nil
           )
         )
     }
@@ -590,7 +591,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
                 Nil
               )
-            )
+            ),
+            Nil
           )
         )
     }

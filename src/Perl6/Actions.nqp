@@ -4239,13 +4239,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Bind original source to $!source
         my $Regex  := $*W.find_symbol(['Regex'], :setting-only);
-        my $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
+        my str $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
         my $match  := $source ~~ /\s+$/;
 
         if $match {
             $source := nqp::substr($source, 0, $match.from());
         }
-        nqp::bindattr($code, $Regex, '$!source', $source);
+        nqp::bindattr_s($code, $Regex, '$!source', $source);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);

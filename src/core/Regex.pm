@@ -1,9 +1,9 @@
 my class Regex { # declared in BOOTSTRAP
     # class Regex is Method {
-    #     has Mu $!caps;
+    #     has @!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas;
-    #     has Mu $!source;
+    #     has @!alt_nfas;
+    #     has str $!source;
 
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Regex:D: Mu:U \a) { False }

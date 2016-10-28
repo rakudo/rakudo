@@ -2674,38 +2674,38 @@ BEGIN {
     Submethod.HOW.compose_invocation(Submethod);
 
     # class Regex is Method {
-    #     has Mu $!caps;
+    #     has @!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas;
-    #     has Mu $!source;
+    #     has @!alt_nfas;
+    #     has str $!source;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!alt_nfas', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('@!alt_nfas', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
-            nqp::bindattr(nqp::decont($self), Regex, '$!caps', $caps)
+            nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
         }));
     Regex.HOW.add_method(Regex, 'SET_ALT_NFA', nqp::getstaticcode(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas');
+            my %alts := nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas');
             unless %alts {
                 %alts := nqp::hash();
-                nqp::bindattr(nqp::decont($self), Regex, '$!alt_nfas', %alts);
+                nqp::bindattr(nqp::decont($self), Regex, '@!alt_nfas', %alts);
             }
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '$!caps')
+            nqp::getattr(nqp::decont($self), Regex, '@!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self), Regex, '$!nfa')
         }));
     Regex.HOW.add_method(Regex, 'ALT_NFA', nqp::getstaticcode(sub ($self, str $name) {
             nqp::atkey(
-                nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas'),
+                nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas'),
                 $name)
         }));
     Regex.HOW.compose_repr(Regex);

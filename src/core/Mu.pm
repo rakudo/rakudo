@@ -717,9 +717,7 @@ my class Mu { # declared in BOOTSTRAP
             $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', $results);
-        $list
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
     }
 
     method dispatch:<hyper>(Mu \SELF: \name, |c) {

@@ -94,7 +94,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
 
             if (namedNames != null)
                 continue;
@@ -430,7 +430,7 @@ public final class Binder {
         
         /* Type captures. */
         SixModelObject typeCaps = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!type_captures", HINT_type_captures);
+            "@!type_captures", HINT_type_captures);
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
         
@@ -635,7 +635,7 @@ public final class Binder {
             }
 
             SixModelObject subParams = subSignature
-                .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_params);
+                .get_attribute_boxed(tc, gcx.Signature, "@!params", HINT_SIG_params);
             /* Recurse into signature binder. */
             CallSiteDescriptor subCsd = explodeCapture(tc, gcx, capture);
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
@@ -668,8 +668,8 @@ public final class Binder {
         capture = Ops.decont(capture, tc);
 
         SixModelObject capType = gcx.Capture;
-        SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
-        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
+        SixModelObject list = capture.get_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list);
+        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash);
         if (list == null)
             list = gcx.EMPTYARR;
         if (hash == null)
@@ -758,7 +758,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
             
             /* Is it looking for us to bind a capture here? */
             if ((flags & SIG_ELEM_IS_CAPTURE) != 0) {
@@ -791,8 +791,8 @@ public final class Binder {
                     
                     SixModelObject capType = gcx.Capture;
                     SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list, posArgs);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list, posArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash, namedArgs);
                     
                     bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);               

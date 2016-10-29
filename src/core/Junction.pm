@@ -171,7 +171,7 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method AUTOTHREAD(&call, |args) {
-        my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'$!list');
+        my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'@!list');
 
         sub thread_junction(int $pos) {
             my $junction := nqp::decont(nqp::atpos($positionals, $pos));
@@ -204,7 +204,7 @@ my class Junction { # declared in BOOTSTRAP
             # Junctional positional argument?
             my Mu $arg := nqp::atpos($positionals, $i);
             if nqp::istype($arg,Junction) {
-                my str $type = nqp::getattr(nqp::decont($arg),Junction,'$!type');
+                my str $type = nqp::getattr_s(nqp::decont($arg),Junction,'$!type');
                 nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
                   ?? $first_any_one == -1
                     ?? ($first_any_one = $i)
@@ -215,7 +215,7 @@ my class Junction { # declared in BOOTSTRAP
         return thread_junction($first_any_one) if $first_any_one >= 0;
 
         # Otherwise, look for one in the nameds.
-        my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '$!hash');
+        my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '%!hash');
         my $iter := nqp::iterator($nameds);
         while $iter {
             my \tmp = nqp::shift($iter);

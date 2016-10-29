@@ -3610,7 +3610,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Ensure all parameters are simple and build placeholders for
         # them.
         my $Param  := $*W.find_symbol(['Parameter'], :setting-only);
-        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '$!params');
+        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         my %arg_placeholders;
@@ -4239,13 +4239,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Bind original source to $!source
         my $Regex  := $*W.find_symbol(['Regex'], :setting-only);
-        my $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
+        my str $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
         my $match  := $source ~~ /\s+$/;
 
         if $match {
             $source := nqp::substr($source, 0, $match.from());
         }
-        nqp::bindattr($code, $Regex, '$!source', $source);
+        nqp::bindattr_s($code, $Regex, '$!source', $source);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);
@@ -7926,7 +7926,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Sig      := $*W.find_symbol(['Signature'], :setting-only);
         my $Param    := $*W.find_symbol(['Parameter'], :setting-only);
         my $Iterable := $*W.find_symbol(['Iterable']);
-        my @p_objs := nqp::getattr($sig, $Sig, '$!params');
+        my @p_objs := nqp::getattr($sig, $Sig, '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         while $i < $n {
@@ -7968,11 +7968,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op('p6bindattrinvres'),
                                 QAST::Op.new( :op('create'), $Capture ),
                                 $Capture,
-                                QAST::SVal.new( :value('$!list') ),
+                                QAST::SVal.new( :value('@!list') ),
                                 QAST::Var.new( :name($name), :scope('local') )
                             ),
                             $Capture,
-                            QAST::SVal.new( :value('$!hash') ),
+                            QAST::SVal.new( :value('%!hash') ),
                             QAST::Var.new( :name($hash_name), :scope('local') )
                         )));
                 }

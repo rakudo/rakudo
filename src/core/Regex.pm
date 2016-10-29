@@ -1,9 +1,9 @@
 my class Regex { # declared in BOOTSTRAP
     # class Regex is Method {
-    #     has Mu $!caps;
+    #     has @!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas;
-    #     has Mu $!source;
+    #     has @!alt_nfas;
+    #     has str $!source;
 
     # cache cursor initialization lookup
     my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);

@@ -724,7 +724,7 @@ my class Hash { # declared in BOOTSTRAP
                            nqp::unbox_s(nqp::istype(k,Str) ?? k !! k.Str),
                            v)
                      }
-                     nqp::bindattr($cap,Capture,'$!hash',$h);
+                     nqp::bindattr($cap,Capture,'%!hash',$h);
                      $cap
                  }
               !! nqp::create(Capture)

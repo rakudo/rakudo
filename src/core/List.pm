@@ -149,7 +149,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool {
     #   The reified elements in the list so far (that is, those that we already
     #   have produced the values for).
-    #   has $!reified;
+    #   has List $!reified;
     #
     #   Object that reifies the rest of the list. We don't just inline it into
     #   the List class itself, because a STORE on Array can clear things and
@@ -1035,8 +1035,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
               !! nqp::push($list,$v)
               while nqp::islt_i($i = nqp::add_i($i,1),$elems);
-            nqp::bindattr($capture,Capture,'$!list',$list) if nqp::elems($list);
-            nqp::bindattr($capture,Capture,'$!hash',$hash) if nqp::elems($hash);
+            nqp::bindattr($capture,Capture,'@!list',$list) if nqp::elems($list);
+            nqp::bindattr($capture,Capture,'%!hash',$hash) if nqp::elems($hash);
             $capture
         }
 

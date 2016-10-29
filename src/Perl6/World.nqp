@@ -1880,14 +1880,14 @@ class Perl6::World is HLL::World {
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
             my @names := %param_info<named_names>;
-            nqp::bindattr($parameter, $par_type, '$!named_names', @names);
+            nqp::bindattr($parameter, $par_type, '@!named_names', @names);
         }
         if %param_info<type_captures> {
             my @type_names := %param_info<type_captures>;
-            nqp::bindattr($parameter, $par_type, '$!type_captures', @type_names);
+            nqp::bindattr($parameter, $par_type, '@!type_captures', @type_names);
         }
         if %param_info<post_constraints> {
-            nqp::bindattr($parameter, $par_type, '$!post_constraints',
+            nqp::bindattr($parameter, $par_type, '@!post_constraints',
                 %param_info<post_constraints>);
         }
         if nqp::existskey(%param_info, 'default_value') {
@@ -2052,7 +2052,7 @@ class Perl6::World is HLL::World {
         self.add_object($signature);
 
         # Set parameters.
-        nqp::bindattr($signature, $sig_type, '$!params', @parameters);
+        nqp::bindattr($signature, $sig_type, '@!params', @parameters);
         if nqp::existskey(%signature_info, 'returns') {
             nqp::bindattr($signature, $sig_type, '$!returns', %signature_info<returns>);
         }
@@ -2070,14 +2070,13 @@ class Perl6::World is HLL::World {
                 $count := -1;
             }
             elsif !($flags +& $SIG_ELEM_SLURPY_NAMED) &&
-                    nqp::isnull(nqp::getattr($param, $p_type, '$!named_names')) {
+                    nqp::isnull(nqp::getattr($param, $p_type, '@!named_names')) {
                 $count++;
                 $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
             }
             $i++;
         }
-        nqp::bindattr($signature, $sig_type, '$!arity',
-            self.add_constant('Int', 'int', $arity).value);
+        nqp::bindattr_i($signature, $sig_type, '$!arity', $arity);
         if $count == -1 {
             nqp::bindattr($signature, $sig_type, '$!count',
                 self.add_constant('Num', 'num', nqp::inf()).value);
@@ -2145,7 +2144,7 @@ class Perl6::World is HLL::World {
     }
 
     # Takes a code object and the QAST::Block for its body. Finalizes the
-    # setup of the code object, including populated the $!compstuff array.
+    # setup of the code object, including populated the @!compstuff array.
     # This contains 3 elements:
     #   0 = the QAST::Block object
     #   1 = the compiler thunk
@@ -2175,9 +2174,9 @@ class Perl6::World is HLL::World {
         # Create the compiler stuff array and stick it in the code object.
         # Also add clearup task to remove it again later.
         my @compstuff;
-        nqp::bindattr($code, $code_type, '$!compstuff', @compstuff);
+        nqp::bindattr($code, $code_type, '@!compstuff', @compstuff);
         self.context().add_cleanup_task(sub () {
-            nqp::bindattr($code, $code_type, '$!compstuff', nqp::null());
+            nqp::bindattr($code, $code_type, '@!compstuff', nqp::null());
         });
 
         # For now, install stub that will dynamically compile the code if
@@ -2192,8 +2191,8 @@ class Perl6::World is HLL::World {
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
-                for nqp::getattr($code, $routine_type, '$!dispatchees') {
-                    my $cs := nqp::getattr($_, $code_type, '$!compstuff');
+                for nqp::getattr($code, $routine_type, '@!dispatchees') {
+                    my $cs := nqp::getattr($_, $code_type, '@!compstuff');
                     my $past := $cs[0] unless nqp::isnull($cs);
                     if $past {
                         self.compile_in_context($past, $code_type);
@@ -2224,7 +2223,7 @@ class Perl6::World is HLL::World {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
                 self.context().add_cleanup_task(sub () {
-                    nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                    nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                 });
                 self.context().add_clone_for_cuid($clone, $cuid);
             };
@@ -2242,7 +2241,7 @@ class Perl6::World is HLL::World {
                 @compstuff[2] := sub ($orig, $clone) {
                     self.add_object($clone);
                     self.context().add_cleanup_task(sub () {
-                        nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                        nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                     });
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
@@ -2272,7 +2271,7 @@ class Perl6::World is HLL::World {
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
-            nqp::bindattr($code, $routine_type, '$!dispatchees', []);
+            nqp::bindattr($code, $routine_type, '@!dispatchees', []);
         }
 
         # Set yada flag if needed.
@@ -2520,7 +2519,7 @@ class Perl6::World is HLL::World {
                 my $code_obj := %sub_id_to_code_object{$subid};
                 nqp::setcodeobj(@coderefs[$i], $code_obj);
                 nqp::bindattr($code_obj, $code_type, '$!do', @coderefs[$i]);
-                nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+                nqp::bindattr($code_obj, $code_type, '@!compstuff', nqp::null());
             }
             my %sub_id_to_cloned_code_objects := self.context().sub_id_to_cloned_code_objects();
             if nqp::existskey(%sub_id_to_cloned_code_objects, $subid) {
@@ -2528,7 +2527,7 @@ class Perl6::World is HLL::World {
                     my $clone := nqp::clone(@coderefs[$i]);
                     nqp::setcodeobj($clone, $code_obj);
                     nqp::bindattr($code_obj, $code_type, '$!do', $clone);
-                    nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
+                    nqp::bindattr($code_obj, $code_type, '@!compstuff', nqp::null());
                 }
             }
             my %sub_id_to_sc_idx := self.context().sub_id_to_sc_idx();
@@ -3270,7 +3269,7 @@ class Perl6::World is HLL::World {
                     $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 }
                 nqp::push(
-                    nqp::getattr($block.signature, self.find_symbol(['Signature'], :setting-only), '$!params'),
+                    nqp::getattr($block.signature, self.find_symbol(['Signature'], :setting-only), '@!params'),
                     self.create_parameter($/, hash(
                             variable_name => '$_', is_raw => 1,
                             nominal_type => self.find_symbol(['Mu'])

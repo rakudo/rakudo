@@ -143,7 +143,7 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture \a, Capture \b) {
+multi sub infix:<eqv>(Capture:D \a, Capture:D \b) {
     nqp::p6bool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)

@@ -2815,6 +2815,15 @@ sub substr-rw(\what, \start, $want?) is rw {
          )
 }
 
+multi sub infix:<eqv>(Str:D \a, Str:D \b) {
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a,b)
+      )
+    )
+}
+
 proto sub samemark(|) {*}
 multi sub samemark($s, $pat) { $s.samemark($pat) }
 

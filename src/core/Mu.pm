@@ -821,26 +821,43 @@ multi sub infix:<=:=>(Mu \a, Mu \b) {
 
 proto sub infix:<eqv>(Any $?, Any $?) is pure { * }
 multi sub infix:<eqv>($?)            { Bool::True }
-multi sub infix:<eqv>(Any $a, Any $b) {
-    # Last ditch snapshot semantics.  We shouldn't come here too often, so
-    # please do not change this to be faster but wronger.  (Instead, add
-    # specialized multis for datatypes that can be tested piecemeal.)
-    $a.WHAT === $b.WHAT and $a.perl eq $b.perl;
+
+# Last ditch snapshot semantics.  We shouldn't come here too often, so
+# please do not change this to be faster but wronger.  (Instead, add
+# specialized multis for datatypes that can be tested piecemeal.)
+multi sub infix:<eqv>(Any:U \a, Any:U \b) {
+    nqp::p6bool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
+}
+multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
+multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
+multi sub infix:<eqv>(Any:D \a, Any:D \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
+    )
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    if @a =:= @b {
-        True
-    }
-    elsif @a.WHAT =:= @b.WHAT && (my int $n = @a.elems) == @b.elems {
-        my int $i = -1;
-        return False unless @a.AT-POS($i) eqv @b.AT-POS($i)
-          while nqp::islt_i(++$i,$n);
-        True
-    }
-    else {
-        False
-    }
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(@a,@b),                                    # identity
+        nqp::if(
+          nqp::eqaddr(@a.WHAT,@b.WHAT),                        # same type
+          nqp::if(
+            nqp::iseq_i((my int $elems = @a.elems),@b.elems),  # same # elems
+            nqp::stmts(
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)    # not exhausted
+                  && @a.AT-POS($i) eqv @b.AT-POS($i),          # still same
+                nqp::null
+              ),
+              nqp::iseq_i($i,$elems)                      # exhausted = success!
+            )
+          )
+        )
+      )
+    )
 }
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {

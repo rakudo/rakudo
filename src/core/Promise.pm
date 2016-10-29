@@ -221,7 +221,9 @@ my class Promise {
 }
 
 multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
-    a =:= b || a.result eqv b.result
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || a.result eqv b.result
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -675,12 +675,20 @@ sub prefix:<^>($max) is pure {
 }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {
-    a =:= b
-      || (a.WHAT =:= b.WHAT
-        && a.min eqv b.min
-        && a.max eqv b.max
-        && a.excludes-min eqv b.excludes-min
-        && a.excludes-max eqv b.excludes-max)
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.min eqv b.min
+             && a.max eqv b.max
+             && nqp::iseq_i(
+               nqp::getattr_i(nqp::decont(a),Range,'$!excludes-min'),
+               nqp::getattr_i(nqp::decont(b),Range,'$!excludes-min')
+             )
+             && nqp::iseq_i(
+               nqp::getattr_i(nqp::decont(a),Range,'$!excludes-max'),
+               nqp::getattr_i(nqp::decont(b),Range,'$!excludes-max')
+             ))
+    )
 }
 
 multi sub infix:<+>(Range:D \a, Real:D \b) { a.clone-with-op(&[+], b) }

@@ -65,17 +65,27 @@ my class ComplexStr is Complex is Str {
 multi sub infix:<cmp>(IntStr:D $a, IntStr:D $b) {
     $a.Int cmp $b.Int || $a.Str cmp $b.Str
 }
-
 multi sub infix:<cmp>(RatStr:D $a, RatStr:D $b) {
     $a.Rat cmp $b.Rat || $a.Str cmp $b.Str
 }
-
 multi sub infix:<cmp>(NumStr:D $a, NumStr:D $b) {
     $a.Num cmp $b.Num || $a.Str cmp $b.Str
 }
-
 multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) {
     $a.Complex cmp $b.Complex || $a.Str cmp $b.Str
+}
+
+multi sub infix:<eqv>(IntStr:D $a, IntStr:D $b) {
+    $a.Int eqv $b.Int || $a.Str eqv $b.Str
+}
+multi sub infix:<eqv>(RatStr:D $a, RatStr:D $b) {
+    $a.Rat eqv $b.Rat || $a.Str eqv $b.Str
+}
+multi sub infix:<eqv>(NumStr:D $a, NumStr:D $b) {
+    $a.Num eqv $b.Num || $a.Str eqv $b.Str
+}
+multi sub infix:<eqv>(ComplexStr:D $a, ComplexStr:D $b) {
+    $a.Complex eqv $b.Complex || $a.Str eqv $b.Str
 }
 
 multi sub val(*@maybevals) {

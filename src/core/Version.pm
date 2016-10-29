@@ -115,7 +115,14 @@ class Version {
 
 
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
-    a =:= b || (a.WHAT =:= b.WHAT && a.Str eq b.Str)
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && nqp::iseq_s(
+               nqp::getattr_s(a,Version,'$!string'),
+               nqp::getattr_s(b,Version,'$!string')
+             ))
+    )
 }
 
 multi sub infix:<cmp>(Version:D \a, Version:D \b) {

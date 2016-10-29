@@ -289,31 +289,31 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {
-    nqp::if(
-      nqp::eqaddr(a,b),
-      True,
-      nqp::if(
-        (nqp::eqaddr(a.WHAT,b.WHAT) && (my int $elems = a.elems) == b.elems),
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
         nqp::if(
-          nqp::iseq_i($elems,0),
-          True,
-          nqp::stmts(
-            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
-            (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
-            (my $iter := nqp::iterator($amap)),
-            nqp::while(
-              $iter,
-              nqp::unless(
-                (nqp::existskey(
-                  $bmap,my str $key = nqp::iterkey_s(nqp::shift($iter))
-                ) && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key)),
-                return False
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(
+            nqp::iseq_i((my int $elems = a.elems),b.elems),
+            nqp::unless(
+              nqp::iseq_i($elems,0),
+              nqp::stmts(
+                (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
+                (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+                (my $iter := nqp::iterator($amap)),
+                nqp::while(
+                  $iter
+                  && nqp::existskey($bmap,
+                    my str $key = nqp::iterkey_s(nqp::shift($iter)))
+                  && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key),
+                  ($elems = nqp::sub_i($elems,1))
+                ),
+                nqp::iseq_i($elems,0)    # checked all, so ok
               )
-            ),
-            True
+            )
           )
-        ),
-        False
+        )
       )
     )
 }

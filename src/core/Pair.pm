@@ -84,7 +84,12 @@ my class Pair does Associative {
 }
 
 multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
-    a =:= b || (a.WHAT =:= b.WHAT && a.key eqv b.key && a.value eqv b.value)
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.key   eqv b.key
+             && a.value eqv b.value)
+    )
 }
 
 multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {

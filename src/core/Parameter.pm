@@ -383,7 +383,7 @@ my class Parameter { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Parameter \a, Parameter \b) {
+multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
 
     # we're us
     return True if a =:= b;

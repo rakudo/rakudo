@@ -3,7 +3,12 @@ my class X::NYI { ... }
 my role Stringy { }
 
 multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b) {
-    ?(a =:= b || (a.WHAT =:= b.WHAT && (a cmp b) == 0))  # XXX RT #128092
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_i(a cmp b,0)  # XXX RT #128092
+      )
+    )
 }
 
 proto sub prefix:<~>($) is pure { * }

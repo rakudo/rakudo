@@ -30,7 +30,9 @@ my role Numeric {
 }
 
 multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
-    nqp::p6bool(a =:= b || (a.WHAT =:= b.WHAT && a == b)) # RT #127951
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a == b) # RT #127951
+    )
 }
 
 ## arithmetic operators

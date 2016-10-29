@@ -134,7 +134,7 @@ my class Signature { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Signature \a, Signature \b) {
+multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
 
     # we're us
     return True if a =:= b;

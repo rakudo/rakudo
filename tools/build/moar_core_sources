@@ -78,6 +78,7 @@ src/core/Regex.pm
 src/core/allomorphs.pm
 src/core/IO.pm
 src/core/IO/Spec.pm
+src/core/IO/Spec/Any.pm
 src/core/IO/Spec/Unix.pm
 src/core/IO/Spec/Win32.pm
 src/core/IO/Spec/Cygwin.pm

@@ -18,8 +18,9 @@ role CompUnit::Repository {
     method resolve(CompUnit::DependencySpecification $spec)
         returns CompUnit
     {
-        return self.next-repo.resolve($spec) if self.next-repo;
-        Nil
+        self.next-repo
+          ?? self.next-repo.resolve($spec)
+          !! Nil
     }
 
     # Just load the file and return a CompUnit object representing it.

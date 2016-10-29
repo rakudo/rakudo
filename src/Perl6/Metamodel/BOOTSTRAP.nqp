@@ -1691,7 +1691,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, scalar_attr('$!dispatch_order', List, Routine, :!auto_viv_container));
+    Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
@@ -1707,7 +1707,7 @@ BEGIN {
                 nqp::bindattr(nqp::decont($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
-                nqp::bindattr($dc_self, Routine, '$!dispatch_order', nqp::null());
+                nqp::bindattr($dc_self, Routine, '@!dispatch_order', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
                 nqp::scwbenable();
@@ -2075,8 +2075,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'sort_dispatchees', nqp::getstaticcode(sub ($self) {
         my $dcself := nqp::decont($self);
-        unless nqp::isnull(nqp::getattr($dcself, Routine, '$!dispatch_order')) {
-            nqp::bindattr($dcself, Routine, '$!dispatch_order',
+        unless nqp::isnull(nqp::getattr($dcself, Routine, '@!dispatch_order')) {
+            nqp::bindattr($dcself, Routine, '@!dispatch_order',
                 $self.'!sort_dispatchees_internal'());
         }
     }));
@@ -2098,11 +2098,11 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();
                 @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
 
@@ -2466,11 +2466,11 @@ BEGIN {
             
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();
                 @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
             

@@ -2191,7 +2191,7 @@ class Perl6::World is HLL::World {
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
-                for nqp::getattr($code, $routine_type, '$!dispatchees') {
+                for nqp::getattr($code, $routine_type, '@!dispatchees') {
                     my $cs := nqp::getattr($_, $code_type, '@!compstuff');
                     my $past := $cs[0] unless nqp::isnull($cs);
                     if $past {
@@ -2271,7 +2271,7 @@ class Perl6::World is HLL::World {
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
-            nqp::bindattr($code, $routine_type, '$!dispatchees', []);
+            nqp::bindattr($code, $routine_type, '@!dispatchees', []);
         }
 
         # Set yada flag if needed.

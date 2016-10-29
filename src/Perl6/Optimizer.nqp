@@ -2180,7 +2180,7 @@ class Perl6::Optimizer {
                     $call.unshift(QAST::Op.new(
                         :op('atpos'),
                         QAST::Var.new(
-                            :name('$!dispatchees'), :scope('attribute'),
+                            :name('@!dispatchees'), :scope('attribute'),
                             QAST::Var.new( :name($call.name), :scope('lexical') ),
                             QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
                         ),

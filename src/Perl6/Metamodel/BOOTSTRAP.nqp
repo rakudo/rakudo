@@ -1614,9 +1614,9 @@ BEGIN {
             # need to clone dispatchees list.
             my $dcself := nqp::decont($self);
             my $ins := $self.clone();
-            if nqp::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
-                nqp::bindattr($ins, Routine, '$!dispatchees',
-                    nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
+            if nqp::defined(nqp::getattr($dcself, Routine, '@!dispatchees')) {
+                nqp::bindattr($ins, Routine, '@!dispatchees',
+                    nqp::clone(nqp::getattr($dcself, Routine, '@!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             nqp::bindattr($ins, Code, '$!signature',
@@ -1672,7 +1672,7 @@ BEGIN {
     Block.HOW.compose_invocation(Block);
 
     # class Routine is Block {
-    #     has Mu $!dispatchees;
+    #     has @!dispatchees;
     #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!rw;
@@ -1680,10 +1680,10 @@ BEGIN {
     #     has int $!yada;
     #     has Mu $!package;
     #     has int $!onlystar;
-    #     has Mu $!dispatch_order;
+    #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!rw>, :type(int), :package(Routine)));
@@ -1691,17 +1691,17 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, scalar_attr('$!dispatch_order', Mu, Routine, :!auto_viv_container));
+    Routine.HOW.add_attribute(Routine, scalar_attr('$!dispatch_order', List, Routine, :!auto_viv_container));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             nqp::p6bool(nqp::defined($disp_list));
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
                 nqp::bindattr(nqp::decont($dispatchee),
@@ -1719,8 +1719,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {
             my $clone := $self.clone();
-            nqp::bindattr($clone, Routine, '$!dispatchees',
-                nqp::clone(nqp::getattr($self, Routine, '$!dispatchees')));
+            nqp::bindattr($clone, Routine, '@!dispatchees',
+                nqp::clone(nqp::getattr($self, Routine, '@!dispatchees')));
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', nqp::getstaticcode(sub ($self) {
@@ -1729,7 +1729,7 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'dispatchees', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
-                Routine, '$!dispatchees')
+                Routine, '@!dispatchees')
         }));
     Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
         nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
@@ -1856,7 +1856,7 @@ BEGIN {
             }
             
             my $dcself     := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatchees');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatchees');
             
             # Create a node for each candidate in the graph.
             my @graph;
@@ -3005,7 +3005,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     };
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '$!dispatchees', []);
+    nqp::bindattr($sel, Routine, '@!dispatchees', []);
     $sel
 });
 

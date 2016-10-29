@@ -9,7 +9,7 @@ my role SoftRoutine {
 
 my class Routine { # declared in BOOTSTRAP
     # class Routine is Block {
-    #     has Mu $!dispatchees;
+    #     has @!dispatchees;
     #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!rw;
@@ -17,14 +17,14 @@ my class Routine { # declared in BOOTSTRAP
     #     has int $!yada;
     #     has Mu $!package;
     #     has int $!onlystar;
-    #     has Mu $!dispatch_order;
+    #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
 
     method onlystar() { nqp::p6bool($!onlystar) }
 
     method candidates() {
         self.is_dispatcher ??
-            nqp::hllize($!dispatchees) !!
+            nqp::hllize(@!dispatchees) !!
             (self,)
     }
 
@@ -35,7 +35,7 @@ my class Routine { # declared in BOOTSTRAP
         }
         else {
             $disp := nqp::create(self);
-            nqp::bindattr($disp, Routine, '$!dispatchees', nqp::list(self));
+            nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list(self));
         }
         # Call this lexical sub to get rid of 'self' in the signature.
         sub checker(|) {

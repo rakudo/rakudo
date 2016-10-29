@@ -622,7 +622,7 @@ my class Binder {
     # Drives the overall binding process.
     sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
         # Get params.
-        my @params := nqp::getattr($sig, Signature, '$!params');
+        my @params := nqp::getattr($sig, Signature, '@!params');
         
         # If we do have some named args, we get hold of a hash of them. We
         # can safely delete from this as we go.
@@ -962,7 +962,7 @@ my class Binder {
     my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
     my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
     method trial_bind($sig, $args, $sigflags) {
-        my @params         := nqp::getattr($sig, Signature, '$!params');
+        my @params         := nqp::getattr($sig, Signature, '@!params');
         my int $num_params := nqp::elems(@params);
 
         # If there's a single capture parameter, then we're OK. (Worth
@@ -1388,20 +1388,20 @@ BEGIN {
     }
 
     # class Signature is Any{
-    #    has Mu $!params;
+    #    has @!params;
     #    has Mu $!returns;
     #    has int $!arity;
-    #    has Mu $!count;
-    #    has Mu $!code;
+    #    has Num $!count;
+    #    has Code $!code;
     Signature.HOW.add_parent(Signature, Any);
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!params>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<@!params>, :type(List), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, scalar_attr('$!returns', Mu, Signature, :!auto_viv_container));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If any parameter is generic, so are we.
-            my @params := nqp::getattr($self, Signature, '$!params');
+            my @params := nqp::getattr($self, Signature, '@!params');
             for @params {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
@@ -1413,7 +1413,7 @@ BEGIN {
             # are generic, instantiate them. Otherwise leave them
             # as they are.
             my $ins    := nqp::clone($self);
-            my @params := nqp::getattr($self, Signature, '$!params');
+            my @params := nqp::getattr($self, Signature, '@!params');
             my @ins_params;
             for @params {
                 if $_.is_generic() {
@@ -1423,7 +1423,7 @@ BEGIN {
                     @ins_params.push($_);
                 }
             }
-            nqp::bindattr($ins, Signature, '$!params', @ins_params);
+            nqp::bindattr($ins, Signature, '@!params', @ins_params);
             $ins
         }));
     Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {
@@ -1863,7 +1863,7 @@ BEGIN {
             for @candidates -> $candidate {
                 # Get hold of signature.
                 my $sig    := nqp::getattr($candidate, Code, '$!signature');
-                my @params := nqp::getattr($sig, Signature, '$!params');
+                my @params := nqp::getattr($sig, Signature, '@!params');
 
                 # Create it an entry.
                 my %info := nqp::hash(

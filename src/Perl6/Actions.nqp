@@ -3610,7 +3610,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Ensure all parameters are simple and build placeholders for
         # them.
         my $Param  := $*W.find_symbol(['Parameter'], :setting-only);
-        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '$!params');
+        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         my %arg_placeholders;
@@ -7926,7 +7926,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Sig      := $*W.find_symbol(['Signature'], :setting-only);
         my $Param    := $*W.find_symbol(['Parameter'], :setting-only);
         my $Iterable := $*W.find_symbol(['Iterable']);
-        my @p_objs := nqp::getattr($sig, $Sig, '$!params');
+        my @p_objs := nqp::getattr($sig, $Sig, '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         while $i < $n {

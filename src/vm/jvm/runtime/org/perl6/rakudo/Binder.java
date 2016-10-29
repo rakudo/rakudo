@@ -635,7 +635,7 @@ public final class Binder {
             }
 
             SixModelObject subParams = subSignature
-                .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_params);
+                .get_attribute_boxed(tc, gcx.Signature, "@!params", HINT_SIG_params);
             /* Recurse into signature binder. */
             CallSiteDescriptor subCsd = explodeCapture(tc, gcx, capture);
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);

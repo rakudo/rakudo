@@ -1,10 +1,10 @@
 my class Signature { # declared in BOOTSTRAP
     # class Signature is Any {
-    #   has Mu $!params;          # VM's array of parameters
+    #   has @!params;             # VM's array of parameters
     #   has Mu $!returns;         # return type
     #   has int $!arity;          # arity
-    #   has Mu $!count;           # count
-    #   has Mu $!code;
+    #   has Num $!count;          # count
+    #   has Code $!code;
 
     multi method ACCEPTS(Signature:D: Capture $topic) {
         nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
@@ -89,7 +89,7 @@ my class Signature { # declared in BOOTSTRAP
 
     method params() {
         nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-            nqp::clone($!params));
+            nqp::clone(@!params));
     }
 
     method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu,

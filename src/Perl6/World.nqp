@@ -2052,7 +2052,7 @@ class Perl6::World is HLL::World {
         self.add_object($signature);
 
         # Set parameters.
-        nqp::bindattr($signature, $sig_type, '$!params', @parameters);
+        nqp::bindattr($signature, $sig_type, '@!params', @parameters);
         if nqp::existskey(%signature_info, 'returns') {
             nqp::bindattr($signature, $sig_type, '$!returns', %signature_info<returns>);
         }
@@ -3269,7 +3269,7 @@ class Perl6::World is HLL::World {
                     $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 }
                 nqp::push(
-                    nqp::getattr($block.signature, self.find_symbol(['Signature'], :setting-only), '$!params'),
+                    nqp::getattr($block.signature, self.find_symbol(['Signature'], :setting-only), '@!params'),
                     self.create_parameter($/, hash(
                             variable_name => '$_', is_raw => 1,
                             nominal_type => self.find_symbol(['Mu'])

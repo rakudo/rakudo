@@ -726,7 +726,7 @@ my class JunctionOptimizer {
         }
         if $found == 1 {
             my $signature := $!symbols.find_in_setting("Signature");
-            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
+            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '@!params'));
             while $iter {
                 my $p := nqp::shift($iter);
                 unless nqp::istype($p.type, $!symbols.Any) {
@@ -2221,7 +2221,7 @@ class Perl6::Optimizer {
                         my int $aref  := $scope eq 'attributeref';
                         if $lref || $aref {
                             my $Signature := $!symbols.find_in_setting("Signature");
-                            my $param := nqp::getattr($sig, $Signature, '$!params')[$p];
+                            my $param := nqp::getattr($sig, $Signature, '@!params')[$p];
                             if nqp::can($param, 'rw') {
                                 unless $param.rw {
                                     $arg.scope($lref ?? 'lexical' !! 'attribute');

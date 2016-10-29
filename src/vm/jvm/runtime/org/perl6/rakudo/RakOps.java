@@ -228,7 +228,7 @@ public final class RakOps {
         SixModelObject sig = cf.codeRef.codeObject
             .get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
         SixModelObject params = sig
-            .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_PARAMS);
+            .get_attribute_boxed(tc, gcx.Signature, "@!params", HINT_SIG_PARAMS);
         
         /* Run binder, and handle any errors. */
         Object[] error = new Object[3];
@@ -264,7 +264,7 @@ public final class RakOps {
         GlobalExt gcx = key.getGC(tc);
         CallSiteDescriptor csd = Binder.explodeCapture(tc, gcx, cap);
         SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
-            "$!params", HINT_SIG_PARAMS);
+            "@!params", HINT_SIG_PARAMS);
         
         Object[] error = new Object[3];
         switch (Binder.bind(tc, gcx, cf, params, csd, tc.flatArgs, false, error)) {
@@ -297,7 +297,7 @@ public final class RakOps {
         }
         
         SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
-            "$!params", HINT_SIG_PARAMS);
+            "@!params", HINT_SIG_PARAMS);
         SixModelObject codeObj = sig.get_attribute_boxed(tc, gcx.Signature,
             "$!code", HINT_SIG_CODE);
         CodeRef cr = (CodeRef)codeObj.get_attribute_boxed(tc, gcx.Code,

@@ -94,7 +94,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
 
             if (namedNames != null)
                 continue;
@@ -430,7 +430,7 @@ public final class Binder {
         
         /* Type captures. */
         SixModelObject typeCaps = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!type_captures", HINT_type_captures);
+            "@!type_captures", HINT_type_captures);
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
         
@@ -758,7 +758,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
             
             /* Is it looking for us to bind a capture here? */
             if ((flags & SIG_ELEM_IS_CAPTURE) != 0) {

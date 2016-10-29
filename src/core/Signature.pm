@@ -170,7 +170,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         my $lookup := nqp::hash;
         while nqp::islt_i(++$j,$elems) {
             my $p  := nqp::atpos($ap,$j);
-            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key =
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
             die "Found named parameter '{
@@ -183,7 +183,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         # named variable mismatch
         while nqp::islt_i(++$i,$elems) {
             my $p  := nqp::atpos($bp,$i);
-            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key = nqp::defined($nn) && nqp::elems($nn)
               ?? nqp::atpos($nn,0)
               !! '';

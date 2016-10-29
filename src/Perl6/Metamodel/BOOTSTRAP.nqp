@@ -143,7 +143,7 @@ my class Binder {
             my $param := nqp::atpos($params, $param_i);
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
 
-            if !nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            if !nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
             }
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
             }
@@ -340,7 +340,7 @@ my class Binder {
         }
 
         # Do we have any type captures to bind?
-        my $type_caps := nqp::getattr($param, Parameter, '$!type_captures');
+        my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
         unless nqp::isnull($type_caps) {
             my int $num_type_caps := nqp::elems($type_caps);
             my int $i := 0;
@@ -474,7 +474,7 @@ my class Binder {
 
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
-        my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
+        my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
         unless nqp::isnull($post_cons) {
             my int $n := nqp::elems($post_cons);
             my int $i := 0;
@@ -654,7 +654,7 @@ my class Binder {
                 # much nothing.
                 if nqp::isnull_s($var_name)
                     && !nqp::getattr($param, Parameter, '$!sub_signature')
-                    && !nqp::getattr($param, Parameter, '$!post_constraints') {
+                    && !nqp::getattr($param, Parameter, '@!post_constraints') {
                     $bind_fail := $BIND_RESULT_OK;
                 }
                 else {
@@ -726,7 +726,7 @@ my class Binder {
             }
             
             # Otherwise, maybe it's a positional.
-            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
+            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
                 # Slurpy or LoL-slurpy?
                 if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
                     # Create Perl 6 array, create VM Array of all remaining things, then
@@ -991,13 +991,13 @@ my class Binder {
                     $SIG_ELEM_IS_OPTIONAL) || $flags +& $SIG_ELEM_IS_RW {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!type_captures')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!coerce_type')) {
@@ -1447,30 +1447,30 @@ BEGIN {
         
     # class Parameter is Any {
     #     has str $!variable_name
-    #     has Mu $!named_names
-    #     has Mu $!type_captures
+    #     has @!named_names
+    #     has @!type_captures
     #     has int $!flags
     #     has Mu $!nominal_type
-    #     has Mu $!post_constraints
+    #     has @!post_constraints
     #     has Mu $!coerce_type
     #     has str $!coerce_method
-    #     has Mu $!sub_signature
-    #     has Mu $!default_value
+    #     has Signature $!sub_signature
+    #     has Code $!default_value
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
     #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', List, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!post_constraints', List, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, scalar_attr('$!coerce_type', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!sub_signature', Signature, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!default_value', Code, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
@@ -1888,7 +1888,7 @@ BEGIN {
                     # to check constraint on every dispatch. Same if it's got a
                     # `where` clause.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
-                           nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
                     }
@@ -1896,7 +1896,7 @@ BEGIN {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
-                    my $named_names := nqp::getattr($param, Parameter, '$!named_names');
+                    my $named_names := nqp::getattr($param, Parameter, '@!named_names');
                     unless nqp::isnull($named_names) {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
@@ -1938,7 +1938,7 @@ BEGIN {
                         %info<types>[$significant_param] :=
                             nqp::getattr($param, Parameter, '$!nominal_type');
                     }
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {

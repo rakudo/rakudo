@@ -1880,14 +1880,14 @@ class Perl6::World is HLL::World {
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
             my @names := %param_info<named_names>;
-            nqp::bindattr($parameter, $par_type, '$!named_names', @names);
+            nqp::bindattr($parameter, $par_type, '@!named_names', @names);
         }
         if %param_info<type_captures> {
             my @type_names := %param_info<type_captures>;
-            nqp::bindattr($parameter, $par_type, '$!type_captures', @type_names);
+            nqp::bindattr($parameter, $par_type, '@!type_captures', @type_names);
         }
         if %param_info<post_constraints> {
-            nqp::bindattr($parameter, $par_type, '$!post_constraints',
+            nqp::bindattr($parameter, $par_type, '@!post_constraints',
                 %param_info<post_constraints>);
         }
         if nqp::existskey(%param_info, 'default_value') {
@@ -2070,7 +2070,7 @@ class Perl6::World is HLL::World {
                 $count := -1;
             }
             elsif !($flags +& $SIG_ELEM_SLURPY_NAMED) &&
-                    nqp::isnull(nqp::getattr($param, $p_type, '$!named_names')) {
+                    nqp::isnull(nqp::getattr($param, $p_type, '@!named_names')) {
                 $count++;
                 $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
             }

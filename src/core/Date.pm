@@ -98,7 +98,7 @@ my class Date does Dateish {
             self.new-from-daycount(self.daycount + $multiplier * $amount )
         }
         elsif $unit.starts-with('month') {
-            my Int $month = $!month;  # cannot be native because of RT #127168
+            my int $month = $!month;
             my int $year  = $!year;
             $month += $amount;
             $year += floor(($month - 1) / 12);

@@ -435,22 +435,21 @@ my role Baggy does QuantHash {
 
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
-        my Int $rand = self.total.rand.Int;
-        my Int $seen = 0;
-        my \iter    := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-
-        nqp::while(
-          iter,
-          nqp::stmts(
-            nqp::shift(iter),
-            ($seen = $seen + nqp::iterval(iter).value),
-            nqp::if(
-              $seen > $rand,
-              return nqp::iterval(iter).key
-            )
+        nqp::stmts(
+          (my Int $rand = self.total.rand.Int),
+          (my Int $seen = 0),
+          (my \iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'))),
+          nqp::while(
+            iter && ($seen = $seen + nqp::getattr(
+              nqp::iterval(nqp::shift(iter)),Pair,'$!value')) <= $rand,
+            nqp::null
+          ),
+          nqp::if(
+            $seen > $rand,
+            nqp::getattr(nqp::iterval(iter),Pair,'$!key'),
+            Nil
           )
-        );
-        Nil
+        )
     }
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf

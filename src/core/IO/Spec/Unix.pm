@@ -34,7 +34,7 @@ my class IO::Spec::Unix is IO::Spec {
               )
             ),
             nqp::if(                       # ^ /
-              nqp::iseq_i(nqp::ord($path),47),
+              nqp::eqat($path,'/',0),
               nqp::stmts(
                 nqp::while(                # ^ /../ -> /
                   nqp::eqat($path,'/../',0),

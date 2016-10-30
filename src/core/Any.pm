@@ -38,6 +38,12 @@ my class Any { # declared in BOOTSTRAP
     multi method DELETE-POS(Any:D: $pos) {
         Failure.new("Can not remove elements from a {self.^name}")
     }
+    multi method DELETE-POS(\one, \two) is raw {
+        self.AT-POS(one).DELETE-POS(two)
+    }
+    multi method DELETE-POS(\one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).DELETE-POS(three)
+    }
     multi method DELETE-POS(**@indices) {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).DELETE-POS($final)
@@ -225,6 +231,12 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
+    multi method EXISTS-POS(\one, \two) is raw {
+        self.AT-POS(one).EXISTS-POS(two)
+    }
+    multi method EXISTS-POS(\one, \two,\three) is raw {
+        self.AT-POS(one).AT-POS(two).EXISTS-POS(three)
+    }
     multi method EXISTS-POS(**@indices) {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
@@ -275,6 +287,12 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:   Any:U \pos) is raw {
         die "Cannot use '{pos.^name}' as an index";
     }
+    multi method AT-POS(\one, \two) is raw {
+        self.AT-POS(one).AT-POS(two)
+    }
+    multi method AT-POS(\one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).AT-POS(three)
+    }
     multi method AT-POS(**@indices) is raw {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
@@ -322,6 +340,12 @@ my class Any { # declared in BOOTSTRAP
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
+    multi method ASSIGN-POS(\one, \two, Mu \assignee) is raw {
+        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    }
+    multi method ASSIGN-POS(\one, \two, \three, Mu \assignee) is raw {
+        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    }
     multi method ASSIGN-POS(**@indices) {
         my \value := @indices.pop;
         my $final := @indices.pop;
@@ -329,6 +353,12 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method BIND-POS(|) { * }
+    multi method BIND-POS(\one, \two, Mu \what) is raw {
+        self.AT-POS(one).BIND-POS(two, what)
+    }
+    multi method BIND-POS(\one, \two, \three, Mu \what) is raw {
+        self.AT-POS(one).AT-POS(two).BIND-POS(three, what)
+    }
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
 # looks like Array.pop doesn't really return a bindable container
 #        my \value := @indices.pop;

@@ -267,7 +267,6 @@ my class IO::Handle does IO {
                         $!elems = nqp::elems($!strings);
                     }
                 }
-                Nil
             }
             method pull-one() {
                 if $!elems {
@@ -325,7 +324,6 @@ my class IO::Handle does IO {
                 $!str   = $!handle.readchars;
                 $!index = 0;
                 $!chars = nqp::chars($!str);
-                Nil
             }
             method pull-one() {
                 self!next-chunk if !$!index == $!chars;
@@ -419,7 +417,6 @@ my class IO::Handle does IO {
                     }
                     $!elems = nqp::elems($!strings);
                 }
-                Nil
             }
             method pull-one() {
                 if $!elems {

@@ -110,6 +110,7 @@ J_CORE_SOURCES = \
   src/core/array_slice.pm \
   src/core/Slip.pm \
   src/core/Array.pm \
+  src/core/array_operators.pm \
   src/core/native_array.pm \
   src/core/Pair.pm \
   src/core/Map.pm \

@@ -240,6 +240,12 @@ my class CX::Proceed does X::Control {
 my class CX::Return does X::Control {
     method message() { "<return control exception>" }
 }
+my class CX::Emit does X::Control {
+    method message() { "<emit control exception>" }
+}
+my class CX::Done does X::Control {
+    method message() { "<done control exception>" }
+}
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -275,6 +281,12 @@ sub EXCEPTION(|) {
         }
         elsif $type == nqp::const::CONTROL_RETURN {
             $ex := CX::Return.new();
+        }
+        elsif $type == nqp::const::CONTROL_EMIT {
+            $ex := CX::Emit.new();
+        }
+        elsif $type == nqp::const::CONTROL_DONE {
+            $ex := CX::Done.new();
         }
 #?if !moar
         # for MoarVM this check is done in src/Perl6/Metamodel/BOOTSTRAP.nqp, cmp 222d16b0b9

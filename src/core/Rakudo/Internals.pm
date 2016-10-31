@@ -78,15 +78,6 @@ my class Rakudo::Internals {
         method sink-all(--> IterationEnd) { $!i = $!elems }
     }
 
-    our role MatchIterator does Iterator {
-        has $!cursor;
-        method !SET-SELF($!cursor) { self }
-        method new(\cur) { nqp::create(self)!SET-SELF(cur) }
-        method sink-all(--> IterationEnd) {
-            nqp::bindattr($!cursor,Cursor,'$!pos',-1)
-        }
-    }
-
     our class WhateverIterator does Iterator {
         has $!source;
         has $!last;

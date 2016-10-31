@@ -1,3 +1,6 @@
+# close down the Array class
+} 
+
 # The [...] term creates an Array.
 proto circumfix:<[ ]>(|) { * }
 multi circumfix:<[ ]>() {

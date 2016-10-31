@@ -104,26 +104,8 @@ my class Range is Cool does Iterable does Positional {
         if $!is-int
           && !nqp::isbig_I(nqp::decont($!min))
           && !nqp::isbig_I(nqp::decont($!max)) {
-            class :: does Iterator {
-                has int $!i;
-                has int $!n;
-
-                method !SET-SELF(\i,\n) { $!i = i - 1; $!n = n; self }
-                method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
-
-                method pull-one() {
-                    ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
-                }
-                method push-all($target --> IterationEnd) {
-                    my int $i = $!i;
-                    my int $n = $!n;
-                    $target.push(nqp::p6box_i($i)) while ($i = $i + 1) <= $n;
-                    $!i = $i;
-                }
-                method count-only() { nqp::p6box_i($!n - $!i) }
-                method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
-                method sink-all(--> IterationEnd) { $!i = $!n }
-            }.new($!min + $!excludes-min, $!max - $!excludes-max)
+            Rakudo::Internals.IntRangeIterator(
+              $!min + $!excludes-min, $!max - $!excludes-max)
         }
 
         # doesn't make much sense, but there you go

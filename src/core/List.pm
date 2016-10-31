@@ -746,6 +746,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       $target.push(nqp::atpos($!reified,$!i))
                     );
                 }
+                method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+                method sink-all(--> IterationEnd) { }
             }.new(self),
 
             # nothing now or in the future to iterate over

@@ -1,7 +1,7 @@
 my class X::Invalid::ComputedValue { ... };
 
 my class Hash { # declared in BOOTSTRAP
-    # my class Hash is Map {
+    # my class Hash is Map
     #     has Mu $!descriptor;
 
     multi method WHICH(Hash:D:) { self.Mu::WHICH }

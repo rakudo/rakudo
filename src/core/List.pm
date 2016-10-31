@@ -146,7 +146,7 @@ sub find-reducer-for-op($op) {
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
 # Positional, and so may be indexed.
 my class List does Iterable does Positional { # declared in BOOTSTRAP
-    # class List is Cool {
+    # class List is Cool
     #   The reified elements in the list so far (that is, those that we already
     #   have produced the values for).
     #   has List $!reified;

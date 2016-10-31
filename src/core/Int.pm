@@ -6,7 +6,7 @@ my class Int { ... }
 my subset UInt of Int where * >= 0;
 
 my class Int does Real { # declared in BOOTSTRAP
-    # class Int is Cool {
+    # class Int is Cool
     #     has bigint $!value is box_target;
 
     multi method WHICH(Int:D:) {

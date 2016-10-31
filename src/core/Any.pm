@@ -15,7 +15,7 @@ my role  Numeric { ... }
 my constant IterationEnd = nqp::create(Mu);
 
 my class Any { # declared in BOOTSTRAP
-    # my class Any is Mu {
+    # my class Any is Mu
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
     multi method ACCEPTS(Any:D: Mu:U \a) { False }

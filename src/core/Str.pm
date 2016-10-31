@@ -11,7 +11,7 @@ my class X::Numeric::Confused { ... }
 my constant $?TABSTOP = 8;
 
 my class Str does Stringy { # declared in BOOTSTRAP
-    # class Str is Cool {
+    # class Str is Cool
     #     has str $!value is box_target;
 
     multi method WHY('Life, the Universe and Everything':) { 42 }

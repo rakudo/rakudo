@@ -1,5 +1,5 @@
 my class Cool { # declared in BOOTSTRAP
-    # class Cool is Any {
+    # class Cool is Any
 
     ## numeric methods
 

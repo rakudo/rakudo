@@ -1,5 +1,5 @@
 my class Regex { # declared in BOOTSTRAP
-    # class Regex is Method {
+    # class Regex is Method
     #     has @!caps;
     #     has Mu $!nfa;
     #     has @!alt_nfas;

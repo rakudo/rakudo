@@ -1,5 +1,5 @@
 my class Junction { # declared in BOOTSTRAP
-    # class Junction is Mu {
+    # class Junction is Mu
     #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
 

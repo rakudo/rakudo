@@ -1,5 +1,5 @@
 my class Signature { # declared in BOOTSTRAP
-    # class Signature is Any {
+    # class Signature is Any
     #   has @!params;             # VM's array of parameters
     #   has Mu $!returns;         # return type
     #   has int $!arity;          # arity

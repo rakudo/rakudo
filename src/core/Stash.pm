@@ -1,5 +1,5 @@
 my class Stash { # declared in BOOTSTRAP
-    # class Stash is Hash {
+    # class Stash is Hash
     #     has str $!longname;
 
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is raw {

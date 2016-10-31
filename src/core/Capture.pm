@@ -1,5 +1,5 @@
 my class Capture { # declared in BOOTSTRAP
-    # class Capture is Any {
+    # class Capture is Any
     #     has @!list;   # positional parameters
     #     has %!hash;   # named parameters
 

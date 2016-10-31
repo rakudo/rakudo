@@ -1,5 +1,5 @@
 my class Parameter { # declared in BOOTSTRAP
-    # class Parameter is Any {
+    # class Parameter is Any
     #     has str $!variable_name
     #     has @!named_names
     #     has @!type_captures

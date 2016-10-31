@@ -2,7 +2,7 @@ my class X::Numeric::DivideByZero { ... };
 my role Rational { ... };
 
 my class Num does Real { # declared in BOOTSTRAP
-    # class Num is Cool {
+    # class Num is Cool
     #     has num $!value is box_target;
 
     multi method WHICH(Num:D:) {

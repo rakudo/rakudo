@@ -1,5 +1,5 @@
 my class Code does Callable { # declared in BOOTSTRAP
-    # class Code is Any {
+    # class Code is Any
     #     has Code $!do;              # Low level code object
     #     has Signature $!signature;  # Signature object
     #     has @!compstuff;            # Place for the compiler to hang stuff

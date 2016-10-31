@@ -1,7 +1,7 @@
 my class X::Hash::Store::OddNumber { ... }
 
 my class Map does Iterable does Associative { # declared in BOOTSTRAP
-    # my class Map is Iterable is Cool {
+    # my class Map is Iterable is Cool
     #   has Mu $!storage;
 
     multi method WHICH(Map:D:) {

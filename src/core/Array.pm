@@ -7,7 +7,7 @@ my class X::Assignment::ArrayShapeMismatch { ... };
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
 # and so forth.
 my class Array { # declared in BOOTSTRAP
-    # class Array is List {
+    # class Array is List
     #     has Mu $!descriptor;
 
     my class ArrayReificationTarget {

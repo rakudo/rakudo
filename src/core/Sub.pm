@@ -1,5 +1,5 @@
 my class Sub { # declared in BOOTSTRAP
-    # class Sub is Routine { ... }
+    # class Sub is Routine
 
 }
 

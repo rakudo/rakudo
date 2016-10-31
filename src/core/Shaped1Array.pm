@@ -1,5 +1,5 @@
     my role Shaped1Array[::TValue] does ShapedArray[TValue] {
-        multi method AT-POS(Array:D: int \one) is raw {
+        multi method AT-POS(::?CLASS:D: int \one) is raw {
             nqp::ifnull(
               nqp::atpos(
                 nqp::getattr(self,List,'$!reified'),
@@ -15,7 +15,7 @@
               )
             )
         }
-        multi method AT-POS(Array:D: Int:D \one) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
             nqp::ifnull(
               nqp::atpos(
                 nqp::getattr(self,List,'$!reified'),
@@ -30,6 +30,11 @@
                        one, v) }
               )
             )
+        }
+
+        multi method keys(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
         }
     }
 

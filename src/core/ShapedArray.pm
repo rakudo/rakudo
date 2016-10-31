@@ -216,7 +216,18 @@
             nqp::bindattr(arr,List,'$!reified',
               Rakudo::Internals.SHAPED-ARRAY-STORAGE(
                 list-shape,nqp::knowhow,Mu));
-            arr does ShapedArray[Mu];
+            my int $dimensions = list-shape.elems;
+            arr does
+              nqp::if(nqp::iseq_i($dimensions,1),
+                Shaped1Array[Mu],
+                nqp::if(nqp::iseq_i($dimensions,2),
+                  Shaped2Array[Mu],
+                  nqp::if(nqp::iseq_i($dimensions,3),
+                    Shaped3Array[Mu],
+                    ShapedArray[Mu]
+                  )
+                )
+              );
             arr.^set_name('Array');
             nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
             arr.STORE(values) if values;

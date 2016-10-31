@@ -1,5 +1,6 @@
-# close down the Array class
 } 
+
+#========== closed down the Array class started in src/core/Array.pm  ==========
 
 # The [...] term creates an Array.
 proto circumfix:<[ ]>(|) { * }

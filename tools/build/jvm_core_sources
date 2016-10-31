@@ -56,6 +56,9 @@ src/core/array_slice.pm
 src/core/Slip.pm
 src/core/Array.pm
 src/core/ShapedArray.pm
+src/core/Shaped1Array.pm
+src/core/Shaped2Array.pm
+src/core/Shaped3Array.pm
 src/core/TypedArray.pm
 src/core/array_operators.pm
 src/core/native_array.pm

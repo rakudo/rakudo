@@ -411,14 +411,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
+    my $cursor-init := Cursor.^lookup("!cursor_init");
 
-    my \CURSOR-GLOBAL     := Cursor.^can("CURSOR_MORE"   ).AT-POS(0);  # :g
-    my \CURSOR-OVERLAP    := Cursor.^can("CURSOR_OVERLAP").AT-POS(0);  # :ov
-    my \CURSOR-EXHAUSTIVE := Cursor.^can("CURSOR_NEXT"   ).AT-POS(0);  # :ex
+    my \CURSOR-GLOBAL     := Cursor.^lookup("CURSOR_MORE"   );  # :g
+    my \CURSOR-OVERLAP    := Cursor.^lookup("CURSOR_OVERLAP");  # :ov
+    my \CURSOR-EXHAUSTIVE := Cursor.^lookup("CURSOR_NEXT"   );  # :ex
 
-    my \POST-MATCH  := Cursor.^can("MATCH" ).AT-POS(0);  # Match object
-    my \POST-STR    := Cursor.^can("STR"   ).AT-POS(0);  # Str object
+    my \POST-MATCH  := Cursor.^lookup("MATCH" );  # Match object
+    my \POST-STR    := Cursor.^lookup("STR"   );  # Str object
 
     # iterate with post-processing
     class POST-ITERATOR does Iterator {

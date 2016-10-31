@@ -1,7 +1,7 @@
 my class Grammar is Cursor {
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
+    my $cursor-init := Cursor.^lookup("!cursor_init");
 
     method parse(\target, :$rule, :$args, Mu :$actions) {
         nqp::decont(nqp::getlexdyn('$/') = nqp::stmts(

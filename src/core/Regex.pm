@@ -6,7 +6,7 @@ my class Regex { # declared in BOOTSTRAP
     #     has str $!source;
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^can("!cursor_init").AT-POS(0);
+    my $cursor-init := Cursor.^lookup("!cursor_init");
 
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Regex:D: Mu:U \a) {

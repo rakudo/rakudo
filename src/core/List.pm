@@ -1191,38 +1191,33 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method reverse() is nodal {
-        if self.is-lazy {   # reifies
-            Failure.new(X::Cannot::Lazy.new(:action<reverse>))
-        }
-        elsif $!reified {
-            my int $elems = nqp::elems($!reified);
-            my int $last  = nqp::sub_i($elems,1);
-            my int $i     = -1;
-            my $reversed := nqp::setelems(nqp::list,$elems);
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($reversed,nqp::sub_i($last,$i),
-                nqp::atpos($!reified,$i))
-            );
-            nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',$reversed)
-        }
-        else {
+        nqp::if(
+          self.is-lazy,    # reifies
+          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
+          nqp::if(
+            $!reified,
+            Rakudo::Internals.ReverseListToList(
+              self,
+              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
+                nqp::setelems(
+                  nqp::create(IterationBuffer),nqp::elems($!reified)
+                )
+              )
+            ),
             nqp::create(self)
-        }
+          )
+        )
     }
 
     method rotate(Int(Cool) $rotate = 1) is nodal {
         nqp::if(
-          self.is-lazy,
+          self.is-lazy,    # reifies
           Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
           nqp::if(
             $!reified,
             Rakudo::Internals.RotateListToList(
               self, $rotate,
-              nqp::p6bindattrinvres(
-                nqp::create(self),
-                List,
-                '$!reified',
+              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
                 nqp::setelems(
                   nqp::create(IterationBuffer),nqp::elems($!reified)
                 )

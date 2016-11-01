@@ -1,5 +1,5 @@
     my role Shaped3Array[::TValue] does ShapedArray[TValue] {
-        multi method AT-POS(Array:D: int \one, int \two, int \three) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
             nqp::ifnull(
               nqp::atpos3d(
                 nqp::getattr(self,List,'$!reified'),
@@ -15,7 +15,7 @@
               )
             )
         }
-        multi method AT-POS(Array:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
             nqp::ifnull(
               nqp::atpos3d(
                 nqp::getattr(self,List,'$!reified'),

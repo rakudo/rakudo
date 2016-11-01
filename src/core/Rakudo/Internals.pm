@@ -535,7 +535,7 @@ my class Rakudo::Internals {
     }
 
     method EmptyIterator() {
-        once class :: does Iterator {
+        BEGIN class :: does Iterator {
             method new() { nqp::create(self) }
             method pull-one(--> IterationEnd)  { }
             method push-all($ --> IterationEnd) { }

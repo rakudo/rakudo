@@ -12,11 +12,11 @@ class Version {
 
     multi method new(Version:) {
         # "v" highlander
-        once nqp::create(self)!SET-SELF(nqp::list,0,"")
+        INIT nqp::create(Version)!SET-SELF(nqp::list,0,"")      # should be once
     }
     multi method new(Version: Whatever) {
         # "v*" highlander
-        once nqp::create(self)!SET-SELF(nqp::list(*),-1,"*")
+        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,"*") # should be once
     }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
@@ -25,10 +25,10 @@ class Version {
 
         # higlanderize most common
         if $s eq '6' {
-            once nqp::create(self)!SET-SELF(nqp::list(6),0,"6")
+            INIT nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
         }
         elsif $s eq '6.c' {
-            once nqp::create(self)!SET-SELF(nqp::list(6,"c"),0,"6.c")
+            INIT nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
         }
 
         # something sensible given
@@ -58,7 +58,7 @@ class Version {
 
         # "v+" highlander
         elsif $s.ends-with("+") {
-            once nqp::create(self)!SET-SELF(nqp::list,1,"")
+            INIT nqp::create(Version)!SET-SELF(nqp::list,1,"") # should be once
         }
         # get "v" highlander
         else {

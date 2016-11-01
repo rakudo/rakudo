@@ -1212,23 +1212,25 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method rotate(Int(Cool) $rotate = 1) is nodal {
-        fail X::Cannot::Lazy.new(:action<rotate>) if self.is-lazy;
-        my int $elems = self.elems;  # this allocates/reifies
-        my $rotated := nqp::create(self);
-        if $elems {
-            my int $n = $rotate % $elems;
-            my $list := nqp::clone($!reified);
-            if $n > 0 {
-                $n = $n + 1;
-                nqp::push($list, nqp::shift($list)) while $n = $n - 1;
-            }
-            elsif $n < 0 {
-                $n = $n - 1;
-                nqp::unshift($list, nqp::pop($list)) while $n = $n + 1;
-            }
-            nqp::bindattr($rotated,List,'$!reified',$list);
-        }
-        $rotated;
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
+          nqp::if(
+            $!reified,
+            Rakudo::Internals.RotateListToList(
+              self, $rotate,
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                List,
+                '$!reified',
+                nqp::setelems(
+                  nqp::create(IterationBuffer),nqp::elems($!reified)
+                )
+              )
+            ),
+            nqp::create(self)
+          )
+        )
     }
 
     method rotor(List:D: *@cycle, :$partial) is nodal {

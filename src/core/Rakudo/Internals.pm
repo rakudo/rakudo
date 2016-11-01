@@ -578,6 +578,27 @@ my class Rakudo::Internals {
         }
     }
 
+    # rotate nqp list to another given list without using push/pop
+    method RotateListToList(\from,\n,\to) {
+        nqp::stmts(
+          (my $from := nqp::getattr(from,List,'$!reified')),
+          (my int $elems = nqp::elems($from)),
+          (my $to := nqp::getattr(to,List,'$!reified')),
+          (my int $i = -1),
+          (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
+          nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos(
+              $to,
+              ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+              nqp::atpos($from,$i)
+            ),
+          ),
+          to
+        )
+    }
+
     method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 

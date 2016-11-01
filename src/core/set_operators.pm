@@ -1,3 +1,4 @@
+use nqp;
 
 proto sub infix:<(elem)>($, $ --> Bool) is pure {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool) {
@@ -136,7 +137,12 @@ only sub infix:<(-)>(**@p) is pure {
 only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
-only sub infix:<(^)>(**@p) is pure {
+
+proto sub infix:<(^)>(|c) is pure {*}
+multi sub infix:<(^)>($a, $b) is pure {
+    ($a (-) $b) (+) ($b (-) $a)
+}
+multi sub infix:<(^)>(**@p) is pure {
     Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS

@@ -36,6 +36,13 @@
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
         }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) {
+            Rakudo::Internals.RotateListToList(
+              self,
+              $rotate,
+              self.new(:shape(self.shape))
+            )
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

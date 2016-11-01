@@ -6,6 +6,7 @@
             self.Any::AT-POS(|c)
         }
         multi method AT-POS(Array:D: **@indices) is raw {
+#say "dimmed AT-POS";
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems;
@@ -33,6 +34,7 @@
             self.Any::ASSIGN-POS(|c)
         }
         multi method ASSIGN-POS(**@indices) {
+#say "dimmed ASSIGN-POS";
             my \value = @indices.pop;
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
@@ -67,6 +69,7 @@
             self.Any::EXISTS-POS(|c)
         }
         multi method EXISTS-POS(**@indices) {
+#say "dimmed EXISTS-POS";
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my $dims       := nqp::dimensions($storage);
             my int $numdims = nqp::numdimensions($storage);
@@ -102,6 +105,7 @@
             self.Any::DELETE-POS(|c)
         }
         multi method DELETE-POS(**@indices) {
+#say "dimmed EXISTS-POS";
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems;
@@ -134,6 +138,7 @@
             self.Any::BIND-POS(|c)
         }
         multi method BIND-POS(Array:D: **@indices is raw) is raw {
+#say "dimmed BIND-POS";
             my Mu $storage := nqp::getattr(self, List, '$!reified');
             my int $numdims = nqp::numdimensions($storage);
             my int $numind  = @indices.elems - 1;
@@ -187,11 +192,8 @@
                 ?? self.new(:shape(self.shape), self.List.reverse())
                 !! X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
         }
-
         method rotate(::?CLASS:D: Cool \n) {
-            self.shape.elems == 1
-                ?? self.new(:shape(self.shape), self.List.rotate(n))
-                !! X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
+            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
         }
 
         # A shaped array isn't lazy, we these methods don't need to go looking

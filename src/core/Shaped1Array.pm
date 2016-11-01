@@ -36,12 +36,13 @@
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
         }
+        method reverse(::?CLASS:D:) {
+            Rakudo::Internals.ReverseListToList(
+              self, self.new(:shape(self.shape)))
+        }
         method rotate(::?CLASS:D: Int(Cool) $rotate = 1) {
             Rakudo::Internals.RotateListToList(
-              self,
-              $rotate,
-              self.new(:shape(self.shape))
-            )
+              self, $rotate, self.new(:shape(self.shape)))
         }
     }
 

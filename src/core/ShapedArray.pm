@@ -188,9 +188,7 @@
         }
 
         method reverse(::?CLASS:D:) {
-            self.shape.elems == 1
-                ?? self.new(:shape(self.shape), self.List.reverse())
-                !! X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
+            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
         }
         method rotate(::?CLASS:D: Cool \n) {
             X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw

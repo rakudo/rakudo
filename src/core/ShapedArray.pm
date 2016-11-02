@@ -201,6 +201,10 @@
         }
         method eager() { self }
         method is-lazy() { False }
+
+        multi method elems(::?CLASS:D:) {
+            nqp::elems(nqp::getattr(self,List,'$!reified'))
+        }
     }
 
     role Shaped1Array { ... }

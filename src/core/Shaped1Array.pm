@@ -51,9 +51,6 @@
             ) = item
         }
 
-        multi method elems(::?CLASS:D:) {
-            nqp::elems(nqp::getattr(self,List,'$!reified'))
-        }
         multi method keys(::?CLASS:D:) {
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))

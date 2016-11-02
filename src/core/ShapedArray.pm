@@ -1,3 +1,5 @@
+# this is actually part of the Array class
+
     my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 

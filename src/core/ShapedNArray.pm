@@ -1,3 +1,4 @@
+# this is actually part of the Array class
 
     sub set-shape(\arr, \values, \shape) {
         my $shape := Metamodel::EnumHOW.ACCEPTS(shape.HOW)

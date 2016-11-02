@@ -1,3 +1,5 @@
+# this is actually part of the Array class
+
     my role Shaped3Array[::TValue] does ShapedArray[TValue] {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
             nqp::ifnull(

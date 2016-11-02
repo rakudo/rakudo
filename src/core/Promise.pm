@@ -15,6 +15,15 @@ my class X::Promise::Vowed is Exception {
     has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
+my role X::Promise::Broken {
+    has $.result-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "Tried to get the result of a broken Promise\n" ~
+            ((try $!result-backtrace ~ "\n") // '') ~
+            "Original exception:\n" ~
+            callsame().indent(4)
+    }
+}
 my class Promise {
     has $.scheduler;
     has $.status;
@@ -117,7 +126,7 @@ my class Promise {
             $!result
         }
         elsif $!status == Broken {
-            $!result.throw
+            ($!result but X::Promise::Broken(Backtrace.new)).rethrow
         }
     }
 

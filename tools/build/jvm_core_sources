@@ -59,6 +59,7 @@ src/core/ShapedArray.pm
 src/core/Shaped1Array.pm
 src/core/Shaped2Array.pm
 src/core/Shaped3Array.pm
+src/core/ShapedNArray.pm
 src/core/TypedArray.pm
 src/core/array_operators.pm
 src/core/native_array.pm

@@ -51,5 +51,8 @@
             die "Can only type-constrain Array with [ValueType]"
         }
     }
+}
+
+#========== closed down the Array class started in src/core/Array.pm  ==========
 
 # vim: ft=perl6 expandtab sw=4

@@ -1068,6 +1068,6 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method WHICH(Array:D:) { self.Mu::WHICH }
 
-#============= class Array is closed in src/core/array_operators.pm ============
+#=============== class Array is closed in src/core/TypedArray.pm ===============
 
 # vim: ft=perl6 expandtab sw=4

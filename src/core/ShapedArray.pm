@@ -204,6 +204,16 @@
         multi method elems(::?CLASS:D:) {
             nqp::elems(nqp::getattr(self,List,'$!reified'))
         }
+
+        method clone() {
+            my \obj := nqp::create(self);
+            nqp::bindattr(obj,Array,'$!descriptor',
+              nqp::getattr(self,Array,'$!descriptor'));
+            nqp::bindattr(obj,::?CLASS,'$!shape',
+              nqp::getattr(self,::?CLASS,'$!shape'));
+            nqp::p6bindattrinvres(obj,List,'$!reified',
+              nqp::clone(nqp::getattr(self,List,'$!reified')))
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

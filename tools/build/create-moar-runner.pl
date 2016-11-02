@@ -28,7 +28,7 @@ unless $*VM.config<ccdebugflags> { say "The currently used MoarVM backend is not
 say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*VM.version(),";
 say "running on $*DISTRO.gist() / $*KERNEL.gist()\n";
 
-say "Type `bt full` to generate a backtrace if applicable, type `q` to quite or `help` for help.";
+say "Type `bt full` to generate a backtrace if applicable, type `q` to quit or `help` for help.";
 
 say "-" x 96;'
 gdb --quiet --ex=run --args %s --execname="$0" --libpath="%s" %s/%s "$@"

@@ -26,6 +26,31 @@
                      one, $scalar) }
             )
         }
+
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            nqp::stmts(
+              (my \list := nqp::getattr(self,List,'$!reified')),
+              (my \desc := nqp::getattr(self,Array,'$!descriptor')),
+              (my \iter := in.iterator),
+              (my int $i = -1),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd),
+                nqp::ifnull(
+                  nqp::atpos(list,($i = nqp::add_i($i,1))),
+                  nqp::bindpos(list,$i,nqp::p6scalarfromdesc(desc))
+                ) = $pulled
+              ),
+              self
+            )
+        }
+        multi method STORE(::?CLASS:D: Mu \item) {
+            nqp::ifnull(
+              nqp::atpos(nqp::getattr(self,List,'$!reified'),0),
+              nqp::bindpos(nqp::getattr(self,List,'$!reified'),0,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = item
+        }
+
         multi method keys(::?CLASS:D:) {
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))

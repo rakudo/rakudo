@@ -170,7 +170,7 @@ only sub infix:<(^)>(**@p) is pure {
     }
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b --> Setty) is pure {
+only sub infix:<⊖>($a, $b) is pure {
     $a (^) $b;
 }
 

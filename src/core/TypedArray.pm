@@ -23,18 +23,55 @@
             )
         }
 
+        # must have a proto here to hide the candidates in Array
+        # otherwise we could put bind any value to the Array
         proto method BIND-POS(|) { * }
-        multi method BIND-POS(Array:D: Int $pos, TValue \bindval) is raw {
-            my int $ipos = $pos;
-            my $todo := nqp::getattr(self, List, '$!todo');
-            $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval)
-        }
+
+        # these BIND-POSses are identical to Array's, except for bindval
         multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {
-            my $todo := nqp::getattr(self, List, '$!todo');
-            $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)
+            nqp::if(
+              nqp::islt_i($pos,0),
+              Failure.new(X::OutOfRange.new(
+                :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+              nqp::stmts(
+                nqp::if(
+                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::if(
+                    (nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::getattr(self,List,'$!todo').reify-at-least(
+                      nqp::add_i($pos,1)),
+                  ),
+                  nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+                ),
+                nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+              )
+            )
         }
+        # because this is a very hot path, we copied the code from the int candidate
+        multi method BIND-POS(Array:D: Int:D $pos, TValue \bindval) is raw {
+            nqp::if(
+              nqp::islt_i($pos,0),
+              Failure.new(X::OutOfRange.new(
+                :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+              nqp::stmts(
+                nqp::if(
+                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::if(
+                    (nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::getattr(self,List,'$!todo').reify-at-least(
+                      nqp::add_i($pos,1)),
+                  ),
+                  nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+                ),
+                nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+              )
+            )
+        }
+
         multi method perl(::?CLASS:D \SELF:) {
             my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');
             'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';

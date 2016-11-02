@@ -196,7 +196,7 @@
             X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
         }
 
-        # A shaped array isn't lazy, we these methods don't need to go looking
+        # A shaped array isn't lazy, these methods don't need to go looking
         # into the "todo".
         method eager() { self }
         method is-lazy() { False }

@@ -7,28 +7,48 @@
         multi method AT-POS(Array:U: |c) is raw {
             self.Any::AT-POS(|c)
         }
-        multi method AT-POS(Array:D: **@indices) is raw {
-#say "dimmed AT-POS";
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
+        multi method AT-POS(Array:D:) is raw {
+            die "Must specify at least one index with AT-POS"
+        }
 
-                my \elem = nqp::ifnull(
-                    nqp::atposnd($storage, $idxs),
-                    nqp::p6bindattrinvres(
-                        (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
-                        Scalar,
-                        '$!whence',
-                        -> { nqp::bindposnd($storage, $idxs, v) }));
-                @indices ?? elem.AT-POS(|@indices) !! elem
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
+        # Handle dimensions > 3 or more indices than dimensions.
+        # If dimensions <= 3, then custom AT-POS should have caught
+        # correct number of indices already.
+        multi method AT-POS(Array:D: **@indices) is raw {
+            nqp::stmts(
+              (my $reified := nqp::getattr(self,List,'$!reified')),
+              nqp::if(
+                nqp::islt_i(
+                  (my int $numin = @indices.elems),  # reifies
+                  (my int $numdims = nqp::numdimensions($reified))
+                ),
+                X::NYI.new(
+                  feature => "Partially dimensioned views of arrays").throw,
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                        # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  (my $element := nqp::ifnull(
+                    nqp::atposnd($reified,$idxs),    # found it
+                    nqp::p6bindattrinvres(           # create container
+                      (my $scalar := nqp::p6scalarfromdesc(
+                        nqp::getattr(self,Array,'$!descriptor'))),
+                      Scalar,
+                      '$!whence',
+                      -> { nqp::bindposnd($reified,$idxs,$scalar) }
+                    )
+                  )),
+                  nqp::if(
+                    nqp::elems($indices),
+                    $element.AT-POS(|@indices),      # index further
+                    $element                         # we're done!
+                  )
+                )
+              )
+            )
         }
 
         proto method ASSIGN-POS(|) {*}

@@ -1,5 +1,9 @@
 # this is actually part of the Array class
 
+    constant dim2type :=
+      nqp::list(Mu,Shaped1Array[Mu],Shaped2Array[Mu],Shaped3Array[Mu]);
+    constant ArrayN := ShapedArray[Mu];
+
     sub set-shape(\arr, \shape) {
         nqp::stmts(
           (my $shape := nqp::if(
@@ -11,24 +15,23 @@
               shape.list
             )
           )),
-          (my int $dimensions = $shape.elems),  # reifies
-          nqp::bindattr(arr,List,'$!reified',
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE($shape,nqp::knowhow,Mu)),
-          arr does nqp::if(
-            nqp::iseq_i($dimensions,1),
-            Shaped1Array[Mu],
-            nqp::if(
-              nqp::iseq_i($dimensions,2),
-              Shaped2Array[Mu],
-              nqp::if(nqp::iseq_i($dimensions,3),
-                Shaped3Array[Mu],
-                ShapedArray[Mu]
-              )
-            )
-          ),
-          arr.^set_name('Array'),
-          nqp::bindattr(arr, arr.WHAT, '$!shape', $shape),
-          arr
+          nqp::if(
+            (my int $dimensions = $shape.elems),  # reifies
+            nqp::stmts(
+              nqp::bindattr(arr.^mixin(
+                nqp::ifnull(nqp::atpos(dim2type,$dimensions),ArrayN)),
+              List,'$!reified',
+              Rakudo::Internals.SHAPED-ARRAY-STORAGE($shape,nqp::knowhow,Mu)),
+              arr.^set_name('Array'),
+              nqp::bindattr(arr, arr.WHAT, '$!shape', $shape),
+              arr
+            ),
+            Failure.new(X::NotEnoughDimensions(
+              operation         => 'create',
+              got-dimensions    => 0,
+              needed-dimensions => '',
+            ))
+          )
         )
     }
 

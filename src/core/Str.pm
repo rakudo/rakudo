@@ -185,14 +185,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
           Failure.new(X::OutOfRange.new(
             :what("Position in index"),
             :got($pos),
-            :range("0..{self.chars - 1}")
+            :range("0..{self.chars}")
           )),
           nqp::if(
             nqp::islt_i($pos,0),
             Failure.new(X::OutOfRange.new(
               :what("Position in index"),
               :got($pos),
-              :range("0..{self.chars - 1}")
+              :range("0..{self.chars}")
             )),
             nqp::if(
               nqp::islt_i((my int $i = nqp::index(
@@ -221,14 +221,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
           Failure.new(X::OutOfRange.new(
             :what("Position in rindex"),
             :got($pos),
-            :range("0..{self.chars - 1}")
+            :range("0..{self.chars}")
           )),
           nqp::if(
             nqp::islt_i($pos,0),
             Failure.new(X::OutOfRange.new(
               :what("Position in rindex"),
               :got($pos),
-              :range("0..{self.chars - 1}")
+              :range("0..{self.chars}")
             )),
             nqp::if(
               nqp::islt_i((my int $i = nqp::rindex(

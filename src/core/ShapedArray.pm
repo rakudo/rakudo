@@ -19,7 +19,7 @@
               (my $reified := nqp::getattr(self,List,'$!reified')),
               nqp::if(
                 nqp::islt_i(
-                  (my int $numin = @indices.elems),  # reifies
+                  @indices.elems,                    # reifies
                   (my int $numdims = nqp::numdimensions($reified))
                 ),
                 X::NYI.new(
@@ -55,35 +55,48 @@
         multi method ASSIGN-POS(Array:U: |c) {
             self.Any::ASSIGN-POS(|c)
         }
+        multi method ASSIGN-POS(Array:D:) {
+            die "Must specify at least one index and a value with ASSIGN-POS"
+        }
+        multi method ASSIGN-POS(Array:D: $) {
+            die "Must specify at least one index and a value with ASSIGN-POS"
+        }
+
         multi method ASSIGN-POS(**@indices) {
-#say "dimmed ASSIGN-POS";
-            my \value = @indices.pop;
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                # Dimension counts match, so fast-path it
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
-                nqp::ifnull(
-                    nqp::atposnd($storage, $idxs),
-                    nqp::bindposnd($storage, $idxs,
-                        nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor')))
-                    ) = value
-            }
-            elsif $numind > $numdims {
-                # More than enough dimensions; may work, fall to slow path
-                self.AT-POS(@indices) = value
-            }
-            else {
-                # Not enough dimensions, cannot possibly assign here
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
+            nqp::stmts(
+              (my \value = @indices.pop),            # reifies
+              (my $indices := nqp::getattr(@indices,List,'$!reified')),
+              (my $reified := nqp::getattr(self,List,'$!reified')),
+              nqp::if(
+                nqp::islt_i(
+                  (my int $numind  = nqp::elems($indices)),
+                  (my int $numdims = nqp::numdimensions($reified))
+                ),
+                X::NotEnoughDimensions.new(          # too few indices
+                  operation         => 'assign to',
+                  got-dimensions    => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                nqp::stmts(                          # more than enough indices
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                        # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  (my $element := nqp::ifnull(
+                    nqp::atposnd($reified,$idxs),    # found it!
+                    nqp::bindposnd($reified,$idxs,   # create new scalar
+                      nqp::p6scalarfromdesc(
+                        nqp::getattr(self,Array,'$!descriptor')))
+                  )),
+                  nqp::if(
+                    nqp::elems($indices),
+                    $element.AT-POS(|@indices),      # go deeper
+                    $element                         # this is it
+                  ) = value                          # and assign
+                )
+              )
+            )
         }
 
         proto method EXISTS-POS(|) {*}

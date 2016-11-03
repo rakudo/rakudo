@@ -1,25 +1,46 @@
 # this is actually part of the Array class
 
     my role TypedArray[::TValue] does Positional[TValue] {
+
         proto method new(|) { * }
-        multi method new(**@values is raw, :$shape) {
-            self!new-internal(@values, $shape);
+        multi method new(:$shape!) {
+            nqp::if(
+              nqp::defined($shape),
+              set-shape(self!create,$shape),
+              self!create
+            )
         }
-        multi method new(\values, :$shape) {
-            self!new-internal(values, $shape);
+        multi method new() {
+            self!create
+        }
+        multi method new(\values, :$shape!) {
+            nqp::if(
+              nqp::defined($shape),
+              set-shape(self!create,$shape).STORE(values),
+              self!create.STORE(values)
+            )
+        }
+        multi method new(\values) {
+            self!create.STORE(values)
+        }
+        multi method new(**@values is raw, :$shape!) {
+            nqp::if(
+              nqp::defined($shape),
+              set-shape(self!create,$shape).STORE(@values),
+              self!create.STORE(@values)
+            )
+        }
+        multi method new(**@values is raw) {
+            self!create.STORE(@values)
         }
 
-        method !new-internal(\values, \shape) {
-            set-shape(
-              nqp::p6bindattrinvres(
-                nqp::create(self),
-                Array,
-                '$!descriptor',
-                Perl6::Metamodel::ContainerDescriptor.new(
-                  :of(TValue), :rw(1), :default(TValue))
-              ),
-              values,
-              shape
+        method !create() {
+            nqp::p6bindattrinvres(
+              nqp::create(self),
+              Array,
+              '$!descriptor',
+              Perl6::Metamodel::ContainerDescriptor.new(
+                :of(TValue), :rw(1), :default(TValue))
             )
         }
 

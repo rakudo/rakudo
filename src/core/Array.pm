@@ -199,26 +199,34 @@ my class Array { # declared in BOOTSTRAP
 
     proto method new(|) { * }
     multi method new(:$shape!) {
-        self!new-internal(my @, $shape)
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(nqp::create(self),$shape),
+          nqp::create(self)
+        )
     }
     multi method new() {
         nqp::create(self)
     }
-    multi method new(Mu:D \values, :$shape!) {
-        self!new-internal(values, $shape)
+    multi method new(\values, :$shape!) {
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(nqp::create(self),$shape).STORE(values),
+          nqp::create(self).STORE(values)
+        )
     }
-    multi method new(Mu:D \values) {
+    multi method new(\values) {
         nqp::create(self).STORE(values)
     }
     multi method new(**@values is raw, :$shape!) {
-        self!new-internal(@values, $shape)
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(nqp::create(self),$shape).STORE(@values),
+          nqp::create(self).STORE(@values)
+        )
     }
     multi method new(**@values is raw) {
         nqp::create(self).STORE(@values)
-    }
-
-    method !new-internal(\values, \shape) {
-        set-shape(nqp::create(self), values, shape)
     }
 
     proto method STORE(|) { * }

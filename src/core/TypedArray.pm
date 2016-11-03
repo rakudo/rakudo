@@ -24,7 +24,7 @@
         }
 
         # must have a proto here to hide the candidates in Array
-        # otherwise we could put bind any value to the Array
+        # otherwise we could bind any value to the Array
         proto method BIND-POS(|) { * }
 
         # these BIND-POSses are identical to Array's, except for bindval

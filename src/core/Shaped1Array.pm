@@ -69,6 +69,35 @@
             )
         }
 
+        multi method DELETE-POS(::?CLASS:D: int \one) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos(
+                nqp::getattr(self,List,'$!reified'),
+                one)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, nqp::null),
+                $value
+              )
+            )
+        }
+        multi method DELETE-POS(::?CLASS:D: Int:D \one) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos(
+                nqp::getattr(self,List,'$!reified'),
+                one)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, nqp::null),
+                $value
+              )
+            )
+        }
+
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             nqp::stmts(
               (my \list := nqp::getattr(self,List,'$!reified')),

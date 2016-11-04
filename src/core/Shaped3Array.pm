@@ -83,6 +83,35 @@
               )
             )
         }
+
+        multi method DELETE-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos3d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two, three)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos3d(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, two, three, nqp::null),
+                $value
+              )
+            )
+        }
+        multi method DELETE-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos3d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two, three)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos3d(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, two, three, nqp::null),
+                $value
+              )
+            )
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

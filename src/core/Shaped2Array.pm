@@ -82,6 +82,35 @@
               )
             )
         }
+
+        multi method DELETE-POS(::?CLASS:D: int \one, int \two) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos2d(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, two, nqp::null),
+                $value
+              )
+            )
+        }
+        multi method DELETE-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+            nqp::if(
+              nqp::isnull(my $value := nqp::atpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two)),
+              Nil,
+              nqp::stmts(
+                nqp::bindpos2d(
+                  nqp::getattr(self,List,'$!reified'),
+                  one, two, nqp::null),
+                $value
+              )
+            )
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

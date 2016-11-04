@@ -98,6 +98,19 @@
             )
         }
 
+        multi method BIND-POS(::?CLASS:D: int \one, \value) {
+            nqp::bindpos(
+              nqp::getattr(self,List,'$!reified'),
+              one, value
+            )
+        }
+        multi method BIND-POS(::?CLASS:D: Int:D \one, \value) {
+            nqp::bindpos(
+              nqp::getattr(self,List,'$!reified'),
+              one, value
+            )
+        }
+
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             nqp::stmts(
               (my \list := nqp::getattr(self,List,'$!reified')),

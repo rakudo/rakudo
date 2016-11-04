@@ -111,6 +111,19 @@
               )
             )
         }
+
+        multi method BIND-POS(::?CLASS:D: int \one, int \two, \value) {
+            nqp::bindpos2d(
+              nqp::getattr(self,List,'$!reified'),
+              one, two, value
+            )
+        }
+        multi method BIND-POS(::?CLASS:D: Int:D \one, Int:D \two, \value) {
+            nqp::bindpos2d(
+              nqp::getattr(self,List,'$!reified'),
+              one, two, value
+            ) 
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

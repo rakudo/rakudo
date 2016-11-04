@@ -123,7 +123,7 @@ my class Binder {
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
     my int $SIG_ELEM_CODE_SIGIL          := 33554432;
 
-    # Binding reuslt flags.
+    # Binding result flags.
     my int $BIND_RESULT_OK       := 0;
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
@@ -193,7 +193,7 @@ my class Binder {
             $has_varname := 0;
         }
 
-        # Check if boxed/unboxed expections are met.
+        # Check if boxed/unboxed expectations are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
         my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
         if $is_rw && $desired_native {
@@ -376,7 +376,7 @@ my class Binder {
                     $oval := $oval."$coerce_method"();
                 }
                 else {
-                    # No coercion method availale; whine and fail to bind.
+                    # No coercion method available; whine and fail to bind.
                     if nqp::defined($error) {
                         $error[0] := "Unable to coerce value for '$varname' from " ~
                             $oval.HOW.name($oval) ~

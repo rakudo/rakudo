@@ -125,7 +125,7 @@ role STD {
 
         $<B>=[<?before .>]
         {
-            # Work out the delimeters.
+            # Work out the delimiters.
             my $c := $/.CURSOR;
             my @delims := $c.peek_delimiters($c.target, $c.pos);
             my $start := @delims[0];
@@ -1110,7 +1110,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # (fatal but not immediately so) and panic (immediately deadly). There
         # is a limit on the number of sorrows also. Unlike STD, which emits the
         # textual messages as it goes, we keep track of the exception objects
-        # and, if needed, make a compositite exception group.
+        # and, if needed, make a composite exception group.
         :my @*WORRIES;                             # exception objects resulting from worry
         :my @*SORROWS;                             # exception objects resulting from sorry
         :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
@@ -4654,7 +4654,7 @@ if $*COMPILING_CORE_SETTING {
             }
             self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
         }
-        # Mix an appropraite role into the grammar for parsing the new op.
+        # Mix an appropriate role into the grammar for parsing the new op.
         elsif $is_oper {
             my role Oper[$meth_name, $op, $precedence, $declarand] {
                 token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
@@ -5089,7 +5089,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     method tweak_to($v) {
         self.truly($v, ':to');
-        # the cursor_init is to ensure it's been initalized the same way
+        # the cursor_init is to ensure it's been initialized the same way
         # 'self' was back in quote_lang
         %*LANG<Quote>.HOW.mixin(%*LANG<Quote>, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
     }

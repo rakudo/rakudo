@@ -402,7 +402,7 @@ my class Problems {
     }
 }
 
-# Implements analsyis related to variable declarations within a block, which
+# Implements analysis related to variable declarations within a block, which
 # includes lexical to local handling and deciding when immediate blocks may
 # be flattened into their surrounding block.
 my class BlockVarOptimizer {
@@ -1881,7 +1881,7 @@ class Perl6::Optimizer {
             try $ok_type := nqp::istype($type, $!symbols.Mu) &&
                 $type.HOW.archetypes.nominal();
             unless $ok_type {
-                # nqp::ops end up labeled with nqp primtive types; we swap
+                # nqp::ops end up labeled with nqp primitive types; we swap
                 # those out for their Perl 6 equivalents.
                 my int $ps := nqp::objprimspec($type);
                 if $ps >= 1 && $ps <= 3 {
@@ -2155,7 +2155,7 @@ class Perl6::Optimizer {
         }
         $inlined.node($call.node);
 
-        # Do an optimzation pass over the inlined code.
+        # Do an optimization pass over the inlined code.
         $!symbols.faking_top_routine($code_obj,
             { self.visit_children($inlined) });
 

@@ -178,7 +178,7 @@ class Perl6::Pod {
     our sub normalize_text($a) {
 	# given a string of text, possibly including newlines, reduces
 	# contiguous whitespace to a single space and trim leading and
-	# trailing whiespace from all logical lines
+	# trailing whitespace from all logical lines
         my $r := subst($a, /\s+/, ' ', :global);
         $r    := subst($r, /^^\s*/, '');
         $r    := subst($r, /\s*$$/, '');

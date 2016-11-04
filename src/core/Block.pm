@@ -176,7 +176,7 @@ my class Block { # declared in BOOTSTRAP
         # but really Signature should be able to tell us that.
         #
         # Until then, we will add slurpy behaviors, assuming we
-        # do not aready have them, if we see a capture.
+        # do not already have them, if we see a capture.
         my $need_cap = ($sig.count == Inf and not ($slurp_p and $slurp_n));
         if $need_cap {
             $need_cap = False;

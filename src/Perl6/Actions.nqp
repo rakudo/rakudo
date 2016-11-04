@@ -2776,7 +2776,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # blocks, we need to ensure we get lexical outers fixed up
     # properly when deserializing after pre-comp. To do this we
     # make a list of closures, which each point to the outer
-    # context. These surive serialization and thus point at what
+    # context. These survive serialization and thus point at what
     # has to be fixed up.
     sub begin_time_lexical_fixup($block) {
         my $has_nested_blocks := 0;
@@ -6082,7 +6082,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 for @children {
                     if nqp::istype($_, QAST::Stmt) {
                         # Mustn't use QAST::Stmt here, as it will cause register
-                        # re-use within a statemnet, which is a problem.
+                        # re-use within a statement, which is a problem.
                         $_ := QAST::Stmts.new( |$_.list );
                     }
                     $past.push($_);
@@ -6581,7 +6581,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {
             # Native assignment is only possible to a reference; complain now
-            # rather than at runtime since we'll innevitably fail.
+            # rather than at runtime since we'll inevitably fail.
             my $scope := $lhs_ast.scope;
             if $scope ne 'lexicalref' && $scope ne 'attributeref' {
                 $lhs_ast.node.CURSOR.typed_sorry('X::Assignment::RO::Comp',

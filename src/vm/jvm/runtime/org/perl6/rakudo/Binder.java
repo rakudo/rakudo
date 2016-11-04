@@ -208,7 +208,7 @@ public final class Binder {
         String arg_s = null;
         SixModelObject arg_o = null;
         
-        /* Check if boxed/unboxed expections are met. */
+        /* Check if boxed/unboxed expectations are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
         int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);

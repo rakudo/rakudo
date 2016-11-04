@@ -1310,7 +1310,7 @@ class Perl6::World is HLL::World {
     }
 
     # Installs something package-y in the right place, creating the nested
-    # pacakges as needed.
+    # packages as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
         if $scope eq 'anon' || +@name_orig == 0 { return 1 }
         my @parts := nqp::clone(@name_orig);
@@ -3326,7 +3326,7 @@ class Perl6::World is HLL::World {
         has $!match;
 
         # Set of name components. Each one will be either a string
-        # or a PAST node that represents an expresison to produce it.
+        # or a PAST node that represents an expression to produce it.
         has @!components;
 
         # The colonpairs, if any.

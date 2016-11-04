@@ -23,7 +23,7 @@ class Version {
     }
     multi method new(Version: Str() $s) {
 
-        # higlanderize most common
+        # highlanderize most common
         if $s eq '6' {
             INIT nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
         }

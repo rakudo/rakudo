@@ -52,6 +52,23 @@
             ) = value
         }
 
+        multi method EXISTS-POS(::?CLASS:D: int \one) {
+            nqp::p6bool(
+              nqp::islt_i(one,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                && nqp::not_i(nqp::isnull(
+                     nqp::atpos(nqp::getattr(self,List,'$!reified'),one)
+              ))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+            nqp::p6bool(
+              nqp::islt_i(one,nqp::elems(nqp::getattr(self,List,'$!reified')))
+                && nqp::not_i(nqp::isnull(
+                     nqp::atpos(nqp::getattr(self,List,'$!reified'),one)
+              ))
+            )
+        }
+
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             nqp::stmts(
               (my \list := nqp::getattr(self,List,'$!reified')),

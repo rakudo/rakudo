@@ -51,6 +51,38 @@
                 nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
             ) = value
         }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+            nqp::p6bool(
+              nqp::stmts(
+                (my $dims :=
+                  nqp::dimensions(nqp::getattr(self,List,'$!reified'))),
+                nqp::islt_i(one,nqp::atpos_i($dims,0))
+                  && nqp::islt_i(two,nqp::atpos_i($dims,1))
+                    && nqp::not_i(nqp::isnull(
+                         nqp::atpos3d(
+                           nqp::getattr(self,List,'$!reified'),
+                           one, two, three)
+                       ))
+              )
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+            nqp::p6bool(
+              nqp::stmts(
+                (my $dims :=
+                  nqp::dimensions(nqp::getattr(self,List,'$!reified'))),
+                nqp::islt_i(one,nqp::atpos_i($dims,0))
+                  && nqp::islt_i(two,nqp::atpos_i($dims,1))
+                    && nqp::islt_i(three,nqp::atpos_i($dims,2))
+                      && nqp::not_i(nqp::isnull(
+                           nqp::atpos3d(
+                             nqp::getattr(self,List,'$!reified'),
+                             one, two, three)
+                         ))
+              )
+            )
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

@@ -64,19 +64,14 @@
 
         multi method ASSIGN-POS(**@indices) {
             nqp::stmts(
-              (my \value = @indices.pop),            # reifies
+              (my $value   := @indices.pop),         # reifies
               (my $indices := nqp::getattr(@indices,List,'$!reified')),
               (my $reified := nqp::getattr(self,List,'$!reified')),
               nqp::if(
-                nqp::islt_i(
+                nqp::isge_i(
                   (my int $numind  = nqp::elems($indices)),
                   (my int $numdims = nqp::numdimensions($reified))
                 ),
-                X::NotEnoughDimensions.new(          # too few indices
-                  operation         => 'assign to',
-                  got-dimensions    => $numind,
-                  needed-dimensions => $numdims
-                ).throw,
                 nqp::stmts(                          # more than enough indices
                   (my $idxs := nqp::list_i),
                   nqp::while(                        # native index list
@@ -93,8 +88,13 @@
                     nqp::elems($indices),
                     $element.AT-POS(|@indices),      # go deeper
                     $element                         # this is it
-                  ) = value                          # and assign
-                )
+                  ) = $value                         # and assign
+                ),
+                X::NotEnoughDimensions.new(          # too few indices
+                  operation         => 'assign to',
+                  got-dimensions    => $numind,
+                  needed-dimensions => $numdims
+                ).throw
               )
             )
         }
@@ -208,31 +208,46 @@
         multi method BIND-POS(Array:U: |c) is raw {
             self.Any::BIND-POS(|c)
         }
-        multi method BIND-POS(Array:D: **@indices is raw) is raw {
-#say "dimmed BIND-POS";
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems - 1;
-            my \value = @indices.AT-POS($numind);
-            if $numind >= $numdims {
-                # At least enough indices that binding will work out or we can
-                # pass the bind target on down the chain.
-                my $idxs := nqp::list_i();
-                my int $i = -1;
-                nqp::push_i($idxs, @indices.AT-POS($i))
-                  while nqp::islt_i(++$i,$numdims);
-                $numind == $numdims
-                    ?? nqp::bindposnd($storage, $idxs, value)
-                    !! nqp::atposnd($storage, $idxs).BIND-POS(|@indices[$numdims..*])
-            }
-            else {
-                # Not enough dimensions, cannot possibly assign here
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+        multi method BIND-POS(Array:D:) {
+            die "Must specify at least one index and a value with BIND-POS"
+        }
+        multi method BIND-POS(Array:D: $) {
+            die "Must specify at least one index and a value with BIND-POS"
+        }
+
+        multi method BIND-POS(Array:D: **@indices) is raw {
+            nqp::stmts(
+              (my $value   := nqp::decont(@indices.pop)), # reifies
+              (my $indices := nqp::getattr(@indices,List,'$!reified')),
+              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my int $i = -1),
+              nqp::if(
+                nqp::isge_i(
+                  (my int $numind  = nqp::elems($indices)),
+                  (my int $numdims = nqp::numdimensions($reified)),
+                ),
+                nqp::stmts(                               # same or more indices
+                  (my $idxs := nqp::list_i),
+                  nqp::while(
+                    nqp::islt_i(                          # still indices left
+                      ($i = nqp::add_i($i,1)),$numind),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::if(
+                    nqp::elems($indices),
+                    nqp::atposnd($reified,$idxs)          # bind at deeper level
+                      .BIND-POS(|@indices,$value),
+                    nqp::bindposnd($reified,$idxs,        # found it, bind here
+                      $value)
+                  )
+                ),
+                X::NotEnoughDimensions.new(               # fewer inds than dims
+                  operation         => 'bind to',
+                  got-dimensions    => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
+              )
+            )
         }
 
         proto method STORE(|) { * }

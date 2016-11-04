@@ -28,6 +28,29 @@
                      one, two, $scalar) }
             )
         }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, \value) {
+            nqp::ifnull(
+              nqp::atpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two),
+              nqp::bindpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = value
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, \value) {
+            nqp::ifnull(
+              nqp::atpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two),
+              nqp::bindpos2d(
+                nqp::getattr(self,List,'$!reified'),
+                one, two,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = value
+        }
     }
 
 # vim: ft=perl6 expandtab sw=4

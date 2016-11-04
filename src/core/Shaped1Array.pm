@@ -29,6 +29,29 @@
             )
         }
 
+        multi method ASSIGN-POS(::?CLASS:D: int \one, \value) {
+            nqp::ifnull(
+              nqp::atpos(
+                nqp::getattr(self,List,'$!reified'),
+                one),
+              nqp::bindpos(
+                nqp::getattr(self,List,'$!reified'),
+                one,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = value
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, \value) {
+            nqp::ifnull(
+              nqp::atpos(
+                nqp::getattr(self,List,'$!reified'),
+                one),
+              nqp::bindpos(
+                nqp::getattr(self,List,'$!reified'),
+                one,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = value
+        }
+
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             nqp::stmts(
               (my \list := nqp::getattr(self,List,'$!reified')),

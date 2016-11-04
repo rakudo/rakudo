@@ -103,7 +103,7 @@
         multi method EXISTS-POS(Array:U: |c) {
             self.Any::EXISTS-POS(|c)
         }
-        multi method EXISTS-POS(Array:D:) is raw {
+        multi method EXISTS-POS(Array:D:) {
             die "Must specify at least one index with EXISTS-POS"
         }
 
@@ -160,33 +160,48 @@
         multi method DELETE-POS(Array:U: |c) {
             self.Any::DELETE-POS(|c)
         }
-        multi method DELETE-POS(**@indices) {
-#say "dimmed EXISTS-POS";
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
+        multi method DELETE-POS(Array:D:) is raw {
+            die "Must specify at least one index with DELETE-POS"
+        }
 
-                my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);
-                if @indices {
-                    value.DELETE-POS(|@indices)
-                }
-                else {
-                    nqp::bindposnd($storage, $idxs, nqp::null());
-                    value
-                }
-            }
-            else {
-                # Not enough dimensions, cannot delete
-                X::NotEnoughDimensions.new(
-                    operation => 'delete from',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+        multi method DELETE-POS(**@indices) {
+            nqp::stmts(
+              (my int $numind = @indices.elems),     # reifies
+              (my $indices := nqp::getattr(@indices,List,'$!reified')),
+              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my int $i = -1),
+              nqp::if(
+                nqp::isge_i(
+                  $numind,
+                  (my int $numdims = nqp::numdimensions($reified)),
+                ),
+                nqp::stmts(                          # same or more indices
+                  (my $idxs := nqp::list_i),
+                  nqp::while(
+                    nqp::islt_i(                     # still indices left
+                      ($i = nqp::add_i($i,1)),$numind),
+                    nqp::push_i($idxs,nqp::shift($indices)),
+                  ),
+                  nqp::if(
+                    nqp::isnull(my $value := nqp::atposnd($reified,$idxs)),
+                    Nil,                             # nothing here
+                    nqp::if(
+                      nqp::elems($indices),
+                      $value.DELETE-POS(|@indices),  # delete at deeper level
+                      nqp::stmts(                    # found it, nullify here
+                        nqp::bindposnd($reified,$idxs,nqp::null),
+                        $value
+                      )
+                    )
+                  )
+                ),
+                X::NotEnoughDimensions.new(          # fewer inds than dims
+                  operation         => 'delete from',
+                  got-dimensions    => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
+              )
+            )
         }
 
         proto method BIND-POS(|) is raw {*}

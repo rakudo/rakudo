@@ -103,36 +103,57 @@
         multi method EXISTS-POS(Array:U: |c) {
             self.Any::EXISTS-POS(|c)
         }
+        multi method EXISTS-POS(Array:D:) is raw {
+            die "Must specify at least one index with EXISTS-POS"
+        }
+
         multi method EXISTS-POS(**@indices) {
-#say "dimmed EXISTS-POS";
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my $dims       := nqp::dimensions($storage);
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            my int $i = -1;
-
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                my int $idx;
-
-                ($idx = @indices.shift) >= nqp::atpos_i($dims,$i)
-                  ?? return False
-                  !! nqp::push_i($idxs, $idx)
-                  while nqp::islt_i(++$i,$numind);
-
-                nqp::isnull(nqp::atposnd($storage, $idxs))
-                  ?? False
-                  !! @indices
-                     ?? nqp::atposnd($storage, $idxs).EXISTS-POS(|@indices)
-                     !! True
-            }
-            else {
-                return False
-                  if @indices[$i] >= nqp::atpos_i($dims,$i)
-                  while nqp::islt_i(++$i,$numind);
-
-                True
-            }
+            nqp::p6bool(
+              nqp::stmts(
+                (my int $numind = @indices.elems),     # reifies
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $reified := nqp::getattr(self,List,'$!reified')),
+                (my $dims    := nqp::dimensions($reified)),
+                (my int $i = -1),
+                nqp::if(
+                  nqp::isge_i(
+                    $numind,
+                    (my int $numdims = nqp::numdimensions($reified)),
+                  ),
+                  nqp::stmts(                          # same or more indices
+                    (my $idxs := nqp::list_i),
+                    nqp::while(
+                      nqp::islt_i(                     # still indices left
+                        ($i = nqp::add_i($i,1)),
+                        $numind)
+                        && nqp::islt_i(                # within range?
+                             (my $idx = nqp::shift($indices)),
+                             nqp::atpos_i($dims,$i)),
+                      nqp::push_i($idxs,$idx)
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($i,$numind)
+                        && nqp::not_i(
+                             nqp::isnull(nqp::atposnd($reified,$idxs))),
+                      nqp::unless(                     # base pos exists
+                        nqp::not_i(nqp::elems($indices)),
+                        nqp::atposnd($reified,$idxs).EXISTS-POS(|@indices)
+                      )
+                    )
+                  ),
+                  nqp::stmts(                          # fewer inds than dims
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$numind)
+                        && nqp::islt_i(
+                             nqp::atpos($indices,$i),
+                             nqp::atpos_i($dims,$i)),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$numind)            # all clear or oor
+                  )
+                )
+              )
+            )
         }
 
         proto method DELETE-POS(|) {*}

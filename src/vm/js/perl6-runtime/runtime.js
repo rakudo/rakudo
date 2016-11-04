@@ -117,8 +117,7 @@ op.p6var = function(cont) {
 
 op.p6bindassert = function(ctx, value, type) {
   if (type !== Mu) {
-    var decont = nqp.op.decont(ctx, value);
-    if (nqp.op.istype(decont, type) == 0) {
+    if (nqp.op.istype(value.$$decont(ctx), type) == 0) {
       ctx.die("Type check failed in binding");
     }
   }
@@ -127,7 +126,7 @@ op.p6bindassert = function(ctx, value, type) {
 
 op.p6store = function(ctx, cont, value) {
   if (cont) {
-    cont.$$assign(ctx, nqp.op.decont(ctx, value));
+    cont.$$assign(ctx, value.$$decont(ctx));
   } else {
     if (!cont.STORE) {
       // TODO throw typed exception X::Assignment::RO

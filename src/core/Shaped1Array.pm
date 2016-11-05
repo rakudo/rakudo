@@ -141,6 +141,10 @@
             ) = item
         }
 
+        multi method keys(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
+        }
         method reverse(::?CLASS:D:) {
             Rakudo::Internals.ReverseListToList(
               self, self.new(:shape(self.shape)))

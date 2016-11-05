@@ -270,7 +270,7 @@
             }
         }
         multi method STORE(::?CLASS:D: Mu \item) {
-            self.STORE((item,))
+            X::Assignment::ToShaped.new(shape => self.shape).throw
         }
 
         method reverse(::?CLASS:D:) {

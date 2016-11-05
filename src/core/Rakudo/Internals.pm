@@ -169,6 +169,63 @@ my class Rakudo::Internals {
         }
     }
 
+    our role ShapeIterator does Iterator {
+        has $!dims;
+        has $!indices;  # cannot use native int array this early in settings
+        has $!list;
+        has int $!maxdim;
+        has int $!max;
+
+        method !SET-SELF(\shape,Mu \list) {
+            nqp::stmts(
+              ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
+              (my int $dims = nqp::elems($!dims)),
+              ($!indices := nqp::setelems(nqp::list_i,$dims)),
+              ($!list    := nqp::decont(list)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                nqp::bindpos_i($!indices,$i,0)
+              ),
+              ($!maxdim = nqp::sub_i($dims,1)),
+              ($!max    = nqp::atpos($!dims,$!maxdim)),
+              self
+            )
+        }
+        method new(\shape,Mu \list) { nqp::create(self)!SET-SELF(shape,\list) }
+
+        method !next-index(--> Nil) {
+            nqp::if(
+              nqp::islt_i(
+                (my int $i =
+                  nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1)),
+                $!max
+              ),
+              nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+              nqp::stmts(                             # done for now
+                (my int $level = $!maxdim),
+                nqp::until(                           # update indices
+                  nqp::islt_i(                        # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0)
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                    nqp::islt_i(                    
+                      nqp::bindpos_i($!indices,$level,
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos($!dims,$level)
+                    ),
+                  ),
+                  nqp::null
+                ),
+                nqp::if(                   # this was the last value
+                  nqp::islt_i($level,0),
+                  $!indices := nqp::null
+                )
+              )
+            )
+        }
+    }
+
     # given a List and a Seq, use the lists with indexes of the Seq to
     # map the List with another Seq
     method ListsFromSeq(\list,\seq --> Seq) {
@@ -534,76 +591,27 @@ my class Rakudo::Internals {
         }.new(from,to)
     }
 
-    # all possible keys for the shape of the given list
+    # all possible keys for a given shape
     method ShapeIndexIterator(\shape) {
-        class :: does Iterator {
-            has $!dims;
-            has $!indices;  # can't use native int array this early in settings
-            has int $!maxdim;
-            has int $!max;
-
-            method !SET-SELF(\shape) {
-                nqp::stmts(
-                  ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
-                  nqp::if(
-                    nqp::isgt_i((my int $dims = nqp::elems($!dims)),1),
-                    nqp::stmts(                            # more than 1 dim
-                      ($!indices   := nqp::setelems(nqp::list,$dims)),
-                      (my int $i = -1),
-                      nqp::while(
-                        nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
-                        nqp::bindpos($!indices,$i,0)
-                      ),
-                      ($!maxdim = nqp::sub_i($dims,1)),
-                      ($!max    = nqp::atpos($!dims,$!maxdim)),
-                      self
-                    ),
-                    Rakudo::Internals.IntRangeIterator(    # just the one dim
-                      0,nqp::sub_i(nqp::atpos($!dims,0),1))
-                  )
-                )
-            }
-            method new(\shape) { nqp::create(self)!SET-SELF(shape) }
-
+        class :: does ShapeIterator {
             method pull-one() {
                 nqp::if(
                   $!indices,
-                  nqp::stmts(                               # still iterating
-                    (my $result := nqp::clone($!indices)),
-                    nqp::if(
-                      nqp::islt_i(
-                        (my int $i =
-                          nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
-                        $!max
-                      ),
-                      nqp::bindpos($!indices,$!maxdim,$i),  # ready for next
-                      nqp::stmts(                           # done for now
-                        (my $level = $!maxdim),
-                        nqp::until(                         # update indices
-                          nqp::islt_i(                      # exhausted ??
-                            ($level = nqp::sub_i($level,1)),0)
-                            || nqp::stmts(
-                            nqp::bindpos($!indices,nqp::add_i($level,1),0),
-                            nqp::islt_i(                    
-                              nqp::bindpos($!indices,$level,
-                                nqp::add_i(nqp::atpos($!indices,$level),1)),
-                              nqp::atpos($!dims,$level)
-                            ),
-                          ),
-                          nqp::null
-                        ),
-                        nqp::if(                   # this was the last value
-                          nqp::islt_i($level,0),
-                          $!indices := nqp::null
-                        )
-                      )
+                  nqp::stmts(                      # still iterating
+                    (my $result :=
+                      nqp::setelems(nqp::list,nqp::add_i($!maxdim,1))),
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                      nqp::bindpos($result,$i,nqp::atpos_i($!indices,$i))
                     ),
-                    $result                        # what we had on entry
+                    self!next-index,               # set up next indices
+                    $result                        # what we found
                   ),
                   IterationEnd                     # done iterating
                 )
             }
-        }.new(shape)
+        }.new(shape,Mu)
     }
 
     method EmptyIterator() {

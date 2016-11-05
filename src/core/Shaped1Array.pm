@@ -116,13 +116,19 @@
               (my \list := nqp::getattr(self,List,'$!reified')),
               (my \desc := nqp::getattr(self,Array,'$!descriptor')),
               (my \iter := in.iterator),
+              (my int $elems = nqp::elems(list)),
               (my int $i = -1),
               nqp::until(
-                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd),
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
                 nqp::ifnull(
-                  nqp::atpos(list,($i = nqp::add_i($i,1))),
+                  nqp::atpos(list,$i),
                   nqp::bindpos(list,$i,nqp::p6scalarfromdesc(desc))
                 ) = $pulled
+              ),
+              nqp::unless(
+                nqp::islt_i($i,$elems) || iter.is-lazy,
+                nqp::atpos(list,$i) # too many values on non-lazy iter, error
               ),
               self
             )

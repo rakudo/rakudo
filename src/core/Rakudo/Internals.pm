@@ -972,6 +972,10 @@ my class Rakudo::Internals {
             self.DEFINITE ?? self!illegal("prepend") !! self.Any::prepend(|c)
         }
 
+        # illegal unless overridden for 1dimmed case
+        method reverse(::?CLASS:D: |) { self!illegal("reverse") }
+        method rotate(::?CLASS:D: |)  { self!illegal("rotate") }
+
         multi method keys(::?CLASS:D:) {
             Seq.new(Rakudo::Internals.ShapeIndexIterator(self.shape))
         }

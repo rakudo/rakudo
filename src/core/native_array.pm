@@ -890,14 +890,6 @@ my class array does Iterable is repr('VMArray') {
         multi method STORE(::?CLASS:D: Mu \item) {
             self.STORE((item,))
         }
-
-        method reverse(::?CLASS:D:) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
-        }
-
-        method rotate(::?CLASS:D: Cool) {
-            X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
-        }
     }
 
     role shapedintarray[::T] does shapedarray {

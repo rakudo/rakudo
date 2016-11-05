@@ -98,6 +98,12 @@ role Perl6::Metamodel::BUILDPLAN {
             @plan[+@plan] := [13, $obj, $_.key];
         }
 
+        # Does it have a POSTBUILD?
+        my $postbuild := $obj.HOW.find_method($obj, 'POSTBUILD', :no_fallback(1));
+        if !nqp::isnull($postbuild) && $postbuild {
+            @plan[+@plan] := [0, $postbuild];
+        }
+
         # Install plan for this class.
         @!BUILDPLAN := @plan;
 

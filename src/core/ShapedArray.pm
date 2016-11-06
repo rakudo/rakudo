@@ -291,6 +291,13 @@
                 }
             }.new(self.shape,self))
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+                method !result() {
+                    Pair.new(self!indices,nqp::atposnd($!list,$!indices))
+                }
+            }.new(self.shape,self))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeIterator {

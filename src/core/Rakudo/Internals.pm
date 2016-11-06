@@ -983,9 +983,6 @@ my class Rakudo::Internals {
         multi method keys(::?CLASS:D:) {
             Seq.new(Rakudo::Internals.ShapeIndexIterator(self.shape))
         }
-        multi method pairs(::?CLASS:D:) {
-            self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
-        }
         multi method antipairs(::?CLASS:D:) {
             self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
         }

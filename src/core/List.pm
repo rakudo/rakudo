@@ -822,46 +822,33 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has int $!on-key;
             has int $!key;
 
-            method !SET-SELF(\iter) {
-                $!iter := iter;
-                $!on-key = 1;
-                $!key    = 0;
-                self
-            }
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
             method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
             method pull-one() is raw {
                 nqp::if(
-                  $!on-key,
+                  ($!on-key = nqp::not_i($!on-key)),
                   nqp::if(
                     nqp::eqaddr(
                       ($!pulled := $!iter.pull-one),IterationEnd
                     ),
                     IterationEnd,
-                    nqp::stmts(
-                      ($!on-key = 0),
-                      +$!key  # need a right value
-                    )
+                    nqp::p6box_i(($!key = nqp::add_i($!key,1))),
                   ),
-                  nqp::stmts(
-                    ($!on-key = 1),
-                    ($!key = nqp::add_i($!key,1)),
-                    $!pulled
-                  )
+                  $!pulled,
                 )
             }
             method push-all($target --> IterationEnd) {
                 my $pulled;
-                my int $key;
+                my int $key = -1;
                 nqp::until(
                   nqp::eqaddr(
                     ($pulled := $!iter.pull-one),
                     IterationEnd
                   ),
                   nqp::stmts(
-                    $target.push(nqp::p6box_i($key)),
+                    $target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
                     $target.push($pulled),
-                    ($key = nqp::add_i($key,1))
                   )
                 )
             }

@@ -149,6 +149,10 @@
             Seq.new(
               Rakudo::Internals.IterateKeyValueFromIterator(self.iterator))
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Iterator {

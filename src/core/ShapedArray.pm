@@ -274,6 +274,23 @@
         }
 
         multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+                has int $!on-key;
+                method !result() is raw {
+                    nqp::if(
+                      ($!on-key = nqp::not_i($!on-key)),
+                      nqp::stmts(
+                        (my $result := self!indices),
+                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                        $result  
+                      ),
+                      nqp::atposnd($!list,$!indices)
+                    )
+                }
+            }.new(self.shape,self))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeIterator {

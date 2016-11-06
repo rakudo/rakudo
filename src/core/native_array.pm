@@ -894,6 +894,9 @@ my class array does Iterable is repr('VMArray') {
         multi method values(::?CLASS:D:) {
             self.keys.map({ self.AT-POS(|$_) })
         }
+        multi method kv(::?CLASS:D:) {
+            self.keys.map({ slip($_, self.AT-POS(|$_)) })
+        }
 
         method iterator(::?CLASS:D:) {
             self.values.iterator

@@ -176,13 +176,12 @@ my class Rakudo::Internals {
         has int $!maxdim;
         has int $!max;
 
-        method !init-list(Mu \list --> Nil) { $!list := list }
         method !SET-SELF(\shape,Mu \list) {
             nqp::stmts(
               ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
               (my int $dims = nqp::elems($!dims)),
               ($!indices := nqp::setelems(nqp::list_i,$dims)),
-              self!init-list(list),
+              ($!list    := nqp::getattr(list,List,'$!reified')),
               (my int $i = -1),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
@@ -193,7 +192,7 @@ my class Rakudo::Internals {
               self
             )
         }
-        method new(\shape,Mu \list) { nqp::create(self)!SET-SELF(shape,\list) }
+        method new(\shape,Mu \list) { nqp::create(self)!SET-SELF(shape,list) }
 
         method pull-one() {
             nqp::if(
@@ -615,7 +614,7 @@ my class Rakudo::Internals {
                   $result
                 )
             }
-        }.new(shape,Mu)
+        }.new(shape,nqp::list)  # needs fake list because of RT #130030
     }
 
     method EmptyIterator() {

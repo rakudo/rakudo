@@ -145,6 +145,10 @@
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
         }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateKeyValueFromIterator(self.iterator))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Iterator {

@@ -176,6 +176,18 @@ my class Rakudo::Internals {
         has int $!maxdim;
         has int $!max;
 
+        method !indices() {
+            nqp::stmts(
+              (my $result :=
+                nqp::setelems(nqp::list,nqp::add_i($!maxdim,1))),
+              (my int $i = -1),
+              nqp::while(                # convert list_i to list
+                nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                nqp::bindpos($result,$i,nqp::atpos_i($!indices,$i))
+              ),
+              $result
+            )
+        }
         method !SET-SELF(\shape,Mu \list) {
             nqp::stmts(
               ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
@@ -602,18 +614,7 @@ my class Rakudo::Internals {
     # all possible keys for a given shape
     method ShapeIndexIterator(\shape) {
         class :: does ShapeIterator {
-            method !result() {
-                nqp::stmts(
-                  (my $result :=
-                    nqp::setelems(nqp::list,nqp::add_i($!maxdim,1))),
-                  (my int $i = -1),
-                  nqp::while(                # convert list_i to list
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                    nqp::bindpos($result,$i,nqp::atpos_i($!indices,$i))
-                  ),
-                  $result
-                )
-            }
+            method !result() { self!indices }
         }.new(shape,nqp::list)  # needs fake list because of RT #130030
     }
 

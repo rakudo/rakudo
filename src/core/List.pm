@@ -816,43 +816,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! Seq.new(Rakudo::Internals.IntRangeIterator(0, self.elems - 1))
     }
     multi method kv(List:D:) {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has Mu $!pulled;
-            has int $!on-key;
-            has int $!key;
-
-            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
-
-            method pull-one() is raw {
-                nqp::if(
-                  ($!on-key = nqp::not_i($!on-key)),
-                  nqp::if(
-                    nqp::eqaddr(
-                      ($!pulled := $!iter.pull-one),IterationEnd
-                    ),
-                    IterationEnd,
-                    nqp::p6box_i(($!key = nqp::add_i($!key,1))),
-                  ),
-                  $!pulled,
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                my $pulled;
-                my int $key = -1;
-                nqp::until(
-                  nqp::eqaddr(
-                    ($pulled := $!iter.pull-one),
-                    IterationEnd
-                  ),
-                  nqp::stmts(
-                    $target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
-                    $target.push($pulled),
-                  )
-                )
-            }
-        }.new(self.iterator))
+        Seq.new(Rakudo::Internals.IterateKeyValueFromIterator(self.iterator))
     }
     multi method pairs(List:D:) {
         Seq.new(class :: does Iterator {

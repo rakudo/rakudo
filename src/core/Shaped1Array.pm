@@ -145,6 +145,46 @@
             Seq.new(
               Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
         }
+
+        method iterator(::?CLASS:D:) {
+            class :: does Iterator {
+                has Mu $!reified;
+                has int $!pos;
+                method !SET-SELF(Mu \list) {
+                    nqp::stmts(
+                      ($!reified := nqp::getattr(list,List,'$!reified')),
+                      ($!pos = -1),
+                      self
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::islt_i(
+                        ($!pos = nqp::add_i($!pos,1)),
+                        nqp::elems($!reified)
+                      ),
+                      nqp::atpos($!reified,$!pos),
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($!reified)),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
+                        $target.push(nqp::atpos($!reified,$!pos))
+                      )
+                    )
+                }
+                method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+                method sink-all(--> IterationEnd) {
+                    $!pos = nqp::elems($!reified)
+                }
+            }.new(self)
+        }
         method reverse(::?CLASS:D:) {
             Rakudo::Internals.ReverseListToList(
               self, self.new(:shape(self.shape)))

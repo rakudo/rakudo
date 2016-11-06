@@ -900,6 +900,9 @@ my class array does Iterable is repr('VMArray') {
         multi method pairs(::?CLASS:D:) {
             self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
         }
+        multi method antipairs(::?CLASS:D:) {
+            self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
+        }
 
         method iterator(::?CLASS:D:) {
             self.values.iterator

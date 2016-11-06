@@ -298,6 +298,13 @@
                 }
             }.new(self.shape,self))
         }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+                method !result() {
+                    Pair.new(nqp::atposnd($!list,$!indices),self!indices)
+                }
+            }.new(self.shape,self))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeIterator {

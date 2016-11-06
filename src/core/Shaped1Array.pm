@@ -153,6 +153,10 @@
             Seq.new(
               Rakudo::Internals.IteratePairFromIterator(self.iterator))
         }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        }
 
         method iterator(::?CLASS:D:) {
             class :: does Iterator {

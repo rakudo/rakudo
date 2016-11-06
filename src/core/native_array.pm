@@ -890,6 +890,14 @@ my class array does Iterable is repr('VMArray') {
         multi method STORE(::?CLASS:D: Mu \item) {
             self.STORE((item,))
         }
+
+        multi method values(::?CLASS:D:) {
+            self.keys.map({ self.AT-POS(|$_) })
+        }
+
+        method iterator(::?CLASS:D:) {
+            self.values.iterator
+        }
     }
 
     role shapedintarray[::T] does shapedarray {

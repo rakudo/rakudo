@@ -194,7 +194,7 @@ my class Rakudo::Internals {
         }
         method new(\shape,Mu \list) { nqp::create(self)!SET-SELF(shape,list) }
 
-        method pull-one() {
+        method pull-one() is raw {
             nqp::if(
               $!indices,
               nqp::stmts(                      # still iterating
@@ -982,9 +982,6 @@ my class Rakudo::Internals {
         multi method keys(::?CLASS:D:) {
             Seq.new(Rakudo::Internals.ShapeIndexIterator(self.shape))
         }
-        multi method values(::?CLASS:D:) {
-            self.keys.map({ self.AT-POS(|$_) })
-        }
         multi method kv(::?CLASS:D:) {
             self.keys.map({ slip($_, self.AT-POS(|$_)) })
         }
@@ -996,11 +993,6 @@ my class Rakudo::Internals {
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
-        }
-
-        method iterator(::?CLASS:D:) {
-            # This can be fairly heavily optimized in various ways later
-            self.values.iterator
         }
 
         # These work on the flat view

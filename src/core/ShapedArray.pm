@@ -273,6 +273,14 @@
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
 
+        multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
+
+        method iterator(::?CLASS:D:) {
+            class :: does Rakudo::Internals::ShapeIterator {
+                method !result() is raw { nqp::atposnd($!list,$!indices) }
+            }.new(self.shape,self)
+        }
+
         # A shaped array isn't lazy, these methods don't need to go looking
         # into the "todo".
         method eager() { self }

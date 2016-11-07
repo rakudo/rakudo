@@ -969,16 +969,35 @@ my class Rakudo::Internals {
         Nil
     }
 
-    # True if given array does not just contain objects of given type
+    # 1: array does not just contain objects of given type, 0: otherwise
     method NOT_ALL_TYPE(\values,\type) {
-        return True unless nqp::istype($_,type) for values;
-        False;
+        nqp::stmts(
+          (my int $elems = values.elems),   # reifies
+          (my $values := nqp::getattr(values,List,'$!reified')),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::istype(nqp::atpos($values,$i),type),
+            nqp::null
+          ),
+          nqp::islt_i($i,$elems)
+        )
     }
 
-    # True if given array does not just contain defined objects of given type
+    # 1: array does not just contain defined objects of given type, 0: otherwise
     method NOT_ALL_DEFINED_TYPE(\values,\type) {
-        return True unless nqp::defined($_) && nqp::istype($_,type) for values;
-        False;
+        nqp::stmts(
+          (my int $elems = values.elems),   # reifies
+          (my $values := nqp::getattr(values,List,'$!reified')),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::defined(nqp::atpos($values,$i))
+              && nqp::istype(nqp::atpos($values,$i),type),
+            nqp::null
+          ),
+          nqp::islt_i($i,$elems)
+        )
     }
 
     method TRANSPOSE(str $string, str $original, str $final) {

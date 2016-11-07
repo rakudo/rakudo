@@ -521,15 +521,38 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
-    my int $elems = @indices.elems;
-    my $indices := nqp::getattr(@indices,List,'$!reified');
-    my int $i = -1;
-
-    return MD-ARRAY-SLICE(SELF, @indices) = assignee
-      unless nqp::istype(nqp::atpos($indices,$i), Int)
-      while nqp::islt_i(++$i,$elems);
-
-    SELF.ASSIGN-POS(|@indices, assignee)
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
+      ),
+      nqp::if(
+        nqp::islt_i($i,$elems),
+        (MD-ARRAY-SLICE(SELF,@indices) = assignee),
+        nqp::if(
+          nqp::iseq_i($elems,2),
+          SELF.ASSIGN-POS(
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1),
+            assignee
+          ),
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.ASSIGN-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2),
+              assignee
+            ),
+            SELF.ASSIGN-POS(|@indices,assignee)
+          )
+        )
+      )
+    )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {

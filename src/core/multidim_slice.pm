@@ -159,19 +159,41 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
-    if $delete {
-        my int $elems = @indices.elems;
-        my $indices := nqp::getattr(@indices,List,'$!reified');
-        my int $i = -1;
-        fail X::NYI.new(feature => ':delete on multi-dimensional slices')
-          unless nqp::istype(nqp::atpos($indices,$i), Int)
-          while nqp::islt_i(++$i,$elems);
-
-        SELF.DELETE-POS(|@indices)
-    }
-    else {
-        SELF[@indices]
-    }
+    nqp::if(
+      $delete,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':delete on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            SELF.DELETE-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1)
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              SELF.DELETE-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1),
+                nqp::atpos($indices,2)
+              ),
+              SELF.DELETE-POS(|@indices)
+            )
+          )
+        )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
+    )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {

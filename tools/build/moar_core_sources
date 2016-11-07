@@ -54,6 +54,7 @@ src/core/Nil.pm
 src/core/Range.pm
 src/core/List.pm
 src/core/array_slice.pm
+src/core/multidim_slice.pm
 src/core/Slip.pm
 src/core/Array.pm
 src/core/ShapedArray.pm

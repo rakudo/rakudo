@@ -120,41 +120,38 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     )
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
-    nqp::if(
-      $exists,
-      nqp::stmts(
-        (my int $elems = @indices.elems),   # reifies
-        (my $indices := nqp::getattr(@indices,List,'$!reified')),
-        (my int $i = -1),
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-            && nqp::istype(nqp::atpos($indices,$i),Int),
-          nqp::null
-        ),
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
+      ),
+      nqp::if(
+        nqp::islt_i($i,$elems),
+        X::Bind::Slice.new(type => SELF.WHAT).throw,
         nqp::if(
-          nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':exists on multi-dimensional slices')),
+          nqp::iseq_i($elems,2),
+          SELF.BIND-POS(
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1),
+            $BIND
+          ),
           nqp::if(
-            nqp::iseq_i($elems,2),
-            SELF.EXISTS-POS(
+            nqp::iseq_i($elems,3),
+            SELF.BIND-POS(
               nqp::atpos($indices,0),
-              nqp::atpos($indices,1)
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2),
+              $BIND
             ),
-            nqp::if(
-              nqp::iseq_i($elems,3),
-              SELF.EXISTS-POS(
-                nqp::atpos($indices,0),
-                nqp::atpos($indices,1),
-                nqp::atpos($indices,2)
-              ),
-              SELF.EXISTS-POS(|@indices)
-            )
+            SELF.BIND-POS(|@indices, $BIND)
           )
         )
-      ),
-      postcircumfix:<[; ]>(SELF, @indices)
+      )
     )
 }
 
@@ -196,38 +193,262 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     )
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
-    nqp::stmts(
-      (my int $elems = @indices.elems),   # reifies
-      (my $indices := nqp::getattr(@indices,List,'$!reified')),
-      (my int $i = -1),
-      nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos($indices,$i),Int),
-        nqp::null
-      ),
-      nqp::if(
-        nqp::islt_i($i,$elems),
-        X::Bind::Slice.new(type => SELF.WHAT).throw,
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
+    nqp::if(
+      $exists,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
         nqp::if(
-          nqp::iseq_i($elems,2),
-          SELF.BIND-POS(
-            nqp::atpos($indices,0),
-            nqp::atpos($indices,1),
-            $BIND
-          ),
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':exists on multi-dimensional slices')),
           nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.BIND-POS(
+            nqp::iseq_i($elems,2),
+            SELF.EXISTS-POS(
               nqp::atpos($indices,0),
-              nqp::atpos($indices,1),
-              nqp::atpos($indices,2),
-              $BIND
+              nqp::atpos($indices,1)
             ),
-            SELF.BIND-POS(|@indices, $BIND)
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1),
+                nqp::atpos($indices,2)
+              ),
+              SELF.EXISTS-POS(|@indices)
+            )
           )
         )
-      )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
+    )
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
+    nqp::if(
+      $kv,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':kv on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            nqp::if(
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              ),
+              (@indices, SELF.AT-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              )),
+              ()
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              nqp::if(
+                SELF.EXISTS-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                ),
+                (@indices, SELF.AT-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                )),
+                ()
+              ),
+              nqp::if(
+                SELF.EXISTS-POS(|@indices),
+                (@indices, SELF.AT-POS(|@indices)),
+                ()
+              )
+            )
+          )
+        )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
+    )
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
+    nqp::if(
+      $p,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':p on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            nqp::if(
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              ),
+              Pair.new(@indices, SELF.AT-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              )),
+              ()
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              nqp::if(
+                SELF.EXISTS-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                ),
+                Pair.new(@indices, SELF.AT-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                )),
+                ()
+              ),
+              nqp::if(
+                SELF.EXISTS-POS(|@indices),
+                Pair.new(@indices, SELF.AT-POS(|@indices)),
+                ()
+              )
+            )
+          )
+        )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
+    )
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
+    nqp::if(
+      $k,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':k on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            nqp::if(
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              ),
+              @indices,
+              ()
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              nqp::if(
+                SELF.EXISTS-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                ),
+                @indices,
+                ()
+              ),
+              nqp::if(
+                SELF.EXISTS-POS(|@indices),
+                @indices,
+                ()
+              )
+            )
+          )
+        )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
+    )
+}
+
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
+    nqp::if(
+      $v,
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
+        ),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':v on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            nqp::if(
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              ),
+              nqp::decont(SELF.AT-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1)
+              )),
+              ()
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              nqp::if(
+                SELF.EXISTS-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                ),
+                nqp::decont(SELF.AT-POS(
+                  nqp::atpos($indices,0),
+                  nqp::atpos($indices,1),
+                  nqp::atpos($indices,2)
+                )),
+                ()
+              ),
+              nqp::if(
+                SELF.EXISTS-POS(|@indices),
+                nqp::decont(SELF.AT-POS(|@indices)),
+                ()
+              )
+            )
+          )
+        )
+      ),
+      postcircumfix:<[; ]>(SELF, @indices)
     )
 }
 

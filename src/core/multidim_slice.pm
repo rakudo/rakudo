@@ -197,14 +197,38 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
-    my int $elems = @indices.elems;
-    my $indices := nqp::getattr(@indices,List,'$!reified');
-    my int $i = -1;
-    X::Bind::Slice.new(type => SELF.WHAT).throw
-      unless nqp::istype(nqp::atpos($indices,$i), Int)
-      while nqp::islt_i(++$i,$elems);
-
-    SELF.BIND-POS(|@indices, $BIND)
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
+      ),
+      nqp::if(
+        nqp::islt_i($i,$elems),
+        X::Bind::Slice.new(type => SELF.WHAT).throw,
+        nqp::if(
+          nqp::iseq_i($elems,2),
+          SELF.BIND-POS(
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1),
+            $BIND
+          ),
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.BIND-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2),
+              $BIND
+            ),
+            SELF.BIND-POS(|@indices, $BIND)
+          )
+        )
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -37,7 +37,11 @@ only sub infix:<(|)>(**@p) is pure {
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
-            $mixhash{$_} max= $mix{$_} for $mix.keys;
+            for $mix.keys {
+                # Handle negative weights: don't take max for keys that are zero
+                $mixhash{$_} ?? ($mixhash{$_} max= $mix{$_})
+                             !!  $mixhash{$_}    = $mix{$_}
+            }
         }
         $mixhash.Mix(:view);
     } elsif @p.first(Baggy) {

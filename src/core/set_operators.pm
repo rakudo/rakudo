@@ -136,41 +136,11 @@ only sub infix:<(-)>(**@p) is pure {
 only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
-
 only sub infix:<(^)>(**@p) is pure {
-    return set() unless my $chain = @p.elems;
-
-    if $chain == 1 {
-        return @p[0];
-    } elsif $chain == 2 {
-        my ($a, $b) = @p;
-        if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
-            ($a, $b) = $a.MixHash, $b.MixHash;
-        } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
-            ($a, $b) = $a.BagHash, $b.BagHash;
-        }
-        return  ($a (|) $b) (-) ($b (&) $a);
-    } else {
-        my $head;
-        while (@p) {
-            my ($a, $b);
-            if $head.defined {
-                ($a, $b) = $head, @p.shift;
-            } else {
-                ($a, $b) = @p.shift, @p.shift;
-            }
-            if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
-                ($a, $b) = $a.MixHash, $b.MixHash;
-            } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
-                ($a, $b) = $a.BagHash, $b.BagHash;
-            }
-            $head = ($a (|) $b) (-) ($b (&) $a);
-        }
-        return $head;
-    }
+    Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b) is pure {
+only sub infix:<⊖>($a, $b --> Setty) is pure {
     $a (^) $b;
 }
 

@@ -1,4 +1,5 @@
 var nqp = require('nqp-runtime');
+var Null = nqp.Null;
 var CodeRef = require('nqp-runtime/code-ref');
 var NQPArray = require('nqp-runtime/array');
 var op = {};
@@ -59,7 +60,7 @@ op.p6box_s = function(str) {
 op.p6captureouters2 = function(ctx, capList, target) {
   var cf = (target.outerCtx || closure.forcedOuter);
 
-  if (cf === null) {
+  if (cf === Null) {
     return capList;
   }
 
@@ -106,7 +107,7 @@ op.p6capturelex = function(ctx, codeObj) {
 };
 
 op.p6var = function(cont) {
-  if (cont != null && cont.$$iscont && cont.$$iscont()) {
+  if (cont.$$iscont && cont.$$iscont()) {
     var wrapper = Scalar._STable.REPR.allocate(Scalar._STable);
     wrapper.$$bindattr(Scalar, '$!value', cont);
     return wrapper;

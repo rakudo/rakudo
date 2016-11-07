@@ -43,7 +43,7 @@ $ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     my $tmp := $*BLOCK.add_tmp;
     $ops.new_chunk($ops.VOID, "", [
         "$tmp = nqp.p6binder.bind_sig($*CTX, null, nqp.p6binder, nqp.op.savecapture(Array.prototype.slice.call(arguments)));\n",
-        "if ($tmp !== null) return $tmp;\n"
+        "if ($tmp !== Null) return $tmp;\n"
     ]);
 });
 

@@ -969,8 +969,8 @@ my class Rakudo::Internals {
         Nil
     }
 
-    # 1: array does not just contain objects of given type, 0: otherwise
-    method NOT_ALL_TYPE(\values,\type) {
+    # number of elems of type if all, otherwise 0
+    method ALL_TYPE(\values,\type) {
         nqp::stmts(
           (my int $elems = values.elems),   # reifies
           (my $values := nqp::getattr(values,List,'$!reified')),
@@ -980,12 +980,12 @@ my class Rakudo::Internals {
               && nqp::istype(nqp::atpos($values,$i),type),
             nqp::null
           ),
-          nqp::islt_i($i,$elems)
+          nqp::iseq_i($i,$elems) && $elems
         )
     }
 
-    # 1: array does not just contain defined objects of given type, 0: otherwise
-    method NOT_ALL_DEFINED_TYPE(\values,\type) {
+    # number of elems of defined && type if all, otherwise 0
+    method ALL_DEFINED_TYPE(\values,\type) {
         nqp::stmts(
           (my int $elems = values.elems),   # reifies
           (my $values := nqp::getattr(values,List,'$!reified')),
@@ -996,7 +996,7 @@ my class Rakudo::Internals {
               && nqp::istype(nqp::atpos($values,$i),type),
             nqp::null
           ),
-          nqp::islt_i($i,$elems)
+          nqp::iseq_i($i,$elems) && $elems
         )
     }
 

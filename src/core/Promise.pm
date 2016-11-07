@@ -191,14 +191,14 @@ my class Promise {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int $N, Str $combinator) {
-        X::Promise::Combinator.new(:$combinator).throw
-          if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@promises, Promise);
-
         my $p = Promise.new;
         unless @promises {
             $p.keep;
             return $p
         }
+
+        X::Promise::Combinator.new(:$combinator).throw
+          unless Rakudo::Internals.ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;
         my int $c  = $n;

@@ -457,7 +457,7 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'merge'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0].sanitize  if +@s == 1; # nothing to be done
 
@@ -1103,7 +1103,7 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -1132,7 +1132,7 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip-latest'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0] if +@s == 1;           # nothing to do.
 

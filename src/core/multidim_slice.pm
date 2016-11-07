@@ -53,76 +53,106 @@ sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
-    nqp::if(
-      (my int $elems = Rakudo::Internals.ALL_DEFINED_TYPE(@indices,Int)),
-      nqp::if(
-        nqp::iseq_i($elems,2),
-        SELF.AT-POS(
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1)
-        ),
-        nqp::if(
-          nqp::iseq_i($elems,3),
-          SELF.AT-POS(
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),2)
-          ),
-          SELF.AT-POS(|@indices)
-        )
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
       ),
-      MD-ARRAY-SLICE(SELF,@indices),
+      nqp::if(
+        nqp::islt_i($i,$elems),
+        MD-ARRAY-SLICE(SELF,@indices),
+        nqp::if(
+          nqp::iseq_i($elems,2),
+          SELF.AT-POS(
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1)
+          ),
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.AT-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2)
+            ),
+            SELF.AT-POS(|@indices)
+          )
+        )
+      )
     )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
-    nqp::if(
-      (my int $elems = Rakudo::Internals.ALL_DEFINED_TYPE(@indices,Int)),
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
+      ),
       nqp::if(
-        nqp::iseq_i($elems,2),
-        SELF.ASSIGN-POS(
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-          assignee
-        ),
+        nqp::islt_i($i,$elems),
+        (MD-ARRAY-SLICE(SELF,@indices) = assignee),
         nqp::if(
-          nqp::iseq_i($elems,3),
+          nqp::iseq_i($elems,2),
           SELF.ASSIGN-POS(
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),2),
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1),
             assignee
           ),
-          SELF.ASSIGN-POS(|@indices,assignee)
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.ASSIGN-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2),
+              assignee
+            ),
+            SELF.ASSIGN-POS(|@indices,assignee)
+          )
         )
-      ),
-      (MD-ARRAY-SLICE(SELF,@indices) = assignee),
+      )
     )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
     nqp::if(
       $exists,
-      nqp::if(
-        (my int $elems = Rakudo::Internals.ALL_DEFINED_TYPE(@indices,Int)),
-        nqp::if(
-          nqp::iseq_i($elems,2),
-          SELF.EXISTS-POS(
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1)
-          ),
-          nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.EXISTS-POS(
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),2)
-            ),
-            SELF.EXISTS-POS(|@indices)
-          )
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
         ),
-        Failure.new(X::NYI.new(
-          feature => ':exists on multi-dimensional slices')),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':exists on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            SELF.EXISTS-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1)
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              SELF.EXISTS-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1),
+                nqp::atpos($indices,2)
+              ),
+              SELF.EXISTS-POS(|@indices)
+            )
+          )
+        )
       ),
       postcircumfix:<[; ]>(SELF, @indices)
     )
@@ -131,53 +161,73 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     nqp::if(
       $delete,
-      nqp::if(
-        (my int $elems = Rakudo::Internals.ALL_DEFINED_TYPE(@indices,Int)),
-        nqp::if(
-          nqp::iseq_i($elems,2),
-          SELF.DELETE-POS(
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1)
-          ),
-          nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.DELETE-POS(
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-              nqp::atpos(nqp::getattr(@indices,List,'$!reified'),2)
-            ),
-            SELF.DELETE-POS(|@indices)
-          )
+      nqp::stmts(
+        (my int $elems = @indices.elems),   # reifies
+        (my $indices := nqp::getattr(@indices,List,'$!reified')),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::istype(nqp::atpos($indices,$i),Int),
+          nqp::null
         ),
-        Failure.new(X::NYI.new(
-          feature => ':delete on multi-dimensional slices')),
+        nqp::if(
+          nqp::islt_i($i,$elems),
+          Failure.new(X::NYI.new(
+            feature => ':delete on multi-dimensional slices')),
+          nqp::if(
+            nqp::iseq_i($elems,2),
+            SELF.DELETE-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1)
+            ),
+            nqp::if(
+              nqp::iseq_i($elems,3),
+              SELF.DELETE-POS(
+                nqp::atpos($indices,0),
+                nqp::atpos($indices,1),
+                nqp::atpos($indices,2)
+              ),
+              SELF.DELETE-POS(|@indices)
+            )
+          )
+        )
       ),
       postcircumfix:<[; ]>(SELF, @indices)
     )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
-    nqp::if(
-      (my int $elems = Rakudo::Internals.ALL_DEFINED_TYPE(@indices,Int)),
+    nqp::stmts(
+      (my int $elems = @indices.elems),   # reifies
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::null
+      ),
       nqp::if(
-        nqp::iseq_i($elems,2),
-        SELF.BIND-POS(
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-          nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-          $BIND
-        ),
+        nqp::islt_i($i,$elems),
+        X::Bind::Slice.new(type => SELF.WHAT).throw,
         nqp::if(
-          nqp::iseq_i($elems,3),
+          nqp::iseq_i($elems,2),
           SELF.BIND-POS(
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),0),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),1),
-            nqp::atpos(nqp::getattr(@indices,List,'$!reified'),2),
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1),
             $BIND
           ),
-          SELF.BIND-POS(|@indices, $BIND)
-         )
-      ),
-      X::Bind::Slice.new(type => SELF.WHAT).throw,
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.BIND-POS(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2),
+              $BIND
+            ),
+            SELF.BIND-POS(|@indices, $BIND)
+          )
+        )
+      )
     )
 }
 

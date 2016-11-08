@@ -118,7 +118,7 @@ op.p6var = function(cont) {
 
 op.p6bindassert = function(ctx, value, type) {
   if (type !== Mu) {
-    if (nqp.op.istype(value.$$decont(ctx), type) == 0) {
+    if (nqp.op.istype(ctx, value.$$decont(ctx), type) == 0) {
       ctx.die("Type check failed in binding");
     }
   }

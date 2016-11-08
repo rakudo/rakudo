@@ -1,6 +1,6 @@
 # this is actually part of the Array class
 
-    my role Shaped2Array[::TValue] does ShapedArray[TValue] {
+    my role Shaped2Array does ShapedArray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
             nqp::ifnull(
               nqp::atpos2d(

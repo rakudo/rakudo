@@ -1,6 +1,6 @@
 # this is actually part of the Array class
 
-    my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
+    my role ShapedArray does Positional[Mu] does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
         proto method AT-POS(|) is raw {*}

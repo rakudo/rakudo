@@ -1,8 +1,8 @@
 # this is actually part of the Array class
 
     constant dim2type :=
-      nqp::list(Mu,Shaped1Array[Mu],Shaped2Array[Mu],Shaped3Array[Mu]);
-    constant ArrayN := ShapedArray[Mu];
+      nqp::list(Mu,Shaped1Array,Shaped2Array,Shaped3Array);
+    constant ArrayN := ShapedArray;
 
     sub set-shape(\arr, \shape) {
         nqp::stmts(

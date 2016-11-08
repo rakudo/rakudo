@@ -7215,10 +7215,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<escale> { # wants a Num
             $parti := nqp::tonum_I($parti);
 
+            $parti := nqp::div_n($parti, $partf);
             if $parti != 0.0 {
                 $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
             }
-            $parti := nqp::div_n($parti, $partf);
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
         } else { # wants a Rat

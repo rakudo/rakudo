@@ -839,12 +839,17 @@ my class array does Iterable is repr('VMArray') {
 
     role shapedarray does Rakudo::Internals::ShapedArrayCommon {
         method shape() {
-            my Mu \idims = nqp::dimensions(self);
-            my Mu \dims = nqp::list();
-            loop (my int $i = 0; $i < nqp::elems(idims); $i = $i + 1) {
-                nqp::bindpos(dims, $i, nqp::atpos_i(idims, $i))
-            }
-            nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', dims)
+            nqp::stmts(
+              (my $idims := nqp::dimensions(self)),
+              (my int $dims = nqp::elems($idims)),
+              (my $odims  := nqp::setelems(nqp::list,$dims)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                nqp::bindpos($odims,$i,nqp::atpos_i($idims,$i))
+              ),
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$odims)
+            )
         }
 
         proto method EXISTS-POS(|) {*}

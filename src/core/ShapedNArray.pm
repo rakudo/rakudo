@@ -1,10 +1,9 @@
 # this is actually part of the Array class
 
-    constant dim2type :=
-      nqp::list(Mu,Shaped1Array,Shaped2Array,Shaped3Array);
+    constant dim2type := nqp::list(Mu,Shaped1Array,Shaped2Array,Shaped3Array);
     constant ArrayN := ShapedArray;
 
-    sub set-shape(\arr, \shape) {
+    sub set-shape(\base, \shape) is raw {
         nqp::stmts(
           (my $shape := nqp::decont(nqp::if(
             Metamodel::EnumHOW.ACCEPTS(shape.HOW),
@@ -24,22 +23,27 @@
                        nqp::atpos(nqp::getattr($shape,List,'$!reified'),0),
                        Whatever),
                 nqp::stmts(
-                  nqp::bindattr(arr.^mixin(
-                    nqp::ifnull(nqp::atpos(dim2type,$dimensions),ArrayN)),
-                    List,'$!reified',
-                    Rakudo::Internals.SHAPED-ARRAY-STORAGE(
-                      $shape,nqp::knowhow,Mu)),
-                  arr.^set_name('Array'),
-                  nqp::bindattr(arr, arr.WHAT, '$!shape', $shape)
-                )
-              ),
-              arr
+                  (my $what := base.WHAT.^mixin(
+                    nqp::ifnull(nqp::atpos(dim2type,$dimensions),ArrayN))),
+                  nqp::if(
+                    nqp::isne_s($what.^name,base.^name),
+                    $what.^set_name(base.^name)
+                  ),
+                  nqp::p6bindattrinvres(
+                    nqp::p6bindattrinvres(
+                      nqp::create($what),List,'$!reified',
+                        Rakudo::Internals.SHAPED-ARRAY-STORAGE(
+                          $shape,nqp::knowhow,Mu)),
+                    $what,'$!shape',$shape)
+                ),
+                nqp::create(base.WHAT)
+              )
             ),
-            Failure.new(X::NotEnoughDimensions(
+            X::NotEnoughDimensions.new(
               operation         => 'create',
               got-dimensions    => 0,
               needed-dimensions => '',
-            ))
+            ).throw
           )
         )
     }

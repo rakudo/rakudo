@@ -5,42 +5,36 @@
         proto method new(|) { * }
         multi method new(:$shape!) {
             nqp::if(
-              nqp::defined($shape),
-              set-shape(self!create,$shape),
-              self!create
-            )
+              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+            )!set-descriptor
         }
         multi method new() {
-            self!create
+            nqp::create(self)!set-descriptor
         }
         multi method new(\values, :$shape!) {
             nqp::if(
-              nqp::defined($shape),
-              set-shape(self!create,$shape).STORE(values),
-              self!create.STORE(values)
-            )
+              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+            )!set-descriptor.STORE(values)
         }
         multi method new(\values) {
-            self!create.STORE(values)
+            nqp::create(self)!set-descriptor.STORE(values)
         }
         multi method new(**@values is raw, :$shape!) {
             nqp::if(
-              nqp::defined($shape),
-              set-shape(self!create,$shape).STORE(@values),
-              self!create.STORE(@values)
-            )
+              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+            )!set-descriptor.STORE(@values)
         }
         multi method new(**@values is raw) {
-            self!create.STORE(@values)
+            nqp::create(self)!set-descriptor.STORE(@values)
         }
 
-        method !create() {
-            nqp::p6bindattrinvres(
-              nqp::create(self),
-              Array,
-              '$!descriptor',
-              Perl6::Metamodel::ContainerDescriptor.new(
-                :of(TValue), :rw(1), :default(TValue))
+        method !set-descriptor() is raw {
+            nqp::stmts(
+              nqp::bindattr(self,Array,'$!descriptor',
+                Perl6::Metamodel::ContainerDescriptor.new(
+                  :of(TValue), :rw(1), :default(TValue))
+              ),
+              self
             )
         }
 

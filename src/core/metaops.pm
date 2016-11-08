@@ -510,13 +510,15 @@ multi sub HYPER(\op, \obj) {
         !! deepmap(op,obj);
 }
 
-proto sub deepmap(|) { * }
+proto sub coremap(|) { * }
 
-multi sub deepmap(\op, \obj) {
-    #my Mu $rpa := nqp::list();
-    #my \objs := obj.list;
-    # as a wanted side-effect is-lazy reifies the list
-    #fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
+multi sub coremap(\op, Associative \h, Bool :$deep) {
+    my @keys = h.keys;
+    hash @keys Z coremap(op, h{@keys}, deep => $deep)
+}
+
+multi sub coremap(\op, \obj, Bool :$deep) {
+
     my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
             ?? obj
             !! obj.list;
@@ -535,6 +537,7 @@ multi sub deepmap(\op, \obj) {
         method is-lazy() {
             $!source.is-lazy
         }
+
         method pull-one() is raw {
             my int $redo = 1;
             my $value;
@@ -553,11 +556,15 @@ multi sub deepmap(\op, \obj) {
                         nqp::handle(
                             nqp::stmts(
                                 nqp::if(
-                                    nqp::istype($value, Iterable),
-                                    nqp::stmts(
-                                        ($result := deepmap(&!block, $value).item),
+                                    $deep,
+                                    nqp::if(
+                                        nqp::istype($value, Iterable),
+                                        nqp::stmts(
+                                            ($result := coremap(&!block, $value, deep => $deep).item),
+                                        ),
+                                        ($result := &!block($value)),
                                     ),
-                                    ($result := &!block($value)),
+                                    ($result := &!block($value))
                                 ),
                                 nqp::if(
                                     nqp::istype($result, Slip),
@@ -590,6 +597,12 @@ multi sub deepmap(\op, \obj) {
     my \retval = $type.new;
     nqp::bindattr(retval, List, '$!reified', buffer);
     nqp::iscont(obj) ?? retval.item !! retval;
+}
+
+proto sub deepmap(|) { * }
+
+multi sub deepmap(\op, \obj) {
+    coremap(op, obj, deep => True)
 }
 
 multi sub deepmap(\op, Associative \h) {
@@ -642,7 +655,7 @@ multi sub nodemap(\op, Associative \h) {
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    nodemap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
+    coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj, deep => False);
 }
 
 multi sub duckmap(\op, Associative \h) {

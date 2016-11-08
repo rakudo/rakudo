@@ -514,7 +514,7 @@ proto sub coremap(|) { * }
 
 multi sub coremap(\op, Associative \h, Bool :$deep) {
     my @keys = h.keys;
-    hash @keys Z coremap(op, h{@keys}, deep => $deep)
+    hash @keys Z coremap(op, h{@keys}, :$deep)
 }
 
 multi sub coremap(\op, \obj, Bool :$deep) {
@@ -559,10 +559,8 @@ multi sub coremap(\op, \obj, Bool :$deep) {
                                     $deep,
                                     nqp::if(
                                         nqp::istype($value, Iterable),
-                                        nqp::stmts(
-                                            ($result := coremap(&!block, $value, deep => $deep).item),
-                                        ),
-                                        ($result := &!block($value)),
+                                        ($result := coremap(&!block, $value, :$deep).item),
+                                        ($result := &!block($value))
                                     ),
                                     ($result := &!block($value))
                                 ),

@@ -4,37 +4,37 @@
 
         proto method new(|) { * }
         multi method new(:$shape!) {
-            nqp::if(
+            set-descriptor(nqp::if(
               nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
-            )!set-descriptor
+            ))
         }
         multi method new() {
-            nqp::create(self)!set-descriptor
+            set-descriptor(nqp::create(self))
         }
         multi method new(\values, :$shape!) {
-            nqp::if(
+            set-descriptor(nqp::if(
               nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
-            )!set-descriptor.STORE(values)
+            )).STORE(values)
         }
         multi method new(\values) {
-            nqp::create(self)!set-descriptor.STORE(values)
+            set-descriptor(nqp::create(self)).STORE(values)
         }
         multi method new(**@values is raw, :$shape!) {
-            nqp::if(
+            set-descriptor(nqp::if(
               nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
-            )!set-descriptor.STORE(@values)
+            )).STORE(@values)
         }
         multi method new(**@values is raw) {
-            nqp::create(self)!set-descriptor.STORE(@values)
+            set-descriptor(nqp::create(self)).STORE(@values)
         }
 
-        method !set-descriptor() is raw {
+        sub set-descriptor(\list) is raw {
             nqp::stmts(
-              nqp::bindattr(self,Array,'$!descriptor',
+              nqp::bindattr(list,Array,'$!descriptor',
                 Perl6::Metamodel::ContainerDescriptor.new(
                   :of(TValue), :rw(1), :default(TValue))
               ),
-              self
+              list
             )
         }
 

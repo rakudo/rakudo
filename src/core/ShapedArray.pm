@@ -250,7 +250,7 @@
             )
         }
 
-        method !MEMCPY(Mu \from) {
+        sub MEMCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
                 has $!desc;
@@ -269,9 +269,9 @@
                         nqp::p6scalarfromdesc($!desc))
                     ) = nqp::atposnd($!from,$!indices)
                 }
-            }.new(self,from).sink-all
+            }.new(to,from).sink-all
         }
-        method !INTCPY(Mu \from) {
+        sub INTCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
@@ -292,9 +292,9 @@
                       ) = nqp::atposnd_i($!from,$!indices)
 #?endif
                 }
-            }.new(self,from).sink-all
+            }.new(to,from).sink-all
         }
-        method !NUMCPY(Mu \from) {
+        sub NUMCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
@@ -315,14 +315,14 @@
                       ) = nqp::atposnd_n($!from,$!indices)
 #?endif
                 }
-            }.new(self,from).sink-all
+            }.new(to,from).sink-all
         }
 
         proto method STORE(|) { * }
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv self.shape && nqp::eqaddr(in.WHAT,self.WHAT),
-              self!MEMCPY(in),       # VM-supported memcpy-like thing?
+              MEMCPY(self,in),       # VM-supported memcpy-like thing?
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
                 target-shape => self.shape
@@ -334,8 +334,8 @@
               in.shape eqv self.shape,
               nqp::if(
                 nqp::istype(in.of,Int),
-                self!INTCPY(in),       # copy from native int
-                self!NUMCPY(in)        # copy from native num
+                INTCPY(self,in),       # copy from native int
+                NUMCPY(self,in)        # copy from native num
               ),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,

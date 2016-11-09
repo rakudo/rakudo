@@ -3411,6 +3411,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token rad_number {
         ':' $<radix> = [\d+] <.unsp>?
+        {} # workaround bug
         :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
         {}           # don't recurse in lexer
         :dba('number in radix notation')

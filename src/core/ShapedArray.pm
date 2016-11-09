@@ -254,15 +254,15 @@
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
                 has $!desc;
-                method !INIT(Mu \to, Mu \from) {
+                method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
                       ($!desc := nqp::getattr(from,Array,'$!descriptor')),
-                      self!SET-SELF(to.shape,to)
+                      self.SET-SELF(to.shape,to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-                method !result(--> Nil) {
+                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
                       nqp::bindposnd($!list,$!indices,
@@ -274,14 +274,14 @@
         method !INTCPY(Mu \from) {
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
-                method !INIT(Mu \to, Mu \from) {
+                method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self!SET-SELF(to.shape,to)
+                      self.SET-SELF(to.shape,to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-                method !result(--> Nil) {
+                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
                       nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
@@ -297,14 +297,14 @@
         method !NUMCPY(Mu \from) {
             class :: does Rakudo::Internals::ShapeIterator {
                 has $!from;
-                method !INIT(Mu \to, Mu \from) {
+                method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self!SET-SELF(to.shape,to)
+                      self.SET-SELF(to.shape,to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-                method !result(--> Nil) {
+                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
                       nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
@@ -354,11 +354,11 @@
         multi method kv(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeIterator {
                 has int $!on-key;
-                method !result() is raw {
+                method result() is raw {
                     nqp::if(
                       ($!on-key = nqp::not_i($!on-key)),
                       nqp::stmts(
-                        (my $result := self!indices),
+                        (my $result := self.indices),
                         (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
                           nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                         $result  
@@ -370,22 +370,22 @@
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeIterator {
-                method !result() {
-                    Pair.new(self!indices,nqp::atposnd($!list,$!indices))
+                method result() {
+                    Pair.new(self.indices,nqp::atposnd($!list,$!indices))
                 }
             }.new(self.shape,self))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeIterator {
-                method !result() {
-                    Pair.new(nqp::atposnd($!list,$!indices),self!indices)
+                method result() {
+                    Pair.new(nqp::atposnd($!list,$!indices),self.indices)
                 }
             }.new(self.shape,self))
         }
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeIterator {
-                method !result() is raw { nqp::atposnd($!list,$!indices) }
+                method result() is raw { nqp::atposnd($!list,$!indices) }
             }.new(self.shape,self)
         }
 

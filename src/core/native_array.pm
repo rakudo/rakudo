@@ -1,7 +1,7 @@
 my class X::MustBeParametric  { ... }
 my class X::TooManyDimensions { ... }
 
-my class array does Iterable is repr('VMArray') {
+my class array does Iterable {
 
     multi method new(array:)      { self!create }
     multi method new(array: @v)   { self!create.STORE(@v) }

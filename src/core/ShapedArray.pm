@@ -250,24 +250,101 @@
             )
         }
 
+        method !MEMCPY(Mu \from) {
+            class :: does Rakudo::Internals::ShapeIterator {
+                has $!from;
+                has $!desc;
+                method !INIT(Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := nqp::getattr(from,List,'$!reified')),
+                      ($!desc := nqp::getattr(from,Array,'$!descriptor')),
+                      self!SET-SELF(to.shape,to)
+                    )
+                }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+                method !result(--> Nil) {
+                    nqp::ifnull(
+                      nqp::atposnd($!list,$!indices),
+                      nqp::bindposnd($!list,$!indices,
+                        nqp::p6scalarfromdesc($!desc))
+                    ) = nqp::atposnd($!from,$!indices)
+                }
+            }.new(self,from).sink-all
+        }
+        method !INTCPY(Mu \from) {
+            class :: does Rakudo::Internals::ShapeIterator {
+                has $!from;
+                method !INIT(Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := from),
+                      self!SET-SELF(to.shape,to)
+                    )
+                }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+                method !result(--> Nil) {
+                    nqp::ifnull(
+                      nqp::atposnd($!list,$!indices),
+                      nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
+#?if moar
+                      ) = nqp::multidimref_i($!from,$!indices)
+#?endif
+#?if !moar
+                      ) = nqp::atposnd_i($!from,$!indices)
+#?endif
+                }
+            }.new(self,from).sink-all
+        }
+        method !NUMCPY(Mu \from) {
+            class :: does Rakudo::Internals::ShapeIterator {
+                has $!from;
+                method !INIT(Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := from),
+                      self!SET-SELF(to.shape,to)
+                    )
+                }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+                method !result(--> Nil) {
+                    nqp::ifnull(
+                      nqp::atposnd($!list,$!indices),
+                      nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
+#?if moar
+                      ) = nqp::multidimref_n($!from,$!indices)
+#?endif
+#?if !moar
+                      ) = nqp::atposnd_n($!from,$!indices)
+#?endif
+                }
+            }.new(self,from).sink-all
+        }
+
         proto method STORE(|) { * }
+        multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
+            nqp::if(
+              in.shape eqv self.shape && nqp::eqaddr(in.WHAT,self.WHAT),
+              self!MEMCPY(in),       # VM-supported memcpy-like thing?
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => in.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: array:D \in) {
+            nqp::if(
+              in.shape eqv self.shape,
+              nqp::if(
+                nqp::istype(in.of,Int),
+                self!INTCPY(in),       # copy from native int
+                self!NUMCPY(in)        # copy from native num
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => in.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
-            if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
-                if self.shape eqv in-shape {
-                    # Can do a VM-supported memcpy-like thing in the future
-                    self.ASSIGN-POS(|$_, in.AT-POS(|$_)) for self.keys;
-                }
-                else {
-                    X::Assignment::ArrayShapeMismatch.new(
-                        source-shape => in-shape,
-                        target-shape => self.shape
-                    ).throw
-                }
-            }
-            else {
-                self!STORE-PATH((), self.shape, in)
-            }
+            self!STORE-PATH((), self.shape, in)
         }
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw

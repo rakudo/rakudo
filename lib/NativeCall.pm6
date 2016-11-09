@@ -313,8 +313,8 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r, :$!entry-point));
-            $!setup = 1;
             $!rettype := nqp::decont(map_return_type($r.returns));
+            $!setup = 1;
         }
     }
 

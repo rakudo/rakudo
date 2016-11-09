@@ -111,6 +111,31 @@
             )
         }
 
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::stmts(
+              (my $to   := nqp::getattr(self,List,'$!reified')),
+              (my $from := nqp::getattr(from,List,'$!reified')),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $elems = nqp::elems($to)),nqp::elems($from)),
+                nqp::stmts(
+                  (my $desc := nqp::getattr(self,Array,'$!descriptor')),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::ifnull(
+                      nqp::atpos($to,$i),
+                      nqp::bindpos($to,$i,nqp::p6scalarfromdesc($desc))
+                    ) = nqp::atpos($from,$i)
+                  )
+                ),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              )
+            )
+        }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             nqp::stmts(
               (my \list := nqp::getattr(self,List,'$!reified')),

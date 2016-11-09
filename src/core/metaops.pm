@@ -510,97 +510,10 @@ multi sub HYPER(\op, \obj) {
         !! deepmap(op,obj);
 }
 
-proto sub coremap(|) { * }
-
-multi sub coremap(\op, Associative \h, Bool :$deep) {
-    my @keys = h.keys;
-    hash @keys Z coremap(op, h{@keys}, :$deep)
-}
-
-multi sub coremap(\op, \obj, Bool :$deep) {
-
-    my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
-            ?? obj
-            !! obj.list;
-
-    my \result := class :: does SlippyIterator {
-        has &!block;
-        has $!source;
-
-        method new(&block, $source) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', $source);
-            $iter
-        }
-
-        method is-lazy() {
-            $!source.is-lazy
-        }
-
-        method pull-one() is raw {
-            my int $redo = 1;
-            my $value;
-            my $result;
-            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
-                $result
-            }
-            elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                $value
-            }
-            else {
-                nqp::while(
-                    $redo,
-                    nqp::stmts(
-                        $redo = 0,
-                        nqp::handle(
-                            nqp::stmts(
-                                nqp::if(
-                                    $deep,
-                                    nqp::if(
-                                        nqp::istype($value, Iterable),
-                                        ($result := coremap(&!block, $value, :$deep).item),
-                                        ($result := &!block($value))
-                                    ),
-                                    ($result := &!block($value))
-                                ),
-                                nqp::if(
-                                    nqp::istype($result, Slip),
-                                    nqp::stmts(
-                                        ($result := self.start-slip($result)),
-                                        nqp::if(
-                                            nqp::eqaddr($result, IterationEnd),
-                                            nqp::stmts(
-                                                ($value := $!source.pull-one()),
-                                                ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                        ))
-                                    ))
-                            ),
-                            'NEXT', nqp::stmts(
-                                ($value := $!source.pull-one()),
-                                nqp::eqaddr($value, IterationEnd)
-                                    ?? ($result := IterationEnd)
-                                    !! ($redo = 1)),
-                            'REDO', $redo = 1,
-                            'LAST', ($result := IterationEnd))),
-                    :nohandler);
-                $result
-            }
-        }
-    }.new(op, iterable.iterator);
-
-    my $type = nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
-    my \buffer := IterationBuffer.new;
-    result.push-all(buffer);
-    my \retval = $type.new;
-    nqp::bindattr(retval, List, '$!reified', buffer);
-    nqp::iscont(obj) ?? retval.item !! retval;
-}
-
 proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
-    coremap(op, obj, deep => True)
+    Rakudo::Internals.coremap(op, obj, deep => True)
 }
 
 multi sub deepmap(\op, Associative \h) {
@@ -653,7 +566,7 @@ multi sub nodemap(\op, Associative \h) {
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj, deep => False);
+    Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj, deep => False);
 }
 
 multi sub duckmap(\op, Associative \h) {

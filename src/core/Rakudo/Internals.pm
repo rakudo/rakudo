@@ -2120,6 +2120,93 @@ my class Rakudo::Internals {
           while nqp::islt_i(++$i,$elems);
         $target
     }
+
+    proto method coremap(|) { * }
+
+    multi method coremap(\op, Associative \h, Bool :$deep) {
+        my @keys = h.keys;
+        hash @keys Z self.coremap(op, h{@keys}, :$deep)
+    }
+
+    multi method coremap(\op, \obj, Bool :$deep) {
+        my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
+                ?? obj
+                !! obj.list;
+
+        my \result := class :: does SlippyIterator {
+            has &!block;
+            has $!source;
+
+            method new(&block, $source) {
+                my $iter := nqp::create(self);
+                nqp::bindattr($iter, self, '&!block', &block);
+                nqp::bindattr($iter, self, '$!source', $source);
+                $iter
+            }
+
+            method is-lazy() {
+                $!source.is-lazy
+            }
+
+            method pull-one() is raw {
+                my int $redo = 1;
+                my $value;
+                my $result;
+                if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
+                    $result
+                }
+                elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
+                    $value
+                }
+                else {
+                    nqp::while(
+                        $redo,
+                        nqp::stmts(
+                            $redo = 0,
+                            nqp::handle(
+                                nqp::stmts(
+                                    nqp::if(
+                                        $deep,
+                                        nqp::if(
+                                            nqp::istype($value, Iterable),
+                                            ($result := Rakudo::Internals.coremap(&!block, $value, :$deep).item),
+                                            ($result := &!block($value))
+                                        ),
+                                        ($result := &!block($value))
+                                    ),
+                                    nqp::if(
+                                        nqp::istype($result, Slip),
+                                        nqp::stmts(
+                                            ($result := self.start-slip($result)),
+                                            nqp::if(
+                                                nqp::eqaddr($result, IterationEnd),
+                                                nqp::stmts(
+                                                    ($value := $!source.pull-one()),
+                                                    ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
+                                            ))
+                                        ))
+                                ),
+                                'NEXT', nqp::stmts(
+                                    ($value := $!source.pull-one()),
+                                    nqp::eqaddr($value, IterationEnd)
+                                        ?? ($result := IterationEnd)
+                                        !! ($redo = 1)),
+                                'REDO', $redo = 1,
+                                'LAST', ($result := IterationEnd))),
+                        :nohandler);
+                    $result
+                }
+            }
+        }.new(op, iterable.iterator);
+
+        my $type = nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
+        my \buffer := IterationBuffer.new;
+        result.push-all(buffer);
+        my \retval = $type.new;
+        nqp::bindattr(retval, List, '$!reified', buffer);
+        nqp::iscont(obj) ?? retval.item !! retval;
+    }
+
 }
 
 # we need this to run *after* the mainline of Rakudo::Internals has run

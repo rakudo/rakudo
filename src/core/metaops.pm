@@ -513,7 +513,7 @@ multi sub HYPER(\op, \obj) {
 proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
-    Rakudo::Internals.coremap(op, obj, deep => True)
+    Rakudo::Internals.coremap(op, obj, :deep)
 }
 
 multi sub deepmap(\op, Associative \h) {
@@ -566,7 +566,7 @@ multi sub nodemap(\op, Associative \h) {
 
 proto sub duckmap(|) { * }
 multi sub duckmap(\op, \obj) {
-    Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj, deep => False);
+    Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
 }
 
 multi sub duckmap(\op, Associative \h) {

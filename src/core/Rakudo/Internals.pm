@@ -1051,22 +1051,34 @@ my class Rakudo::Internals {
         $root
     }
 
-    method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
-        my $keys := nqp::list(meta-obj);
-        my $dims := nqp::list_i;
-        for @dims {
-            X::NYI.new(feature => 'Jagged array shapes').throw
-              if nqp::istype($_,Whatever);
-            my int $dim = $_.Int;
-            X::IllegalDimensionInShape.new(:$dim).throw
-              if nqp::isle_i($dim,0);
-
-            nqp::push($keys, type-key);
-            nqp::push_i($dims, $dim);
-        }
-
-        nqp::setdimensions(
-          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys)),$dims);
+    method SHAPED-ARRAY-STORAGE(\spec, Mu \meta-obj, Mu \type) {
+        nqp::stmts(
+          (my $types := nqp::list(meta-obj)),  # meta + type of each dimension
+          (my $dims  := nqp::list_i),          # elems per dimension
+          (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
+          (my int $elems = nqp::elems($spec)),
+          (my int $i     = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::if(
+              nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
+              X::NYI.new(feature => 'Jagged array shapes').throw,
+              nqp::if(
+                nqp::isbig_I(nqp::decont($dim := nqp::decont($dim.Int)))
+                  || nqp::isle_i($dim,0),
+                X::IllegalDimensionInShape.new(:$dim).throw,
+                nqp::stmts(
+                  nqp::push($types, type),
+                  nqp::push_i($dims, $dim)
+                )
+              )
+            )
+          ),
+          nqp::setdimensions(
+            nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$types)),
+            $dims
+          )
+        )
     }
 
     our role ShapedArrayCommon {

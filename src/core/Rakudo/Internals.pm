@@ -17,7 +17,7 @@ my class Rakudo::Internals {
         has $!storage;
         has $!iter;
 
-        method !SET-SELF(\hash) {
+        method SET-SELF(\hash) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
             nqp::if(
               ($!storage.DEFINITE && nqp::elems($!storage)),
@@ -28,7 +28,7 @@ my class Rakudo::Internals {
               Rakudo::Internals.EmptyIterator
             )
         }
-        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
+        method new(\hash) { nqp::create(self).SET-SELF(hash) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := Mu }

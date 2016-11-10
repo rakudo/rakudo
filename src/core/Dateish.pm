@@ -7,7 +7,7 @@ my role Dateish {
 
     method IO(Dateish:D: |c) { IO::Path.new(~self) }  # because Dateish is not Cool
 
-    # this sub is also used by !DAYS-IN-MONTH, which is used by other types
+    # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
     method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
 
@@ -15,11 +15,11 @@ my role Dateish {
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     # This method is used by Date and DateTime:
-    method !DAYS-IN-MONTH(\year, \month) {
+    method DAYS-IN-MONTH(\year, \month) {
         nqp::atpos_i($days-in-month,month) ||
           ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
-    method days-in-month(Dateish:D:) { self!DAYS-IN-MONTH($!year,$!month) }
+    method days-in-month(Dateish:D:) { self.DAYS-IN-MONTH($!year,$!month) }
 
     method !year-Str() {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;

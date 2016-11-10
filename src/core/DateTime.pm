@@ -67,7 +67,7 @@ my class DateTime does Dateish {
       :&formatter,
     ) {
         (1..12).in-range($month,'Month');
-        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         (0..23).in-range($hour,'Hour');
         (0..59).in-range($minute,'Minute');
         (^61).in-range($second,'Second');

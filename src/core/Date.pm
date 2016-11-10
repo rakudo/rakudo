@@ -23,7 +23,7 @@ my class Date does Dateish {
     proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter, *%_) {
         (1..12).in-range($month,'Month');
-        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
@@ -106,13 +106,13 @@ my class Date does Dateish {
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$month)
+              ?? $!day min self.DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
+              ?? $!day min self.DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
     }

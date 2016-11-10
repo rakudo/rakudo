@@ -176,8 +176,7 @@ my class Rakudo::Internals {
 
         method indices() {
             nqp::stmts(
-              (my $result :=
-                nqp::setelems(nqp::list,nqp::add_i($!maxdim,1))),
+              (my $result := nqp::setelems(nqp::list,nqp::elems($!indices))),
               (my int $i = -1),
               nqp::while(                # convert list_i to list
                 nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),

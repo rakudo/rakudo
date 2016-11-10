@@ -83,9 +83,7 @@ my class Rakudo::Internals {
         has $!last;
         has int $!whatever;
         method new(\source) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '$!source', source);
-            $iter
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
         }
         method pull-one() is raw {
             nqp::if(

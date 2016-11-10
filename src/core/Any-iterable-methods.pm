@@ -911,12 +911,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     role Grepper does Iterator {
         has Mu $!iter;
         has Mu $!test;
-        method !SET-SELF(\list,Mu \test) {
+        method SET-SELF(\list,Mu \test) {
             $!iter  = list.iterator;
             $!test := test;
             self
         }
-        method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+        method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
     }
     method !grep-callable(Callable:D $test) {

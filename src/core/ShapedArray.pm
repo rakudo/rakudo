@@ -251,7 +251,7 @@
         }
 
         sub MEMCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeIterator {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
                 has $!from;
                 has $!desc;
                 method INIT(Mu \to, Mu \from) {
@@ -272,7 +272,7 @@
             }.new(to,from).sink-all
         }
         sub INTCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeIterator {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -295,7 +295,7 @@
             }.new(to,from).sink-all
         }
         sub NUMCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeIterator {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -352,7 +352,7 @@
 
         multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -369,14 +369,14 @@
             }.new(self.shape,self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd($!list,$!indices))
                 }
             }.new(self.shape,self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeIterator {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
                     Pair.new(nqp::atposnd($!list,$!indices),self.indices)
                 }
@@ -384,7 +384,7 @@
         }
 
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeIterator {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() is raw { nqp::atposnd($!list,$!indices) }
             }.new(self.shape,self)
         }

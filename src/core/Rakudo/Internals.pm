@@ -167,7 +167,7 @@ my class Rakudo::Internals {
         }
     }
 
-    our role ShapeIterator does Iterator {
+    our role ShapeLeafIterator does Iterator {
         has $!dims;
         has $!indices;  # cannot use native int array this early in settings
         has Mu $!list;
@@ -611,7 +611,7 @@ my class Rakudo::Internals {
 
     # all possible keys for a given shape
     method ShapeIndexIterator(\shape) {
-        class :: does ShapeIterator {
+        class :: does ShapeLeafIterator {
             method result() { self.indices }
         }.new(shape,nqp::list)  # needs fake list because of RT #130030
     }

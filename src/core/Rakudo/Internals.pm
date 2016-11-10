@@ -192,11 +192,6 @@ my class Rakudo::Internals {
               (my int $dims = nqp::elems($!dims)),
               ($!indices := nqp::setelems(nqp::list_i,$dims)),
               ($!list    := nqp::getattr(list,List,'$!reified')),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
-                nqp::bindpos_i($!indices,$i,0)
-              ),
               ($!maxdim = nqp::sub_i($dims,1)),
               ($!max    = nqp::atpos($!dims,$!maxdim)),
               self

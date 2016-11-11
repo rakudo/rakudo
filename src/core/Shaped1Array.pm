@@ -6,7 +6,7 @@
               nqp::atpos(
                 nqp::getattr(self,List,'$!reified'),
                 one),
-              self!AT-POS-CONTAINER(one)
+              self.AT-POS-CONTAINER(one)
             )
         }
         multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
@@ -14,10 +14,10 @@
               nqp::atpos(
                 nqp::getattr(self,List,'$!reified'),
                 one),
-              self!AT-POS-CONTAINER(one)
+              self.AT-POS-CONTAINER(one)
             )
         }
-        method !AT-POS-CONTAINER(int \one) is raw {
+        method AT-POS-CONTAINER(int \one) is raw {
             nqp::p6bindattrinvres(
               (my $scalar := nqp::p6scalarfromdesc(
                 nqp::getattr(self,Array,'$!descriptor'))),

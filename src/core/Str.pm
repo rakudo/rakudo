@@ -43,7 +43,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::findnotcclass(
               nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
             nqp::chars($!value)
-          ),
+          )
+#?if moar
+            # Compare Str.chars == Str.codes to filter out any combining characters
+            && nqp::iseq_i(
+                nqp::chars($!value),
+                nqp::elems(
+                    nqp::strtocodes(
+                        $!value,
+                        nqp::const::NORMALIZE_NFC,
+                        nqp::create(NFC),
+                    )
+                ),
+            )
+#?endif
+#?if jvm
+            # RT #128542: https://rt.perl.org/Public/Bug/Display.html?id=128542
+            # Needs Str.codes impl that doesn't just return chars
+#?endif
+          ,
           nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0),  # all numeric chars
           nqp::if(
             nqp::istype((my $numeric := self.Numeric),Failure),

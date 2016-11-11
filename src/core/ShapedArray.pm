@@ -385,7 +385,32 @@
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeLeafIterator {
-                method result() is raw { nqp::atposnd($!list,$!indices) }
+                has Mu $!desc;
+                method !INIT(\shape,\list) {
+                    nqp::stmts(
+                      ($!desc := nqp::getattr(list,Array,'$!descriptor')),
+                      self.SET-SELF(shape,list)
+                    )
+                }
+                method new(\shape,\list) { nqp::create(self)!INIT(shape,list) }
+                method result() is raw {
+                    nqp::ifnull(
+                      nqp::atposnd($!list,$!indices),
+                      nqp::stmts(
+                        # By the time the block gets executed, the $!indices
+                        # may be at the next iteration already or even reset
+                        # because we reached the end.  So we need to make
+                        # a copy of the indices now.
+                        (my $indices := nqp::clone($!indices)),
+                        nqp::p6bindattrinvres(
+                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
+                          Scalar,
+                         '$!whence',
+                          -> { nqp::bindposnd($!list,$indices,$scalar) }
+                       )
+                     )
+                   )
+                }
             }.new(self.shape,self)
         }
 

@@ -186,10 +186,12 @@
         method iterator(::?CLASS:D:) {
             class :: does Iterator {
                 has Mu $!reified;
+                has Mu $!desc;
                 has int $!pos;
                 method !SET-SELF(Mu \list) {
                     nqp::stmts(
                       ($!reified := nqp::getattr(list,List,'$!reified')),
+                      ($!desc    := nqp::getattr(list,Array,'$!descriptor')),
                       ($!pos = -1),
                       self
                     )
@@ -201,7 +203,15 @@
                         ($!pos = nqp::add_i($!pos,1)),
                         nqp::elems($!reified)
                       ),
-                      nqp::atpos($!reified,$!pos),
+                      nqp::ifnull(
+                        nqp::atpos($!reified,$!pos),
+                        nqp::p6bindattrinvres(
+                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
+                          Scalar,
+                         '$!whence',
+                          -> { nqp::bindpos($!reified,$!pos,$scalar) }
+                        )
+                      ),
                       IterationEnd
                     )
                 }

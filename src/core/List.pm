@@ -1349,16 +1349,12 @@ multi sub infix:<xx>(&x, Whatever) {
     Seq.new(class :: does XX-Whatever {
         has @!slipped;
         method pull-one() {
-            my $pulled;
             nqp::if(
               @!slipped,
               @!slipped.shift,
               nqp::if(
-                nqp::istype(($pulled := $!x.()),Slip),
-                nqp::stmts(
-                  (@!slipped = $pulled),
-                  @!slipped.shift
-                ),
+                nqp::istype((my $pulled := $!x.()),Slip),
+                (@!slipped = $pulled).shift,
                 nqp::if(
                   nqp::istype($pulled,Seq),
                   $pulled.cache,

@@ -134,6 +134,13 @@ MAIN: {
     $config{'runner_suffix'} = $win ? '.bat' : '';
 
     my $make = 'make';
+    if ($^O eq 'solaris') {
+        if (not -X '/usr/bin/gmake') {
+            die "gmake is required to compile rakudo. Please install by 'pkg install gnu-make'";
+        }
+        $make = 'gmake';
+    }
+
     if ($win) {
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;

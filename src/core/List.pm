@@ -1335,8 +1335,7 @@ sub cache(+@l) { @l }
 
 role XX-Whatever does Iterator {
     has Mu $!x;
-    method !SET-SELF($!x) { self }
-    method new(\x) { nqp::create(self)!SET-SELF(x) }
+    method new(\x) { nqp::p6bindattrinvres(nqp::create(self),self,'$!x',x) }
     method is-lazy() { True }
 }
 

@@ -2751,10 +2751,14 @@ sub chrs(*@c) returns Str:D {
     my $value;
     nqp::istype(($value := nqp::atpos($list,$i)),Int)
       ?? nqp::bindpos_s($result,$i,nqp::chr($value))
-      !! fail X::TypeCheck.new(
-        operation => "converting element #$i to .chr",
-        got       => $value,
-        expected  => Int)
+      !! nqp::istype($value, Str)
+          ?? (nqp::istype(($value := +$value), Failure)
+              ?? return $value
+              !! nqp::bindpos_s($result,$i,nqp::chr($value)))
+          !! fail X::TypeCheck.new(
+                operation => "converting element #$i to .chr",
+                got       => $value,
+                expected  => Int)
       while nqp::islt_i(++$i,$elems);
 
     nqp::join("",$result)

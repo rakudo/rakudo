@@ -699,7 +699,7 @@ my class Rakudo::Internals {
                 my int $key = -1;
                 nqp::until(
                   nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
-                  $target.push(Pair.new($pulled,($key = nqp::add_i($key,1))))
+                  $target.push(Pair.new($pulled,+($key = nqp::add_i($key,1))))
                 )
             }
         }.new(iterator)

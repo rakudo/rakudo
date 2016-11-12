@@ -691,7 +691,7 @@ my class Rakudo::Internals {
                 nqp::if(
                   nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
                   IterationEnd,
-                  Pair.new($pulled,($!key = nqp::add_i($!key,1)))
+                  Pair.new($pulled,+($!key = nqp::add_i($!key,1)))
                 )
             }
             method push-all($target --> IterationEnd) {

@@ -5,7 +5,13 @@
         proto method new(|) { * }
         multi method new(:$shape!) {
             set-descriptor(nqp::if(
-              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+              nqp::defined($shape),
+              set-shape(self,$shape),
+              nqp::if(
+                Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+                set-shape(self,$shape.^elems),
+                nqp::create(self)
+              )
             ))
         }
         multi method new() {
@@ -13,7 +19,13 @@
         }
         multi method new(\values, :$shape!) {
             set-descriptor(nqp::if(
-              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+              nqp::defined($shape),
+              set-shape(self,$shape),
+              nqp::if(
+                Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+                set-shape(self,$shape.^elems),
+                nqp::create(self)
+              )
             )).STORE(values)
         }
         multi method new(\values) {
@@ -21,7 +33,13 @@
         }
         multi method new(**@values is raw, :$shape!) {
             set-descriptor(nqp::if(
-              nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+              nqp::defined($shape),
+              set-shape(self,$shape),
+              nqp::if(
+                Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+                set-shape(self,$shape.^elems),
+                nqp::create(self)
+              )
             )).STORE(@values)
         }
         multi method new(**@values is raw) {

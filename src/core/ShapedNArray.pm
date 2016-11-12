@@ -6,13 +6,9 @@
     sub set-shape(\base, \shape) is raw {
         nqp::stmts(
           (my $shape := nqp::decont(nqp::if(
-            Metamodel::EnumHOW.ACCEPTS(shape.HOW),
-            shape.^elems,
-            nqp::if(
-              nqp::istype(shape,List),
-              shape,
-              shape.list
-            )
+            nqp::istype(shape,List),
+            shape,
+            shape.list
           ))),
           nqp::if(
             (my int $dimensions = $shape.elems),  # reifies

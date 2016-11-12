@@ -201,7 +201,13 @@ my class Array { # declared in BOOTSTRAP
     proto method new(|) { * }
     multi method new(:$shape!) {
         nqp::if(
-          nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
         )
     }
     multi method new() {
@@ -209,7 +215,13 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method new(\values, :$shape!) {
         nqp::if(
-          nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
         ).STORE(values)
     }
     multi method new(\values) {
@@ -217,7 +229,13 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method new(**@values is raw, :$shape!) {
         nqp::if(
-          nqp::defined($shape),set-shape(self,$shape),nqp::create(self)
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
         ).STORE(@values)
     }
     multi method new(**@values is raw) {

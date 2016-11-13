@@ -370,7 +370,7 @@ public final class RakOps {
     public static SixModelObject p6scalarfromdesc(SixModelObject desc, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
 
-        if (desc == null || desc instanceof TypeObject)
+        if ( Ops.isconcrete(desc, tc) == 0 )
             desc = gcx.defaultContainerDescriptor;
         SixModelObject defVal = desc.get_attribute_boxed(tc, gcx.ContainerDescriptor,
             "$!default", HINT_CD_DEFAULT);

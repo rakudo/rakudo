@@ -3,6 +3,9 @@ my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = nqp::create(Mu);
+
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }
@@ -444,7 +447,11 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
+        nqp::if(
+          nqp::eqaddr(self,IterationEnd),
+          "IterationEnd",
+          self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
+        )
     }
 
     proto method Stringy(|) { * }
@@ -517,14 +524,18 @@ my class Mu { # declared in BOOTSTRAP
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
-        self.perlseen(self.^name, {
-            my @attrs;
-            for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                my $name := substr($attr.Str,2);
-                @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-            }
-            self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-        })
+        nqp::if(
+          nqp::eqaddr(self,IterationEnd),
+          "IterationEnd",
+          self.perlseen(self.^name, {
+              my @attrs;
+              for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                  my $name := substr($attr.Str,2);
+                  @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+              }
+              self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+          })
+        )
     }
 
     proto method DUMP(|) { * }

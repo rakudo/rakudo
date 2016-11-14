@@ -1276,7 +1276,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
             unless $radix ~~ 2..36;
 
-        if $!value.contains('.') { # factional
+        if $!value.contains('.') { # fractional
             my ($whole, $fract) = $!value.split: '.', 2;
             my $w-parsed := nqp::radix_I($radix, $whole, 0, 0, Int);
             my $f-parsed := nqp::radix_I($radix, $fract, 0, 0, Int);

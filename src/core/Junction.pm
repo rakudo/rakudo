@@ -24,6 +24,59 @@ my class Junction { # declared in BOOTSTRAP
         nqp::create(Junction)!SET-SELF(type,values)
     }
 
+    method defined(Junction:D:) {
+        nqp::stmts(
+          (my int $elems = nqp::elems($!storage)),
+          (my int $i = 0),
+          nqp::if(
+            nqp::iseq_s($!type,'any'),
+            nqp::stmts(
+              nqp::while(
+                (nqp::islt_i($i,$elems)
+                  && nqp::if(nqp::isconcrete(nqp::atpos($!storage,$i)),0,1)),
+                ($i = nqp::add_i($i,1))
+              ),
+              nqp::p6bool(nqp::islt_i($i,$elems))
+            ),
+            nqp::if(
+              nqp::iseq_s($!type,'all'),
+              nqp::stmts(
+                nqp::while(
+                  (nqp::islt_i($i,$elems)
+                    && nqp::isconcrete(nqp::atpos($!storage,$i))),
+                  ($i = nqp::add_i($i,1))
+                ),
+                nqp::p6bool(nqp::iseq_i($i,$elems))
+              ),
+              nqp::if(
+                nqp::iseq_s($!type,'none'),
+                nqp::stmts(
+                  nqp::while(
+                    (nqp::islt_i($i,$elems)
+                      && nqp::if(nqp::isconcrete(nqp::atpos($!storage,$i)),0,1)),
+                    ($i = nqp::add_i($i,1))
+                  ),
+                  nqp::p6bool(nqp::iseq_i($i,$elems))
+                ),
+                nqp::stmts(    # $!type eq 'one'
+                  (my int $seen = 0),
+                  ($i = nqp::sub_i($i,1)),  # increment in condition
+                  nqp::while(
+                    (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      && nqp::isle_i($seen,1)),
+                    nqp::if(
+                      nqp::isconcrete(nqp::atpos($!storage,$i)),
+                      ($seen = nqp::add_i($seen,1))
+                    )
+                  ),
+                  nqp::p6bool(nqp::iseq_i($seen,1))
+                )
+              )
+            )
+          )
+        )
+    }
+
     multi method Bool(Junction:D:) {
         nqp::stmts(
           (my int $elems = nqp::elems($!storage)),

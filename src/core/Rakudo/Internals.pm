@@ -217,7 +217,7 @@ my class Rakudo::Internals {
                         ($level = nqp::sub_i($level,1)),0)
                         || nqp::stmts(
                         nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
-                        nqp::islt_i(                    
+                        nqp::islt_i(
                           nqp::bindpos_i($!indices,$level,
                             nqp::add_i(nqp::atpos_i($!indices,$level),1)),
                           nqp::atpos($!dims,$level)
@@ -234,6 +234,70 @@ my class Rakudo::Internals {
                 $result                        # what we found
               ),
               IterationEnd                     # done iterating
+            )
+        }
+    }
+
+    # Every time result() gets called, the following attributes are set:
+    # $!indices  a list_i with current position, with the highest elem 0
+    # $!level    level at which exhaustion happened
+    # $!dims     a List with dimensions
+    # $!maxdim   maximum element number in $!dims
+    # $!maxind   maximum element number in lowest level list
+    our role ShapeBranchIterator does Iterator {
+        has $!dims;
+        has $!indices;  # cannot use native int array this early in settings
+        has Mu $!list;
+        has int $!maxdim;
+        has int $!maxind;
+        has int $!level;
+
+        method SET-SELF(\shape, Mu \list) {
+            nqp::stmts(
+              ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
+              (my int $dims = nqp::elems($!dims)),
+              ($!indices := nqp::setelems(nqp::list_i,$dims)),
+              ($!list    := nqp::getattr(list,List,'$!reified')),
+              ($!maxdim = nqp::sub_i($dims,1)),
+              ($!maxind = nqp::sub_i(nqp::atpos($!dims,$!maxdim),1)),
+              self
+            )
+        }
+        method new(\shape,Mu \list) { nqp::create(self).SET-SELF(shape,list) }
+
+        method done(--> Nil) { }               # by default no action at end
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i($!level,0),
+              nqp::stmts(                      # still iterating
+                (my $result := self.process),  # do the processing
+                (my int $level = $!maxdim),
+                nqp::until(                    # update indices
+                  nqp::islt_i(                 # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0) # next level
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),  # reset
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level, # increment this level
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos($!dims,$level)        # out of range?
+                    ),
+                  ),
+                  nqp::null
+                ),
+                ($!level = $level),            # set level for next call
+                $result                        # what we found
+              ),
+              nqp::stmts(
+                nqp::if(
+                  nqp::iseq_i($!level,-1),
+                  nqp::stmts(                  # first time telling we're done
+                    self.done,                 # notify we're done
+                    ($!level = -2)             # do this only once
+                  )
+                ),
+                IterationEnd                   # done iterating
+              )
             )
         }
     }
@@ -493,7 +557,7 @@ my class Rakudo::Internals {
                                   IterationEnd,       # not going to be any more
                                   nqp::stmts(         # didn't find it
                                     nqp::if(&out,out($index)),
-                                    Nil       
+                                    Nil
                                   )
                                 )
                               ),
@@ -1432,7 +1496,7 @@ my class Rakudo::Internals {
     method get-local-timezone-offset() {
         my $utc     = time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
-        
+
         DateTime.new(
           :year(nqp::atpos_i($fia,5)),
           :month(nqp::atpos_i($fia,4)),

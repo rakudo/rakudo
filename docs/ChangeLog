@@ -42,6 +42,8 @@ New in 2016.11
     + Fixed premature overflow to Inf with large Num literals [729d7e3]
     + Fixed race condition in NativeCall callsite used by multiple threads [49fd825]
     + Fixed instabilities in programs launching many threads at startup [0134132]
+    + Fixed crash when reporting X::Composition::NotComposable or
+        X::Inheritance::Unsupported exceptions [a822bcf]
  + Additions:
     + Added TWEAK submethod for object construction [fdc90a2][9409d68]
     + Added DateTime.hh-mm-ss [bf51eca]
@@ -61,8 +63,6 @@ New in 2016.11
     + Added CX::Emit and CX::Done control exceptions [07eeea8]
     + Setty.Mix/.MixHash coercers now use Int weights instead of Bool [7ba7eb4]
     + Implemented :kv,:p,:k,:v on 1-element multidim [;] [764cfcd]
-    + Fixed crash when reporting X::Composition::NotComposable or
-        X::Inheritance::Unsupported exceptions [a822bcf]
     + .chrs can now also accepts codepoint numbers as Str [4ae3f23]
     + Added support for compilation of Rakudo on Solaris [a43b0c1]
     + IterationEnd.perl/gist/Str now returns text "IterationEnd" [59bb1b1]

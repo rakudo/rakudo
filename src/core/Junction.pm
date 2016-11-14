@@ -33,7 +33,7 @@ my class Junction { # declared in BOOTSTRAP
             nqp::stmts(
               nqp::while(
                 (nqp::islt_i($i,$elems)
-                  && nqp::if(nqp::isconcrete(nqp::atpos($!storage,$i)),0,1)),
+                  && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
                 ($i = nqp::add_i($i,1))
               ),
               nqp::p6bool(nqp::islt_i($i,$elems))
@@ -43,7 +43,7 @@ my class Junction { # declared in BOOTSTRAP
               nqp::stmts(
                 nqp::while(
                   (nqp::islt_i($i,$elems)
-                    && nqp::isconcrete(nqp::atpos($!storage,$i))),
+                    && nqp::atpos($!storage,$i).defined),
                   ($i = nqp::add_i($i,1))
                 ),
                 nqp::p6bool(nqp::iseq_i($i,$elems))
@@ -53,7 +53,7 @@ my class Junction { # declared in BOOTSTRAP
                 nqp::stmts(
                   nqp::while(
                     (nqp::islt_i($i,$elems)
-                      && nqp::if(nqp::isconcrete(nqp::atpos($!storage,$i)),0,1)),
+                      && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
                     ($i = nqp::add_i($i,1))
                   ),
                   nqp::p6bool(nqp::iseq_i($i,$elems))
@@ -65,7 +65,7 @@ my class Junction { # declared in BOOTSTRAP
                     (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                       && nqp::isle_i($seen,1)),
                     nqp::if(
-                      nqp::isconcrete(nqp::atpos($!storage,$i)),
+                      nqp::atpos($!storage,$i).defined,
                       ($seen = nqp::add_i($seen,1))
                     )
                   ),

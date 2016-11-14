@@ -1066,6 +1066,7 @@ S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
+S32-str/parse-base.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samemark.t

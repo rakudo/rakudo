@@ -2252,8 +2252,13 @@ my class X::Numeric::Confused is Exception {
     has $.num;
     has $.base;
     method message() {
-        "This call only converts base-$.base strings to numbers; value {$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!\n"
-            ~ "(If you really wanted to convert {$.num.perl} to a base-$.base string, use {$.num.perl}.base($.base) instead.)";
+        "This call only converts base-$.base strings to numbers; value "
+        ~ "{$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!"
+        ~ (
+            "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
+                ~ " string, use {$.num.perl}.base($.base) instead.)"
+            if $.num.perl.^can('base')
+        );
     }
 }
 

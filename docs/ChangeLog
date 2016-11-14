@@ -1,6 +1,10 @@
 New in 2016.11
  + Fixes:
     + Various improvements to warning/error-reporting
+    + Fixed assigning values to shaped arrays through iterators [839c762]
+    + Fixed Str.Int not failing on numerics with combining characters [d540fc8]
+    + [JVM] Fixed <a b c>.antipairs breakage [dd7b055]
+    + defined routine now correctly authothreads with Junctions [189cb23]
     + Fixed poor randomness when .pick()ing on ranges with >32-bit numbers [34e515d]
     + Fixed infix:<x> silencing Failures [2dd0ddb]
     + Fixed edge case in is-approx that triggers DivByZero exception [f7770ed]
@@ -41,6 +45,7 @@ New in 2016.11
  + Additions:
     + Added TWEAK submethod for object construction [fdc90a2][9409d68]
     + Added DateTime.hh-mm-ss [bf51eca]
+    + Added parse-base routine [7e21a24]
     + is-approx with no explicit tolerances now uses more complex algorithm to
         choose a tolerance to use (same as old is_approx) [82432a4]
     + on failure, is-approx now displays actual values received [b4fe680]
@@ -58,7 +63,13 @@ New in 2016.11
     + Implemented :kv,:p,:k,:v on 1-element multidim [;] [764cfcd]
     + Fixed crash when reporting X::Composition::NotComposable or
         X::Inheritance::Unsupported exceptions [a822bcf]
+    + .chrs can now also accepts codepoint numbers as Str [4ae3f23]
+    + Added support for compilation of Rakudo on Solaris [a43b0c1]
+    + IterationEnd.perl/gist/Str now returns text "IterationEnd" [59bb1b1]
+    + Added X::Syntax::Number::InvalidCharacter exception [2faa55b]
  + Efficiency:
+    + Made slip(@a) about 1.2x faster [37d0e46]
+    + Made initialization of 2+dimmed array 10x to 16x faster [dfb58d4]
     + Str.match is now about 5% faster [4fc17df]
     + Str.match with :nth feature is now about 2x faster [41e2572]
     + my @a = Str.match(...) is now about 5% faster [e472420]

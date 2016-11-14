@@ -1491,6 +1491,17 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
+my class X::Syntax::Number::InvalidCharacter does X::Syntax {
+    has $.radix;
+    has $.str;
+    method message() {
+        my ($R,$C,$G,$Y,$E) = Rakudo::Internals.error-rcgye;
+        $!pos = 0 if $!pos < 0; # radix_I returns -1 if first char is bad
+        my ($pre, $post) = .substr(0, $!pos), .substr($!pos) given $!str;
+        "Invalid base-$!radix character: $G$pre$Y$E$R$post$C";
+    }
+}
+
 my class X::Syntax::Number::IllegalDecimal does X::Syntax {
     method message() { "Decimal point must be followed by digit" }
 }

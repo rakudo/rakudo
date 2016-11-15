@@ -37,7 +37,7 @@ register_op_desugar('p6sink', -> $qast {
 
 # Signature binding related bits.
 
-$ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :sideffects, sub ($binder) {"nqp.p6binder = $binder"});
+$ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :side-effects, sub ($binder) {"nqp.p6binder = $binder"});
 $ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     my $ops := nqp::getcomp('QAST').operations;
     my $tmp := $*BLOCK.add_tmp;
@@ -66,13 +66,13 @@ $ops.add_simple_op('p6isbindable', $ops.INT, [$ops.OBJ, $ops.OBJ], :!inlinable, 
 
 $ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));
 
-$ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :sideffects, sub ($fake, $code) {
+$ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side-effects, sub ($fake, $code) {
     "$code.\$\$call($*CTX, null)"
 });
 
-$ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :sideffects);
-$ops.add_simple_op('p6init', $ops.OBJ, [], :sideffects, -> {'require(process.env.RAKUDOJS_RUNTIME)'});
-$ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :sideffects);
+$ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side-effects);
+$ops.add_simple_op('p6init', $ops.OBJ, [], :side-effects, -> {'require(process.env.RAKUDOJS_RUNTIME)'});
+$ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :side-effects);
 
 $ops.add_simple_op('p6box_s', $ops.OBJ, [$ops.STR]);
 $ops.add_simple_op('p6box_i', $ops.OBJ, [$ops.INT]);
@@ -91,9 +91,9 @@ $ops.add_simple_op('p6capturelex', $ops.OBJ, [$ops.OBJ], :ctx);
 $ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
 $ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
 
-$ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :sideffects); # TODO not really :sideffects just needs marking as returning a fresh value
+$ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :side-effects); # TODO not really :side-effects just needs marking as returning a fresh value
 
-$ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :sideffects, sub () {
+$ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side-effects, sub () {
     "nqp.op.p6argvmarray($*CTX, Array.prototype.slice.call(arguments))"
 });
 

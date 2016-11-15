@@ -322,7 +322,10 @@
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv self.shape && nqp::eqaddr(in.WHAT,self.WHAT),
-              MEMCPY(self,in),       # VM-supported memcpy-like thing?
+              nqp::stmts(
+                MEMCPY(self,in),     # VM-supported memcpy-like thing?
+                self
+              ),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
                 target-shape => self.shape
@@ -332,10 +335,13 @@
         multi method STORE(::?CLASS:D: array:D \in) {
             nqp::if(
               in.shape eqv self.shape,
-              nqp::if(
-                nqp::istype(in.of,Int),
-                INTCPY(self,in),       # copy from native int
-                NUMCPY(self,in)        # copy from native num
+              nqp::stmts(
+                nqp::if(
+                  nqp::istype(in.of,Int),
+                  INTCPY(self,in),     # copy from native int
+                  NUMCPY(self,in)      # copy from native num
+                ),
+                self
               ),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
@@ -409,7 +415,8 @@
                       )
                     )
                 }
-            }.new(self,in).sink-all
+            }.new(self,in).sink-all;
+            self
         }
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw

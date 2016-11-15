@@ -127,7 +127,8 @@
                       nqp::atpos($to,$i),
                       nqp::bindpos($to,$i,nqp::p6scalarfromdesc($desc))
                     ) = nqp::atpos($from,$i)
-                  )
+                  ),
+                  self
                 ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
@@ -159,11 +160,15 @@
             )
         }
         multi method STORE(::?CLASS:D: Mu \item) {
-            nqp::ifnull(
-              nqp::atpos(nqp::getattr(self,List,'$!reified'),0),
-              nqp::bindpos(nqp::getattr(self,List,'$!reified'),0,
-                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
-            ) = item
+            nqp::stmts(
+              (nqp::ifnull(
+                nqp::atpos(nqp::getattr(self,List,'$!reified'),0),
+                nqp::bindpos(nqp::getattr(self,List,'$!reified'),0,
+                  nqp::p6scalarfromdesc(
+                    nqp::getattr(self,Array,'$!descriptor')))
+              ) = item),
+              self
+            )
         }
 
         multi method keys(::?CLASS:D:) {

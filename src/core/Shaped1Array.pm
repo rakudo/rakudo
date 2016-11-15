@@ -227,11 +227,11 @@
                 }
             }.new(self)
         }
-        method reverse(::?CLASS:D:) {
+        method reverse(::?CLASS:D:) is nodal {
             Rakudo::Internals.ReverseListToList(
               self, self.new(:shape(self.shape)))
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) {
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
             Rakudo::Internals.RotateListToList(
               self, $rotate, self.new(:shape(self.shape)))
         }

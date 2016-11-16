@@ -20,13 +20,16 @@ my class Grammar is Cursor {
                 self!cursor-init(target, %_).TOP()
               ),
             )),
-            nqp::if(
-              nqp::iseq_i(
-                nqp::getattr_i((my $match := $cursor.MATCH),Match,'$!to'),
-                target.chars
+            nqp::stmts(
+              (my $match := $cursor.MATCH),
+              nqp::while(
+                $match && nqp::isne_i(
+                  nqp::getattr_i(($match := $cursor.MATCH),Match,'$!to'),
+                  target.chars
+                ),
+                $match := ($cursor := $cursor.'!cursor_next'()).MATCH
               ),
-              $match,
-              Nil
+              $match || Nil
             ),
             Nil
           )

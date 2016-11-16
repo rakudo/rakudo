@@ -59,7 +59,7 @@ my class Backtrace::Frame {
         nqp::p6bool(nqp::istype($!code,Routine))
     }
     method is-setting(Backtrace::Frame:D:) {
-        $!file.contains("src/core")
+        $!file.starts-with("SETTING::")
     }
 }
 

@@ -1276,31 +1276,40 @@ my class Str does Stringy { # declared in BOOTSTRAP
         fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
             unless $radix ~~ 2..36;
 
-        if $!value.contains('.') { # fractional
-            my ($whole, $fract) = $!value.split: '.', 2;
+        # do not modify $!value directly as that affects other same strings
+        my ($value, $sign, $sign-offset) = $!value, 1, 0;
+        given $value.substr(0,1) {
+            when '-'|'−' { $sign = -1; $value .= substr(1); $sign-offset = 1 }
+            when '+'     {             $value .= substr(1); $sign-offset = 1 }
+        }
+
+        if $value.contains('.') { # fractional
+            my ($whole, $fract) = $value.split: '.', 2;
             my $w-parsed := nqp::radix_I($radix, $whole, 0, 0, Int);
             my $f-parsed := nqp::radix_I($radix, $fract, 0, 0, Int);
 
             # Whole part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($!value), :pos($w-parsed[2])
+                :$radix, :str($value), :pos($sign-offset + $w-parsed[2])
             ) unless $w-parsed[2] == nqp::chars($whole);
 
             # Fractional part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($!value), :pos($w-parsed[2] + 1 + $f-parsed[2])
+                :$radix, :str($value), # +1 in pos() is for decimal dot
+                :pos($sign-offset + $w-parsed[2] + 1 + $f-parsed[2])
             ) unless $f-parsed[2] == nqp::chars($fract);
 
-            $w-parsed[0] + $f-parsed[0]/$f-parsed[1];
+            $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
         }
         else { # Int
-            my $parsed := nqp::radix_I($radix, $!value, 0, 0, Int);
+            my $parsed := nqp::radix_I($radix, $value, 0, 0, Int);
 
             # Did not parse the number in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($!value), :pos($parsed[2])
-            ) unless $parsed[2] == nqp::chars($!value);
-            $parsed[0];
+                :$radix, :str($value), :pos($sign-offset + $parsed[2])
+            ) unless $parsed[2] == nqp::chars($value);
+
+            $sign * $parsed[0];
         }
     }
 

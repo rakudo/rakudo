@@ -82,7 +82,8 @@ my role Real does Numeric {
         }
     }
 
-    method base(Int:D $base, $digits?) {
+    method base(Int:D $base, $digits? is copy) {
+        $digits = Nil if nqp::istype($digits, Whatever);
         fail X::OutOfRange.new(
                 what => 'digits argument to base', got => $digits, range => "0..*"
             ) if $digits.defined and $digits < 0;

@@ -70,7 +70,7 @@ my class Int does Real { # declared in BOOTSTRAP
     }
     multi method base(Int:D: Int(Cool) $base, $digits?) {
         2 <= $base <= 36
-          ?? $digits
+          ?? $digits && ! nqp::istype($digits, Whatever)
             ?? $digits < 0
               ?? Failure.new(X::OutOfRange.new(
                    :what('digits argument to base'),:got($digits),:range<0..*>))

@@ -121,40 +121,36 @@ my role Rational[::NuT, ::DeT] does Real {
             $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
         }
 
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
+        my $sign   = $!numerator < 0 ?? '-' !! '';
+        my $whole  = self.abs.floor;
+        my $fract  = self.abs - $whole;
+        my $result = $sign ~ $whole.base($base);
+
         my @conversion := <0 1 2 3 4 5 6 7 8 9
                            A B C D E F G H I J
                            K L M N O P Q R S T
                            U V W X Y Z>;
-        $r -= $i;
-        if $digits // $r {
-            my @f;
-            my $p = $i.base($base);
-            while @f < $prec and ($digits // $r) {
-                $r *= $base;
-                my $d = $r.floor;
-                push @f, $d;
-                $r -= $d;
-            }
-            if 2 * $r >= 1 {
-                for @f-1 ... 0 -> $x {
-                    last if ++@f[$x] < $base;
-                    @f[$x] = 0;
-                    $p = ($i+1).base($base) if $x == 0;
-                }
-            }
-            $s ~= $p;
-            if @f {
-                $s ~= '.';
-                $s ~= @conversion[@f].join;
+
+        my @fract-digits;
+        while @fract-digits < $prec and ($digits // $fract) {
+            $fract *= $base;
+            my $digit = $fract.floor;
+            push @fract-digits, $digit;
+            $fract -= $digit;
+        }
+
+        # Round the final number, based on the remaining fractional part
+        if 2*$fract >= 1 {
+            for @fract-digits-1 ... 0 -> $n {
+                last if ++@fract-digits[$n] < $base;
+                @fract-digits[$n] = 0;
+                $result = $sign ~ ($whole+1).base($base) if $n == 0;
             }
         }
-        else {
-            $s ~= $i.base($base);
-        }
-        $s;
+
+        @fract-digits
+            ?? $result ~ '.' ~ @conversion[@fract-digits].join
+            !! $result;
     }
 
     method base-repeating($base = 10) {

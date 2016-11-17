@@ -422,13 +422,23 @@ multi sub infix:</>(Real \a, Complex:D \b) returns Complex:D {
 }
 
 multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {
-    (a.re == 0e0 && a.im == 0e0) ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
+    (a.re == 0e0 && a.im == 0e0)
+        ?? ( b.re == 0e0 && b.im == 0e0
+                ?? Complex.new(1e0, 0e0)
+                !! Complex.new(0e0, 0e0)
+           )
+        !! (b * a.log).exp
 }
 multi sub infix:<**>(Num(Real) \a, Complex:D \b) returns Complex:D {
-    a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
+    a == 0e0
+        ?? ( b.re == 0e0 && b.im == 0e0
+                ?? Complex.new(1e0, 0e0)
+                !! Complex.new(0e0, 0e0)
+           )
+        !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b) returns Complex:D {
-    (b * a.log).exp
+    b == 0e0 ?? Complex.new(1e0, 0e0) !! (b * a.log).exp
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }

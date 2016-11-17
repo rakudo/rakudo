@@ -123,10 +123,11 @@
                   (my int $i = -1),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    nqp::ifnull(
-                      nqp::atpos($to,$i),
-                      nqp::bindpos($to,$i,nqp::p6scalarfromdesc($desc))
-                    ) = nqp::atpos($from,$i)
+                    # always create a new container in case the from list
+                    # contains containers already existing in the to list
+                    # e.g. after having done a .reverse or .rotate
+                    nqp::bindpos($to,$i,nqp::p6scalarfromdesc($desc)) =
+                      nqp::atpos($from,$i)
                   ),
                   self
                 ),

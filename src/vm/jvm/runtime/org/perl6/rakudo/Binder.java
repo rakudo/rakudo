@@ -5,6 +5,10 @@ import java.util.*;
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
+import org.perl6.nqp.sixmodel.reprs.P6int;
+import org.perl6.nqp.sixmodel.reprs.P6str;
+import org.perl6.nqp.sixmodel.reprs.P6num;
+import org.perl6.nqp.sixmodel.reprs.P6OpaqueREPRData;
 
 @SuppressWarnings("unused")
 public final class Binder {
@@ -155,15 +159,42 @@ public final class Binder {
         /* If it's private, just need to fetch the attribute. */
         SixModelObject assignee;
         if ((paramFlags & SIG_ELEM_BIND_PRIVATE_ATTR) != 0) {
-            assignee = self.get_attribute_boxed(tc, attrPackage, varName, STable.NO_HINT);
+            /* If we have a native Attribute we can't get a container for it, and 
+               since *trying* to get a container would throw already, we first check
+               if the target Attribute is native. */
+            int hint = -1;
+            for (HashMap<String, Integer> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
+                try {
+                    hint = map.get(varName);
+                }
+                catch (Exception e) {
+                    continue;
+                }
+            }
+            REPR attrREPR = null;
+            if (((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint] != null) {
+                /* We sometimes don't have flattenedSTables. I'm not sure that's okay, honestly... */
+                attrREPR = ((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint].REPR;
+            }
+            if (attrREPR instanceof P6int) {
+                Ops.bindattr_i(self, attrPackage, varName, Ops.unbox_i(value, tc), tc);
+            }
+            else if (attrREPR instanceof P6num) {
+                Ops.bindattr_n(self, attrPackage, varName, Ops.unbox_n(value, tc), tc);
+            }
+            else if (attrREPR instanceof P6str) {
+                Ops.bindattr_s(self, attrPackage, varName, Ops.unbox_s(value, tc), tc);
+            }
+            else {
+                /* ...but we'll just assume it's probably some boxed Attribute. */
+                assignee = self.get_attribute_boxed(tc, attrPackage, varName, STable.NO_HINT);
+                RakOps.p6store(assignee, value, tc);
+            }
         }
-
         /* Otherwise if it's public, do a method call to get the assignee. */
         else {
             throw new RuntimeException("$.x parameters NYI");
         }
-
-        RakOps.p6store(assignee, value, tc);
         return BIND_RESULT_OK;
     }
     

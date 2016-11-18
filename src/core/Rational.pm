@@ -70,27 +70,27 @@ my role Rational[::NuT, ::DeT] does Real {
 
     multi method Str(::?CLASS:D:) {
         if nqp::istype($!numerator,Int) {
-            my $s = $!numerator < 0 ?? '-' !! '';
-            my $r = self.abs;
-            my $i = $r.floor;
-            $r -= $i;
-            $s ~= $i;
-            if $r {
-                $s ~= '.';
-                my $want = $!denominator < 100_000
-                           ?? 6
-                           !! $!denominator.Str.chars + 1;
-                my $f = '';
-                while $r and $f.chars < $want {
-                    $r *= 10;
-                    $i = $r.floor;
-                    $f ~= $i;
-                    $r -= $i;
+            my $whole  = self.abs.floor;
+            my $fract  = self.abs - $whole;
+            my $result = ($!numerator < 0 ?? '-' !! '') ~ $whole;
+
+            if $fract {
+                my $precision = $!denominator < 100_000
+                    ?? 6 !! $!denominator.Str.chars + 1;
+
+                my $fract-result = '';
+                while $fract and $fract-result.chars < $precision {
+                    $fract *= 10;
+                    given $fract.floor {
+                        $fract-result ~= $_;
+                        $fract        -= $_;
+                    }
                 }
-                $f++ if  2 * $r >= 1;
-                $s ~= $f;
+                $fract-result++ if 2*$fract >= 1; # round off fractional result
+
+                $result ~= '.' ~ $fract-result;
             }
-            $s
+            $result
         }
         else {
             $!numerator.Str

@@ -72,7 +72,13 @@ my role Rational[::NuT, ::DeT] does Real {
         if nqp::istype($!numerator,Int) {
             my $whole  = self.abs.floor;
             my $fract  = self.abs - $whole;
-            my $result = ($!numerator < 0 ?? '-' !! '') ~ $whole;
+
+            # fight floating point noise issues RT#126016
+            if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+            my $result = nqp::if(
+                nqp::islt_I($!numerator, 0), '-', ''
+            ) ~ $whole;
 
             if $fract {
                 my $precision = $!denominator < 100_000
@@ -121,11 +127,14 @@ my role Rational[::NuT, ::DeT] does Real {
             $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
         }
 
-        my $sign   = $!numerator < 0 ?? '-' !! '';
-        my $whole  = self.abs.floor;
-        my $fract  = self.abs - $whole;
-        my $result = $sign ~ $whole.base($base);
+        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
+        my $whole = self.abs.floor;
+        my $fract = self.abs - $whole;
 
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+        my $result = $sign ~ $whole.base($base);
         my @conversion := <0 1 2 3 4 5 6 7 8 9
                            A B C D E F G H I J
                            K L M N O P Q R S T

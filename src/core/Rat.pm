@@ -14,9 +14,12 @@ my class Rat is Cool does Rational[Int, Int] {
                 $d = $d div 2 while $d %% 2;
                 self.REDUCE-ME;
             }
-            $d == 1
-              ?? self.base(10,*)
-              !! '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
+            if $d == 1 and (my $b := self.base(10,*)).Numeric === self {
+                $b;
+            }
+            else {
+                '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
+            }
         }
     }
 }

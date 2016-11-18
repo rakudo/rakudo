@@ -44,6 +44,14 @@ New in 2016.11
     + Fixed instabilities in programs launching many threads at startup [0134132]
     + Fixed crash when reporting X::Composition::NotComposable or
         X::Inheritance::Unsupported exceptions [a822bcf]
+    + Fixed clock_gettime issue on macOS [ee8ae92]
+    + Fixed SEGV in multi-threaded programs with strings-as-strands [395f369]
+    + `regex` TOP Grammar rule will now backtrack if needed [4ccb2f3]
+    + Fixed .rotate/.reverse on 1-dimmed arrays assigning to self [2d56751]
+    + Fixed exponentiation involving zeros for Complex numbers [7f32243]
+    + Fixed Label.gist [29db214][53d7b72]
+    + Fixed certain edge cases of incorrect stringification of Rationals
+        with .Str, .perl, and .base [b5aa3c5]
  + Additions:
     + Added TWEAK submethod for object construction [fdc90a2][9409d68]
     + Added DateTime.hh-mm-ss [bf51eca]
@@ -67,6 +75,11 @@ New in 2016.11
     + Added support for compilation of Rakudo on Solaris [a43b0c1]
     + IterationEnd.perl/gist/Str now returns text "IterationEnd" [59bb1b1]
     + Added X::Syntax::Number::InvalidCharacter exception [2faa55b]
+    + .reverse/rotate on 1-dimmed arrays are now nodal [cd765e6]
+    + .line and .file on core Code now references original source files [b068e3a]
+    + .rethrow now works on unthrown exceptions [58a4826]
+    + All Reals now accept `Whatever` as the second argument to .base() [c1d2599]
+    + sub MAIN now allows Enums as type constraints [546dbd9]
  + Efficiency:
     + Made slip(@a) about 1.2x faster [37d0e46]
     + Made initialization of 2+dimmed array 10x to 16x faster [dfb58d4]
@@ -122,6 +135,9 @@ New in 2016.11
     + Made starting a grepper faster: .grep on with no adverbs on 2-element list
         is now 20% faster [077c8f0]
     + Made Date/DateTime creation 20% faster [0e7f480]
+    + Hashes now use 4 (32-bit) or 8 (64-bit) bytes less memory per stored item  [395f369]
+    + Rational.Str is now about 40% faster [b5aa3c5]
+    + Rational.base is now about 30% faster [b5aa3c5]
     + Various streamlining of code that's hard to measure the final impact of
 
 New in 2016.10

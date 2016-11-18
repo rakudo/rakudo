@@ -16,7 +16,7 @@ my sub MAIN_HELPER($retval = 0) {
     my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE; 
 
     sub thevalue(\a) {
-        (my $type := ::(a)) && Metamodel::EnumHOW.ACCEPTS($type.HOW)
+        ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
           ?? $type
           !! val(a)
     }

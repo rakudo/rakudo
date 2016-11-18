@@ -15,6 +15,12 @@ my sub MAIN_HELPER($retval = 0) {
 
     my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE; 
 
+    sub thevalue(\a) {
+        (my $type := ::(a)) && Metamodel::EnumHOW.ACCEPTS($type.HOW)
+          ?? $type
+          !! val(a)
+    }
+
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
         my $positional := nqp::list;
@@ -25,13 +31,13 @@ my sub MAIN_HELPER($retval = 0) {
 
             # rest considered to be non-parsed
             if nqp::iseq_s($passed-value,'--') {
-                nqp::push($positional, val($_)) for @args;
+                nqp::push($positional, thevalue($_)) for @args;
                 last;
             }
 
             # no longer accepting nameds
             elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
-                nqp::push($positional, val($passed-value));
+                nqp::push($positional, thevalue($passed-value));
             }
 
             # named
@@ -44,8 +50,8 @@ my sub MAIN_HELPER($retval = 0) {
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
                     %named.push: $name => $0.chars
-                      ?? val(nqp::join("=",$split)) but False
-                      !! val(nqp::join("=",$split));
+                      ?? thevalue(nqp::join("=",$split)) but False
+                      !! thevalue(nqp::join("=",$split));
                 }
                 
                 # implicit value
@@ -56,7 +62,7 @@ my sub MAIN_HELPER($retval = 0) {
 
             # positional
             else {
-                nqp::push($positional, val($passed-value));
+                nqp::push($positional, thevalue($passed-value));
             }
         }
 

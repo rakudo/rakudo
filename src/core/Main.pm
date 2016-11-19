@@ -113,6 +113,12 @@ my sub MAIN_HELPER($retval = 0) {
                         my @names  = $param.named_names.reverse;
                         $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
                         $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
+                        if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
+                            my $options = $param.type.^enum_values.keys.sort.Str;
+                            $argument ~= $options.chars > 50
+                              ?? ' (' ~ substr($options,0,50) ~ '...'
+                              !! " ($options)"
+                        }
                         if $param.optional {
                             @optional-named.push("[$argument]");
                         }

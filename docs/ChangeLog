@@ -80,6 +80,7 @@ New in 2016.11
     + .rethrow now works on unthrown exceptions [58a4826]
     + All Reals now accept `Whatever` as the second argument to .base() [c1d2599]
     + sub MAIN now allows Enums as type constraints [546dbd9]
+    + Usage message shows possible Enum values if param is Enum [a3be654]
  + Efficiency:
     + Made slip(@a) about 1.2x faster [37d0e46]
     + Made initialization of 2+dimmed array 10x to 16x faster [dfb58d4]

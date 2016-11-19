@@ -31,13 +31,13 @@ my sub MAIN_HELPER($retval = 0) {
 
             # rest considered to be non-parsed
             if nqp::iseq_s($passed-value,'--') {
-                nqp::push($positional, thevalue($_)) for @args;
+                nqp::push($positional, val($_)) for @args;
                 last;
             }
 
             # no longer accepting nameds
             elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
-                nqp::push($positional, thevalue($passed-value));
+                nqp::push($positional, val($passed-value));
             }
 
             # named
@@ -50,8 +50,8 @@ my sub MAIN_HELPER($retval = 0) {
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
                     %named.push: $name => $0.chars
-                      ?? thevalue(nqp::join("=",$split)) but False
-                      !! thevalue(nqp::join("=",$split));
+                      ?? val(nqp::join("=",$split)) but False
+                      !! val(nqp::join("=",$split));
                 }
                 
                 # implicit value
@@ -62,7 +62,7 @@ my sub MAIN_HELPER($retval = 0) {
 
             # positional
             else {
-                nqp::push($positional, thevalue($passed-value));
+                nqp::push($positional, val($passed-value));
             }
         }
 

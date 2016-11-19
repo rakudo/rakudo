@@ -6,8 +6,11 @@ use NativeCall;
 use Test;
 
 plan 3;
-skip 'Flopping test. See https://rt.perl.org/Ticket/Display.html?id=130042 ', 3;
-exit;
+
+if $*DISTRO.is-win {
+    skip 'Test flops on Windows. See https://rt.perl.org/Ticket/Display.html?id=130042 ', 3;
+    exit;
+}
 
 compile_test_lib('20-concurrent');
 

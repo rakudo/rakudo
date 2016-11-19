@@ -67,13 +67,7 @@ my class Failure is Nil {
        )
     }
 
-#?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }
-#?endif
-#?if jvm
-    method Int(Failure:D:)        { $!handled ?? 0   !! self!throw(); }
-#?endif
-
     method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }

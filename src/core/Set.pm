@@ -51,10 +51,10 @@ my class Set does Setty {
         }.new(%!elems))
     }
 
-    method grab ($count?) {
+    multi method grab(Set:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs ($count?) {
+    multi method grabpairs(Set:D $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

@@ -374,6 +374,9 @@ my role Baggy does QuantHash {
     multi method pickpairs(Baggy:D:) {
         %!elems.AT-KEY(%!elems.keys.pick);
     }
+    multi method pickpairs(Baggy:D: Callable:D $calculate) {
+        self.pickpairs( $calculate(self.total) )
+    }
     multi method pickpairs(Baggy:D: $count) {
         %!elems{ %!elems.keys.pick(
           nqp::istype($count,Whatever) || $count == Inf
@@ -388,6 +391,9 @@ my role Baggy does QuantHash {
         %!elems.DELETE-KEY(grabbed.WHICH)
           if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
         grabbed;
+    }
+    multi method grab(Baggy:D: Callable:D $calculate) {
+        self.grab( $calculate(self.total) )
     }
     multi method grab(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
@@ -408,6 +414,9 @@ my role Baggy does QuantHash {
 
     proto method pick(|) { * }
     multi method pick(Baggy:D:) { self.roll }
+    multi method pick(Baggy:D: Callable:D $calculate) {
+        self.pick( $calculate(self.total) )
+    }
     multi method pick(Baggy:D: $count) {
         my $hash     := nqp::getattr(%!elems,Map,'$!storage');
         my int $elems = nqp::elems($hash);

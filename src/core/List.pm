@@ -1023,6 +1023,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
            ?? nqp::atpos($!reified, $elems.rand.floor)
            !! Nil
     }
+    multi method pick(List:D: Callable:D $calculate) {
+        self.is-lazy
+         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         !! self.pick( $calculate(self.elems) )
+    }
     multi method pick(List:D: $number is copy) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
         my Int $elems = self.elems;

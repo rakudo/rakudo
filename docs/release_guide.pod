@@ -22,8 +22,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2016-11-19   Rakudo #105 (Zoffix)
-  2016-12-17   Rakudo #106
+  2016-12-17   Rakudo #106 (Zoffix)
   2017-01-21   Rakudo #107
   2017-02-18   Rakudo #108
   2017-03-18   Rakudo #109
@@ -424,6 +423,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-08-20   2016.08.1                       (Zoffix)
   2016-09-17   Rakudo #103 "2016.09"           (Zoffix + NeuralAnomaly)
   2016-10-15   Rakudo #104 "2016.10"           (Zoffix + NeuralAnomaly)
+  2016-11-19   Rakudo #105 "2016.11"           (Zoffix + NeuralAnomaly)
 
 =head1 COPYRIGHT
 

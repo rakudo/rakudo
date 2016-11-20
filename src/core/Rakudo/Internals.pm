@@ -1250,6 +1250,14 @@ my class Rakudo::Internals {
         multi method Slip() {
             Slip.from-iterator(self.iterator)
         }
+
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(::?CLASS:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(::?CLASS:D:) is raw {
+            die "Must specify at least one index with {self.^name}.AT-POS"
+        }
     }
 
     our class SupplySequencer {

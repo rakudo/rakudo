@@ -3,14 +3,6 @@
     my role ShapedArray does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
-        proto method AT-POS(|) is raw {*}
-        multi method AT-POS(::?CLASS:U: |c) is raw {
-            self.Any::AT-POS(|c)
-        }
-        multi method AT-POS(::?CLASS:D:) is raw {
-            die "Must specify at least one index with AT-POS"
-        }
-
         # Handle dimensions > 3 or more indices than dimensions.
         # If dimensions <= 3, then custom AT-POS should have caught
         # correct number of indices already.

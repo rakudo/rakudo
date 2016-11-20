@@ -42,10 +42,6 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-        proto method AT-POS(|) is raw {*}
-        multi method AT-POS(shaped#type#array:U: |c) is raw {
-            self.Any::AT-POS(|c)
-        }
         multi method AT-POS(shaped#type#array:D: **@indices) is raw {
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;

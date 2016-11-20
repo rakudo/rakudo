@@ -15,6 +15,10 @@ my class Match is Capture is Cool {
         nqp::create(self)!SET-SELF($orig,$from,$to,$CURSOR,$made);
     }
 
+    multi method WHICH (Match:D:) {
+        self.Mu::WHICH # skip Capture's as Match is not a value type
+    }
+
     method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {

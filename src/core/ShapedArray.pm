@@ -43,17 +43,6 @@
             )
         }
 
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(::?CLASS:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
-        multi method ASSIGN-POS(::?CLASS:D:) {
-            die "Must specify at least one index and a value with ASSIGN-POS"
-        }
-        multi method ASSIGN-POS(::?CLASS:D: $) {
-            die "Must specify at least one index and a value with ASSIGN-POS"
-        }
-
         multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my $value   := @indices.pop),         # reifies

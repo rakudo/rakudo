@@ -916,7 +916,7 @@ my class array does Iterable {
 
     role shapedintarray[::T] does shapedarray {
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-20T22:09:01+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedintarray:D: **@indices) is raw {
@@ -947,10 +947,6 @@ my class array does Iterable {
             }
         }
 
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(shapedintarray:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
         multi method ASSIGN-POS(shapedintarray:D: **@indices) {
             my int $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);
@@ -984,7 +980,7 @@ my class array does Iterable {
 
     role shapednumarray[::T] does shapedarray {
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-20T22:09:01+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapednumarray:D: **@indices) is raw {
@@ -1015,10 +1011,6 @@ my class array does Iterable {
             }
         }
 
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(shapednumarray:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
         multi method ASSIGN-POS(shapednumarray:D: **@indices) {
             my num $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);
@@ -1052,7 +1044,7 @@ my class array does Iterable {
 
     role shapedstrarray[::T] does shapedarray {
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-20T22:09:01+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedstrarray:D: **@indices) is raw {
@@ -1083,10 +1075,6 @@ my class array does Iterable {
             }
         }
 
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(shapedstrarray:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
         multi method ASSIGN-POS(shapedstrarray:D: **@indices) {
             my str $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);

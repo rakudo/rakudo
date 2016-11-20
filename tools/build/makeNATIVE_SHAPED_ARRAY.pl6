@@ -70,10 +70,6 @@ for $*IN.lines -> $line {
             }
         }
 
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(shaped#type#array:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
         multi method ASSIGN-POS(shaped#type#array:D: **@indices) {
             my #type# $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);

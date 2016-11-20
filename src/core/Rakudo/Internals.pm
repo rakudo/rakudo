@@ -1258,6 +1258,17 @@ my class Rakudo::Internals {
         multi method AT-POS(::?CLASS:D:) is raw {
             die "Must specify at least one index with {self.^name}.AT-POS"
         }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(::?CLASS:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(::?CLASS:D:) {
+            die "Must specify at least one index and a value with {self.^name}.ASSIGN-POS"
+        }
+        multi method ASSIGN-POS(::?CLASS:D: $) {
+            die "Must specify at least one index and a value with {self.^name}.ASSIGN-POS"
+        }
     }
 
     our class SupplySequencer {

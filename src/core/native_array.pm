@@ -915,15 +915,19 @@ my class array does Iterable {
     }
 
     role shapedintarray[::T] does shapedarray {
+#- start of generated part of shapedintarray role -----------------------------
+#- Generated on 2016-11-20T20:56:55+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
         proto method AT-POS(|) is raw {*}
-        multi method AT-POS(array:U: |c) is raw {
+        multi method AT-POS(shapedintarray:U: |c) is raw {
             self.Any::AT-POS(|c)
         }
-        multi method AT-POS(array:D: **@indices) is raw {
+        multi method AT-POS(shapedintarray:D: **@indices) is raw {
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;
             if $numind == $numdims {
-                my $idxs := nqp::list_i();
+                my $idxs := nqp::list_i;
                 while $numdims > 0 {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
@@ -948,15 +952,15 @@ my class array does Iterable {
         }
 
         proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(array:U: |c) {
+        multi method ASSIGN-POS(shapedintarray:U: |c) {
             self.Any::ASSIGN-POS(|c)
         }
-        multi method ASSIGN-POS(array:D: **@indices) {
+        multi method ASSIGN-POS(shapedintarray:D: **@indices) {
             my int $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;
             if $numind == $numdims {
-                my $idxs := nqp::list_i();
+                my $idxs := nqp::list_i;
                 while $numdims > 0 {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
@@ -978,18 +982,24 @@ my class array does Iterable {
                 ).throw
             }
         }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of shapedintarray role -------------------------------
     }
 
     role shapednumarray[::T] does shapedarray {
+#- start of generated part of shapednumarray role -----------------------------
+#- Generated on 2016-11-20T20:56:55+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
         proto method AT-POS(|) is raw {*}
-        multi method AT-POS(array:U: |c) is raw {
+        multi method AT-POS(shapednumarray:U: |c) is raw {
             self.Any::AT-POS(|c)
         }
-        multi method AT-POS(array:D: **@indices) is raw {
+        multi method AT-POS(shapednumarray:D: **@indices) is raw {
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;
             if $numind == $numdims {
-                my $idxs := nqp::list_i();
+                my $idxs := nqp::list_i;
                 while $numdims > 0 {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
@@ -1014,15 +1024,15 @@ my class array does Iterable {
         }
 
         proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(array:U: |c) {
+        multi method ASSIGN-POS(shapednumarray:U: |c) {
             self.Any::ASSIGN-POS(|c)
         }
-        multi method ASSIGN-POS(array:D: **@indices) {
+        multi method ASSIGN-POS(shapednumarray:D: **@indices) {
             my num $value   = @indices.pop;
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;
             if $numind == $numdims {
-                my $idxs := nqp::list_i();
+                my $idxs := nqp::list_i;
                 while $numdims > 0 {
                     nqp::push_i($idxs, @indices.shift);
                     $numdims = $numdims - 1;
@@ -1044,6 +1054,80 @@ my class array does Iterable {
                 ).throw
             }
         }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of shapednumarray role -------------------------------
+    }
+
+    role shapedstrarray[::T] does shapedarray {
+#- start of generated part of shapedstrarray role -----------------------------
+#- Generated on 2016-11-20T20:56:55+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(shapedstrarray:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(shapedstrarray:D: **@indices) is raw {
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i;
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+#?if moar
+                nqp::multidimref_s(self, $idxs)
+#?endif
+#?if !moar
+                nqp::atposnd_s(self, $idxs)
+#?endif
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'access',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
+            }
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(shapedstrarray:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(shapedstrarray:D: **@indices) {
+            my str $value   = @indices.pop;
+            my int $numdims = nqp::numdimensions(self);
+            my int $numind  = @indices.elems;
+            if $numind == $numdims {
+                my $idxs := nqp::list_i;
+                while $numdims > 0 {
+                    nqp::push_i($idxs, @indices.shift);
+                    $numdims = $numdims - 1;
+                }
+                nqp::bindposnd_s(self, $idxs, $value)
+            }
+            elsif $numind > $numdims {
+                X::TooManyDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+            else {
+                X::NotEnoughDimensions.new(
+                    operation => 'assign to',
+                    got-dimensions => $numind,
+                    needed-dimensions => $numdims
+                ).throw
+            }
+        }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of shapedstrarray role -------------------------------
     }
 
     method ^parameterize(Mu:U \arr, Mu:U \t) {

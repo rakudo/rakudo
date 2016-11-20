@@ -1269,6 +1269,14 @@ my class Rakudo::Internals {
         multi method ASSIGN-POS(::?CLASS:D: $) {
             die "Must specify at least one index and a value with {self.^name}.ASSIGN-POS"
         }
+
+        proto method EXISTS-POS(|) {*}
+        multi method EXISTS-POS(::?CLASS:U: |c) {
+            self.Any::EXISTS-POS(|c)
+        }
+        multi method EXISTS-POS(::?CLASS:D:) {
+            die "Must specify at least one index with {self.^name}.EXISTS-POS"
+        }
     }
 
     our class SupplySequencer {

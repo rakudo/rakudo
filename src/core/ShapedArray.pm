@@ -80,14 +80,6 @@
             )
         }
 
-        proto method EXISTS-POS(|) {*}
-        multi method EXISTS-POS(::?CLASS:U: |c) {
-            self.Any::EXISTS-POS(|c)
-        }
-        multi method EXISTS-POS(::?CLASS:D:) {
-            die "Must specify at least one index with EXISTS-POS"
-        }
-
         multi method EXISTS-POS(::?CLASS:D: **@indices) {
             nqp::p6bool(
               nqp::stmts(

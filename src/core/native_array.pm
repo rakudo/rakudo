@@ -852,10 +852,6 @@ my class array does Iterable {
             )
         }
 
-        proto method EXISTS-POS(|) {*}
-        multi method EXISTS-POS(::?CLASS:U: |c) {
-            self.Any::EXISTS-POS(|c)
-        }
         multi method EXISTS-POS(::?CLASS:D: **@indices) {
             my int $numdims = nqp::numdimensions(self);
             my int $numind  = @indices.elems;

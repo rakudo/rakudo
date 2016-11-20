@@ -1128,10 +1128,13 @@ my class array does Iterable {
         # Calculate new meta-object (probably hitting caches in most cases).
         my \T = self.of;
         my int $kind = nqp::objprimspec(T);
-        X::NYI.new(feature => 'shaped native str arrays').throw if $kind == 3;
-        my \shaped-type = self.WHAT.^mixin($kind == 1
+        my \shaped-type = self.WHAT.^mixin(
+          $kind == 1
             ?? shapedintarray[T]
-            !! shapednumarray[T]);
+            !! $kind == 2
+              ?? shapednumarray[T]
+              !! shapedstrarray[T]
+        );
         shaped-type.^set_name(self.^name());
 
         # Allocate array storage for this shape, based on the calculated type.

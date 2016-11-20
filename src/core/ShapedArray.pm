@@ -4,17 +4,17 @@
         has $.shape;
 
         proto method AT-POS(|) is raw {*}
-        multi method AT-POS(Array:U: |c) is raw {
+        multi method AT-POS(::?CLASS:U: |c) is raw {
             self.Any::AT-POS(|c)
         }
-        multi method AT-POS(Array:D:) is raw {
+        multi method AT-POS(::?CLASS:D:) is raw {
             die "Must specify at least one index with AT-POS"
         }
 
         # Handle dimensions > 3 or more indices than dimensions.
         # If dimensions <= 3, then custom AT-POS should have caught
         # correct number of indices already.
-        multi method AT-POS(Array:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::stmts(
               (my $reified := nqp::getattr(self,List,'$!reified')),
               nqp::if(
@@ -52,17 +52,17 @@
         }
 
         proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(Array:U: |c) {
+        multi method ASSIGN-POS(::?CLASS:U: |c) {
             self.Any::ASSIGN-POS(|c)
         }
-        multi method ASSIGN-POS(Array:D:) {
+        multi method ASSIGN-POS(::?CLASS:D:) {
             die "Must specify at least one index and a value with ASSIGN-POS"
         }
-        multi method ASSIGN-POS(Array:D: $) {
+        multi method ASSIGN-POS(::?CLASS:D: $) {
             die "Must specify at least one index and a value with ASSIGN-POS"
         }
 
-        multi method ASSIGN-POS(**@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my $value   := @indices.pop),         # reifies
               (my $indices := nqp::getattr(@indices,List,'$!reified')),
@@ -100,14 +100,14 @@
         }
 
         proto method EXISTS-POS(|) {*}
-        multi method EXISTS-POS(Array:U: |c) {
+        multi method EXISTS-POS(::?CLASS:U: |c) {
             self.Any::EXISTS-POS(|c)
         }
-        multi method EXISTS-POS(Array:D:) {
+        multi method EXISTS-POS(::?CLASS:D:) {
             die "Must specify at least one index with EXISTS-POS"
         }
 
-        multi method EXISTS-POS(**@indices) {
+        multi method EXISTS-POS(::?CLASS:D: **@indices) {
             nqp::p6bool(
               nqp::stmts(
                 (my int $numind = @indices.elems),     # reifies
@@ -157,14 +157,14 @@
         }
 
         proto method DELETE-POS(|) {*}
-        multi method DELETE-POS(Array:U: |c) {
+        multi method DELETE-POS(::?CLASS:U: |c) {
             self.Any::DELETE-POS(|c)
         }
-        multi method DELETE-POS(Array:D:) is raw {
+        multi method DELETE-POS(::?CLASS:D:) is raw {
             die "Must specify at least one index with DELETE-POS"
         }
 
-        multi method DELETE-POS(**@indices) {
+        multi method DELETE-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my int $numind = @indices.elems),     # reifies
               (my $indices := nqp::getattr(@indices,List,'$!reified')),
@@ -205,17 +205,17 @@
         }
 
         proto method BIND-POS(|) is raw {*}
-        multi method BIND-POS(Array:U: |c) is raw {
+        multi method BIND-POS(::?CLASS:U: |c) is raw {
             self.Any::BIND-POS(|c)
         }
-        multi method BIND-POS(Array:D:) {
+        multi method BIND-POS(::?CLASS:D:) {
             die "Must specify at least one index and a value with BIND-POS"
         }
-        multi method BIND-POS(Array:D: $) {
+        multi method BIND-POS(::?CLASS:D: $) {
             die "Must specify at least one index and a value with BIND-POS"
         }
 
-        multi method BIND-POS(Array:D: **@indices) is raw {
+        multi method BIND-POS(::?CLASS:D: **@indices) is raw {
             nqp::stmts(
               (my $value   := nqp::decont(@indices.pop)), # reifies
               (my $indices := nqp::getattr(@indices,List,'$!reified')),

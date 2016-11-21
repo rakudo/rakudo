@@ -172,10 +172,10 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
             return nqp::p6box_n(nqp::nan());
         }
 
-        # Handle any leading +/- sign
+        # Handle any leading +/-/− sign
         my int $ch  = nqp::ord($str, $pos);
-        my int $neg = nqp::iseq_i($ch, 45);                # '-'
-        if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43) {  # '-', '+'
+        my int $neg = nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722); # '-', '−'
+        if $neg || nqp::iseq_i($ch, 43) {  # '-', '−', '+'
             $pos = nqp::add_i($pos, 1);
             $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         }
@@ -226,8 +226,21 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
                     unless nqp::iseq_i($radix, 10);
 
-                $pos    = nqp::add_i($pos, 1);
-                $parse := nqp::radix_I(10, $str, $pos, 2, Int);
+                $pos = nqp::add_i($pos, 1);
+                # handle the sign
+                # XXX TODO: teach radix_I to handle '−' (U+2212) minus?
+                my int $ch  = nqp::ord($str, $pos);
+                my int $neg = nqp::if(
+                    nqp::iseq_i($ch, 43), # '+'
+                    nqp::stmts(($pos = nqp::add_i($pos, 1)), 0),
+                    nqp::if( # '-', '−'
+                        nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722),
+                        nqp::stmts(($pos = nqp::add_i($pos, 1)), 1),
+                        0,
+                    )
+                );
+
+                $parse := nqp::radix_I(10, $str, $pos, $neg, Int);
                 $p      = nqp::atpos($parse, 2);
                 parse_fail "'E' or 'e' must be followed by decimal (base-10) integer"
                     if nqp::iseq_i($p, -1);
@@ -401,8 +414,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     }
     # Check for '+' or '-' indicating first parsed number was
     # the real part of a complex number
-    elsif nqp::iseq_i(nqp::ord($str, $pos), 45)    # '-'
-       || nqp::iseq_i(nqp::ord($str, $pos), 43) {  # '+'
+    elsif nqp::iseq_i(nqp::ord($str, $pos), 45)     # '-'
+       || nqp::iseq_i(nqp::ord($str, $pos), 43)     # '+'
+       || nqp::iseq_i(nqp::ord($str, $pos), 8722) { # '−'
         # Don't move $pos -- we want parse-real() to see the sign
         my $im := parse-real();
         parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"

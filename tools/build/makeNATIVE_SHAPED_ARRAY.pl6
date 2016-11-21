@@ -43,31 +43,37 @@ for $*IN.lines -> $line {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
         multi method AT-POS(shaped#type#array:D: **@indices) is raw {
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+            nqp::if(
+              nqp::iseq_i(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),  # reifies
+              ),
+              nqp::stmts(
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $idxs := nqp::list_i),
+                nqp::while(                        # native index list
+                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::push_i($idxs,nqp::shift($indices))
+                ),
 #?if moar
-                nqp::multidimref_#postfix#(self, $idxs)
+                nqp::multidimref_#postfix#(self,$idxs)
 #?endif
 #?if !moar
-                nqp::atposnd_#postfix#(self, $idxs)
+                nqp::atposnd_#postfix#(self,$idxs)
 #?endif
-            }
-            elsif $numind > $numdims {
+              ),
+              nqp::if(
+                nqp::isgt_i($numind,$numdims),
                 X::TooManyDimensions.new(
-                    operation => 'access',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+                  operation => 'access',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                X::NYI.new(
+                  feature => "Partially dimensioned views of arrays"
                 ).throw
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
+              )
+            )
         }
 
         multi method ASSIGN-POS(shaped#type#array:D: **@indices) {

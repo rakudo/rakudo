@@ -910,37 +910,43 @@ my class array does Iterable {
         }
     }
 
-    role shapedintarray[::T] does shapedarray {
+    role shapedintarray does shapedarray {
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedintarray:D: **@indices) is raw {
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+            nqp::if(
+              nqp::iseq_i(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),  # reifies
+              ),
+              nqp::stmts(
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $idxs := nqp::list_i),
+                nqp::while(                        # native index list
+                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::push_i($idxs,nqp::shift($indices))
+                ),
 #?if moar
-                nqp::multidimref_i(self, $idxs)
+                nqp::multidimref_i(self,$idxs)
 #?endif
 #?if !moar
-                nqp::atposnd_i(self, $idxs)
+                nqp::atposnd_i(self,$idxs)
 #?endif
-            }
-            elsif $numind > $numdims {
+              ),
+              nqp::if(
+                nqp::isgt_i($numind,$numdims),
                 X::TooManyDimensions.new(
-                    operation => 'access',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+                  operation => 'access',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                X::NYI.new(
+                  feature => "Partially dimensioned views of arrays"
                 ).throw
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
+              )
+            )
         }
 
         multi method ASSIGN-POS(shapedintarray:D: **@indices) {
@@ -974,37 +980,43 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
     }
 
-    role shapednumarray[::T] does shapedarray {
+    role shapednumarray does shapedarray {
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapednumarray:D: **@indices) is raw {
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+            nqp::if(
+              nqp::iseq_i(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),  # reifies
+              ),
+              nqp::stmts(
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $idxs := nqp::list_i),
+                nqp::while(                        # native index list
+                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::push_i($idxs,nqp::shift($indices))
+                ),
 #?if moar
-                nqp::multidimref_n(self, $idxs)
+                nqp::multidimref_n(self,$idxs)
 #?endif
 #?if !moar
-                nqp::atposnd_n(self, $idxs)
+                nqp::atposnd_n(self,$idxs)
 #?endif
-            }
-            elsif $numind > $numdims {
+              ),
+              nqp::if(
+                nqp::isgt_i($numind,$numdims),
                 X::TooManyDimensions.new(
-                    operation => 'access',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+                  operation => 'access',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                X::NYI.new(
+                  feature => "Partially dimensioned views of arrays"
                 ).throw
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
+              )
+            )
         }
 
         multi method ASSIGN-POS(shapednumarray:D: **@indices) {
@@ -1038,37 +1050,43 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
     }
 
-    role shapedstrarray[::T] does shapedarray {
+    role shapedstrarray does shapedarray {
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-20T23:22:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedstrarray:D: **@indices) is raw {
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
+            nqp::if(
+              nqp::iseq_i(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),  # reifies
+              ),
+              nqp::stmts(
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $idxs := nqp::list_i),
+                nqp::while(                        # native index list
+                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::push_i($idxs,nqp::shift($indices))
+                ),
 #?if moar
-                nqp::multidimref_s(self, $idxs)
+                nqp::multidimref_s(self,$idxs)
 #?endif
 #?if !moar
-                nqp::atposnd_s(self, $idxs)
+                nqp::atposnd_s(self,$idxs)
 #?endif
-            }
-            elsif $numind > $numdims {
+              ),
+              nqp::if(
+                nqp::isgt_i($numind,$numdims),
                 X::TooManyDimensions.new(
-                    operation => 'access',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+                  operation => 'access',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                X::NYI.new(
+                  feature => "Partially dimensioned views of arrays"
                 ).throw
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
+              )
+            )
         }
 
         multi method ASSIGN-POS(shapedstrarray:D: **@indices) {
@@ -1130,10 +1148,10 @@ my class array does Iterable {
         my int $kind = nqp::objprimspec(T);
         my \shaped-type = self.WHAT.^mixin(
           $kind == 1
-            ?? shapedintarray[T]
+            ?? shapedintarray
             !! $kind == 2
-              ?? shapednumarray[T]
-              !! shapedstrarray[T]
+              ?? shapednumarray
+              !! shapedstrarray
         );
         shaped-type.^set_name(self.^name());
 

@@ -86,6 +86,7 @@ my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?if moar
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
 # Implement the signature binder.
@@ -1337,6 +1338,7 @@ BEGIN {
 #?if moar
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
+    setup_native_ref_type(StrMultidimRef, str, 'multidim');
 #?endif
 
     # class Proxy is Any {
@@ -2858,6 +2860,7 @@ BEGIN {
 #?if moar
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
 #?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
@@ -3249,6 +3252,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if moar
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
+    'str_multidim_ref', StrMultidimRef,
 #?endif
 ));
 

@@ -2613,8 +2613,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 }
 
 
-multi sub prefix:<~>(Str:D \a)  returns Str:D { a }
-multi sub prefix:<~>(str $a)    returns str   { $a }
+multi sub prefix:<~>(Str:D \a)             { a.Str }
+multi sub prefix:<~>(str   $a) returns str { $a    }
 
 multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))

@@ -51,7 +51,7 @@ for $*IN.lines -> $line {
               nqp::stmts(
                 (my $indices := nqp::getattr(@indices,List,'$!reified')),
                 (my $idxs := nqp::list_i),
-                nqp::while(                        # native index list
+                nqp::while(                          # native index list
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
@@ -77,31 +77,33 @@ for $*IN.lines -> $line {
         }
 
         multi method ASSIGN-POS(shaped#type#array:D: **@indices) {
-            my #type# $value   = @indices.pop;
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
-                nqp::bindposnd_#postfix#(self, $idxs, $value)
-            }
-            elsif $numind > $numdims {
-                X::TooManyDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+            nqp::stmts(
+              (my #type# $value = @indices.pop),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $numdims = nqp::numdimensions(self)),
+                  (my int $numind  = @indices.elems),  # reifies
+                ),
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                          # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::bindposnd_#postfix#(self, $idxs, $value)
+                ),
+                nqp::if(
+                  nqp::isgt_i($numind,$numdims),
+                  X::TooManyDimensions,
+                  X::NotEnoughDimensions
+                ).new(
+                  operation => 'assign to',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
-            else {
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
+              )
+            )
         }
 SOURCE
 

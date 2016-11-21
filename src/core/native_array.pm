@@ -912,7 +912,7 @@ my class array does Iterable {
 
     role shapedintarray does shapedarray {
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T23:23:04+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedintarray:D: **@indices) is raw {
@@ -924,7 +924,7 @@ my class array does Iterable {
               nqp::stmts(
                 (my $indices := nqp::getattr(@indices,List,'$!reified')),
                 (my $idxs := nqp::list_i),
-                nqp::while(                        # native index list
+                nqp::while(                          # native index list
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
@@ -950,31 +950,33 @@ my class array does Iterable {
         }
 
         multi method ASSIGN-POS(shapedintarray:D: **@indices) {
-            my int $value   = @indices.pop;
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
-                nqp::bindposnd_i(self, $idxs, $value)
-            }
-            elsif $numind > $numdims {
-                X::TooManyDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+            nqp::stmts(
+              (my int $value = @indices.pop),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $numdims = nqp::numdimensions(self)),
+                  (my int $numind  = @indices.elems),  # reifies
+                ),
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                          # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::bindposnd_i(self, $idxs, $value)
+                ),
+                nqp::if(
+                  nqp::isgt_i($numind,$numdims),
+                  X::TooManyDimensions,
+                  X::NotEnoughDimensions
+                ).new(
+                  operation => 'assign to',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
-            else {
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
+              )
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedintarray role -------------------------------
@@ -982,7 +984,7 @@ my class array does Iterable {
 
     role shapednumarray does shapedarray {
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T23:23:04+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapednumarray:D: **@indices) is raw {
@@ -994,7 +996,7 @@ my class array does Iterable {
               nqp::stmts(
                 (my $indices := nqp::getattr(@indices,List,'$!reified')),
                 (my $idxs := nqp::list_i),
-                nqp::while(                        # native index list
+                nqp::while(                          # native index list
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
@@ -1020,31 +1022,33 @@ my class array does Iterable {
         }
 
         multi method ASSIGN-POS(shapednumarray:D: **@indices) {
-            my num $value   = @indices.pop;
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
-                nqp::bindposnd_n(self, $idxs, $value)
-            }
-            elsif $numind > $numdims {
-                X::TooManyDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+            nqp::stmts(
+              (my num $value = @indices.pop),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $numdims = nqp::numdimensions(self)),
+                  (my int $numind  = @indices.elems),  # reifies
+                ),
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                          # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::bindposnd_n(self, $idxs, $value)
+                ),
+                nqp::if(
+                  nqp::isgt_i($numind,$numdims),
+                  X::TooManyDimensions,
+                  X::NotEnoughDimensions
+                ).new(
+                  operation => 'assign to',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
-            else {
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
+              )
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapednumarray role -------------------------------
@@ -1052,7 +1056,7 @@ my class array does Iterable {
 
     role shapedstrarray does shapedarray {
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-21T19:34:28+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-21T23:23:04+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(shapedstrarray:D: **@indices) is raw {
@@ -1064,7 +1068,7 @@ my class array does Iterable {
               nqp::stmts(
                 (my $indices := nqp::getattr(@indices,List,'$!reified')),
                 (my $idxs := nqp::list_i),
-                nqp::while(                        # native index list
+                nqp::while(                          # native index list
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
@@ -1090,31 +1094,33 @@ my class array does Iterable {
         }
 
         multi method ASSIGN-POS(shapedstrarray:D: **@indices) {
-            my str $value   = @indices.pop;
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                my $idxs := nqp::list_i;
-                while $numdims > 0 {
-                    nqp::push_i($idxs, @indices.shift);
-                    $numdims = $numdims - 1;
-                }
-                nqp::bindposnd_s(self, $idxs, $value)
-            }
-            elsif $numind > $numdims {
-                X::TooManyDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
+            nqp::stmts(
+              (my str $value = @indices.pop),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $numdims = nqp::numdimensions(self)),
+                  (my int $numind  = @indices.elems),  # reifies
+                ),
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                          # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::bindposnd_s(self, $idxs, $value)
+                ),
+                nqp::if(
+                  nqp::isgt_i($numind,$numdims),
+                  X::TooManyDimensions,
+                  X::NotEnoughDimensions
+                ).new(
+                  operation => 'assign to',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
                 ).throw
-            }
-            else {
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
+              )
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------

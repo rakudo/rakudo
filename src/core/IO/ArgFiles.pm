@@ -103,7 +103,7 @@ my class IO::ArgFiles is IO::Handle {
             }
 
             method pull-one() {
-                return IterationEnd if $!limit-- <= 0;
+                return IterationEnd if $!limit <= 0;
                 my \value = $!iter.pull-one;
                 if value =:= IterationEnd {
                     my $io = $!next-io.();
@@ -114,6 +114,7 @@ my class IO::ArgFiles is IO::Handle {
                 }
                 else {
                     $!ins++;
+                    $!limit--;
                     value;
                 }
             }

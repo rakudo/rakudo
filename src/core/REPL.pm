@@ -54,12 +54,15 @@ do {
     my role ReadlineBehavior[$WHO] {
         my &readline    = $WHO<&readline>;
         my &add_history = $WHO<&add_history>;
-
+        my $Readline = try { require Readline }
+        my $read = $Readline.new;
+        $read.read-init-file("/etc/inputrc");
+        $read.read-init-file("~/.inputrc");
         method repl-read(Mu \prompt) {
-            my $line = readline(prompt);
+            my $line = $read.readline(prompt);
 
             if $line.defined {
-                add_history($line);
+                $read.add_history($line);
             }
 
             $line

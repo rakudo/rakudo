@@ -229,7 +229,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 $pos = nqp::add_i($pos, 1);
                 # handle the sign
                 # XXX TODO: teach radix_I to handle '−' (U+2212) minus?
-                my int $ch  = nqp::ord($str, $pos);
+                my int $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
                 my int $neg = nqp::if(
                     nqp::iseq_i($ch, 43), # '+'
                     nqp::stmts(($pos = nqp::add_i($pos, 1)), 0),

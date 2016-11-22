@@ -113,8 +113,11 @@ sub declarator2text($pod) {
 
 sub signature2text($params) {
       $params.elems ??
-      "(\n\t" ~ $params.map({ $_.perl }).join(", \n\t") ~ "\n)" 
+      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)" 
       !! "()";
+}
+sub param2text($p) {
+    $p.perl ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
 }
 
 my %formats =

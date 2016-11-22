@@ -853,18 +853,30 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: **@indices) {
-            my int $numdims = nqp::numdimensions(self);
-            my int $numind  = @indices.elems;
-            if $numind <= $numdims {
-                my $dims := nqp::dimensions(self);
-                loop (my int $i = 0; $i < $numind; $i = $i + 1) {
-                    return False if @indices[$i] >= nqp::atpos_i($dims, $i);
-                }
-                True
-            }
-            else {
-                False
-            }
+            nqp::p6bool(
+              nqp::stmts(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),      # reifies
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                nqp::if(
+                  nqp::isle_i($numind,$numdims),
+                  nqp::stmts(
+                    (my $dims := nqp::dimensions(self)),
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$numind)
+                        && nqp::isge_i(nqp::atpos($indices,$i),0)
+                        && nqp::islt_i(
+                             nqp::atpos($indices,$i),
+                             nqp::atpos_i($dims,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$numind)
+                  )
+                )
+              )
+            )
         }
 
         proto method STORE(|) { * }

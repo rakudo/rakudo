@@ -56,8 +56,10 @@ do {
         my &add_history = $WHO<&add_history>;
         my $Readline = try { require Readline }
         my $read = $Readline.new;
-        $read.read-init-file("/etc/inputrc");
-        $read.read-init-file("~/.inputrc");
+        if ! $*DISTRO.is-win {
+            $read.read-init-file("/etc/inputrc");
+            $read.read-init-file("~/.inputrc");
+        }
         method repl-read(Mu \prompt) {
             my $line = $read.readline(prompt);
 

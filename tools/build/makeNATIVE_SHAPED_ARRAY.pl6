@@ -39,9 +39,10 @@ for $*IN.lines -> $line {
       Type    => $type.tclc,
     ;
 
-    # spurt the role
+    # spurt the roles
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
+    role shaped#type#array does shapedarray {
         multi method AT-POS(shaped#type#array:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -105,6 +106,46 @@ for $*IN.lines -> $line {
               )
             )
         }
+    }  # end of shaped#type#array role
+
+    role shaped1#type#array does shaped#type#array {
+        multi method AT-POS(shaped1#type#array:D: int $idx) is raw {
+           nqp::atposref_#postfix#(self,$idx)
+        }
+        multi method AT-POS(shaped1#type#array:D: Int:D $idx) is raw {
+           nqp::atposref_#postfix#(self,$idx)
+        }
+
+        multi method ASSIGN-POS(shaped1#type#array:D: int $idx, #type# $value) {
+            nqp::bindpos_#postfix#(self,$idx,$value)
+        }
+        multi method ASSIGN-POS(shaped1#type#array:D: Int:D $idx, #type# $value) {
+            nqp::bindpos_#postfix#(self,$idx,$value)
+        }
+        multi method ASSIGN-POS(shaped1#type#array:D: int $idx, #Type#:D $value) {
+            nqp::bindpos_#postfix#(self,$idx,$value)
+        }
+        multi method ASSIGN-POS(shaped1#type#array:D: Int:D $idx, #Type#:D $value) {
+            nqp::bindpos_#postfix#(self,$idx,$value)
+        }
+
+        multi method EXISTS-POS(shaped1#type#array:D: int $idx) {
+            nqp::p6bool(
+              nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+        multi method EXISTS-POS(shaped1#type#array:D: Int:D $idx) {
+            nqp::p6bool(
+              nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+    }
+
+    role shaped#type#2array {
+    }
+
+    role shaped#type#3array {
+    }
 SOURCE
 
     # we're done for this role

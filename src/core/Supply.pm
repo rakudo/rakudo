@@ -1662,19 +1662,21 @@ sub SUPPLY(&block) {
                         },
                         quit => -> \ex {
                             $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
-                            my $handled;
-                            my $phaser := &whenever-block.phasers('QUIT')[0];
-                            if $phaser.DEFINITE {
-                                self!run-supply-code({ $handled = $phaser(ex) === Nil }, $state)
-                            }
-                            if $handled {
-                                self!deactivate-one($state);
-                            }
-                            elsif $state.active {
-                                $state.quit().(ex) if $state.quit;
-                                $state.active = 0;
-                                self!teardown($state);
-                            }
+                            self!run-supply-code({
+                                my $handled;
+                                my $phaser := &whenever-block.phasers('QUIT')[0];
+                                if $phaser.DEFINITE {
+                                    $handled = $phaser(ex) === Nil;
+                                }
+                                if $handled {
+                                    self!deactivate-one($state);
+                                }
+                                elsif $state.active {
+                                    $state.quit().(ex) if $state.quit;
+                                    $state.active = 0;
+                                    self!teardown($state);
+                                }
+                            }, $state);
                         });
                     $state.active-taps{nqp::objectid($tap)} = $tap;
                 }

@@ -67,7 +67,7 @@ my class Proc::Async {
           if the-supply and type != value;
 
         type         = value;
-        the-supply //= Supplier.new;
+        the-supply //= Supplier::Preserving.new;
     }
 
     proto method stdout(|) { * }

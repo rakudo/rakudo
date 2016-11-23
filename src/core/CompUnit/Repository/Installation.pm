@@ -83,6 +83,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
+    %*ENV<PERL6_PROGRAM_NAME> = $*PROGRAM-NAME;
     exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 

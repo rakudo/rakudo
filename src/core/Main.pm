@@ -143,7 +143,7 @@ my sub MAIN_HELPER($retval = 0) {
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
-            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
+            my $msg = join(' ', 'command', @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);
         }
 

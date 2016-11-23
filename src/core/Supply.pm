@@ -1599,22 +1599,24 @@ sub SUPPLY(&block) {
         has @.queued-operations;
 
         method run-operation(&op --> Nil) {
-            my $run-now = False;
-            $!lock.protect({
-                if @!queued-operations {
-                    @!queued-operations.push({
-                        op();
-                        self!maybe-another();
-                    });
+            if $!active {
+                my $run-now = False;
+                $!lock.protect({
+                    if @!queued-operations {
+                        @!queued-operations.push({
+                            op();
+                            self!maybe-another();
+                        });
+                    }
+                    else {
+                        @!queued-operations.push(&op);
+                        $run-now = True;
+                    }
+                });
+                if $run-now {
+                    op();
+                    self!maybe-another();
                 }
-                else {
-                    @!queued-operations.push(&op);
-                    $run-now = True;
-                }
-            });
-            if $run-now {
-                op();
-                self!maybe-another();
             }
         }
 
@@ -1622,7 +1624,7 @@ sub SUPPLY(&block) {
             my &another;
             $!lock.protect({
                 @!queued-operations.shift;
-                &another = @!queued-operations[0] if @!queued-operations;
+                &another = @!queued-operations[0] if $!active && @!queued-operations;
             });
             &another && another();
         }

@@ -2358,6 +2358,13 @@ class Perl6::World is HLL::World {
                         $code_past.annotate('WANTMEPLEASE',1);
                     }
                 }
+                if nqp::existskey(%phasers, 'LAST') || nqp::existskey(%phasers, 'NEXT') ||
+                        nqp::existskey(%phasers, 'QUIT') {
+                    $code_past[0].push(QAST::Op.new(
+                        :op('callmethod'), :name('!capture_phasers'),
+                        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+                    ));
+                }
             }
         }
     }

@@ -64,7 +64,7 @@ do {
             my $line = $read.readline(prompt);
 
             if $line.defined {
-                $read.add_history($line);
+                $read.add-history($line);
             }
 
             $line

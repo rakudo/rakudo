@@ -47,24 +47,6 @@ my role Iterable {
                 );
                 $result
             }
-            method push-all($target --> IterationEnd) {
-                my $got;
-                my $nested;
-                nqp::until(
-                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
-                  nqp::if(  # doesn't sink
-                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
-                    nqp::stmts(
-                      ($nested := $got.flat.iterator),
-                      nqp::until(  # doesn't sink
-                        nqp::eqaddr(($got := $nested.pull-one),IterationEnd),
-                        $target.push($got)
-                      )
-                    ),
-                    $target.push($got)
-                  )
-                )
-            }
         }.new(self.iterator))
     }
 

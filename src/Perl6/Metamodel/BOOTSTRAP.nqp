@@ -1764,9 +1764,10 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!rw>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
+    #Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!rw>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
+    #Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
@@ -2711,12 +2712,12 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'set_rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::bindattr_i($dcself, Routine, '$!rw', 1);
+            nqp::bindattr_i($dcself, Routine, '$!flags', nqp::getattr_i($dcself, Routine, '$!flags') +| 1);
             $dcself
         }));
     Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!flags') +& 1);
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);

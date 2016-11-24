@@ -2276,7 +2276,7 @@ class Perl6::World is HLL::World {
 
         # Set yada flag if needed.
         if $yada {
-            nqp::bindattr_i($code, $routine_type, '$!yada', 1);
+            nqp::bindattr_i($code, $routine_type, '$!flags', nqp::getattr_i($code, $routine_type, '$!flags') +| 2);
         }
 
         # If it's a routine, store the package to make backtraces nicer.

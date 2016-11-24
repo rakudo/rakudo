@@ -12,9 +12,8 @@ my class Routine { # declared in BOOTSTRAP
     #     has @!dispatchees;
     #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
-    #     has int $!rw;
+    #     has int $!flags;
     #     has Mu $!inline_info;
-    #     has int $!yada;
     #     has Mu $!package;
     #     has int $!onlystar;
     #     has @!dispatch_order;
@@ -113,7 +112,7 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method yada() {
-        nqp::p6bool(nqp::getattr_i(self, Routine, '$!yada'))
+        nqp::p6bool(nqp::getattr_i(self, Routine, '$!flags') +& 2)
     }
 
     method package() { $!package }

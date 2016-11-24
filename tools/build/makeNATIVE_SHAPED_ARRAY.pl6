@@ -43,7 +43,7 @@ for $*IN.lines -> $line {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     role shaped#type#array does shapedarray {
-        multi method AT-POS(shaped#type#array:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -77,7 +77,7 @@ for $*IN.lines -> $line {
             )
         }
 
-        multi method ASSIGN-POS(shaped#type#array:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my #type# $value = @indices.pop),
               nqp::if(
@@ -108,35 +108,76 @@ for $*IN.lines -> $line {
         }
     }  # end of shaped#type#array role
 
-    role shaped1#type#array does shaped#type#array {
-        multi method AT-POS(shaped1#type#array:D: int $idx) is raw {
+    role shaped1#type#array does shapedarray {
+        multi method AT-POS(::?CLASS:D: int $idx) is raw {
            nqp::atposref_#postfix#(self,$idx)
         }
-        multi method AT-POS(shaped1#type#array:D: Int:D $idx) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
            nqp::atposref_#postfix#(self,$idx)
         }
 
-        multi method ASSIGN-POS(shaped1#type#array:D: int $idx, #type# $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, #type# $value) {
             nqp::bindpos_#postfix#(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1#type#array:D: Int:D $idx, #type# $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, #type# $value) {
             nqp::bindpos_#postfix#(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1#type#array:D: int $idx, #Type#:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, #Type#:D $value) {
             nqp::bindpos_#postfix#(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1#type#array:D: Int:D $idx, #Type#:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, #Type#:D $value) {
             nqp::bindpos_#postfix#(self,$idx,$value)
         }
 
-        multi method EXISTS-POS(shaped1#type#array:D: int $idx) {
+        multi method EXISTS-POS(::?CLASS:D: int $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(shaped1#type#array:D: Int:D $idx) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::if(
+              nqp::iseq_i((my int $elems = nqp::elems(self)),nqp::elems(from)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_#postfix#(self,$i,nqp::atpos_#postfix#(from,$i))
+                ),
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            nqp::stmts(
+              (my \iter := in.iterator),
+              (my int $elems = nqp::elems(self)),
+              (my int $i = -1),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_#postfix#(self,$i,$pulled)
+              ),
+              nqp::unless(
+                nqp::islt_i($i,$elems) || iter.is-lazy,
+                nqp::atpos_#postfix#(list,$i) # too many values on non-lazy it
+              ),
+              self
+            )
+        }
+        multi method STORE(::?CLASS:D: #Type#:D \item) {
+            nqp::stmts(
+              nqp::bindpos_#postfix#(self,0,item),
+              self
             )
         }
     }

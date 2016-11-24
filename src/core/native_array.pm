@@ -923,11 +923,11 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-22T12:57:24+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T20:36:54+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
-        multi method AT-POS(shapedintarray:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -961,7 +961,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(shapedintarray:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my int $value = @indices.pop),
               nqp::if(
@@ -992,35 +992,76 @@ my class array does Iterable {
         }
     }  # end of shapedintarray role
 
-    role shaped1intarray does shapedintarray {
-        multi method AT-POS(shaped1intarray:D: int $idx) is raw {
+    role shaped1intarray does shapedarray {
+        multi method AT-POS(::?CLASS:D: int $idx) is raw {
            nqp::atposref_i(self,$idx)
         }
-        multi method AT-POS(shaped1intarray:D: Int:D $idx) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
            nqp::atposref_i(self,$idx)
         }
 
-        multi method ASSIGN-POS(shaped1intarray:D: int $idx, int $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, int $value) {
             nqp::bindpos_i(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1intarray:D: Int:D $idx, int $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, int $value) {
             nqp::bindpos_i(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1intarray:D: int $idx, Int:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, Int:D $value) {
             nqp::bindpos_i(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1intarray:D: Int:D $idx, Int:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, Int:D $value) {
             nqp::bindpos_i(self,$idx,$value)
         }
 
-        multi method EXISTS-POS(shaped1intarray:D: int $idx) {
+        multi method EXISTS-POS(::?CLASS:D: int $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(shaped1intarray:D: Int:D $idx) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::if(
+              nqp::iseq_i((my int $elems = nqp::elems(self)),nqp::elems(from)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_i(self,$i,nqp::atpos_i(from,$i))
+                ),
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            nqp::stmts(
+              (my \iter := in.iterator),
+              (my int $elems = nqp::elems(self)),
+              (my int $i = -1),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_i(self,$i,$pulled)
+              ),
+              nqp::unless(
+                nqp::islt_i($i,$elems) || iter.is-lazy,
+                nqp::atpos_i(list,$i) # too many values on non-lazy it
+              ),
+              self
+            )
+        }
+        multi method STORE(::?CLASS:D: Int:D \item) {
+            nqp::stmts(
+              nqp::bindpos_i(self,0,item),
+              self
             )
         }
     }
@@ -1034,11 +1075,11 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-22T12:57:24+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T20:36:54+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
-        multi method AT-POS(shapednumarray:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -1072,7 +1113,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(shapednumarray:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my num $value = @indices.pop),
               nqp::if(
@@ -1103,35 +1144,76 @@ my class array does Iterable {
         }
     }  # end of shapednumarray role
 
-    role shaped1numarray does shapednumarray {
-        multi method AT-POS(shaped1numarray:D: int $idx) is raw {
+    role shaped1numarray does shapedarray {
+        multi method AT-POS(::?CLASS:D: int $idx) is raw {
            nqp::atposref_n(self,$idx)
         }
-        multi method AT-POS(shaped1numarray:D: Int:D $idx) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
            nqp::atposref_n(self,$idx)
         }
 
-        multi method ASSIGN-POS(shaped1numarray:D: int $idx, num $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, num $value) {
             nqp::bindpos_n(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1numarray:D: Int:D $idx, num $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, num $value) {
             nqp::bindpos_n(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1numarray:D: int $idx, Num:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, Num:D $value) {
             nqp::bindpos_n(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1numarray:D: Int:D $idx, Num:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, Num:D $value) {
             nqp::bindpos_n(self,$idx,$value)
         }
 
-        multi method EXISTS-POS(shaped1numarray:D: int $idx) {
+        multi method EXISTS-POS(::?CLASS:D: int $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(shaped1numarray:D: Int:D $idx) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::if(
+              nqp::iseq_i((my int $elems = nqp::elems(self)),nqp::elems(from)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_n(self,$i,nqp::atpos_n(from,$i))
+                ),
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            nqp::stmts(
+              (my \iter := in.iterator),
+              (my int $elems = nqp::elems(self)),
+              (my int $i = -1),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_n(self,$i,$pulled)
+              ),
+              nqp::unless(
+                nqp::islt_i($i,$elems) || iter.is-lazy,
+                nqp::atpos_n(list,$i) # too many values on non-lazy it
+              ),
+              self
+            )
+        }
+        multi method STORE(::?CLASS:D: Num:D \item) {
+            nqp::stmts(
+              nqp::bindpos_n(self,0,item),
+              self
             )
         }
     }
@@ -1145,11 +1227,11 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-22T12:57:24+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T20:36:54+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
-        multi method AT-POS(shapedstrarray:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -1183,7 +1265,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(shapedstrarray:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my str $value = @indices.pop),
               nqp::if(
@@ -1214,35 +1296,76 @@ my class array does Iterable {
         }
     }  # end of shapedstrarray role
 
-    role shaped1strarray does shapedstrarray {
-        multi method AT-POS(shaped1strarray:D: int $idx) is raw {
+    role shaped1strarray does shapedarray {
+        multi method AT-POS(::?CLASS:D: int $idx) is raw {
            nqp::atposref_s(self,$idx)
         }
-        multi method AT-POS(shaped1strarray:D: Int:D $idx) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
            nqp::atposref_s(self,$idx)
         }
 
-        multi method ASSIGN-POS(shaped1strarray:D: int $idx, str $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, str $value) {
             nqp::bindpos_s(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1strarray:D: Int:D $idx, str $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, str $value) {
             nqp::bindpos_s(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1strarray:D: int $idx, Str:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: int $idx, Str:D $value) {
             nqp::bindpos_s(self,$idx,$value)
         }
-        multi method ASSIGN-POS(shaped1strarray:D: Int:D $idx, Str:D $value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $idx, Str:D $value) {
             nqp::bindpos_s(self,$idx,$value)
         }
 
-        multi method EXISTS-POS(shaped1strarray:D: int $idx) {
+        multi method EXISTS-POS(::?CLASS:D: int $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(shaped1strarray:D: Int:D $idx) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
             nqp::p6bool(
               nqp::isge_i($idx,0) && nqp::islt_i($idx,nqp::elems(self))
+            )
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::if(
+              nqp::iseq_i((my int $elems = nqp::elems(self)),nqp::elems(from)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_s(self,$i,nqp::atpos_s(from,$i))
+                ),
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            nqp::stmts(
+              (my \iter := in.iterator),
+              (my int $elems = nqp::elems(self)),
+              (my int $i = -1),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s(self,$i,$pulled)
+              ),
+              nqp::unless(
+                nqp::islt_i($i,$elems) || iter.is-lazy,
+                nqp::atpos_s(list,$i) # too many values on non-lazy it
+              ),
+              self
+            )
+        }
+        multi method STORE(::?CLASS:D: Str:D \item) {
+            nqp::stmts(
+              nqp::bindpos_s(self,0,item),
+              self
             )
         }
     }

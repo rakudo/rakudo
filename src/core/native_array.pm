@@ -1277,23 +1277,35 @@ my class array does Iterable {
         $what;
     }
 
-    method !shaped($shape) {
-        # Calculate new meta-object (probably hitting caches in most cases).
-        my @shape = $shape.list;
-        my int $elems = @shape.elems;   # reifies
-        my \T := self.of;
-        my int $kind = nqp::objprimspec(T);
-        my \shaped-type = self.WHAT.^mixin(
-          $kind == 1
-            ?? ($elems == 1 ?? shaped1intarray !! shapedintarray)
-            !! $kind == 2
-              ?? ($elems == 1 ?? shaped1numarray !! shapednumarray)
-              !! ($elems == 1 ?? shaped1strarray !! shapedstrarray)
-        );
-        shaped-type.^set_name(self.^name());
+    # poor man's 3x4 matrix
+    my $shaperole := nqp::list("",
+      nqp::list(shapedintarray,shaped1intarray,shapedintarray,shapedintarray),
+      nqp::list(shapednumarray,shaped1numarray,shapednumarray,shapednumarray),
+      nqp::list(shapedstrarray,shaped1strarray,shapedstrarray,shapedstrarray)
+    );
 
-        # Allocate array storage for this shape, based on the calculated type.
-        Rakudo::Internals.SHAPED-ARRAY-STORAGE(@shape, shaped-type.HOW, T)
+    method !shaped(\shape) {
+        nqp::if(
+          (my int $dims = shape.elems),   # reifies
+          nqp::stmts(
+            # Calculate new meta-object (probably hitting caches in most cases).
+            (my \shaped-type = self.WHAT.^mixin(
+              nqp::atpos(
+                nqp::atpos($shaperole,nqp::objprimspec(my \T = self.of)),
+                nqp::isle_i($dims,3) && $dims
+              )
+            )),
+            shaped-type.^set_name(self.^name),
+
+            # Allocate array storage for this shape, based on calculated type.
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
+          ),
+          X::NotEnoughDimensions.new(
+            operation         => 'create',
+            got-dimensions    => $dims,
+            needed-dimensions => '',
+          ).throw
+        )
     }
 
     method BIND-POS(|) {

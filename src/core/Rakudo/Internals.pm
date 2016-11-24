@@ -1106,23 +1106,32 @@ my class Rakudo::Internals {
         nqp::stmts(
           (my $types := nqp::list(meta-obj)),  # meta + type of each dimension
           (my $dims  := nqp::list_i),          # elems per dimension
-          (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
-          (my int $elems = nqp::elems($spec)),
-          (my int $i     = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::if(
-              nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
-              X::NYI.new(feature => 'Jagged array shapes').throw,
-              nqp::if(
-                nqp::isbig_I(nqp::decont($dim := nqp::decont($dim.Int)))
-                  || nqp::isle_i($dim,0),
-                X::IllegalDimensionInShape.new(:$dim).throw,
-                nqp::stmts(
-                  nqp::push($types, type),
-                  nqp::push_i($dims, $dim)
+          nqp::if(
+            nqp::istype(spec,List),
+            nqp::stmts(                        # potentially more than 1 dim
+              (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
+              (my int $elems = nqp::elems($spec)),
+              (my int $i     = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::if(
+                  nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
+                  X::NYI.new(feature => 'Jagged array shapes').throw,
+                  nqp::if(
+                    nqp::isbig_I(nqp::decont($dim := nqp::decont($dim.Int)))
+                      || nqp::isle_i($dim,0),
+                    X::IllegalDimensionInShape.new(:$dim).throw,
+                    nqp::stmts(
+                      nqp::push($types,type),
+                      nqp::push_i($dims,$dim)
+                    )
+                  )
                 )
               )
+            ),
+            nqp::stmts(                        # only 1 dim
+              nqp::push($types,type),
+              nqp::push_i($dims,spec.Int)
             )
           ),
           nqp::setdimensions(

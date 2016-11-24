@@ -923,7 +923,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-24T21:19:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T21:43:47+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1099,13 +1099,47 @@ my class array does Iterable {
         }
     } # end of shaped2intarray role
 
-    role shaped3intarray {
-    }
+    role shaped3intarray does shapedintarray {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+            nqp::atpos3d_i(self,one,two,three)
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+            nqp::atpos3d_i(self,one,two,three)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value) {
+            nqp::bindpos3d_i(self,one,two,three,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Int:D \value) {
+            nqp::bindpos3d_i(self,one,two,three,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+    } # end of shaped3intarray role
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-24T21:19:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T21:43:47+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1281,13 +1315,47 @@ my class array does Iterable {
         }
     } # end of shaped2numarray role
 
-    role shaped3numarray {
-    }
+    role shaped3numarray does shapednumarray {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+            nqp::atpos3d_n(self,one,two,three)
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+            nqp::atpos3d_n(self,one,two,three)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value) {
+            nqp::bindpos3d_n(self,one,two,three,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Num:D \value) {
+            nqp::bindpos3d_n(self,one,two,three,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+    } # end of shaped3numarray role
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-24T21:19:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-24T21:43:47+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1463,8 +1531,42 @@ my class array does Iterable {
         }
     } # end of shaped2strarray role
 
-    role shaped3strarray {
-    }
+    role shaped3strarray does shapedstrarray {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+            nqp::atpos3d_s(self,one,two,three)
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+            nqp::atpos3d_s(self,one,two,three)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value) {
+            nqp::bindpos3d_s(self,one,two,three,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Str:D \value) {
+            nqp::bindpos3d_s(self,one,two,three,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+    } # end of shaped3strarray role
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------
 
@@ -1492,9 +1594,9 @@ my class array does Iterable {
 
     # poor man's 3x4 matrix
     my $shaperole := nqp::list("",
-      nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shapedintarray),
-      nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shapednumarray),
-      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shapedstrarray)
+      nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
+      nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
+      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray)
     );
 
     method !shaped(\shape) {

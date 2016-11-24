@@ -215,8 +215,42 @@ for $*IN.lines -> $line {
         }
     } # end of shaped2#type#array role
 
-    role shaped3#type#array {
-    }
+    role shaped3#type#array does shaped#type#array {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+            nqp::atpos3d_#postfix#(self,one,two,three)
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+            nqp::atpos3d_#postfix#(self,one,two,three)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value) {
+            nqp::bindpos3d_#postfix#(self,one,two,three,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, #Type#:D \value) {
+            nqp::bindpos3d_#postfix#(self,one,two,three,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+            nqp::p6bool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+    } # end of shaped3#type#array role
 SOURCE
 
     # we're done for this role

@@ -666,6 +666,7 @@ multi sub pack(@template, *@items) {
     return Buf.new(@bytes);
 }
 
+multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
     my $adc := nqp::decont($a);

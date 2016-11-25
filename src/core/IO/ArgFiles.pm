@@ -121,27 +121,28 @@ my class IO::ArgFiles is IO::Handle {
         }.new(self, $!ins, $l, -> { self!next-io }));
     }
 
-    method slurp(IO::ArgFiles:D:) {
+    method slurp(IO::ArgFiles:D: |c) {
         # NOTE: $.filename and $.ins will be incorrect after this is called
 
         # make sure $!has-args is in the proper state since !next-io() may not have been called
         $!has-args = ?$!args unless $!has-args.defined;
 
         # TODO should probably get the STDIN filehandle the same way as !next-io()
-        return $*IN.slurp-rest unless $!has-args;
+        return $*IN.slurp-rest(|c) unless $!has-args;
 
         my @chunks;
         if $!io.defined && $!io.opened {
-            @chunks.push: nqp::p6box_s($!io.slurp-rest(:close));
+            @chunks.push: $!io.slurp-rest(:close, |c);
         }
+
         while $!args {
-            @chunks.push: slurp $!args.shift;
+            @chunks.push: slurp $!args.shift, |c;
         }
 
         # TODO Should this be a failure?
         return Nil unless @chunks;
 
-        @chunks.join;
+        [~] @chunks;
     }
 
     method nl-in is rw {

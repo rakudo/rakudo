@@ -199,7 +199,10 @@ sub sleep($seconds = Inf --> Nil) {
         nqp::sleep(1e16) while True;
     }
     elsif $seconds > 1e16 {
-        nqp::sleep(1e16) for ^$seconds.Num.polymod: 1e16 xx *;
+        nqp::sleep($_) for gather {
+            1e16.take xx ($seconds / 1e16);
+            take $seconds - 1e16 * ($seconds / 1e16).Int;
+        }
     }
     elsif $seconds > 0 {
         nqp::sleep($seconds.Num);

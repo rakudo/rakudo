@@ -195,15 +195,15 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
 }
 
 sub sleep($seconds = Inf --> Nil) {
-    # 1e16 seconds is roughly the upper limit of what JVM's sleep can sleep for
+    # 1e15 seconds is close to the upper limit of what JVM's sleep can sleep for
     # (MoarVM taps out at a slightly higher 1e19)
     if $seconds == Inf || nqp::istype($seconds,Whatever) {
-        nqp::sleep(1e16) while True;
+        nqp::sleep(1e15) while True;
     }
-    elsif $seconds > 1e16 {
+    elsif $seconds > 1e15 {
         nqp::sleep($_) for gather {
-            1e16.take xx ($seconds / 1e16);
-            take $seconds - 1e16 * ($seconds / 1e16).Int;
+            1e15.take xx ($seconds / 1e15);
+            take $seconds - 1e15 * ($seconds / 1e15).Int;
         }
     }
     elsif $seconds > 0 {

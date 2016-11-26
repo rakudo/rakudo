@@ -1805,6 +1805,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | $<num> = [\d+] <identifier> [ <?before <[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
+            <?{
+                # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
+                # to fail any matches that have synthetics, such as 7\x[308]
+                my $chars-num := nqp::chars($<num>);
+                my $pos       := -1;
+                nqp::while(
+                    nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
+                    && nqp::iseq_s(
+                        (my $ch := nqp::substr($<num>, $pos, 1)),
+                        nqp::chr( nqp::ord($ch) ),
+                    ),
+                    nqp::null,
+                );
+                nqp::iseq_i($chars-num, $pos);
+            }>
             { $*key := $<identifier>.Str; $*value := nqp::radix_I(10, $<num>, 0, 0, $*W.find_symbol(['Int']))[0]; }
         | <identifier>
             { $*key := $<identifier>.Str; }

@@ -198,6 +198,9 @@ sub sleep($seconds = Inf --> Nil) {
     if $seconds == Inf || nqp::istype($seconds,Whatever) {
         nqp::sleep(1e16) while True;
     }
+    elsif $seconds > 1e16 {
+        nqp::sleep(1e16) for ^$seconds.Num.polymod: 1e16 xx *;
+    }
     elsif $seconds > 0 {
         nqp::sleep($seconds.Num);
     }

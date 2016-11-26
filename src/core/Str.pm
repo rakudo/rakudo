@@ -74,9 +74,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     method Num(Str:D:) {
         nqp::if(
-          nqp::istype((my $numeric := self.Numeric),Failure),
-          $numeric,
-          $numeric.Num
+            nqp::istype((my $numeric := self.Numeric),Failure),
+            $numeric,
+            $numeric.Num || nqp::if(
+                # handle sign of zero. While self.Numeric will give correctly
+                # signed zero for nums in strings, it won't for other types,
+                # and since this method is `Num` we want to return proper zero.
+                # Find first non-whitespace char and check whether it is one
+                # of the minuses.
+                nqp::chars(self)
+                && (
+                    nqp::iseq_i(
+                        (my $ch := nqp::ord(
+                            nqp::substr(
+                                self,
+                                nqp::findnotcclass(
+                                    nqp::const::CCLASS_WHITESPACE, self, 0,
+                                    nqp::sub_i(nqp::chars(self), 1)
+                                ),
+                                1,
+                            )
+                        )),
+                        45, # '-' minus
+                    ) || nqp::iseq_i($ch, 8722) # '−' minus
+                ),
+                -0e0,
+                 0e0
+            )
         )
     }
 

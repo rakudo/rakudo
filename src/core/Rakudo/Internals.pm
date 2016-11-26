@@ -187,10 +187,14 @@ my class Rakudo::Internals {
         }
         method SET-SELF(\shape,Mu \list) {
             nqp::stmts(
-              ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
+              ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
               (my int $dims = nqp::elems($!dims)),
               ($!indices := nqp::setelems(nqp::list_i,$dims)),
-              ($!list    := nqp::getattr(list,List,'$!reified')),
+              ($!list := nqp::if(
+                nqp::istype(list,List),
+                nqp::getattr(list,List,'$!reified'),  # List like
+                list                                  # native array
+              )),
               ($!maxdim = nqp::sub_i($dims,1)),
               ($!max    = nqp::atpos($!dims,$!maxdim)),
               self

@@ -195,11 +195,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method words(|) {*}
     multi method words(Cool:D: |c) { self.Str.words(|c) }
 
-    proto method subst(|) {
-        $/ := nqp::getlexdyn('$/');
-        {*}
-    }
-    multi method subst(|c) {
+    method subst(|c) {
         $/ := nqp::getlexdyn('$/');
         self.Stringy.subst(|c);
     }

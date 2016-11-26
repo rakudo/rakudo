@@ -121,6 +121,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    proto method subst(|) {
+        $/ := nqp::getlexdyn('$/');
+        {*}
+    }
     multi method substr-eq(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }

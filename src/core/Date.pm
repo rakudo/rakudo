@@ -195,6 +195,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
 }
 
 sub sleep($seconds = Inf --> Nil) {
+    # 1e16 seconds is roughly the upper limit of what JVM's sleep can sleep for
+    # (MoarVM taps out at a slightly higher 1e19)
     if $seconds == Inf || nqp::istype($seconds,Whatever) {
         nqp::sleep(1e16) while True;
     }

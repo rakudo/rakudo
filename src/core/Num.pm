@@ -375,11 +375,15 @@ multi sub infix:<**>(num $a, num $b) returns num {
 # Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
      ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
-         a === b ?? Same !! a.Stringy cmp b.Stringy;
+         a === b ?? Same # === cares about signed zeros, we don't, so:
+            !! nqp::iseq_n(a, 0e0) && nqp::iseq_n(b, 0e0)
+                ?? Same !! a.Stringy cmp b.Stringy;
 }
 multi sub infix:<cmp>(num $a, num $b) {
     ORDER(nqp::cmp_n($a, $b)) or
-         $a === $b ?? Same !! $a.Stringy cmp $b.Stringy;
+         $a === $b ?? Same # === cares about signed zeros, we don't, so:
+            !! nqp::iseq_n($a, 0e0) && nqp::iseq_n($b, 0e0)
+                ?? Same !! $a.Stringy cmp $b.Stringy;
 }
 
 # Here we treat NaN as undefined
@@ -392,17 +396,36 @@ multi sub infix:«<=>»(num $a, num $b) {
          $a == $b ?? Same !! Nil;
 }
 
-multi sub infix:<===>(Num:D \a, Num:D \b) {
-    nqp::p6bool(
-      nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b))
-    )
-}
 multi sub infix:<===>(NaN, NaN) {
     True;
 }
-multi sub infix:<===>(num $a, num $b) returns Bool:D {
-    nqp::p6bool(nqp::iseq_n($a, $b))
+multi sub infix:<===>(Num:D \a, Num:D \b) {
+    nqp::p6bool(
+        nqp::eqaddr(a.WHAT,b.WHAT)
+        && nqp::iseq_n(a, b)
+        && ( # if we're dealing with zeros, ensure the signs match
+            nqp::isne_n(a, 0e0)
+            || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+            )
+        )
+    )
+}
+multi sub infix:<===>(num \a, num \b) returns Bool:D {
+    nqp::p6bool(
+        nqp::eqaddr(a.WHAT,b.WHAT)
+        && nqp::iseq_n(a, b)
+        && ( # if we're dealing with zeros, ensure the signs match
+            nqp::isne_n(a, 0e0)
+            || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+            )
+        )
+    )
 }
 
 multi sub infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {

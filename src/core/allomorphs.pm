@@ -230,7 +230,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 # handle the sign
                 # XXX TODO: teach radix_I to handle '−' (U+2212) minus?
                 my int $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-                my int $neg = nqp::if(
+                my int $neg-e = nqp::if(
                     nqp::iseq_i($ch, 43), # '+'
                     nqp::stmts(($pos = nqp::add_i($pos, 1)), 0),
                     nqp::if( # '-', '−'
@@ -240,15 +240,18 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                     )
                 );
 
-                $parse := nqp::radix_I(10, $str, $pos, $neg, Int);
+                $parse := nqp::radix_I(10, $str, $pos, $neg-e, Int);
                 $p      = nqp::atpos($parse, 2);
                 parse_fail "'E' or 'e' must be followed by decimal (base-10) integer"
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
                 return nqp::p6box_n(nqp::mul_n(
-                  $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num,
-                  nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)));
+                    $frac ?? nqp::add_n( $int.Num, nqp::div_n($frac.Num, $base.Num) )
+                          !! $int.Num,
+                    nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)
+                )) # if we have a zero, handle the sign correctly
+                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
             }
 
             # Multiplier with exponent, if single '*' is present

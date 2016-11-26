@@ -106,6 +106,35 @@ for $*IN.lines -> $line {
               )
             )
         }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
+            nqp::if(
+              in.shape eqv (my \shape := self.shape),
+              nqp::stmts(
+                class :: does Rakudo::Internals::ShapeLeafIterator {
+                    has Mu $!from;
+                    method INIT(Mu \shape, Mu \to, Mu \from) {
+                        nqp::stmts(
+                          ($!from := from),
+                          self.SET-SELF(shape,to)
+                        )
+                    }
+                    method new(Mu \shape, Mu \to, Mu \from) {
+                        nqp::create(self).INIT(shape,to,from)
+                    }
+                    method result(--> Nil) {
+                        nqp::bindposnd_#postfix#($!list,$!indices,
+                          nqp::atposnd_#postfix#($!from,$!indices))
+                    }
+                }.new(shape,self,in).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => in.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
     }  # end of shaped#type#array role
 
     role shaped1#type#array does shaped#type#array {

@@ -132,12 +132,28 @@ for $*IN.lines -> $line {
             to
         }
 
-        multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
             nqp::if(
-              in.shape eqv self.shape,
-              MEMCPY(self,in),
+              nqp::iseq_i(     # much faster than self.shape eqv from.shape
+                (my int $dims = nqp::elems(
+                  my $todims := nqp::dimensions(self)
+                )),
+                nqp::elems(my $fromdims := nqp::dimensions(from))
+              ) && nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims)
+                    && nqp::iseq_i(
+                         nqp::atpos_i($todims,$i),
+                         nqp::atpos_i($fromdims,$i)
+                  ),
+                  nqp::null
+                ),
+                nqp::iseq_i($i,$dims)
+              ),
+              MEMCPY(self,from),
               X::Assignment::ArrayShapeMismatch.new(
-                source-shape => in.shape,
+                source-shape => from.shape,
                 target-shape => self.shape
               ).throw
             )

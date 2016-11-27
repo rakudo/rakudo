@@ -185,22 +185,31 @@ my class Rakudo::Internals {
               $result
             )
         }
-        method SET-SELF(\shape,Mu \list) {
+        method SET-SELF(Mu \list) {
             nqp::stmts(
-              ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
-              (my int $dims = nqp::elems($!dims)),
-              ($!indices := nqp::setelems(nqp::list_i,$dims)),
-              ($!list := nqp::if(
+              nqp::if(
                 nqp::istype(list,List),
-                nqp::getattr(list,List,'$!reified'),  # List like
-                list                                  # native array
-              )),
+                nqp::stmts(                                 # List like
+                  ($!list := nqp::getattr(list,List,'$!reified')),
+                  (my $shape := list.shape),
+                  (my int $dims = $shape.elems),     # reifies
+                  ($!dims := nqp::setelems(nqp::list_i,$dims)),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                    nqp::bindpos_i($!dims,$i,
+                      nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
+                  )
+                ),
+                ($dims = nqp::elems($!dims := nqp::dimensions($!list := list)))
+              ),
+              ($!indices := nqp::setelems(nqp::list_i,$dims)),
               ($!maxdim = nqp::sub_i($dims,1)),
-              ($!max    = nqp::atpos($!dims,$!maxdim)),
+              ($!max    = nqp::atpos_i($!dims,$!maxdim)),
               self
             )
         }
-        method new(\shape,Mu \list) { nqp::create(self).SET-SELF(shape,list) }
+        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
 
         method pull-one() is raw {
             nqp::if(
@@ -224,7 +233,7 @@ my class Rakudo::Internals {
                         nqp::islt_i(
                           nqp::bindpos_i($!indices,$level,
                             nqp::add_i(nqp::atpos_i($!indices,$level),1)),
-                          nqp::atpos($!dims,$level)
+                          nqp::atpos_i($!dims,$level)
                         ),
                       ),
                       nqp::null

@@ -231,7 +231,7 @@
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
                       ($!desc := nqp::getattr(from,Array,'$!descriptor')),
-                      self.SET-SELF(to.shape,to)
+                      self.SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -250,7 +250,7 @@
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to.shape,to)
+                      self.SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -273,7 +273,7 @@
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to.shape,to)
+                      self.SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -411,33 +411,33 @@
                       nqp::atposnd($!list,$!indices)
                     )
                 }
-            }.new(self.shape,self))
+            }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd($!list,$!indices))
                 }
-            }.new(self.shape,self))
+            }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
                     Pair.new(nqp::atposnd($!list,$!indices),self.indices)
                 }
-            }.new(self.shape,self))
+            }.new(self))
         }
 
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeLeafIterator {
                 has Mu $!desc;
-                method !INIT(\shape,\list) {
+                method !INIT(\list) {
                     nqp::stmts(
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(shape,list)
+                      self.SET-SELF(list)
                     )
                 }
-                method new(\shape,\list) { nqp::create(self)!INIT(shape,list) }
+                method new(Mu \list) { nqp::create(self)!INIT(list) }
                 method result() is raw {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -456,7 +456,7 @@
                      )
                    )
                 }
-            }.new(self.shape,self)
+            }.new(self)
         }
 
         # A shaped array isn't lazy, these methods don't need to go looking

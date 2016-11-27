@@ -107,17 +107,17 @@ for $*IN.lines -> $line {
             )
         }
 
-        sub MEMCPY(Mu \shape, Mu \to, Mu \from) is raw {
+        sub MEMCPY(Mu \to, Mu \from) is raw {
             class :: does Rakudo::Internals::ShapeLeafIterator {
                 has Mu $!from;
-                method INIT(Mu \shape, Mu \to, Mu \from) {
+                method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(shape,to)
+                      self.SET-SELF(to)
                     )
                 }
-                method new(Mu \shape, Mu \to, Mu \from) {
-                    nqp::create(self).INIT(shape,to,from)
+                method new(Mu \to, Mu \from) {
+                    nqp::create(self).INIT(to,from)
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_#postfix#($!list,$!indices,
@@ -128,17 +128,17 @@ for $*IN.lines -> $line {
                       nqp::atposnd_#postfix#($!from,$!indices))
 #?endif
                 }
-            }.new(shape,to,from).sink-all;
+            }.new(to,from).sink-all;
             to
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
-              in.shape eqv (my \shape := self.shape),
-              MEMCPY(shape,self,in),
+              in.shape eqv self.shape,
+              MEMCPY(self,in),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
-                target-shape => shape
+                target-shape => self.shape
               ).throw
             )
         }

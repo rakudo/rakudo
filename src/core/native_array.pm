@@ -1766,8 +1766,10 @@ my class array does Iterable {
                 nqp::isle_i($dims,3) && $dims
               )
             )),
-            shaped-type.^set_name(self.^name),
-
+            nqp::if(   # set name if needed
+              nqp::isne_s(shaped-type.^name,self.WHAT.^name),
+              shaped-type.^set_name(self.WHAT.^name)
+            ),
             # Allocate array storage for this shape, based on calculated type.
             Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
           ),

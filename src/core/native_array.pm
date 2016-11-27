@@ -923,7 +923,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-27T00:36:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -991,28 +991,30 @@ my class array does Iterable {
             )
         }
 
+        sub MEMCPY(Mu \shape, Mu \to, Mu \from) is raw {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                has Mu $!from;
+                method INIT(Mu \shape, Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := from),
+                      self.SET-SELF(shape,to)
+                    )
+                }
+                method new(Mu \shape, Mu \to, Mu \from) {
+                    nqp::create(self).INIT(shape,to,from)
+                }
+                method result(--> Nil) {
+                    nqp::bindposnd_i($!list,$!indices,
+                      nqp::atposnd_i($!from,$!indices))
+                }
+            }.new(shape,to,from).sink-all;
+            to
+        }
+
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv (my \shape := self.shape),
-              nqp::stmts(
-                class :: does Rakudo::Internals::ShapeLeafIterator {
-                    has Mu $!from;
-                    method INIT(Mu \shape, Mu \to, Mu \from) {
-                        nqp::stmts(
-                          ($!from := from),
-                          self.SET-SELF(shape,to)
-                        )
-                    }
-                    method new(Mu \shape, Mu \to, Mu \from) {
-                        nqp::create(self).INIT(shape,to,from)
-                    }
-                    method result(--> Nil) {
-                        nqp::bindposnd_i($!list,$!indices,
-                          nqp::atposnd_i($!from,$!indices))
-                    }
-                }.new(shape,self,in).sink-all,
-                self
-              ),
+              MEMCPY(shape,self,in),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
                 target-shape => shape
@@ -1168,7 +1170,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-27T00:36:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1236,28 +1238,30 @@ my class array does Iterable {
             )
         }
 
+        sub MEMCPY(Mu \shape, Mu \to, Mu \from) is raw {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                has Mu $!from;
+                method INIT(Mu \shape, Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := from),
+                      self.SET-SELF(shape,to)
+                    )
+                }
+                method new(Mu \shape, Mu \to, Mu \from) {
+                    nqp::create(self).INIT(shape,to,from)
+                }
+                method result(--> Nil) {
+                    nqp::bindposnd_n($!list,$!indices,
+                      nqp::atposnd_n($!from,$!indices))
+                }
+            }.new(shape,to,from).sink-all;
+            to
+        }
+
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv (my \shape := self.shape),
-              nqp::stmts(
-                class :: does Rakudo::Internals::ShapeLeafIterator {
-                    has Mu $!from;
-                    method INIT(Mu \shape, Mu \to, Mu \from) {
-                        nqp::stmts(
-                          ($!from := from),
-                          self.SET-SELF(shape,to)
-                        )
-                    }
-                    method new(Mu \shape, Mu \to, Mu \from) {
-                        nqp::create(self).INIT(shape,to,from)
-                    }
-                    method result(--> Nil) {
-                        nqp::bindposnd_n($!list,$!indices,
-                          nqp::atposnd_n($!from,$!indices))
-                    }
-                }.new(shape,self,in).sink-all,
-                self
-              ),
+              MEMCPY(shape,self,in),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
                 target-shape => shape
@@ -1413,7 +1417,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-27T00:36:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1481,28 +1485,30 @@ my class array does Iterable {
             )
         }
 
+        sub MEMCPY(Mu \shape, Mu \to, Mu \from) is raw {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                has Mu $!from;
+                method INIT(Mu \shape, Mu \to, Mu \from) {
+                    nqp::stmts(
+                      ($!from := from),
+                      self.SET-SELF(shape,to)
+                    )
+                }
+                method new(Mu \shape, Mu \to, Mu \from) {
+                    nqp::create(self).INIT(shape,to,from)
+                }
+                method result(--> Nil) {
+                    nqp::bindposnd_s($!list,$!indices,
+                      nqp::atposnd_s($!from,$!indices))
+                }
+            }.new(shape,to,from).sink-all;
+            to
+        }
+
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv (my \shape := self.shape),
-              nqp::stmts(
-                class :: does Rakudo::Internals::ShapeLeafIterator {
-                    has Mu $!from;
-                    method INIT(Mu \shape, Mu \to, Mu \from) {
-                        nqp::stmts(
-                          ($!from := from),
-                          self.SET-SELF(shape,to)
-                        )
-                    }
-                    method new(Mu \shape, Mu \to, Mu \from) {
-                        nqp::create(self).INIT(shape,to,from)
-                    }
-                    method result(--> Nil) {
-                        nqp::bindposnd_s($!list,$!indices,
-                          nqp::atposnd_s($!from,$!indices))
-                    }
-                }.new(shape,self,in).sink-all,
-                self
-              ),
+              MEMCPY(shape,self,in),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
                 target-shape => shape

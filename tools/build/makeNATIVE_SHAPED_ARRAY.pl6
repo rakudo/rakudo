@@ -131,7 +131,7 @@ for $*IN.lines -> $line {
               ),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => in.shape,
-                target-shape => self.shape
+                target-shape => shape
               ).throw
             )
         }

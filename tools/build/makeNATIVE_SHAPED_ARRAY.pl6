@@ -121,7 +121,12 @@ for $*IN.lines -> $line {
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_#postfix#($!list,$!indices,
+#?if moar
+                      nqp::multidimref_#postfix#($!from,$!indices))
+#?endif
+#?if !moar
                       nqp::atposnd_#postfix#($!from,$!indices))
+#?endif
                 }
             }.new(shape,to,from).sink-all;
             to

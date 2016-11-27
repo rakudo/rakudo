@@ -923,7 +923,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:27:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1005,7 +1005,12 @@ my class array does Iterable {
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_i($!list,$!indices,
+#?if moar
+                      nqp::multidimref_i($!from,$!indices))
+#?endif
+#?if !moar
                       nqp::atposnd_i($!from,$!indices))
+#?endif
                 }
             }.new(shape,to,from).sink-all;
             to
@@ -1170,7 +1175,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:27:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1252,7 +1257,12 @@ my class array does Iterable {
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_n($!list,$!indices,
+#?if moar
+                      nqp::multidimref_n($!from,$!indices))
+#?endif
+#?if !moar
                       nqp::atposnd_n($!from,$!indices))
+#?endif
                 }
             }.new(shape,to,from).sink-all;
             to
@@ -1417,7 +1427,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-27T12:04:56+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-27T12:27:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1499,7 +1509,12 @@ my class array does Iterable {
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_s($!list,$!indices,
+#?if moar
+                      nqp::multidimref_s($!from,$!indices))
+#?endif
+#?if !moar
                       nqp::atposnd_s($!from,$!indices))
+#?endif
                 }
             }.new(shape,to,from).sink-all;
             to

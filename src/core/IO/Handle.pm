@@ -190,7 +190,7 @@ my class IO::Handle does IO {
             method push-all($target --> IterationEnd) {
                 my str $str = $!handle.readchars($!size);
                 nqp::while(
-                  nqp::iseq_i(nqp::chars($str),$!size), 
+                  nqp::iseq_i(nqp::chars($str),$!size),
                   nqp::stmts(
                     $target.push(nqp::p6box_s($str)),
                     ($str = $!handle.readchars($!size))

@@ -1,7 +1,7 @@
 # this is actually part of the Array class
 
-    constant dim2type := nqp::list(Mu,Shaped1Array,Shaped2Array,Shaped3Array);
-    constant ArrayN := ShapedArray;
+    constant dim2role :=
+      nqp::list(ShapedArray,Shaped1Array,Shaped2Array,Shaped3Array);
 
     sub set-shape(\base, \shape) is raw {
         nqp::stmts(
@@ -11,17 +11,18 @@
             shape.list
           ))),
           nqp::if(
-            (my int $dimensions = $shape.elems),  # reifies
+            (my int $dims = $shape.elems),  # reifies
             nqp::stmts(
               nqp::unless(
-                nqp::iseq_i($dimensions,1)
+                nqp::iseq_i($dims,1)
                   && nqp::istype(                 # ignore single [*] shape
                        nqp::atpos(nqp::getattr($shape,List,'$!reified'),0),
                        Whatever),
                 nqp::stmts(
                   (my $what := base.WHAT.^mixin(
-                    nqp::ifnull(nqp::atpos(dim2type,$dimensions),ArrayN))),
-                  nqp::if(
+                    nqp::atpos(dim2role,nqp::isle_i($dims,3) && $dims))
+                  ),
+                  nqp::if(                        # correct name if needed
                     nqp::isne_s($what.^name,base.^name),
                     $what.^set_name(base.^name)
                   ),

@@ -1776,7 +1776,7 @@ my class array does Iterable {
     }
 
     # poor man's 3x4 matrix
-    my $shaperole := nqp::list("",
+    constant typedim2role := nqp::list(nqp::null,
       nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
       nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
       nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray)
@@ -1789,7 +1789,7 @@ my class array does Iterable {
             # Calculate new meta-object (probably hitting caches in most cases).
             (my \shaped-type = self.WHAT.^mixin(
               nqp::atpos(
-                nqp::atpos($shaperole,nqp::objprimspec(my \T = self.of)),
+                nqp::atpos(typedim2role,nqp::objprimspec(my \T = self.of)),
                 nqp::isle_i($dims,3) && $dims
               )
             )),

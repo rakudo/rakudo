@@ -319,7 +319,7 @@ my class Rakudo::Internals {
         }
     }
 
-    # Every time result() gets called, the following attributes are set:
+    # Every time process() gets called, the following attributes are set:
     # $!indices  a list_i with current position, with the highest elem 0
     # $!level    level at which exhaustion happened
     # $!dims     a List with dimensions
@@ -333,18 +333,31 @@ my class Rakudo::Internals {
         has int $!maxind;
         has int $!level;
 
-        method SET-SELF(\shape, Mu \list) {
+        method SET-SELF(Mu \list) {
             nqp::stmts(
-              ($!dims    := nqp::getattr(nqp::decont(shape),List,'$!reified')),
-              (my int $dims = nqp::elems($!dims)),
+              nqp::if(
+                nqp::istype(list,List),
+                nqp::stmts(                                 # List like
+                  ($!list := nqp::getattr(list,List,'$!reified')),
+                  (my $shape := list.shape),
+                  (my int $dims = $shape.elems),     # reifies
+                  ($!dims := nqp::setelems(nqp::list_i,$dims)),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                    nqp::bindpos_i($!dims,$i,
+                      nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
+                  )
+                ),
+                ($dims = nqp::elems($!dims := nqp::dimensions($!list := list)))
+              ),
               ($!indices := nqp::setelems(nqp::list_i,$dims)),
-              ($!list    := nqp::getattr(list,List,'$!reified')),
               ($!maxdim = nqp::sub_i($dims,1)),
-              ($!maxind = nqp::sub_i(nqp::atpos($!dims,$!maxdim),1)),
+              ($!maxind = nqp::sub_i(nqp::atpos_i($!dims,$!maxdim),1)),
               self
             )
         }
-        method new(\shape,Mu \list) { nqp::create(self).SET-SELF(shape,list) }
+        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
 
         method done(--> Nil) { }               # by default no action at end
         method pull-one() is raw {
@@ -361,7 +374,7 @@ my class Rakudo::Internals {
                     nqp::islt_i(
                       nqp::bindpos_i($!indices,$level, # increment this level
                         nqp::add_i(nqp::atpos_i($!indices,$level),1)),
-                      nqp::atpos($!dims,$level)        # out of range?
+                      nqp::atpos_i($!dims,$level)      # out of range?
                     ),
                   ),
                   nqp::null

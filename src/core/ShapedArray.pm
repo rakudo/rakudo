@@ -328,7 +328,7 @@
                 has $!desc;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to.shape,to),
+                      self.SET-SELF(to),
                       ($!desc := nqp::getattr(to,Array,'$!descriptor')),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),

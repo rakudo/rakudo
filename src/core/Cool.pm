@@ -323,7 +323,7 @@ sub sprintf(Cool $format, *@args) {
     @args.elems;
     nqp::p6box_s(
         nqp::sprintf(nqp::unbox_s($format.Stringy),
-            nqp::clone(nqp::getattr(@args, List, '$!reified'))
+            nqp::clone(nqp::getattr(@args||[], List, '$!reified'))
         )
     )
 }

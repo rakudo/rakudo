@@ -214,8 +214,8 @@ my class Rakudo::Internals {
         method pull-one() is raw {
             nqp::if(
               $!indices,
-              nqp::stmts(                      # still iterating
-                (my $result := self.result),
+              nqp::stmts(                                 # still iterating
+                (my $result := self.result),              # process
                 nqp::if(
                   nqp::islt_i(
                     (my int $i =
@@ -238,15 +238,83 @@ my class Rakudo::Internals {
                       ),
                       nqp::null
                     ),
-                    nqp::if(                   # this was the last value
+                    nqp::if(
                       nqp::islt_i($level,0),
-                      $!indices := nqp::null
+                      $!indices := nqp::null              # done next time
                     )
                   )
                 ),
-                $result                        # what we found
+                $result                                   # what we found
               ),
-              IterationEnd                     # done iterating
+              IterationEnd                                # done now
+            )
+        }
+
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!indices,
+              nqp::stmts(                                   # still iterating
+                (my int $i = nqp::atpos_i($!indices,$!maxdim)),
+                nqp::while(
+                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::stmts(
+                    $target.push(self.result),              # process
+                    nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+                  )
+                ),
+                (my int $level = $!maxdim),                 # done for now
+                nqp::until(                                 # update indices
+                  nqp::islt_i(                              # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0)
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level,
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos_i($!dims,$level)
+                    ),
+                  ),
+                  nqp::null
+                ),
+                nqp::if(
+                  nqp::islt_i($level,0),
+                  $!indices := nqp::null                    # done
+                )
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) {
+            nqp::while(
+              $!indices,
+              nqp::stmts(                                   # still iterating
+                (my int $i = nqp::atpos_i($!indices,$!maxdim)),
+                nqp::while(
+                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::stmts(
+                    self.result,                            # process
+                    nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+                  )
+                ),
+                (my int $level = $!maxdim),                 # done for now
+                nqp::until(                                 # update indices
+                  nqp::islt_i(                              # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0)
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level,
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos_i($!dims,$level)
+                    ),
+                  ),
+                  nqp::null
+                ),
+                nqp::if(
+                  nqp::islt_i($level,0),
+                  $!indices := nqp::null                    # done
+                )
+              )
             )
         }
     }

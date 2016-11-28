@@ -411,6 +411,13 @@
                       nqp::atposnd($!list,$!indices)
                     )
                 }
+                # needs its own push-all since it fiddles with $!indices
+                method push-all($target --> IterationEnd) {
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+                      $target.push($pulled)
+                    )
+                }
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {

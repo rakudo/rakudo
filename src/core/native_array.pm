@@ -1,5 +1,6 @@
 my class X::MustBeParametric  { ... }
 my class X::TooManyDimensions { ... }
+my class X::TypeCheck::Assignment { ... }
 
 my class array does Iterable {
 
@@ -943,7 +944,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T17:47:09+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1043,6 +1044,24 @@ my class array does Iterable {
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,
                 target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: array:D \from) {
+            nqp::if(
+              nqp::istype(from.of,Int),
+              nqp::if(
+                EQV_DIMENSIONS(self,from),
+                MEMCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              ),
+              X::TypeCheck::Assignment.new(
+                symbol   => self.^name ~ '[' ~ self.shape.join(';') ~ ']',
+                expected => Int,
+                got      => from.of
               ).throw
             )
         }
@@ -1195,7 +1214,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T17:47:09+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1295,6 +1314,24 @@ my class array does Iterable {
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,
                 target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: array:D \from) {
+            nqp::if(
+              nqp::istype(from.of,Num),
+              nqp::if(
+                EQV_DIMENSIONS(self,from),
+                MEMCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              ),
+              X::TypeCheck::Assignment.new(
+                symbol   => self.^name ~ '[' ~ self.shape.join(';') ~ ']',
+                expected => Num,
+                got      => from.of
               ).throw
             )
         }
@@ -1447,7 +1484,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T17:47:09+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1547,6 +1584,24 @@ my class array does Iterable {
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,
                 target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: array:D \from) {
+            nqp::if(
+              nqp::istype(from.of,Str),
+              nqp::if(
+                EQV_DIMENSIONS(self,from),
+                MEMCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              ),
+              X::TypeCheck::Assignment.new(
+                symbol   => self.^name ~ '[' ~ self.shape.join(';') ~ ']',
+                expected => Str,
+                got      => from.of
               ).throw
             )
         }

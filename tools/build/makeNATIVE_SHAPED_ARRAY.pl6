@@ -142,6 +142,24 @@ for $*IN.lines -> $line {
               ).throw
             )
         }
+        multi method STORE(::?CLASS:D: array:D \from) {
+            nqp::if(
+              nqp::istype(from.of,#Type#),
+              nqp::if(
+                EQV_DIMENSIONS(self,from),
+                MEMCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              ),
+              X::TypeCheck::Assignment.new(
+                symbol   => self.^name ~ '[' ~ self.shape.join(';') ~ ']',
+                expected => #Type#,
+                got      => from.of
+              ).throw
+            )
+        }
     }  # end of shaped#type#array role
 
     role shaped1#type#array does shaped#type#array {

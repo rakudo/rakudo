@@ -282,7 +282,7 @@ role STD {
             self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
-        } elsif nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
+        } elsif $pos > 0 && nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
             self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
         } elsif $has_mystery {
             self.missing("block (taken by some undeclared routine?)");

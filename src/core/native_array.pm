@@ -34,6 +34,26 @@ my class array does Iterable {
     multi method unshift(array:D: **@values) { self.unshift(@values) }
     multi method prepend(array:D:  *@values) { self.unshift(@values) }
 
+    sub EQV_DIMENSIONS(Mu \one, Mu \two) is raw {
+        nqp::iseq_i(     # much faster than one.shape eqv two.shape
+          (my int $dims = nqp::elems(
+            my $onedims := nqp::dimensions(one)
+          )),
+          nqp::elems(my $twodims := nqp::dimensions(two))
+        ) && nqp::stmts(
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$dims)
+              && nqp::iseq_i(
+                   nqp::atpos_i($onedims,$i),
+                   nqp::atpos_i($twodims,$i)
+            ),
+            nqp::null
+          ),
+          nqp::iseq_i($i,$dims)
+        )
+    }
+
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
 #- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
@@ -923,7 +943,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-11-27T20:35:38+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1018,23 +1038,7 @@ my class array does Iterable {
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
             nqp::if(
-              nqp::iseq_i(     # much faster than self.shape eqv from.shape
-                (my int $dims = nqp::elems(
-                  my $todims := nqp::dimensions(self)
-                )),
-                nqp::elems(my $fromdims := nqp::dimensions(from))
-              ) && nqp::stmts(
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims)
-                    && nqp::iseq_i(
-                         nqp::atpos_i($todims,$i),
-                         nqp::atpos_i($fromdims,$i)
-                  ),
-                  nqp::null
-                ),
-                nqp::iseq_i($i,$dims)
-              ),
+              EQV_DIMENSIONS(self,from),
               MEMCPY(self,from),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,
@@ -1191,7 +1195,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-11-27T20:35:38+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1286,23 +1290,7 @@ my class array does Iterable {
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
             nqp::if(
-              nqp::iseq_i(     # much faster than self.shape eqv from.shape
-                (my int $dims = nqp::elems(
-                  my $todims := nqp::dimensions(self)
-                )),
-                nqp::elems(my $fromdims := nqp::dimensions(from))
-              ) && nqp::stmts(
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims)
-                    && nqp::iseq_i(
-                         nqp::atpos_i($todims,$i),
-                         nqp::atpos_i($fromdims,$i)
-                  ),
-                  nqp::null
-                ),
-                nqp::iseq_i($i,$dims)
-              ),
+              EQV_DIMENSIONS(self,from),
               MEMCPY(self,from),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,
@@ -1459,7 +1447,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-11-27T20:35:38+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-11-28T16:26:02+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1554,23 +1542,7 @@ my class array does Iterable {
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
             nqp::if(
-              nqp::iseq_i(     # much faster than self.shape eqv from.shape
-                (my int $dims = nqp::elems(
-                  my $todims := nqp::dimensions(self)
-                )),
-                nqp::elems(my $fromdims := nqp::dimensions(from))
-              ) && nqp::stmts(
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims)
-                    && nqp::iseq_i(
-                         nqp::atpos_i($todims,$i),
-                         nqp::atpos_i($fromdims,$i)
-                  ),
-                  nqp::null
-                ),
-                nqp::iseq_i($i,$dims)
-              ),
+              EQV_DIMENSIONS(self,from),
               MEMCPY(self,from),
               X::Assignment::ArrayShapeMismatch.new(
                 source-shape => from.shape,

@@ -147,14 +147,20 @@ public final class Binder {
         /* Find self. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
         Integer selfIdx = sci.oTryGetLexicalIdx("self");
+        SixModelObject self = null;
         if (selfIdx == null) {
-            if (error != null)
-                error[0] = String.format(
-                    "Unable to bind attributive parameter '%s' - could not find self",
-                    varName);
-            return BIND_RESULT_FAIL;
+            self = Ops.getlexouter("self", tc);
+            if (self == null) {
+                if (error != null)
+                    error[0] = String.format(
+                        "Unable to bind attributive parameter '%s' - could not find self",
+                        varName);
+                return BIND_RESULT_FAIL;
+            }
         }
-        SixModelObject self = cf.oLex[selfIdx];
+        else {
+            self = cf.oLex[selfIdx];
+        }
 
         /* If it's private, just need to fetch the attribute. */
         SixModelObject assignee;

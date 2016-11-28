@@ -1,4 +1,5 @@
 # for our tantrums
+my class X::Obsolete { ... }
 my class X::TypeCheck::Splice { ... }
 my class Supplier { ... }
 
@@ -475,6 +476,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           # no args, an empty list suffices
           nqp::create(self)
         )
+    }
+
+    method contains (|) {
+        fail X::Obsolete.new(
+            :old('.contains()'),
+            :when('to find whether a list contains an element'),
+            :replacement('.first() or create and smartmatch with an any() Junction'),
+        );
     }
 
     method new(**@things) {

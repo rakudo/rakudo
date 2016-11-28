@@ -653,23 +653,8 @@ my class IO::Handle does IO {
         nqp::unlockfh($!PIO);
     }
 
-    method printf(IO::Handle:D: Cool $format, *@args) {
-        CATCH {
-            when X::Cannot::Lazy {
-                X::Cannot::Lazy.new(:action('printf')).throw
-            }
-            default {
-                Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_).throw
-            }
-        }
-        Rakudo::Internals.initialize-sprintf-handler;
-        @args.elems;
-        nqp::printfh($!PIO,
-            nqp::sprintf(
-                nqp::unbox_s($format.Stringy),
-                nqp::clone(nqp::getattr(@args, List, '$!reified'))
-            )
-        )
+    method printf(IO::Handle:D: |c) {
+        nqp::printfh($!PIO, sprintf |c);
     }
 
     proto method print(|) { * }

@@ -79,8 +79,11 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     if (rcd && IS_CONCRETE(rcd))
         rw = rcd->rw;
     if (!rw)
-        if (rcd && IS_CONCRETE(rcd) && rcd->name)
-            MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable (%s) or a value", MVM_string_utf8_encode_C_string(tc, rcd->name));
+        if (rcd && IS_CONCRETE(rcd) && rcd->name) {
+            char *c_name = MVM_string_utf8_encode_C_string(tc, rcd->name);
+            char *waste[] = { c_name, NULL };
+            MVM_exception_throw_adhoc_free(tc, waste, "Cannot assign to a readonly variable (%s) or a value", c_name);
+        }
         else
             MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
 

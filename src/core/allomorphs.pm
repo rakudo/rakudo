@@ -88,6 +88,19 @@ multi sub infix:<eqv>(ComplexStr:D $a, ComplexStr:D $b) {
     $a.Complex eqv $b.Complex || $a.Str eqv $b.Str
 }
 
+multi sub infix:<===>(IntStr:D $a, IntStr:D $b) {
+    $a.Int === $b.Int && $a.Str === $b.Str
+}
+multi sub infix:<===>(RatStr:D $a, RatStr:D $b) {
+    $a.Rat === $b.Rat && $a.Str === $b.Str
+}
+multi sub infix:<===>(NumStr:D $a, NumStr:D $b) {
+    $a.Num === $b.Num && $a.Str === $b.Str
+}
+multi sub infix:<===>(ComplexStr:D $a, ComplexStr:D $b) {
+    $a.Complex === $b.Complex && $a.Str === $b.Str
+}
+
 multi sub val(*@maybevals) {
     @maybevals.list.map({ val($_) }).eager;
 }

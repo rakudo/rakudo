@@ -124,10 +124,11 @@ my class Supply {
             submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
 
             method tap(&emit, |) {
+                my $i = 0;
+                my $lock = Lock.new;
                 my $cancellation = $!scheduler.cue(
                     {
-                        state $i = 0;
-                        emit($i++);
+                        emit($lock.protect: { $i++ });
                         CATCH { $cancellation.cancel if $cancellation }
                     },
                     :every($!interval), :in($!delay)

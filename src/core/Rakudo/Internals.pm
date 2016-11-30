@@ -333,6 +333,18 @@ my class Rakudo::Internals {
         has int $!maxind;
         has int $!level;
 
+        method dims() {
+            nqp::stmts(
+              (my $result := nqp::setelems(nqp::list,nqp::elems($!dims))),
+              (my int $i = -1),
+              nqp::while(                # convert list_i to list
+                nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                nqp::bindpos($result,$i,nqp::atpos_i($!dims,$i))
+              ),
+              $result
+            )
+        }
+
         method SET-SELF(Mu \list) {
             nqp::stmts(
               nqp::if(

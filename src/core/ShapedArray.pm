@@ -361,7 +361,7 @@
                           nqp::if(                      # is it an iterator?
                             nqp::istype($item,Iterable) && nqp::isconcrete($item),
                             nqp::bindpos($!iterators,$i,$item.iterator),
-                            X::Assignment::ToShaped.new(shape => $!dims).throw
+                            X::Assignment::ToShaped.new(shape => self.dims).throw
                           )
                         )
                       ),

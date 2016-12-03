@@ -330,6 +330,45 @@ for $*IN.lines -> $line {
               self
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Iterator {
+                has Mu $!list;
+                has int $!pos;
+                method !SET-SELF(Mu \list) {
+                    nqp::stmts(
+                      ($!list := list),
+                      ($!pos = -1),
+                      self
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::islt_i(
+                        ($!pos = nqp::add_i($!pos,1)),
+                        nqp::elems($!list)
+                      ),
+                      nqp::atpos_#postfix#($!list,$!pos),
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($!list)),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
+                        $target.push(nqp::atpos_#postfix#($!list,$!pos))
+                      )
+                    )
+                }
+                method count-only() { nqp::p6box_i(nqp::elems($!list)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method sink-all(--> IterationEnd) {
+                    $!pos = nqp::elems($!list)
+                }
+            }.new(self)
+        }
     } # end of shaped1#type#array role
 
     role shaped2#type#array does shaped#type#array {

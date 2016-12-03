@@ -924,7 +924,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T09:33:01Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1215,6 +1215,45 @@ my class array does Iterable {
               self
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Iterator {
+                has Mu $!list;
+                has int $!pos;
+                method !SET-SELF(Mu \list) {
+                    nqp::stmts(
+                      ($!list := list),
+                      ($!pos = -1),
+                      self
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::islt_i(
+                        ($!pos = nqp::add_i($!pos,1)),
+                        nqp::elems($!list)
+                      ),
+                      nqp::atpos_i($!list,$!pos),
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($!list)),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
+                        $target.push(nqp::atpos_i($!list,$!pos))
+                      )
+                    )
+                }
+                method count-only() { nqp::p6box_i(nqp::elems($!list)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method sink-all(--> IterationEnd) {
+                    $!pos = nqp::elems($!list)
+                }
+            }.new(self)
+        }
     } # end of shaped1intarray role
 
     role shaped2intarray does shapedintarray {
@@ -1290,7 +1329,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T09:33:01Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1581,6 +1620,45 @@ my class array does Iterable {
               self
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Iterator {
+                has Mu $!list;
+                has int $!pos;
+                method !SET-SELF(Mu \list) {
+                    nqp::stmts(
+                      ($!list := list),
+                      ($!pos = -1),
+                      self
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::islt_i(
+                        ($!pos = nqp::add_i($!pos,1)),
+                        nqp::elems($!list)
+                      ),
+                      nqp::atpos_n($!list,$!pos),
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($!list)),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
+                        $target.push(nqp::atpos_n($!list,$!pos))
+                      )
+                    )
+                }
+                method count-only() { nqp::p6box_i(nqp::elems($!list)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method sink-all(--> IterationEnd) {
+                    $!pos = nqp::elems($!list)
+                }
+            }.new(self)
+        }
     } # end of shaped1numarray role
 
     role shaped2numarray does shapednumarray {
@@ -1656,7 +1734,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T09:33:01Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1946,6 +2024,45 @@ my class array does Iterable {
               nqp::bindpos_s(self,0,item),
               self
             )
+        }
+        method iterator(::?CLASS:D:) {
+            class :: does Iterator {
+                has Mu $!list;
+                has int $!pos;
+                method !SET-SELF(Mu \list) {
+                    nqp::stmts(
+                      ($!list := list),
+                      ($!pos = -1),
+                      self
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::islt_i(
+                        ($!pos = nqp::add_i($!pos,1)),
+                        nqp::elems($!list)
+                      ),
+                      nqp::atpos_s($!list,$!pos),
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($!list)),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
+                        $target.push(nqp::atpos_s($!list,$!pos))
+                      )
+                    )
+                }
+                method count-only() { nqp::p6box_i(nqp::elems($!list)) }
+                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method sink-all(--> IterationEnd) {
+                    $!pos = nqp::elems($!list)
+                }
+            }.new(self)
         }
     } # end of shaped1strarray role
 

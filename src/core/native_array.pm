@@ -908,20 +908,10 @@ my class array does Iterable {
         multi method kv(::?CLASS:D:) {
             self.keys.map({ slip($_, self.AT-POS(|$_)) })
         }
-        multi method pairs(::?CLASS:D:) {
-            self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
-        }
-        multi method antipairs(::?CLASS:D:) {
-            self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
-        }
-
-        method iterator(::?CLASS:D:) {
-            self.values.iterator
-        }
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1150,6 +1140,20 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(self.indices,nqp::atposnd_i($!list,$!indices))
+                }
+            }.new(self))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
+                }
+            }.new(self))
+        }
     }  # end of shapedintarray role
 
     role shaped1intarray does shapedintarray {
@@ -1338,7 +1342,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1567,6 +1571,20 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(self.indices,nqp::atposnd_n($!list,$!indices))
+                }
+            }.new(self))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(nqp::atposnd_n($!list,$!indices),self.indices)
+                }
+            }.new(self))
+        }
     }  # end of shapednumarray role
 
     role shaped1numarray does shapednumarray {
@@ -1755,7 +1773,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1983,6 +2001,20 @@ my class array does Iterable {
 #?endif
                 }
             }.new(self)
+        }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(self.indices,nqp::atposnd_s($!list,$!indices))
+                }
+            }.new(self))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(nqp::atposnd_s($!list,$!indices),self.indices)
+                }
+            }.new(self))
         }
     }  # end of shapedstrarray role
 

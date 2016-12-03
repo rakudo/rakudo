@@ -268,6 +268,20 @@ for $*IN.lines -> $line {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(self.indices,nqp::atposnd_#postfix#($!list,$!indices))
+                }
+            }.new(self))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() {
+                    Pair.new(nqp::atposnd_#postfix#($!list,$!indices),self.indices)
+                }
+            }.new(self))
+        }
     }  # end of shaped#type#array role
 
     role shaped1#type#array does shaped#type#array {

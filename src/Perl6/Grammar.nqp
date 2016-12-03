@@ -2946,8 +2946,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := '';
         [
         | <value>
-        | <[-−]> $<value>=\d+
-        | <sign> $<value>=['Inf'|'∞'] :my $*INF_VALUE := 1;
+        | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
         | <typename>
         | where <.ws> <EXPR('i=')>
         ]
@@ -3399,6 +3398,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <rat_number>
         | <complex_number>
         | 'Inf' >>
+        | $<uinf>='∞'
         | <?{ nqp::existskey(nqp::backendconfig(), 'moarlib') }> <unum=:No+:Nl>
         ]
     }

@@ -4970,24 +4970,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                 );
             }
-            my $ast := wanted($<value>.ast, 'type_constraint');
-            my $val;
-            if nqp::can($ast,'has_compile_time_value') && $ast.has_compile_time_value {
-                $val := $ast.compile_time_value;
+
+            my $val := wanted(
+                $<value>.ast, 'type_constraint'
+            ).compile_time_value;
+
+            if $*NEGATE_VALUE {
+                my $neg-op := $*W.find_symbol(['&prefix:<->']);
+                $val := $neg-op($val);
+                $*W.add_object($val);
             }
-            else {  # for negatives
-                $val := (
-                    $*INF_VALUE
-                        ?? $*W.add_numeric_constant(NQPMu, 'Num', (
-                            $<sign> eq '-' || $<sign> eq '−'
-                                ?? nqp::neginf !! nqp::inf
-                        )) !! $*W.add_numeric_constant(NQPMu, 'Int',
-                            nqp::radix_I(
-                                10, $<value>, 0, 1,  $*W.find_symbol(['Int'])
-                            )[0]
-                        )
-                ).compile_time_value;
-            }
+
             %*PARAM_INFO<nominal_type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
@@ -7189,6 +7182,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $ast.node($/);
                 make $ast;
             }
+        }
+        elsif $<uinf> {
+            make $*W.add_numeric_constant($/, 'Num', nqp::inf);
         }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);

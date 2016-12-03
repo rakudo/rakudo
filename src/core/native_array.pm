@@ -905,9 +905,6 @@ my class array does Iterable {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
 
-        multi method values(::?CLASS:D:) {
-            self.keys.map({ self.AT-POS(|$_) })
-        }
         multi method kv(::?CLASS:D:) {
             self.keys.map({ slip($_, self.AT-POS(|$_)) })
         }

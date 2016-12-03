@@ -1330,6 +1330,7 @@ my class Rakudo::Internals {
         method reverse(::?CLASS:D: |) { self!illegal("reverse") }
         method rotate(::?CLASS:D: |)  { self!illegal("rotate") }
 
+        multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
         multi method keys(::?CLASS:D:) {
             Seq.new(Rakudo::Internals.ShapeIndexIterator(self.shape))
         }

@@ -395,7 +395,6 @@
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
 
-        multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
         multi method kv(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 has int $!on-key;

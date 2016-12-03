@@ -268,6 +268,35 @@ for $*IN.lines -> $line {
                 }
             }.new(self)
         }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                has int $!on-key;
+                method result() is raw {
+                    nqp::if(
+                      ($!on-key = nqp::not_i($!on-key)),
+                      nqp::stmts(
+                        (my $result := self.indices),
+                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                        $result
+                      ),
+#?if moar
+                      nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_#postfix#($!list,nqp::clone($!indices))
+#?endif
+                    )
+                }
+                # needs its own push-all since it fiddles with $!indices
+                method push-all($target --> IterationEnd) {
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+                      $target.push($pulled)
+                    )
+                }
+            }.new(self))
+        }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {

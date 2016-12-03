@@ -904,14 +904,10 @@ my class array does Iterable {
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
-
-        multi method kv(::?CLASS:D:) {
-            self.keys.map({ slip($_, self.AT-POS(|$_)) })
-        }
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T21:10:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1140,6 +1136,35 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                has int $!on-key;
+                method result() is raw {
+                    nqp::if(
+                      ($!on-key = nqp::not_i($!on-key)),
+                      nqp::stmts(
+                        (my $result := self.indices),
+                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                        $result
+                      ),
+#?if moar
+                      nqp::multidimref_i($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_i($!list,nqp::clone($!indices))
+#?endif
+                    )
+                }
+                # needs its own push-all since it fiddles with $!indices
+                method push-all($target --> IterationEnd) {
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+                      $target.push($pulled)
+                    )
+                }
+            }.new(self))
+        }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
@@ -1350,7 +1375,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T21:10:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1579,6 +1604,35 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                has int $!on-key;
+                method result() is raw {
+                    nqp::if(
+                      ($!on-key = nqp::not_i($!on-key)),
+                      nqp::stmts(
+                        (my $result := self.indices),
+                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                        $result
+                      ),
+#?if moar
+                      nqp::multidimref_n($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_n($!list,nqp::clone($!indices))
+#?endif
+                    )
+                }
+                # needs its own push-all since it fiddles with $!indices
+                method push-all($target --> IterationEnd) {
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+                      $target.push($pulled)
+                    )
+                }
+            }.new(self))
+        }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
                 method result() {
@@ -1789,7 +1843,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T21:10:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2017,6 +2071,35 @@ my class array does Iterable {
 #?endif
                 }
             }.new(self)
+        }
+        multi method kv(::?CLASS:D:) {
+            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                has int $!on-key;
+                method result() is raw {
+                    nqp::if(
+                      ($!on-key = nqp::not_i($!on-key)),
+                      nqp::stmts(
+                        (my $result := self.indices),
+                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                        $result
+                      ),
+#?if moar
+                      nqp::multidimref_s($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_s($!list,nqp::clone($!indices))
+#?endif
+                    )
+                }
+                # needs its own push-all since it fiddles with $!indices
+                method push-all($target --> IterationEnd) {
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+                      $target.push($pulled)
+                    )
+                }
+            }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {

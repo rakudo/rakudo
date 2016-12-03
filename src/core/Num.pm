@@ -428,6 +428,9 @@ multi sub infix:<===>(num \a, num \b) returns Bool:D {
     )
 }
 
+multi sub infix:<≅>( Inf,  Inf) { Bool::True }
+multi sub infix:<≅>(-Inf, -Inf) { Bool::True }
+
 multi sub infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }

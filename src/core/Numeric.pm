@@ -252,9 +252,7 @@ multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
 proto sub infix:<≅>(Mu $?, Mu $?, *%) { * }  # note, can't be pure due to dynvar
-multi sub infix:<≅>($?)         { Bool::True }
-multi sub infix:<≅>( Inf,  Inf) { Bool::True }
-multi sub infix:<≅>(-Inf, -Inf) { Bool::True }
+multi sub infix:<≅>($?) { Bool::True }
 multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
     # If operands are non-0, scale the tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.

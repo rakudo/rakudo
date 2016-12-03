@@ -911,7 +911,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1267,6 +1267,14 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        }
     } # end of shaped1intarray role
 
     role shaped2intarray does shapedintarray {
@@ -1342,7 +1350,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1698,6 +1706,14 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        }
     } # end of shaped1numarray role
 
     role shaped2numarray does shapednumarray {
@@ -1773,7 +1789,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T17:18:12Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T17:37:27Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2128,6 +2144,14 @@ my class array does Iterable {
                     $!pos = nqp::elems($!list)
                 }
             }.new(self)
+        }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
         }
     } # end of shaped1strarray role
 

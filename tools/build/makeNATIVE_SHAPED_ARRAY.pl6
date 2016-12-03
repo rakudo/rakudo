@@ -395,6 +395,14 @@ for $*IN.lines -> $line {
                 }
             }.new(self)
         }
+        multi method pairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(
+              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        }
     } # end of shaped1#type#array role
 
     role shaped2#type#array does shaped#type#array {

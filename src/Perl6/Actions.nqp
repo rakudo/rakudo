@@ -4976,12 +4976,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $val := $ast.compile_time_value;
             }
             else {  # for negatives
-                my $i := $*W.add_numeric_constant(NQPMu, 'Int',
-                    nqp::radix_I(
-                        10, $<value>, 0, 1,  $*W.find_symbol(['Int'])
-                    )[0]
-                );
-                $val := $i.compile_time_value;
+                $val := (
+                    $*INF_VALUE
+                        ?? $*W.add_numeric_constant(NQPMu, 'Num', (
+                            $<sign> eq '-' || $<sign> eq '−'
+                                ?? nqp::neginf !! nqp::inf
+                        )) !! $*W.add_numeric_constant(NQPMu, 'Int',
+                            nqp::radix_I(
+                                10, $<value>, 0, 1,  $*W.find_symbol(['Int'])
+                            )[0]
+                        )
+                ).compile_time_value;
             }
             %*PARAM_INFO<nominal_type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {

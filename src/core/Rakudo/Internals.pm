@@ -1397,29 +1397,6 @@ my class Rakudo::Internals {
             }
         }
 
-        method !STORE-PATH(@path, @rest, \in) {
-            my int $cur-pos = 0;
-            if @rest.elems == 1 {
-                for in -> \item {
-                    self.ASSIGN-POS(|@path, $cur-pos, item);
-                    $cur-pos = $cur-pos + 1;
-                }
-            }
-            else {
-                my @nextrest = @rest[1..^@rest.elems];
-                for in -> \item {
-                    my @nextpath = flat @path, $cur-pos;
-                    if nqp::istype(item, Iterable) && nqp::isconcrete(item) {
-                        self!STORE-PATH(@nextpath, @nextrest, item)
-                    }
-                    else {
-                        X::Assignment::ToShaped.new(shape => self.shape).throw;
-                    }
-                    $cur-pos = $cur-pos + 1;
-                }
-            }
-        }
-
         multi method Slip() {
             Slip.from-iterator(self.iterator)
         }

@@ -1496,10 +1496,11 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
 my class X::Syntax::Number::InvalidCharacter does X::Syntax {
     has $.radix;
     has $.str;
+    has $.at;
     method message() {
         my ($R,$C,$G,$Y,$E) = Rakudo::Internals.error-rcgye;
-        $!pos = 0 if $!pos < 0; # radix_I returns -1 if first char is bad
-        my ($pre, $post) = .substr(0, $!pos), .substr($!pos) given $!str;
+        $!at = 0 if $!at < 0; # radix_I returns -1 if first char is bad
+        my ($pre, $post) = .substr(0, $!at), .substr($!at) given $!str;
         "Invalid base-$!radix character: $G$pre$Y$E$R$post$C";
     }
 }

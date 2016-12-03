@@ -1318,13 +1318,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # Whole part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :pos($sign-offset + $w-parsed[2])
+                :$radix, :str($value), :at($sign-offset + $w-parsed[2])
             ) unless $w-parsed[2] == nqp::chars($whole);
 
             # Fractional part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
                 :$radix, :str($value), # +1 in pos() is for decimal dot
-                :pos($sign-offset + $w-parsed[2] + 1 + $f-parsed[2])
+                :at($sign-offset + $w-parsed[2] + 1 + $f-parsed[2])
             ) unless $f-parsed[2] == nqp::chars($fract);
 
             $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
@@ -1334,7 +1334,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # Did not parse the number in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :pos($sign-offset + $parsed[2])
+                :$radix, :str($value), :at($sign-offset + $parsed[2])
             ) unless $parsed[2] == nqp::chars($value);
 
             $sign * $parsed[0];

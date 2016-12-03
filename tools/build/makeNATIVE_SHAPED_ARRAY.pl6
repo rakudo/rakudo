@@ -256,6 +256,18 @@ for $*IN.lines -> $line {
               ITERCPY(self,from)
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() is raw {
+#?if moar
+                    nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                    nqp::atposnd_#postfix#($!list,nqp::clone($!indices))
+#?endif
+                }
+            }.new(self)
+        }
     }  # end of shaped#type#array role
 
     role shaped1#type#array does shaped#type#array {

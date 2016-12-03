@@ -924,7 +924,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1141,6 +1141,18 @@ my class array does Iterable {
               ITERCPY(self,from)
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() is raw {
+#?if moar
+                    nqp::multidimref_i($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                    nqp::atposnd_i($!list,nqp::clone($!indices))
+#?endif
+                }
+            }.new(self)
+        }
     }  # end of shapedintarray role
 
     role shaped1intarray does shapedintarray {
@@ -1329,7 +1341,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1546,6 +1558,18 @@ my class array does Iterable {
               ITERCPY(self,from)
             )
         }
+        method iterator(::?CLASS:D:) {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() is raw {
+#?if moar
+                    nqp::multidimref_n($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                    nqp::atposnd_n($!list,nqp::clone($!indices))
+#?endif
+                }
+            }.new(self)
+        }
     }  # end of shapednumarray role
 
     role shaped1numarray does shapednumarray {
@@ -1734,7 +1758,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T13:20:20Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-03T15:45:10Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -1950,6 +1974,18 @@ my class array does Iterable {
               ),
               ITERCPY(self,from)
             )
+        }
+        method iterator(::?CLASS:D:) {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                method result() is raw {
+#?if moar
+                    nqp::multidimref_s($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                    nqp::atposnd_s($!list,nqp::clone($!indices))
+#?endif
+                }
+            }.new(self)
         }
     }  # end of shapedstrarray role
 

@@ -36,14 +36,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     method search_path() {
-        DEBUG('Setting up default paths: . blib') if $DEBUG;
-        my @search_paths;
-        @search_paths.push('.');
-        @search_paths.push('blib');
-        for self.vm_search_paths() {
-            @search_paths.push($_);
-        }
-        @search_paths
+        self.vm_search_paths()
     }
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
@@ -54,9 +47,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            $file := nqp::stat("blib/$file", 0)
-                ?? "blib/$file"
-                !! nqp::backendconfig<prefix> ~ '/share/nqp/lib/' ~ $file;
+            $file := nqp::backendconfig<prefix> ~ '/share/nqp/lib/' ~ $file;
             nqp::loadbytecode($file);
             %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
             nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);

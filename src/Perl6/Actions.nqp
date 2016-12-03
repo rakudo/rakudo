@@ -7145,12 +7145,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method signed-integer($/) {
         make $*W.add_numeric_constant($/, 'Int',
-            $<sign> eq '-' ?? -$<integer>.ast !! $<integer>.ast);
+            $<sign> eq '-' || $<sign> eq '−'
+                ?? -$<integer>.ast !! $<integer>.ast
+        );
     }
 
     method signed-number($/) {
         my $qast := $<number>.ast;
-        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast)
+            if $<sign> eq '-' || $<sign> eq '−';
         make $qast;
     }
 
@@ -7184,7 +7187,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method escale($/) {
-        make $<sign> eq '-'
+        make $<sign> eq '-' || $<sign> eq '−'
             ??  nqp::neg_I($<decint>.ast, $<decint>.ast)
             !! $<decint>.ast;
     }
@@ -7303,11 +7306,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method bare_complex_number($/) {
-        my $re := $*W.add_constant('Num', 'num', +$<re>.Str);
-        my $im := $*W.add_constant('Num', 'num', +$<im>.Str);
-        my $rv := $re.compile_time_value;
-        my $iv := $im.compile_time_value;
-        my $ast := $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
+        my $re := $*W.add_constant('Num', 'num',
+            ($<re><sign> eq '-' || $<re><sign> eq '−'
+                ?? -$<re><number>.Str !! +$<re><number>.Str)
+        );
+        my $im := $*W.add_constant('Num', 'num',
+            ($<im><sign> eq '-' || $<im><sign> eq '−'
+                ?? -$<im><number>.Str !! +$<im><number>.Str)
+        );
+        my $ast := $*W.add_constant('Complex', 'type_new',
+            $re.compile_time_value,
+            $im.compile_time_value,
+            :nocache(1)
+        );
         $ast.node($/);
         make $ast;
     }

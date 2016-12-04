@@ -35,7 +35,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                'sysroot=s', 'sdkroot=s',
                'backends=s', 'no-clean!',
-               'gen-nqp:s',
+               'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
                'git-protocol=s',
                'make-install!', 'makefile-timing!',
@@ -67,6 +67,11 @@ MAIN: {
     }
     my @backends;
     my %backends;
+    if (my $nqp_bin  = $options{'with-nqp'}) {
+        die "Could not find $nqp_bin" unless -e $nqp_bin;
+        $options{backends} = qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
+            or die "Could not get backend information from $nqp_bin";
+    }
     if (defined $options{backends}) {
         $options{backends} = join ",", @known_backends
             if uc($options{backends}) eq 'ALL';
@@ -104,7 +109,7 @@ MAIN: {
             $backends{moar} = 1;
             $default_backend ||= 'moar';
         }
-        unless (%backends) {
+        unless (%backends or exists $options{'with-nqp'}) {
             die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n\n"
               . "Example to build for all backends (which will take a while):\n"
               . "\tperl Configure.pl --backends=moar,jvm --gen-moar\n\n"
@@ -377,6 +382,8 @@ General Options:
                        Download, build, and install a copy of NQP before writing the Makefile
     --gen-moar[=branch]
                        Download, build, and install a copy of MoarVM to use before writing the Makefile
+    --with-nqp='/path/to/nqp'
+                       Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl

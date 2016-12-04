@@ -47,7 +47,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            $file := nqp::backendconfig<prefix> ~ '/share/nqp/lib/' ~ $file;
+            my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
+            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<prefix> ~ '/share/nqp/lib/') ~ $file;
             nqp::loadbytecode($file);
             %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
             nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);

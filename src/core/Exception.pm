@@ -1503,8 +1503,8 @@ my class X::Syntax::Number::InvalidCharacter does X::Syntax {
 
         my ($char, $pre, $post)
         = .substr($!at, 1), .substr(0, $!at), .substr($!at) given $!str;
-        my $valid-chars = $!radix <= 9
-            ?? '0..' ~ $!radix-1 !! $!radix == 10
+        my $valid-chars = $!radix <= 10
+            ?? '0..' ~ $!radix-1 !! $!radix == 11
                 ?? '0..9, A' !! '0..9, A..' ~ ('B'..'Z')[$!radix-12];
                 # radix - 12 is: -1 for 'A' we took out, -1 since radix is 1
                 # higher than largest digit, and -10 for 0..9 we took out

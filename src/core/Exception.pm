@@ -1500,8 +1500,17 @@ my class X::Syntax::Number::InvalidCharacter does X::Syntax {
     method message() {
         my ($R,$C,$G,$Y,$E) = Rakudo::Internals.error-rcgye;
         $!at = 0 if $!at < 0; # radix_I returns -1 if first char is bad
-        my ($pre, $post) = .substr(0, $!at), .substr($!at) given $!str;
-        "Invalid base-$!radix character: $G$pre$Y$E$R$post$C";
+
+        my ($char, $pre, $post)
+        = .substr($!at, 1), .substr(0, $!at), .substr($!at) given $!str;
+        my $valid-chars = $!radix <= 9
+            ?? '0..' ~ $!radix-1 !! $!radix == 10
+                ?? '0..9, A' !! '0..9, A..' ~ ('B'..'Z')[$!radix-12];
+                # radix - 12 is: -1 for 'A' we took out, -1 since radix is 1
+                # higher than largest digit, and -10 for 0..9 we took out
+
+        "Invalid base-$!radix character '$char': $G$pre$Y$E$R$post$C. "
+            ~ "Please use one of $valid-chars";
     }
 }
 

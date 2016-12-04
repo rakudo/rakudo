@@ -89,9 +89,11 @@ class Perl6::Compiler is HLL::Compiler {
                              heap - record heap snapshots after every
                                     garbage collector run
       --profile-filename=name
-                           provide a different filename; if the name ends in
-                             .json, instrumented profiles will be written as
-                             JSON instead of HTML
+                           provide a different filename for profile. Extension
+                           controls format:
+                                .json outputs in JSON
+                                .sql  outputs in SQL
+                                any other extension outputs in HTML
       --doc=module         use Pod::To::[module] to render inline documentation
 
 

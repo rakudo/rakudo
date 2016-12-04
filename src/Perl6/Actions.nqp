@@ -7174,7 +7174,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $code := nqp::ord($/.Str);
             my int $nu := +nqp::getuniprop_str($code, $nuprop);
             my int $de := +nqp::getuniprop_str($code, $deprop);
-            if !$de || $de == '1' {
+            if !$de || $de == 1 {
                 make $*W.add_numeric_constant($/, 'Int', +$nu)
             }
             else {

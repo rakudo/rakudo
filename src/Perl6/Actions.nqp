@@ -7272,8 +7272,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
             my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
 
-            if $ipart[2] < nqp::chars($<intpart>.Str) || $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str) - 1} fractional chars");
+            if $ipart[2] < nqp::chars($<intpart>.Str) {
+                $*W.throw($/, 'X::Syntax::Number::InvalidCharacter',
+                    :$radix,
+                    :at($ipart[2]),
+                    :str($<intpart> ~ ($<fracpart> ?? $<fracpart> !! '')),
+                );
+            }
+            if $fpart[2] < nqp::chars($<fracpart>.Str) {
+                $*W.throw($/, 'X::Syntax::Number::InvalidCharacter',
+                    :$radix,
+                    :at( # the -1 dance is due to nqp::radix returning -1 for
+                        # failure to parse the first char, instead of 0;
+                        # we return `1` to cover the decimal dot in that case
+                        $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
+                    ),
+                    :str($<intpart> ~ ($<fracpart> ?? $<fracpart> !! '')),
+                );
             }
 
             $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);

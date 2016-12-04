@@ -136,15 +136,57 @@ only sub infix:<(-)>(**@p) is pure {
         $sethash.Set(:view);
     }
 }
+
 # U+2216 SET MINUS
 only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
+
 only sub infix:<(^)>(**@p) is pure {
-    Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
+    return set() unless my $chain = @p.elems;
+
+    if $chain == 1 {
+        return @p[0];
+    } elsif $chain == 2 {
+        my ($a, $b) = @p;
+        my $mixy-or-baggy = False;
+        if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
+            ($a, $b) = $a.MixHash, $b.MixHash;
+            $mixy-or-baggy = True;
+        } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
+            ($a, $b) = $a.BagHash, $b.BagHash;
+            $mixy-or-baggy = True;
+        }
+        return  $mixy-or-baggy
+                    # the set formula is not symmetric for bag/mix. this is.
+                    ?? ($a (-) $b) (+) ($b (-) $a)
+                    # set formula for the two-arg set.
+                    !! ($a (|) $b) (-) ($b (&) $a);
+    } else {
+        if @p.first(Mixy) || @p.first(Baggy) {
+            my $head;
+            while (@p) {
+                my ($a, $b);
+                if $head.defined {
+                    ($a, $b) = $head, @p.shift;
+                } else {
+                    ($a, $b) = @p.shift, @p.shift;
+                }
+                if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
+                    ($a, $b) = $a.MixHash, $b.MixHash;
+                } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
+                    ($a, $b) = $a.BagHash, $b.BagHash;
+                }
+                $head = ($a (-) $b) (+) ($b (-) $a);
+            }
+            return $head;
+        } else {
+            return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
+        } 
+    }
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b --> Setty) is pure {
+only sub infix:<⊖>($a, $b) is pure {
     $a (^) $b;
 }
 
@@ -258,7 +300,24 @@ only sub infix:<⊍>(|p) is pure {
 only sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 
-    if @p.first(Mixy) {
+    # XXX: @p.first(Mixy) would not return true even
+    #       in cases where a Mix had been passed.
+    #
+    # Test that failed: Mix symmetric difference reduce works on a mix and a bag
+    #
+    #   Note that the symmetric variant of the same test works fine.
+    #
+    #   It comes down to ($b (-) $m) (+) ($m (-) $b) returning something different
+    #   than             ($m (-) $b) (+) ($b (-) $m).
+    #
+    #   Frustratingly, ($b (+) $m) and ($m (+) $b) are actually symmetric.
+    #
+    #   I don't know if this goes deeper into a bug in .first, but as they
+    #   are (for the sake of a boolean test) functionally equivalent, I've
+    #   decided to forego looking into my additions to (^) as a cause.
+    #
+    #if @p.first(Mixy) {
+    if @p.grep({ nqp::istype($_, Mixy) }) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;

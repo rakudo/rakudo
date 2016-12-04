@@ -46,6 +46,9 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method split(|) { * }
 
+    method emit {
+        emit self;
+    }
     method take {
         take self;
     }

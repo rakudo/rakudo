@@ -436,6 +436,39 @@ for $*IN.lines -> $line {
             Seq.new(
               Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
         }
+        method reverse(::?CLASS:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_#postfix#($to,nqp::sub_i($last,$i),
+                  nqp::atpos_#postfix#(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_#postfix#(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_#postfix#(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
     } # end of shaped1#type#array role
 
     role shaped2#type#array does shaped#type#array {

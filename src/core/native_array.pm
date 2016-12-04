@@ -907,7 +907,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-03T21:36:47Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1304,6 +1304,39 @@ my class array does Iterable {
             Seq.new(
               Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
         }
+        method reverse(::?CLASS:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_i($to,nqp::sub_i($last,$i),
+                  nqp::atpos_i(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_i(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_i(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
     } # end of shaped1intarray role
 
     role shaped2intarray does shapedintarray {
@@ -1379,7 +1412,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-03T21:36:47Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1776,6 +1809,39 @@ my class array does Iterable {
             Seq.new(
               Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
         }
+        method reverse(::?CLASS:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_n($to,nqp::sub_i($last,$i),
+                  nqp::atpos_n(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_n(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_n(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
     } # end of shaped1numarray role
 
     role shaped2numarray does shapednumarray {
@@ -1851,7 +1917,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-03T21:36:47Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2247,6 +2313,39 @@ my class array does Iterable {
         multi method antipairs(::?CLASS:D:) {
             Seq.new(
               Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        }
+        method reverse(::?CLASS:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s($to,nqp::sub_i($last,$i),
+                  nqp::atpos_s(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_s(self,$i)
+                ),
+              ),
+              $to
+            )
         }
     } # end of shaped1strarray role
 

@@ -1,7 +1,6 @@
 var nqp = require('nqp-runtime');
 var Null = nqp.Null;
 var CodeRef = require('nqp-runtime/code-ref');
-var NQPArray = require('nqp-runtime/array');
 var op = {};
 
 var Scalar, True, False, Int, Num, Str, Code;
@@ -145,7 +144,7 @@ op.p6argvmarray = function(ctx, args) {
   for (var i=2; i < args.length; i++) {
     array[i-2] = nqp.op.hllizefor(ctx, args[i], 'perl6');
   }
-  return new NQPArray(array);
+  return nqp.createArray(array);
 };
 
 var containerSpecs = require('nqp-runtime/container-specs.js');

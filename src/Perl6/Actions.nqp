@@ -7276,7 +7276,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, 'X::Syntax::Number::InvalidCharacter',
                     :$radix,
                     :at($ipart[2]),
-                    :str($<intpart> ~ ($<fracpart> ?? $<fracpart> !! '')),
+                    :str($<intpart> ~ ($<fracpart> // '')),
                 );
             }
             if $fpart[2] < nqp::chars($<fracpart>.Str) {
@@ -7287,7 +7287,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         # we return `1` to cover the decimal dot in that case
                         $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
                     ),
-                    :str($<intpart> ~ ($<fracpart> ?? $<fracpart> !! '')),
+                    :str($<intpart> ~ ($<fracpart> // '')),
                 );
             }
 

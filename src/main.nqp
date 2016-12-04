@@ -26,6 +26,7 @@ my @clo := $comp.commandline_options();
 @clo.push('c');
 @clo.push('I=s');
 @clo.push('M=s');
+@clo.push('grammar-errors');
 
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('perl6', '@END_PHASERS', []);

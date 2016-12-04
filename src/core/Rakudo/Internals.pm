@@ -1656,6 +1656,11 @@ my class Rakudo::Internals {
              }
           !! nqp::list()
     }
+    method GRAMMAR-ERRORS() {
+        nqp::existskey($compiling-options, 'grammar-errors')
+          ?? '--grammar-errors'
+          !! Empty
+    }
 
 #?if moar
     method PRECOMP-EXT()    { "moarvm" }

@@ -140,7 +140,6 @@ op.p6store = function(ctx, cont, value) {
 
 op.p6argvmarray = function(ctx, args) {
   var array = [];
-  console.log("in p6argvmarray");
   for (var i=2; i < args.length; i++) {
     array[i-2] = nqp.op.hllizefor(ctx, args[i], 'perl6');
   }

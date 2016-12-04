@@ -109,7 +109,10 @@ my class Signature { # declared in BOOTSTRAP
                 my $parmstr = $param.perl(:$elide-type, :&where);
                 return Nil without $parmstr;
                 $text ~= $sep ~ $parmstr;
-                $text .= subst(/' $'$/,'') unless $perl;
+
+                # Remove sigils from anon typed scalars, leaving type only
+                $text .= subst(/» ' $'$/,'') unless $perl;
+
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
                   !! ', '

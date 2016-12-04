@@ -863,7 +863,7 @@ my class X::Placeholder::NonPlaceholder does X::Comp {
 
 my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
-        "Cannot use placeholder parameter $.placeholder in the mainline"
+        "Cannot use placeholder parameter $.placeholder outside of a sub or block"
     }
 }
 

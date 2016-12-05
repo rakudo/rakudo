@@ -5720,7 +5720,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         my $past := QAST::Op.new( :$op, |@args );
-        if $op eq 'want' || $op eq 'handle' || $op eq 'handlepayload' {
+        if $op eq 'handle' || $op eq 'handlepayload' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
             while $i < $n {

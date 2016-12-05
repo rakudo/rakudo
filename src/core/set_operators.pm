@@ -32,7 +32,7 @@ only sub infix:<∌>($a, $b --> Bool) is pure {
 }
 
 only sub infix:<(|)>(**@p) is pure {
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -44,7 +44,7 @@ only sub infix:<(|)>(**@p) is pure {
             }
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -64,7 +64,7 @@ only sub infix:<∪>(|p) is pure {
 only sub infix:<(&)>(**@p) is pure {
     return set() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -75,7 +75,7 @@ only sub infix:<(&)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -104,7 +104,7 @@ only sub infix:<∩>(|p) is pure {
 only sub infix:<(-)>(**@p) is pure {
     return set() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -115,7 +115,7 @@ only sub infix:<(-)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -163,7 +163,7 @@ only sub infix:<(^)>(**@p) is pure {
                     # set formula for the two-arg set.
                     !! ($a (|) $b) (-) ($b (&) $a);
     } else {
-        if @p.first(Mixy) || @p.first(Baggy) {
+        with @p.first(Mixy) || @p.first(Baggy) {
             my $head;
             while (@p) {
                 my ($a, $b);
@@ -268,7 +268,7 @@ only sub infix:<⊅>($a, $b --> Bool) is pure {
 only sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -300,24 +300,7 @@ only sub infix:<⊍>(|p) is pure {
 only sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 
-    # XXX: @p.first(Mixy) would not return true even
-    #       in cases where a Mix had been passed.
-    #
-    # Test that failed: Mix symmetric difference reduce works on a mix and a bag
-    #
-    #   Note that the symmetric variant of the same test works fine.
-    #
-    #   It comes down to ($b (-) $m) (+) ($m (-) $b) returning something different
-    #   than             ($m (-) $b) (+) ($b (-) $m).
-    #
-    #   Frustratingly, ($b (+) $m) and ($m (+) $b) are actually symmetric.
-    #
-    #   I don't know if this goes deeper into a bug in .first, but as they
-    #   are (for the sake of a boolean test) functionally equivalent, I've
-    #   decided to forego looking into my additions to (^) as a cause.
-    #
-    #if @p.first(Mixy) {
-    if @p.grep({ nqp::istype($_, Mixy) }) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;

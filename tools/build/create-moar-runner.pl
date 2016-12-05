@@ -11,8 +11,8 @@ if $*DISTRO eq 'mswin32' {
     exit if $toolchain;
     $install_to ~= '.bat';
     my $fh = open $install_to, :w;
-    $fh.print(sprintf(qq[@ "%s" --execname="%%~dpf0" --libpath="%s" %s\\%s %%*\n],
-            $moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc));
+    $fh.print(sprintf(qq[@ "%s" --execname="%%~dpf0" --libpath="%s" %s\\%s %s%%*\n],
+            $moar, @libpaths.join('" --libpath="'), $p6_mbc_path, $mbc, $blib));
     $fh.close;
 }
 elsif $toolchain eq 'gdb' {

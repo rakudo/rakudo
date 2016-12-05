@@ -1808,13 +1808,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <?{
                 # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
                 # to fail any matches that have synthetics, such as 7\x[308]
-                my $chars-num := nqp::chars($<num>);
+                my $num       := ~$<num>;
+                my $chars-num := nqp::chars($num);
                 my $pos       := -1;
                 nqp::while(
                     nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
-                    && nqp::iseq_s(
-                        (my $ch := nqp::substr($<num>, $pos, 1)),
-                        nqp::chr( nqp::ord($ch) ),
+                    && nqp::eqat(
+                        $num,
+                        nqp::chr( nqp::ord($num, $pos) ),
+                        $pos,
                     ),
                     nqp::null,
                 );

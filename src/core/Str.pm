@@ -2230,9 +2230,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method !increment_index($s --> Nil) {
             $/ := nqp::getlexcaller('$/');
             if nqp::istype($s,Regex) {
-                substr($!source,$!index) ~~ $s;
+                $!index = $!next_match + (
+                    substr($!source,$!index) ~~ $s ?? $/.chars !! 0
+                );
                 $!last_match_obj = $/;
-                $!index = $!next_match + $/.chars;
             }
             else {
                 $!index = $!next_match

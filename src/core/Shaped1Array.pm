@@ -241,6 +241,7 @@
             Rakudo::Internals.RotateListToList(
               self, $rotate, self.new(:shape(self.shape)))
         }
+        method sum() is nodal { self.List::sum }
     }
 
 # vim: ft=perl6 expandtab sw=4

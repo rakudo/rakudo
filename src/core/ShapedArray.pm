@@ -470,6 +470,7 @@
         method eager() { self }
         method is-lazy() { False }
 
+        method sum() is nodal { self.Any::sum }
         multi method elems(::?CLASS:D:) {
             nqp::elems(nqp::getattr(self,List,'$!reified'))
         }

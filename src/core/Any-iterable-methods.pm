@@ -1052,7 +1052,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method grep(|) is nodal { * }
     multi method grep(Bool:D $t) {
-        Failure.new(X::Match::Bool.new( type => '.grep' ))
+        X::Match::Bool.new( type => '.grep').throw
     }
     multi method grep(Mu $t) {
         my $storage := nqp::getattr(%_,Map,'$!storage');
@@ -1104,20 +1104,22 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 else {
                     nqp::iseq_s($key,"k")
-                      ?? Failure.new("Specified a negated :v adverb")
-                      !! Failure.new(X::Adverb.new(
+                      ?? die "Specified a negated :v adverb"
+                      !! X::Adverb.new(
                            :what<grep>,
                            :source(try { self.VAR.name } // self.WHAT.perl),
-                           :unexpected($key)))
+                           :unexpected($key)
+                         ).throw
                 }
             }
         }
         else {
-            Failure.new(X::Adverb.new(
+            X::Adverb.new(
               :what<grep>,
               :source(try { self.VAR.name } // self.WHAT.perl),
               :nogo(%_.keys.grep: /k|v|kv|p/)
-              :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )))
+              :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
+            ).throw
         }
     }
 
@@ -1457,9 +1459,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         # Obtain all the things to sort.
         my \iter = self.iterator;
         my \sort-buffer = IterationBuffer.new;
-        unless iter.push-until-lazy(sort-buffer) =:= IterationEnd {
-            fail X::Cannot::Lazy.new(:action<sort>);
-        }
+        X::Cannot::Lazy.new(:action<sort>).throw
+          unless iter.push-until-lazy(sort-buffer) =:= IterationEnd;
 
         # Instead of sorting elements directly, we sort a list of
         # indices from 0..^$list.elems, then use that list as
@@ -1975,7 +1976,7 @@ multi sub grep(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
     values.grep($test,|%a).lazy-if($laze)
 }
-multi sub grep(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<grep>)) }
+multi sub grep(Bool:D $t, |) { X::Match::Bool.new(:type<grep>).throw }
 
 proto sub first(|) {*}
 multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }

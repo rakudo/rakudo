@@ -1244,7 +1244,13 @@ my class X::Syntax::Name::Null does X::Syntax {
 }
 
 my class X::Syntax::UnlessElse does X::Syntax {
-    method message() { '"unless" does not take "else", please rewrite using "if"' }
+    has $.keyword;
+    method message() { qq|"unless" does not take "$!keyword", please rewrite using "if"| }
+}
+
+my class X::Syntax::WithoutElse does X::Syntax {
+    has $.keyword;
+    method message() { qq|"without" does not take "$!keyword", please rewrite using "with"| }
 }
 
 my class X::Syntax::KeywordAsFunction does X::Syntax {

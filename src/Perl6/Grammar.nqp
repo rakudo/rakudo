@@ -1421,9 +1421,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statement_control:sym<unless> {
-        $<sym>=[unless|without]<.kok> {}
-        <xblock($<sym> eq 'without')>
-        [ <!before [els[e|if]|orwith]» > || <.typed_panic: 'X::Syntax::UnlessElse'> ]
+        $<sym>='unless'<.kok>
+        <xblock(0)> # 0 means we're not parsing `without`
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::UnlessElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
+    }
+
+    rule statement_control:sym<without> {
+        $<sym>='without'<.kok>
+        <xblock(1)> # 1 means we're not parsing `unless`
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::WithoutElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
     }
 
     rule statement_control:sym<while> {

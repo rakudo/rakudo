@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-12-06T13:43:30+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -299,6 +299,39 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        method reverse(strarray:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s($to,nqp::sub_i($last,$i),
+                  nqp::atpos_s(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(strarray:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_s(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
 
@@ -317,7 +350,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-12-06T13:43:30+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -559,6 +592,39 @@ my class array does Iterable {
                 }
             }.new(self)
         }
+        method reverse(intarray:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_i($to,nqp::sub_i($last,$i),
+                  nqp::atpos_i(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(intarray:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_i(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_i(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
@@ -594,7 +660,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-08-13T14:01:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2016-12-06T13:43:30+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -835,6 +901,39 @@ my class array does Iterable {
                     $!i = $i;
                 }
             }.new(self)
+        }
+        method reverse(numarray:D:) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_n($to,nqp::sub_i($last,$i),
+                  nqp::atpos_n(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(numarray:D: Int(Cool) $rotate = 1) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_n(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_n(self,$i)
+                ),
+              ),
+              $to
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------

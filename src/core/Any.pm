@@ -423,7 +423,7 @@ my class Any { # declared in BOOTSTRAP
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
 
-    method sum() {
+    method sum() is nodal {
         my \iter = self.iterator;
         my $sum = 0;
         my Mu $value;

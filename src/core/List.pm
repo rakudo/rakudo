@@ -1347,7 +1347,7 @@ role XX-Whatever does Iterator {
 proto sub infix:<xx>(|) { * }
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
-multi sub infix:<xx>(&x, Num $n) {
+multi sub infix:<xx>(&x, Num() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
@@ -1370,7 +1370,7 @@ multi sub infix:<xx>(&x, Whatever) {
         }
     }.new(&x))
 }
-multi sub infix:<xx>(&x, Int() $n) {
+multi sub infix:<xx>(&x, Int $n) {
     my int $todo = $n + 1;
     my Mu $pulled;
     my Mu $list := nqp::list();
@@ -1388,7 +1388,7 @@ multi sub infix:<xx>(&x, Int() $n) {
     );
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
 }
-multi sub infix:<xx>(Mu \x, Num $n) {
+multi sub infix:<xx>(Mu \x, Num() $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
@@ -1396,7 +1396,7 @@ multi sub infix:<xx>(Mu \x, Whatever) {
         method pull-one() { $!x }
     }.new(x))
 }
-multi sub infix:<xx>(Mu \x, Int() $n) is pure {
+multi sub infix:<xx>(Mu \x, Int $n) is pure {
     if nqp::isgt_i((my int $elems = $n),0) {
         my $list := nqp::setelems(nqp::list,$elems);
         my int $i = -1;

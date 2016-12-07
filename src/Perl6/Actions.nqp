@@ -7028,12 +7028,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method postfix:sym<ⁿ>($/) {
-        my int $power := 0;
+        my $Int := $*W.find_symbol(['Int']);
+        my $power := nqp::box_i(0, $Int);
         for $<dig> {
-            $power := $power * 10 + nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_);
+            $power := nqp::add_I(
+                nqp::mul_I($power, nqp::box_i(10, $Int), $Int),
+                nqp::box_i(nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_), $Int),
+                $Int);
         }
-        $power := -$power if $<sign> eq '⁻' || $<sign> eq '¯';
-        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'int', $power));
+
+        $power := nqp::neg_I($power, $Int) if $<sign> eq '⁻' || $<sign> eq '¯';
+        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'bigint', $power));
     }
 
     method postfixish($/) {

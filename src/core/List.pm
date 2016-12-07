@@ -1035,7 +1035,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         $number = nqp::istype($number,Whatever) || $number == Inf
           ?? $elems
-          !! $number.Int min $elems;
+          !! $number.UInt min $elems;
         Seq.new(class :: does Iterator {
             has $!list;
             has Int $!elems;

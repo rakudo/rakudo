@@ -1124,11 +1124,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method first(|) is nodal { * }
-    multi method first(:$end) {
-        $end
-          ?? ((my $elems = self.elems) ?? self.AT-POS($elems - 1) !! Nil)
-          !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
-    }
     multi method first(Bool:D $t) {
         Failure.new(X::Match::Bool.new( type => '.first' ))
     }
@@ -1177,7 +1172,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             )
         }
     }
-    multi method first(Mu $test, :$end, *%a) is raw {
+    multi method first(Mu $test = True, :$end, *%a) is raw {
         $end
           ?? self!first-accepts-end($test,%a)
           !! self!first-accepts($test,%a)

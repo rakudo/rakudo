@@ -1126,7 +1126,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method first(|) is nodal { * }
     multi method first(:$end) {
         $end
-          ?? ((my $elems = +self) ?? self.AT-POS($elems - 1) !! Nil)
+          ?? ((my $elems = self.elems) ?? self.AT-POS($elems - 1) !! Nil)
           !! ((my $x := self.iterator.pull-one) =:= IterationEnd ?? Nil !! $x)
     }
     multi method first(Bool:D $t) {
@@ -1141,7 +1141,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
             nqp::stmts(
-              (my $elems = +self),
+              (my $elems = self.elems),
               nqp::if(
                 ($elems && nqp::not_i($elems == Inf)),
                 nqp::stmts(
@@ -1200,7 +1200,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     method !first-accepts-end(Mu $test,%a) is raw {
         nqp::stmts(
-          (my $elems = +self),
+          (my $elems = self.elems),
           nqp::if(
             ($elems && nqp::not_i($elems == Inf)),
             nqp::stmts(

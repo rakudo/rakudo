@@ -2116,7 +2116,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<sink>($/) {
         make QAST::Stmts.new(
             QAST::Op.new(
-                :op('callmethod'), :name('eager'),
+                :op('callmethod'), :name('sink'),
                 QAST::Op.new( :op('call'), $<blorst>.ast )
             ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),

@@ -29,7 +29,7 @@ augment class Rakudo::Internals {
                 emit $available if $available ne '';
                 LAST {
                     with $decoder {
-			my $rest = .consume-all-chars();
+                        my $rest = .consume-all-chars();
                         emit $rest if $rest ne '';
                     }
                 }

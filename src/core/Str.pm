@@ -1323,7 +1323,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # Fractional part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), # +1 in pos() is for decimal dot
+                :$radix, :str($value), # +1 in at() is for decimal dot
                 :at($sign-offset + $w-parsed[2] + 1 + $f-parsed[2])
             ) unless $f-parsed[2] == nqp::chars($fract);
 

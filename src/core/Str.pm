@@ -700,7 +700,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
           Seq.new(POST-ITERATOR.new(cursor, move, post)).list,
-          Slip.new,
+          List.new,
         ))
     }
 

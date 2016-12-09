@@ -37,6 +37,9 @@ my class BOOTSTRAPATTR {
         self.new(:name($!name), :box_target($!box_target), :type($ins))
     }
     method compose($obj, :$compiler_services) { }
+    method gist() { $!type.HOW.name($!type) ~ ' ' ~ $!name }
+    method perl() { 'BOOTSTRAPATTR.new' }
+    method Str()  { $!name }
 }
 
 # Stub all types.

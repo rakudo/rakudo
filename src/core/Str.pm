@@ -1307,34 +1307,38 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # do not modify $!value directly as that affects other same strings
         my ($value, $sign, $sign-offset) = $!value, 1, 0;
         given $value.substr(0,1) {
-            when '-'|'−' { $sign = -1; $value .= substr(1); $sign-offset = 1 }
-            when '+'     {             $value .= substr(1); $sign-offset = 1 }
+            when '-'|'−' { $sign = -1; $sign-offset = 1 }
+            when '+'     {             $sign-offset = 1 }
         }
 
         if $value.contains('.') { # fractional
             my ($whole, $fract) = $value.split: '.', 2;
-            my $w-parsed := nqp::radix_I($radix, $whole, 0, 0, Int);
-            my $f-parsed := nqp::radix_I($radix, $fract, 0, 0, Int);
+            my $w-parsed := nqp::radix_I($radix, $whole, $sign-offset, 0, Int);
+            my $f-parsed := nqp::radix_I($radix, $fract, 0,            0, Int);
 
             # Whole part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :at($sign-offset + $w-parsed[2])
+                :$radix, :str($value), :at($w-parsed[2] max $sign-offset)
             ) unless $w-parsed[2] == nqp::chars($whole);
 
             # Fractional part did not parse in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), # +1 in at() is for decimal dot
-                :at($sign-offset + $w-parsed[2] + 1 + $f-parsed[2])
+                :$radix, :str($value),
+                :at(
+                      ($w-parsed[2] max $sign-offset)
+                    + 1 # decimal dot
+                    + ($f-parsed[2] max 0)
+                )
             ) unless $f-parsed[2] == nqp::chars($fract);
 
             $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
         }
         else { # Int
-            my $parsed := nqp::radix_I($radix, $value, 0, 0, Int);
+            my $parsed := nqp::radix_I($radix, $value, $sign-offset, 0, Int);
 
             # Did not parse the number in its entirety
             fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :at($sign-offset + $parsed[2])
+                :$radix, :str($value), :at($parsed[2] max $sign-offset)
             ) unless $parsed[2] == nqp::chars($value);
 
             $sign * $parsed[0];

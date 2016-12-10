@@ -1,3 +1,7 @@
+New in 2016.12
+ + Fixes
+    + Fixed Match.prematch and Match.postmatch for zero-width matches
+
 New in 2016.11
  + Fixes:
     + Various improvements to warning/error-reporting

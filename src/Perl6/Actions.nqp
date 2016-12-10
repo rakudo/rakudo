@@ -7825,11 +7825,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             ),
                             QAST::Var.new( :name($global_result), :scope('local') )
                         )
-                    ) !!
-                    QAST::Op.new( :op('p6store'),
-                        QAST::Var.new( :name('$/'), :scope('lexical') ),
-                        QAST::Var.new( :name($result), :scope('local') )
-                    )
+                    ) !! QAST::Stmt.new()
                 ) !! QAST::Stmt.new(),
 
                 # The result of this operation.

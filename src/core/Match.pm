@@ -38,18 +38,10 @@ my class Match is Capture is Cool {
     multi method ACCEPTS(Match:D: Any $) { self }
 
     method prematch(Match:D:) {
-        nqp::if(
-          nqp::isge_i($!to,$!from),
-          nqp::substr($!CURSOR.target,0,$!from),
-          ''
-        )
+        nqp::substr($!CURSOR.target,0,$!from),
     }
     method postmatch(Match:D:) {
-        nqp::if(
-          nqp::isge_i($!to,$!from),
-          nqp::substr($!CURSOR.target,$!to),
-          ''
-        )
+        nqp::substr($!CURSOR.target,$!to),
     }
 
     method caps(Match:D:) {

@@ -396,19 +396,24 @@ multi sub infix:«<=>»(num $a, num $b) {
          $a == $b ?? Same !! Nil;
 }
 
-multi sub infix:<===>(NaN, NaN) {
-    True;
-}
 multi sub infix:<===>(Num:D \a, Num:D \b) {
     nqp::p6bool(
         nqp::eqaddr(a.WHAT,b.WHAT)
-        && nqp::iseq_n(a, b)
-        && ( # if we're dealing with zeros, ensure the signs match
-            nqp::isne_n(a, 0e0)
-            || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
-                nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
-                nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
-                nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+        && (
+            ( # Both are NaNs
+                   nqp::not_i(nqp::isle_n(a, nqp::inf))
+                && nqp::not_i(nqp::isle_n(b, nqp::inf))
+            )
+            || (
+                nqp::iseq_n(a, b)
+                && ( # if we're dealing with zeros, ensure the signs match
+                    nqp::isne_n(a, 0e0)
+                    || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                        nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                        nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                        nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+                    )
+                )
             )
         )
     )
@@ -416,13 +421,21 @@ multi sub infix:<===>(Num:D \a, Num:D \b) {
 multi sub infix:<===>(num \a, num \b) returns Bool:D {
     nqp::p6bool(
         nqp::eqaddr(a.WHAT,b.WHAT)
-        && nqp::iseq_n(a, b)
-        && ( # if we're dealing with zeros, ensure the signs match
-            nqp::isne_n(a, 0e0)
-            || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
-                nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
-                nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
-                nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+        && (
+            ( # Both are NaNs
+                   nqp::not_i(nqp::isle_n(a, nqp::inf))
+                && nqp::not_i(nqp::isle_n(b, nqp::inf))
+            )
+            || (
+                nqp::iseq_n(a, b)
+                && ( # if we're dealing with zeros, ensure the signs match
+                    nqp::isne_n(a, 0e0)
+                    || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                        nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                        nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                        nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+                    )
+                )
             )
         )
     )

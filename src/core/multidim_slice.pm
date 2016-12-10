@@ -54,8 +54,8 @@ sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     nqp::stmts(
-      (my int $elems = @indices.elems),   # reifies
       (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $elems = nqp::elems($indices)),
       (my int $i = -1),
       nqp::while(
         nqp::islt_i(($i = nqp::add_i($i,1)),$elems)

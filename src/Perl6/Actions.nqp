@@ -7763,8 +7763,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past
                 ),
 
-                # ($/,) = $result - We do this so the replacement closure can close
-                # over the current match.
                 QAST::Op.new( :op('p6store'),
                     QAST::Var.new( :name('$/'), :scope('lexical') ),
                     QAST::Var.new( :name($result), :scope('local') ),

@@ -7792,8 +7792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ),
                     ( $<sym> eq 'S'
                         ?? QAST::Op.new( :op('p6store'),
-                                QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                                    QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                                QAST::Var.new( :name('$/'), :scope('lexical') ),
                                 WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
                            )
                         !! QAST::Stmt.new()

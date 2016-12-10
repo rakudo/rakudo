@@ -39,14 +39,14 @@ my class Match is Capture is Cool {
 
     method prematch(Match:D:) {
         nqp::if(
-          nqp::isgt_i($!to,$!from),
+          nqp::isge_i($!to,$!from),
           nqp::substr($!CURSOR.target,0,$!from),
           ''
         )
     }
     method postmatch(Match:D:) {
         nqp::if(
-          nqp::isgt_i($!to,$!from),
+          nqp::isge_i($!to,$!from),
           nqp::substr($!CURSOR.target,$!to),
           ''
         )

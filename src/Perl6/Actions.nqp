@@ -7766,8 +7766,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # ($/,) = $result - We do this so the replacement closure can close
                 # over the current match.
                 QAST::Op.new( :op('p6store'),
-                    QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                        QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                    QAST::Var.new( :name('$/'), :scope('lexical') ),
                     QAST::Var.new( :name($result), :scope('local') ),
                 ),
 
@@ -7830,8 +7829,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )
                     ) !!
                     QAST::Op.new( :op('p6store'),
-                        QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                            QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                        QAST::Var.new( :name('$/'), :scope('lexical') ),
                         QAST::Var.new( :name($result), :scope('local') )
                     )
                 ) !! QAST::Stmt.new(),

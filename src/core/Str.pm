@@ -7,7 +7,6 @@ my class X::Str::Subst::Adverb { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
 my class X::Numeric::Confused { ... }
-my class X::Syntax::Number::InvalidCharacter { ... }
 my class X::Syntax::Number::RadixOutOfRange { ... }
 
 my constant $?TABSTOP = 8;
@@ -1317,18 +1316,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my $f-parsed := nqp::radix_I($radix, $fract, 0,            0, Int);
 
             # Whole part did not parse in its entirety
-            fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :at($w-parsed[2] max $sign-offset)
+            fail X::Str::Numeric.new(
+                :source($value),
+                :pos($w-parsed[2] max $sign-offset),
+                :reason("malformed base-$radix number"),
             ) unless $w-parsed[2] == nqp::chars($whole);
 
             # Fractional part did not parse in its entirety
-            fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value),
-                :at(
+            fail X::Str::Numeric.new(
+                :source($value),
+                :pos(
                       ($w-parsed[2] max $sign-offset)
                     + 1 # decimal dot
                     + ($f-parsed[2] max 0)
-                )
+                ),
+                :reason("malformed base-$radix number"),
             ) unless $f-parsed[2] == nqp::chars($fract);
 
             $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
@@ -1337,8 +1339,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my $parsed := nqp::radix_I($radix, $value, $sign-offset, 0, Int);
 
             # Did not parse the number in its entirety
-            fail X::Syntax::Number::InvalidCharacter.new(
-                :$radix, :str($value), :at($parsed[2] max $sign-offset)
+            fail X::Str::Numeric.new(
+                :source($value),
+                :pos($parsed[2] max $sign-offset),
+                :reason("malformed base-$radix number"),
             ) unless $parsed[2] == nqp::chars($value);
 
             $sign * $parsed[0];

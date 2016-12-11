@@ -7283,21 +7283,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
 
             if $ipart[2] < nqp::chars($<intpart>.Str) {
-                $*W.throw($/, 'X::Syntax::Number::InvalidCharacter',
-                    :$radix,
-                    :at($ipart[2]),
-                    :str($<intpart> ~ ($<fracpart> // '')),
+                $*W.throw($/, 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :pos($ipart[2] < 0 ?? 0 !! $ipart[2]),
+                    :reason("malformed base-$radix number"),
                 );
             }
             if $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $*W.throw($/, 'X::Syntax::Number::InvalidCharacter',
-                    :$radix,
-                    :at( # the -1 dance is due to nqp::radix returning -1 for
+                $*W.throw($/, 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :reason("malformed base-$radix number"),
+                    :pos( # the -1 dance is due to nqp::radix returning -1 for
                         # failure to parse the first char, instead of 0;
                         # we return `1` to cover the decimal dot in that case
                         $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
                     ),
-                    :str($<intpart> ~ ($<fracpart> // '')),
                 );
             }
 

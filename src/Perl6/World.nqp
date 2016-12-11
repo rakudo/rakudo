@@ -4180,7 +4180,8 @@ class Perl6::World is HLL::World {
 
             # Build and throw exception object.
             %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
-            %opts<pos>             := $c.pos;
+            # only set <pos> if it's not already set:
+            %opts<pos>             := $c.pos unless nqp::existskey(%opts, 'pos');
             %opts<modules>         := p6ize_recursive(@*MODULES // []);
             %opts<pre>             := @locprepost[0];
             %opts<post>            := @locprepost[1];

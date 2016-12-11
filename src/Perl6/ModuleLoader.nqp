@@ -146,9 +146,11 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
         for stash_hash($source) {
             my $sym := $_.key;
+            my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
                     %known_symbols{$sym} := $world.find_symbol([$sym]);
+                    $outer := 1;
                 }
             }
             if !nqp::existskey(%known_symbols, $sym) {
@@ -184,6 +186,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 }
                 elsif nqp::eqat($_.key, '&', 0) {
                     # "Latest wins" semantics for functions
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                }
+                elsif $outer {
+                    # It's ok to overwrite non-stub symbols of outer lexical scopes
                     $target.symbol($sym, :scope('lexical'), :value($_.value));
                 }
                 else {

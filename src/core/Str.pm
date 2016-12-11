@@ -2995,7 +2995,9 @@ proto sub uniprops(|) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "GeneralCategory") {
     $str.ords.map: { uniprop($_, $propname) }
 }
-multi sub uniprops(@strs, Stringy:D $propname = "GeneralCategory") { @strs.map: { uniprop($_, |c) } }
+multi sub uniprops(@strs, Stringy:D $propname = "GeneralCategory") {
+  @strs.map: { uniprop($_, $propname) }
+}
 
 proto sub unival(|) {*}
 multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }

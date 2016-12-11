@@ -346,7 +346,6 @@ multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
-multi sub uninames(@c) { @c.map: { uniname($_) } }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
@@ -362,7 +361,7 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?if moar
 proto sub uniprop(|) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
-multi sub uniprop(Int:D $code, Stringy:D $propname = "GeneralCategory") {
+multi sub uniprop(Int:D $code, Stringy:D $propname = "General_Category") {
     my $prop := Rakudo::Internals.PROPCODE($propname);
     state %prefs;  # could prepopulate this with various prefs
     given %prefs{$propname} // '' {
@@ -401,11 +400,8 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));
 }
 proto sub uniprops(|) {*}
-multi sub uniprops(Str:D $str, Stringy:D $propname = "GeneralCategory") {
+multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
-}
-multi sub uniprops(@strs, Stringy:D $propname = "GeneralCategory") {
-  @strs.map: { uniprop($_, $propname) }
 }
 
 proto sub unival(|) {*}

@@ -362,17 +362,101 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 proto sub uniprop(|) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code, Stringy:D $propname = "General_Category") {
+    # prop-mappings can be removed when MoarVM bug #448 is fixed...
+    state %prop-mappings = nqp::hash(
+      'OGr_Ext','Other_Grapheme_Extend','cjkIRG_MSource','kIRG_MSource','Dash','Dash',
+      'CI','Case_Ignorable','uc','Uppercase_Mapping','Radical','Radical',
+      'Dia','Diacritic','CWCF','Changes_When_Casefolded','lc','Lowercase_Mapping',
+      'IDS','ID_Start','cf','Case_Folding','cjkIRG_TSource','kIRG_TSource',
+      'sc','Script','jt','Joining_Type','NFD_QC','NFD_Quick_Check',
+      'XO_NFD','Expands_On_NFD','cjkOtherNumeric','kOtherNumeric',
+      'scf','Simple_Case_Folding','sfc','Simple_Case_Folding','Lower','Lowercase',
+      'Join_C','Join_Control','JSN','Jamo_Short_Name','bc','Bidi_Class',
+      'SD','Soft_Dotted','dm','Decomposition_Mapping','cjkIRG_USource','kIRG_USource',
+      'jg','Joining_Group','NFKC_CF','NFKC_Casefold','slc','Simple_Lowercase_Mapping',
+      'STerm','Sentence_Terminal','UIdeo','Unified_Ideograph',
+      'cjkAccountingNumeric','kAccountingNumeric','Upper','Uppercase','Math','Math',
+      'IDST','IDS_Trinary_Operator','cjkIRG_VSource','kIRG_VSource',
+      'NFKD_QC','NFKD_Quick_Check','Ext','Extender','NFKC_QC','NFKC_Quick_Check',
+      'CE','Composition_Exclusion','Alpha','Alphabetic',
+      'stc','Simple_Titlecase_Mapping','OAlpha','Other_Alphabetic',
+      'XIDC','XID_Continue','age','Age','tc','Titlecase_Mapping',
+      'cjkPrimaryNumeric','kPrimaryNumeric','OIDS','Other_ID_Start',
+      'FC_NFKC','FC_NFKC_Closure','Cased','Cased','Hyphen','Hyphen',
+      'XO_NFC','Expands_On_NFC','nv','Numeric_Value',
+      'CWKCF','Changes_When_NFKC_Casefolded','OIDC','Other_ID_Continue',
+      'XO_NFKD','Expands_On_NFKD','InPC','Indic_Positional_Category',
+      'dt','Decomposition_Type','cjkIICore','kIICore','Bidi_M','Bidi_Mirrored',
+      'XO_NFKC','Expands_On_NFKC','XIDS','XID_Start','isc','ISO_Comment',
+      'Gr_Ext','Grapheme_Extend','NChar','Noncharacter_Code_Point',
+      'scx','Script_Extensions','SB','Sentence_Break','Bidi_C','Bidi_Control',
+      'CWT','Changes_When_Titlecased','Gr_Link','Grapheme_Link','OMath','Other_Math',
+      'OUpper','Other_Uppercase','DI','Default_Ignorable_Code_Point',
+      'CWCM','Changes_When_Casemapped','cjkIRG_GSource','kIRG_GSource',
+      'LOE','Logical_Order_Exception','WB','Word_Break',
+      'cjkIRG_JSource','kIRG_JSource','NFC_QC','NFC_Quick_Check',
+      'WSpace','White_Space','space','White_Space',
+      'PCM','Prepended_Concatenation_Mark','ODI','Other_Default_Ignorable_Code_Point',
+      'bpb','Bidi_Paired_Bracket','blk','Block','OLower','Other_Lowercase',
+      'CWU','Changes_When_Uppercased','InSC','Indic_Syllabic_Category',
+      'VS','Variation_Selector','QMark','Quotation_Mark','Pat_Syn','Pattern_Syntax',
+      'IDC','ID_Continue','IDSB','IDS_Binary_Operator','Ideo','Ideographic',
+      'cjkCompatibilityVariant','kCompatibilityVariant',
+      'suc','Simple_Uppercase_Mapping','hst','Hangul_Syllable_Type',
+      'nt','Numeric_Type','bmg','Bidi_Mirroring_Glyph',
+      'cjkIRG_HSource','kIRG_HSource','ea','East_Asian_Width','lb','Line_Break',
+      'Term','Terminal_Punctuation','Pat_WS','Pattern_White_Space',
+      'AHex','ASCII_Hex_Digit','cjkIRG_KSource','kIRG_KSource','Hex','Hex_Digit',
+      'cjkIRG_KPSource','kIRG_KPSource','na1','Unicode_1_Name',
+      'bpt','Bidi_Paired_Bracket_Type','gc','General_Category',
+      'GCB','Grapheme_Cluster_Break','Gr_Base','Grapheme_Base',
+      'CWL','Changes_When_Lowercased','na','Name','Name_Alias','Name_Alias',
+      'Dep','Deprecated','Comp_Ex','Full_Composition_Exclusion',
+      'cjkRSUnicode','kRSUnicode','Unicode_Radical_Stroke','kRSUnicode',
+      'URS','kRSUnicode','ccc','Canonical_Combining_Class');
+    state %prefs = nqp::hash(
+      'Other_Grapheme_Extend','B','Dash','B','Case_Ignorable','B',
+      'Uppercase_Mapping','S','Radical','B','Diacritic','B',
+      'Changes_When_Casefolded','B','Lowercase_Mapping','S','ID_Start','B',
+      'Case_Folding','S','Script','S','Joining_Type','S','NFD_Quick_Check','S',
+      'Expands_On_NFD','B','Simple_Case_Folding','S','Lowercase','B',
+      'Join_Control','B','Bidi_Class','S','Soft_Dotted','B',
+      'Decomposition_Mapping','S','Joining_Group','S','NFKC_Casefold','S',
+      'Simple_Lowercase_Mapping','S','Sentence_Terminal','B','Unified_Ideograph','B',
+      'Uppercase','B','Math','B','IDS_Trinary_Operator','B','NFKD_Quick_Check','S',
+      'Extender','B','NFKC_Quick_Check','S','Composition_Exclusion','B',
+      'Alphabetic','B','Simple_Titlecase_Mapping','S','Other_Alphabetic','B',
+      'XID_Continue','B','Age','S','Titlecase_Mapping','S','Other_ID_Start','B',
+      'FC_NFKC_Closure','S','Cased','B','Hyphen','B','Expands_On_NFC','B',
+      'Changes_When_NFKC_Casefolded','B','Other_ID_Continue','B',
+      'Expands_On_NFKD','B','Indic_Positional_Category','S','Decomposition_Type','S',
+      'Bidi_Mirrored','B','Expands_On_NFKC','B','XID_Start','B','Grapheme_Extend','B',
+      'Noncharacter_Code_Point','B','Sentence_Break','S','Bidi_Control','B',
+      'Changes_When_Titlecased','B','Grapheme_Link','B','Other_Math','B',
+      'Other_Uppercase','B','Default_Ignorable_Code_Point','B',
+      'Changes_When_Casemapped','B','Logical_Order_Exception','B','Word_Break','S',
+      'NFC_Quick_Check','S','White_Space','B','Prepended_Concatenation_Mark','B',
+      'Other_Default_Ignorable_Code_Point','B','Block','S','Other_Lowercase','B',
+      'Changes_When_Uppercased','B','Indic_Syllabic_Category','S',
+      'Variation_Selector','B','Quotation_Mark','B','Pattern_Syntax','B',
+      'ID_Continue','B','IDS_Binary_Operator','B','Ideographic','B',
+      'kCompatibilityVariant','S','Simple_Uppercase_Mapping','S',
+      'Hangul_Syllable_Type','S','Numeric_Type','S','East_Asian_Width','S',
+      'Line_Break','S','Terminal_Punctuation','B','Pattern_White_Space','B',
+      'ASCII_Hex_Digit','B','Hex_Digit','B','Bidi_Paired_Bracket_Type','S',
+      'General_Category','S','Grapheme_Cluster_Break','S','Grapheme_Base','B',
+      'Changes_When_Lowercased','B','Deprecated','B','Full_Composition_Exclusion','B');
+
+    $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
     my $prop := Rakudo::Internals.PROPCODE($propname);
-    state %prefs;  # could prepopulate this with various prefs
-    given %prefs{$propname} // '' {
+    given nqp::atkey(%prefs, $propname) {
         when 'S' { nqp::getuniprop_str($code,$prop) }
         when 'I' { nqp::getuniprop_int($code,$prop) }
-        when 'B' { nqp::getuniprop_bool($code,$prop) }
-        # your ad here
-        default {
+        when 'B' { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
+            default {
             my $result = nqp::getuniprop_str($code,$prop);
-            if $result ne '' { %prefs{$propname} = 'S'; $result }
-            else             { %prefs{$propname} = 'I'; nqp::getuniprop_int($code,$prop) }
+            if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }
+            else             { nqp::bindkey(%prefs, $propname, 'I'); nqp::getuniprop_int($code,$prop) }
         }
     }
 }

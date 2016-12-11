@@ -104,6 +104,7 @@ my class Cool { # declared in BOOTSTRAP
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
     method uniprop-str(|c)  { uniprop-str(self, |c) }
+    method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
     method chomp(Cool:D:) { self.Str.chomp }

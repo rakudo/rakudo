@@ -2937,6 +2937,7 @@ multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames(|) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
+multi sub uninames(@c) { @c.map: { uniname($_) } }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
@@ -2945,6 +2946,7 @@ multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
+multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
@@ -2989,6 +2991,11 @@ multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));
 }
+proto sub uniprops(|) {*}
+multi sub uniprops(Str:D $str, Stringy:D $propname = "GeneralCategory") {
+    $str.ords.map: { uniprop($_, $propname) }
+}
+multi sub uniprops(@strs, Stringy:D $propname = "GeneralCategory") { @strs.map: { uniprop($_, |c) } }
 
 proto sub unival(|) {*}
 multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }

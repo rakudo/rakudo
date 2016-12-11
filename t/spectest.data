@@ -16,6 +16,7 @@
 # Each file may have one or more markers that deselects the test:
 #     long   - run tests unless --quick
 #     stress - run tests only if --stress
+#     moar   - run tests only for MoarVM backend
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 

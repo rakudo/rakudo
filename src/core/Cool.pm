@@ -104,6 +104,7 @@ my class Cool { # declared in BOOTSTRAP
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
     method uniprop-str(|c)  { uniprop-str(self, |c) }
+    method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
     method chomp(Cool:D:) { self.Str.chomp }
@@ -336,5 +337,92 @@ proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x) returns int { nqp::chars($x) }
+
+# These probably belong in a separate unicodey file
+
+proto sub uniname(|) {*}
+multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
+multi sub uniname(Int:D $code) { nqp::getuniname($code) }
+
+proto sub uninames(|) {*}
+multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
+
+#?if jvm
+multi sub unival(|)       { die 'unival NYI on jvm backend' }
+multi sub univals(|)      { die 'univals NYI on jvm backend' }
+multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
+multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
+multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
+#?endif
+
+#?if moar
+proto sub uniprop(|) {*}
+multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
+multi sub uniprop(Int:D $code, Stringy:D $propname = "General_Category") {
+    my $prop := Rakudo::Internals.PROPCODE($propname);
+    state %prefs;  # could prepopulate this with various prefs
+    given %prefs{$propname} // '' {
+        when 'S' { nqp::getuniprop_str($code,$prop) }
+        when 'I' { nqp::getuniprop_int($code,$prop) }
+        when 'B' { nqp::getuniprop_bool($code,$prop) }
+        # your ad here
+        default {
+            my $result = nqp::getuniprop_str($code,$prop);
+            if $result ne '' { %prefs{$propname} = 'S'; $result }
+            else             { %prefs{$propname} = 'I'; nqp::getuniprop_int($code,$prop) }
+        }
+    }
+}
+# Unicode functions
+proto sub uniprop-int(|) {*}
+multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-int($str.ord, $propname) !! Nil }
+multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
+    nqp::getuniprop_int($code,Rakudo::Internals.PROPCODE($propname));
+}
+
+proto sub uniprop-bool(|) {*}
+multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-bool($str.ord, $propname) !! Nil
+}
+multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
+    so nqp::getuniprop_bool($code,Rakudo::Internals.PROPCODE($propname));
+}
+
+proto sub uniprop-str(|) {*}
+multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
+    $str ?? uniprop-str($str.ord, $propname) !! Nil
+}
+multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
+    nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));
+}
+proto sub uniprops(|) {*}
+multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
+    $str.ords.map: { uniprop($_, $propname) }
+}
+
+proto sub unival(|) {*}
+multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
+multi sub unival(Int:D $code) {
+    state $nuprop = nqp::unipropcode("NumericValueNumerator");
+    state $deprop = nqp::unipropcode("NumericValueDenominator");
+    my $nu = nqp::getuniprop_str($code, $nuprop);
+    my $de = nqp::getuniprop_str($code, $deprop);
+    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
+proto sub univals(|) {*}
+multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
+
+proto sub unimatch(|) {*}
+multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
+multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
+    my $prop := Rakudo::Internals.PROPCODE($propname);
+    so nqp::matchuniprop($code,$prop,Rakudo::Internals.PVALCODE($prop,$pvalname));
+}
+#?endif
 
 # vim: ft=perl6 expandtab sw=4

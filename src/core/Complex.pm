@@ -48,10 +48,14 @@ my class Complex is Cool does Numeric {
 
     method Complex() { self }
     multi method Str(Complex:D:) {
-        my Str $i = nqp::isnanorinf($!im) ?? '\\i' !! 'i';
-        $!im < 0e0
-            ?? nqp::p6box_s($!re) ~ '-' ~ nqp::p6box_s(nqp::abs_n($!im)) ~ $i
-            !! nqp::p6box_s($!re) ~ '+' ~ nqp::p6box_s($!im) ~ $i;
+        nqp::p6box_s($!re) # real part
+            ~ ( # sign ('-' will be automagically given by p6box_s)
+                # second part is true if we have a negative zero
+                $!im < 0e0 || (
+                    ! $!im && nqp::islt_n(nqp::div_n(1e0, $!im), 0e0)
+                ) ?? '' !! '+'
+            ) ~ nqp::p6box_s($!im) # imaginary part
+        ~ (nqp::isnanorinf($!im) ?? '\\i' !! 'i'); # separate NaN/Inf with \
     }
 
     multi method perl(Complex:D:) {

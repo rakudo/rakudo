@@ -39,7 +39,7 @@ mistakes.
 ## Releases
 
 Releases will be cut from master. The release manager will have the advantage
-of knowing they are release something that has already passed a bunch of
+of knowing they are releasing something that has already passed a bunch of
 automated quality checks. The release process will be something like:
 
 * Create a release branch based off master

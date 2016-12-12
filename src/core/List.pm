@@ -1166,7 +1166,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           unless @cycle.is-lazy || @cycle;
 
         # done if there's nothing to rotor on
-        return ().Seq
+        return Seq.new(Rakudo::Internals.EmptyIterator)
           unless nqp::getattr(self,List,'$!reified').DEFINITE
                    || nqp::getattr(self,List,'$!todo').DEFINITE;
 
@@ -1552,7 +1552,7 @@ multi sub infix:<Z>(+lol, :$with!) {
 multi sub infix:<Z>(+lol) {
     my $arity = lol.elems;
     my $laze = True;
-    return ().Seq if $arity == 0;
+    return Seq.new(Rakudo::Internals.EmptyIterator) if $arity == 0;
     eager my @l = (^$arity).map: -> $i {
         my \elem = lol[$i];
         if nqp::iscont(elem) {

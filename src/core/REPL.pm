@@ -63,7 +63,6 @@ do {
         method history-file() returns Str { ... }
 
         method init-line-editor {
-            my $read = $Readline.new;
             $read.read-history($.history-file);
 
         }

@@ -509,6 +509,10 @@ multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
 proto sub unimatch(|) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
+# This multi below can be removed when MoarVM bug #448 is fixed
+multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
+    so uniprop($code, $propname) eq $pvalname;
+}
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := Rakudo::Internals.PROPCODE($propname);
     so nqp::matchuniprop($code,$prop,Rakudo::Internals.PVALCODE($prop,$pvalname));

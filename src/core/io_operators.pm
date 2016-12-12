@@ -21,59 +21,50 @@ proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub say(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
 }
 multi sub say(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub put(|) { * }
 multi sub put() { $*OUT.print-nl }
 multi sub put(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub put(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.Str),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
 }
 multi sub put(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    my str $str = nqp::concat("Noted",$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat("Noted",$err.nl-out));
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat(nqp::unbox_s(x),$err.nl-out));
 }
 multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat($str,$err.nl-out));
 }
 
 sub gist(|) {

@@ -22,7 +22,11 @@ my class Date does Dateish {
 
     proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter, *%_) {
-        self.new(:$year, :$month, :$day, :&formatter, |%_);
+        (1..12).in-range($month,'Month');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        self === Date
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
+          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
     multi method new(Date: Int() :$year!, Int() :$month = 1, Int() :$day = 1, :&formatter, *%_) {
         (1..12).in-range($month,'Month');

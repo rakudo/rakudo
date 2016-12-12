@@ -445,7 +445,7 @@ multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re &
 multi sub infix:<==>(Complex:D \a, Num(Real) \b) returns Bool:D { a.re == b    && a.im == 0e0  }
 multi sub infix:<==>(Num(Real) \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0  == b.im }
 multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
-    a.WHAT =:= b.WHAT && a == b
+    a.WHAT =:= b.WHAT && a.re === b.re && a.im === b.im
 }
 
 multi sub infix:<≅>(Complex:D \a, Complex:D \b) returns Bool:D { a.re ≅ b.re && a.im ≅ b.im || a <=> b =:= Same }

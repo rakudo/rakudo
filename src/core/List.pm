@@ -1166,7 +1166,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           unless @cycle.is-lazy || @cycle;
 
         # done if there's nothing to rotor on
-        return Rakudo::Internals.EmptyIterator
+        return ().Seq
           unless nqp::getattr(self,List,'$!reified').DEFINITE
                    || nqp::getattr(self,List,'$!todo').DEFINITE;
 

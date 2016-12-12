@@ -46,15 +46,22 @@ my class RoleToClassApplier {
         # role first.
         my $to_compose;
         my $to_compose_meta;
+        my %method_to_role;
         if +@roles == 1 {
             $to_compose := @roles[0];
             $to_compose_meta := $to_compose.HOW;
+            for $to_compose_meta.method_table($to_compose) {
+                nqp::bindkey(%method_to_role, $_.key, $to_compose.HOW.name($to_compose));
+            }
         }
         else {
             $to_compose := $concrete.new_type();
             $to_compose_meta := $to_compose.HOW;
             for @roles {
                 $to_compose_meta.add_role($to_compose, $_);
+                for $_.HOW.method_table($_) -> $m {
+                    nqp::bindkey(%method_to_role, $m.key, $_.HOW.name($_));
+                }
             }
             $to_compose := $to_compose_meta.compose($to_compose);
         }
@@ -110,7 +117,8 @@ my class RoleToClassApplier {
                             || has_public_attribute($target, $name) {
                         nqp::die("Method '$name' must be implemented by " ~
                             $target.HOW.name($target) ~
-                            " because it is required by a role");
+                            " because it is required by a role " ~
+                                 nqp::atkey(%method_to_role, $name));
                     }
                 }
                 elsif !has_method($target, $name, 1) {

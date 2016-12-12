@@ -60,11 +60,20 @@ do {
             $read.read-init-file("/etc/inputrc");
             $read.read-init-file("~/.inputrc");
         }
+        method history-file() returns Str { ... }
+
+        method init-line-editor {
+            my $read = $Readline.new;
+            $read.read-history($.history-file);
+
+        }
+
         method repl-read(Mu \prompt) {
             my $line = $read.readline(prompt);
 
             if $line.defined {
                 $read.add-history($line);
+                $read.append-history(1, $.history-file);
             }
 
             $line

@@ -1672,7 +1672,9 @@ sub SUPPLY(&block) {
         method tap(&emit, &done, &quit) {
             my $state = SupplyBlockState.new(:&emit, :&done, :&quit);
             self!run-supply-code(&!block, $state);
-            $state.close-phasers.push(.clone) for &!block.phasers('CLOSE');
+            if nqp::istype(&!block,Block) {
+                $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
+            }
             self!deactivate-one($state);
             Tap.new(-> { self!teardown($state) })
         }

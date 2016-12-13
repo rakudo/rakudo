@@ -321,6 +321,8 @@ do {
             }
 
             CONTROL {
+                when CX::Emit | CX::Take { .rethrow; }
+                when CX::Warn { .gist.say; .resume;  }
                 return $!control-not-allowed;
             }
 

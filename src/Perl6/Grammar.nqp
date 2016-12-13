@@ -2513,8 +2513,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
         ]
-        || <.ws>[<typename><.ws>]* <ident> <?before <.ws> [':'?':'?'=' | <.terminator> | $ ]> {}
-            <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
+        || <.ws>[<typename><.ws>]* <ident>
+           <?before <.ws>
+           [
+           | ':'?':'?'='
+           | <.terminator>
+           | <trait>
+           | "where" <.ws> <EXPR>
+           | $
+           ]
+           > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
+        || <.ws><typename><.ws> <?before "where" <.ws> <EXPR>> {}
+            <.malformed("$*SCOPE (found type followed by constraint; did you forget a variable in between?)")>
+        || <.ws><typename><.ws> <?before <trait>> {}
+            <.malformed("$*SCOPE (found type followed by trait; did you forget a variable in between?)")>
+        || <.ws><typename><.ws> <?before [ <.terminator> | $ ]> {}
+            <.malformed("$*SCOPE (did you forget a variable after type?)")>
         || <.ws><!typename> <typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]

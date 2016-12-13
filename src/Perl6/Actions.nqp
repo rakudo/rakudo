@@ -9524,8 +9524,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             elsif !@parts && $name eq 'sym' {
                 my str $fullrxname := %*RX<name>;
                 my int $loc := nqp::index($fullrxname, ':sym<');
-                $loc := nqp::index($fullrxname, ':sym«')
-                    if $loc < 0;
+                if $loc < 0 {
+                    $c.panic('Can only use <sym> token in a proto regex')
+                        if ($loc := nqp::index($fullrxname, ':sym«')) < 0;
+                }
                 my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
                 $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
                     QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));

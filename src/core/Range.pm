@@ -564,7 +564,9 @@ my class Range is Cool does Iterable does Positional {
         my $min    = $!min [&op] $value;
         my $max    = $!max [&op] $value;
         my $is-int = nqp::istype($min,Int) && nqp::istype($max,Int);
-        self.clone( :$min, :$max, :$is-int );
+        my $clone := self.clone( :$min, :$max );
+        nqp::bindattr_i($clone, $clone.WHAT, '$!is-int', $is-int);
+        $clone;
     }
 
     method push(|) is nodal {

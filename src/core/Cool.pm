@@ -432,7 +432,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
       'Alphabetic','B','Simple_Titlecase_Mapping','S','Other_Alphabetic','B',
       'XID_Continue','B','Age','S','Titlecase_Mapping','tc','Other_ID_Start','B',
       'FC_NFKC_Closure','S','Cased','B','Hyphen','B','Expands_On_NFC','B',
-      'Changes_When_NFKC_Casefolded','B','Other_ID_Continue','B',
+      'Numeric_Value','nv','Changes_When_NFKC_Casefolded','B','Other_ID_Continue','B',
       'Expands_On_NFKD','B','Indic_Positional_Category','S','Decomposition_Type','S',
       'Bidi_Mirrored','B','Expands_On_NFKC','B','XID_Start','B','Grapheme_Extend','B',
       'Noncharacter_Code_Point','B','Sentence_Break','S','Bidi_Control','B',
@@ -463,6 +463,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
         when 'tc' { nqp::tc( nqp::chr( nqp::unbox_i($code) ) ) }
         when 'uc' { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
         when 'na' { nqp::getuniname($code) }
+        when 'nv' { unival($code) }
         default {
             my $result = nqp::getuniprop_str($code,$prop);
             if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }

@@ -113,7 +113,7 @@ my class RoleToClassApplier {
                                 if $m.key eq $name {
                                     nqp::die("Method '$name' must be implemented by " ~
                                              $target.HOW.name($target) ~
-                                             " because it is required by a role " ~
+                                             " because it is required by role " ~
                                              $_.HOW.name($_));
                                 }
                             }

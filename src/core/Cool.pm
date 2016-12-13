@@ -420,8 +420,8 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
     );
     state %prefs = nqp::hash(
       'Other_Grapheme_Extend','B','Dash','B','Case_Ignorable','B',
-      'Uppercase_Mapping','S','Radical','B','Diacritic','B',
-      'Changes_When_Casefolded','B','Lowercase_Mapping','S','ID_Start','B',
+      'Uppercase_Mapping','uc','Radical','B','Diacritic','B',
+      'Changes_When_Casefolded','B','Lowercase_Mapping','lc','ID_Start','B',
       'Case_Folding','S','Script','S','Joining_Type','S','NFD_Quick_Check','S',
       'Expands_On_NFD','B','Simple_Case_Folding','S','Lowercase','B',
       'Join_Control','B','Bidi_Class','S','Soft_Dotted','B',
@@ -430,7 +430,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
       'Uppercase','B','Math','B','IDS_Trinary_Operator','B','NFKD_Quick_Check','S',
       'Extender','B','NFKC_Quick_Check','S','Composition_Exclusion','B',
       'Alphabetic','B','Simple_Titlecase_Mapping','S','Other_Alphabetic','B',
-      'XID_Continue','B','Age','S','Titlecase_Mapping','S','Other_ID_Start','B',
+      'XID_Continue','B','Age','S','Titlecase_Mapping','tc','Other_ID_Start','B',
       'FC_NFKC_Closure','S','Cased','B','Hyphen','B','Expands_On_NFC','B',
       'Changes_When_NFKC_Casefolded','B','Other_ID_Continue','B',
       'Expands_On_NFKD','B','Indic_Positional_Category','S','Decomposition_Type','S',
@@ -449,16 +449,20 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
       'Line_Break','S','Terminal_Punctuation','B','Pattern_White_Space','B',
       'ASCII_Hex_Digit','B','Hex_Digit','B','Bidi_Paired_Bracket_Type','S',
       'General_Category','S','Grapheme_Cluster_Break','S','Grapheme_Base','B',
-      'Changes_When_Lowercased','B','Deprecated','B','Full_Composition_Exclusion','B',
+      'Changes_When_Lowercased','B','Name','na','Deprecated','B',
     );
     ## End generated code
     # prop-mappings can be removed when MoarVM bug #448 is fixed...
     $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
     my $prop := Rakudo::Internals.PROPCODE($propname);
     given nqp::atkey(%prefs, $propname) {
-        when 'S' { nqp::getuniprop_str($code,$prop) }
-        when 'I' { nqp::getuniprop_int($code,$prop) }
-        when 'B' { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
+        when 'S'  { nqp::getuniprop_str($code,$prop) }
+        when 'I'  { nqp::getuniprop_int($code,$prop) }
+        when 'B'  { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
+        when 'lc' { nqp::lc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'tc' { nqp::tc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'uc' { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'na' { nqp::getuniname($code) }
         default {
             my $result = nqp::getuniprop_str($code,$prop);
             if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }

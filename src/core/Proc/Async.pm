@@ -2,8 +2,8 @@ my class Proc::Async { ... }
 
 my role X::Proc::Async is Exception {
     has Proc::Async $.proc;
-
 }
+
 my class X::Proc::Async::TapBeforeSpawn does X::Proc::Async {
     has $.handle;
     method message() {

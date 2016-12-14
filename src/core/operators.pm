@@ -637,16 +637,28 @@ sub infix:<notandthen>(+a) {
     }
     $current;
 }
+
 sub infix:<orelse>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Nil if $current =:= IterationEnd;
+
+    # Flag for heuristic when we were passed an Empty as LHS
+    my int $handle-empty = 1;
     until ($_ := $ai.pull-one) =:= IterationEnd {
         return $current if $current.defined;
+        $handle-empty = 0;
+
         $current := $_ ~~ Callable
             ?? (.count ?? $_($current) !! $_())
             !! $_;
     }
+
+    if $handle-empty and $current ~~ Callable {
+        $_ := Empty; # set $_ in the Callable
+        $current := $current.count ?? $current($_) !! $current();
+    }
+
     $current;
 }
 

@@ -473,7 +473,7 @@ role STDActions {
         make $<nibble>.ast;
     }
 
-    method trim_heredoc($doc, $stop, $origast) {
+    method trim_heredoc($/, $doc, $stop, $origast) {
         $origast.pop();
         $origast.pop();
 
@@ -536,6 +536,15 @@ role STDActions {
 
             $origast.push(descend($docast))
         }
+
+        CONTROL {
+            if nqp::getextype($_) == nqp::const::CONTROL_WARN {
+                $/.worry(nqp::getmessage($_));
+                nqp::resume($_);
+            }
+            nqp::rethrow($_);
+        }
+
         $origast;
     }
 }

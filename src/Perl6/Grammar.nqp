@@ -172,7 +172,7 @@ role STD {
                     $here.'!cursor_pos'($stop.pos);
 
                     # Get it trimmed and AST updated.
-                    $*ACTIONS.trim_heredoc($doc, $stop, $herestub.orignode.MATCH.ast);
+                    $*ACTIONS.trim_heredoc(self, $doc, $stop, $herestub.orignode.MATCH.ast);
                 }
                 else {
                     self.panic("Ending delimiter $*DELIM not found");

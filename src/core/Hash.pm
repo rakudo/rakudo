@@ -707,9 +707,11 @@ my class Hash { # declared in BOOTSTRAP
                 my $TValue-perl := TValue.perl;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
                   ?? ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-                  !! "(my $TValue-perl %\{$TKey-perl\} = {
-                      self.pairs.sort.map({.perl}).join(', ')
-                    })"
+                  !! self.elems
+                        ?? "(my $TValue-perl %\{$TKey-perl\} = {
+                          self.pairs.sort.map({.perl}).join(', ')
+                        })"
+                        !! "(my $TValue-perl %\{$TKey-perl\})"
             })
         }
 

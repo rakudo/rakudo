@@ -562,13 +562,17 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                         MVMROOT(tc, ctx_ref, {
                             capture = MVM_args_use_capture(tc, ctx);
                         });
+                        MVMROOT(tc, capture, {
+                            p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
+                        });
+                        MVMROOT(tc, p6sub, {
+                            meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
+                        });
                     });
                     });
-                    p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
 
                     /* Lookup method, invoke it, and set up callback to ensure it
                      * is also stored in the lexical. */
-                    meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
                     meth = MVM_frame_find_invokee(tc, meth, NULL);
                     *(tc->interp_cur_op) += 4; /* Get right return address. */
                     MVM_args_setup_thunk(tc, res_reg, MVM_RETURN_OBJ, &disp_callsite);

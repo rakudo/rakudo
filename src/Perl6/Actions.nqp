@@ -265,6 +265,9 @@ sub unwanted($ast, $by) {
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.sunk(1);
+            if $ast.op eq 'call' && $ast.name eq '&infix:<...>' {
+                $ast.node.CURSOR.worry("Useless use of ... in sink context");
+            }
         }
         elsif $ast.op eq 'hllize' {
             my $node := $ast[0];
@@ -336,6 +339,9 @@ sub unwanted($ast, $by) {
                 else {
                     $node.sunk(1);
                     unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
+                    if $node.name eq '&infix:<...>' {
+                        $node.node.CURSOR.worry("Useless use of ... in sink context");
+                    }
                 }
             }
             elsif $node.op eq 'hllize' {
@@ -760,6 +766,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*POD_PAST,
             statementlist_with_handlers($/)
         );
+
+        # Errors/warnings in sinking pass should ignore highwater mark.
+        $/.CURSOR.'!clear_highwater'();
+
         unless $*NEED_RESULT {
             # Evaluate last statement in sink context, by pushing another
             # statement after it, unless we need the result.
@@ -767,6 +777,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         fatalize($mainline) if %*PRAGMAS<fatal>;
+
+        # Emit any worries.  Note that unwanting $mainline can produce worries.
+        if @*WORRIES {
+            nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
+        }
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
             $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));

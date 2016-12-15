@@ -618,11 +618,6 @@ class Perl6::World is HLL::World {
 
     method mop_up_and_check($/) {
 
-        # Emit any worries.
-        if @*WORRIES {
-            nqp::printfh(nqp::getstderr(), self.group_exception().gist());
-        }
-
         # Install POD-related variables.
         $*POD_PAST := self.add_constant(
             'Array', 'type_new', :nocache, |$*POD_BLOCKS

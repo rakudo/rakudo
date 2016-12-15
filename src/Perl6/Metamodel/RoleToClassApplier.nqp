@@ -108,16 +108,18 @@ my class RoleToClassApplier {
                 if $yada {
                     unless has_method($target, $name, 0)
                             || has_public_attribute($target, $name) {
+                        my @needed;
                         for @roles {
                             for $_.HOW.method_table($_) -> $m {
                                 if $m.key eq $name {
-                                    nqp::die("Method '$name' must be implemented by " ~
-                                             $target.HOW.name($target) ~
-                                             " because it is required by role " ~
-                                             $_.HOW.name($_));
+                                    nqp::push(@needed, $_.HOW.name($_));
                                 }
                             }
                         }
+                        nqp::die("Method '$name' must be implemented by " ~
+                                 $target.HOW.name($target) ~
+                                 " because it is required by roles: " ~
+                                 nqp::join(", ", @needed) ~ ".");
                     }
                 }
                 elsif !has_method($target, $name, 1) {

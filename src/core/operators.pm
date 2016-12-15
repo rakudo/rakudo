@@ -617,24 +617,34 @@ sub infix:<andthen>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty unless $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return Empty unless $current.defined),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
     $current;
 }
 sub infix:<notandthen>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty if $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return Empty if $current.defined),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
     $current;
 }
 
@@ -645,14 +655,18 @@ sub infix:<orelse>(+a) {
 
     # Flag for heuristic when we were passed an Empty as LHS
     my int $handle-empty = 1;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return $current if $current.defined;
-        $handle-empty = 0;
-
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return $current if $current.defined),
+            ($handle-empty = 0),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
 
     if $handle-empty and $current ~~ Callable {
         $_ := Empty; # set $_ in the Callable

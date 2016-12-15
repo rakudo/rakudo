@@ -561,12 +561,12 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                                 ((MVMContext *)ctx_ref)->body.context, ctx);
                         MVMROOT(tc, ctx_ref, {
                             capture = MVM_args_use_capture(tc, ctx);
-                        });
-                        MVMROOT(tc, capture, {
-                            p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
-                        });
-                        MVMROOT(tc, p6sub, {
-                            meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
+                            MVMROOT(tc, capture, {
+                                p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
+                                MVMROOT(tc, p6sub, {
+                                    meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
+                                });
+                            });
                         });
                     });
                     });

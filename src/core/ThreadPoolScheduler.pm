@@ -148,11 +148,10 @@ my class ThreadPoolScheduler does Scheduler {
                 ?? -> { code(); CATCH { default { catch($_) } } }
                 !! &code;
             my @async_handles;
-            for 1 .. $times {
-                @async_handles.push(nqp::timer($!queue, $todo,
-                    to-millis($delay), 0, TimerCancellation));
-                $delay = 0;
-            }
+            $delay = to-millis($delay) if $delay;
+            @async_handles.push(
+              nqp::timer($!queue, $todo, $delay, 0, TimerCancellation)
+            ) for 1 .. $times;
             self!maybe_new_thread();
             return Cancellation.new(:@async_handles);
         }

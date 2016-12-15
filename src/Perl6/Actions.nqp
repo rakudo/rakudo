@@ -265,9 +265,6 @@ sub unwanted($ast, $by) {
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
             $ast.sunk(1);
-            if $ast.op eq 'call' && $ast.name eq '&infix:<...>' {
-                $ast.node.CURSOR.worry("Useless use of ... in sink context");
-            }
         }
         elsif $ast.op eq 'hllize' {
             my $node := $ast[0];
@@ -330,17 +327,33 @@ sub unwanted($ast, $by) {
         }
         elsif nqp::istype($node,QAST::Op) {
             if $node.op eq 'call' {
+                $node.sunk(1);
                 if !$node.name {
-                    $node := $node[0];
-                    if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                        $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    my $node0 := $node[0];
+                    unwanted($node0, $byby);
+                    if nqp::istype($node0,QAST::Op) && $node0.op eq 'call' && nqp::eqat($node0.name, '&META', 0) {
+                        my $op := $node.node.Str;
+                        my $t := nqp::index($op,' ');
+                        $op := nqp::substr($op, 0, $t) if $t > 0;
+                        # ignore = but carp on ==, ===, and =:=
+                        $t := nqp::index($op,'=');
+                        $t := 0 if nqp::index($op,'=',$t+1) > 0;
+                        # (PRECURSOR because otherwise [*] 1..10 puts eject after the expression)
+                        $node.node.PRECURSOR.worry("Useless use of $op in sink context") unless $t > 0;
                     }
                 }
                 else {
-                    $node.sunk(1);
-                    unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
-                    if $node.name eq '&infix:<...>' {
-                        $node.node.CURSOR.worry("Useless use of ... in sink context");
+                    my $infix := $node.node<infix>;
+                    if $infix {
+                        my $sym := $infix<sym>;
+                        if $sym eq ',' || $sym eq 'xx' { unwantall($node, $byby) }
+                        elsif $sym eq '...' ||
+                              $sym eq '...^' ||
+                              $sym eq '…' ||
+                              $sym eq '…^'
+                        {
+                            $node.node.CURSOR.worry("Useless use of $sym in sink context");
+                        }
                     }
                 }
             }

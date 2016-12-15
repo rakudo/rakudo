@@ -320,63 +320,67 @@ sub unwanted($ast, $by) {
     elsif nqp::istype($ast,QAST::Want) {
         $ast.sunk(1);
         my $node := $ast[0];
-        if nqp::istype($node,QAST::Op) && $node.op eq 'call' && !$node.name {
-            $node := $node[0];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
-            }
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'hllize' {
-            $ast[0] := UNWANTED($node,$byby);
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
-            $node.sunk(1);
-            unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' {
-            if !$node.nosink && !%nosink{$node.name} {
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
-                $ast.sunk(1);
-                return $ast;
-            }
-            $node.sunk(1);
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
-            $node := $node[1];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
-            }
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
-            if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
-                $ast.sunk(1);
-                return $ast;
-            }
-            $node[1] := UNWANTED($node[1], $byby);
-            $node.sunk(1);
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without') {
-            for 1,2 {
-                if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
-                    if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
-                        $node[$_] := QAST::Stmts.new(
-                                        $node[$_],
-                                        QAST::WVal.new( :value($*W.find_symbol(['True']))));
-                    }
-                    $node[$_] := UNWANTED($node[$_], $byby);
-                }
-            }
-            $node.sunk(1);
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
-            $node.sunk(1);
-        }
-        elsif nqp::istype($node,QAST::WVal) {
+
+        if nqp::istype($node,QAST::WVal) {
             $node.sunk(1);
             $ast[2].sunk(1);
         }
-
+        elsif nqp::istype($node,QAST::Op) {
+            if $node.op eq 'call' {
+                if !$node.name {
+                    $node := $node[0];
+                    if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                        $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    }
+                }
+                else {
+                    $node.sunk(1);
+                    unwantall($node, $byby) if $node.name eq '&infix:<,>' || $node.name eq '&infix:<xx>';
+                }
+            }
+            elsif $node.op eq 'hllize' {
+                $ast[0] := UNWANTED($node,$byby);
+            }
+            elsif $node.op eq 'callmethod' {
+                if !$node.nosink && !%nosink{$node.name} {
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
+                    $ast.sunk(1);
+                    return $ast;
+                }
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'p6for' {
+                $node := $node[1];
+                if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                    $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                }
+            }
+            elsif $node.op eq 'while' || $node.op eq 'until' {
+                if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
+                    $ast.sunk(1);
+                    return $ast;
+                }
+                $node[1] := UNWANTED($node[1], $byby);
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without' {
+                for 1,2 {
+                    if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
+                        if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
+                            $node[$_] := QAST::Stmts.new(
+                                            $node[$_],
+                                            QAST::WVal.new( :value($*W.find_symbol(['True']))));
+                        }
+                        $node[$_] := UNWANTED($node[$_], $byby);
+                    }
+                }
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'callmethod' && $node.name eq 'new' {
+                $node.sunk(1);
+            }
+        }
     }
     $ast;
 }

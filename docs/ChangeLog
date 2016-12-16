@@ -48,6 +48,7 @@ New in 2016.12
     + sub MAIN now allows Enums as type constraints [546dbd9]
     + Count in .pick/pickpairs/grab/grabpairs can now be a Callable [e9487d6]
     + REPL with Readline module now loads `inputrc` files [573ed59]
+    + REPL with Readline module now saves history [9043f58]
     + perl6 --doc=Text now shows signature parameter pod [6ea6563]
     + Generated sub MAIN usage message now shows original program name [b597b7c]
     + Added arity-1 infix:<~> for Blobs [77e9d4b]
@@ -59,6 +60,7 @@ New in 2016.12
         a different prefix [6f6e6db]
     + Added .gist, .perl, and .Str to BOOTSTRAPATTR [3dd2916]
     + Made .sum nodal [4fd6e94]
+    + Implement uniprops [f55ff82] [0328422] [05db996]
  + Efficiency:
     + Made indirect type lookup 3x as fast [939d273]
     + Made shaped(int|num|str)array.AT-POS at least 15% faster [bfe89a5]
@@ -82,6 +84,8 @@ New in 2016.12
     + Made @a[2;2] about 40% faster [b9e2ffa]
     + Optimized Int->int coercion [b2ac4e4]
     + Made infix:<..> on Nums 13x faster [a8ba26b]
+    + Made uniprop with the default lookup 5x faster and other lookups 15% faster. [474ea33]
+    + Made print, say and note 25% faster to stderr and stdout [e9ce28a]
 
 New in 2016.11
  + Fixes:

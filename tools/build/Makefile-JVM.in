@@ -8,7 +8,7 @@ NQP_PREFIX = @nqp_prefix@
 
 J_BUILD_DIR = gen/jvm
 
-J_LIBPATH = $(PREFIX)/share/nqp/lib
+J_LIBPATH = @nqp::libdir@
 
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@

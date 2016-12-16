@@ -12,7 +12,7 @@ MOAR   = @moar::bindir@@slash@moar@exe@
 M_NQP  = @m_nqp@
 M_LIBPATH = $(PREFIX)@slash@share@slash@nqp@slash@lib
 M_INCPATH = $(MOAR_PREFIX)@slash@include
-NQP_LIBPATH = @nqp::prefix@@slash@share@slash@nqp@slash@lib
+NQP_LIBPATH = @nqp::libdir@
 
 M_RUN_PERL6 = $(MOAR) --libpath="$(M_LIBPATH)" --libpath="$(NQP_LIBPATH)" perl6.moarvm --nqp-lib=blib
 

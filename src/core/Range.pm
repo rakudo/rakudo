@@ -611,21 +611,23 @@ my class Range is Cool does Iterable does Positional {
         if $!excludes-min || $!excludes-max {
             if $!excludes-min {
                 if $!excludes-max {
-                    $value = $range.rand while $value == 0 || $value == $range;
+                    $value = $range.rand
+                        while $value+$!min == $!min || $value+$!min == $!max;
                 }
                 else {
-                    $value = $range.rand while $value == 0;
+                    $value = $range.rand while $value+$!min == $!min;
                 }
             }
             else {  # $!excludes-max
-                $value = $range;
-                $value = $range.rand while $value == $range;
+                repeat {
+                    $value = $range.rand
+                } while $value+$!min == $!max;
             }
         }
         else {
             $value = $range.rand
         }
-        $!min + $value
+        $value + $!min;
     }
 
     method in-range($got, $what?) {

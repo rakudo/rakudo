@@ -571,22 +571,22 @@ my class Range is Cool does Iterable does Positional {
 
     method push(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<push>).throw
-    }   
+    }
     method append(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<append>).throw
-    }   
+    }
     method unshift(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<unshift>).throw
-    }   
+    }
     method prepend(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<prepend>).throw
-    }   
+    }
     method shift(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<shift>).throw
-    }   
+    }
     method pop(|) is nodal {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
-    }   
+    }
 
     method sum() is nodal {
         my ($start,$stop) = self.int-bounds || nextsame;
@@ -629,7 +629,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method in-range($got, $what?) {
-        self.ACCEPTS($got) 
+        self.ACCEPTS($got)
           || X::OutOfRange.new(:what($what // 'Value'),:$got,:range(self)).throw
     }
 

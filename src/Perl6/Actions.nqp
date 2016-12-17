@@ -6324,6 +6324,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return 1;
             }
 
+            # To allow currying, we must note that postfix:<ⁿ> is really infix:<**>
+            # in disguise, with arity 2.
+            $key := 'infix'
+                if nqp::istype($past, QAST::Op) && $past.op eq 'call' && $past.name eq '&postfix:<ⁿ>';
+
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
@@ -7079,7 +7084,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         $power := nqp::neg_I($power, $Int) if $<sign> eq '⁻' || $<sign> eq '¯';
-        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'bigint', $power));
+        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_numeric_constant($/, 'Int', $power));
     }
 
     method postfixish($/) {

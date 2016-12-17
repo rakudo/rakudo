@@ -40,6 +40,25 @@ New in 2016.12
     + Fixed regression in S:g/// not returning original string [5476d60]
     + Reverted .match/.comb to return empty List instead of Empty when failing
         to match [5476d60]
+    + Fixed Mu.clone incorrectly marking all attributes as initialized [9a161fa]
+    + Fixed cloned Baggy having an undefined .WHICH [9a161fa]
+    + Fixed smartmatching against UInt type object [f9d34a9]
+    + Fixed some Date constructors accepting invalid dates [aa27d5c]
+    + Fixed .rotor on empty list returning an internal iterator object [5558710]
+    + Fixed unimatch to check canonical short/alternate unicode props [b456471]
+    + Fixed uniprop to return correct values for na, uc, tc, lc properties
+        [2a8ec40]
+    + Fixed uniprop for 'Numeric_Value' not returning a numeric value [9ff5b7e]
+    + Fixed crash with Rat Ranges constructed with Range ops [1d46004]
+    + Fixed crash with tapping supplies supplied by thunked block [a980eb1]
+    + Fixed .perl on parametarized Hashes with no items in them [003e654]
+    + Fixed .perl for itemized Slips [8eef234]
+    + Fixed chained `andthen`/`orelse` operators returning internals [287af6a]
+    + Fixed ThreadPoolScheduler.cue not applying delays to all cues [b286048]
+    + Fixed control exception propagation when thrown from within statements
+        handled by `without`, `with`, `andthen`, or `noandthen [9a3c350]
+    + Fixed Rand.rand generating value equal to excluded end point [334d134]
+    + Fixed `last` not working inside .grep's block [7021861]
     + Various fixes and improvements in error reporting
  + Additions:
     + Bare \b, \B, and \K in regexes now throw [08589d3][ee14067]
@@ -60,7 +79,10 @@ New in 2016.12
         a different prefix [6f6e6db]
     + Added .gist, .perl, and .Str to BOOTSTRAPATTR [3dd2916]
     + Made .sum nodal [4fd6e94]
-    + Implement uniprops [f55ff82] [0328422] [05db996]
+    + Implemented uniprops [f55ff82][0328422][05db996]
+    + Added 5 new sets of matching brackets for available delimiters [8965145]
+ + Removals:
+    + Removed X::Syntax::Number::InvalidCharacter exception [a8ff3b9]
  + Efficiency:
     + Made indirect type lookup 3x as fast [939d273]
     + Made shaped(int|num|str)array.AT-POS at least 15% faster [bfe89a5]

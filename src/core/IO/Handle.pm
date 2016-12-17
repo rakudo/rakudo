@@ -565,10 +565,11 @@ my class IO::Handle does IO {
                 nqp::create(self)!SET-SELF(handle, close);
             }
             method pull-one() is raw {
-                $!handle.get // do {
-                    $!handle.close if $!close;
-                    IterationEnd
-                }
+                nqp::if(nqp::defined(my \g = $!handle.get),
+                  g,
+                  nqp::stmts(
+                    nqp::if($!close, $!handle.close),
+                    IterationEnd))
             }
             method push-all($target --> IterationEnd) {
                 my $line;

@@ -241,16 +241,30 @@ my class Any { # declared in BOOTSTRAP
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(pos, $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(pos, $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(nqp::unbox_i(pos), $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(nqp::unbox_i(pos), $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)

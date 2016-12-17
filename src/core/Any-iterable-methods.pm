@@ -921,7 +921,38 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     method !grep-callable(Callable:D $test) {
         if ($test.count == 1) {
-            self.map({ $_ if $test($_) })  # need to handle next/last/redo
+            $test.?has-phasers
+              ?? self.map({ $_ if $test($_) })  # cannot go fast
+              !! Seq.new(class :: does Grepper {
+                     method pull-one() is raw {
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                             || nqp::handle(
+                                  $!test($_),
+                                  'LAST', ($_ := IterationEnd)
+                                ),
+                           nqp::null
+                         );
+                         $_
+                     }
+                     method push-all($target) {
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           nqp::if(  # doesn't sink
+                             $!test($_),
+                             $target.push($_)
+                           )
+                         );
+                         IterationEnd
+                     }
+                     method sink-all() {
+                         nqp::until(
+                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                           $!test($_)
+                         );
+                         IterationEnd
+                     }
+                 }.new(self, $test))
         } else {
             my role CheatArity {
                 has $!arity;

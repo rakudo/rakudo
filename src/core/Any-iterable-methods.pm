@@ -1888,10 +1888,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
     multi method head(Any:D: Int(Cool) $n) {
-        nqp::if(
-          nqp::isle_i($n,0),
-          (),
-          Seq.new(Rakudo::Internals.IterateNextNFromIterator(self.iterator,$n))
+        Seq.new(
+          nqp::if(
+            nqp::isle_i($n,0),
+            Rakudo::Internals.EmptyIterator,
+            Rakudo::Internals.IterateNextNFromIterator(self.iterator,$n)
+          )
         )
     }
 

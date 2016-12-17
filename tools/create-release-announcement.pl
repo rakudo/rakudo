@@ -11,7 +11,7 @@ This release implements the 6.c version of the Perl 6 specifications.
 It includes bugfixes and optimizations on top of
 the 2015.12 release of Rakudo, but no new features.
 
-Upcoming releases in 2016 will include new functionality that is not
+Upcoming releases in 2017 will include new functionality that is not
 part of the 6.c specification, available with a lexically scoped
 pragma. Our goal is to ensure that anything that is tested as part of the
 6.c specification will continue to work unchanged. There may be incremental

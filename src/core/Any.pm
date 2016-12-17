@@ -262,7 +262,7 @@ my class Any { # declared in BOOTSTRAP
                  nqp::isconcrete(SELF),
                  SELF,
                  (SELF = Array.new)
-               ).BIND-POS(nqp::unbox_i(pos), $scalar)
+               ).BIND-POS(pos, $scalar)
              }
         )
     }
@@ -394,11 +394,18 @@ my class Any { # declared in BOOTSTRAP
           !! "Type {self.WHAT.perl} does not support associative indexing."
         )
     }
-    multi method AT-KEY(Any:U \SELF: $key) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Hash.new);
-                 SELF.BIND-KEY($key, $v) });
-        $v
+    multi method AT-KEY(Any:U \SELF: \key) is raw {
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Hash.new)
+               ).BIND-KEY(key, $scalar)
+             }
+        )
     }
 
     proto method BIND-KEY(|) is nodal { * }

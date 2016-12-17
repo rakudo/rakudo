@@ -1,6 +1,6 @@
 New in 2016.12
  + Fixes
-    + Fixed inability to autocurry superscript exponents properly
+    + Fixed inability to autocurry superscript exponents properly [c35d562]
     + Fixed Match.prematch and Match.postmatch for zero-width matches [c04b8b5]
     + Fixed Match objects being erroneously treated as value types [7f26e8b]
     + Made U+2212 minus work in places it didn't [cb9df2b][01775b7][6cd2144]

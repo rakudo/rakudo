@@ -5,7 +5,7 @@ New in 2016.12
     + Fixed Match objects being erroneously treated as value types [7f26e8b]
     + Made U+2212 minus work in places it didn't [cb9df2b][01775b7][6cd2144]
     + prefix:<~> now calls .Str on Str types (helps with allomorphs) [e0a415f]
-    + Fixed errors in $*ARGFILES.lines limit counter [bd42363]
+    + Fixed errors in `$*ARGFILES.lines` limit counter [bd42363]
     + Fixed bug with add history for Readline module in REPL [f544e4c]
     + sum and [+] metaop now correctly work on Junctions [8d04bec]
     + Fixed various scoping bugs with NEXT/LAST/QUIT [6bb8823]

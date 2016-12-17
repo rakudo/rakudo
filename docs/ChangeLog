@@ -13,7 +13,7 @@ New in 2016.12
     + Fixed occassional hangs in Proc::Async [e4d78c6]
     + Fixed operations still running after supply deactivation [f928a20]
     + Fixed Iterator.flat occasionally skipping inner iterables [61a18c0]
-    + Fixed slurp not propagating :bin and :enc args on $*ARGFILES [15f51a5]
+    + Fixed slurp not propagating :bin and :enc args on `$*ARGFILES` [15f51a5]
     + Fixed negative zero handling in many places
         [f1263ab][e2587cd][a9654c0][085145f]
     + Synthetics in numbers in colonpairs in :42foo format now throw [4663d43]

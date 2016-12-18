@@ -284,10 +284,15 @@ multi sub infix:<%>(int $a, int $b) returns int {
 }
 
 multi sub infix:<**>(Int:D \a, Int:D \b) {
-    my \power = nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
+    my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf
-    nqp::istype(power, Num) ?? Failure.new(X::Numeric::Overflow.new) !!
-        (b >= 0 ?? power !! 1 / power);
+    nqp::istype($power, Num)
+        ?? Failure.new(
+            b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new
+        ) !! b >= 0 ?? $power
+            !! ($power := 1 / $power) == 0 && a != 0
+                ?? Failure.new(X::Numeric::Underflow.new)
+                    !! $power;
 }
 
 multi sub infix:<**>(int $a, int $b) returns int {

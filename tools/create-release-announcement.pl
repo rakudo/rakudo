@@ -64,9 +64,8 @@ The Rakudo compiler is a compiler for the Perl 6 language.
 Not much more.
 
 The Rakudo Star distribution is the Rakudo compiler plus a selection
-of useful Perl 6 modules, a module installer, the most recent
-incarnation of the “Using Perl 6” book, and other software that can
-be used with the Rakudo compiler to enhance its utility.
+of useful Perl 6 modules, a module installer, Perl 6 introductory documentation, 
+and other software that can be used with the Rakudo compiler to enhance its utility.
 END_TEMPLATE
 
 my @ENGLISH-MONTHS = flat Any,

@@ -7,7 +7,7 @@ my class Block { # declared in BOOTSTRAP
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {
-        nqp::bindattr(self,Block,'$!phasers',nqp::hash)
+        $!phasers := nqp::hash
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;

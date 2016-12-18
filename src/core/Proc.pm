@@ -15,6 +15,10 @@ my class Proc {
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
                     Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$signal --> Nil) {
+        if $merge {
+            die "Executing programs with :merge is known to be broken\n"
+              ~ "Please see https://rt.perl.org//Public/Bug/Display.html?id=128594 for the bug report.\n";
+        }
         @!command = |$command if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
             $!in_fh := nqp::getattr(nqp::decont($in), IO::Handle, '$!PIO');

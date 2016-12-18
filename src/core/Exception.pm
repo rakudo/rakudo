@@ -8,7 +8,7 @@ my class Exception {
     method backtrace(Exception:D:) {
         if $!bt { $!bt }
         elsif nqp::isconcrete($!ex) {
-            nqp::bindattr(self, Exception, '$!bt', Backtrace.new($!ex));
+            $!bt := Backtrace.new($!ex);
         }
         else { '' }
     }
@@ -18,7 +18,7 @@ my class Exception {
         nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
     }
     method reset-backtrace(Exception:D:) {
-        nqp::bindattr(self, Exception, '$!ex', Nil)
+        $!ex := Nil
     }
 
     multi method Str(Exception:D:) {
@@ -51,9 +51,8 @@ my class Exception {
     }
 
     method throw(Exception:D: $bt?) {
-        nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::isconcrete($!ex) and $bt;
-        nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
+        $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
+        $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := try self.?message;
         if defined($msg) {
@@ -64,8 +63,7 @@ my class Exception {
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
-        nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::isconcrete($!ex);
+        $!ex := nqp::newexception() unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }

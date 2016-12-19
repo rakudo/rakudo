@@ -9,8 +9,8 @@ my class WhateverCode is Code {
             Signature,
             '$!count'
           ),1),
-        $self(nqp::if(nqp::isconcrete(list),list.cache.elems,0)),
-        $self(|(nqp::if(nqp::isconcrete(list),list.cache.elems,0)
+        $self(nqp::if(nqp::isconcrete(list),list.elems,0)),
+        $self(|(nqp::if(nqp::isconcrete(list),list.elems,0)
           xx nqp::getattr(
             nqp::getattr($self,Code,'$!signature'),
             Signature,

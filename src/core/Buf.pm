@@ -612,7 +612,7 @@ multi sub pack(@template, *@items) {
                 my $data = shift @items // Buf.new;
                 $data.=encode if nqp::istype($data,Str);
                 if $amount eq '*' {
-                    $amount = $data.cache.elems;
+                    $amount = $data.elems;
                 }
                 if $amount eq '' {
                     $amount = 1;

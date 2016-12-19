@@ -17,7 +17,7 @@ multi sub POSITIONS(
   Callable :$eagerize = -> $idx {
       nqp::if(
         nqp::istype($idx,Whatever),
-        nqp::if(nqp::isconcrete(SELF),SELF.cache.elems,0),
+        nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
         SELF.EXISTS-POS($idx)
       )
   }
@@ -398,33 +398,33 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$v!,*%other) is raw {
 
 # @a[*]
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D ) is raw {
-    SELF[^SELF.cache.elems];
+    SELF[^SELF.elems];
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
-    SELF[^SELF.cache.elems] = assignee;
+    SELF[^SELF.elems] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$delete!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'delete', $delete, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$exists!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'exists', $exists, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$kv!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'kv', $kv, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$p!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'p', $p, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'p', $p, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$k!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'k', $k, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$v!, *%other) is raw {
     nqp::elems(nqp::getattr(%other,Map,'$!storage'))
-      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'v', $v, %other )
-      !! SELF[^SELF.cache.elems];
+      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
+      !! SELF[^SELF.elems];
 }
 
 # @a[**]
@@ -440,24 +440,24 @@ multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'delete', $delete, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$exists!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'exists', $exists, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$kv!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'kv', $kv, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'p', $p, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'p', $p, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'k', $k, %other );
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is raw {
     nqp::elems(nqp::getattr(%other,Map,'$!storage'))
-      ?? SLICE_MORE_LIST( SELF, ^SELF.cache.elems, 'v', $v, %other )
-      !! SELF[^SELF.cache.elems];
+      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
+      !! SELF[^SELF.elems];
 }
 multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
     SELF.ZEN-POS(|%other);

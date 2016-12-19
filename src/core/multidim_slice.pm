@@ -13,12 +13,12 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
             MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
         }
         elsif nqp::istype(idx, Whatever) {
-            for ^SELF.cache.elems {
+            for ^SELF.elems {
                 MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS($_), indices, indices.AT-POS($next-dim), $next-dim, target)
             }
         }
         elsif nqp::istype(idx, Callable) {
-            MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.cache.elems xx (idx.count == Inf ?? 1 !! idx.count))), $dim, target);
+            MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, idx.(|(SELF.elems xx (idx.count == Inf ?? 1 !! idx.count))), $dim, target);
         }
         else  {
             MD-ARRAY-SLICE-ONE-POSITION(SELF.AT-POS(idx.Int), indices, indices.AT-POS($next-dim), $next-dim, target)
@@ -34,12 +34,12 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
             nqp::push(target, SELF.AT-POS(idx))
         }
         elsif nqp::istype(idx, Whatever) {
-            for ^SELF.cache.elems {
+            for ^SELF.elems {
                 nqp::push(target, SELF.AT-POS($_))
             }
         }
         elsif nqp::istype(idx, Callable) {
-            nqp::push(target, SELF.AT-POS(idx.(|(SELF.cache.elems xx (idx.count == Inf ?? 1 !! idx.count)))))
+            nqp::push(target, SELF.AT-POS(idx.(|(SELF.elems xx (idx.count == Inf ?? 1 !! idx.count)))))
         }
         else {
             nqp::push(target, SELF.AT-POS(idx.Int))

@@ -7,14 +7,9 @@ sub MAIN (
     :$nqp    = 'nqp',
     :$moar   = 'nqp/MoarVM',
     :$roast  = 't/spec',
+    :$show-missing-names,
 ) {
-    $last_release //= do {
-        Date.new-from-daycount:
-            .daycount  # daycount for 1st of previous month
-            + (.day-of-week == 7 ?? 6 !! 6 - .day-of-week) # offset of the first Saturday
-    	+ 2*7  # add two extra weeks, to get 3rd Saturday
-        given Date.today.earlier(:1month).truncated-to: 'month';
-    }
+    $last_release //= get-last-release-date-for $rakudo;
 
     # Check all the places with repos that may be applicable.  Get all of the
     # committers in that repo since the given date as commit ID => author pairs.
@@ -50,6 +45,15 @@ sub MAIN (
 
     }
     say @contributors.join(', ');
+}
+
+sub get-last-release-date-for ($rakudo-repo) {
+    given $rakudo-repo.IO.child('VERSION') {
+        .e or die "Could not find rakudo's VERSION file at $_";
+        Date.new: Instant.from-posix: shell(
+            :out, :cwd($rakudo-repo), "git log --pretty='format:%ct' $_"
+        ).out.lines.head;
+    }
 }
 
 sub get-committers($repo, $since) {

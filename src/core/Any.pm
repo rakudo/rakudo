@@ -118,6 +118,9 @@ my class Any { # declared in BOOTSTRAP
     proto method iterator(|) { * }
     multi method iterator(Any:) { self.list.iterator }
 
+    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    multi method match(Any:U: |) { nqp::getlexcaller('$/') = Nil }
+
     proto method classify(|) is nodal { * }
     multi method classify() {
         die "Must specify something to classify with, a Callable, Hash or List";

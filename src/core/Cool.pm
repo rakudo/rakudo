@@ -176,10 +176,6 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.split(|c);
     }
 
-    proto method match(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
     multi method match(Cool:D: $target, *%adverbs) {
         $/ := nqp::getlexcaller('$/');
         self.Stringy.match($target, |%adverbs)

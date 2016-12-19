@@ -322,6 +322,18 @@ my class Block { # declared in BOOTSTRAP
     method set_why($why) {
         $!why := $why;
     }
+
+    # helper method for array slicing
+    method pos(Block:D $self: \list) {
+      nqp::if(
+        (nqp::istype(
+          (my $n := nqp::getattr(
+            nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
+          ),Num) && nqp::isnanorinf($n)) || nqp::iseq_i(nqp::unbox_i($n),1),
+        $self(nqp::if(nqp::isconcrete(list),list.cache.elems,0)),
+        $self(|(nqp::if(nqp::isconcrete(list),list.cache.elems,0) xx $n))
+      )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

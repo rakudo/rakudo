@@ -11,9 +11,17 @@
 # to switch to a memoized version of an iterator by modifying variables in
 # the caller's scope.
 proto sub POSITIONS(|) { * }
-multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
-                       $idx ~~ Whatever ?? SELF.cache.elems !! SELF.EXISTS-POS($idx)
-                    }) {
+multi sub POSITIONS(
+  \SELF,
+  \pos,
+  Callable :$eagerize = -> $idx {
+      nqp::if(
+        nqp::istype($idx,Whatever),
+        nqp::if(nqp::isconcrete(SELF),SELF.cache.elems,0),
+        SELF.EXISTS-POS($idx)
+      )
+  }
+) {
     my class IndicesReificationTarget {
         has $!target;
         has $!star;
@@ -45,7 +53,6 @@ multi sub POSITIONS(\SELF, \pos, Callable :$eagerize = -> $idx {
             )
         }
     }
-
 
     my \pos-iter = pos.iterator;
     my \pos-list = nqp::create(List);
@@ -315,56 +322,62 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is raw {
 # @a[->{}]
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is raw {
     my $*INDEX = 'Effective index';
-    SELF[$block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)))];
+    SELF[$block.pos(SELF)]
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
     my $*INDEX = 'Effective index';
-    SELF[$block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)))] = assignee;
+    SELF[$block.pos(SELF)] = assignee
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other )
+    )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other )
+    )
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$kv!, *%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$kv!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other )
+    )
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$p!, *%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$p!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
+    )
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$k!, *%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$k!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other )
+    )
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$v!, *%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$v!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    my $pos := $block(|(SELF.cache.elems xx ($block.count == Inf ?? 1 !! $block.count)));
-    nqp::istype($pos,Int)
-      ?? SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other )
-      !! SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other );
+    nqp::if(
+      nqp::istype((my $pos := $block.pos(SELF)),Int),
+      SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other ),
+      SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other )
+    )
 }
 
 # @a[*]

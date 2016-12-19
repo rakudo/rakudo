@@ -321,62 +321,78 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$v!, *%other) is raw {
 
 # @a[->{}]
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is raw {
-    my $*INDEX = 'Effective index';
-    SELF[$block.pos(SELF)]
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      SELF[$block.pos(SELF)]
+    )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
-    my $*INDEX = 'Effective index';
-    SELF[$block.pos(SELF)] = assignee
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      SELF[$block.pos(SELF)] = assignee
+    )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$delete!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other )
+      )
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$exists!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other )
+      )
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$kv!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other )
+      )
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$p!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
+      )
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$k!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other )
+      )
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$v!,*%other) is raw {
-    my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.pos(SELF)),Int),
-      SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other ),
-      SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other )
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      nqp::if(
+        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other ),
+        SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other )
+      )
     )
 }
 

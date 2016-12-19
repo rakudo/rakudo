@@ -26,8 +26,10 @@ sub MAIN (
         ###############################################################
         END
 
+    my @*CREDITS = ($rakudo, $doc, $nqp, $moar, $roast
+        )».IO».child('CREDITS').grep(*.r)».lines.flat;
+
     say "Contributors to Rakudo since the release on $last_release:";
-    my $*CREDITS_FILE = $rakudo.IO.child: 'CREDITS';
     my @contributors = @repos.map({
       |get-committers($_,$last_release)
     }).unique(:as(*.key))».value.Bag.sort(*.value).reverse».key;
@@ -87,7 +89,7 @@ sub get-committers($repo, $since) {
 sub nick-to-name($nick) {
     state %nick-to-name = do {
         my $name;
-        gather for $*CREDITS_FILE.IO.lines {
+        gather for @*CREDITS {
             when /^N:/ {
                 $name = .substr(3);
             }

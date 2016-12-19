@@ -3,7 +3,9 @@ var Null = nqp.Null;
 var CodeRef = require('nqp-runtime/code-ref');
 var op = {};
 
-var Scalar, True, False, Int, Num, Str, Code;
+var Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor;
+
+var defaultContainerDescriptor;
 
 op.p6settypes = function(types) {
   Scalar = types.content.get('Scalar');
@@ -14,6 +16,17 @@ op.p6settypes = function(types) {
   Str = types.content.get('Str');
   Code = types.content.get('Code');
   Mu = types.content.get('Mu');
+  Any = types.content.get('Any');
+  ContainerDescriptor = types.content.get('ContainerDescriptor');
+
+  defaultContainerDescriptor = ContainerDescriptor._STable.REPR.allocate(ContainerDescriptor._STable);
+
+  defaultContainerDescriptor.$$bindattr(ContainerDescriptor, '$!of', Mu);
+
+  defaultContainerDescriptor.$$bindattr_s(ContainerDescriptor, '$!name', "<element>");
+  defaultContainerDescriptor.$$bindattr_i(ContainerDescriptor, '$!rw', 1);
+  defaultContainerDescriptor.$$bindattr(ContainerDescriptor, '$!default', Any);
+
   return types;
 };
 
@@ -144,6 +157,24 @@ op.p6argvmarray = function(ctx, args) {
     array[i-2] = nqp.op.hllizefor(ctx, args[i], 'perl6');
   }
   return nqp.createArray(array);
+};
+
+op.p6scalarfromdesc = function(desc) {
+  console.log("p6scalarfromdesc");
+
+  if (desc === Null || desc.typeObject_)
+      desc = defaultContainerDescriptor;
+
+  let defVal = desc.$$getattr(ContainerDescriptor, '$!default');
+
+  let cont = Scalar._STable.REPR.allocate(Scalar._STable);
+
+  cont.$$bindattr(Scalar, '$!descriptor', desc);
+
+  cont.$$bindattr(Scalar, '$!value', defVal);
+
+  return cont;
+
 };
 
 var containerSpecs = require('nqp-runtime/container-specs.js');

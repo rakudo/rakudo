@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 # Copyright (C) 2009 The Perl Foundation
 
 use 5.10.1;

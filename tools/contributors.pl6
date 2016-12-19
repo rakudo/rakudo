@@ -98,5 +98,7 @@ sub nick-to-name($nick) {
             }
         }
     }
-    $nick ?? ( %nick-to-name{lc $nick} // $nick ) !! '<unknown>';
+    $nick
+    ?? (%nick-to-name{lc $nick} // $nick).subst(/\S+ '@' <(\S+/, '<redacted>')
+    !! '<unknown>';
 }

@@ -16,7 +16,7 @@ my class Range is Cool does Iterable does Positional {
         $!is-int   = nqp::istype($!min,Int) && nqp::istype($!max,Int);
         self
     }
-    method is-lazy { self.infinite }
+    multi method is-lazy(Range:D:) { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments

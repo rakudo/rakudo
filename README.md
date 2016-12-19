@@ -2,11 +2,11 @@
 
 This is Rakudo Perl, a Perl 6 compiler for the MoarVM and JVM.
 
-Rakudo Perl is Copyright (C) 2008-2016, The Perl Foundation. Rakudo Perl
+Rakudo Perl is Copyright (C) 2008-2017, The Perl Foundation. Rakudo Perl
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
-This directory contains only the Rakudo Perl 6 compiler itself; it 
+This directory contains only the Rakudo Perl 6 compiler itself; it
 does not contain any of the modules, documentation, or other items
 that would normally come with a full Perl 6 distribution.  If you're
 after more than just the bare compiler, please download [the latest

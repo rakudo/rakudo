@@ -998,7 +998,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.new(|c);
     }
 
-    method is-lazy() {
+    multi method is-lazy(List:D:) {
         nqp::if(
           $!todo.DEFINITE,
           nqp::stmts(

@@ -60,7 +60,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    method is-lazy(Seq:D:) {
+    multi method is-lazy(Seq:D:) {
         nqp::if(
           $!iter.DEFINITE,
           $!iter.is-lazy,

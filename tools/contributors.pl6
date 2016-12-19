@@ -50,8 +50,8 @@ sub MAIN (
 sub get-last-release-date-for ($rakudo-repo) {
     given $rakudo-repo.IO.child('VERSION') {
         .e or die "Could not find rakudo's VERSION file at $_";
-        Date.new: Instant.from-posix: shell(
-            :out, :cwd($rakudo-repo), "git log --pretty='format:%ct' $_"
+        Date.new: Instant.from-posix: run(
+            :out, :cwd($rakudo-repo), <git log --pretty=format:%ct>, $_
         ).out.lines.head;
     }
 }
@@ -60,8 +60,8 @@ sub get-committers($repo, $since) {
     die "Expected a repo in `$repo` but did not find one"
          unless $repo.IO.d && "$repo/.git".IO.d;
 
-    gather for shell(:out, :cwd($repo),
-      "git log --since=$since --pretty='format:%an|%cn|%H|%s'"
+    gather for run(:out, :cwd($repo),
+      <git log --since>, $since, '--pretty=format:%an|%cn|%H|%s'
     ).out.lines.grep(?*) -> $line {  # grep needed because of (Str) on empty pipe
 
         my ($author,$committer,$id,$msg) = $line.split('|',4);

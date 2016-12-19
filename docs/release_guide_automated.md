@@ -53,7 +53,7 @@ Zoffix](https://twitter.com/zoffix) to enable the JVM backend logic.
 If needed, you can look at the [source of the release
 bot](https://github.com/zoffixznet/na); the brunt of the work done by
 [Perl-6-enhanced bash
-scripts](https://github.com/zoffixznet/na/tree/master/lib/NA/ReleaseScript].
+scripts](https://github.com/zoffixznet/na/tree/master/lib/NA/ReleaseScript).
 The [Perl6.Fail Web App source code](https://github.com/zoffixznet/r6)
 is also available.
 

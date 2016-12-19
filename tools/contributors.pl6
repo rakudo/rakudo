@@ -7,7 +7,6 @@ sub MAIN (
     :$nqp    = 'nqp',
     :$moar   = 'nqp/MoarVM',
     :$roast  = 't/spec',
-    :$show-missing-names,
 ) {
     $last_release //= get-last-release-date-for $rakudo;
 

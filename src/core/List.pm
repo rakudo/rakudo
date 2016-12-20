@@ -1086,16 +1086,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
     multi method roll(Whatever) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+          ?? X::Cannot::Lazy.new(:action('.roll from')).throw
           !! (my Int $elems = self.elems)
             ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
-            !! ()
+            !! Seq.new(Rakudo::Internals.EmptyIterator)
     }
     multi method roll(\number) {
         number == Inf
           ?? self.roll(*)
           !! self.is-lazy
-            ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+            ?? X::Cannot::Lazy.new(:action('.roll from')).throw
             !! self.elems   # this allocates/reifies
               ?? Seq.new(class :: does Iterator {
                      has $!list;
@@ -1120,7 +1120,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                          }
                      }
                  }.new(self,number.Int))
-              !! ()
+              !! Seq.new(Rakudo::Internals.EmptyIterator)
     }
 
     method reverse() is nodal {

@@ -939,7 +939,8 @@ my class Rakudo::Internals {
         }.new
     }
 
-    method RepeatValueIterator(\value) {
+    # basically 42 xx *
+    method UnendingValueIterator(\value) {
         class :: does Iterator {
             has Mu $!value;
             method new(\value) {

@@ -462,7 +462,7 @@ my role Baggy does QuantHash {
     }
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf
-          ?? Rakudo::Internals.RollerIterator(self)
+          ?? Seq.new(Rakudo::Internals.RollerIterator(self))
           !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 

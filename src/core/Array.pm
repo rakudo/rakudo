@@ -290,7 +290,7 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D: :$view) {
         nqp::if(
           self.is-lazy,                           # can't make a List
-          Failure.new(X::Cannot::Lazy.new(:action<List>)),
+          X::Cannot::Lazy.new(:action<List>).throw,
 
           nqp::if(                                # all reified
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
@@ -559,13 +559,13 @@ my class Array { # declared in BOOTSTRAP
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          ?? X::Cannot::Lazy.new(action => 'push to').throw
           !! self!append-list(value)
     }
     multi method push(Array:D: \value) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'push to')),
+          X::Cannot::Lazy.new(action => 'push to').throw,
           nqp::stmts(
             nqp::push(
               nqp::if(
@@ -582,14 +582,14 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          ?? X::Cannot::Lazy.new(action => 'push to').throw
           !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'append to')),
+          X::Cannot::Lazy.new(action => 'append to').throw,
           nqp::if(
             (nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))),
             nqp::stmts(
@@ -610,7 +610,7 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+          ?? X::Cannot::Lazy.new(action => 'append to').throw
           !! self!append-list(@values)
     }
     method !append-list(@values) {
@@ -630,7 +630,7 @@ my class Array { # declared in BOOTSTRAP
             IterationEnd
           ),
           self,
-          Failure.new(X::Cannot::Lazy.new(:action<push>,:what(self.^name)))
+          X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
         )
     }
 
@@ -814,9 +814,9 @@ my class Array { # declared in BOOTSTRAP
         )
     }
     method !splice-offset-fail($got) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what('Offset argument to splice'), :$got, :range("0..{self.elems}")
-        ))
+        ).throw
     }
 
     #------ splice(offset,size) candidates
@@ -931,11 +931,11 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           $offset > self.elems,
           self!splice-offset-fail($offset),
-          Failure.new(X::OutOfRange.new(
+          X::OutOfRange.new(
             :what('Size argument to splice'),
             :$got,
             :range("0..^{self.elems - $offset}")
-          ))
+          ).throw
         )
     }
     #------ splice(offset,size,array) candidates
@@ -1044,11 +1044,11 @@ my class Array { # declared in BOOTSTRAP
               ),
               nqp::if(
                 nqp::islt_i($i,$elems),   # exited loop because of wrong type
-                Failure.new(X::TypeCheck::Splice.new(
+                X::TypeCheck::Splice.new(
                   :action<splice>,
                   :got(nqp::atpos($new,$i).WHAT),
                   :$expected
-                )),
+                ).throw,
                 nqp::stmts(
                   ($result := self!splice-save($offset,$size,$removed)),
                   nqp::splice(
@@ -1058,7 +1058,7 @@ my class Array { # declared in BOOTSTRAP
               )
             )
           ),
-          Failure.new(X::Cannot::Lazy.new(:action('splice in')))
+          X::Cannot::Lazy.new(:action('splice in')).throw
         )
     }
 

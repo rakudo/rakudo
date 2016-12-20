@@ -939,6 +939,17 @@ my class Rakudo::Internals {
         }.new
     }
 
+    method RepeatValueIterator(\value) {
+        class :: does Iterator {
+            has Mu $!value;
+            method new(\value) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
+            }
+            method pull-one() is raw { $!value }
+            method is-lazy() { True }
+        }.new(value)
+    }
+
     method RollerIterator(\baggy) {
         Seq.new(class :: does Iterator {
             has $!baggy;

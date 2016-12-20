@@ -272,8 +272,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
                 }
             }
         }
-
-        method is-lazy() { False }
     }
 
     my class CStyleLoopIter does SlippyIterator {
@@ -333,8 +331,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
                 }
             }
         }
-
-        method is-lazy() { False }
     }
 
     proto method from-loop(|) { * }

@@ -468,7 +468,6 @@
         # A shaped array isn't lazy, these methods don't need to go looking
         # into the "todo".
         method eager() { self }
-        method is-lazy() { False }
 
         method sum() is nodal { self.Any::sum }
         multi method elems(::?CLASS:D:) {

@@ -2606,7 +2606,6 @@ my class array does Iterable {
     proto method Int(|) { * }
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
-    method is-lazy(array:D:) { False }
 
     method eager() { self }
     method flat()  { Seq.new(self.iterator) }

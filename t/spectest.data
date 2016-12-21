@@ -628,6 +628,7 @@ S12-introspection/parents.t
 S12-introspection/roles.t
 S12-introspection/walk.t
 S12-introspection/WHAT.t
+S12-meta/classhow.t
 S12-meta/exporthow.t
 S12-meta/grammarhow.t
 S12-meta/primitives.t

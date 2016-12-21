@@ -46,7 +46,7 @@ class Perl6::Metamodel::NativeRefHOW
             $info<nativeref> := nqp::hash();
             $info<nativeref><type> := nqp::decont($!type);
             $info<nativeref><refkind> := $!refkind // 'unknown';
-            nqp::composetype($obj, $info);
+            nqp::composetype(nqp::decont($obj), $info);
             $!repr_composed := 1;
         }
     }

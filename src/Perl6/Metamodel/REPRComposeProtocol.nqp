@@ -8,7 +8,7 @@ role Perl6::Metamodel::REPRComposeProtocol {
                 if self.attributes($obj) {
                     nqp::die("Cannot have attributes on an array representation");
                 }
-                nqp::composetype($obj, nqp::hash('array',
+                nqp::composetype(nqp::decont($obj), nqp::hash('array',
                     nqp::hash('type', nqp::decont(self.array_type($obj)))));
             }
             
@@ -57,7 +57,7 @@ role Perl6::Metamodel::REPRComposeProtocol {
                 }
                 
                 # Compose the representation using it.
-                nqp::composetype($obj, nqp::hash('attribute', @repr_info));
+                nqp::composetype(nqp::decont($obj), nqp::hash('attribute', @repr_info));
             }
             
             $!composed_repr := 1;

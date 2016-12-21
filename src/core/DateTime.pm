@@ -149,9 +149,13 @@ my class DateTime does Dateish {
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
         my $dt = self === DateTime
-          ?? nqp::create(self)!SET-SELF(
-               $year,$month,$day,$hour,$minute,$second,0,&formatter)
-          !! self.bless(
+          ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                    ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                    ~ "trying to use the named parameter form of .new() but "
+                    ~ "accidentally passed one named parameter as a positional?"
+                  !! nqp::create(self)!SET-SELF(
+                    $year,$month,$day,$hour,$minute,$second,0,&formatter)
+          ) !! self.bless(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_);
         $timezone ?? $dt.in-timezone($timezone) !! $dt

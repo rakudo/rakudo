@@ -2,7 +2,7 @@ my class IO::ArgFiles is IO::Handle {
     has $.args;
     has $.filename;
     has $!io;
-    has $.ins;
+    has Int $.ins = 0;
     has $!nl-in = ["\x0A", "\r\n"];
     has $!has-args;
 
@@ -83,7 +83,7 @@ my class IO::ArgFiles is IO::Handle {
             has $!iter;
             has $!limit;
             has $!next-io;
-            has $!ins;
+            has Int $!ins;
 
             method new(\args, \ins, \limit, \next-io) {
                 my \iter = nqp::create(self);
@@ -103,20 +103,21 @@ my class IO::ArgFiles is IO::Handle {
             }
 
             method pull-one() {
-                return IterationEnd if $!limit <= 0;
-                my \value = $!iter.pull-one;
-                if value =:= IterationEnd {
-                    my $io = $!next-io.();
-                    return $io if nqp::istype($io, Failure);
-                    return IterationEnd unless $io.defined;
-                    $!iter := $io.lines(:close).iterator;
-                    self.pull-one;
-                }
-                else {
-                    $!ins++;
-                    $!limit--;
-                    value;
-                }
+                nqp::if(nqp::istype($!limit, Int) && nqp::isle_I(nqp::decont($!limit), 0),
+                  IterationEnd,
+                  nqp::stmts(
+                    (my \value = $!iter.pull-one),
+                    nqp::if(nqp::eqaddr(value, IterationEnd),
+                      nqp::stmts(
+                        (my $io = $!next-io.()),
+                        nqp::if(nqp::istype($io, Failure), return $io),
+                        nqp::unless(nqp::defined($io), return IterationEnd),
+                        ($!iter := $io.lines(:close).iterator),
+                        self.pull-one),
+                      nqp::stmts(
+                        ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
+                        nqp::if(nqp::istype($!limit, Int), $!limit = nqp::sub_I(nqp::decont($!limit), 1, Int)),
+                        value))))
             }
         }.new(self, $!ins, $l, -> { self!next-io }));
     }

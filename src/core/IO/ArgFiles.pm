@@ -77,7 +77,8 @@ my class IO::ArgFiles is IO::Handle {
     }
 
     method lines($limit = *) {
-        my $l = nqp::istype($limit,Whatever) ?? Inf !! $limit;
+        my $l = nqp::istype($limit,Whatever) || $limit == Inf
+            ?? Inf !! $limit.Int;
         Seq.new(class :: does Iterator {
             has $!args;
             has $!iter;

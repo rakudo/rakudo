@@ -379,6 +379,10 @@ my class DateTime does Dateish {
     }
 }
 
+Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
+    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset
+}
+
 multi sub infix:«<»(DateTime:D \a, DateTime:D \b) {
     a.Instant < b.Instant
 }

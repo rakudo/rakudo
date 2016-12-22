@@ -192,10 +192,6 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
-    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset();
-}
-
 sub sleep($seconds = Inf --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
     # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)

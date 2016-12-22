@@ -219,12 +219,15 @@ RakudoScalar.prototype.setupSTable = function() {
   });
 };
 
+
+
+
 RakudoScalar.prototype.serialize = function(cursor) {
-  console.log('// serializing rakudo_scalar');
+  /* No data to serialize. */
 };
 
 RakudoScalar.prototype.deserialize = function(cursor) {
-  console.log('// deserializing rakudo_scalar');
+  /* No data to deserialize. */
 };
 
 RakudoScalar.prototype.name = 'rakudo_scalar';

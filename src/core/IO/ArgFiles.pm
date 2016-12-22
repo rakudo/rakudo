@@ -76,35 +76,72 @@ my class IO::ArgFiles is IO::Handle {
         $line;
     }
 
-    method lines($limit = *) {
-        my $l = nqp::istype($limit,Whatever) || $limit == Inf
-            ?? Inf !! $limit.Int;
+    proto method lines(|) {*}
+    multi method lines() {
         Seq.new(class :: does Iterator {
             has $!args;
             has $!iter;
-            has $!limit;
             has $!next-io;
             has Int $!ins;
 
-            method new(\args, \ins, \limit, \next-io) {
+            method new(\args, \ins, \next-io) {
                 my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);
                 my $io = next-io.();
                 if $io.defined {
-                    nqp::bindattr(iter, self, '$!limit', limit);
                     nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
                 }
                 else {
                     return $io if nqp::istype($io, Failure);
-                    nqp::bindattr(iter, self, '$!limit', my $ = 0);
                 }
                 iter
             }
 
             method pull-one() {
-                nqp::if(nqp::istype($!limit, Int) && nqp::isle_I(nqp::decont($!limit), 0),
+                nqp::stmts(
+                  (my \value = $!iter.pull-one),
+                  nqp::if(nqp::eqaddr(value, IterationEnd),
+                    nqp::stmts(
+                      (my $io = $!next-io.()),
+                      nqp::if(nqp::istype($io, Failure), return $io),
+                      nqp::unless(nqp::defined($io), return IterationEnd),
+                      ($!iter := $io.lines(:close).iterator),
+                      self.pull-one),
+                    nqp::stmts(
+                      ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
+                      value)))
+            }
+        }.new(self, $!ins, -> { self!next-io }));
+    }
+    multi method lines($limit = *) {
+        self.lines
+    }
+    multi method lines(Int() $limit) {
+        Seq.new(class :: does Iterator {
+            has $!args;
+            has $!iter;
+            has $!next-io;
+            has Int $!ins;
+
+            method new(\args, \ins, \next-io) {
+                my \iter = nqp::create(self);
+                nqp::bindattr(iter, self, '$!args', args);
+                nqp::bindattr(iter, self, '$!ins', ins);
+                nqp::bindattr(iter, self, '$!next-io', next-io);
+                my $io = next-io.();
+                if $io.defined {
+                    nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
+                }
+                else {
+                    return $io if nqp::istype($io, Failure);
+                }
+                iter
+            }
+
+            method pull-one() {
+                nqp::if(nqp::iseq_I(nqp::decont($limit), nqp::decont($!ins)),
                   IterationEnd,
                   nqp::stmts(
                     (my \value = $!iter.pull-one),
@@ -117,10 +154,9 @@ my class IO::ArgFiles is IO::Handle {
                         self.pull-one),
                       nqp::stmts(
                         ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
-                        nqp::if(nqp::istype($!limit, Int), $!limit = nqp::sub_I(nqp::decont($!limit), 1, Int)),
                         value))))
             }
-        }.new(self, $!ins, $l, -> { self!next-io }));
+        }.new(self, $!ins, -> { self!next-io }));
     }
 
     method slurp(IO::ArgFiles:D: |c) {

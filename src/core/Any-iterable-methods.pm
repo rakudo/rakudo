@@ -1452,7 +1452,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    method sort(&by?) is nodal {
+    proto method sort(|) is nodal { * }
+    multi method sort(&by?) is nodal {
 
         # Obtain all the things to sort.
         my \iter = self.iterator;

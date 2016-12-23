@@ -1352,24 +1352,13 @@ my class Rakudo::Internals {
         }
 
         # These work on the flat view
-        method roll(|c) {
-            self.flat.roll(|c)
-        }
-        method pick(|c) {
-            self.flat.pick(|c)
-        }
-        method permutations(|c) {
-            self.flat.permutations(|c)
-        }
-        method combinations(|c) {
-            self.flat.combinations(|c)
-        }
-        method rotor(|c) {
-            self.flat.rotor(|c)
-        }
-        method join(|c) {
-            self.flat.join(|c)
-        }
+        method roll(|c)         { self.flat.roll(|c) }
+        method pick(|c)         { self.flat.pick(|c) }
+        method permutations(|c) { self.flat.permutations(|c) }
+        method combinations(|c) { self.flat.combinations(|c) }
+        method rotor(|c)        { self.flat.rotor(|c) }
+        method join(|c)         { self.flat.join(|c) }
+        method sort(|c)         { self.flat.sort(|c) }
 
         multi method gist(::?CLASS:D:) {
             self.gistseen('Array', { self!gist([], self.shape) })

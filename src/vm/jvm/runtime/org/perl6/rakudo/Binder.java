@@ -381,8 +381,8 @@ public final class Binder {
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
                     SixModelObject HOW = nomType.st.HOW;
-                    SixModelObject ig = Ops.findmethod(tc, HOW,
-                        "instantiate_generic");
+                    SixModelObject ig = Ops.findmethod(HOW,
+                        "instantiate_generic", tc);
                     SixModelObject ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;
@@ -395,13 +395,13 @@ public final class Binder {
                  * positional bind failover. */
                 if (nomType == gcx.Positional) {
                     if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
-                        SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
+                        SixModelObject ig = Ops.findmethod(arg_o, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
                         arg_o = Ops.result_o(tc.curFrame);
                         decontValue = Ops.decont(arg_o, tc);
                     }
                     else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
-                        SixModelObject ig = Ops.findmethod(tc, decontValue, "cache");
+                        SixModelObject ig = Ops.findmethod(decontValue, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
                         decontValue = Ops.result_o(tc.curFrame);
                     }
@@ -488,8 +488,7 @@ public final class Binder {
             if (Ops.istype(decontValue, coerceType, tc) == 0) {
                 param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
                 String methName = tc.native_s;
-                SixModelObject coerceMeth = Ops.findmethod(tc,
-                    decontValue, methName);
+                SixModelObject coerceMeth = Ops.findmethod(decontValue, methName, tc);
                 if (coerceMeth != null) {
                     Ops.invokeDirect(tc, coerceMeth,
                         Ops.invocantCallSite,
@@ -893,9 +892,10 @@ public final class Binder {
                     }
 
                     SixModelObject slurpyType = (flags & SIG_ELEM_IS_RAW) != 0 ? gcx.List : gcx.Array;
-                    SixModelObject sm = Ops.findmethod(tc, slurpyType,
+                    SixModelObject sm = Ops.findmethod(slurpyType,
                         (flags & SIG_ELEM_SLURPY_ONEARG) != 0 ? "from-slurpy-onearg" :
-                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
+                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy",
+                        tc);
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
                     SixModelObject bindee = Ops.result_o(tc.curFrame);
 

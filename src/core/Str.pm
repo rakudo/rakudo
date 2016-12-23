@@ -1671,29 +1671,49 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $fired;
 
         # search using all needles
-        for @needles.kv -> $index, $needle {
+        for @needles.kv -> int $index, $needle {
             my str $need  = nqp::unbox_s($needle.DEFINITE ?? $needle.Str !! "");
             my int $chars = nqp::chars($need);
             nqp::push_s($needles,$need);
             nqp::push_i($needle-chars,$chars);
 
             # search for this needle if there is one, and not done before
-            if $chars && !nqp::existskey($needles-seen,$need) {
-                nqp::bindkey($needles-seen,$need,1);
-                my int $pos;
-                my int $i;
-                my int $seen = nqp::elems($positions);
-                my int $todo = $limit - 1; # no limit: -1
-                while $todo
-                  && nqp::isge_i($i = nqp::index($str, $need, $pos),0) {
-                    nqp::push($positions,nqp::list_i($i,nqp::unbox_i($index)));
-                    nqp::push($sorted,nqp::unbox_i($found = $found + 1));
-                    $pos  = $i + 1;
-                    $todo = $todo - 1;
-                }
-                $tried = $tried + 1;
-                $fired = $fired + nqp::isge_i(nqp::elems($positions),$seen);
-            }
+            nqp::if(
+              nqp::isgt_i($chars,0)
+                && nqp::not_i(nqp::existskey($needles-seen,$need)),
+              nqp::stmts(
+                nqp::bindkey($needles-seen,$need,1),
+                (my int $pos),
+                (my int $i),
+                (my int $seen = nqp::elems($positions)),
+                nqp::if(
+                  nqp::isgt_i($limit,0),  # 0 = no limit
+                  nqp::stmts(
+                    (my int $todo = $limit),
+                    nqp::while(
+                      nqp::isge_i(($todo = nqp::sub_i($todo,1)),0)
+                        && nqp::isge_i($i = nqp::index($str,$need,$pos),0),
+                      nqp::stmts(
+                        nqp::push($positions,nqp::list_i($i,$index)),
+                        nqp::push($sorted,($found = nqp::add_i($found,1))),
+                        ($pos = nqp::add_i($i,1)),
+                      )
+                    )
+                  ),
+                  nqp::while(
+                    nqp::isge_i($i = nqp::index($str,$need,$pos),0),
+                    nqp::stmts(
+                      nqp::push($positions,nqp::list_i($i,$index)),
+                      nqp::push($sorted,($found = nqp::add_i($found,1))),
+                      ($pos = nqp::add_i($i,1))
+                    )
+                  )
+                ),
+                ($tried = nqp::add_i($tried,1)),
+                ($fired =
+                  nqp::add_i($fired,nqp::isge_i(nqp::elems($positions),$seen)))
+              )
+            )
         }
 
         # no needle tried, assume we want chars
@@ -1702,12 +1722,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # sort by position if more than one needle fired
         nqp::p6sort($sorted, -> int $a, int $b {
             # $a <=> $b || $b.chars <=> $a.chars, aka pos asc, length desc
-            nqp::atpos_i(nqp::atpos($positions,$a),0)
-              <=> nqp::atpos_i(nqp::atpos($positions,$b),0)
-                || nqp::atpos_i($needle-chars,
-                     nqp::atpos_i(nqp::atpos($positions,$b),1))
-                       <=> nqp::atpos_i($needle-chars,
-                         nqp::atpos_i(nqp::atpos($positions,$a),1))
+            nqp::cmp_i(
+              nqp::atpos_i(nqp::atpos($positions,$a),0),
+              nqp::atpos_i(nqp::atpos($positions,$b),0)
+            ) ||
+            nqp::cmp_i(
+              nqp::atpos_i($needle-chars,
+                nqp::atpos_i(nqp::atpos($positions,$b),1)),
+              nqp::atpos_i($needle-chars,
+                nqp::atpos_i(nqp::atpos($positions,$a),1))
+            )
         }) if nqp::isgt_i($fired,1);
 
         # remove elements we don't want

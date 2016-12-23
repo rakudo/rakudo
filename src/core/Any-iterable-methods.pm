@@ -1453,7 +1453,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method sort(|) is nodal { * }
-    multi method sort(&by?) is nodal {
+    multi method sort() {
+        nqp::if(
+          nqp::eqaddr(
+            self.iterator.push-until-lazy(my $values := IterationBuffer.new),
+            IterationEnd
+          ),
+          Rakudo::Internals.MERGESORT-REIFIED-LIST(
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$values)
+          ),
+          X::Cannot::Lazy.new(:action<sort>).throw
+        )
+    }
+    multi method sort(&by) is nodal {
 
         # Obtain all the things to sort.
         my \iter = self.iterator;

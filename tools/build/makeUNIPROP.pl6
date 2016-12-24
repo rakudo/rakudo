@@ -273,6 +273,7 @@ sub create-Str-code {
             print-line qq['$key','{$value<type>}',];
         }
     }
+    print-line('', :flush );
     say '  );';
     say '  ## End generated code';
 }

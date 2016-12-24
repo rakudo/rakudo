@@ -1320,7 +1320,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 :source($value),
                 :pos($w-parsed[2] max $sign-offset),
                 :reason("malformed base-$radix number"),
-            ) unless $w-parsed[2] == nqp::chars($whole);
+            ) unless $w-parsed[2] == nqp::chars($whole)
+                or nqp::chars($whole) == $sign-offset; # or have no whole part
 
             # Fractional part did not parse in its entirety
             fail X::Str::Numeric.new(

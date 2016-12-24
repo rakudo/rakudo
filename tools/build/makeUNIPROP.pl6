@@ -233,6 +233,7 @@ sub get-uni-props is export {
             when 'Titlecase_Mapping' { $uniprop-type = 'tc' }
             when 'Name'              { $uniprop-type = 'na' }
             when 'Numeric_Value'     { $uniprop-type = 'nv' }
+            when 'ISO_Comment'       { $uniprop-type = 'S'  }
         }
         for @names-alt {
             push %hash{$long-name}<names>, $_.trim;

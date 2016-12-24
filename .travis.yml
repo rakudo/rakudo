@@ -11,9 +11,9 @@ fast_finish: true
 install: "echo"
 
 script:
-    - travis_retry "perl Configure.pl $RAKUDO_OPTIONS"
-    - travis_retry "make test"
-    - travis_retry "make install"
+    - travis_retry perl Configure.pl $RAKUDO_OPTIONS
+    - travis_retry make test
+    - travis_retry make install
 
 branches:
    only:

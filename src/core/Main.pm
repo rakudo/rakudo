@@ -13,7 +13,7 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
-    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE; 
+    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE;
 
     sub thevalue(\a) {
         ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
@@ -53,7 +53,7 @@ my sub MAIN_HELPER($retval = 0) {
                       ?? thevalue(nqp::join("=",$split)) but False
                       !! thevalue(nqp::join("=",$split));
                 }
-                
+
                 # implicit value
                 else {
                     %named.push: $arg => !($0.chars);

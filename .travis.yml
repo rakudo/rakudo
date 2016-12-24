@@ -1,4 +1,4 @@
-language: "perl"
+language: "java"
 
 os:
     - linux
@@ -9,9 +9,20 @@ sudo: false
 fast_finish: true
 
 install: "echo"
+dist: trusty
+
+addons:
+  apt:
+    sources:
+    # add PPAs with more up-to-date toolchains
+    - ubuntu-toolchain-r-test
+    packages:
+    # install toolchains
+    - gcc-6
+    #- openjdk-7-jre # Not needed if language is set to "java"
 
 script:
-    - "perl Configure.pl $RAKUDO_OPTIONS"
+    - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)
     - "make test"
     - "make install"
 

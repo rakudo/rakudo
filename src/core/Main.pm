@@ -109,8 +109,10 @@ my sub MAIN_HELPER($retval = 0) {
                 my $argument;
                 if $param.named {
                     if $param.slurpy {
-                        $argument  = "--<$param.usage-name()>=...";
-                        @optional-named.push("[$argument]");
+                        if $param.name { # ignore anon *%
+                            $argument  = "--<$param.usage-name()>=...";
+                            @optional-named.push("[$argument]");
+                        }
                     }
                     else {
                         my @names  = $param.named_names.reverse;

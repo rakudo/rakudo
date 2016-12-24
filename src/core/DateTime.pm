@@ -407,5 +407,17 @@ multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
 multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
     a.Instant cmp b.Instant
 }
+multi sub infix:<->(DateTime:D \a, DateTime:D \b) {
+    a.Instant - b.Instant
+}
+multi sub infix:<->(DateTime:D \a, Duration:D \b) {
+    a.new(a.Instant - b).in-timezone(a.timezone)
+}
+multi sub infix:<+>(DateTime:D \a, Duration:D \b) {
+    a.new(a.Instant + b).in-timezone(a.timezone)
+}
+multi sub infix:<+>(Duration:D \a, DateTime:D \b) {
+    b.new(b.Instant + a).in-timezone(b.timezone)
+}
 
 # vim: ft=perl6 expandtab sw=4

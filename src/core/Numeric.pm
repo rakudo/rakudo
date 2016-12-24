@@ -43,8 +43,6 @@ multi sub prefix:<+>(\a) { a.Numeric }
 proto sub prefix:<->($?) is pure { * }
 multi sub prefix:<->(\a) { -a.Numeric }
 
-sub prefix:<−>($n) is pure { prefix:<->($n) }
-
 proto sub abs($) is pure { * }
 multi sub abs(\a) { abs a.Numeric }
 
@@ -190,10 +188,6 @@ multi sub infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 proto sub infix:<->(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<->($x = 0)      { -$x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
-
-proto sub infix:<−>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<−>($x = 0)    { -$x.Numeric }
-multi sub infix:<−>(\a, \b) is pure { a.Numeric - b.Numeric }
 
 proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<*>($x = 1)      { $x.Numeric }

@@ -937,6 +937,12 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     }
 }
 
+# U+2212 minus (forward call to regular minus)
+proto sub  infix:<−>(|)  is pure { * }
+multi sub  infix:<−>(|c)         {  infix:<->(|c) }
+proto sub prefix:<−>(|)  is pure { * }
+multi sub prefix:<−>(|c)         { prefix:<->(|c) }
+
 # These must collapse Junctions
 proto sub so(Mu $) {*}
 multi sub so(Mu $x)  { ?$x }

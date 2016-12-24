@@ -261,7 +261,7 @@ my class DateTime does Dateish {
     method offset()            { $!timezone }
     method offset-in-minutes() { $!timezone / 60 }
     method offset-in-hours()   { $!timezone / 3600 }
-    
+
     method hh-mm-ss()          { sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second }
 
     method later(:$earlier, *%unit) {

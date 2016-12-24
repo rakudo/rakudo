@@ -446,8 +446,10 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
       'ASCII_Hex_Digit','B','Hex_Digit','B','Bidi_Paired_Bracket_Type','S',
       'General_Category','S','Grapheme_Cluster_Break','S','Grapheme_Base','B',
       'Changes_When_Lowercased','B','Name','na','Deprecated','B',
+      'Full_Composition_Exclusion','B','Canonical_Combining_Class','S',
     );
     ## End generated code
+
     # prop-mappings can be removed when MoarVM bug #448 is fixed...
     $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
     my $prop := Rakudo::Internals.PROPCODE($propname);

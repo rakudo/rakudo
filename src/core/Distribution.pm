@@ -119,25 +119,31 @@ class Distribution::Hash does Distribution::Locally {
 class Distribution::Path does Distribution::Locally {
     has $!meta;
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
-    method new(IO::Path $prefix, IO::Path :$file is copy) {
-        my $path := ?$file ?? $file !! $prefix.child('META6.json');
-        die "No meta file located at {$path.abspath}" unless $path.e;
-        my $meta = Rakudo::Internals::JSON.from-json(slurp($path));
+    method new(IO::Path $prefix, IO::Path :$meta-file is copy) {
+        $meta-file //= $prefix.child('META6.json');
+        die "No meta file located at {$meta-file.path}" unless $meta-file.e;
+        my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
 
         # generate `files` (special directories) directly from the file system
-        my @bins = Rakudo::Internals.DIR-RECURSE($prefix.child('bin').absolute);
+        my %bins = Rakudo::Internals.DIR-RECURSE($prefix.child('bin').absolute).map(*.IO).map: -> $real-path {
+            my $name-path = $real-path.is-relative
+                ?? $real-path
+                !! $real-path.relative($prefix);
+            $name-path => $real-path.absolute
+        }
+
         my $resources-dir = $prefix.child('resources');
-        my @resources = ($meta<resources> // []).map: {
-            $_ ~~ m/^libraries\/(.*)/
-                ?? (
-                    "resources/$_" => ~$resources-dir.child('libraries').child(
-                        $*VM.platform-library-name($0.Str.IO)
-                    ).absolute
-                ).hash
-                !! ~$resources-dir.child($_).absolute
-        };
-        my @files = grep *.defined, unique(|$meta<files>, |@bins, |@resources);
-        $meta<files>  = @files;
+        my %resources = $meta<resources>.grep(*.?chars).map(*.IO).map: -> $path {
+            my $real-path = $path ~~ m/^libraries\/(.*)/
+                ?? $resources-dir.child('libraries').child( $*VM.platform-library-name($0.Str.IO) )
+                !! $resources-dir.child($path);
+            my $name-path = $path.is-relative
+                ?? "resources/{$path}"
+                !! "resources/{$path.relative($prefix)}";
+            $name-path => $real-path.absolute;
+        }
+
+        $meta<files> = |%bins, |%resources;
 
         self.bless(:$meta, :$prefix);
     }

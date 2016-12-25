@@ -28,8 +28,8 @@ multi sub infix:<x>($s, Num:D $n) {
       ?? Failure.new(X::NYI.new(:feature('Cat object')))
       !! $s.Stringy x $n.Int;
 }
-multi sub infix:<x>($s, Any:D $n) { $s.Stringy x $n.Int }
-multi sub infix:<x>($s, Any:U $n) { $s.Stringy x 0      }
+multi sub infix:<x>($s, Any:D $n) { $s.Stringy x $n.Int         }
+multi sub infix:<x>($s, Any:U $n) { $s.Stringy x $n.Numeric.Int }
 
 proto sub infix:<leg>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<leg>(\a, \b)      { a.Stringy cmp b.Stringy }

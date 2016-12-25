@@ -1456,22 +1456,41 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method sort() {
         nqp::if(
           nqp::eqaddr(
-            self.iterator.push-until-lazy(my $values := IterationBuffer.new),
+            self.iterator.push-until-lazy(my $list := IterationBuffer.new),
             IterationEnd
           ),
           Rakudo::Internals.MERGESORT-REIFIED-LIST(
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$values)
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
           ),
           X::Cannot::Lazy.new(:action<sort>).throw
         )
     }
-    multi method sort(&by) is nodal {
-
-        # Obtain all the things to sort.
-        my \iter = self.iterator;
-        my \sort-buffer = IterationBuffer.new;
-        X::Cannot::Lazy.new(:action<sort>).throw
-          unless iter.push-until-lazy(sort-buffer) =:= IterationEnd;
+    multi method sort(&by) {
+        nqp::stmts(
+          nqp::unless(
+            nqp::eqaddr(
+              self.iterator.push-until-lazy(my $list := IterationBuffer.new),
+              IterationEnd
+            ),
+            X::Cannot::Lazy.new(:action<sort>).throw
+          ),
+          nqp::if(
+            nqp::eqaddr(&by,&infix:<cmp>),
+            Rakudo::Internals.MERGESORT-REIFIED-LIST(
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
+            ),
+            nqp::if(
+              nqp::islt_i((my int $count = &by.count),2),
+              self!oldsort($list,&by),
+              Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list),
+                &by
+              )
+            )
+          )
+        )
+    }
+    method !oldsort(\sort-buffer,&by) {
 
         # Instead of sorting elements directly, we sort a list of
         # indices from 0..^$list.elems, then use that list as

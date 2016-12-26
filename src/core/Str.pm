@@ -1665,8 +1665,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $positions    := nqp::list;
         my $needles      := nqp::list_s;
         my $needle-chars := nqp::list_i;
-        my $sorted       := nqp::list;
-        my int $found     = -1;
         my $needles-seen := nqp::hash;
         my int $tried;
         my int $fired;
@@ -1696,7 +1694,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         && nqp::isge_i($i = nqp::index($str,$need,$pos),0),
                       nqp::stmts(
                         nqp::push($positions,nqp::list_i($i,$index)),
-                        nqp::push($sorted,($found = nqp::add_i($found,1))),
                         ($pos = nqp::add_i($i,1)),
                       )
                     )
@@ -1705,7 +1702,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::isge_i($i = nqp::index($str,$need,$pos),0),
                     nqp::stmts(
                       nqp::push($positions,nqp::list_i($i,$index)),
-                      nqp::push($sorted,($found = nqp::add_i($found,1))),
                       ($pos = nqp::add_i($i,1))
                     )
                   )
@@ -1721,77 +1717,128 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return self.split("",$limit) if nqp::not_i($tried);
 
         # sort by position if more than one needle fired
-        nqp::p6sort($sorted, -> int $a, int $b {
-            # $a <=> $b || $b.chars <=> $a.chars, aka pos asc, length desc
-            nqp::cmp_i(
-              nqp::atpos_i(nqp::atpos($positions,$a),0),
-              nqp::atpos_i(nqp::atpos($positions,$b),0)
-            ) ||
-            nqp::cmp_i(
-              nqp::atpos_i($needle-chars,
-                nqp::atpos_i(nqp::atpos($positions,$b),1)),
-              nqp::atpos_i($needle-chars,
-                nqp::atpos_i(nqp::atpos($positions,$a),1))
-            )
-        }) if nqp::isgt_i($fired,1);
+        $positions := nqp::getattr(
+          Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+            nqp::p6bindattrinvres(
+              nqp::create(List),List,'$!reified',$positions
+            ),
+            -> \a, \b {
+                nqp::cmp_i(
+                  nqp::atpos_i(a,0),
+                  nqp::atpos_i(b,0)
+                ) || nqp::cmp_i(
+                  nqp::atpos_i($needle-chars,nqp::atpos_i(b,1)),
+                  nqp::atpos_i($needle-chars,nqp::atpos_i(a,1))
+                )
+            }
+          ),
+          List,
+          '$!reified'
+        ) if nqp::isgt_i($fired,1);
 
         # remove elements we don't want
-        if $limit {
-            my int $todo = $limit - 1;
-            my $limited := nqp::list;
-            my $pair;
-            my int $from;
-            my int $pos;
-            while $todo && nqp::elems($sorted) {
-                my int $index = nqp::shift($sorted);
-                $pair := nqp::atpos($positions,$index);
-                $from  = nqp::atpos_i($pair,0);
-                if nqp::isge_i($from,$pos) { # not hidden by other needle
-                    nqp::push($limited,$index);
-                    $pos = $from + nqp::atpos_i(
-                      $needle-chars,nqp::atpos_i($pair,1));
-                    $todo = $todo - 1;
-                }
-            }
-            $sorted := $limited;
+        if nqp::isgt_i($limit,0) {
+            nqp::stmts(
+              (my $none := nqp::list),
+              (my int $limited = 1),   # split one less than entries returned
+              (my int $elems = nqp::elems($positions)),
+              (my int $pos),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  && nqp::islt_i($limited,$limit),
+                nqp::if(
+                  nqp::isge_i(   # not hidden by other needle
+                    nqp::atpos_i(nqp::atpos($positions,$i),0),
+                    $pos
+                  ),
+                  nqp::stmts(
+                    ($limited = nqp::add_i($limited,1)),
+                    ($pos = nqp::add_i(
+                      nqp::atpos_i(nqp::atpos($positions,$i),0),
+                      nqp::atpos_i($needle-chars,
+                        nqp::atpos_i(nqp::atpos($positions,$i),1))
+                    ))
+                  )
+                )
+              ),
+              nqp::if(
+                nqp::islt_i($i,$elems),
+                nqp::splice($positions,$none,
+                  $i,nqp::sub_i(nqp::elems($positions),$i))
+              )
+            )
         }
 
         # create the final result
         my int $skip = ?$skip-empty;
-        my $pair;
-        my int $from;
-        my int $pos;
+        my int $pos = 0;
         my $result := nqp::list;
         if $any {
-            while nqp::elems($sorted) {
-                $pair := nqp::atpos($positions,nqp::shift($sorted));
-                $from  = nqp::atpos_i($pair,0);
-                if nqp::isge_i($from,$pos) { # not hidden by other needle
-                    my int $needle-index = nqp::atpos_i($pair,1);
-                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
-                      unless $skip && nqp::iseq_i($from,$pos);
-                    nqp::push($result,$needle-index)
-                      if $k || $kv;
-                    nqp::push($result,nqp::atpos_s($needles,$needle-index))
-                      if $v || $kv;
-                    nqp::push($result,Pair.new(
-                      $needle-index,nqp::atpos_s($needles,$needle-index)))
-                      if $p;
-                    $pos = $from + nqp::atpos_i($needle-chars,$needle-index);
-                }
-            }
+            nqp::stmts(
+              (my int $i = -1),
+              (my int $elems = nqp::elems($positions)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::if(
+                  nqp::isge_i( # not hidden by other needle
+                    (my int $from = nqp::atpos_i(
+                      (my $pair := nqp::atpos($positions,$i)),0)
+                    ),
+                    $pos
+                  ),
+                  nqp::stmts(
+                    (my int $needle-index = nqp::atpos_i($pair,1)),
+                    nqp::unless(
+                      $skip && nqp::iseq_i($from,$pos),
+                      nqp::push($result,
+                        nqp::substr($str,$pos,nqp::sub_i($from,$pos)))
+                    ),
+                    nqp::if($k || $kv,
+                      nqp::push($result,nqp::clone($needle-index))
+                    ),
+                    nqp::if($v || $kv,
+                      nqp::push($result,nqp::atpos_s($needles,$needle-index))
+                    ),
+                    nqp::if($p,
+                      nqp::push($result,Pair.new(
+                        $needle-index,nqp::atpos_s($needles,$needle-index)))
+                    ),
+                    ($pos = nqp::add_i(
+                      $from,
+                      nqp::atpos_i($needle-chars,$needle-index)
+                    ))
+                  )
+                )
+              )
+            )
         }
         else {
-            while nqp::elems($sorted) {
-                $pair := nqp::atpos($positions,nqp::shift($sorted));
-                $from  = nqp::atpos_i($pair,0);
-                if nqp::isge_i($from,$pos) { # not hidden by other needle
-                    nqp::push($result,nqp::substr($str,$pos,$from - $pos))
-                      unless $skip && nqp::iseq_i($from,$pos);
-                    $pos = $from + nqp::atpos_i(
-                      $needle-chars,nqp::atpos_i($pair,1));
-                }
-            }
+            nqp::stmts(
+              (my int $i = -1),
+              (my int $elems = nqp::elems($positions)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::if(
+                  nqp::isge_i( # not hidden by other needle
+                    (my int $from = nqp::atpos_i(
+                      (my $pair := nqp::atpos($positions,$i)),0)
+                    ),
+                    $pos
+                  ),
+                  nqp::stmts(
+                    nqp::unless(
+                      $skip && nqp::iseq_i($from,$pos),
+                      nqp::push($result,
+                        nqp::substr($str,$pos,nqp::sub_i($from,$pos))),
+                    ),
+                    ($pos = nqp::add_i($from,
+                      nqp::atpos_i($needle-chars,nqp::atpos_i($pair,1))
+                    ))
+                  )
+                )
+              )
+            )
         }
         nqp::push($result,nqp::substr($str,$pos))
           unless $skip && nqp::iseq_i($pos,nqp::chars($str));

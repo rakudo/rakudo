@@ -5040,6 +5040,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub dissect_type_into_parameter($/, $type) {
         if nqp::isconcrete($type) {
+            if nqp::istype($type, $*W.find_symbol(['Bool'])) {
+                my $val := $type.gist;
+                $/.CURSOR.worry(
+                    "Literal values in signatures are smartmatched against and "
+                    ~ "smartmatch with `$val` will always "
+                    ~ ($val eq 'True' ?? 'succeed' !! 'fail')
+                    ~ ". Use the `where` clause instead."
+                );
+            }
+
             # Actual a value that parses type-ish.
             %*PARAM_INFO<nominal_type> := $type.WHAT;
             unless %*PARAM_INFO<post_constraints> {

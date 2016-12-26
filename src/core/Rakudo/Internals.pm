@@ -1169,6 +1169,93 @@ my class Rakudo::Internals {
           nqp::p6bindattrinvres(list,List,'$!reified',$A)
         )
     }
+    # Takes the HLL List to be sorted *in place* using the mapper
+    method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
+        nqp::stmts(
+
+          (my Mu $O := nqp::getattr(list,List,'$!reified')),  # Original
+          (my int $n = nqp::elems($O)),
+          (my Mu $S := nqp::clone($O)),                       # the Schwartz
+          (my Mu $A := nqp::setelems(nqp::list_i,$n)),        # indexes to sort
+          (my Mu $B := nqp::setelems(nqp::list_i,$n)),        # work array
+          (my int $s = -1),
+          nqp::while(  # set up the Schwartz and the initial indexes
+            nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+            nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),mapper(nqp::atpos($S,$s)))
+          ),
+
+          # Each 1-element run in $A is already "sorted"
+          # Make successively longer sorted runs of length 2, 4, 8, 16...
+          # until $A is wholly sorted
+          (my int $width = 1),
+          nqp::while(
+            nqp::islt_i($width,$n),
+            nqp::stmts(
+              (my int $l = 0),
+
+              # $A is full of runs of length $width
+              nqp::while(
+                nqp::islt_i($l,$n),
+
+                nqp::stmts(
+                  (my int $left  = $l),
+                  (my int $right = nqp::add_i($l,$width)),
+                  nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                  (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                  nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                  (my int $i = $left),
+                  (my int $j = $right),
+                  (my int $k = nqp::sub_i($left,1)),
+
+                  # Merge two runs: $A[i       .. i+width-1] and
+                  #                 $A[i+width .. i+2*width-1]
+                  # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                  nqp::while(
+                    nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                    nqp::if(
+                      nqp::islt_i($i,$right) && (
+                        nqp::isge_i($j,$end)
+                          || (nqp::iseq_i(
+                               nqp::decont(
+                                 nqp::atpos($S,nqp::atpos_i($A,$i))
+                                   cmp nqp::atpos($S,nqp::atpos_i($A,$j))
+                                   || nqp::cmp_i($i,$j)
+                               ),
+                               -1
+                             ))
+                      ),
+                      nqp::stmts(
+                        (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                        ($i = nqp::add_i($i,1))
+                      ),
+                      nqp::stmts(
+                        (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                        ($j = nqp::add_i($j,1))
+                      )
+                    )
+                  ),
+                  ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                )
+              ),
+
+              # Now work array $B is full of runs of length 2*width.
+              # Copy array B to array A for next iteration.
+              # A more efficient implementation would swap the roles of A and B.
+              (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
+              # Now array $A is full of runs of length 2*width.
+
+              ($width = nqp::add_i($width,$width))
+            )
+          ),
+          ($s = -1),
+          nqp::while(   # repurpose the Schwartz for the result
+            nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+            nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
+          ),
+          nqp::p6bindattrinvres(list,List,'$!reified',$S)
+        )
+    }
 
     method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;

@@ -84,10 +84,6 @@ MAST::ExtOpRegistry.register_extop('p6argsfordispatcher',
 MAST::ExtOpRegistry.register_extop('p6decodelocaltime',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6sort',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6staticouter',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -277,80 +273,6 @@ $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
 #$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
-proto sub p6sort(@input_data, &comparator) {
-    # using the "bottom-up" mergesort implementation as shown in the english
-    # wikipedia article
-
-    # for some extra (hopefully measurable) benefit, we plop our indices
-    # into native integer lists before going on.
-
-    my @b_list := nqp::list_i();
-    my @data := nqp::list_i();
-    nqp::setelems(@b_list, +@input_data);
-    nqp::setelems(@b_list, 0);
-    nqp::setelems(@data, +@input_data);
-    nqp::setelems(@data, 0);
-
-    my int $copy_idx;
-    for @input_data {
-        nqp::bindpos_i(@data, $copy_idx++, $_);
-    }
-
-    my int $n := +@data;
-
-    my int $run_w := 1; # the width of each of the runs we are looking at
-    while $run_w < $n {
-        my int $i;
-
-        while $i < $n {
-            my int $left  := $i;
-            my int $right := $i + $run_w;
-            $right        := $n if $n < $right;
-
-            my int $end   := $i + 2 * $run_w;
-            $end          := $n if $n < $end;
-
-            my int $i0    := $left;
-            my int $i1    := $right;
-            my int $j     := $i0;
-
-            while $j < $end {
-                if $i0 < $right && ($i1 >= $end || -1 == comparator(nqp::atpos_i(@data, $i0), nqp::atpos_i(@data, $i1))) {
-                    nqp::bindpos_i(@b_list, $j, nqp::atpos_i(@data, $i0));
-                    $i0 := $i0 + 1;
-                } else {
-                    nqp::bindpos_i(@b_list, $j, nqp::atpos_i(@data, $i1));
-                    $i1 := $i1 + 1;
-                }
-                $j := $j + 1;
-            }
-
-            $i := $i + 2 * $run_w;
-        }
-
-        {
-            my $t := @b_list;
-            @b_list := @data;
-            @data := $t;
-        }
-
-        $run_w := $run_w * 2;
-    }
-
-    $copy_idx := 0;
-    for @data {
-        nqp::bindpos(@input_data, $copy_idx++, $_);
-    }
-}
-my $p6sort := -> $qastcomp, $op {
-    $qastcomp.as_mast(QAST::Op.new(
-        :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&p6sort)) ),
-        $op[0],
-        $op[1]
-    ));
-};
-$ops.add_hll_op('perl6', 'p6sort', :!inlinable, $p6sort);
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
 my $p6bool := -> $qastcomp, $op {
     # Compile instructions.

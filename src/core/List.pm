@@ -1319,12 +1319,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 &by.count < 2,
                 Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
                   nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                    nqp::clone(nqp::getattr(self,List,'$!reified'))),
+                    nqp::getattr(self,List,'$!reified')),
                   &by
                 ),
                 Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
                   nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                    nqp::getattr(self,List,'$!reified')),
+                    nqp::clone(nqp::getattr(self,List,'$!reified'))),
                   &by
                 )
               )

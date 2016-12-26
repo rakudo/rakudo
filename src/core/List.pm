@@ -1294,6 +1294,45 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
+    multi method sort(List:D: &by) {
+        nqp::stmts(
+          nqp::if(
+            $!todo.DEFINITE,
+            nqp::stmts(
+              $!todo.reify-until-lazy,
+              nqp::if(
+                $!todo.fully-reified,
+                ($!todo := Mu),
+                X::Cannot::Lazy.new(:action('.sort')).throw
+              )
+            )
+          ),
+          nqp::if(
+            nqp::attrinited(self,List,'$!reified'),
+            nqp::if(
+              nqp::eqaddr(&by,&infix:<cmp>),
+              Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                  nqp::clone(nqp::getattr(self,List,'$!reified')))
+              ),
+              nqp::if(
+                &by.count < 2,
+                Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                    nqp::clone(nqp::getattr(self,List,'$!reified'))),
+                  &by
+                ),
+                Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                    nqp::getattr(self,List,'$!reified')),
+                  &by
+                )
+              )
+            ),
+            self
+          )
+        )
+    }
 
     method push(|) is nodal {
         X::Immutable.new(:typename<List>,:method<push>).throw

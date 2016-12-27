@@ -718,40 +718,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           # everything we need is already there
           nqp::if(
             $!reified.DEFINITE,
-            class :: does Iterator {
-                has $!reified;
-                has int $!i;
-
-                method !SET-SELF(\list) {
-                    $!reified := nqp::getattr(list,List,'$!reified');
-                    $!i        = -1;
-                    self
-                }
-                method new(\list) { nqp::create(self)!SET-SELF(list) }
-
-                method pull-one() is raw {
-                    nqp::ifnull(
-                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::if(
-                        nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                        nqp::null,                              # it's a hole
-                        IterationEnd                            # it's the end
-                      )
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    my int $elems = nqp::elems($!reified);
-                    nqp::while(  # doesn't sink
-                      nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                      $target.push(nqp::atpos($!reified,$!i))
-                    );
-                }
-                method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
-                method sink-all(--> IterationEnd) { }
-            }.new(self),
-
-            # nothing now or in the future to iterate over
+            Rakudo::Internals.ReifiedListIterator(self),
             Rakudo::Internals.EmptyIterator
           )
         )

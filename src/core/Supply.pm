@@ -1095,8 +1095,9 @@ my class Supply {
         }
     }
 
-    method reverse(Supply:D:)                 { self.grab( {.reverse} ) }
-    method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
+    method reverse(Supply:D:)        { self.grab( {.reverse} ) }
+    multi method sort(Supply:D:)     { self.grab( {.sort} ) }
+    multi method sort(Supply:D: &by) { self.grab( {.sort(&by)} ) }
 
     method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method

@@ -1066,7 +1066,10 @@ my class Rakudo::Internals {
                           nqp::islt_i($i,$right) && (
                             nqp::isge_i($j,$end)
                               || nqp::iseq_i(
-                                   nqp::atpos($A,$i) cmp nqp::atpos($A,$j),
+                                   nqp::decont(  # for some reason we need this
+                                     nqp::atpos($A,$i) cmp nqp::atpos($A,$j)
+                                       || nqp::cmp_i($i,$j)
+                                   ), # apparently code gen with || isn't right
                                    -1
                                  )
                           ),
@@ -1097,8 +1100,7 @@ my class Rakudo::Internals {
             ),
             nqp::if(
               nqp::islt_i($n,2)
-                || nqp::iseq_i(
-                     nqp::atpos($A,0) cmp nqp::atpos($A,1),-1),
+                || nqp::isle_i(nqp::atpos($A,0) cmp nqp::atpos($A,1),0),
               list,  # nothing to be done, we already have the result
               nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
                 nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))

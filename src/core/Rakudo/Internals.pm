@@ -1029,7 +1029,7 @@ my class Rakudo::Internals {
           # $A has the items to sort; $B is a work array
           (my Mu $A := nqp::getattr(list,List,'$!reified')),
           nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($A)),1),
+            nqp::isgt_i((my int $n = nqp::elems($A)),2),
             nqp::stmts(     # we actually need to sort
               (my Mu $B := nqp::setelems(nqp::list,$n)),
 
@@ -1095,7 +1095,14 @@ my class Rakudo::Internals {
               ),
               nqp::p6bindattrinvres(list,List,'$!reified',$A)
             ),
-            list  # nothing to be done, so we already have the result
+            nqp::if(
+              nqp::islt_i($n,2)
+                || nqp::iseq_i(
+                     nqp::atpos($A,0) cmp nqp::atpos($A,1),-1),
+              list,  # nothing to be done, we already have the result
+              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
+                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
+            )
           )
         )
     }
@@ -1106,7 +1113,7 @@ my class Rakudo::Internals {
           # $A has the items to sort; $B is a work array
           (my Mu $A := nqp::getattr(list,List,'$!reified')),
           nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($A)),1),
+            nqp::isgt_i((my int $n = nqp::elems($A)),2),
             nqp::stmts(     # we actually need to sort
               (my Mu $B := nqp::setelems(nqp::list,$n)),
 
@@ -1176,7 +1183,14 @@ my class Rakudo::Internals {
               ),
               nqp::p6bindattrinvres(list,List,'$!reified',$A)
             ),
-            list  # nothing to be done, so we already have the result
+            nqp::if(
+              nqp::islt_i($n,2)
+                || nqp::iseq_i(
+                    comparator(nqp::atpos($A,0),nqp::atpos($A,1)),-1),
+              list,  # nothing to be done, we already have the result
+              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
+                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
+            )
           )
         )
     }
@@ -1186,7 +1200,7 @@ my class Rakudo::Internals {
 
           (my Mu $O := nqp::getattr(list,List,'$!reified')),  # Original
           nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($O)),1),
+            nqp::isgt_i((my int $n = nqp::elems($O)),2),
             nqp::stmts(     # we actually need to sort
               (my Mu $S := nqp::clone($O)),                   # the Schwartz
               (my Mu $A := nqp::setelems(nqp::list_i,$n)),    # indexes to sort
@@ -1270,9 +1284,15 @@ my class Rakudo::Internals {
               nqp::p6bindattrinvres(list,List,'$!reified',$S)
             ),
 
-            # nothing to be done, need to clone the original
             nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-              nqp::clone($O)),
+              nqp::if(
+                nqp::islt_i($n,2)
+                  || nqp::iseq_i(
+                      mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),-1),
+                nqp::clone($O), # nothing to be done, we already have the result
+                nqp::list(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
+              )
+            )
           )
         )
     }

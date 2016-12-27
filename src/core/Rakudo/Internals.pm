@@ -730,6 +730,47 @@ my class Rakudo::Internals {
         }.new(source,indexes,offset,&out)
     }
 
+    method ReifiedListIterator(\list) {
+        class :: does Iterator {
+            has $!reified;
+            has int $!i;
+
+            method !SET-SELF(\list) {
+                nqp::stmts(
+                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!i = -1),
+                  self
+                )
+            }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+            method pull-one() is raw {
+                nqp::ifnull(
+                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                  nqp::if(
+                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                    nqp::null,                              # it's a hole
+                    IterationEnd                            # it's the end
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = $!i), # lexicals are faster than attributes
+                  nqp::while(  # doesn't sink
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(nqp::atpos($!reified,$i))
+                  ),
+                  ($!i = $i)
+                )
+            }
+            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { }
+        }.new(list)
+    }
+
     method IntRangeIterator(\from,\to) {
         class :: does Iterator {
             has int $!i;

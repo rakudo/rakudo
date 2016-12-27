@@ -1290,7 +1290,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::clone(nqp::getattr(self,List,'$!reified'))
               )
             ),
-            self
+            nqp::create(List)
           )
         )
     }
@@ -1329,7 +1329,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 )
               )
             ),
-            self
+            nqp::create(List)
           )
         )
     }

@@ -338,6 +338,8 @@ sub unwanted($ast, $by) {
                         # ignore = but carp on ==, ===, and =:=
                         $t := nqp::index($op,'=');
                         $t := 0 if nqp::index($op,'=',$t+1) > 0;
+                        $t := 1 if $t < 1 && nqp::index($op, '++') >= 0;
+                        $t := 1 if $t < 1 && nqp::index($op, '--') >= 0;
                         # (PRECURSOR because otherwise [*] 1..10 puts eject after the expression)
                         $node.node.PRECURSOR.worry("Useless use of $op in sink context") unless $t > 0;
                     }

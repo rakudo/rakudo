@@ -262,7 +262,7 @@ do {
                     say 'Continuing without tab completions or line editor';
                     say 'You may want to consider using rlwrap for simple line editor functionality';
                 } else {
-                    say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
+                    say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor' unless $*DISTRO.is-win;
                 }
                 say '';
             }

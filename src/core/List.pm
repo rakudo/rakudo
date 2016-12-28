@@ -3,23 +3,18 @@ my class X::TypeCheck::Splice { ... }
 my class Supplier { ... }
 
 my sub combinations(Int() $n, Int() $k) {
+    X::OutOfRange.new(
+      :what("First parameter"),
+      :got($n),
+      :range(-Inf^..($*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1)),
+    ).throw if $n > 0 and nqp::isbig_I(nqp::decont($n));
+
     # n < 1 → we have an empty list to pick from
     # k = 0 → can pick just 1 combination (empty list); return ((),)
     # n < k → we don't have enough items to pick a combination of k items; return ()
     return ((),).Seq if $k == 0;
     return Seq.new(Rakudo::Internals.EmptyIterator)
         if $n < 1 or $n < $k or $k < 0;
-
-    X::OutOfRange.new(
-      :what("First parameter"),
-      :got($n),
-      :range("1..2147483647"),
-    ).throw if nqp::isbig_I(nqp::decont($n));
-    X::OutOfRange.new(
-      :what("Second parameter"),
-      :got($k),
-      :range("1..2147483647"),
-    ).throw if nqp::isbig_I(nqp::decont($k));
 
     Seq.new(class :: does Iterator {
         has int $!n;

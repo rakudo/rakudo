@@ -500,8 +500,8 @@ multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
 proto sub unival(|) {*}
 multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
 multi sub unival(Int:D $code) {
-    state $nuprop = nqp::unipropcode("NumericValueNumerator");
-    state $deprop = nqp::unipropcode("NumericValueDenominator");
+    state $nuprop = Rakudo::Internals.PROPCODE("Numeric_Value_Numerator");
+    state $deprop = Rakudo::Internals.PROPCODE("Numeric_Value_Denominator");
     my $nu = nqp::getuniprop_str($code, $nuprop);
     my $de = nqp::getuniprop_str($code, $deprop);
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;

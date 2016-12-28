@@ -7225,8 +7225,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $qast;
     }
 
-    my $nuprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueNumerator") !! '';
-    my $deprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueDenominator") !! '';
+    my $nuprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("Numeric_Value_Numerator") !! '';
+    my $deprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("Numeric_Value_Denominator") !! '';
 
     method numish($/) {
         if $<integer> {

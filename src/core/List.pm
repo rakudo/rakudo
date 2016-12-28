@@ -7,7 +7,8 @@ my sub combinations(Int() $n, Int() $k) {
     # k = 0 → can pick just 1 combination (empty list); return ((),)
     # n < k → we don't have enough items to pick a combination of k items; return ()
     return ((),).Seq if $k == 0;
-    return () if $n < 1 or $n < $k or $k < 0;
+    return Seq.new(Rakudo::Internals.EmptyIterator)
+        if $n < 1 or $n < $k or $k < 0;
 
     X::OutOfRange.new(
       :what("First parameter"),

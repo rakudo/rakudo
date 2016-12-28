@@ -3,8 +3,11 @@ my class X::TypeCheck::Splice { ... }
 my class Supplier { ... }
 
 my sub combinations(Int() $n, Int() $k) {
-    return () if $k < 0;
-    return ((),).Seq if $n < 1 || $k < 1;
+    # n < 1 → we have an empty list to pick from
+    # k = 0 → can pick just 1 combination (empty list); return ((),)
+    # n < k → we don't have enough items to pick a combination of k items; return ()
+    return ((),).Seq if $k == 0;
+    return () if $n < 1 or $n < $k;
 
     X::OutOfRange.new(
       :what("First parameter"),

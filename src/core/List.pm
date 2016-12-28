@@ -1249,15 +1249,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               )
             )
           ),
-          nqp::if(
-            nqp::attrinited(self,List,'$!reified'),
-            Rakudo::Internals.MERGESORT-REIFIED-LIST(
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',
-                nqp::clone(nqp::getattr(self,List,'$!reified'))
-              )
-            ),
-            nqp::create(List)
+          Seq.new(
+            nqp::if(
+              nqp::attrinited(self,List,'$!reified'),
+              Rakudo::Internals.ReifiedListIterator(
+                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                  nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',
+                    nqp::clone(nqp::getattr(self,List,'$!reified'))
+                  )
+                )
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
           )
         )
     }
@@ -1274,29 +1278,33 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               )
             )
           ),
-          nqp::if(
-            nqp::attrinited(self,List,'$!reified'),
+          Seq.new(
             nqp::if(
-              nqp::eqaddr(&by,&infix:<cmp>),
-              Rakudo::Internals.MERGESORT-REIFIED-LIST(
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                  nqp::clone(nqp::getattr(self,List,'$!reified')))
-              ),
-              nqp::if(
-                &by.count < 2,
-                Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
-                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                    nqp::getattr(self,List,'$!reified')),
-                  &by
-                ),
-                Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
-                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                    nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                  &by
+              nqp::attrinited(self,List,'$!reified'),
+              Rakudo::Internals.ReifiedListIterator(
+                nqp::if(
+                  nqp::eqaddr(&by,&infix:<cmp>),
+                  Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                    nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                      nqp::clone(nqp::getattr(self,List,'$!reified')))
+                  ),
+                  nqp::if(
+                    &by.count < 2,
+                    Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                        nqp::getattr(self,List,'$!reified')),
+                      &by
+                    ),
+                    Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+                        nqp::clone(nqp::getattr(self,List,'$!reified'))),
+                      &by
+                    )
+                  )
                 )
-              )
-            ),
-            nqp::create(List)
+              ),
+              Rakudo::Internals.EmptyIterator
+            )
           )
         )
     }

@@ -1459,8 +1459,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             self.iterator.push-until-lazy(my $list := IterationBuffer.new),
             IterationEnd
           ),
-          Rakudo::Internals.MERGESORT-REIFIED-LIST(
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
+          Seq.new(
+            Rakudo::Internals.ReifiedListIterator(
+              Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
+              )
+            )
           ),
           X::Cannot::Lazy.new(:action<sort>).throw
         )
@@ -1474,20 +1478,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             ),
             X::Cannot::Lazy.new(:action<sort>).throw
           ),
-          nqp::if(
-            nqp::eqaddr(&by,&infix:<cmp>),
-            Rakudo::Internals.MERGESORT-REIFIED-LIST(
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
-            ),
-            nqp::if(
-              &by.count < 2,
-              Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list),
-                &by
-              ),
-              Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list),
-                &by
+          Seq.new(
+            Rakudo::Internals.ReifiedListIterator(
+              nqp::if(
+                nqp::eqaddr(&by,&infix:<cmp>),
+                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                  nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',$list)
+                ),
+                nqp::if(
+                  &by.count < 2,
+                  Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',$list),
+                    &by
+                  ),
+                  Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',$list),
+                    &by
+                  )
+                )
               )
             )
           )

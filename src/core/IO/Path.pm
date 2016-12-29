@@ -236,9 +236,6 @@ my class IO::Path is Cool {
     }
 
     proto method chdir(|) { * }
-    multi method chdir(IO::Path:U: $path, :$test = 'r') {
-        $*CWD.chdir($path,:$test);
-    }
     multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
         if !$!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);

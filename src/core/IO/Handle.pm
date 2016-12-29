@@ -546,11 +546,11 @@ my class IO::Handle does IO {
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: $limit) {
+    multi method lines(IO::Handle:D: $limit, |c) {
         # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines
-          !! self.lines[ 0 .. $limit.Int - 1 ]
+          ?? self.lines(|c)
+          !! self.lines(|c)[ lazy 0 .. $limit.Int - 1 ]
     }
     multi method lines(IO::Handle:D: :$close) {
         Seq.new(class :: does Iterator {

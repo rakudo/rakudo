@@ -508,8 +508,8 @@ my class IO::Path is Cool {
     }
 
     proto method lines(|) { * }
-    multi method lines(IO::Path:D: |c) {
-        self.open(|c).lines(:close);
+    multi method lines(IO::Path:D: $limit = Inf, |c) {
+        self.open(|c).lines($limit, :close);
     }
 
     proto method comb(|) { * }

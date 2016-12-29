@@ -1239,7 +1239,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
-          !! self.lines[ 0 .. $limit.Int - 1 ]
+          !! self.lines[ lazy 0 .. $limit.Int - 1 ]
     }
     multi method lines(Str:D:) {
         Seq.new(class :: does Iterator {

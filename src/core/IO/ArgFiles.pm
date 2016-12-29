@@ -118,7 +118,7 @@ my class IO::ArgFiles is IO::Handle {
     multi method lines($limit) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
-          !! self.lines[ 0 .. $limit.Int - 1 ]
+          !! self.lines[ lazy 0 .. $limit.Int - 1 ]
     }
 
     method slurp(IO::ArgFiles:D: |c) {

@@ -421,8 +421,34 @@
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+                has Mu $!desc;
+                method !INIT(\list) {
+                    nqp::stmts(
+                      ($!desc := nqp::getattr(list,Array,'$!descriptor')),
+                      self.SET-SELF(list)
+                    )
+                }
+                method new(Mu \list) { nqp::create(self)!INIT(list) }
                 method result() {
-                    Pair.new(self.indices,nqp::atposnd($!list,$!indices))
+                    Pair.new(
+                      self.indices,
+                      nqp::ifnull(
+                        nqp::atposnd($!list,$!indices),
+                        nqp::stmts(
+                          # By the time the block gets executed, the $!indices
+                          # may be at the next iteration already or even reset
+                          # because we reached the end.  So we need to make
+                          # a copy of the indices now.
+                          (my $indices := nqp::clone($!indices)),
+                          nqp::p6bindattrinvres(
+                            (my $scalar := nqp::p6scalarfromdesc($!desc)),
+                            Scalar,
+                           '$!whence',
+                            -> { nqp::bindposnd($!list,$indices,$scalar) }
+                          )
+                        )
+                      )
+                    )
                 }
             }.new(self))
         }

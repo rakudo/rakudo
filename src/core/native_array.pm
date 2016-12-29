@@ -785,20 +785,22 @@ my class array does Iterable {
         }
 
         multi method STORE(intarray:D: Range:D $range) {
-            fail "Can only initialize an int array with an int Range"
-              unless $range.is-int;
-
-            my int $val = $range.min;
-            $val = $val + 1 if $range.excludes-min;
-            my int $max = $range.max;
-            $max = $max - 1 if $range.excludes-max;
-            nqp::setelems(self, $max - $val + 1);
-
-            my int $i = -1;
-            --$val;
-            nqp::bindpos_i(self,++$i,$val) while nqp::isle_i(++$val,$max);
-
-            self
+            nqp::if(
+              $range.is-int,
+              nqp::stmts(
+                (my int $val = $range.min + $range.excludes-min),
+                (my int $max = $range.max - $range.excludes-max),
+                nqp::setelems(self, nqp::add_i(nqp::sub_i($max,$val),1)),
+                (my int $i = -1),
+                ($val = nqp::sub_i($val,1)),
+                nqp::while(
+                  nqp::isle_i(($val = nqp::add_i($val,1)),$max),
+                  nqp::bindpos_i(self,($i = nqp::add_i($i,1)),$val)
+                ),
+                self
+              ),
+              (die "Can only initialize an int array with an int Range")
+            )
         }
     }
 

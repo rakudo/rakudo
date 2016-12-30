@@ -7227,9 +7227,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $qast;
     }
 
-    my $nuprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("Numeric_Value_Numerator") !! '';
-    my $deprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("Numeric_Value_Denominator") !! '';
-
     method numish($/) {
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
@@ -7240,8 +7237,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $<complex_number> { make $<complex_number>.ast; }
         elsif $<unum> {
             my $code := nqp::ord($/.Str);
-            my int $nu := +nqp::getuniprop_str($code, $nuprop);
-            my int $de := +nqp::getuniprop_str($code, $deprop);
+            my int $nu := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Numerator"));
+            my int $de := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Denominator"));
             if !$de || $de == 1 {
                 make $*W.add_numeric_constant($/, 'Int', +$nu)
             }

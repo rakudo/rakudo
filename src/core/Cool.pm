@@ -442,26 +442,27 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
       'Variation_Selector','B','Quotation_Mark','B','Pattern_Syntax','B',
       'ID_Continue','B','IDS_Binary_Operator','B','Ideographic','B',
       'kCompatibilityVariant','S','Simple_Uppercase_Mapping','S',
-      'Hangul_Syllable_Type','S','Numeric_Type','S','East_Asian_Width','S',
-      'Line_Break','S','Terminal_Punctuation','B','Pattern_White_Space','B',
-      'ASCII_Hex_Digit','B','Hex_Digit','B','Bidi_Paired_Bracket_Type','S',
-      'General_Category','S','Grapheme_Cluster_Break','S','Grapheme_Base','B',
-      'Changes_When_Lowercased','B','Name','na','Emoji','B','Emoji_Presentation','B',
-      'Deprecated','B','Full_Composition_Exclusion','B',
-      'Canonical_Combining_Class','S',
+      'Hangul_Syllable_Type','S','Numeric_Type','S','Bidi_Mirroring_Glyph','bmg',
+      'East_Asian_Width','S','Line_Break','S','Terminal_Punctuation','B',
+      'Pattern_White_Space','B','ASCII_Hex_Digit','B','Hex_Digit','B',
+      'Bidi_Paired_Bracket_Type','S','General_Category','S',
+      'Grapheme_Cluster_Break','S','Grapheme_Base','B','Changes_When_Lowercased','B',
+      'Name','na','Emoji','B','Emoji_Presentation','B','Deprecated','B',
+      'Full_Composition_Exclusion','B','Canonical_Combining_Class','S',
     );
     ## End generated code
     $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
     my $prop := Rakudo::Internals.PROPCODE($propname);
     given nqp::atkey(%prefs, $propname) {
-        when 'S'  { nqp::getuniprop_str($code,$prop) }
-        when 'I'  { nqp::getuniprop_int($code,$prop) }
-        when 'B'  { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
-        when 'lc' { nqp::lc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'tc' { nqp::tc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'uc' { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'na' { nqp::getuniname($code) }
-        when 'nv' { unival($code) }
+        when 'S'   { nqp::getuniprop_str($code,$prop) }
+        when 'I'   { nqp::getuniprop_int($code,$prop) }
+        when 'B'   { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
+        when 'lc'  { nqp::lc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'tc'  { nqp::tc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'uc'  { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
+        when 'na'  { nqp::getuniname($code) }
+        when 'nv'  { unival($code) }
+        when 'bmg' { nqp::chr(nqp::getuniprop_int($code, $prop)) }
         default {
             my $result = nqp::getuniprop_str($code,$prop);
             if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }

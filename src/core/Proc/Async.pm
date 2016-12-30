@@ -56,8 +56,8 @@ my class Proc::Async {
     has @!promises;
 
     proto method new(|) { * }
-    multi method new($path, *@args, :$w, :$enc = 'utf8') {
-        self.bless(:$path, :@args, :$w, :$enc)
+    multi method new($path, *@args, :$w, :$enc = 'utf8', *%_) {
+        self.bless(:$path, :@args, :$w, :$enc, |%_)
     }
 
     method !supply(\what,\the-supply,\type,\value) {

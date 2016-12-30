@@ -33,6 +33,10 @@ my class Regex { # declared in BOOTSTRAP
         )
     }
 
+    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {  # RT #130458
+        self.ACCEPTS(uni.Str)
+    }
+
     multi method ACCEPTS(Regex:D \SELF: @a) {
         SELF!ACCEPT-ITERATOR(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/'),

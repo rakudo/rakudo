@@ -211,7 +211,12 @@
                       ),
                       nqp::ifnull(
                         nqp::atpos($!reified,$!pos),
-                        AT-POS-CONTAINER($!reified,$!pos)
+                        nqp::p6bindattrinvres(
+                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
+                          Scalar,
+                          '$!whence',
+                          -> { nqp::bindpos($!reified,$!pos,$scalar) }
+                        )
                       ),
                       IterationEnd
                     )
@@ -219,11 +224,22 @@
                 method push-all($target --> IterationEnd) {
                     nqp::stmts(
                       (my int $elems = nqp::elems($!reified)),
-                      (my int $i = -1),
+                      (my int $i = $!pos),
                       nqp::while(
-                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
-                        $target.push(nqp::atpos($!reified,$!pos))
-                      )
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        $target.push(
+                          nqp::ifnull(
+                            nqp::atpos($!reified,$i),
+                            nqp::p6bindattrinvres(
+                              (my $scalar := nqp::p6scalarfromdesc($!desc)),
+                              Scalar,
+                              '$!whence',
+                              -> { nqp::bindpos($!reified,$i,$scalar) }
+                            )
+                          )
+                        )
+                      ),
+                      ($!pos = $i)  # mark as done
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!reified)) }

@@ -632,7 +632,7 @@ my class Range is Cool does Iterable does Positional {
 
     method in-range($got, $what?) {
         self.ACCEPTS($got)
-          || X::OutOfRange.new(:what($what // 'Value'),:$got,:range(self)).throw
+          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self)).throw
     }
 
     multi method minmax(Range:D:) {

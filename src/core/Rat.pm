@@ -225,7 +225,9 @@ multi sub infix:<**>(Rational \a, Int \b) {
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator == b.numerator * a.denominator
+    nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
+        ?? a.Num == b.Num
+        !! a.numerator * b.denominator == b.numerator * a.denominator
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {
     a.REDUCE-ME;

@@ -33,9 +33,11 @@ my class Regex { # declared in BOOTSTRAP
         )
     }
 
+#?if !jvm
     multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {  # RT #130458
         self.ACCEPTS(uni.Str)
     }
+#?endif
 
     multi method ACCEPTS(Regex:D \SELF: @a) {
         SELF!ACCEPT-ITERATOR(

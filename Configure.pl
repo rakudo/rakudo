@@ -257,6 +257,7 @@ MAIN: {
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'bld_nqp_jars'}  = join( $config{'cpsep'}, map { $config{'sysroot'} . $_ } split( $config{'cpsep'}, $nqp_config{'jvm::runtime.jars'} ) );
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
+            $config{'nqp_libdir'}    = $nqp_config{'nqp::libdir'};
             $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 

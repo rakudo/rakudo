@@ -238,7 +238,13 @@ multi sub infix:<==>(Int:D \a, Rational:D \b) {
     a == b.numerator && b.denominator == 1;
 }
 multi sub infix:<===>(Rational:D \a, Rational:D \b) returns Bool:D {
-    a.WHAT =:= b.WHAT && a == b
+    # Check whether we have 0-denominator rationals as well. Those can
+    # be `==` but have different numerator values and so should not `===` True.
+    # Since we're already checking equality first, we only need to check the
+    # zeroeness of the denominator of just one parameter
+    a.WHAT =:= b.WHAT
+        && (a == b || (a.isNaN && b.isNaN))
+        && (a.denominator.Bool || a.numerator == b.numerator)
 }
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b) {

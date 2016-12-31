@@ -66,6 +66,7 @@ my role Rational[::NuT, ::DeT] does Real {
 
     method Int() { self.truncate }
     method Bridge() { self.Num }
+    method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
     method isNaN {
         nqp::p6bool(
             nqp::isfalse(self.numerator) && nqp::isfalse(self.denominator)

@@ -89,7 +89,7 @@ $ops.add_simple_op('p6captureouters', $ops.OBJ, [$ops.OBJ], :ctx);
 $ops.add_simple_op('p6capturelex', $ops.OBJ, [$ops.OBJ], :ctx);
 
 $ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
-$ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
+$ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 
 $ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 

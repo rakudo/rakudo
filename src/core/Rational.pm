@@ -65,8 +65,12 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method Int() { self.truncate }
-
     method Bridge() { self.Num }
+    method isNaN {
+        nqp::p6bool(
+            nqp::isfalse(self.numerator) && nqp::isfalse(self.denominator)
+        )
+    }
 
     multi method Str(::?CLASS:D:) {
         if nqp::istype($!numerator,Int) {

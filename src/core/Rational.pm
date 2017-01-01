@@ -124,7 +124,8 @@ my role Rational[::NuT, ::DeT] does Real {
             }
             else {
                 fail X::OutOfRange.new(
-                    what => 'digits argument to base', got => $digits, range => "0..*"
+                    :what('digits argument to base'), :got($digits),
+                    :range<0..^Inf>,
                 )
             }
         }

@@ -73,7 +73,7 @@ my class Int does Real { # declared in BOOTSTRAP
           ?? $digits && ! nqp::istype($digits, Whatever)
             ?? $digits < 0
               ?? Failure.new(X::OutOfRange.new(
-                   :what('digits argument to base'),:got($digits),:range<0..*>))
+                   :what('digits argument to base'),:got($digits),:range<0..1073741824>))
               !!  nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
                     ~ '.'
                     ~ '0' x $digits
@@ -86,7 +86,7 @@ my class Int does Real { # declared in BOOTSTRAP
     # If do-not-want, user should cast invocant to proper domain.
     method polymod(Int:D: +@mods) {
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => self, range => "0..*"
+          :what('invocant to polymod'), :got(self), :range<0..^Inf>
         ) if self < 0;
 
         gather {

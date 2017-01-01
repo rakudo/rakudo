@@ -634,7 +634,7 @@ my class Rakudo::Internals {
                     $number.throw,
                     nqp::if(                          # out of range
                       nqp::islt_i((my int $index = $number.Int),$!offset),
-                      X::OutOfRange.new(:$got,:range("$!offset..Inf")).throw,
+                      X::OutOfRange.new(:$got,:range("$!offset..^Inf")).throw,
                       nqp::if(
                         nqp::existspos($!cache,$index),
                         nqp::atpos($!cache,$index),   # it's in the cache
@@ -1828,7 +1828,7 @@ my class Rakudo::Internals {
         X::OutOfRange.new(
           :what('Number of characters argument to substr'),
           :got(chars.gist),
-          :range("0..Inf"),
+          :range<0..^Inf>,
           :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }

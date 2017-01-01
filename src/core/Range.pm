@@ -412,7 +412,7 @@ my class Range is Cool does Iterable does Positional {
                 ?? $!min + $!excludes-min + pos
                 !! pos < 0
                     ?? Failure.new(X::OutOfRange.new(
-                        :what($*INDEX // 'Index'), :got(pos), :range(0..^Inf)
+                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
                     )) !! Nil
             !! self.list.AT-POS(pos);
     }
@@ -422,7 +422,7 @@ my class Range is Cool does Iterable does Positional {
                 ?? $!min + $!excludes-min + pos
                 !! pos < 0
                     ?? Failure.new(X::OutOfRange.new(
-                        :what($*INDEX // 'Index'), :got(pos), :range(0..^Inf)
+                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
                     )) !! Nil
             !! self.list.AT-POS(nqp::unbox_i(pos));
     }

@@ -6,7 +6,7 @@ my sub combinations(Int() $n, Int() $k) {
     X::OutOfRange.new(
       :what("First parameter"),
       :got($n),
-      :range(-Inf^..($*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1)),
+      :range("-Inf^..{$*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1}"),
     ).throw if $n > 0 and nqp::isbig_I(nqp::decont($n));
 
     # n < 1 → we have an empty list to pick from
@@ -558,7 +558,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i((my int $pos = nqp::unbox_i($Ipos)),0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)),
+            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
           nqp::if(
             $!reified.DEFINITE,
             nqp::if(
@@ -579,7 +579,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got($pos), :range<0..Inf>)),
+            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
           nqp::if(
             $!reified.DEFINITE,
             nqp::if(
@@ -1161,7 +1161,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 X::OutOfRange.new(
                     what    => ".rotor position is",
                     got     => $finished,
-                    range   => "0..Inf",
+                    range   => "0..^Inf",
                     comment => '(ensure the negative gap is not larger than'
                                 ~ ' the length of the sublist)',
                 ).throw if $finished < 0;

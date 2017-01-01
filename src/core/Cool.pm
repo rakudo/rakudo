@@ -250,7 +250,7 @@ my class Cool { # declared in BOOTSTRAP
           ?? Failure.new(X::OutOfRange.new(
                :what('Coercion to UInt'),
                :$got,
-               :range("0..Inf")))
+               :range<0..^Inf>))
           !! $got
     }
 

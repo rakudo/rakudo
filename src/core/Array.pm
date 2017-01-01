@@ -320,7 +320,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::ifnull(
@@ -355,7 +355,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::ifnull(
@@ -398,7 +398,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(
@@ -437,7 +437,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(
@@ -476,7 +476,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -498,7 +498,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -520,7 +520,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(

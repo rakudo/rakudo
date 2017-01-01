@@ -430,28 +430,28 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method AT-POS(Buf:D: int \pos) is raw {
         nqp::islt_i(pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::atposref_i(self, pos)
     }
     multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::atposref_i(self,$pos)
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
         nqp::islt_i(pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,\pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,$pos,assignee)
     }
 

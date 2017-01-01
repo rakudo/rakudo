@@ -66,7 +66,7 @@ my role Real does Numeric {
         my $more = self;
         my $lazy = @mods.is-lazy;
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => $more, range => "0..*"
+          :what('invocant to polymod'), :got($more), :range<0..Inf>
         ) if $more < 0;
         gather {
             for @mods -> $mod {
@@ -85,7 +85,8 @@ my role Real does Numeric {
     method base(Int:D $base, $digits? is copy) {
         $digits = Nil if nqp::istype($digits, Whatever);
         fail X::OutOfRange.new(
-                what => 'digits argument to base', got => $digits, range => "0..*"
+                :what('digits argument to base'), :got($digits),
+                :range<0..1073741824>
             ) if $digits.defined and $digits < 0;
         my $prec = $digits // 1e8.log($base.Num).Int;
         my Int $int_part = self.Int;

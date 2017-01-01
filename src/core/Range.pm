@@ -410,16 +410,20 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
             ?? self.EXISTS-POS(pos)
                 ?? $!min + $!excludes-min + pos
-                !! Failure.new(X::OutOfRange.new(
-                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+                !! pos < 0
+                    ?? Failure.new(X::OutOfRange.new(
+                        :what($*INDEX // 'Index'), :got(pos), :range(0..^Inf)
+                    )) !! Nil
             !! self.list.AT-POS(pos);
     }
     multi method AT-POS(Range:D: Int:D \pos) {
         $!is-int
             ?? self.EXISTS-POS(pos)
                 ?? $!min + $!excludes-min + pos
-                !! Failure.new(X::OutOfRange.new(
-                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+                !! pos < 0
+                    ?? Failure.new(X::OutOfRange.new(
+                        :what($*INDEX // 'Index'), :got(pos), :range(0..^Inf)
+                    )) !! Nil
             !! self.list.AT-POS(nqp::unbox_i(pos));
     }
 

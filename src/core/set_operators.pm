@@ -32,7 +32,7 @@ only sub infix:<∌>($a, $b --> Bool) is pure {
 }
 
 only sub infix:<(|)>(**@p) is pure {
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -44,7 +44,7 @@ only sub infix:<(|)>(**@p) is pure {
             }
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -64,7 +64,7 @@ only sub infix:<∪>(|p) is pure {
 only sub infix:<(&)>(**@p) is pure {
     return set() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -75,7 +75,7 @@ only sub infix:<(&)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -104,7 +104,7 @@ only sub infix:<∩>(|p) is pure {
 only sub infix:<(-)>(**@p) is pure {
     return set() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -115,7 +115,7 @@ only sub infix:<(-)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } elsif @p.first(Baggy) {
+    } orwith @p.first(Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -136,15 +136,57 @@ only sub infix:<(-)>(**@p) is pure {
         $sethash.Set(:view);
     }
 }
+
 # U+2216 SET MINUS
 only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
+
 only sub infix:<(^)>(**@p) is pure {
-    Set.new(BagHash.new(@p.map(*.Set(:view).keys.Slip)).pairs.map({.key if .value == 1}));
+    return set() unless my $chain = @p.elems;
+
+    if $chain == 1 {
+        return @p[0];
+    } elsif $chain == 2 {
+        my ($a, $b) = @p;
+        my $mixy-or-baggy = False;
+        if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
+            ($a, $b) = $a.MixHash, $b.MixHash;
+            $mixy-or-baggy = True;
+        } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
+            ($a, $b) = $a.BagHash, $b.BagHash;
+            $mixy-or-baggy = True;
+        }
+        return  $mixy-or-baggy
+                    # the set formula is not symmetric for bag/mix. this is.
+                    ?? ($a (-) $b) (+) ($b (-) $a)
+                    # set formula for the two-arg set.
+                    !! ($a (|) $b) (-) ($b (&) $a);
+    } else {
+        with @p.first(Mixy) || @p.first(Baggy) {
+            my $head;
+            while (@p) {
+                my ($a, $b);
+                if $head.defined {
+                    ($a, $b) = $head, @p.shift;
+                } else {
+                    ($a, $b) = @p.shift, @p.shift;
+                }
+                if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
+                    ($a, $b) = $a.MixHash, $b.MixHash;
+                } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
+                    ($a, $b) = $a.BagHash, $b.BagHash;
+                }
+                $head = ($a (-) $b) (+) ($b (-) $a);
+            }
+            return $head;
+        } else {
+            return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
+        } 
+    }
 }
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b --> Setty) is pure {
+only sub infix:<⊖>($a, $b) is pure {
     $a (^) $b;
 }
 
@@ -226,7 +268,7 @@ only sub infix:<⊅>($a, $b --> Bool) is pure {
 only sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -258,7 +300,7 @@ only sub infix:<⊍>(|p) is pure {
 only sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 
-    if @p.first(Mixy) {
+    with @p.first(Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;

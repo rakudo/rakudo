@@ -31,39 +31,47 @@ my class IO::Socket::INET does IO::Socket {
     has $.nl-in is rw = ["\x0A", "\r\n"];
     has int $.ins;
 
+    my sub split-host-port(:$host is copy, :$port is copy, :$family) {
+        my ($split-host, $split-port) = $family == PIO::PF_INET6
+            ?? v6-split($host)
+            !! v4-split($host);
+        if $split-port {
+            $port //= $split-port.Str;
+            $host = $split-host.Int;
+        }
+
+        fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
+            unless PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
+
+        return ($host, $port);
+    }
+
     my sub v4-split($uri) {
         return $uri.split(':', 2);
     }
 
     my sub v6-split($uri) {
         my ($host, $port) = ($uri ~~ /^'[' (.+) ']' \: (\d+)$/)[0,1];
-        return $host ?? ($host.Str, $port.Int) !! $uri;
+        return $host ?? ($host, $port) !! $uri;
     }
 
     # Create new socket that listens on $localhost:$localport
     multi method new (
-        Str:D  :$localhost! is copy,
-        Int    :$localport is copy,
-        Int:D  :$family where {
-               $family == PIO::PF_INET
-            || $family == PIO::PF_INET6
+        Str:D     :$localhost! is copy,
+        Int(Cool) :$localport is copy,
+        Bool:D    :$listen!,
+        Int(Cool) :$family where {
+                   $family == PIO::PF_INET
+                || $family == PIO::PF_INET6
         } = PIO::PF_INET,
-        Bool:D :$listen!,
-        Str:D  :$encoding = 'utf8',
-               :$nl-in = ["\x0A", "\r\n"],
+                  *%rest,
         --> IO::Socket::INET:D) {
 
-        # Split host:port
-        my ($my-host, $my-port) = $family == PIO::PF_INET6
-            ?? v6-split($localhost)
-            !! v4-split($localhost);
-        if $my-port {
-            $localport //= $my-port;
-            $localhost = $my-host;
-        }
-
-        fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
-            unless $localport ~~ PIO::MIN_PORT .. PIO::MAX_PORT;
+        ($localhost, $localport) = split-host-port(
+            :host($localhost),
+            :port($localport),
+            :$family,
+        );
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -71,47 +79,38 @@ my class IO::Socket::INET does IO::Socket {
             :$localport,
             :$family,
             :listening($listen),
-            :$encoding,
-            :$nl-in,
+            |%rest,
         )!initialize()
     }
 
     # Open new connection to socket on $host:$port
     multi method new (
-        Str:D :$host! is copy,
-        Int   :$port is copy,
-        Int:D :$family where {
-               $family == PIO::PF_INET
-            || $family == PIO::PF_INET6
+        Str:D     :$host! is copy,
+        Int(Cool) :$port is copy,
+        Int(Cool) :$family where {
+                   $family == PIO::PF_INET
+                || $family == PIO::PF_INET6
         } = PIO::PF_INET,
-        Str:D :$encoding = 'utf8',
-              :$nl-in = ["\x0A", "\r\n"],
+                  *%rest,
         --> IO::Socket::INET:D) {
 
-        # Split host:port
-        my ($my-host, $my-port) = $family == PIO::PF_INET6
-            ?? v6-split($host)
-            !! v4-split($host);
-        if $my-port {
-            $port //= $my-port;
-            $host = $my-host;
-        }
-
-        fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
-            unless $port ~~ PIO::MIN_PORT .. PIO::MAX_PORT;
+        ($host, $port) = split-host-port(
+            :$host,
+            :$port,
+            :$family,
+        );
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$host,
             :$port,
             :$family,
-            :$encoding,
-            :$nl-in,
+            |%rest,
         )!initialize()
     }
 
     # Fail if no valid parameters are passed
-    multi method new (*%args) {
+    multi method new {
         fail "Nothing given for new socket to connect or bind to";
     }
 

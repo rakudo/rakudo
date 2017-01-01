@@ -57,14 +57,7 @@ my class Cursor does NQPCursorRole {
                     while $iter {
                         $curcap := nqp::shift($iter);
                         $namecount = nqp::add_i($namecount, 1);
-#?if jvm
-                        my Mu $curval := nqp::iterval($curcap);
-                        if (nqp::isint($curval) && nqp::isge_i($curval, 2))
-                        || (nqp::isnum($curval) && nqp::isge_n($curval, 2)) {
-#?endif
-#?if !jvm
                         if nqp::iterval($curcap) >= 2 {
-#?endif
                             $name = nqp::iterkey_s($curcap);
                             $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
@@ -118,14 +111,7 @@ my class Cursor does NQPCursorRole {
                         }
                         elsif nqp::islt_i(nqp::index($name, '='), 0) {
                             my Mu $capval     := nqp::atkey($caplist, $name);
-#?if jvm
-                            my int $needs_list = nqp::isconcrete($capval) &&
-                                ((nqp::isint($capval) && nqp::isge_i($capval, 2)) ||
-                                 (nqp::isnum($capval) && nqp::isge_n($capval, 2)));
-#?endif
-#?if !jvm
                             my int $needs_list = nqp::isconcrete($capval) && $capval >= 2;
-#?endif
                             if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                 $list := nqp::list() unless nqp::isconcrete($list);
                                 $needs_list
@@ -146,14 +132,7 @@ my class Cursor does NQPCursorRole {
                             while $iter {
                                 $name    = nqp::shift($iter);
                                 $capval := nqp::atkey($caplist, $name);
-#?if jvm
-                                $needs_list = nqp::isconcrete($capval) &&
-                                    ((nqp::isint($capval) && nqp::isge_i($capval, 2)) ||
-                                     (nqp::isnum($capval) && nqp::isge_n($capval, 2)));
-#?endif
-#?if !jvm
                                 $needs_list = nqp::isconcrete($capval) && $capval >= 2;
-#?endif
                                 if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
                                     $list := nqp::list() unless nqp::isconcrete($list);
                                     $needs_list

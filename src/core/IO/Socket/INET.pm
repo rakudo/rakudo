@@ -35,9 +35,10 @@ my class IO::Socket::INET does IO::Socket {
         my ($split-host, $split-port) = $family == PIO::PF_INET6
             ?? v6-split($host)
             !! v4-split($host);
+
         if $split-port {
-            $port //= $split-port.Str;
-            $host = $split-host.Int;
+            $host = $split-host.Str;
+            $port //= $split-port.Int
         }
 
         fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
@@ -57,14 +58,14 @@ my class IO::Socket::INET does IO::Socket {
 
     # Create new socket that listens on $localhost:$localport
     multi method new (
-        Str:D     :$localhost! is copy,
-        Int(Cool) :$localport is copy,
-        Bool:D    :$listen!,
-        Int(Cool) :$family where {
-                   $family == PIO::PF_INET
-                || $family == PIO::PF_INET6
+        Str:D  :$localhost! is copy,
+        Int    :$localport is copy,
+        Bool:D :$listen!,
+        Int    :$family where {
+                $family == PIO::PF_INET
+             || $family == PIO::PF_INET6
         } = PIO::PF_INET,
-                  *%rest,
+               *%rest,
         --> IO::Socket::INET:D) {
 
         ($localhost, $localport) = split-host-port(
@@ -72,6 +73,7 @@ my class IO::Socket::INET does IO::Socket {
             :port($localport),
             :$family,
         );
+
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -85,13 +87,13 @@ my class IO::Socket::INET does IO::Socket {
 
     # Open new connection to socket on $host:$port
     multi method new (
-        Str:D     :$host! is copy,
-        Int(Cool) :$port is copy,
-        Int(Cool) :$family where {
-                   $family == PIO::PF_INET
-                || $family == PIO::PF_INET6
+        Str:D :$host! is copy,
+        Int   :$port is copy,
+        Int   :$family where {
+               $family == PIO::PF_INET
+            || $family == PIO::PF_INET6
         } = PIO::PF_INET,
-                  *%rest,
+              *%rest,
         --> IO::Socket::INET:D) {
 
         ($host, $port) = split-host-port(

@@ -114,7 +114,13 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
             ~ "     got: '$got'";
     }
     else {
-        my $test = $got === $expected;
+        # infix:<===> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got === $expected;
+
         $ok = proclaim(?$test, $desc);
         if !$test {
             _diag "expected: ($expected.^name())\n"
@@ -129,7 +135,12 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok;
     if $got.defined { # also hack to deal with Failures
-        my $test = $got eq $expected;
+        # infix:<eq> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got eq $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
             if try    $got     .Str.subst(/\s/, '', :g)

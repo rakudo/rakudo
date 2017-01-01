@@ -488,7 +488,7 @@ public final class Binder {
             if (Ops.istype(decontValue, coerceType, tc) == 0) {
                 param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
                 String methName = tc.native_s;
-                SixModelObject coerceMeth = Ops.findmethod(decontValue, methName, tc);
+                SixModelObject coerceMeth = Ops.findmethodNonFatal(decontValue, methName, tc);
                 if (coerceMeth != null) {
                     Ops.invokeDirect(tc, coerceMeth,
                         Ops.invocantCallSite,
@@ -660,7 +660,7 @@ public final class Binder {
                 capture = decontValue;
             }
             else {
-                SixModelObject meth = Ops.findmethod(decontValue, "Capture", tc);
+                SixModelObject meth = Ops.findmethodNonFatal(decontValue, "Capture", tc);
                 if (meth == null) {
                     if (error != null)
                         error[0] = "Could not turn argument into capture";

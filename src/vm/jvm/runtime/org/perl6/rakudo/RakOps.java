@@ -327,7 +327,7 @@ public final class RakOps {
             spec.store(tc, cont, Ops.decont(value, tc));
         }
         else {
-            SixModelObject meth = Ops.findmethod(cont, "STORE", tc);
+            SixModelObject meth = Ops.findmethodNonFatal(cont, "STORE", tc);
             if (meth != null) {
                 Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });

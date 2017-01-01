@@ -211,7 +211,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $i     = -1;
 
         nqp::bindpos_s($list,$i,
-          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i)))) 
+          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
           while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)

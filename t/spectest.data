@@ -1207,7 +1207,7 @@ integration/advent2014-day05.t #stress
 integration/advent2014-day13.t
 integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t
-integration/deep-recursion-initing-native-array.t
+integration/deep-recursion-initing-native-array.t # moar
 integration/error-reporting.t  # slow
 integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t

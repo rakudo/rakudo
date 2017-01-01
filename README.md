@@ -92,7 +92,8 @@ This is always a good starting point.
 
 If you have a question about Perl 6 syntax or the right way to approach
 a problem using Perl 6, you probably want the "perl6-users@perl.org"
-mailing list or the "irc.freenode.net/#perl6" channel.  The perl6-users
+mailing list or the [irc.freenode.net/#perl6 IRC
+channel](https://webchat.freenode.net/?channels=#perl6). The perl6-users
 list is primarily for the people who want to use Perl 6 to write
 programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #perl6 channel; the Rakudo and Perl 6

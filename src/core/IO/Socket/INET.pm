@@ -32,15 +32,15 @@ my class IO::Socket::INET does IO::Socket {
     has int $.ins;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
-        return ($host, $port) unless $host;
+        if ($host) {
+            my ($split-host, $split-port) = $family == PIO::PF_INET6
+                ?? v6-split($host)
+                !! v4-split($host);
 
-        my ($split-host, $split-port) = $family == PIO::PF_INET6
-            ?? v6-split($host)
-            !! v4-split($host);
-
-        if $split-port {
-            $host = $split-host.Str;
-            $port //= $split-port.Int
+            if $split-port {
+                $host = $split-host.Str;
+                $port //= $split-port.Int
+            }
         }
 
         fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"

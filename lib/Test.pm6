@@ -339,7 +339,8 @@ sub is-approx-calculate (
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = "# TODO $reason";
+    # Adding a space to not backslash the # TODO
+    $todo_reason = " # TODO $reason";
     $time_before = nqp::time_n;
 }
 
@@ -614,10 +615,11 @@ sub proclaim($cond, $desc is copy ) {
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+    # So, adding a ' \' before it.
     $desc = $desc
-    ??  nqp::join('\\#',
+    ??  nqp::join(' \\#',
             nqp::split('#',
-                nqp::join('\\\\', nqp::split('\\', $desc.Str))
+                $desc.Str
             )
         )
     !! '';

@@ -32,6 +32,8 @@ my class IO::Socket::INET does IO::Socket {
     has int $.ins;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
+        return ($host, $port) unless $host;
+
         my ($split-host, $split-port) = $family == PIO::PF_INET6
             ?? v6-split($host)
             !! v4-split($host);
@@ -58,9 +60,9 @@ my class IO::Socket::INET does IO::Socket {
 
     # Create new socket that listens on $localhost:$localport
     multi method new (
-        Str:D  :$localhost! is copy,
-        Int    :$localport is copy,
         Bool:D :$listen!,
+        Str    :$localhost is copy,
+        Int    :$localport is copy,
         Int    :$family where {
                 $family == PIO::PF_INET
              || $family == PIO::PF_INET6

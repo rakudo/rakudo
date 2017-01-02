@@ -462,7 +462,10 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
         when 'uc'  { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
         when 'na'  { nqp::getuniname($code) }
         when 'nv'  { unival($code) }
-        when 'bmg' { nqp::chr(nqp::getuniprop_int($code, $prop)) }
+        when 'bmg' {
+            my int $bmg-ord = nqp::getuniprop_int($code, $prop);
+            $bmg-ord ?? nqp::chr($bmg-ord) !! '';
+        }
         default {
             my $result = nqp::getuniprop_str($code,$prop);
             if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }

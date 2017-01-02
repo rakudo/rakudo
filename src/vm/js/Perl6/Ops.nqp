@@ -47,6 +47,14 @@ $ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     ]);
 });
 
+$ops.add_simple_op('p6configposbindfailover', $ops.VOID, [$ops.OBJ, $ops.OBJ], sub ($pos, $pos_bind_failover) {
+    "nqp.p6binder.set_pos_bind_failover($*CTX, null, nqp.p6binder, $pos, $pos_bind_failover)"
+}, :side_effects);
+
+$ops.add_simple_op('p6setautothreader', $ops.VOID, [$ops.OBJ], sub ($autothreader) {
+    "nqp.p6binder.set_autothreader($*CTX, null, nqp.p6binder, $autothreader)"
+}, :side_effects);
+
 $ops.add_op('p6trialbind', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     my $ops := nqp::getcomp('QAST').operations;
 

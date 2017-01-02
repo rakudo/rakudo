@@ -21,7 +21,7 @@ my class IO::Spec {
 #?if jvm
           nqp::p6box_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name'));
 #?endif
-#?if moar
+#?if !jvm
           nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'osname'));
 #?endif
         IO::Spec::{%module{ lc $token } // 'Unix'};

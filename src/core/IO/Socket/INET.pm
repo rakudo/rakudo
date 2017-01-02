@@ -59,7 +59,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     # Create new socket that listens on $localhost:$localport
-    multi method new (
+    multi method new(
         Bool:D :$listen!,
         Str    :$localhost is copy,
         Int    :$localport is copy,
@@ -88,7 +88,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     # Open new connection to socket on $host:$port
-    multi method new (
+    multi method new(
         Str:D :$host! is copy,
         Int   :$port is copy,
         Int   :$family where {
@@ -114,7 +114,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     # Fail if no valid parameters are passed
-    multi method new {
+    multi method new() {
         fail "Nothing given for new socket to connect or bind to";
     }
 

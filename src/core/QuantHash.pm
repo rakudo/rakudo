@@ -1,3 +1,7 @@
+class Set { ... }
+class Bag { ... }
+class Mix { ... }
+
 my role QuantHash does Associative {
     method Int     ( --> Int)     { self.total.Int }
     method Num     ( --> Num)     { self.total.Num }
@@ -13,7 +17,7 @@ my role QuantHash does Associative {
     }
 
     multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
-        SELF.^name.chars == 3 # shoddy heuristic for Set/Bag/Mix
+        nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
           ?? die "Cannot auto-vivify an immutable {SELF.^name}"
           !! (SELF = self.new).AT-KEY($key)
     }

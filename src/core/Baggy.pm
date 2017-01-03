@@ -1,3 +1,6 @@
+class Bag { ... }
+class Mix { ... }
+
 my role Baggy does QuantHash {
 
 # A Bag/BagHash/Mix/MixHash consists of a single hash with Pairs.
@@ -65,7 +68,7 @@ my role Baggy does QuantHash {
     method !SET-SELF(Baggy:D: Mu \elems) {
         %!elems := elems;
 
-        if self.^name.chars == 3 { # shoddy heuristic for Bag/Mix
+        if nqp::istype(self, Bag) || nqp::istype(self, Mix) {
             my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
             while $iter {
                 my \pair = nqp::iterval(nqp::shift($iter));

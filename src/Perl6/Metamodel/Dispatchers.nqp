@@ -13,11 +13,11 @@ class Perl6::Metamodel::BaseDispatcher {
         $!idx := $!idx + 1;
         if self.has_invocant {
             my $inv := self.invocant;
-            nqp::setdispatcher(self);
+            nqp::setdispatcherfor(self, $call);
             $call($inv, |@pos, |%named);
         }
         else {
-            nqp::setdispatcher(self);
+            nqp::setdispatcherfor(self, $call);
             $call(|@pos, |%named);
         }
     }
@@ -25,7 +25,7 @@ class Perl6::Metamodel::BaseDispatcher {
     method call_with_capture($capture) {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
-        nqp::setdispatcher(self);
+        nqp::setdispatcherfor(self, $call);
         nqp::invokewithcapture(nqp::decont($call), $capture)
     }
 
@@ -123,7 +123,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     method enter(*@pos, *%named) {
         my $fresh := nqp::clone(self);
         my $first := self.candidates[0];
-        nqp::setdispatcher($fresh);
+        nqp::setdispatcherfor($fresh, $first);
         $first(|@pos, |%named)
     }
 }

@@ -544,7 +544,10 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     ctx = tc->cur_frame->caller; /* Skip over routine using this op. */
     while (ctx) {
         /* Do we have a dispatcher here? */
-        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        MVMRegister *disp_lex;
+        MVMROOT(tc, ctx, {
+            disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        });
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
             if (!MVM_is_null(tc, maybe_dispatcher)) {

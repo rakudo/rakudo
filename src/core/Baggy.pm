@@ -1,6 +1,3 @@
-class Bag { ... }
-class Mix { ... }
-
 my role Baggy does QuantHash {
 
 # A Bag/BagHash/Mix/MixHash consists of a single hash with Pairs.

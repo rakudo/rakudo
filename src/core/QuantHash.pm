@@ -1,7 +1,3 @@
-class Set { ... }
-class Bag { ... }
-class Mix { ... }
-
 my role QuantHash does Associative {
     method Int     ( --> Int)     { self.total.Int }
     method Num     ( --> Num)     { self.total.Num }

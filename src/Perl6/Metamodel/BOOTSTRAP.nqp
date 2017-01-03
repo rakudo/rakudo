@@ -3096,7 +3096,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 my %excluded := nqp::hash(
     'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
     'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'so', Mu, 'not', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
     'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
     'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
     'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);

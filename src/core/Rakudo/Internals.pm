@@ -78,31 +78,34 @@ my class Rakudo::Internals {
         method sink-all(--> IterationEnd) { $!i = $!elems }
     }
 
-    our class WhateverIterator does Iterator {
-        has $!source;
-        has $!last;
-        has int $!whatever;
-        method new(\source) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-        }
-        method pull-one() is raw {
-            nqp::if(
-              $!whatever,
-              $!last,
-              nqp::if(
-                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                IterationEnd,
+    method WhateverIterator(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!last;
+            has int $!whatever;
+            method new(\source) {
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!source',source.iterator)
+            }
+            method pull-one() is raw {
                 nqp::if(
-                  nqp::istype(value, Whatever),
-                  nqp::stmts(
-                    ($!whatever = 1),
-                    self.pull-one
-                  ),
-                  ($!last := value)
+                  $!whatever,
+                  $!last,
+                  nqp::if(
+                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                    IterationEnd,
+                    nqp::if(
+                      nqp::istype(value,Whatever),
+                      nqp::stmts(
+                        ($!whatever = 1),
+                        self.pull-one
+                      ),
+                      ($!last := value)
+                    )
+                  )
                 )
-              )
-            )
-        }
+            }
+        }.new(source)
     }
 
     our class DwimIterator does Iterator {

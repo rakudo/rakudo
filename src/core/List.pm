@@ -1595,13 +1595,13 @@ multi sub infix:<Z>(+lol) {
         my \elem = lol[$i];
         if nqp::iscont(elem) {
             $laze = False;
-            Rakudo::Internals::WhateverIterator.new((elem,).iterator)
+            Rakudo::Internals.WhateverIterator((elem,))
         }
         else {
             $laze = False unless elem.is-lazy;
-            Rakudo::Internals::WhateverIterator.new(elem.iterator)
+            Rakudo::Internals.WhateverIterator(elem)
         }
-    };
+    }
 
     gather {
         loop {

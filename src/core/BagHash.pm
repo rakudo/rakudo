@@ -39,6 +39,7 @@ my class BagHash does Baggy {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone)
     }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
+    method clone(BagHash:D:) { self.new-from-pairs(self.pairs) }
 }
 
 # vim: ft=perl6 expandtab sw=4

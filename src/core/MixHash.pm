@@ -37,6 +37,7 @@ my class MixHash does Mixy {
     method MixHash { self }
     method Bag     {     Bag.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
     method BagHash { BagHash.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
+    method clone(MixHash:D:) { self.new-from-pairs(self.pairs) }
 }
 
 # vim: ft=perl6 expandtab sw=4

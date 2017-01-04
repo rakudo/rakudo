@@ -479,8 +479,8 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
     X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right-iterator.is-lazy and
         (not $dwim-right or $dwim-left);
 
-    my \lefti  := Rakudo::Internals::DwimIterator.new(left-iterator);
-    my \righti := Rakudo::Internals::DwimIterator.new(right-iterator);
+    my \lefti  := Rakudo::Internals.DwimIterator(left-iterator);
+    my \righti := Rakudo::Internals.DwimIterator(right-iterator);
 
     my \result := IterationBuffer.new;
     loop {

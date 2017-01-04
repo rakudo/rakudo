@@ -108,66 +108,71 @@ my class Rakudo::Internals {
         }.new(source)
     }
 
-    our class DwimIterator does Iterator {
-        has $!source;
-        has $!buffer;
-        has int $!ended;
-        has int $!whatever;
-        has int $!i;
-        has int $!elems;
-        method !SET-SELF(\source) {
-            $!source := source;
-            $!buffer := IterationBuffer.new;
-            self
-        }
-        method new(\source) { nqp::create(self)!SET-SELF(source) }
+    method DwimIterator(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!buffer;
+            has int $!ended;
+            has int $!whatever;
+            has int $!i;
+            has int $!elems;
+            method !SET-SELF(\source) {
+                $!source := source;
+                $!buffer := IterationBuffer.new;
+                self
+            }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
 
-        method pull-one() is raw {
-            nqp::if(
-              $!ended,
-              nqp::if(
-                $!whatever,
-                $!buffer.AT-POS(nqp::sub_i($!elems,1)),
-                $!buffer.AT-POS(
-                  nqp::mod_i(nqp::sub_i(($!i = nqp::add_i($!i,1)),1),$!elems)
-                )
-              ),
-              nqp::if(
-                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                nqp::stmts(
-                  ($!ended = 1),
-                  nqp::if(
-                    nqp::iseq_i($!elems,0),
-                    IterationEnd,
-                    self.pull-one
-                  )
-                ),
+            method pull-one() is raw {
                 nqp::if(
-                  nqp::istype(value,Whatever),
-                  nqp::stmts(
-                    ($!whatever = $!ended = 1),
-                    self.pull-one
+                  $!ended,
+                  nqp::if(
+                    $!whatever,
+                    $!buffer.AT-POS(nqp::sub_i($!elems,1)),
+                    $!buffer.AT-POS(
+                      nqp::mod_i(
+                        nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
+                        $!elems
+                      )
+                    )
                   ),
-                  nqp::stmts(
-                    ($!elems = nqp::add_i($!elems,1)),
-                    $!buffer.push(value),
-                    value
+                  nqp::if(
+                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                    nqp::stmts(
+                      ($!ended = 1),
+                      nqp::if(
+                        nqp::iseq_i($!elems,0),
+                        IterationEnd,
+                        self.pull-one
+                      )
+                    ),
+                    nqp::if(
+                      nqp::istype(value,Whatever),
+                      nqp::stmts(
+                        ($!whatever = $!ended = 1),
+                        self.pull-one
+                      ),
+                      nqp::stmts(
+                        ($!elems = nqp::add_i($!elems,1)),
+                        $!buffer.push(value),
+                        value
+                      )
+                    )
                   )
                 )
-              )
-            )
-        }
-        method ended() { nqp::p6bool($!ended) }
-        method count-elems() {
-            nqp::unless(
-              $!ended,
-              nqp::until(
-                nqp::eqaddr($!source.pull-one,IterationEnd),
-                $!elems = nqp::add_i($!elems,1)
-              )
-            );
-            $!elems
-        }
+            }
+            method ended() { nqp::p6bool($!ended) }
+            method count-elems() {
+                nqp::unless(
+                  $!ended,
+                  nqp::until(
+                    nqp::eqaddr($!source.pull-one,IterationEnd),
+                    $!elems = nqp::add_i($!elems,1)
+                  )
+                );
+                $!elems
+            }
+        }.new(source)
     }
 
     our role ShapeLeafIterator does Iterator {

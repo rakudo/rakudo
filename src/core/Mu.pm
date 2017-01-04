@@ -738,14 +738,19 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method dispatch:<hyper>(Mu \SELF: \name, |c) {
-        my $listcan = List.can(name);
-        $listcan && $listcan[0].?nodal
-          ?? c
-            ?? HYPER( sub (\obj) is nodal { obj."{name}"(|c) }, SELF )
-            !! HYPER( sub (\obj) is nodal { obj."{name}"() }, SELF )
-          !! c
-            ?? HYPER( -> \obj { obj."{name}"(|c) }, SELF )
-            !! HYPER( -> \obj { obj."{name}"() }, SELF )
+        nqp::if(
+          nqp::can(List,name) && nqp::can(List.can(name).AT-POS(0),"nodal"),
+          nqp::if(
+            c,
+            HYPER( sub (\obj) is nodal { obj."{name}"(|c) }, SELF ),
+            HYPER( sub (\obj) is nodal { obj."{name}"() }, SELF )
+          ),
+          nqp::if(
+            c,
+            HYPER( -> \obj { obj."{name}"(|c) }, SELF ),
+            HYPER( -> \obj { obj."{name}"() }, SELF )
+          )
+        )
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

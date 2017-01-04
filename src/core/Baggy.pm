@@ -193,7 +193,7 @@ my role Baggy does QuantHash {
 
 #--- iterator methods
     multi method pairs(Baggy:D:) {
-        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
+        Seq.new(Rakudo::Internals.MappyIterator-values(%!elems))
     }
     multi method keys(Baggy:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {

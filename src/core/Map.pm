@@ -161,7 +161,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method values(Map:D:) {
-        Seq.new(Rakudo::Internals::MappyIterator-values.new(self))
+        Seq.new(Rakudo::Internals.MappyIterator-values(self))
     }
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Internals::MappyIterator {

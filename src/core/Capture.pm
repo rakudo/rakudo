@@ -112,7 +112,9 @@ my class Capture { # declared in BOOTSTRAP
         }
     }
     multi method Bool(Capture:D:) {
-        ?(@!list || %!hash)
+        nqp::p6bool(
+          nqp::elems(@!list) || nqp::elems(%!hash)
+        )
     }
 
     method Capture(Capture:D:) {

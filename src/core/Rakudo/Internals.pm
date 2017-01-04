@@ -34,22 +34,6 @@ my class Rakudo::Internals {
         method sink-all(--> IterationEnd) { $!iter := Mu }
     }
 
-    method MappyIterator-values(\hash) {
-        class :: does MappyIterator {
-            method pull-one() is raw {
-                $!iter
-                  ?? nqp::iterval(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)))
-                )
-            }
-        }.new(hash)
-    }
-
     our role BlobbyIterator does Iterator {
         has $!blob;
         has int $!elems;
@@ -78,103 +62,6 @@ my class Rakudo::Internals {
             nqp::p6box_i($!elems)
         }
         method sink-all(--> IterationEnd) { $!i = $!elems }
-    }
-
-    method WhateverIterator(\source) {
-        class :: does Iterator {
-            has $!source;
-            has $!last;
-            has int $!whatever;
-            method new(\source) {
-                nqp::p6bindattrinvres(
-                  nqp::create(self),self,'$!source',source.iterator)
-            }
-            method pull-one() is raw {
-                nqp::if(
-                  $!whatever,
-                  $!last,
-                  nqp::if(
-                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                    IterationEnd,
-                    nqp::if(
-                      nqp::istype(value,Whatever),
-                      nqp::stmts(
-                        ($!whatever = 1),
-                        self.pull-one
-                      ),
-                      ($!last := value)
-                    )
-                  )
-                )
-            }
-        }.new(source)
-    }
-
-    method DwimIterator(\source) {
-        class :: does Iterator {
-            has $!source;
-            has $!buffer;
-            has int $!ended;
-            has int $!whatever;
-            has int $!i;
-            has int $!elems;
-            method !SET-SELF(\source) {
-                $!source := source;
-                $!buffer := IterationBuffer.new;
-                self
-            }
-            method new(\source) { nqp::create(self)!SET-SELF(source) }
-
-            method pull-one() is raw {
-                nqp::if(
-                  $!ended,
-                  nqp::if(
-                    $!whatever,
-                    $!buffer.AT-POS(nqp::sub_i($!elems,1)),
-                    $!buffer.AT-POS(
-                      nqp::mod_i(
-                        nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
-                        $!elems
-                      )
-                    )
-                  ),
-                  nqp::if(
-                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                    nqp::stmts(
-                      ($!ended = 1),
-                      nqp::if(
-                        nqp::iseq_i($!elems,0),
-                        IterationEnd,
-                        self.pull-one
-                      )
-                    ),
-                    nqp::if(
-                      nqp::istype(value,Whatever),
-                      nqp::stmts(
-                        ($!whatever = $!ended = 1),
-                        self.pull-one
-                      ),
-                      nqp::stmts(
-                        ($!elems = nqp::add_i($!elems,1)),
-                        $!buffer.push(value),
-                        value
-                      )
-                    )
-                  )
-                )
-            }
-            method ended() { nqp::p6bool($!ended) }
-            method count-elems() {
-                nqp::unless(
-                  $!ended,
-                  nqp::until(
-                    nqp::eqaddr($!source.pull-one,IterationEnd),
-                    $!elems = nqp::add_i($!elems,1)
-                  )
-                );
-                $!elems
-            }
-        }.new(source)
     }
 
     our role ShapeLeafIterator does Iterator {
@@ -498,6 +385,119 @@ my class Rakudo::Internals {
                 )
             }
         }.new(seq-from-seqs))
+    }
+
+    method MappyIterator-values(\hash) {
+        class :: does MappyIterator {
+            method pull-one() is raw {
+                $!iter
+                  ?? nqp::iterval(nqp::shift($!iter))
+                  !! IterationEnd
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::while(  # doesn't sink
+                  $!iter,
+                  $target.push(nqp::iterval(nqp::shift($!iter)))
+                )
+            }
+        }.new(hash)
+    }
+
+    method WhateverIterator(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!last;
+            has int $!whatever;
+            method new(\source) {
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!source',source.iterator)
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  $!whatever,
+                  $!last,
+                  nqp::if(
+                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                    IterationEnd,
+                    nqp::if(
+                      nqp::istype(value,Whatever),
+                      nqp::stmts(
+                        ($!whatever = 1),
+                        self.pull-one
+                      ),
+                      ($!last := value)
+                    )
+                  )
+                )
+            }
+        }.new(source)
+    }
+
+    method DwimIterator(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!buffer;
+            has int $!ended;
+            has int $!whatever;
+            has int $!i;
+            has int $!elems;
+            method !SET-SELF(\source) {
+                $!source := source;
+                $!buffer := IterationBuffer.new;
+                self
+            }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!ended,
+                  nqp::if(
+                    $!whatever,
+                    $!buffer.AT-POS(nqp::sub_i($!elems,1)),
+                    $!buffer.AT-POS(
+                      nqp::mod_i(
+                        nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
+                        $!elems
+                      )
+                    )
+                  ),
+                  nqp::if(
+                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                    nqp::stmts(
+                      ($!ended = 1),
+                      nqp::if(
+                        nqp::iseq_i($!elems,0),
+                        IterationEnd,
+                        self.pull-one
+                      )
+                    ),
+                    nqp::if(
+                      nqp::istype(value,Whatever),
+                      nqp::stmts(
+                        ($!whatever = $!ended = 1),
+                        self.pull-one
+                      ),
+                      nqp::stmts(
+                        ($!elems = nqp::add_i($!elems,1)),
+                        $!buffer.push(value),
+                        value
+                      )
+                    )
+                  )
+                )
+            }
+            method ended() { nqp::p6bool($!ended) }
+            method count-elems() {
+                nqp::unless(
+                  $!ended,
+                  nqp::until(
+                    nqp::eqaddr($!source.pull-one,IterationEnd),
+                    $!elems = nqp::add_i($!elems,1)
+                  )
+                );
+                $!elems
+            }
+        }.new(source)
     }
 
     # Create iterator for the next N elements of given iterator

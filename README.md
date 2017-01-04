@@ -98,7 +98,8 @@ list is primarily for the people who want to use Perl 6 to write
 programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #perl6 channel; the Rakudo and Perl 6
 development teams tend to hang out there and are generally glad
-to help.  You can follow "@rakudoperl" on Twitter, and there's
+to help.  You can follow [@perl6org](https://twitter.com/perl6org)
+and [@rakudoperl](https://twitter.com/rakudoperl) on Twitter, and there's
 a Perl 6 news aggregator at [Planet Perl 6](http://pl6anet.org/).
 
 Questions about NQP can also be posted to the #perl6 IRC channel.

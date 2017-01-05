@@ -294,7 +294,7 @@
         proto method STORE(|) { * }
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
-              in.shape eqv self.shape && nqp::eqaddr(in.WHAT,self.WHAT),
+              in.shape eqv self.shape,
               nqp::stmts(
                 MEMCPY(self,in),     # VM-supported memcpy-like thing?
                 self

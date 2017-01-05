@@ -387,48 +387,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # semi-randomize the order of values in an Iterator
-    method RandomizeOrderIterator(\iterator) {
-        class :: does Iterator {
-            has Mu $!iterator;
-            has Mu $!buffered;
-            method !SET-SELF(\iterator) {
-                nqp::stmts(
-                  ($!iterator := iterator),
-                  ($!buffered := nqp::list),
-                  self
-                )
-            }
-            method new(\iterator) { nqp::create(self)!SET-SELF(iterator) }
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::isgt_i(nqp::elems($!buffered),0),
-                  nqp::pop($!buffered),
-                  nqp::if(
-                    nqp::isnull($!iterator),
-                    IterationEnd,
-                    nqp::stmts(
-                      (my int $sample = nqp::rand_I(4,Int)), # pick 2..5 values
-                      nqp::until(
-                        nqp::eqaddr(
-                          (my $pulled := $!iterator.pull-one),
-                          IterationEnd
-                        ) || nqp::islt_i(($sample = nqp::sub_i($sample,1)),-1),
-                        nqp::push($!buffered,$pulled)
-                      ),
-                      nqp::if(
-                        nqp::eqaddr($pulled,IterationEnd),
-                        ($!iterator := nqp::null),
-                        nqp::push($!buffered,$pulled)
-                      ),
-                      self.pull-one
-                    )
-                  )
-                )
-            }
-        }.new(iterator)
-    }
-
     method MappyIterator-values(\hash) {
         class :: does MappyIterator {
             method pull-one() is raw {

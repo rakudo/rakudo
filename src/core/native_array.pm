@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2016-12-23T12:20:35+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-01-05T22:17:15+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -372,7 +372,7 @@ my class array does Iterable {
                         nqp::islt_i(($k = nqp::add_i($k,1)),$end),
                         nqp::if(
                           nqp::islt_i($i,$right) && (
-                            nqp::islt_i($j,$end)
+                            nqp::isge_i($j,$end)
                               || nqp::islt_s(
                                    nqp::atpos_s($A,$i),
                                    nqp::atpos_s($A,$j)
@@ -422,7 +422,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2016-12-23T12:20:35+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-01-05T22:17:15+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -737,7 +737,7 @@ my class array does Iterable {
                         nqp::islt_i(($k = nqp::add_i($k,1)),$end),
                         nqp::if(
                           nqp::islt_i($i,$right) && (
-                            nqp::islt_i($j,$end)
+                            nqp::isge_i($j,$end)
                               || nqp::islt_i(
                                    nqp::atpos_i($A,$i),
                                    nqp::atpos_i($A,$j)
@@ -806,7 +806,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2016-12-23T12:20:35+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-01-05T22:17:15+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1121,7 +1121,7 @@ my class array does Iterable {
                         nqp::islt_i(($k = nqp::add_i($k,1)),$end),
                         nqp::if(
                           nqp::islt_i($i,$right) && (
-                            nqp::islt_i($j,$end)
+                            nqp::isge_i($j,$end)
                               || nqp::islt_n(
                                    nqp::atpos_n($A,$i),
                                    nqp::atpos_n($A,$j)

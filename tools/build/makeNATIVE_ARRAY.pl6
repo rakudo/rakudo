@@ -359,7 +359,7 @@ for $*IN.lines -> $line {
                         nqp::islt_i(($k = nqp::add_i($k,1)),$end),
                         nqp::if(
                           nqp::islt_i($i,$right) && (
-                            nqp::islt_i($j,$end)
+                            nqp::isge_i($j,$end)
                               || nqp::islt_#postfix#(
                                    nqp::atpos_#postfix#($A,$i),
                                    nqp::atpos_#postfix#($A,$j)

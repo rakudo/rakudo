@@ -239,7 +239,7 @@ sub bail-out ($desc?) is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx'); # Remove at 20161217 release (6 months from today)
+    DEPRECATED('is-approx'); # Remove for 6.d release
 
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;

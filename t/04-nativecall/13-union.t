@@ -25,7 +25,7 @@ class MyStruct is repr('CStruct') {
     HAS Onion $.onion;
     has num32 $.float;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;
@@ -43,7 +43,6 @@ sub SetCharMyStruct(MyStruct)           is native('./13-union') { * }
 is nativesizeof(MyStruct), SizeofMyStruct(), 'sizeof(MyStruct)';
 # Perl-side tests:
 my MyStruct $obj .= new;
-$obj.init;
 
 is $obj.long,         42,     'getting long';
 is-approx $obj.num,  -3.7e0,  'getting num';
@@ -77,7 +76,7 @@ class MyStruct2 is repr('CStruct') {
     has Onion $.onion;
     has num32 $.float;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;

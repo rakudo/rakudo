@@ -16,7 +16,7 @@ class MyStruct is repr('CStruct') {
     has num32  $.float;
     has CArray $.arr;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;
@@ -43,7 +43,7 @@ class IntStruct is repr('CStruct') {
     has long $.second;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!first  = 13;
         $!second = 17;
     }
@@ -54,7 +54,7 @@ class NumStruct is repr('CStruct') {
     has num64 $.second;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!first  = 0.9e0;
         $!second = 3.14e0;
     }
@@ -65,11 +65,9 @@ class StructStruct is repr('CStruct') {
     has NumStruct $.b;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!a := IntStruct.new;
         $!b := NumStruct.new;
-        $!a.init;
-        $!b.init;
     }
 }
 
@@ -77,7 +75,7 @@ class StringStruct is repr('CStruct') {
     has Str $.first;
     has Str $.second;
 
-    method init {
+    submethod TWEAK {
         $!first  := 'Lorem';
         $!second := 'ipsum';
     }
@@ -112,7 +110,6 @@ sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { 
 
 # Perl-side tests:
 my MyStruct $obj .= new;
-$obj.init;
 
 is $obj.long,   42,     'getting long';
 is-approx $obj.num,   -3.7e0,  'getting num';
@@ -148,12 +145,11 @@ is $strstr.second, 'Strings!', 'second string in struct';
 is TakeAStruct($obj), 11, 'C-side values in struct';
 
 my StructStruct $ss2 .= new();
-$ss2.init;
 
 is TakeAStructStruct($ss2), 22, 'C-side values in struct struct';
 
 my StringStruct $strstr2 .= new();
-$strstr2.init;
+
 #$strstr2.first  := "Lorem";
 #$strstr2.second := "ipsum";
 is TakeAStringStruct($strstr2), 33, 'C-side strict values in struct';

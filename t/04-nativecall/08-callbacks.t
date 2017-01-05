@@ -13,7 +13,7 @@ class Struct is repr('CStruct') {
     has Str  $.str;
     has long $.ival;
 
-    method init {
+    submethod TWEAK {
         $!str := 'Tweedledum, tweedledee';
         $!ival = 314;
     }
@@ -55,7 +55,6 @@ sub return_str() returns Str {
 
 sub return_struct() returns Struct {
     my Struct $struct .= new;
-    $struct.init;
 
     return $struct;
 }

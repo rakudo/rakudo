@@ -460,6 +460,14 @@
             }.new(self))
         }
 
+        multi method List(::?CLASS:D:) {
+            nqp::stmts(
+              self.iterator.push-all(
+                (my $list := nqp::create(IterationBuffer))),
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
+            )
+        }
+
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Internals::ShapeLeafIterator {
                 has Mu $!desc;

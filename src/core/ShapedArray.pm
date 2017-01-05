@@ -391,6 +391,32 @@
             }.new(self,in).sink-all;
             self
         }
+        multi method STORE(::?CLASS:D: Iterator:D \iterator) {
+            class :: does Rakudo::Internals::ShapeLeafIterator {
+                has Mu $!iterator;
+                has Mu $!desc;
+                method INIT(\list,\iterator) {
+                    nqp::stmts(
+                      ($!iterator := iterator),
+                      ($!desc := nqp::getattr(list,Array,'$!descriptor')),
+                      self.SET-SELF(list)
+                    )
+                }
+                method new(\list,\iter) { nqp::create(self).INIT(list,iter) }
+                method result(--> Nil) {
+                    nqp::unless(
+                      nqp::eqaddr(
+                        (my $pulled := $!iterator.pull-one),IterationEnd),
+                      nqp::ifnull(
+                        nqp::atposnd($!list,$!indices),
+                        nqp::bindposnd($!list,$!indices, 
+                          nqp::p6scalarfromdesc($!desc))
+                      ) = $pulled
+                    )
+                }
+            }.new(self,iterator).sink-all;
+            self
+        }
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }

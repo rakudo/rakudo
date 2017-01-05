@@ -103,11 +103,11 @@ my role Iterable {
 
     method !valid-hyper-race($method,$batch,$degree --> Nil) {
         $batch <= 0
-          ?? Failure.new(X::Invalid::Value.new(
-               :$method,:name<batch>,:value($batch)))
+          ?? X::Invalid::Value.new(
+               :$method,:name<batch>,:value($batch)).throw
           !! $degree <= 0
-            ?? Failure.new(X::Invalid::Value.new(
-                 :$method,:name<degree>,:value($degree)))
+            ?? X::Invalid::Value.new(
+                 :$method,:name<degree>,:value($degree)).throw
             !! Nil
     }
 

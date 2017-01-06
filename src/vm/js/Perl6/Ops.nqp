@@ -112,3 +112,14 @@ $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side_effects, sub () {
 });
 
 $ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_marker });
+$ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want, :$cps) {
+    my $ops := nqp::getcomp('QAST').operations;
+    unless $*RETURN_FROM_HANDLER {
+        $*RETURN_FROM_HANDLER := $*BLOCK.add_tmp;
+    }
+    my $value := $comp.as_js($node[0], :$want, :$cps);
+    $ops.new_chunk($ops.VOID, "", [
+        $value,
+        "$*RETURN_FROM_HANDLER = {$value.expr};\n"
+    ]);
+});

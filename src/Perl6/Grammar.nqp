@@ -5208,7 +5208,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
 
     token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
 
-    token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
+    token backslash:sym<1> { <.[\d] - [0]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${nqp::radix(10, $/, 0, 0)[0] - 1}?)")> }
 
     token assertion:sym<{ }> {
         <?[{]> <codeblock>

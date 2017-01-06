@@ -173,7 +173,7 @@ grammar Grammar {
         '1..' <count=.num> <.sp>* [ '#' <.sp>* $<directive>=[:i 'SKIP'] <.alnum>* [ <.sp>+ $<explanation>=[\N*] ]? ]?
     }
     regex description {
-        [ <-[\n\#\\]> | \\<[\\#]> ]+ <!after <sp>+>
+        [ '\\\\' || '\#' || <-[\n#]> ]+ <!after <sp>+>
     }
     token test {
         $<nok>=['not '?] 'ok' [ <.sp> <num> ]? ' -'?

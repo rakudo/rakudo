@@ -912,9 +912,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         # batch up the work too).
         Array.from-iterator(self.iterator)
     }
+
     method eager {
-        $!todo.reify-all() if $!todo.DEFINITE;
-        self;
+        nqp::stmts(
+          nqp::if(
+            $!todo.DEFINITE,
+            nqp::stmts(
+              $!todo.reify-all,
+              ($!todo := nqp::null)
+            )
+          ),
+          self
+        )
     }
 
     method Capture() {

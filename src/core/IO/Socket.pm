@@ -87,7 +87,7 @@ my role IO::Socket does IO {
     method close (--> True) {
         fail("Not connected!") unless $!PIO;
         nqp::closefh($!PIO);
-        $!PIO := Mu;
+        $!PIO := nqp::null;
     }
 
     method native-descriptor(::?CLASS:D:) {

@@ -22,7 +22,7 @@ my role SlippyIterator does Iterator {
           nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd),
           nqp::stmts(
             ($!slipping = 0),
-            ($!slip-iter := Mu)
+            ($!slip-iter := nqp::null)
           )
         );
         result

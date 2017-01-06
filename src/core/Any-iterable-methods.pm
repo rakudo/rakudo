@@ -845,7 +845,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method pull-one() is raw {
                 if $!value.DEFINITE {
                     my \tmp  = $!value;
-                    $!value := Mu;
+                    $!value := nqp::null;
                     tmp
                 }
                 else {

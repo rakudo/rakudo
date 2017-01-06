@@ -118,7 +118,7 @@ my class IO::Handle does IO {
     method close(IO::Handle:D: --> True) {
         # TODO: catch errors
         nqp::closefh($!PIO) if nqp::defined($!PIO);
-        $!PIO := Mu;
+        $!PIO := nqp::null;
     }
 
     method eof(IO::Handle:D:) {

@@ -217,7 +217,7 @@ my role Baggy does QuantHash {
             method pull-one() is raw {
                 if $!value.DEFINITE {
                     my \tmp  = $!value;
-                    $!value := Mu;
+                    $!value := nqp::null;
                     tmp
                 }
                 elsif $!iter {

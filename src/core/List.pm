@@ -540,7 +540,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::if(
               $!todo.fully-reified,
               nqp::stmts(
-                ($!todo := Mu),
+                ($!todo := nqp::null),
                 nqp::elems($!reified)
               ),
               Failure.new(X::Cannot::Lazy.new(:action('.elems')))
@@ -681,7 +681,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     )
                 }
                 method !done() is raw {
-                    $!todo := nqp::bindattr($!list,List,'$!todo',Mu);
+                    $!todo := nqp::bindattr($!list,List,'$!todo',nqp::null);
                     IterationEnd
                 }
 
@@ -980,10 +980,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $!todo.reify-until-lazy,
             nqp::if(
               $!todo.fully-reified,
-              nqp::stmts(
-                ($!todo := Mu),
-                False
-              ),
+              nqp::p6bool($!todo := nqp::null),
               True
             )
           )
@@ -1212,7 +1209,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         if $!todo.DEFINITE {
             $!todo.reify-until-lazy;
             $!todo.fully-reified
-              ?? ($!todo := Mu)
+              ?? ($!todo := nqp::null)
               !! ($infinite = 1);
         }
 
@@ -1252,7 +1249,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               $!todo.reify-until-lazy,
               nqp::if(
                 $!todo.fully-reified,
-                ($!todo := Mu),
+                ($!todo := nqp::null),
                 X::Cannot::Lazy.new(:action('.sort')).throw
               )
             )
@@ -1281,7 +1278,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               $!todo.reify-until-lazy,
               nqp::if(
                 $!todo.fully-reified,
-                ($!todo := Mu),
+                ($!todo := nqp::null),
                 X::Cannot::Lazy.new(:action('.sort')).throw
               )
             )

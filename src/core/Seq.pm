@@ -425,12 +425,12 @@ sub GATHER(&block) {
                     nqp::eqaddr(self!slip-wanted,IterationEnd)
                   ),
                   nqp::stmts(
-                    ($!push-target := Mu),
+                    ($!push-target := nqp::null),
                     $n
                   ),
                   nqp::stmts(
                     nqp::continuationreset(PROMPT, &!resumption),
-                    ($!push-target := Mu),
+                    ($!push-target := nqp::null),
                     nqp::if(
                       &!resumption.DEFINITE,
                       ($n - $!wanted),

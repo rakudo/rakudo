@@ -141,8 +141,8 @@ my role Iterable {
     }
 }
 
-#?if jvm
+#if !moar
 nqp::p6setitertype(Iterable);
-#?endif
+#endif
 
 # vim: ft=perl6 expandtab sw=4

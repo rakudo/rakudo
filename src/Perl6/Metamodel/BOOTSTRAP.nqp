@@ -131,6 +131,7 @@ my class Binder {
     my $autothreader;
     my $Positional;
     my $PositionalBindFailover;
+    my $Iterable;
 
 #?if !jvm
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
@@ -179,6 +180,10 @@ my class Binder {
     method set_pos_bind_failover($pos, $pos_bind_failover) {
         $Positional := $pos;
         $PositionalBindFailover := $pos_bind_failover;
+    }
+
+    method set_iterable($iterable) {
+        $Iterable := $iterable;
     }
 
     # Binds a single parameter.
@@ -458,11 +463,21 @@ my class Binder {
                 # container and store it, for copy or ro case (the rw bit
                 # in the container descriptor takes care of the rest).
                 else {
-                    my $new_cont := nqp::create(Scalar);
-                    nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                        nqp::getattr($param, Parameter, '$!container_descriptor'));
-                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
-                    nqp::bindkey($lexpad, $varname, $new_cont);
+                    # If $Iterable is not set we wrap more then strictly neccessary
+                    my $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
+                    my int $wrap := nqp::istype($nom_type, $Iterable)
+                        || nqp::istype($Iterable, $nom_type)
+                        || $varname eq '$_';
+                    if $wrap {
+                        my $new_cont := nqp::create(Scalar);
+                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
+                            nqp::getattr($param, Parameter, '$!container_descriptor'));
+                        nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $new_cont);
+                    }
+                    else {
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                    }
                 }
             }
         }

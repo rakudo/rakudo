@@ -155,6 +155,31 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.perl ~ '.Seq';
     }
 
+    method join(Seq:D: $separator = '' --> Str) {
+        nqp::if(
+          (my $iterator := self.iterator).is-lazy,
+          '...',
+          nqp::stmts(
+            (my $strings  := nqp::list_s),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+              nqp::push_s($strings,nqp::unbox_s(
+                nqp::if(
+                  nqp::isconcrete($pulled) && nqp::istype($pulled,Str),
+                  $pulled,
+                  nqp::if(
+                    nqp::can($pulled,'Str'),
+                    $pulled.Str,
+                    nqp::box_s($pulled,Str)
+                  )
+                )
+              ))
+            ),
+            nqp::box_s(nqp::join(nqp::unbox_s($separator.Str),$strings),Str)
+          )
+        )
+    }
+
     method sink() {
         self.iterator.sink-all if $!iter.DEFINITE;
         Nil

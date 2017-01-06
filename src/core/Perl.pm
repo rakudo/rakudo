@@ -19,6 +19,9 @@ class Perl does Systemic {
 #?if moar
         <macosx linux freebsd mswin32 openbsd dragonfly netbsd>
 #?endif
+#?if js
+        <linux>
+#?endif
         )
     }
 

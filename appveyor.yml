@@ -46,7 +46,7 @@ matrix:
 # Installation
 install:
   - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
-  - choco install strawberryperl --version 5.20.1.1 --allow-empty-checksums
+  - appveyor-retry choco install strawberryperl --version 5.20.1.1 --allow-empty-checksums
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - ECHO %RAKUDO_OPTIONS%
   - CD %APPVEYOR_BUILD_FOLDER%

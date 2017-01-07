@@ -990,6 +990,36 @@ my class Rakudo::Internals {
         }.new
     }
 
+    # basically 42 xx 1
+    method OneValueIterator(\value) {
+        class :: does Iterator {
+            has Mu $!value;
+            method new(\value) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::isnull($!value),
+                  IterationEnd,
+                  nqp::stmts(
+                    (my Mu $value := $!value),
+                    ($!value := nqp::null),
+                    $value
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  nqp::unless(nqp::isnull($!value),$target.push($!value)),
+                  ($!value := nqp::null)
+                )
+            }
+            method sink-all(--> IterationEnd) { $!value := nqp::null }
+            method count-only(--> 1) { }
+            method bool-only(--> True) { }
+        }.new(value)
+    }
+
     # basically 42 xx *
     method UnendingValueIterator(\value) {
         class :: does Iterator {

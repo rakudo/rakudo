@@ -2034,7 +2034,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $sigil := $<sigil>.Str;
             my $text := $<text>.Str;
             my $bad := $sigil ~ '{' ~ $text ~ '}';
-            $text := $text - 1 if $text ~~ /^\d+$/ && $text > 0;
+            if $text ~~ /^\d+$/ {
+                $text := nqp::radix(10, $text, 0, 0)[0];
+                $text := $text - 1 if $text > 0;
+            }
             if $sigil ne '$' && $sigil ne '@' {
                 False;  # not likely a P5ism
             }

@@ -82,7 +82,7 @@ sub METAOP_ZIP(\op, &reduce) {
         my @loi = eager for lol -> \elem {
             if nqp::iscont(elem) {
                 $laze = False;
-                Rakudo::Internals.OneValueIterator(elem)
+                Rakudo::Internals.OneCallableIterator( { elem } )
             }
             else {
                 $laze = False unless elem.is-lazy;

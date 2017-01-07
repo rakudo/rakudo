@@ -1032,6 +1032,77 @@ my class Rakudo::Internals {
         }.new(value)
     }
 
+    method ZipIterablesIterator(@iterables) {
+        nqp::if(
+          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          class :: does Iterator {
+              has $!iters;
+              has int $!lazy;
+              method !SET-SELF(\iterables) {
+                  nqp::stmts(
+                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
+                    (my int $elems = nqp::elems($iterables)),
+                    ($!iters := nqp::setelems(nqp::list,$elems)),
+                    ($!lazy = 1),
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::bindpos($!iters,$i,
+                        nqp::if(
+                          nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                          nqp::stmts(
+                            ($!lazy = 0),
+                            Rakudo::Internals.OneValueIterator($elem)
+                          ),
+                          nqp::stmts(
+                            nqp::unless($elem.is-lazy,($!lazy = 0)),
+                            Rakudo::Internals.WhateverIterator($elem)
+                          )
+                        )
+                      )
+                    ),
+                    self
+                  )
+              }
+              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
+              method pull-one() {
+                  nqp::if(
+                    nqp::isnull($!iters),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my int $i = -1),
+                      (my int $elems = nqp::elems($!iters)),
+                      (my $list := nqp::list),
+                      nqp::until(
+                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                         || nqp::eqaddr(
+                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
+                              IterationEnd
+                            ),
+                        nqp::bindpos($list,$i,$pulled)
+                      ),
+                      nqp::if(
+                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        nqp::stmts(
+                          ($!iters := nqp::null),
+                          IterationEnd
+                        ),
+                        nqp::p6bindattrinvres(
+                          nqp::create(List),List,'$!reified',$list)
+                      )
+                    )
+                  )
+              }
+              method is-lazy() { nqp::p6bool($!lazy) }
+          }.new(@iterables),
+          nqp::if(
+            nqp::iseq_i($n,0),
+            Rakudo::Internals.EmptyIterator,
+            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
+          )
+        )
+    }
+
     method RollerIterator(\source) {
         class :: does Iterator {
             has $!source;

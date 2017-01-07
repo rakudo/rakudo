@@ -1601,7 +1601,7 @@ multi sub infix:<Z>(+lol) {
         my \elem = lol[$i];
         if nqp::iscont(elem) {
             $laze = False;
-            Rakudo::Internals.OneCallableIterator( { elem } )
+            Rakudo::Internals.OneValueIterator(elem)
         }
         else {
             $laze = False unless elem.is-lazy;

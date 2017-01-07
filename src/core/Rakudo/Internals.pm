@@ -990,8 +990,8 @@ my class Rakudo::Internals {
         }.new
     }
 
-    # basically {} xx 1
-    method OneCallableIterator(&value) {
+    # basically 42 xx 1
+    method OneValueIterator(\value) {
         class :: does Iterator {
             has Mu $!value;
             method new(\value) {
@@ -1002,7 +1002,7 @@ my class Rakudo::Internals {
                   nqp::isnull($!value),
                   IterationEnd,
                   nqp::stmts(
-                    (my Mu $value := $!value()),
+                    (my Mu $value := $!value),
                     ($!value := nqp::null),
                     $value
                   )
@@ -1010,14 +1010,14 @@ my class Rakudo::Internals {
             }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
-                  nqp::unless(nqp::isnull($!value),$target.push($!value())),
+                  nqp::unless(nqp::isnull($!value),$target.push($!value)),
                   ($!value := nqp::null)
                 )
             }
             method sink-all(--> IterationEnd) { $!value := nqp::null }
             method count-only(--> 1) { }
             method bool-only(--> True) { }
-        }.new(&value)
+        }.new(value)
     }
 
     # basically 42 xx *

@@ -1594,33 +1594,7 @@ multi sub infix:<Z>(+lol, :$with!) {
     METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list);
 }
 multi sub infix:<Z>(+lol) {
-    my $arity = lol.elems;
-    my $laze = True;
-    return Seq.new(Rakudo::Internals.EmptyIterator) if $arity == 0;
-    eager my @l = (^$arity).map: -> $i {
-        my \elem = lol[$i];
-        if nqp::iscont(elem) {
-            $laze = False;
-            Rakudo::Internals.OneValueIterator(elem)
-        }
-        else {
-            $laze = False unless elem.is-lazy;
-            Rakudo::Internals.WhateverIterator(elem)
-        }
-    }
-
-    gather {
-        loop {
-            my \p = @l.map: {
-                my \val = .pull-one;
-                last if val =:= IterationEnd;
-                val
-            }
-            my \l = p.list;
-            last if l.elems < $arity;
-            take-rw l;
-        }
-    }.lazy-if($laze);
+    Seq.new(Rakudo::Internals.ZipIterablesIterator(lol))
 }
 
 my &zip := &infix:<Z>;

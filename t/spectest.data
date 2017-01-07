@@ -978,6 +978,7 @@ S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
+S32-io/seek.t
 S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t

@@ -1072,7 +1072,7 @@ my class Rakudo::Internals {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
-                      (my $list := nqp::list),
+                      (my $list := nqp::setelems(nqp::list,$elems)),
                       nqp::until(
                         nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
                          || nqp::eqaddr(

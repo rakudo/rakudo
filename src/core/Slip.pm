@@ -5,11 +5,17 @@ my class Slip { # is List
     method defined ()          { self.so }
     method CALL-ME (+args)     { args.Slip }
     multi method perl(Slip:D:) {
-        my $guts := callsame;
         nqp::if(
-            nqp::eqat($guts, '$', 0), # we're itemized
-            nqp::concat('$(slip', nqp::concat(nqp::substr($guts, 1), ')')),
-            nqp::concat('slip', $guts),
+          nqp::eqaddr(self,Empty),
+          'Empty',
+          nqp::stmts(
+            (my str $guts = callsame),
+            nqp::if(
+              nqp::eqat($guts,'$',0), # we're itemized
+              nqp::concat('$(slip',nqp::concat(nqp::substr($guts,1),')')),
+              nqp::concat('slip',$guts)
+            )
+          )
         )
     }
 }

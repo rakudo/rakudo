@@ -1032,6 +1032,7 @@ my class Rakudo::Internals {
         }.new(value)
     }
 
+    # Zip given iterables and return a List for each successful zip
     method ZipIterablesIterator(@iterables) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
@@ -1095,6 +1096,82 @@ my class Rakudo::Internals {
               }
               method is-lazy() { nqp::p6bool($!lazy) }
           }.new(@iterables),
+          nqp::if(
+            nqp::iseq_i($n,0),
+            Rakudo::Internals.EmptyIterator,
+            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
+          )
+        )
+    }
+
+    # Same as ZipIterablesIterator, but also takes a mapper Callable.
+    # This gets an IterationBuffer passed with all elements for each
+    # successful zip.
+    method ZipIterablesMapIterator(@iterables,&mapper) {
+        nqp::if(
+          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          class :: does Iterator {
+              has $!iters;
+              has $!mapper;
+              has int $!lazy;
+              method !SET-SELF(\iterables,\mapper) {
+                  nqp::stmts(
+                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
+                    (my int $elems = nqp::elems($iterables)),
+                    ($!iters  := nqp::setelems(nqp::list,$elems)),
+                    ($!mapper := mapper),
+                    ($!lazy = 1),
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::bindpos($!iters,$i,
+                        nqp::if(
+                          nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                          nqp::stmts(
+                            ($!lazy = 0),
+                            Rakudo::Internals.OneValueIterator($elem)
+                          ),
+                          nqp::stmts(
+                            nqp::unless($elem.is-lazy,($!lazy = 0)),
+                            Rakudo::Internals.WhateverIterator($elem)
+                          )
+                        )
+                      )
+                    ),
+                    self
+                  )
+              }
+              method new(\iters,\map) { nqp::create(self)!SET-SELF(iters,map) }
+              method pull-one() {
+                  nqp::if(
+                    nqp::isnull($!iters),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my int $i = -1),
+                      (my int $elems = nqp::elems($!iters)),
+                      (my $list :=
+                        nqp::setelems(nqp::create(IterationBuffer),$elems)),
+                      nqp::until(
+                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                         || nqp::eqaddr(
+                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
+                              IterationEnd
+                            ),
+                        nqp::bindpos($list,$i,$pulled)
+                      ),
+                      nqp::if(
+                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        nqp::stmts(
+                          ($!iters := nqp::null),
+                          IterationEnd
+                        ),
+                        $!mapper($list)
+                      )
+                    )
+                  )
+              }
+              method is-lazy() { nqp::p6bool($!lazy) }
+          }.new(@iterables,&mapper),
           nqp::if(
             nqp::iseq_i($n,0),
             Rakudo::Internals.EmptyIterator,

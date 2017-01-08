@@ -835,11 +835,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       nqp::iseq_i($i,$todo),
                       nqp::p6bindattrinvres(  # found all values
                         nqp::create(List),List,'$!reified',$matches),
-                      Slip.new                # no match, since not all values
+                      Empty                   # no match, since not all values
                     )
                   )
                 ),
-                Slip.new                      # exhausted while skipping
+                Empty                         # exhausted while skipping
               )
             )
           )
@@ -907,7 +907,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::elems($matches) >= $min,
             nqp::p6bindattrinvres(
               nqp::create(List),List,'$!reified',$matches),
-            Slip.new
+            Empty    
           )
         ))
     }

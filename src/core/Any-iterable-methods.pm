@@ -920,41 +920,15 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         method is-lazy() { $!iter.is-lazy }
     }
     method !grep-callable(Callable:D $test) {
-        if ($test.count == 1) {
-            $test.?has-phasers
-              ?? self.map({ $_ if $test($_) })  # cannot go fast
-              !! Seq.new(class :: does Grepper {
-                     method pull-one() is raw {
-                         nqp::until(
-                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                             || nqp::handle(
-                                  $!test($_),
-                                  'LAST', ($_ := IterationEnd)
-                                ),
-                           nqp::null
-                         );
-                         $_
-                     }
-                     method push-all($target) {
-                         nqp::until(
-                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                           nqp::if(  # doesn't sink
-                             $!test($_),
-                             $target.push($_)
-                           )
-                         );
-                         IterationEnd
-                     }
-                     method sink-all() {
-                         nqp::until(
-                           nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                           $!test($_)
-                         );
-                         IterationEnd
-                     }
-                 }.new(self, $test))
-        } else {
-            my role CheatArity {
+        nqp::if(
+          $test.count == 1,
+          sequential-map(
+            self.iterator,
+            { nqp::if($test($_),$_,Empty) },
+            Any)
+          ,
+          nqp::stmts(
+            (my role CheatArity {
                 has $!arity;
                 has $!count;
 
@@ -965,18 +939,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
                 method arity(Code:D:) { $!arity }
                 method count(Code:D:) { $!count }
-            }
-
-            my &tester = -> |c {
+            }),
+            (my &tester = -> |c {
                 #note "*cough* {c.perl} -> {$test(|c).perl}";
                 next unless $test(|c);
                 c.list
-            } but CheatArity;
-
-            &tester.set-cheat($test.arity, $test.count);
-
-            self.map(&tester);
-        }
+            } but CheatArity),
+            &tester.set-cheat($test.arity, $test.count),
+            self.map(&tester)
+          )
+        )
     }
     method !grep-accepts(Mu $test) {
         Seq.new(class :: does Grepper {

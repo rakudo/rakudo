@@ -132,13 +132,16 @@ sub permutations(Int() $n) {
     }.new($n))
 }
 
-sub find-reducer-for-op($op) {
-    try my %prec := $op.prec;
-    return &METAOP_REDUCE_LEFT if (nqp::isnull(%prec) or ! %prec);
-    my $reducer = (%prec<prec>//'') eq 'f='
-        ?? 'listinfix'
-        !! %prec<assoc> // 'left';
-    ::('&METAOP_REDUCE_' ~ $reducer.uc);
+sub find-reducer-for-op(&op) {
+    nqp::if(
+      nqp::iseq_s(&op.prec("prec"),"f="),
+      &METAOP_REDUCE_LISTINFIX,
+      nqp::if(
+        nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0),
+        &METAOP_REDUCE_LEFT,
+        ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
+      )
+    )
 }
 
 # A List is a (potentially infite) immutable list. The immutability is not

@@ -52,6 +52,25 @@ class Rakudo::Metaops {
               ''
             )
           )
+      },
+      nqp::tostr_I(&infix:<< => >>.WHERE), # optimized version for &[=>]
+      -> \list {
+          nqp::if(
+            nqp::iseq_i(nqp::elems(list),2),
+            Pair.new(nqp::atpos(list,0),nqp::atpos(list,1)),
+            nqp::if(
+              nqp::isgt_i(nqp::elems(list),2),
+              nqp::stmts(
+                (my $result := nqp::pop(list)),
+                nqp::while(
+                  nqp::elems(list),
+                  ($result := Pair.new(nqp::pop(list),$result))
+                ),
+                $result
+              ),
+              (die "Too few positionals passed; expected 2 arguments but got {nqp::elems(list)}")
+            )
+          )
       }
     );
 

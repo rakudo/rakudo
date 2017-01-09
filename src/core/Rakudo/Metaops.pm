@@ -106,7 +106,28 @@ class Rakudo::Metaops {
                     )
                   )
               },
-              Nil   # not yet supported
+              nqp::if(
+                nqp::iseq_s($assoc,'right'),
+                -> \list {                 # generic right-assoc op
+                    nqp::if(
+                      nqp::iseq_i(nqp::elems(list),2),
+                      op(nqp::atpos(list,0),nqp::atpos(list,1)),
+                      nqp::if(
+                        nqp::elems(list),
+                        nqp::stmts(
+                          (my $result := nqp::pop(list)),
+                          nqp::while(
+                            nqp::elems(list),
+                            ($result := op(nqp::pop(list),$result))
+                          ),
+                          $result
+                        ),
+                        op()
+                      )
+                    )
+                },
+                Nil   # not yet supported
+              )
             )
           )
         )

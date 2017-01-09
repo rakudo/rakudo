@@ -1,6 +1,7 @@
 # for our tantrums
-my class X::TypeCheck::Splice { ... }
+my class Rakudo::Metaops { ... }
 my class Supplier { ... }
+my class X::TypeCheck::Splice { ... }
 
 my sub combinations(Int() $n, Int() $k) {
     X::OutOfRange.new(
@@ -1590,8 +1591,16 @@ multi sub infix:<X>(+lol) {
 my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
-multi sub infix:<Z>(+lol, :$with!) {
-    METAOP_ZIP($with, find-reducer-for-op($with))(|lol.list);
+multi sub infix:<Z>(+lol, :&with!) {
+    nqp::if(
+      nqp::eqaddr(&with,&infix:<,>),
+      Seq.new(Rakudo::Internals.ZipIterablesIterator(lol)),
+      nqp::if(
+        (my $mapper := Rakudo::Metaops.MapperForOp(&with)),
+        Seq.new(Rakudo::Internals.ZipIterablesMapIterator(lol,$mapper)),
+        METAOP_ZIP(&with, find-reducer-for-op(&with))(|lol.list)  # old code
+      )
+    )
 }
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Internals.ZipIterablesIterator(lol))

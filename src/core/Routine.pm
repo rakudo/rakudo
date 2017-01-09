@@ -50,7 +50,7 @@ my class Routine { # declared in BOOTSTRAP
 
     proto method prec(|) { * }
     multi method prec() { my % }
-    multi method prec(Str:D $) { Nil }
+    multi method prec(Str:D $) { '' }
 
     multi method perl(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;

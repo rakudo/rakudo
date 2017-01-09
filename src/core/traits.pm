@@ -151,7 +151,7 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
         multi method prec(Str:D $key) {
             nqp::ifnull(
               nqp::atkey(nqp::getattr(%!prec,Map,'$!storage'),$key),
-              Nil
+              ''
             )
         }
     }

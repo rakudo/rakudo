@@ -14,6 +14,10 @@ my class Code does Callable { # declared in BOOTSTRAP
 
     method signature(Code:D:) { $!signature }
 
+    proto method prec(|) { * }
+    multi method prec() { my % }
+    multi method prec(Str:D $) { '' }
+
     multi method Str(Code:D:) {
         warn( self.WHAT.perl ~ " object coerced to string (please use .gist or .perl to do that)"); self.name
     }

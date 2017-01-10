@@ -775,6 +775,7 @@ my class Rakudo::Internals {
                   ($!i = $i)
                 )
             }
+            method skip-one(--> 1) { $!i = nqp::add_i($!i,1) }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
             method sink-all(--> IterationEnd) { }
@@ -1988,7 +1989,6 @@ my class Rakudo::Internals {
             }
         }
     }
-
 
     my int $sprintfHandlerInitialized = 0;
     method initialize-sprintf-handler(--> Nil) {

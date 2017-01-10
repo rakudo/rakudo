@@ -79,28 +79,46 @@ class Rakudo::Metaops {
           nqp::existskey($mappers,(my str $where = nqp::tostr_I(&op.WHERE))),
           nqp::atkey($mappers,$where),
           nqp::if(
-            nqp::iseq_s(&op.prec("prec"),"f="),
-            -> \list {                     # generic listinfix op
-                op(
-                  nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',list)
+            nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
+              || nqp::iseq_s($assoc,'left'),
+            -> \list {                   # generic left-assoc op
+                nqp::if(
+                  nqp::iseq_i(nqp::elems(list),2),
+                  op(nqp::atpos(list,0),nqp::atpos(list,1)),
+                  nqp::if(
+                    nqp::elems(list),
+                    nqp::stmts(
+                      (my $result := nqp::shift(list)),
+                      nqp::while(
+                        nqp::elems(list),
+                        ($result := op($result,nqp::shift(list)))
+                      ),
+                      $result
+                    ),
+                    op()
+                  )
                 )
             },
             nqp::if(
-              nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
-                || nqp::iseq_s($assoc,'left'),
-              -> \list {                   # generic left-assoc op
+              nqp::iseq_s($assoc,"chain"),
+              -> \list {                 # generic chain-assoc op
                   nqp::if(
                     nqp::iseq_i(nqp::elems(list),2),
                     op(nqp::atpos(list,0),nqp::atpos(list,1)),
                     nqp::if(
                       nqp::elems(list),
                       nqp::stmts(
-                        (my $result := nqp::shift(list)),
+                        (my $state = True),
+                        (my $current := nqp::shift(list)),
                         nqp::while(
-                          nqp::elems(list),
-                          ($result := op($result,nqp::shift(list)))
+                          nqp::elems(list)
+                            && ($state := op(
+                              $current,
+                              (my $next := nqp::shift(list))
+                            )),
+                          ($current := $next)
                         ),
-                        $result
+                        $state
                       ),
                       op()
                     )
@@ -126,7 +144,16 @@ class Rakudo::Metaops {
                       )
                     )
                 },
-                Nil   # not yet supported
+                nqp::if(
+                  nqp::iseq_s($assoc,"list"),
+                  -> \list {               # generic list/listinfix op
+                      op(
+                        nqp::p6bindattrinvres(
+                          nqp::create(List),List,'$!reified',list)
+                      )
+                  },
+                  (die "Don't know how to process '$assoc' associativity")
+                )
               )
             )
           )

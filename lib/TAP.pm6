@@ -170,7 +170,10 @@ grammar Grammar {
         ^^ [ <plan> | <test> | <bailout> | <version> | <comment> || <unknown> ] \n
     }
     token plan {
-        '1..' <count=.num> <.sp>* [ '#' <.sp>* $<directive>=[:i 'SKIP'] <.alnum>* [ <.sp>+ $<explanation>=[\N*] ]? ]?
+        '1..' <count=.num> <.sp>* [
+            '#' <.sp>* $<directive>=[:i 'SKIP'] \S*
+            [ <.sp>+ $<explanation>=[\N*] ]?
+        ]?
     }
     regex description {
         [ '\\\\' || '\#' || <-[\n#]> ]+ <!after <sp>+>
@@ -178,7 +181,10 @@ grammar Grammar {
     token test {
         $<nok>=['not '?] 'ok' [ <.sp> <num> ]? ' -'?
             [ <.sp>* <description> ]?
-            [ <.sp>* '#' <.sp>* $<directive>=[:i [ 'SKIP' | 'TODO'] ] <.alnum>* [ <.sp>+ $<explanation>=[\N*] ]? ]?
+            [
+                <.sp>* '#' <.sp>* $<directive>=[:i [ 'SKIP' \S* | 'TODO'] ]
+                [ <.sp>+ $<explanation>=[\N*] ]?
+            ]?
             <.sp>*
     }
     token bailout {
@@ -219,7 +225,7 @@ grammar Grammar {
         method plan($/) {
             my %args = :raw(~$/), :tests(+$<count>);
             if $<directive> {
-                %args<skip-all explanation> = True, $<explanation>;
+                %args<skip-all explanation> = True, ~$<explanation>;
             }
             make TAP::Plan.new(|%args);
         }
@@ -392,7 +398,7 @@ class Formatter::Text does Formatter {
         my $output;
         my $name = $session.header;
         if ($result.skip-all) {
-            $output = self.format-return("$name skipped");
+            $output = self.format-return("$name skipped\n");
         }
         elsif ($result.has-problems($!ignore-exit)) {
             $output = self.format-test-failure($name, $result);

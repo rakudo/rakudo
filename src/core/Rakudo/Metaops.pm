@@ -71,6 +71,10 @@ class Rakudo::Metaops {
               (die "Too few positionals passed; expected 2 arguments but got {nqp::elems(list)}")
             )
           )
+      },
+      nqp::tostr_I(&infix:<,>.WHERE),      # optimized version for &[,]
+      -> \list {
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',list)
       }
     );
 
@@ -145,14 +149,24 @@ class Rakudo::Metaops {
                     )
                 },
                 nqp::if(
-                  nqp::iseq_s($assoc,"list"),
-                  -> \list {               # generic list/listinfix op
-                      op(
-                        nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',list)
+                  nqp::iseq_s($assoc,'non'),
+                  -> \list {               # generic non-assoc op
+                      nqp::if(
+                        nqp::iseq_i(nqp::elems(list),2),
+                        op(nqp::atpos(list,0),nqp::atpos(list,1)),
+                        (die "Incorrect number of elements: expected 2, got {nqp::elems(list)}")
                       )
                   },
-                  (die "Don't know how to process '$assoc' associativity")
+                  nqp::if(
+                    nqp::iseq_s($assoc,"list"),
+                    -> \list {               # generic list/listinfix op
+                        op(
+                          nqp::p6bindattrinvres(
+                            nqp::create(List),List,'$!reified',list)
+                        )
+                    },
+                    (die "Don't know how to process '$assoc' associativity")
+                  )
                 )
               )
             )

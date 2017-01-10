@@ -1598,11 +1598,10 @@ multi sub infix:<Z>(+lol, :&with!) {
     nqp::if(
       nqp::eqaddr(&with,&infix:<,>),
       Seq.new(Rakudo::Internals.ZipIterablesIterator(lol)),
-      nqp::if(
-        (my $mapper := Rakudo::Metaops.MapperForOp(&with)),
-        Seq.new(Rakudo::Internals.ZipIterablesMapIterator(lol,$mapper)),
-        METAOP_ZIP(&with, find-reducer-for-op(&with))(|lol.list)  # old code
-      )
+      Seq.new(Rakudo::Internals.ZipIterablesMapIterator(
+        lol,
+        Rakudo::Metaops.MapperForOp(&with)
+      ))
     )
 }
 multi sub infix:<Z>(+lol) {

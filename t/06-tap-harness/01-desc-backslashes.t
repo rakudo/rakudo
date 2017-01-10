@@ -34,6 +34,7 @@ given run :out, :err, $*EXECUTABLE, '-e', ｢
 ｣ {
     given .err.slurp-rest { when :so { diag "STDERR output was ```$_```" } }
 
+    my $output = .out.slurp-rest;
     like $output, /^^ 'ok' \N+ 'HTEST1'/, 'planned';
     like $output, /^^ 'ok' \N+ 'HTEST2'/, 'passed';
     like $output, /^^ 'ok' \N+ 'HTEST3'/, 'failed';

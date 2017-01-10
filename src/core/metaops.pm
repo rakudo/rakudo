@@ -75,6 +75,7 @@ sub METAOP_CROSS(\op, &reduce) {
 }
 
 sub METAOP_ZIP(\op, &reduce) {
+   nqp::if(op.prec('thunky').starts-with('.'),
    -> +lol {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);
@@ -101,8 +102,19 @@ sub METAOP_ZIP(\op, &reduce) {
                 last if $z.elems < $arity;
                 take-rw $arity == 2 ?? $rop(|$z) !! $rop(@$z);
             }
-        }.lazy-if($laze);
+        }.lazy-if($laze)
+    },
+    -> +lol {
+        Seq.new(nqp::if(
+          nqp::eqaddr(op,&infix:<,>),
+          Rakudo::Internals.ZipIterablesIterator(lol),
+          Rakudo::Internals.ZipIterablesMapIterator(
+            lol,
+            Rakudo::Metaops.MapperForOp(op)
+          )
+        ))
     }
+    )
 }
 
 proto sub METAOP_REDUCE_LEFT(|) { * }

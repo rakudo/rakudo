@@ -1595,14 +1595,14 @@ my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :&with!) {
-    nqp::if(
+    Seq.new(nqp::if(
       nqp::eqaddr(&with,&infix:<,>),
-      Seq.new(Rakudo::Internals.ZipIterablesIterator(lol)),
-      Seq.new(Rakudo::Internals.ZipIterablesMapIterator(
+      Rakudo::Internals.ZipIterablesIterator(lol),
+      Rakudo::Internals.ZipIterablesMapIterator(
         lol,
         Rakudo::Metaops.MapperForOp(&with)
-      ))
-    )
+      )
+    ))
 }
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Internals.ZipIterablesIterator(lol))

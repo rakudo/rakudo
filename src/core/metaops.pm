@@ -105,14 +105,7 @@ sub METAOP_ZIP(\op, &reduce) {
         }.lazy-if($laze)
     },
     -> +lol {
-        Seq.new(nqp::if(
-          nqp::eqaddr(op,&infix:<,>),
-          Rakudo::Internals.ZipIterablesIterator(lol),
-          Rakudo::Internals.ZipIterablesMapIterator(
-            lol,
-            Rakudo::Metaops.MapperForOp(op)
-          )
-        ))
+        Seq.new(Rakudo::Internals.ZipIterablesOpIterator(lol,op))
     }
     )
 }

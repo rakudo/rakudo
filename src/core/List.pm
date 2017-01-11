@@ -1,5 +1,4 @@
 # for our tantrums
-my class Rakudo::Metaops { ... }
 my class Supplier { ... }
 my class X::TypeCheck::Splice { ... }
 
@@ -1595,14 +1594,7 @@ my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :&with!) {
-    Seq.new(nqp::if(
-      nqp::eqaddr(&with,&infix:<,>),
-      Rakudo::Internals.ZipIterablesIterator(lol),
-      Rakudo::Internals.ZipIterablesMapIterator(
-        lol,
-        Rakudo::Metaops.MapperForOp(&with)
-      )
-    ))
+    Seq.new(Rakudo::Internals.ZipIterablesOpIterator(lol,&with))
 }
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Internals.ZipIterablesIterator(lol))

@@ -3,6 +3,7 @@ my role  IO { ... }
 my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
+my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::Assignment::ToShaped { ... };
@@ -1031,6 +1032,18 @@ my class Rakudo::Internals {
             method pull-one() is raw { $!value }
             method is-lazy() { True }
         }.new(value)
+    }
+
+    # Zip given iterables and op
+    method ZipIterablesOpIterator(@iterables,\op) {
+        nqp::if(
+          nqp::eqaddr(op,&infix:<,>),
+          Rakudo::Internals.ZipIterablesIterator(@iterables),
+          Rakudo::Internals.ZipIterablesMapIterator(
+            @iterables,
+            Rakudo::Metaops.MapperForOp(op)
+          )
+        )
     }
 
     # Zip given iterables and return a List for each successful zip

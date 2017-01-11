@@ -700,14 +700,14 @@ my class Mu { # declared in BOOTSTRAP
             ).throw;
     }
 
-    method dispatch:<.=>(\mutate: \name, |c) is raw {
+    method dispatch:<.=>(\mutate: Str() $name, |c) is raw {
         $/ := nqp::getlexcaller('$/');
-        mutate = mutate."{name}"(|c)
+        mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: \name, |c) is raw {
-        nqp::can(SELF, name) ??
-            SELF."{name}"(|c) !!
+    method dispatch:<.?>(Mu \SELF: Str() $name, |c) is raw {
+        nqp::can(SELF,$name) ??
+            SELF."$name"(|c) !!
             Nil
     }
 

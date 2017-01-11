@@ -325,16 +325,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-iterator(List:U: Iterator $iter) {
-        my \result := nqp::create(self);
-        my \buffer := nqp::create(IterationBuffer);
-        my \todo := nqp::create(Reifier);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, Reifier, '$!current-iter', $iter);
-        nqp::bindattr(todo, Reifier, '$!reification-target',
-            result.reification-target());
-        result
+        nqp::stmts(
+          (my \buffer := nqp::create(IterationBuffer)),
+          nqp::bindattr(
+            (my \result := nqp::create(self)),List,'$!reified',buffer),
+          nqp::bindattr(
+            (my \todo := nqp::create(Reifier)),Reifier,'$!reified',buffer),
+          nqp::bindattr(todo,Reifier,'$!current-iter',$iter),
+          # since Array has its own from-iterator, we don't need to
+          # call reification-target, because it is the same as buffer
+          nqp::bindattr(todo,Reifier,'$!reification-target',buffer),
+          nqp::p6bindattrinvres(result,List,'$!todo',todo)
+        )
     }
 
     method from-slurpy(|) {

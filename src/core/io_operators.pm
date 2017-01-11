@@ -162,12 +162,6 @@ multi sub spurt(Cool $path, $contents, |c) {
 }
 
 sub chdir(Str() $path, :$test = 'r') {
-
-    if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
-        $*CWD = $*CWD.IO;
-    }
-
     my $newCWD := $*CWD.chdir($path,:$test);
     $newCWD // $newCWD.throw;
 

@@ -16,10 +16,12 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            my \rt = nqp::create(self);
-            nqp::bindattr(rt, self, '$!target', target);
-            nqp::bindattr(rt, self, '$!descriptor', descriptor);
-            rt
+            nqp::stmts(
+              nqp::bindattr((my \rt = nqp::create(self)),
+                self,'$!target',target),
+              nqp::p6bindattrinvres(rt,
+                self,'$!descriptor',descriptor)
+            )
         }
 
         method push(Mu \value) {

@@ -77,6 +77,105 @@ class Rakudo::Iterator {
     }
 
     # Generic role for iterating over a >1 dimensional shaped list
+    # for its lowest branches.  The default .new method takes a List
+    # to iterate over.  A consuming class needs to provide a .process
+    # method, which will be called with each iteration with the
+    # $!indices attribute set to the coordinates of the branch being
+    # iterated for this time (with the highest element index set to 0).
+    # Consuming class can optionally provide a .done method that will
+    # be called just before the iterator returns IterationEnd.
+    our role ShapeBranch does Iterator {
+        has $!dims;
+        has $!indices;
+        has Mu $!list;
+        has int $!maxdim;
+        has int $!maxind;
+        has int $!level;
+
+        # Every time process() gets called, the following attributes are set:
+        # $!indices  a list_i with current position, with the highest elem 0
+        # $!level    level at which exhaustion happened
+        # $!dims     a list_i with dimensions
+        # $!maxdim   maximum element number in $!dims
+        # $!maxind   maximum element number in lowest level list
+        method process { ... }           # consumer needs to supply a .process
+        method done(--> Nil) { }         # by default no action at end
+
+        method dims() {                  # HLL version of $!dims
+            nqp::stmts(
+              (my $result := nqp::setelems(nqp::list,nqp::elems($!dims))),
+              (my int $i = -1),
+              nqp::while(                # convert list_i to list
+                nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                nqp::bindpos($result,$i,nqp::atpos_i($!dims,$i))
+              ),
+              $result
+            )
+        }
+
+        method SET-SELF(Mu \list) {
+            nqp::stmts(
+              nqp::if(
+                nqp::istype(list,List),
+                nqp::stmts(                                 # List like
+                  ($!list := nqp::getattr(list,List,'$!reified')),
+                  (my $shape := list.shape),
+                  (my int $dims = $shape.elems),     # reifies
+                  ($!dims := nqp::setelems(nqp::list_i,$dims)),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                    nqp::bindpos_i($!dims,$i,
+                      nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
+                  )
+                ),
+                ($dims = nqp::elems($!dims := nqp::dimensions($!list := list)))
+              ),
+              ($!indices := nqp::setelems(nqp::list_i,$dims)),
+              ($!maxdim = nqp::sub_i($dims,1)),
+              ($!maxind = nqp::sub_i(nqp::atpos_i($!dims,$!maxdim),1)),
+              self
+            )
+        }
+        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i($!level,0),
+              nqp::stmts(                      # still iterating
+                (my $result := self.process),  # do the processing
+                (my int $level = $!maxdim),
+                nqp::until(                    # update indices
+                  nqp::islt_i(                 # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0) # next level
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),  # reset
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level, # increment this level
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos_i($!dims,$level)      # out of range?
+                    ),
+                  ),
+                  nqp::null
+                ),
+                ($!level = $level),            # set level for next call
+                $result                        # what we found
+              ),
+              nqp::stmts(
+                nqp::if(
+                  nqp::iseq_i($!level,-1),
+                  nqp::stmts(                  # first time telling we're done
+                    self.done,                 # notify we're done
+                    ($!level = -2)             # do this only once
+                  )
+                ),
+                IterationEnd                   # done iterating
+              )
+            )
+        }
+    }
+
+    # Generic role for iterating over a >1 dimensional shaped list
     # for its values (leaves).  The default .new method takes a List
     # to iterate over.  A consuming class needs to provide a .result
     # method, which will be called with each iteration with the
@@ -97,7 +196,7 @@ class Rakudo::Iterator {
         # $!maxdim   maximum element number in $!dims
         method result { ... }            # consumer needs to supply a .result
 
-        method indices() {               # mostly a helper method for debugging
+        method indices() {               # HLL version of $!indices
             nqp::stmts(
               (my $result := nqp::setelems(nqp::list,nqp::elems($!indices))),
               (my int $i = -1),

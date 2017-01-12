@@ -151,7 +151,7 @@ for $*IN.lines -> $line {
             to
         }
         sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeBranchIterator {
+            class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(

@@ -323,7 +323,7 @@
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            class :: does Rakudo::Internals::ShapeBranchIterator {
+            class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 has $!desc;
                 method INIT(\to,\from) {

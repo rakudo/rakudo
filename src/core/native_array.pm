@@ -1266,7 +1266,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:40:07+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1378,7 +1378,7 @@ my class array does Iterable {
             to
         }
         sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeBranchIterator {
+            class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
@@ -1771,7 +1771,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:40:07+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1883,7 +1883,7 @@ my class array does Iterable {
             to
         }
         sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeBranchIterator {
+            class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
@@ -2276,7 +2276,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:40:07+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2388,7 +2388,7 @@ my class array does Iterable {
             to
         }
         sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeBranchIterator {
+            class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(

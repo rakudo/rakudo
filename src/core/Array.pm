@@ -185,17 +185,24 @@ my class Array { # declared in BOOTSTRAP
         }
     }
     method from-iterator(Array:U: Iterator $iter) {
-        my \result := nqp::create(self);
-        my \buffer := nqp::create(IterationBuffer);
-        my \todo := nqp::create(List::Reifier);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!current-iter', $iter);
-        nqp::bindattr(todo, List::Reifier, '$!reification-target',
-            result.reification-target());
-        todo.reify-until-lazy();
-        result
+        nqp::if(
+          nqp::eqaddr(
+            $iter.push-until-lazy(my \buffer := nqp::create(IterationBuffer)),
+            IterationEnd
+          ),
+          nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
+          nqp::stmts(
+            nqp::bindattr((my \result := nqp::create(self)),
+              List,'$!reified',buffer),
+            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
+              List::Reifier,'$!current-iter',$iter),
+            nqp::bindattr(todo,
+              List::Reifier,'$!reified',buffer),
+            nqp::bindattr(todo,
+              List::Reifier,'$!reification-target',result.reification-target),
+            nqp::p6bindattrinvres(result,List,'$!todo',todo)
+          )
+        )
     }
 
     proto method new(|) { * }

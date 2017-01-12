@@ -84,34 +84,36 @@ op.p6captureouters2 = function(ctx, capList, target) {
       var closure = codeObj.$$getattr(Code, "$!do");
 
       var ctxToDiddle = (closure.outerCtx || closure.forcedOuter);
-      ctxToDiddle.$$outer = cf;
-  }
-
-  return capList;
-};
-
-op.p6captureouters = function(ctx, capList) {
-
-  var elems = capList.$$elems();
-
-  for (var i = 0; i < elems; i++) {
-      var codeObj = capList.$$atpos(i);
-      var closure = codeObj.$$getattr(Code, "$!do");
-      var ctxToDiddle = (closure.outerCtx || closure.forcedOuter);
-      ctxToDiddle.$$outer = ctx;
+      if (ctxToDiddle) {
+        ctxToDiddle.$$outer = cf;
+        if (ctxToDiddle.closuresUsingThis) {
+          for (var closure of ctxToDiddle.closuresUsingThis) {
+            let closureCtx = closure.outerCtx;
+            let updatedCtxs = [];
+            while (updatedCtxs.length < closure.staticCode.closureTemplate.length) {
+              updatedCtxs.unshift(closureCtx);
+              closureCtx = closureCtx.$$outer;
+            }
+            closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
+          }
+        }
+      } else {
+        console.log("can't diddle", closure);
+      }
   }
 
   return capList;
 };
 
 op.p6capturelex = function(ctx, codeObj) {
-
   var closure = codeObj.$$getattr(Code, "$!do");
   var wantedStaticInfo = closure.staticCode.outerCodeRef;
 
   if (ctx.codeRef().staticCode === wantedStaticInfo) {
     closure.forcedOuter = ctx;
+    closure.outerCtx = ctx;
   } else if (ctx.$$outer.codeRef().staticCode === wantedStaticInfo) {
+    closure.outerCtx = ctx;
     closure.forcedOuter = ctx.$$outer;
   }
 

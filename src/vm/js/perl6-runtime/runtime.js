@@ -161,9 +161,19 @@ op.p6argvmarray = function(ctx, args) {
   return nqp.createArray(array);
 };
 
-op.p6scalarfromdesc = function(desc) {
-  console.log("p6scalarfromdesc");
+op.p6recont_ro = function(cont) {
+  /* TODO - repack RW scalars
+  if (isRWScalar(tc, gcx, cont)) {
+      SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
+      roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
+          RakudoContainerSpec.HINT_value,
+          cont.st.ContainerSpec.fetch(tc, cont));
+      return roCont;
+  }*/
+  return cont;
+};
 
+op.p6scalarfromdesc = function(desc) {
   if (desc === Null || desc.typeObject_)
       desc = defaultContainerDescriptor;
 

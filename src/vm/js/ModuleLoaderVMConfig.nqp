@@ -6,7 +6,7 @@ role Perl6::ModuleLoaderVMConfig {
     
     # Finds a setting to load.
     method find_setting($setting_name) {
-        nqp::say("TODO - finding setting $setting_name"); 
+        $setting_name ~ '.setting.js';
     }
 
     method file-extension() {

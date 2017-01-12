@@ -27,6 +27,10 @@ my @clo := $comp.commandline_options();
 @clo.push('I=s');
 @clo.push('M=s');
 
+#?if js
+@clo.push('beautify');
+#?endif
+
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('perl6', '@END_PHASERS', []);
 

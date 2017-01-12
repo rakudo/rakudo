@@ -1266,7 +1266,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1335,7 +1335,7 @@ my class array does Iterable {
         }
 
         sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -1359,7 +1359,7 @@ my class array does Iterable {
             to
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -1484,7 +1484,7 @@ my class array does Iterable {
             )
         }
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() is raw {
 #?if moar
                     nqp::multidimref_i($!list,nqp::clone($!indices))
@@ -1496,7 +1496,7 @@ my class array does Iterable {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -1525,14 +1525,14 @@ my class array does Iterable {
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd_i($!list,$!indices))
                 }
             }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
                 }
@@ -1771,7 +1771,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1840,7 +1840,7 @@ my class array does Iterable {
         }
 
         sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -1864,7 +1864,7 @@ my class array does Iterable {
             to
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -1989,7 +1989,7 @@ my class array does Iterable {
             )
         }
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() is raw {
 #?if moar
                     nqp::multidimref_n($!list,nqp::clone($!indices))
@@ -2001,7 +2001,7 @@ my class array does Iterable {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -2030,14 +2030,14 @@ my class array does Iterable {
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd_n($!list,$!indices))
                 }
             }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(nqp::atposnd_n($!list,$!indices),self.indices)
                 }
@@ -2276,7 +2276,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2016-12-04T01:24:11Z by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-12T23:23:17+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2345,7 +2345,7 @@ my class array does Iterable {
         }
 
         sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -2369,7 +2369,7 @@ my class array does Iterable {
             to
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -2494,7 +2494,7 @@ my class array does Iterable {
             )
         }
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() is raw {
 #?if moar
                     nqp::multidimref_s($!list,nqp::clone($!indices))
@@ -2506,7 +2506,7 @@ my class array does Iterable {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -2535,14 +2535,14 @@ my class array does Iterable {
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd_s($!list,$!indices))
                 }
             }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(nqp::atposnd_s($!list,$!indices),self.indices)
                 }

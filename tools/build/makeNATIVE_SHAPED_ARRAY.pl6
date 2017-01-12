@@ -108,7 +108,7 @@ for $*IN.lines -> $line {
         }
 
         sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -132,7 +132,7 @@ for $*IN.lines -> $line {
             to
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -183,7 +183,7 @@ for $*IN.lines -> $line {
                             IterationEnd
                           ),
                           nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Internals.EmptyIterator),
+                            Rakudo::Iterator.Empty),
                           nqp::if(                      # is it an iterator?
                             nqp::istype($item,Iterable) && nqp::isconcrete($item),
                             nqp::bindpos($!iterators,$i,$item.iterator),
@@ -257,7 +257,7 @@ for $*IN.lines -> $line {
             )
         }
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() is raw {
 #?if moar
                     nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
@@ -269,7 +269,7 @@ for $*IN.lines -> $line {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -298,14 +298,14 @@ for $*IN.lines -> $line {
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(self.indices,nqp::atposnd_#postfix#($!list,$!indices))
                 }
             }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(nqp::atposnd_#postfix#($!list,$!indices),self.indices)
                 }

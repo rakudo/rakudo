@@ -76,6 +76,172 @@ class Rakudo::Iterator {
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
+    # Generic role for iterating over a >1 dimensional shaped list
+    # for its values (leaves).  The default .new method takes a List
+    # to iterate over.  A consuming class needs to provide a .result
+    # method, which will be called with each iteration with the
+    # $!indices attribute set to the coordinates of the element being
+    # iterated for this time.  In some cases, the iterator is iterated
+    # over for the side-effects in .result only.  Which is why this
+    # role supplies an optimized .sink-all.
+    our role ShapeLeaf does Iterator {
+        has $!dims;
+        has $!indices;
+        has Mu $!list;
+        has int $!maxdim;
+        has int $!max;
+
+        # Every time .result gets called, the following attributes are set:
+        # $!indices  a list_i with current coordinate
+        # $!dims     a list_i with dimensions
+        # $!maxdim   maximum element number in $!dims
+        method result { ... }            # consumer needs to supply a .result
+
+        method indices() {               # mostly a helper method for debugging
+            nqp::stmts(
+              (my $result := nqp::setelems(nqp::list,nqp::elems($!indices))),
+              (my int $i = -1),
+              nqp::while(                # convert list_i to list
+                nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                nqp::bindpos($result,$i,nqp::atpos_i($!indices,$i))
+              ),
+              $result
+            )
+        }
+        method SET-SELF(Mu \list) {
+            nqp::stmts(
+              nqp::if(
+                nqp::istype(list,List),
+                nqp::stmts(                                 # List like
+                  ($!list := nqp::getattr(list,List,'$!reified')),
+                  (my $shape := list.shape),
+                  (my int $dims = $shape.elems),            # reifies
+                  ($!dims := nqp::setelems(nqp::list_i,$dims)),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                    nqp::bindpos_i($!dims,$i,
+                      nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
+                  )
+                ),
+                ($dims = nqp::elems($!dims := nqp::dimensions($!list := list)))
+              ),
+              ($!indices := nqp::setelems(nqp::list_i,$dims)),
+              ($!maxdim = nqp::sub_i($dims,1)),
+              ($!max    = nqp::atpos_i($!dims,$!maxdim)),
+              self
+            )
+        }
+        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!indices,
+              nqp::stmts(                                 # still iterating
+                (my $result := self.result),              # process
+                nqp::if(
+                  nqp::islt_i(
+                    (my int $i =
+                      nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1)),
+                    $!max
+                  ),
+                  nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+                  nqp::stmts(                             # done for now
+                    (my int $level = $!maxdim),
+                    nqp::until(                           # update indices
+                      nqp::islt_i(                        # exhausted ??
+                        ($level = nqp::sub_i($level,1)),0)
+                        || nqp::stmts(
+                        nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                        nqp::islt_i(
+                          nqp::bindpos_i($!indices,$level,
+                            nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                          nqp::atpos_i($!dims,$level)
+                        ),
+                      ),
+                      nqp::null
+                    ),
+                    nqp::if(
+                      nqp::islt_i($level,0),
+                      $!indices := nqp::null              # done next time
+                    )
+                  )
+                ),
+                $result                                   # what we found
+              ),
+              IterationEnd                                # done now
+            )
+        }
+
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!indices,
+              nqp::stmts(                                   # still iterating
+                (my int $i = nqp::atpos_i($!indices,$!maxdim)),
+                nqp::while(
+                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::stmts(
+                    $target.push(self.result),              # process
+                    nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+                  )
+                ),
+                (my int $level = $!maxdim),                 # done for now
+                nqp::until(                                 # update indices
+                  nqp::islt_i(                              # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0)
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level,
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos_i($!dims,$level)
+                    ),
+                  ),
+                  nqp::null
+                ),
+                nqp::if(
+                  nqp::islt_i($level,0),
+                  $!indices := nqp::null                    # done
+                )
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) {
+            nqp::while(
+              $!indices,
+              nqp::stmts(                                   # still iterating
+                (my int $i = nqp::atpos_i($!indices,$!maxdim)),
+                nqp::while(
+                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::stmts(
+                    self.result,                            # process
+                    nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
+                  )
+                ),
+                (my int $level = $!maxdim),                 # done for now
+                nqp::until(                                 # update indices
+                  nqp::islt_i(                              # exhausted ??
+                    ($level = nqp::sub_i($level,1)),0)
+                    || nqp::stmts(
+                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                    nqp::islt_i(
+                      nqp::bindpos_i($!indices,$level,
+                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                      nqp::atpos_i($!dims,$level)
+                    ),
+                  ),
+                  nqp::null
+                ),
+                nqp::if(
+                  nqp::islt_i($level,0),
+                  $!indices := nqp::null                    # done
+                )
+              )
+            )
+        }
+    }
+
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator
 

@@ -224,7 +224,7 @@
         }
 
         sub MEMCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
                 has $!desc;
                 method INIT(Mu \to, Mu \from) {
@@ -245,7 +245,7 @@
             }.new(to,from).sink-all
         }
         sub INTCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -268,7 +268,7 @@
             }.new(to,from).sink-all
         }
         sub NUMCPY(Mu \to, Mu \from) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
@@ -392,7 +392,7 @@
             self
         }
         multi method STORE(::?CLASS:D: Iterator:D \iterator) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!iterator;
                 has Mu $!desc;
                 method INIT(\list,\iterator) {
@@ -422,7 +422,7 @@
         }
 
         multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has int $!on-key;
                 method result() is raw {
                     nqp::if(
@@ -446,7 +446,7 @@
             }.new(self))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!desc;
                 method !INIT(\list) {
                     nqp::stmts(
@@ -479,7 +479,7 @@
             }.new(self))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Internals::ShapeLeafIterator {
+            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
                     Pair.new(nqp::atposnd($!list,$!indices),self.indices)
                 }
@@ -495,7 +495,7 @@
         }
 
         method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Internals::ShapeLeafIterator {
+            class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!desc;
                 method !INIT(\list) {
                     nqp::stmts(

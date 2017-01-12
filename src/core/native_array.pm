@@ -1410,7 +1410,7 @@ my class array does Iterable {
                             IterationEnd
                           ),
                           nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Internals.EmptyIterator),
+                            Rakudo::Iterator.Empty),
                           nqp::if(                      # is it an iterator?
                             nqp::istype($item,Iterable) && nqp::isconcrete($item),
                             nqp::bindpos($!iterators,$i,$item.iterator),
@@ -1915,7 +1915,7 @@ my class array does Iterable {
                             IterationEnd
                           ),
                           nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Internals.EmptyIterator),
+                            Rakudo::Iterator.Empty),
                           nqp::if(                      # is it an iterator?
                             nqp::istype($item,Iterable) && nqp::isconcrete($item),
                             nqp::bindpos($!iterators,$i,$item.iterator),
@@ -2420,7 +2420,7 @@ my class array does Iterable {
                             IterationEnd
                           ),
                           nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Internals.EmptyIterator),
+                            Rakudo::Iterator.Empty),
                           nqp::if(                      # is it an iterator?
                             nqp::istype($item,Iterable) && nqp::isconcrete($item),
                             nqp::bindpos($!iterators,$i,$item.iterator),

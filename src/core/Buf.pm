@@ -103,11 +103,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method list(Blob:D:) {
-        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
             method pull-one() is raw {
-                nqp::islt_i(++$!i,$!elems)
-                  ?? nqp::atpos_i($!blob,$!i)
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atpos_i($!blob,$!i),
+                  IterationEnd
+                )
             }
         }.new(self))
     }
@@ -456,11 +458,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method list(Buf:D:) {
-        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
             method pull-one() is raw {
-                nqp::islt_i(++$!i,$!elems)
-                  ?? nqp::atposref_i($!blob,$!i)
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atposref_i($!blob,$!i),
+                  IterationEnd
+                )
             }
         }.new(self))
     }

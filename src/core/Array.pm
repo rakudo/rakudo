@@ -183,7 +183,7 @@ my class Array { # declared in BOOTSTRAP
 
         # nothing now or in the future to iterate over
         else {
-            Rakudo::Internals.EmptyIterator
+            Rakudo::Iterator.Empty
         }
     }
     method from-iterator(Array:U: Iterator $iter) {

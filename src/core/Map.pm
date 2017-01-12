@@ -90,7 +90,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method list(Map:) { self.pairs.cache }
 
     multi method pairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,
@@ -114,7 +114,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method keys(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 $!iter
                   ?? nqp::iterkey_s(nqp::shift($!iter))
@@ -129,7 +129,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method kv(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has int $!on-value;
 
             method pull-one() is raw {
@@ -161,10 +161,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method values(Map:D:) {
-        Seq.new(Rakudo::Internals.MappyIterator-values(self))
+        Seq.new(Rakudo::Iterator.Mappy-values(self))
     }
     multi method antipairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,

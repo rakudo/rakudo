@@ -13,6 +13,7 @@ src/core/Attribute.pm
 src/core/Iterator.pm
 src/core/SlippyIterator.pm
 src/core/Rakudo/Internals.pm
+src/core/Rakudo/Iterator.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm
 src/core/HyperIterable.pm

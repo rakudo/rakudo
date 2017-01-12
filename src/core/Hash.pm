@@ -638,7 +638,7 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method keys() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,
@@ -650,7 +650,7 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method values() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,
@@ -662,7 +662,7 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method kv() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 has $!pair;
 
                 method pull-one() {
@@ -685,10 +685,10 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method pairs() {
-            Seq.new(Rakudo::Internals.MappyIterator-values(self))
+            Seq.new(Rakudo::Iterator.Mappy-values(self))
         }
         method antipairs() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,

@@ -325,7 +325,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     ($!pos = -1),
                     self
                   ),
-                  Rakudo::Internals.EmptyIterator
+                  Rakudo::Iterator.Empty
                 )
             }
             method new(\string) { nqp::create(self)!SET-SELF(string) }
@@ -362,7 +362,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
                     self
                   ),
-                  Rakudo::Internals.EmptyIterator
+                  Rakudo::Iterator.Empty
                 )
             }
             method new(\s,\z,\l,\i) { nqp::create(self)!SET-SELF(s,z,l,i) }

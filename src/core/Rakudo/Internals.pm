@@ -3,6 +3,7 @@ my role  IO { ... }
 my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
+my class Rakudo::Iterator { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
@@ -13,57 +14,6 @@ my class X::Str::Sprintf::Directives::Unsupported { ... };
 my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
-
-    our role MappyIterator does Iterator {
-        has $!storage;
-        has $!iter;
-
-        method SET-SELF(\hash) {
-            $!storage := nqp::getattr(hash,Map,'$!storage');
-            nqp::if(
-              ($!storage.DEFINITE && nqp::elems($!storage)),
-              nqp::stmts(
-                ($!iter := nqp::iterator($!storage)),
-                self
-              ),
-              Rakudo::Internals.EmptyIterator
-            )
-        }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
-        method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
-        method bool-only(--> True) { }
-        method sink-all(--> IterationEnd) { $!iter := nqp::null }
-    }
-
-    our role BlobbyIterator does Iterator {
-        has $!blob;
-        has int $!elems;
-        has Int $!i;   # cannot be an int yet sadly enough
-
-        method SET-SELF(\blob) {
-            nqp::if(
-              nqp::isgt_i($!elems = nqp::elems(blob),0),
-              nqp::stmts(
-                ($!blob := blob),
-                ($!i     = -1),
-                self
-              ),
-              Rakudo::Internals.EmptyIterator
-            )
-        }
-        method new(\blob) { nqp::create(self).SET-SELF(blob) }
-        method push-all($target --> IterationEnd) {
-            my $blob      := $!blob;  # attribute access is slower
-            my int $i      = $!i;
-            my int $elems  = $!elems;
-            $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i(++$i,$elems);
-        }
-        method count-only() {
-            nqp::p6box_i($!elems)
-        }
-        method sink-all(--> IterationEnd) { $!i = $!elems }
-    }
 
     our role ShapeLeafIterator does Iterator {
         has $!dims;
@@ -359,7 +309,7 @@ my class Rakudo::Internals {
                   ($!sfs := seq-from-seqs.iterator),
                   nqp::if(
                     nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
-                    Rakudo::Internals.EmptyIterator,
+                    Rakudo::Iterator.Empty,
                     nqp::stmts(
                       ($!current := $!current.iterator),
                       self
@@ -386,22 +336,6 @@ my class Rakudo::Internals {
                 )
             }
         }.new(seq-from-seqs))
-    }
-
-    method MappyIterator-values(\hash) {
-        class :: does MappyIterator {
-            method pull-one() is raw {
-                $!iter
-                  ?? nqp::iterval(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)))
-                )
-            }
-        }.new(hash)
     }
 
     method WhateverIterator(\source) {
@@ -549,7 +483,7 @@ my class Rakudo::Internals {
                   X::Cannot::Lazy.new(:$action).throw,
                   nqp::if(
                     nqp::isle_i(size, 0),
-                    Rakudo::Internals.EmptyIterator,
+                    Rakudo::Iterator.Empty,
                     nqp::stmts(
                       ($!full = full),
                       ($!lastn := nqp::setelems(nqp::list, $!size = size)),
@@ -981,17 +915,6 @@ my class Rakudo::Internals {
         }.new(iterator)
     }
 
-    method EmptyIterator() {
-        BEGIN class :: does Iterator {
-            method new() { nqp::create(self) }
-            method pull-one(--> IterationEnd)  { }
-            method push-all($ --> IterationEnd) { }
-            method sink-all(--> IterationEnd)  { }
-            method count-only(--> 0) { }
-            method bool-only(--> False) { }
-        }.new
-    }
-
     # basically 42 xx 1
     method OneValueIterator(\value) {
         class :: does Iterator {
@@ -1112,7 +1035,7 @@ my class Rakudo::Internals {
           }.new(@iterables),
           nqp::if(
             nqp::iseq_i($n,0),
-            Rakudo::Internals.EmptyIterator,
+            Rakudo::Iterator.Empty,
             nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
           )
         )
@@ -1188,7 +1111,7 @@ my class Rakudo::Internals {
           }.new(@iterables,&mapper),
           nqp::if(
             nqp::iseq_i($n,0),
-            Rakudo::Internals.EmptyIterator,
+            Rakudo::Iterator.Empty,
             nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
           )
         )
@@ -2555,7 +2478,7 @@ my class Rakudo::Internals {
                     self
                 }
                 else {
-                    Rakudo::Internals.EmptyIterator
+                    Rakudo::Iterator.Empty
                 }
             }
             method new(\ap,\d,\f) { nqp::create(self)!SET-SELF(ap,d,f) }

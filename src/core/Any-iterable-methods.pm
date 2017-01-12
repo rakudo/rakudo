@@ -1861,7 +1861,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(
           nqp::if(
             nqp::isle_i($n,0),
-            Rakudo::Internals.EmptyIterator,
+            Rakudo::Iterator.Empty,
             Rakudo::Internals.IterateNextNFromIterator(self.iterator,$n)
           )
         )

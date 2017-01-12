@@ -13,7 +13,7 @@ my sub combinations(Int() $n, Int() $k) {
     # k = 0 → can pick just 1 combination (empty list); return ((),)
     # n < k → we don't have enough items to pick a combination of k items; return ()
     return ((),).Seq if $k == 0;
-    return Seq.new(Rakudo::Internals.EmptyIterator)
+    return Seq.new(Rakudo::Iterator.Empty)
         if $n < 1 or $n < $k or $k < 0;
 
     Seq.new(class :: does Iterator {
@@ -723,7 +723,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::if(
             $!reified.DEFINITE,
             Rakudo::Internals.ReifiedListIterator(self),
-            Rakudo::Internals.EmptyIterator
+            Rakudo::Iterator.Empty
           )
         )
     }
@@ -1066,7 +1066,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ?? X::Cannot::Lazy.new(:action('.roll from')).throw
           !! (my Int $elems = self.elems)
             ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
-            !! Seq.new(Rakudo::Internals.EmptyIterator)
+            !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(\number) {
         number == Inf
@@ -1097,7 +1097,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                          }
                      }
                  }.new(self,number.Int))
-              !! Seq.new(Rakudo::Internals.EmptyIterator)
+              !! Seq.new(Rakudo::Iterator.Empty)
     }
 
     method reverse() is nodal {
@@ -1143,7 +1143,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           unless @cycle.is-lazy || @cycle;
 
         # done if there's nothing to rotor on
-        return Seq.new(Rakudo::Internals.EmptyIterator)
+        return Seq.new(Rakudo::Iterator.Empty)
           unless nqp::getattr(self,List,'$!reified').DEFINITE
                    || nqp::getattr(self,List,'$!todo').DEFINITE;
 
@@ -1270,7 +1270,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   )
                 )
               ),
-              Rakudo::Internals.EmptyIterator
+              Rakudo::Iterator.Empty
             )
           )
         )
@@ -1313,7 +1313,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   )
                 )
               ),
-              Rakudo::Internals.EmptyIterator
+              Rakudo::Iterator.Empty
             )
           )
         )

@@ -768,7 +768,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-nth-tail(\slash, \cursor, \move, int $tail) {
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
-            Rakudo::Internals.IterateLastNFromIterator(
+            Rakudo::Iterator.LastNValues(
               CURSOR-ITERATOR.new(cursor, move),
               $tail, 'match', 1).pull-one),
             IterationEnd

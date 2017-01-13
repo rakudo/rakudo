@@ -1880,7 +1880,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method tail(Any:D: Int(Cool) $n) {
         Seq.new(
-          Rakudo::Internals.IterateLastNFromIterator(self.iterator,$n,'tail'))
+          Rakudo::Iterator.LastNValues(self.iterator,$n,'tail'))
     }
 
     proto method minpairs(|) { * }

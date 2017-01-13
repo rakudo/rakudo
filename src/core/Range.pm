@@ -104,7 +104,7 @@ my class Range is Cool does Iterable does Positional {
         if $!is-int
           && !nqp::isbig_I(nqp::decont($!min))
           && !nqp::isbig_I(nqp::decont($!max)) {
-            Rakudo::Internals.IntRangeIterator(
+            Rakudo::Iterator.IntRange(
               $!min + $!excludes-min, $!max - $!excludes-max)
         }
 

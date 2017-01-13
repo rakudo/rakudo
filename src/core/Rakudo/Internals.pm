@@ -97,44 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    method IntRangeIterator(\from,\to) {
-        class :: does Iterator {
-            has int $!i;
-            has int $!last;
-
-            method !SET-SELF(int $i, int $last) {
-                nqp::stmts(
-                  ($!i    = nqp::sub_i($i,1)),
-                  ($!last = $last),
-                  self
-                )
-            }
-            method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
-
-            method pull-one() {
-                nqp::if(
-                  nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last),
-                  $!i,
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my int $i    = $!i),      # lexicals are faster than attrs
-                  (my int $last = $!last),
-                  nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$last),
-                    $target.push(nqp::p6box_i($i))
-                  ),
-                  ($!i = $i),                # make sure pull-one ends
-                )
-            }
-            method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
-            method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
-            method sink-all(--> IterationEnd) { $!i = $!last }
-        }.new(from,to)
-    }
-
     # all possible keys for a given shape
     method ShapeIndexIterator(\shape) {
         class :: does Iterator {

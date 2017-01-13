@@ -174,7 +174,7 @@
 
         multi method keys(::?CLASS:D:) {
             Seq.new(
-              Rakudo::Internals.IntRangeIterator(0,self.shape.AT-POS(0) - 1))
+              Rakudo::Iterator.IntRange(0,self.shape.AT-POS(0) - 1))
         }
         multi method kv(::?CLASS:D:) {
             Seq.new(

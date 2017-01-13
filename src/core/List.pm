@@ -3,7 +3,7 @@ my class Supplier { ... }
 my class X::TypeCheck::Splice { ... }
 
 sub combinations(Int() $n, Int() $k) {
-    Seq.new(Rakudo::Iterator.Combinations($n,$k))
+    Seq.new(Rakudo::Iterator.Combinations($n,$k,0))
 }
 
 sub permutations(Int() $n) {

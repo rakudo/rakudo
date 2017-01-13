@@ -374,10 +374,12 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator for a range of 0..^N with a number of elements.
+    # The third parameter indicates whether an IterationBuffer should be
+    # returned (1) for each combinatin, or a fully reified List (0).
     # Has a highly optimized count-only, for those cases when one is only
     # interested in the number of combinations, rather than the actual
     # combinations.  The workhorse of combinations().
-    method Combinations($n, $k) {
+    method Combinations($n, $k, int $b) {
         nqp::if(
           $n > 0 && nqp::isbig_I(nqp::decont($n)),    # must be HLL comparison
           X::OutOfRange.new(
@@ -388,7 +390,9 @@ class Rakudo::Iterator {
           nqp::if(
             nqp::iseq_i($k,0),
             # k = 0 → can pick just 1 combination (empty list); return ((),)
-            Rakudo::Iterator.OneValue( () ),
+            Rakudo::Iterator.OneValue(
+              nqp::create(nqp::if($b,IterationBuffer,List))
+            ),
             nqp::if(
               # n < 1 → we have an empty list to pick from
               # n < k → not enough items to pick combination of k items
@@ -397,18 +401,20 @@ class Rakudo::Iterator {
               class :: does Iterator {
                   has int $!n;
                   has int $!k;
+                  has int $!b;
                   has Mu $!stack;
                   has Mu $!combination;
-                  method !SET-SELF(\n,\k) {
+                  method !SET-SELF(\n,\k,\b) {
                       nqp::stmts(
                         ($!n = n),
                         ($!k = k),
+                        ($!b = b),
                         ($!stack := nqp::list_i(0)),
-                        ($!combination := nqp::list),
+                        ($!combination := nqp::create(IterationBuffer)),
                         self
                     )
                   }
-                  method new(\n,\k) { nqp::create(self)!SET-SELF(n,k) }
+                  method new(\n,\k,\b) { nqp::create(self)!SET-SELF(n,k,b) }
 
                   method pull-one() {
                       nqp::stmts(
@@ -421,7 +427,8 @@ class Rakudo::Iterator {
                             (my int $index = nqp::sub_i($elems,1)),
                             (my int $value = nqp::pop_i($!stack)),
                             nqp::while(
-                              (nqp::islt_i($value,$n) && nqp::islt_i($index,$k)),
+                              (nqp::islt_i($value,$n)
+                                && nqp::islt_i($index,$k)),
                               nqp::stmts(
                                 nqp::bindpos($!combination,
                                   $index,nqp::clone($value)),
@@ -435,7 +442,14 @@ class Rakudo::Iterator {
                         ),
                         nqp::if(
                           nqp::iseq_i($index,$k),
-                          nqp::clone($!combination),
+                          nqp::if(
+                            $b,
+                            nqp::clone($!combination),
+                            nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              nqp::clone($!combination)
+                            )
+                          ),
                           IterationEnd
                         )
                       )
@@ -444,7 +458,7 @@ class Rakudo::Iterator {
                       ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int
                   }
                   method bool-only(--> True) { }
-              }.new($n,$k)
+              }.new($n,$k,$b)
             )
           )
         )

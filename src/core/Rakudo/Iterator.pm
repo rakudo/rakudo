@@ -344,6 +344,35 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Return an iterator that will generate a pair with the value as the
+    # key and as value the key of the given iterator, basically the
+    # .antipairs functionality on 1 dimensional lists.
+    method AntiPair(\iterator) {
+        class :: does Iterator {
+            has Mu $!iter;
+            has int $!key;
+
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  Pair.new($pulled,+($!key = nqp::add_i($!key,1)))
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                my $pulled;
+                my int $key = -1;
+                nqp::until(
+                  nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
+                  $target.push(Pair.new($pulled,+($key = nqp::add_i($key,1))))
+                )
+            }
+        }.new(iterator)
+    }
+
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
     # was encountered, in which case it will repeat the last seen value

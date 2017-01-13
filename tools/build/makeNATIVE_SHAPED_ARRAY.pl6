@@ -431,8 +431,7 @@ for $*IN.lines -> $line {
             Seq.new(Rakudo::Iterator.Pair(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
         method reverse(::?CLASS:D:) is nodal {
             nqp::stmts(

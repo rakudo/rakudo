@@ -793,7 +793,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Pair(self.iterator))
     }
     multi method antipairs(List:D:) {
-        Seq.new(Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))
+        Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
     }
     multi method invert(List:D:) {
         my $laze = self.is-lazy;

@@ -97,33 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # iterate 1dimensional AntiPair from iterator
-    method IterateAntiPairFromIterator(\iterator) {
-        class :: does Iterator {
-            has Mu $!iter;
-            has int $!key;
-
-            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
-
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                  IterationEnd,
-                  Pair.new($pulled,+($!key = nqp::add_i($!key,1)))
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                my $pulled;
-                my int $key = -1;
-                nqp::until(
-                  nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
-                  $target.push(Pair.new($pulled,+($key = nqp::add_i($key,1))))
-                )
-            }
-        }.new(iterator)
-    }
-
     # basically 42 xx 1
     method OneValueIterator(\value) {
         class :: does Iterator {

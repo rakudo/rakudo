@@ -377,18 +377,18 @@ class Rakudo::Iterator {
         }.new(map)
     }
 
-    # Returns an iterator from a given source where the occurrence of
-    # a Whatever value indicates that the source the last value seen
-    # should be repeated indefinitely until either another non-Whatever
-    # value is seen from the source, or the source is exhausted.
+    # Returns an iterator from a given iterator where the occurrence of
+    # a Whatever value indicates that last value seen from the source
+    # iterator should be repeated indefinitely until either another
+    # non-Whatever value is seen from the source iterator, or the source
+    # iterator is exhausted.
     method Whatever(\source) {
         class :: does Iterator {
             has $!source;
             has $!last;
             has int $!whatever;
             method new(\source) {
-                nqp::p6bindattrinvres(
-                  nqp::create(self),self,'$!source',source.iterator)
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
             }
             method pull-one() is raw {
                 nqp::if(

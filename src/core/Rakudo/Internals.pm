@@ -723,7 +723,7 @@ my class Rakudo::Internals {
                           ),
                           nqp::stmts(
                             nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Iterator.Whatever($elem)
+                            Rakudo::Iterator.Whatever($elem.iterator)
                           )
                         )
                       )
@@ -799,7 +799,7 @@ my class Rakudo::Internals {
                           ),
                           nqp::stmts(
                             nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Iterator.Whatever($elem)
+                            Rakudo::Iterator.Whatever($elem.iterator)
                           )
                         )
                       )

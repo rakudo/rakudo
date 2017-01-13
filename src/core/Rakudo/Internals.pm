@@ -97,71 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # all possible keys for a given shape
-    method ShapeIndexIterator(\shape) {
-        class :: does Iterator {
-            has $!dims;
-            has $!indices;
-            has int $!maxdim;
-            has int $!max;
-
-            method SET-SELF(\shape) {
-                nqp::stmts(
-                  ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
-                  (my int $dims = nqp::elems($!dims)),
-                  ($!indices := nqp::setelems(nqp::list,$dims)),
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
-                    nqp::bindpos($!indices,$i,0)
-                  ),
-                  ($!maxdim = nqp::sub_i($dims,1)),
-                  ($!max    = nqp::atpos($!dims,$!maxdim)),
-                  self
-                )
-            }
-            method new(\shape) { nqp::create(self).SET-SELF(shape) }
-
-            method pull-one() is raw {
-                nqp::if(
-                  $!indices,
-                  nqp::stmts(                      # still iterating
-                    (my $result := nqp::clone($!indices)),
-                    nqp::if(
-                      nqp::islt_i(                        (my int $i =
-                          nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
-                        $!max
-                      ),
-                      nqp::bindpos($!indices,$!maxdim,$i),    # ready for next
-                      nqp::stmts(                             # done for now
-                        (my int $level = $!maxdim),
-                        nqp::until(                           # update indices
-                          nqp::islt_i(                        # exhausted ??
-                            ($level = nqp::sub_i($level,1)),0)
-                            || nqp::stmts(
-                            nqp::bindpos($!indices,nqp::add_i($level,1),0),
-                            nqp::islt_i(
-                              nqp::bindpos($!indices,$level,
-                                nqp::add_i(nqp::atpos($!indices,$level),1)),
-                              nqp::atpos($!dims,$level)
-                            ),
-                          ),
-                          nqp::null
-                        ),
-                        nqp::if(                   # this was the last value
-                          nqp::islt_i($level,0),
-                          $!indices := nqp::null
-                        )
-                      )
-                    ),
-                    $result                        # what we found
-                  ),
-                  IterationEnd                     # done iterating
-                )
-            }
-        }.new(shape)
-    }
-
     # iterate 1dimensional key values from iterator
     method IterateKeyValueFromIterator(\iterator) {
         class :: does Iterator {
@@ -1131,7 +1066,7 @@ my class Rakudo::Internals {
 
         multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
         multi method keys(::?CLASS:D:) {
-            Seq.new(Rakudo::Internals.ShapeIndexIterator(self.shape))
+            Seq.new(Rakudo::Iterator.ShapeIndex(self.shape))
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat

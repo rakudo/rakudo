@@ -443,6 +443,80 @@ class Rakudo::Iterator {
         }.new
     }
 
+    # Return an iterator that will cache a source iterator for the index
+    # values that the index iterator provides, from a given offest in the
+    # cached source iterator.  Values from the index iterator below the
+    # offset, are considered to be illegal and will throw.  Also takes an
+    # optional block to be called when an otherwise out-of-bounds index
+    # value is given by the index iterator: if not given, Nil will be
+    # returned for such index values.
+    method FromIndexes(\source,\indexes,\offset,&out?) {
+        class :: does Iterator {
+            has $!source;
+            has $!indexes;
+            has int $!offset;
+            has &!out;
+            has $!cache;
+            method !SET-SELF($!source,$!indexes,\offset,&!out) {
+                $!cache := nqp::setelems(nqp::list,$!offset = offset);
+                self
+            }
+            method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $got := $!indexes.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::if(
+                    nqp::istype(                      # doesn't look like int
+                      (my $number = +$got),Failure),
+                    $number.throw,
+                    nqp::if(                          # out of range
+                      nqp::islt_i((my int $index = $number.Int),$!offset),
+                      X::OutOfRange.new(:$got,:range("$!offset..^Inf")).throw,
+                      nqp::if(
+                        nqp::existspos($!cache,$index),
+                        nqp::atpos($!cache,$index),   # it's in the cache
+                        nqp::if(
+                          nqp::defined($!source),
+                          nqp::stmts(                 # can still search it
+                            nqp::until(
+                              nqp::existspos($!cache,$index)
+                                || nqp::eqaddr(
+                                     (my $pulled := $!source.pull-one),
+                                     IterationEnd
+                                   ),
+                              nqp::push($!cache,$pulled)
+                            ),
+                            nqp::if(
+                              nqp::eqaddr($pulled,IterationEnd),
+                              nqp::stmts(
+                                ($!source := Mu),
+                                nqp::if(
+                                  $!indexes.is-lazy,
+                                  IterationEnd,       # not going to be any more
+                                  nqp::stmts(         # didn't find it
+                                    nqp::if(&out,out($index)),
+                                    Nil
+                                  )
+                                )
+                              ),
+                              $pulled                 # found it
+                            )
+                          ),
+                          nqp::stmts(                 # cannot be found
+                            nqp::if(&out,out($index)),
+                            Nil
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!source.is-lazy }
+        }.new(source,indexes,offset,&out)
+    }
+
     # Create iterator for the last N values of a given iterator.  Needs
     # to specify the :action part of X::Cannot::Lazy in case the given
     # iterator is lazy.  Optionally returns an empty iterator if the

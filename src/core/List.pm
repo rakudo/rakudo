@@ -1596,10 +1596,10 @@ my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :&with!) {
-    Seq.new(Rakudo::Internals.ZipIterablesOpIterator(lol,&with))
+    Seq.new(Rakudo::Iterator.ZipIterablesOp(lol,&with))
 }
 multi sub infix:<Z>(+lol) {
-    Seq.new(Rakudo::Internals.ZipIterablesIterator(lol))
+    Seq.new(Rakudo::Iterator.ZipIterables(lol))
 }
 
 my &zip := &infix:<Z>;

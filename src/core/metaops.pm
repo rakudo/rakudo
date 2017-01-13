@@ -105,7 +105,7 @@ sub METAOP_ZIP(\op, &reduce) {
         }.lazy-if($laze)
     },
     -> +lol {
-        Seq.new(Rakudo::Internals.ZipIterablesOpIterator(lol,op))
+        Seq.new(Rakudo::Iterator.ZipIterablesOp(lol,op))
     }
     )
 }

@@ -463,6 +463,36 @@ class Rakudo::Iterator {
         }.new(map)
     }
 
+    # Returns an iterator for the next N values of given iterator.
+    method NextNValues(\iterator,\times) {
+        class :: does Iterator {
+            has $!iterator;
+            has int $!times;
+            method !SET-SELF($!iterator,$!times) { self }
+            method new(\i,\t) { nqp::create(self)!SET-SELF(i,t) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::isgt_i($!times,0),
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled := $!iterator.pull-one),
+                      IterationEnd
+                    ),
+                    nqp::stmts(
+                      ($!times = 0),
+                      IterationEnd
+                    ),
+                    nqp::stmts(
+                      ($!times = nqp::sub_i($!times,1)),
+                      $pulled
+                    )
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new(iterator,times)
+    }
+
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another

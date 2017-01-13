@@ -1862,7 +1862,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           nqp::if(
             nqp::isle_i($n,0),
             Rakudo::Iterator.Empty,
-            Rakudo::Internals.IterateNextNFromIterator(self.iterator,$n)
+            Rakudo::Iterator.NextNValues(self.iterator,$n)
           )
         )
     }

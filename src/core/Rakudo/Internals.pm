@@ -97,36 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # Create iterator for the next N elements of given iterator
-    method IterateNextNFromIterator(\iterator,\times) {
-        class :: does Iterator {
-            has $!iterator;
-            has int $!times;
-            method !SET-SELF($!iterator,$!times) { self }
-            method new(\i,\t) { nqp::create(self)!SET-SELF(i,t) }
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::isgt_i($!times,0),
-                  nqp::if(
-                    nqp::eqaddr(
-                      (my $pulled := $!iterator.pull-one),
-                      IterationEnd
-                    ),
-                    nqp::stmts(
-                      ($!times = 0),
-                      IterationEnd
-                    ),
-                    nqp::stmts(
-                      ($!times = nqp::sub_i($!times,1)),
-                      $pulled
-                    )
-                  ),
-                  IterationEnd
-                )
-            }
-        }.new(iterator,times)
-    }
-
     # Create iterator for the last N values of a given iterator.  Needs
     # to specify the :action part of X::Cannot::Lazy in case the given
     # iterator is lazy.  Optionally returns an empty iterator if the

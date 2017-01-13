@@ -9138,6 +9138,49 @@ class Perl6::Actions is HLL::Actions does STDActions {
 }
 
 class Perl6::QActions is HLL::Actions does STDActions {
+    # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
+    method charname($/) {
+#?if !moar
+        my $codepoint := $<integer>
+                         ?? $<integer>.made
+                         !! nqp::codepointfromname(~$/);
+                         $/.CURSOR.panic("Unrecognized character name $/") if $codepoint < 0;
+        make nqp::chr($codepoint);
+#?endif
+#?if moar
+        my $codepoint := $<integer>
+                         ?? nqp::chr($<integer>.made)
+                         !! nqp::getstrfromname(~$/);
+        $codepoint := self.charname-notfound($/) if $codepoint eq '';
+        make $codepoint;
+#?endif
+    }
+    method charname-notfound($/) {
+        my @worry-text := ( "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL",
+                            "FORM FEED or FF",
+                            "CARRIAGE RETURN or CR",
+                            "NEXT LINE or NEL" );
+        my $text := "Deprecated character name %s in lookup of Unicode character by name.\n" ~
+                    "Unicode 1 names are deprecated.\nPlease use %s";
+        if ~$/ eq "LINE FEED (LF)" {
+            $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
+            return nqp::chr(nqp::codepointfromname("LINE FEED"));
+        }
+        if ~$/ eq "FORM FEED (FF)" {
+            $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
+            return nqp::chr(nqp::codepointfromname("FORM FEED"));
+        }
+        if ~$/ eq "CARRIAGE RETURN (CR)" {
+            $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
+            return nqp::chr(nqp::codepointfromname("CARRIAGE RETURN"));
+        }
+        if ~$/ eq "NEXT LINE (NEL)" {
+            $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
+            return nqp::chr(nqp::codepointfromname("NEXT LINE"));
+        }
+
+        $/.CURSOR.panic("Unrecognized character name $/");
+    }
     method nibbler($/) {
         my @asts;
         my $lastlit := '';

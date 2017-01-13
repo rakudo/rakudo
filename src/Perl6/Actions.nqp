@@ -6256,8 +6256,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
-            $past.push(WANTED($/[0].ast, 'EXPR/META'));
-            $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
+            my $test_type;
+            if $past.name eq '&METAOP_TEST_ASSIGN:<||>' { $test_type := 'unless' }
+            elsif $past.name eq '&METAOP_TEST_ASSIGN:<//>' { $test_type := 'defor' }
+            elsif $past.name eq '&METAOP_TEST_ASSIGN:<&&>' { $test_type := 'if' }
+            if $test_type {
+                my $sym := QAST::Node.unique('meta_op_test');
+                $past := QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($sym), :scope('local'), :decl('var') ),
+                        WANTED($/[0].ast, 'EXPR/META')
+                    ),
+                    QAST::Op.new(
+                        :op($test_type),
+                        QAST::Var.new( :name($sym), :scope('local') ),
+                        QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new( :name($sym), :scope('local') ),
+                            WANTED($/[1].ast, 'EXPR/META')
+                        )
+                    ));
+            }
+            else {
+                $past.push(WANTED($/[0].ast, 'EXPR/META'));
+                $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
+            }
             make $past;
             return 1;
         }

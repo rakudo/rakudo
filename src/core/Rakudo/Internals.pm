@@ -97,57 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # Iterate over a source iterator and an iterator generating monotonically
-    # increasing index values from a given offset.  Optionally, call block if
-    # an out-of-sequence index value is obtained, or simply ignore out of
-    # sequence index values.
-    method IterateMonotonicFromIterators(\source,\indexes,\offset,&out?) {
-        class :: does Iterator {
-            has $!source;     # source iterator
-            has $!indexes;    # iterator providing index values
-            has int $!next;   # virtual index of next source value
-            has &!out;        # callable for out of sequence values
-            method !SET-SELF($!source,$!indexes,\offset,&!out) {
-                $!next = offset;
-                self
-            }
-            method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
-            method pull-one() is raw {
-                nqp::stmts(
-                  nqp::until(
-                    nqp::eqaddr(
-                      (my $got := $!indexes.pull-one),
-                      IterationEnd
-                    ),
-                    nqp::if(
-                      nqp::istype((my $number = +$got),Failure),
-                      $number.throw,
-                      nqp::if(
-                        nqp::isle_i($!next,(my int $index = $number.Int)),
-                        nqp::stmts(                      # possibly valid index
-                          nqp::while(
-                            nqp::islt_i($!next,$index) && $!source.skip-one,
-                            ($!next = nqp::add_i($!next,1))
-                          ),
-                          (return nqp::if(
-                            nqp::iseq_i($!next,$index),
-                            nqp::stmts(
-                              ($!next = nqp::add_i($!next,1)),
-                              $!source.pull-one
-                            ),
-                            IterationEnd
-                          ))
-                        ),
-                        nqp::if(&out,out($index,$!next)) # out of sequence
-                      )
-                    )
-                  ),
-                  IterationEnd
-                )
-            }
-        }.new(source,indexes,offset,&out)
-    }
-
     method ReifiedListIterator(\list) {
         class :: does Iterator {
             has $!reified;

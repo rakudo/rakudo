@@ -849,7 +849,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Give list with matches found given an iterator with :nth
     method !match-nth-iterator(\slash, \source, \indexes) {
         nqp::decont(slash = nqp::stmts(
-          Seq.new(Rakudo::Internals.IterateMonotonicFromIterators(
+          Seq.new(Rakudo::Iterator.MonotonicIndexes(
             source, indexes, 1,
             -> $got,$next {
               nqp::if(

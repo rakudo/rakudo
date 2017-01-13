@@ -927,6 +927,20 @@ class Rakudo::Iterator {
         }.new(list)
     }
 
+    # Return an iterator that keeps calling .roll on the given object.
+    # Basically the functionality of List.roll(*), but could be on any
+    # object that has a .roll method.
+    method Roller(\source) {
+        class :: does Iterator {
+            has $!source;
+            method new(\source) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
+            }
+            method is-lazy() { True }
+            method pull-one() { $!source.roll }
+        }.new(source)
+    }
+
     # Return an iterator that generates all possible keys of the
     # given shape.  Each value generated is a reified List.  This is
     # basically a copy of the internal engine of ShapeLeaf and

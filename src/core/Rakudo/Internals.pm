@@ -97,17 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    method RollerIterator(\source) {
-        class :: does Iterator {
-            has $!source;
-            method new(\source) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-            }
-            method is-lazy() { True }
-            method pull-one() { $!source.roll }
-        }.new(source)
-    }
-
     our class WeightedRoll {
         has @!pairs;
         has $!total;

@@ -1062,11 +1062,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! Nil
     }
     multi method roll(Whatever) {
-        self.is-lazy
-          ?? X::Cannot::Lazy.new(:action('.roll from')).throw
-          !! (my Int $elems = self.elems)
-            ?? Seq.from-loop({nqp::atpos($!reified, $elems.rand.floor)})
-            !! Seq.new(Rakudo::Iterator.Empty)
+        nqp::if(
+          self.is-lazy,
+          X::Cannot::Lazy.new(:action('.roll from')).throw,
+          Seq.new(nqp::if(
+            (my Int $elems = self.elems),
+            Rakudo::Iterator.Roller(self),
+            Rakudo::Iterator.Empty
+          ))
+        )
     }
     multi method roll(\number) {
         number == Inf

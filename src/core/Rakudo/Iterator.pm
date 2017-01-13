@@ -342,7 +342,93 @@ class Rakudo::Iterator {
     }
 
 #-------------------------------------------------------------------------------
-# Methods that generate an Iterator
+# Methods that generate an Iterator (in alphabetical order)
+
+    # Create an iterator from a source iterator that will repeat the
+    # values of the source iterator indefinitely *unless* a Whatever
+    # was encountered, in which case it will repeat the last seen value
+    # indefinitely (even if the source iterator wasn't actually exhausted).
+    # Only if the source iterator did not produce any values at all, then
+    # the resulting iterator will not produce any either.
+    method DWIM(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!buffer;
+            has int $!ended;
+            has int $!whatever;
+            has int $!i;
+            method !SET-SELF(\source) {
+                $!source := source;
+                $!buffer := IterationBuffer.new;
+                self
+            }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!ended,
+                  nqp::if(                          # source exhausted
+                    $!whatever,
+                    nqp::if(                        # seen a Whatever
+                      nqp::elems($!buffer),
+                      nqp::atpos($!buffer,          # last value seen
+                        nqp::sub_i(nqp::elems($!buffer),1)),
+                      Nil                           # no last value seen
+                    ),
+                    nqp::atpos($!buffer,            # not seen, so modulo repeat
+                      nqp::mod_i(
+                        nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
+                        nqp::elems($!buffer)
+                      )
+                    )
+                  ),
+                  nqp::if(                          # source not exhausted
+                    nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
+                    nqp::stmts(                     # exhausted now
+                      ($!ended = 1),
+                      nqp::if(
+                        nqp::iseq_i(nqp::elems($!buffer),0),
+                        IterationEnd,               # nothing to repeat, done
+                        self.pull-one               # last or repeat
+                      )
+                    ),
+                    nqp::if(                        # got a value
+                      nqp::istype($value,Whatever),
+                      nqp::stmts(                   # done, repeat last value
+                        ($!whatever = $!ended = 1),
+                        self.pull-one,
+                      ),
+                      nqp::stmts(                   # save / return value
+                        $!buffer.push($value),
+                        $value
+                      )
+                    )
+                  )
+                )
+            }
+
+            # Is the source iterator considered exhausted?
+            method ended() { nqp::p6bool($!ended) }
+
+            # Eat the iterator trying to find out the number of elements
+            # produced by the iterator.  Intended to provide information
+            # for error messages.
+            method count-elems() {                  
+                nqp::if(
+                  $!ended,
+                  nqp::elems($!buffer),
+                  nqp::stmts(
+                    (my int $elems = nqp::elems($!buffer)),
+                    nqp::until(
+                      nqp::eqaddr($!source.pull-one,IterationEnd),
+                      $elems = nqp::add_i($elems,1)
+                    ),
+                    $elems
+                  )
+                )
+            }
+        }.new(source)
+    }
 
     # Returns a sentinel Iterator object that will never generate any value.
     # Does not take a parameter.

@@ -373,6 +373,83 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    # Return an iterator for a range of 0..^N with a number of elements.
+    # Has a highly optimized count-only, for those cases when one is only
+    # interested in the number of combinations, rather than the actual
+    # combinations.  The workhorse of combinations().
+    method Combinations($n, $k) {
+        nqp::if(
+          $n > 0 && nqp::isbig_I(nqp::decont($n)),    # must be HLL comparison
+          X::OutOfRange.new(
+            :what("First parameter"),
+            :got($n),
+            :range("-Inf^..{$*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1}")
+          ).throw,
+          nqp::if(
+            nqp::iseq_i($k,0),
+            # k = 0 → can pick just 1 combination (empty list); return ((),)
+            Rakudo::Iterator.OneValue( () ),
+            nqp::if(
+              # n < 1 → we have an empty list to pick from
+              # n < k → not enough items to pick combination of k items
+              $n < 1 || $n < $k || $k < 0,            # must be HLL comparisons
+              Rakudo::Iterator.Empty,                 # nothing to return
+              class :: does Iterator {
+                  has int $!n;
+                  has int $!k;
+                  has Mu $!stack;
+                  has Mu $!combination;
+                  method !SET-SELF(\n,\k) {
+                      nqp::stmts(
+                        ($!n = n),
+                        ($!k = k),
+                        ($!stack := nqp::list_i(0)),
+                        ($!combination := nqp::list),
+                        self
+                    )
+                  }
+                  method new(\n,\k) { nqp::create(self)!SET-SELF(n,k) }
+
+                  method pull-one() {
+                      nqp::stmts(
+                        (my int $n = $!n),          # lexicals faster
+                        (my int $k = $!k),
+                        (my int $running = 1),
+                        nqp::while(
+                          ($running && (my int $elems = nqp::elems($!stack))),
+                          nqp::stmts(
+                            (my int $index = nqp::sub_i($elems,1)),
+                            (my int $value = nqp::pop_i($!stack)),
+                            nqp::while(
+                              (nqp::islt_i($value,$n) && nqp::islt_i($index,$k)),
+                              nqp::stmts(
+                                nqp::bindpos($!combination,
+                                  $index,nqp::clone($value)),
+                                ($index = nqp::add_i($index,1)),
+                                ($value = nqp::add_i($value,1)),
+                                nqp::push_i($!stack,$value)
+                              )
+                            ),
+                            ($running = nqp::isne_i($index,$k)),
+                          )
+                        ),
+                        nqp::if(
+                          nqp::iseq_i($index,$k),
+                          nqp::clone($!combination),
+                          IterationEnd
+                        )
+                      )
+                  }
+                  method count-only {
+                      ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int
+                  }
+                  method bool-only(--> True) { }
+              }.new($n,$k)
+            )
+          )
+        )
+    }
+
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
     # was encountered, in which case it will repeat the last seen value

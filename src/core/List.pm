@@ -2,66 +2,8 @@
 my class Supplier { ... }
 my class X::TypeCheck::Splice { ... }
 
-my sub combinations(Int() $n, Int() $k) {
-    X::OutOfRange.new(
-      :what("First parameter"),
-      :got($n),
-      :range("-Inf^..{$*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1}"),
-    ).throw if $n > 0 and nqp::isbig_I(nqp::decont($n));
-
-    # n < 1 → we have an empty list to pick from
-    # k = 0 → can pick just 1 combination (empty list); return ((),)
-    # n < k → we don't have enough items to pick a combination of k items; return ()
-    return ((),).Seq if $k == 0;
-    return Seq.new(Rakudo::Iterator.Empty)
-        if $n < 1 or $n < $k or $k < 0;
-
-    Seq.new(class :: does Iterator {
-        has int $!n;
-        has int $!k;
-        has Mu $!stack;
-        has Mu $!combination;
-        method !SET-SELF(\n,\k) {
-            $!n = n;
-            $!k = k;
-            $!stack       := nqp::list_i(0);
-            $!combination := nqp::list;
-            self
-        }
-        method new(\n,\k) { nqp::create(self)!SET-SELF(n,k) }
-
-        method pull-one() {
-            nqp::stmts(
-              (my int $n = $!n),
-              (my int $k = $!k),
-              (my int $running = 1),
-              nqp::while(
-                ($running && (my int $elems = nqp::elems($!stack))),
-                nqp::stmts(
-                  (my int $index = $elems - 1),
-                  (my int $value = nqp::pop_i($!stack)),
-                  nqp::while(
-                    (nqp::islt_i($value, $n) && nqp::islt_i($index, $k)),
-                    nqp::stmts(
-                      nqp::bindpos($!combination, $index,+$value),
-                      ($index = nqp::add_i($index,1)),
-                      ($value = nqp::add_i($value,1)),
-                      nqp::push_i($!stack, $value)
-                    )
-                  ),
-                  ($running = nqp::isne_i($index,$k)),
-                )
-              ),
-              nqp::if(
-                nqp::iseq_i($index,$k),
-                nqp::clone($!combination),
-                IterationEnd
-              )
-            )
-        }
-        method count-only { ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int }
-        method bool-only(--> True) { }
-    }.new($n,$k))
+sub combinations(Int() $n, Int() $k) {
+    Seq.new(Rakudo::Iterator.Combinations($n,$k))
 }
 
 sub permutations(Int() $n) {

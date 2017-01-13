@@ -97,36 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    method WhateverIterator(\source) {
-        class :: does Iterator {
-            has $!source;
-            has $!last;
-            has int $!whatever;
-            method new(\source) {
-                nqp::p6bindattrinvres(
-                  nqp::create(self),self,'$!source',source.iterator)
-            }
-            method pull-one() is raw {
-                nqp::if(
-                  $!whatever,
-                  $!last,
-                  nqp::if(
-                    nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                    IterationEnd,
-                    nqp::if(
-                      nqp::istype(value,Whatever),
-                      nqp::stmts(
-                        ($!whatever = 1),
-                        self.pull-one
-                      ),
-                      ($!last := value)
-                    )
-                  )
-                )
-            }
-        }.new(source)
-    }
-
     method DwimIterator(\source) {
         class :: does Iterator {
             has $!source;
@@ -753,7 +723,7 @@ my class Rakudo::Internals {
                           ),
                           nqp::stmts(
                             nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Internals.WhateverIterator($elem)
+                            Rakudo::Iterator.Whatever($elem)
                           )
                         )
                       )
@@ -829,7 +799,7 @@ my class Rakudo::Internals {
                           ),
                           nqp::stmts(
                             nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Internals.WhateverIterator($elem)
+                            Rakudo::Iterator.Whatever($elem)
                           )
                         )
                       )

@@ -87,7 +87,7 @@ sub METAOP_ZIP(\op, &reduce) {
             }
             else {
                 $laze = False unless elem.is-lazy;
-                Rakudo::Internals.WhateverIterator(elem)
+                Rakudo::Iterator.Whatever(elem)
             }
         }
         gather {

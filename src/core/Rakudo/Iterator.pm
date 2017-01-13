@@ -376,6 +376,64 @@ class Rakudo::Iterator {
             }
         }.new(map)
     }
+
+    # Returns an iterator from a given source where the occurrence of
+    # a Whatever value indicates that the source the last value seen
+    # should be repeated indefinitely until either another non-Whatever
+    # value is seen from the source, or the source is exhausted.
+    method Whatever(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!last;
+            has int $!whatever;
+            method new(\source) {
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!source',source.iterator)
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  $!whatever,
+                  nqp::if(                          # we're repeating
+                    nqp::iseq_i($!whatever,2),      # source exhausted, repeat
+                    $!last,
+                    nqp::if(
+                      nqp::eqaddr(
+                        (my $value := $!source.pull-one),
+                        IterationEnd
+                      ),
+                      nqp::stmts(                   # exhausted now, repeat
+                        ($!whatever = 2),
+                        $!last
+                      ),
+                      nqp::if(
+                        nqp::istype($value,Whatever),
+                        $!last,                     # another Whatever, repeat
+                        nqp::stmts(                 # something else, no repeat
+                          ($!whatever = 0),
+                          ($!last := $value)
+                        )
+                      )
+                    )
+                  ),
+                  nqp::if(                          # not repeating
+                    nqp::eqaddr(
+                      ($value := $!source.pull-one),
+                      IterationEnd
+                    ),
+                    IterationEnd,                   # exhausted, stop
+                    nqp::if(
+                      nqp::istype($value,Whatever), # start repeating
+                      nqp::stmts(
+                        ($!whatever = 1),
+                        $!last
+                      ),
+                      ($!last := $value)            # keep value for repeat
+                    )
+                  )
+                )
+            }
+        }.new(source)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

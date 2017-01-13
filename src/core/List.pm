@@ -722,7 +722,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           # everything we need is already there
           nqp::if(
             $!reified.DEFINITE,
-            Rakudo::Internals.ReifiedListIterator(self),
+            Rakudo::Iterator.ReifiedList(self),
             Rakudo::Iterator.Empty
           )
         )
@@ -1262,7 +1262,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           Seq.new(
             nqp::if(
               nqp::attrinited(self,List,'$!reified'),
-              Rakudo::Internals.ReifiedListIterator(
+              Rakudo::Iterator.ReifiedList(
                 Rakudo::Internals.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
                     nqp::create(List),List,'$!reified',
@@ -1291,7 +1291,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           Seq.new(
             nqp::if(
               nqp::attrinited(self,List,'$!reified'),
-              Rakudo::Internals.ReifiedListIterator(
+              Rakudo::Iterator.ReifiedList(
                 nqp::if(
                   nqp::eqaddr(&by,&infix:<cmp>),
                   Rakudo::Internals.MERGESORT-REIFIED-LIST(

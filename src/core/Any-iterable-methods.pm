@@ -1432,7 +1432,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             IterationEnd
           ),
           Seq.new(
-            Rakudo::Internals.ReifiedListIterator(
+            Rakudo::Iterator.ReifiedList(
               Rakudo::Internals.MERGESORT-REIFIED-LIST(
                 nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
               )
@@ -1451,7 +1451,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             X::Cannot::Lazy.new(:action<sort>).throw
           ),
           Seq.new(
-            Rakudo::Internals.ReifiedListIterator(
+            Rakudo::Iterator.ReifiedList(
               nqp::if(
                 nqp::eqaddr(&by,&infix:<cmp>),
                 Rakudo::Internals.MERGESORT-REIFIED-LIST(

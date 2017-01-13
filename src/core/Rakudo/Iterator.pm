@@ -709,6 +709,51 @@ class Rakudo::Iterator {
         }.new(iterator,times)
     }
 
+    # Return an iterator for a List that has been completely reified
+    # already.  Returns an nqp::null for elements don't exist before
+    # the end of the reified list.
+    method ReifiedList(\list) {
+        class :: does Iterator {
+            has $!reified;
+            has int $!i;
+
+            method !SET-SELF(\list) {
+                nqp::stmts(
+                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!i = -1),
+                  self
+                )
+            }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+            method pull-one() is raw {
+                nqp::ifnull(
+                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                  nqp::if(
+                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                    nqp::null,                              # it's a hole
+                    IterationEnd                            # it's the end
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = $!i), # lexicals are faster than attributes
+                  nqp::while(  # doesn't sink
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(nqp::atpos($!reified,$i))
+                  ),
+                  ($!i = $i)
+                )
+            }
+            method skip-one(--> 1) { $!i = nqp::add_i($!i,1) }
+            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { }
+        }.new(list)
+    }
+
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another

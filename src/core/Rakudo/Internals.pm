@@ -97,47 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # iterate 1dimensional key values from iterator
-    method IterateKeyValueFromIterator(\iterator) {
-        class :: does Iterator {
-            has Mu $!iter;
-            has Mu $!pulled;
-            has int $!on-key;
-            has int $!key;
-
-            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
-
-            method pull-one() is raw {
-                nqp::if(
-                  ($!on-key = nqp::not_i($!on-key)),
-                  nqp::if(
-                    nqp::eqaddr(
-                      ($!pulled := $!iter.pull-one),IterationEnd
-                    ),
-                    IterationEnd,
-                    nqp::p6box_i(($!key = nqp::add_i($!key,1))),
-                  ),
-                  $!pulled,
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                my $pulled;
-                my int $key = -1;
-                nqp::until(
-                  nqp::eqaddr(
-                    ($pulled := $!iter.pull-one),
-                    IterationEnd
-                  ),
-                  nqp::stmts(
-                    $target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
-                    $target.push($pulled),
-                  )
-                )
-            }
-        }.new(iterator)
-    }
-
     # iterate 1dimensional Pair from iterator
     method IteratePairFromIterator(\iterator) {
         class :: does Iterator {

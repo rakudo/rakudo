@@ -173,12 +173,10 @@
         }
 
         multi method keys(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Iterator.IntRange(0,self.shape.AT-POS(0) - 1))
+            Seq.new(Rakudo::Iterator.IntRange(0,self.shape.AT-POS(0) - 1))
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IterateKeyValueFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(

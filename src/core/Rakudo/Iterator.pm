@@ -558,6 +558,49 @@ class Rakudo::Iterator {
         }.new(from,to)
     }
 
+    # Return an iterator that will alternately generate an index value,
+    # and the value of the given iterator, basically the .kv functionality
+    # for 1 dimensional lists.
+    method KeyValue(\iterator) {
+        class :: does Iterator {
+            has Mu $!iter;
+            has Mu $!pulled;
+            has int $!on-key;
+            has int $!key;
+
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  ($!on-key = nqp::not_i($!on-key)),
+                  nqp::if(
+                    nqp::eqaddr(
+                      ($!pulled := $!iter.pull-one),IterationEnd
+                    ),
+                    IterationEnd,
+                    nqp::p6box_i(($!key = nqp::add_i($!key,1))),
+                  ),
+                  $!pulled,
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                my $pulled;
+                my int $key = -1;
+                nqp::until(
+                  nqp::eqaddr(
+                    ($pulled := $!iter.pull-one),
+                    IterationEnd
+                  ),
+                  nqp::stmts(
+                    $target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
+                    $target.push($pulled),
+                  )
+                )
+            }
+        }.new(iterator)
+    }
+
     # Create iterator for the last N values of a given iterator.  Needs
     # to specify the :action part of X::Cannot::Lazy in case the given
     # iterator is lazy.  Optionally returns an empty iterator if the

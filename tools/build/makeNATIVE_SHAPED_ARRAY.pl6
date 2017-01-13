@@ -425,8 +425,7 @@ for $*IN.lines -> $line {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IterateKeyValueFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
             Seq.new(

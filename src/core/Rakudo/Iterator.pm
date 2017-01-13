@@ -822,6 +822,37 @@ class Rakudo::Iterator {
         }.new(iterator,times)
     }
 
+    # Return an iterator that only will return the given value once.
+    # Basically the same as 42 xx 1.
+    method OneValue(\value) {
+        class :: does Iterator {
+            has Mu $!value;
+            method new(\value) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::isnull($!value),
+                  IterationEnd,
+                  nqp::stmts(
+                    (my Mu $value := $!value),
+                    ($!value := nqp::null),
+                    $value
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  nqp::unless(nqp::isnull($!value),$target.push($!value)),
+                  ($!value := nqp::null)
+                )
+            }
+            method sink-all(--> IterationEnd) { $!value := nqp::null }
+            method count-only(--> 1) { }
+            method bool-only(--> True) { }
+        }.new(value)
+    }
+
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.

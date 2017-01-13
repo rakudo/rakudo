@@ -790,7 +790,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
     }
     multi method pairs(List:D:) {
-        Seq.new(Rakudo::Internals.IteratePairFromIterator(self.iterator))
+        Seq.new(Rakudo::Iterator.Pair(self.iterator))
     }
     multi method antipairs(List:D:) {
         Seq.new(Rakudo::Internals.IterateAntiPairFromIterator(self.iterator))

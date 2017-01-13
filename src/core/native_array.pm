@@ -1266,7 +1266,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-01-13T18:41:13+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-13T18:53:59+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1655,8 +1655,7 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.Pair(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(
@@ -1770,7 +1769,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-01-13T18:41:13+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-13T18:53:59+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2159,8 +2158,7 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.Pair(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(
@@ -2274,7 +2272,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-01-13T18:41:13+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-13T18:53:59+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2663,8 +2661,7 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(
-              Rakudo::Internals.IteratePairFromIterator(self.iterator))
+            Seq.new(Rakudo::Iterator.Pair(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(

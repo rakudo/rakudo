@@ -793,6 +793,35 @@ class Rakudo::Iterator {
         }.new(iterator,times)
     }
 
+    # Return an iterator that will generate a pair with the index as the
+    # key and as value the value of the given iterator, basically the
+    # .pairs functionality on 1 dimensional lists.
+    method Pair(\iterator) {
+        class :: does Iterator {
+            has Mu $!iter;
+            has int $!key;
+
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                my $pulled;
+                my int $key = -1;
+                nqp::until(
+                  nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
+                  $target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
+                )
+            }
+        }.new(iterator)
+    }
+
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements don't exist before
     # the end of the reified list.

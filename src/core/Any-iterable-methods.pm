@@ -1871,7 +1871,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method tail(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=
-            Rakudo::Internals.LastFromIterator(self.iterator,'tail')),
+            Rakudo::Iterator.LastValue(self.iterator,'tail')),
             IterationEnd
           ),
           Nil,

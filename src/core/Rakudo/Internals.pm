@@ -97,22 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # Return the last value of an iterator (if any)
-    method LastFromIterator(\iterator, $action) is raw {
-        nqp::if(
-          iterator.is-lazy,
-          X::Cannot::Lazy.new(:$action).throw,
-          nqp::stmts(
-            (my $result := IterationEnd),
-            nqp::until(
-              nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
-              ($result := $pulled)
-            ),
-            $result
-          )
-        )
-    }
-
     # Iterate over a source iterator and an iterator generating index values
     # from a given offset.  Optionally, call block if an out-of-bounds index
     # value is obtained, or simply return Nil for out of bounds index values

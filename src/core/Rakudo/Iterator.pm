@@ -516,6 +516,24 @@ class Rakudo::Iterator {
         }.new(iterator, n, action, $full)
     }
 
+    # Return the last value of the given source iterator (if any).
+    # Also needs the action string to be used in X::Cannot::Lazy if
+    # the source iterator turns out to be lazy.
+    method LastValue(\iterator, $action) is raw {
+        nqp::if(
+          iterator.is-lazy,
+          X::Cannot::Lazy.new(:$action).throw,
+          nqp::stmts(
+            (my $result := IterationEnd),
+            nqp::until(
+              nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+              ($result := $pulled)
+            ),
+            $result
+          )
+        )
+    }
+
     # An often occurring use of the Mappy role to generate all of the
     # values of a Map / Hash.  Takes a Map / Hash as the only parameter.
     method Mappy-values(\map) {

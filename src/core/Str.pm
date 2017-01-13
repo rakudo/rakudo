@@ -782,7 +782,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-last(\slash, \cursor, \move) {
         nqp::decont(slash = nqp::if(
           nqp::eqaddr((my $pulled :=
-            Rakudo::Internals.LastFromIterator(
+            Rakudo::Iterator.LastValue(
               CURSOR-ITERATOR.new(cursor, move),
               'match')),
             IterationEnd

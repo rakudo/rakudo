@@ -97,18 +97,6 @@ my class Rakudo::Internals {
         }.new(seq-from-seqs))
     }
 
-    # basically 42 xx *
-    method UnendingValueIterator(\value) {
-        class :: does Iterator {
-            has Mu $!value;
-            method new(\value) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
-            }
-            method pull-one() is raw { $!value }
-            method is-lazy() { True }
-        }.new(value)
-    }
-
     # Zip given iterables and op
     method ZipIterablesOpIterator(@iterables,\op) {
         nqp::if(

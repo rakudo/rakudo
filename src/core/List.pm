@@ -1443,7 +1443,7 @@ multi sub infix:<xx>(Mu \x, Num() $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
-    Seq.new(Rakudo::Internals.UnendingValueIterator(x))
+    Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
 multi sub infix:<xx>(Mu \x, Int $n) is pure {
     if nqp::isgt_i((my int $elems = $n),0) {

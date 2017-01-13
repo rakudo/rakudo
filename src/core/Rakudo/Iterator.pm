@@ -996,6 +996,19 @@ class Rakudo::Iterator {
         }.new(shape)
     }
 
+    # Return an iterator that will keep producing the given value.
+    # Basically the functionality of 42 xx *
+    method UnendingValue(\value) {
+        class :: does Iterator {
+            has Mu $!value;
+            method new(\value) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
+            }
+            method pull-one() is raw { $!value }
+            method is-lazy() { True }
+        }.new(value)
+    }
+
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another

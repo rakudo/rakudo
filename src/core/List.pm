@@ -1532,35 +1532,10 @@ multi sub infix:<Z>(+lol, :&with!) {
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Iterator.ZipIterables(lol))
 }
-
 my &zip := &infix:<Z>;
 
 sub roundrobin(**@lol is raw) {
-    my $laze = False;
-    my @iters = do for @lol -> \elem {
-        if nqp::iscont(elem) {
-            (elem,).iterator
-        }
-        else {
-            $laze = True if elem.is-lazy;
-            elem.iterator
-        }
-    }
-    gather {
-        while @iters {
-            my @new-iters;
-            my @values;
-            for @iters -> $i {
-                my \v = $i.pull-one;
-                unless v =:= IterationEnd {
-                    @values.push: v;
-                    @new-iters.push: $i;
-                }
-            }
-            take @values.List if @values;
-            @iters = @new-iters;
-        }
-    }.lazy-if($laze);
+    Seq.new(Rakudo::Iterator.RoundrobinIterables(@lol))
 }
 
 # vim: ft=perl6 expandtab sw=4

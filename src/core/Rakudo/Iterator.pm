@@ -1121,7 +1121,7 @@ class Rakudo::Iterator {
                   )
                 )
             }
-        }
+        }.new(source)
     }
 
     # Return an iterator that generates all possible keys of the

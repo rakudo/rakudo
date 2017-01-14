@@ -1031,6 +1031,103 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    method Permutations($n, int $b) {
+        nqp::if(
+          $n > nqp::if(nqp::iseq_i($?BITS,32),13,20),  # must be HLL comparison
+          (die "Cowardly refusing to permutate more than {
+              $?BITS == 32 ?? 13 !! 20
+          } elements, tried $n"),
+          nqp::if(
+            $n < 1,                                    # must be HLL comparison
+            Rakudo::Iterator.OneValue(
+              nqp::create(nqp::if($b,IterationBuffer,List))
+            ),
+            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
+            class :: does Iterator {
+                has int $!n;
+                has int $!b;
+                has int $!todo;
+                has int $!elems;
+                has $!next;
+                method !SET-SELF(int $n, int $b) {
+                    nqp::stmts(
+                      ($!n = $n),
+                      ($!b = $b),
+                      ($!todo = 1),
+                      (my int $i = 1),
+                      nqp::while(
+                        nqp::isle_i(($i = nqp::add_i($i,1)),$n),
+                        ($!todo = nqp::mul_i($!todo,$i))
+                      ),
+                      ($!elems = $!todo),
+                      ($!next :=
+                        nqp::setelems(nqp::create(IterationBuffer),$n)),
+                      ($i = -1),
+                      nqp::while(
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+                        nqp::bindpos($!next,$i,nqp::clone($i))
+                      ),
+                      self
+                    )
+                }
+                method new(\n,\b) { nqp::create(self)!SET-SELF(n,b) }
+                method pull-one {
+                    nqp::if(
+                      nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0),
+                      nqp::stmts(
+                        (my $permuted := nqp::clone($!next)),
+                        nqp::if(
+                          $!todo,     # need to calculate next one
+                          nqp::stmts( # largest index k such that a[k] < a[k+1]
+                            (my int $k = nqp::sub_i($!n,2)),
+                            nqp::until(
+                              nqp::islt_i(
+                                nqp::atpos($!next,$k),
+                                nqp::atpos($!next,nqp::add_i($k,1))
+                              ),
+                              ($k = nqp::sub_i($k,1)),
+                            ),
+                            (my int $l = nqp::sub_i($!n,1)),
+                            nqp::until(
+                              nqp::islt_i( # largest index l>k where a[k] < a[l]
+                                nqp::atpos($!next,$k),
+                                nqp::atpos($!next,$l)
+                              ),
+                              ($l = nqp::sub_i($l,1))
+                            ),
+                            self!swap($k,$l),
+                          )
+                        ),
+                        ($l = $!n),
+                        nqp::until(
+                          nqp::isge_i(
+                            ($k = nqp::add_i($k,1)),
+                            ($l = nqp::sub_i($l,1))
+                          ),
+                          self!swap($k,$l)
+                        ),
+                        nqp::if(
+                          $b,
+                          $permuted,
+                          nqp::p6bindattrinvres(
+                            nqp::create(List),List,'$!reified',$permuted)
+                        )
+                      ),
+                      IterationEnd
+                    )
+                }
+                method !swap(int $k,int $l --> Nil) {
+                    my $tmp := nqp::atpos($!next,$k);
+                    nqp::bindpos($!next,$k,nqp::atpos($!next,$l));
+                    nqp::bindpos($!next,$l,$tmp)
+                }
+                method count-only { $!elems }
+                method bool-only(--> True) { }
+            }.new($n,$b)
+          )
+        )
+    }
+
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements don't exist before
     # the end of the reified list.

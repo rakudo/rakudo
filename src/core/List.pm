@@ -1133,7 +1133,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() {
-        Rakudo::Internals.ListsFromSeq(self,permutations(self.elems))
+        Seq.new(
+          Rakudo::Iterator.ListIndexes(
+            self, Rakudo::Iterator.Permutations( self.elems, 1)
+          )
+        )
     }
 
     method join(List:D: $separator = '') is nodal {

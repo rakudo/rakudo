@@ -1213,14 +1213,7 @@ class Rakudo::Iterator {
     # Basically the functionality of List.roll(*), but could be on any
     # object that has a .roll method.
     method Roller(\source) {
-        class :: does Iterator {
-            has $!source;
-            method new(\source) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-            }
-            method is-lazy() { True }
-            method pull-one() { $!source.roll }
-        }.new(source)
+        Rakudo::Iterator.Callable( { source.roll }, True )
     }
 
     # Return an iterator from a source iterator that is supposed to
@@ -1326,7 +1319,7 @@ class Rakudo::Iterator {
         }.new(shape)
     }
 
-    # Return an iterator that will keep producing the given value.
+    # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
     method UnendingValue(\value) {
         class :: does Iterator {

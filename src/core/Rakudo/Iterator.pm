@@ -373,6 +373,21 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    # Return an iterator for a given Callable.  The Callable is supposed
+    # to return a value for the iterator, or IterationEnd to indicate the
+    # data from the Callable is exhausted.  No checks for Slips is done,
+    # so they will be passed on as is.
+    method Callable(&callable) {
+        class :: does Iterator {
+            has &!callable;
+            method new(&callable) {
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'&!callable',&callable)
+            }
+            method pull-one() is raw { callable() }
+        }.new(&callable)
+    }
+
     # Return an iterator for a range of 0..^N with a number of elements.
     # The third parameter indicates whether an IterationBuffer should be
     # returned (1) for each combinatin, or a fully reified List (0).

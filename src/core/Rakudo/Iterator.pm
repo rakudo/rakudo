@@ -373,10 +373,10 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
-    # Return an iterator for a given Callable.  The Callable is supposed
-    # to return a value for the iterator, or IterationEnd to indicate the
-    # data from the Callable is exhausted.  No checks for Slips is done,
-    # so they will be passed on as is.
+    # Return a non-lazy iterator for a given Callable.  The Callable is
+    # supposed to return a value for the iterator, or IterationEnd to
+    # indicate the data from the Callable is exhausted.  No checks for
+    # Slips is done, so they will be passed on as is.
     method Callable(&callable) {
         class :: does Iterator {
             has &!callable;
@@ -1076,7 +1076,7 @@ class Rakudo::Iterator {
         }.new(list)
     }
 
-    # Return an iterator that keeps calling .roll on the given object.
+    # Return a lazy iterator that keeps calling .roll on the given object.
     # Basically the functionality of List.roll(*), but could be on any
     # object that has a .roll method.
     method Roller(\source) {
@@ -1088,6 +1088,40 @@ class Rakudo::Iterator {
             method is-lazy() { True }
             method pull-one() { $!source.roll }
         }.new(source)
+    }
+
+    # Return an iterator from a source iterator that is supposed to
+    # generate iterators.  As soon as a iterator, the next iterator
+    # will be fetched and iterated over until exhausted.
+    method SequentialIterators(\source) {
+        class :: does Iterator {
+            has $!source;
+            has $!current;
+            method !SET-SELF(\source) {
+                nqp::stmts(
+                  ($!current := ($!source := source).pull-one),
+                  self
+                )
+            }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
+            method pull-one() {
+                nqp::if(
+                  nqp::eqaddr($!current,IterationEnd),
+                  IterationEnd,
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled := $!current.pull-one),
+                      IterationEnd
+                    ),
+                    nqp::stmts(
+                      ($!current := $!source.pull-one),
+                      self.pull-one
+                    ),
+                    $pulled
+                  )
+                )
+            }
+        }
     }
 
     # Return an iterator that generates all possible keys of the

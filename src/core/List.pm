@@ -1139,7 +1139,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method combinations(Int() $of) {
-        Rakudo::Internals.ListsFromSeq(self,combinations(self.elems,$of))
+        Seq.new(
+          Rakudo::Iterator.ListIndexes(
+            self, Rakudo::Iterator.Combinations( self.elems, $of, 1)
+          )
+        )
     }
     multi method combinations(Range:D $ofrange) {
         Rakudo::Internals.SeqFromSeqs(

@@ -8,7 +8,7 @@ sub combinations(Int() $n, Int() $k) {
 
 sub permutations(Int() $n) {
     return ((),).Seq if $n < 1;
-    my $max = $*KERNEL.bits == 32 ?? 13 !! 20;
+    my constant $max = $?BITS == 32 ?? 13 !! 20;
     die "Cowardly refusing to permutate more than $max elements, tried $n"
       if $n > $max;
 

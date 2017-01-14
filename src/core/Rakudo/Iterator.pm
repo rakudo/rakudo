@@ -384,7 +384,7 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(
                   nqp::create(self),self,'&!callable',&callable)
             }
-            method pull-one() is raw { callable() }
+            method pull-one() is raw { &!callable() }
         }.new(&callable)
     }
 

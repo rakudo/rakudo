@@ -1031,6 +1031,9 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    # Return an iterator for a given number of permutations.  Also specify
+    # whether an IterationBuffer should be returned for each iteration (1),
+    # or a List (0).  Basically the workhorse of permutations.
     method Permutations($n, int $b) {
         nqp::if(
           $n > nqp::if(nqp::iseq_i($?BITS,32),13,20),  # must be HLL comparison

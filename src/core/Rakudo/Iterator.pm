@@ -812,6 +812,49 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator given a List and an iterator that generates
+    # an IterationBuffer of indexes for each pull.  Each value is
+    # is a List with the mapped elements.
+    method ListIndexes(\list,\indexes) {
+        nqp::if(
+          (my int $elems = list.elems),     # reifies
+          class :: does Iterator {          # actually need to do some mapping
+              has $!list;
+              has $!indexes;
+              method !SET-SELF(\list,\indexes) {
+                  nqp::stmts(
+                    ($!list := nqp::getattr(list,List,'$!reified')),
+                    ($!indexes := indexes),
+                    self
+                  )
+                }
+              method new(\l,\i) { nqp::create(self)!SET-SELF(l,i) }
+              method pull-one() {
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $buffer := $!indexes.pull-one),
+                      IterationEnd
+                    ),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my int $elems = nqp::elems($buffer)),
+                      (my int $i = -1),
+                      nqp::while(           # repurpose buffer for result
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::bindpos($buffer,$i,
+                          nqp::atpos($!list,nqp::atpos($buffer,$i))
+                        )
+                      ),
+                      nqp::p6bindattrinvres(
+                        nqp::create(List),List,'$!reified',$buffer)
+                    )
+                  )
+              }
+          }.new(list,indexes),
+          Rakudo::Iterator.OneValue(nqp::create(List)) # only one
+        )
+    }
+
     # An often occurring use of the Mappy role to generate all of the
     # values of a Map / Hash.  Takes a Map / Hash as the only parameter.
     method Mappy-values(\map) {

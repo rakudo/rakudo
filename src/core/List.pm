@@ -1133,8 +1133,34 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method combinations(|) is nodal {*}
     multi method combinations() {
-        Rakudo::Internals.SeqFromSeqs(
-            Range.new(0,self.elems).map( { self.combinations($_) } )
+        nqp::stmts(
+          (my int $elems = self.elems),           # reifies
+          (my int $i = -1),
+          Seq.new(
+            Rakudo::Iterator.SequentialIterators(
+              Rakudo::Iterator.Callable( {
+                  nqp::if(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    Rakudo::Iterator.ListIndexes( # basically .combinations($i)
+                      self,
+                      Rakudo::Iterator.Combinations($elems, $i, 1)
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($i,$elems),
+                      Rakudo::Iterator.OneValue(  # last one is self
+                        nqp::p6bindattrinvres(    # but must be a (new) List
+                          nqp::create(List),      # so transplant innards
+                          List,
+                          '$!reified',
+                          nqp::getattr(self,List,'$!reified')
+                        )
+                      ),
+                      IterationEnd
+                    )
+                  )
+              } )
+            )
+          )
         )
     }
 
@@ -1146,11 +1172,25 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method combinations(Range:D $ofrange) {
-        Rakudo::Internals.SeqFromSeqs(
-          Range.new(
-            ($ofrange.first max 0),
-            (($ofrange.first(:end) // -1) min self.elems)
-          ).map( { self.combinations($_) } )
+        nqp::stmts(
+          (my int $elems = self.elems),      # reifies
+          ((my int $i, my int $to) = $ofrange.int-bounds),
+          ($i = nqp::if(nqp::islt_i($i,0),-1,nqp::sub_i($i,1))),
+          nqp::if(nqp::isgt_i($to,$elems),($to = $elems)),
+          Seq.new(
+            Rakudo::Iterator.SequentialIterators(
+              Rakudo::Iterator.Callable( {
+                  nqp::if(
+                    nqp::isle_i(($i = nqp::add_i($i,1)),$to),
+                    Rakudo::Iterator.ListIndexes( # basically .combinations($i)
+                      self,
+                      Rakudo::Iterator.Combinations($elems, $i, 1)
+                    ),
+                    IterationEnd
+                  )
+              } )
+            )
+          )
         )
     }
 

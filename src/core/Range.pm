@@ -131,21 +131,23 @@ my class Range is Cool does Iterable does Positional {
 
         # if we have (simple) char range
         elsif nqp::istype($!min,Str) {
-            my $min = $!excludes-min ?? $!min.succ !! $!min;
-            $min after $!max
+            $!min after $!max
               ?? ().iterator
-              !! $min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
+              !! $!min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
                 ?? class :: does Iterator {
                        has int $!i;
                        has int $!n;
 
-                       method !SET-SELF(\from,\end) {
-                           $!i = nqp::ord(nqp::unbox_s(from)) - 1;
-                           $!n = nqp::ord(nqp::unbox_s(end));
+                       method !SET-SELF(\from,\end,\excludes-min,\excludes-max) {
+                           $!i = nqp::ord(nqp::unbox_s(from))
+                               - (excludes-min ?? 0 !! 1);
+                           $!n = nqp::ord(nqp::unbox_s(end))
+                               - (excludes-max ?? 1 !! 0);
                            self
                        }
-                       method new(\from,\end) {
-                           nqp::create(self)!SET-SELF(from,end)
+                       method new(\from,\end,\excludes-min,\excludes-max) {
+                           nqp::create(self)!SET-SELF(
+                              from,end,excludes-min,excludes-max)
                        }
                        method pull-one() {
                            ( $!i = $!i + 1 ) <= $!n
@@ -161,8 +163,11 @@ my class Range is Cool does Iterable does Positional {
                        method count-only() { nqp::p6box_i($!n - $!i) }
                        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
                        method sink-all(--> IterationEnd) { $!i = $!n }
-                   }.new($min, $!excludes-max ?? $!max.pred !! $!max)
-                !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
+                   }.new($!min, $!max, $!excludes-min, $!excludes-max)
+                !! SEQUENCE(
+                       ($!excludes-min ?? $!min.succ !! $!min),
+                       $!max, :exclude_end($!excludes-max)
+                   ).iterator
         }
 
         # General case according to spec

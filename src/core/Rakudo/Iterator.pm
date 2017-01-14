@@ -981,19 +981,35 @@ class Rakudo::Iterator {
             }
             method pull-one() is raw {
                 nqp::if(
+#?if jvm
+                  nqp::eqaddr($!value,Mu)
+#?endif
+#?if !jvm
                   nqp::isnull($!value),
+#?endif
                   IterationEnd,
                   nqp::stmts(
                     (my Mu $value := $!value),
+#?if jvm
+                    ($!value := Mu),
+#?endif
+#?if !jvm
                     ($!value := nqp::null),
+#?endif
                     $value
                   )
                 )
             }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
+#?if jvm
+                  nqp::unless(nqp::eqaddr($!value,Mu),$target.push($!value)),
+                  ($!value := Mu)
+#?endif
+#?if !jvm
                   nqp::unless(nqp::isnull($!value),$target.push($!value)),
                   ($!value := nqp::null)
+#?endif
                 )
             }
             method sink-all(--> IterationEnd) { $!value := nqp::null }

@@ -15,44 +15,6 @@ my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
-    method SeqFromSeqs(\seq-from-seqs) {
-        Seq.new(class :: does Iterator {
-            has $!sfs;
-            has $!current;
-            method !SET-SELF(\seq-from-seqs) {
-                nqp::stmts(
-                  ($!sfs := seq-from-seqs.iterator),
-                  nqp::if(
-                    nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
-                    Rakudo::Iterator.Empty,
-                    nqp::stmts(
-                      ($!current := $!current.iterator),
-                      self
-                    )
-                  )
-                )
-            }
-            method new(\seq-from-seqs) {
-                nqp::create(self)!SET-SELF(seq-from-seqs)
-            }
-            method pull-one() {
-                nqp::stmts(
-                  nqp::while(
-                    nqp::eqaddr((my $value := $!current.pull-one),IterationEnd),
-                    nqp::stmts(
-                      nqp::if(
-                        nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
-                        return IterationEnd  # really done
-                      ),
-                      ($!current := $!current.iterator)
-                    )
-                  ),
-                  $value
-                )
-            }
-        }.new(seq-from-seqs))
-    }
-
     our class WeightedRoll {
         has @!pairs;
         has $!total;

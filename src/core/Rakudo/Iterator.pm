@@ -1216,6 +1216,83 @@ class Rakudo::Iterator {
         Rakudo::Iterator.Callable( { source.roll }, True )
     }
 
+    # Return an iterator that will roundrobin the given iterables
+    # (with &[,]).  Basically the functionality of roundrobin(@a,@b)
+    my $empty := nqp::list;   # an empty list for nqp::splice
+    method RoundrobinIterables(@iterables) {
+        nqp::if(
+          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          class :: does Iterator {
+              has $!iters;
+              has int $!lazy;
+              method !SET-SELF(\iterables) {
+                  nqp::stmts(
+                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
+                    (my int $elems = nqp::elems($iterables)),
+                    ($!iters := nqp::setelems(nqp::list,$elems)),
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::bindpos($!iters,$i,
+                        nqp::if(
+                          nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                          Rakudo::Iterator.OneValue($elem),
+                          nqp::stmts(
+                            nqp::if($elem.is-lazy,($!lazy = 1)),
+                            $elem.iterator
+                          )
+                        )
+                      )
+                    ),
+                    self
+                  )
+              }
+              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
+              method pull-one() {
+                  nqp::if(
+                    nqp::isnull($!iters),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my int $i = -1),
+                      (my int $elems = nqp::elems($!iters)),
+                      (my $list := nqp::list),
+                      nqp::until(
+                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $pulled := nqp::atpos($!iters,$i).pull-one),
+                            IterationEnd
+                          ),
+                          nqp::stmts(          # remove exhausted iterator
+                            nqp::splice($!iters,$empty,$i,1),
+                            ($i = nqp::sub_i($i,1)),
+                            ($elems = nqp::sub_i($elems,1))
+                          ),
+                          nqp::push($list,$pulled)
+                        )
+                      ),
+                      nqp::if(
+                        nqp::elems($list),
+                        nqp::p6bindattrinvres( # at least one not exhausted
+                          nqp::create(List),List,'$!reified',$list),
+                        nqp::stmts(            # we're done
+                          ($!iters := nqp::null),
+                          IterationEnd
+                        )
+                      )
+                    )
+                  )
+              }
+              method is-lazy() { nqp::p6bool($!lazy) }
+          }.new(@iterables),
+          nqp::if(
+            nqp::iseq_i($n,0),
+            Rakudo::Iterator.Empty,
+            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
+          )
+        )
+    }
+
     # Return an iterator from a source iterator that is supposed to
     # generate iterators.  As soon as a iterator, the next iterator
     # will be fetched and iterated over until exhausted.

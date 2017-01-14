@@ -15,50 +15,6 @@ my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
-    # given a List and a Seq, use the lists with indexes of the Seq to
-    # map the List with another Seq
-    method ListsFromSeq(\list,\seq --> Seq) {
-        if list.elems -> $elems {
-            Seq.new(class :: does Iterator {
-                has $!iter;
-                has $!list;
-                method !SET-SELF(\list,\seq) {
-                    $!iter := seq.iterator;
-                    $!list := nqp::getattr(list,List,'$!reified');
-                    self
-                }
-                method new(\list,\seq) {
-                    nqp::create(self)!SET-SELF(list,seq)
-                }
-                method pull-one() {
-                    nqp::if(
-                      nqp::eqaddr((my $result := $!iter.pull-one),IterationEnd),
-                      IterationEnd,
-                      nqp::stmts(
-                        nqp::if(
-                          (my $reified :=
-                            nqp::getattr($result,List,'$!reified')),
-                          nqp::stmts(  # actually has elements, so map them
-                            (my int $elems = nqp::elems($reified)),
-                            (my int $i = -1),
-                            nqp::while(  # repurpose pulled List as result
-                              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                              nqp::bindpos($reified,$i,
-                                nqp::atpos($!list,nqp::atpos($reified,$i)))
-                            )
-                          )
-                        ),
-                        $result
-                      )
-                    )
-                }
-            }.new(list,seq))
-        }
-        else {
-            ((),).Seq # an empty list should occur once
-        }
-    }
-
     method SeqFromSeqs(\seq-from-seqs) {
         Seq.new(class :: does Iterator {
             has $!sfs;

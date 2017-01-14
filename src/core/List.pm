@@ -1534,8 +1534,8 @@ multi sub infix:<Z>(+lol) {
 }
 my &zip := &infix:<Z>;
 
-sub roundrobin(**@lol is raw) {
-    Seq.new(Rakudo::Iterator.RoundrobinIterables(@lol))
+sub roundrobin(+lol) {
+    Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
 }
 
 # vim: ft=perl6 expandtab sw=4

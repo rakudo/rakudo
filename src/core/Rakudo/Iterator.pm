@@ -373,11 +373,13 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
-    # Return a non-lazy iterator for a given Callable.  The Callable is
-    # supposed to return a value for the iterator, or IterationEnd to
-    # indicate the data from the Callable is exhausted.  No checks for
-    # Slips is done, so they will be passed on as is.
-    method Callable(&callable) {
+    # Return an iterator for a given Callable.  The Callable is supposed
+    # to return a value for the iterator, or IterationEnd to indicate the
+    # data from the Callable is exhausted.  No checks for Slips are done,
+    # so they will be passed on as is.  Also optionally takes a flag to
+    # mark the iterator as lazy or not: default is False (not lazy)
+    proto method Callable(|) { * }
+    multi method Callable(&callable) {
         class :: does Iterator {
             has &!callable;
             method new(&callable) {
@@ -386,6 +388,21 @@ class Rakudo::Iterator {
             }
             method pull-one() is raw { &!callable() }
         }.new(&callable)
+    }
+    multi method Callable(&callable, Bool() $lazy) {
+        nqp::if(
+          $lazy,
+          class :: does Iterator {
+              has &!callable;
+              method new(&callable) {
+                  nqp::p6bindattrinvres(
+                    nqp::create(self),self,'&!callable',&callable)
+              }
+              method pull-one() is raw { &!callable() }
+              method is-lazy(--> True) { }
+          }.new(&callable),
+          Rakudo::Iterator.Callable(&callable)
+        )
     }
 
     # Return an iterator for a range of 0..^N with a number of elements.

@@ -388,8 +388,8 @@ class Rakudo::Iterator {
             :range("-Inf^..{$*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1}")
           ).throw,
           nqp::if(
-            nqp::iseq_i($k,0),
             # k = 0 → can pick just 1 combination (empty list); return ((),)
+            $k == 0,                                  # Must be HLL comparison
             Rakudo::Iterator.OneValue(
               nqp::create(nqp::if($b,IterationBuffer,List))
             ),

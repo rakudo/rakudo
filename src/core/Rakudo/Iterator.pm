@@ -999,7 +999,7 @@ class Rakudo::Iterator {
             method pull-one() is raw {
                 nqp::if(
 #?if jvm
-                  nqp::eqaddr($!value,Mu)
+                  nqp::eqaddr($!value,Mu),
 #?endif
 #?if !jvm
                   nqp::isnull($!value),

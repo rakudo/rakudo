@@ -561,7 +561,12 @@ class Rakudo::Iterator {
 
                           # need to set up an iterator
                           nqp::stmts(
-                            nqp::if($elem.is-lazy,($!lazy = 1)),
+                            nqp::if($elem.is-lazy,
+                              nqp::stmts(
+                                self!die-if-not-sane($i),
+                                ($!lazy = 1)
+                              )
+                            ),
                             nqp::if(
                               nqp::eqaddr(
                                 (my $pulled :=
@@ -588,6 +593,25 @@ class Rakudo::Iterator {
                     ($!indices := nqp::setelems(nqp::list_i,$elems)),
                     ($!top = nqp::sub_i($elems,1)),
                     self
+                  )
+              }
+              # sanity check for handling 1,2 X 1..*
+              method !die-if-not-sane($from) {
+                  nqp::stmts(
+                    (my int $i = $from),
+                    nqp::while(
+                      nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                      nqp::stmts(
+                        nqp::unless(
+                          nqp::isnull(nqp::atpos($!iterators,$i)),
+                          (die "Can only have one lazy sequence in a cross")
+                        ),
+                        nqp::if(
+                          nqp::isgt_i(nqp::elems(nqp::atpos($!reifieds,$i)),1),
+                          (die "Can only have single element lists before a lazy sequence in a cross")
+                        )
+                      )
+                    )
                   )
               }
               method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
@@ -823,7 +847,12 @@ class Rakudo::Iterator {
 
                           # need to set up an iterator
                           nqp::stmts(
-                            nqp::if($elem.is-lazy,($!lazy = 1)),
+                            nqp::if($elem.is-lazy,
+                              nqp::stmts(
+                                self!die-if-not-sane($i),
+                                ($!lazy = 1)
+                              )
+                            ),
                             nqp::if(
                               nqp::eqaddr(
                                 (my $pulled :=
@@ -851,6 +880,25 @@ class Rakudo::Iterator {
                     ($!top = nqp::sub_i($elems,1)),
                     ($!mapper := mapper),
                     self
+                  )
+              }
+              # sanity check for handling 1,2 X 1..*
+              method !die-if-not-sane($from) {
+                  nqp::stmts(
+                    (my int $i = $from),
+                    nqp::while(
+                      nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                      nqp::stmts(
+                        nqp::unless(
+                          nqp::isnull(nqp::atpos($!iterators,$i)),
+                          (die "Can only have one lazy sequence in a cross")
+                        ),
+                        nqp::if(
+                          nqp::isgt_i(nqp::elems(nqp::atpos($!reifieds,$i)),1),
+                          (die "Can only have single element lists before a lazy sequence in a cross")
+                        )
+                      )
+                    )
                   )
               }
               method new(\its,\map) { nqp::create(self)!SET-SELF(its,map) }

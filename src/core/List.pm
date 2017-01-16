@@ -1404,125 +1404,12 @@ multi sub infix:<cmp>(@a, @b) {
 }
 
 proto sub infix:<X>(|) is pure {*}
-multi sub infix:<X>(+lol, :$with!) {
-    METAOP_CROSS($with, find-reducer-for-op($with))(|lol.list);
+multi sub infix:<X>(+lol, :&with!) {
+    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&with))
 }
 multi sub infix:<X>(+lol) {
-    my int $n = lol.elems - 1;
-    my $laze = False;
-    my @l = do for 0..$n -> $i {
-        my \elem = lol[$i];
-        if nqp::iscont(elem) {
-            (elem,)
-        }
-        else {
-            $laze = True if $i and elem.is-lazy;
-            elem.list
-        }
-    }
-
-    my Mu $v := nqp::list();
-    my int $i = 0;
-
-    if $laze {  # general case treats all lists as potentially lazy
-        return gather {
-            my @i = @l.map: *.iterator;
-            while $i >= 0 {
-                my \e = @i[$i].pull-one();
-                if !(e =:= IterationEnd) {
-                    nqp::bindpos($v, $i, e);
-                    if $i >= $n { take nqp::clone($v) }
-                    else {
-                        $i = $i + 1;
-                        my \elem = lol[$i];
-                        @l[$i] = nqp::istype(elem, Iterable) ?? elem !! elem.list;
-                    }
-                }
-                else { $i = $i - 1 }
-            }
-        }.lazy;
-    }
-
-    # eagerize 2nd and subsequent lists if finite
-    my Mu $end := nqp::list_i();
-    for 1 .. $n -> $i {
-        nqp::bindpos_i($end,$i,@l[$i].elems);
-    }
-    $laze = True if @l[0].is-lazy;  # check pass-thru on the 1st one too
-
-    # optimize for 2D and 3D crosses
-    if $n == 1 { # 2-dimensional
-        gather {
-            my int $e = nqp::atpos_i($end,1);
-            my $l0 = @l[0];
-            my $l1 = @l[1];
-            my \source = $l0.iterator;
-            until (my \value = source.pull-one) =:= IterationEnd {
-                nqp::bindpos($v, 0, value);
-                loop (my int $j = 0; $j < $e; $j = $j + 1) {
-                    nqp::bindpos($v, 1, $l1[$j]);
-                    take nqp::clone($v);
-                }
-            }
-        }.lazy-if($laze);
-    }
-    elsif $n == 2 { # 3-dimensional
-        gather {
-            my int $e1 = nqp::atpos_i($end,1);
-            my int $e2 = nqp::atpos_i($end,2);
-            my $l0 = @l[0];
-            my $l1 = @l[1];
-            my $l2 = @l[2];
-            my \source = $l0.iterator;
-            until (my \value = source.pull-one) =:= IterationEnd {
-                nqp::bindpos($v, 0, value);
-                loop (my int $j = 0; $j < $e1; $j = $j + 1) {
-                    nqp::bindpos($v, 1, $l1[$j]);
-                    loop (my int $k = 0; $k < $e2; $k = $k + 1) {
-                        nqp::bindpos($v, 2, $l2[$k]);
-                        take nqp::clone($v);
-                    }
-                }
-            }
-        }.lazy-if($laze);
-    }
-    else { # more than 3 dimensions
-        my Mu $jsave := nqp::list_i();
-        my \source = @l[0].iterator;
-        gather {
-            while $i == 0 {
-                my \e = source.pull-one;
-                if !(e =:= IterationEnd) {
-                    nqp::bindpos($v, $i, e);
-
-                    if $i >= $n { take nqp::clone($v) }
-                    else { $i = $i + 1; }
-
-                    my int $j = 0;
-                    while $i >= 1 {
-                        if $j < nqp::atpos_i($end,$i) {
-                            nqp::bindpos($v, $i, @l[$i][$j]);
-                            $j = $j + 1;
-
-                            if $i >= $n { take nqp::clone($v) }
-                            else {
-                                nqp::bindpos_i($jsave, $i, $j);
-                                $i = $i + 1;
-                                $j = 0;
-                            }
-                        }
-                        else {
-                            $i = $i - 1;
-                            $j = nqp::atpos_i($jsave,$i);
-                        }
-                    }
-                }
-                else { $i = $i - 1 }
-            }
-        }.lazy-if($laze);
-    }
+    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))
 }
-
 my &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}

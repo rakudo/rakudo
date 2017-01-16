@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqpprefix, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -43,6 +43,7 @@ my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
+$postamble = " $blib $postamble" if $blib;
 
 sub install {
     my ($name, $command) = @_;

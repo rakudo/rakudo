@@ -18,8 +18,7 @@ sub METAOP_REVERSE(\op) {
 }
 
 sub METAOP_CROSS(\op, &reduce) {
-    return &infix:<X> if op === &infix:<,>;
-
+    nqp::if(op.prec('thunky').starts-with('.'),
     -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $laze = False;
@@ -71,7 +70,11 @@ sub METAOP_CROSS(\op, &reduce) {
                 }
             }
         }.lazy-if($laze);
+    },
+    -> +lol {
+        Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,op))
     }
+    )
 }
 
 sub METAOP_ZIP(\op, &reduce) {

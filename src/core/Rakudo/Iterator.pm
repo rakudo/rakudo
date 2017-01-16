@@ -527,7 +527,8 @@ class Rakudo::Iterator {
 
                       # set up initial value of index $i with...
                       nqp::bindpos($!next,$i,nqp::if(
-                        nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                        nqp::iscont(my $elem := nqp::atpos($iterables,$i))
+                          || nqp::not_i(nqp::istype($elem,Iterable)),
 
                         # single value same as reified list of 1
                         nqp::bindpos(
@@ -788,7 +789,8 @@ class Rakudo::Iterator {
 
                       # set up initial value of index $i with...
                       nqp::bindpos($!next,$i,nqp::if(
-                        nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                        nqp::iscont(my $elem := nqp::atpos($iterables,$i))
+                          || nqp::not_i(nqp::istype($elem,Iterable)),
 
                         # single value same as reified list of 1
                         nqp::bindpos(

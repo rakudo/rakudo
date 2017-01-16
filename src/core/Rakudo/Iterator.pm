@@ -550,7 +550,7 @@ class Rakudo::Iterator {
                               || nqp::iseq_i(nqp::elems($elem),0),
 
                             # cross with an empty list is always an empty list
-                            (return Rakudo::Iterator.EmptyIterator),
+                            (return Rakudo::Iterator.Empty),
 
                             # use the available reified directly
                             nqp::stmts(
@@ -575,7 +575,7 @@ class Rakudo::Iterator {
                               ),
 
                               # cross with an empty list is an empty list
-                              (return Rakudo::Iterator.EmptyIterator),
+                              (return Rakudo::Iterator.Empty),
 
                               # set up the iterator stuff
                               nqp::stmts(
@@ -836,7 +836,7 @@ class Rakudo::Iterator {
                               || nqp::iseq_i(nqp::elems($elem),0),
 
                             # cross with an empty list is always an empty list
-                            (return Rakudo::Iterator.EmptyIterator),
+                            (return Rakudo::Iterator.Empty),
 
                             # use the available reified directly
                             nqp::stmts(
@@ -861,7 +861,7 @@ class Rakudo::Iterator {
                               ),
 
                               # cross with an empty list is an empty list
-                              (return Rakudo::Iterator.EmptyIterator),
+                              (return Rakudo::Iterator.Empty),
 
                               # set up the iterator stuff
                               nqp::stmts(

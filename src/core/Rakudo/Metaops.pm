@@ -154,7 +154,7 @@ class Rakudo::Metaops {
                       nqp::if(
                         nqp::iseq_i(nqp::elems(list),2),
                         op(nqp::atpos(list,0),nqp::atpos(list,1)),
-                        (die "Incorrect number of elements: expected 2, got {nqp::elems(list)}")
+                        (die "Incorrect number of elements for non-associative operator: expected 2, got {nqp::elems(list)}")
                       )
                   },
                   nqp::if(

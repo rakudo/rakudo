@@ -500,19 +500,6 @@ public final class RakOps {
         return wrap;
     }
     
-    public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        long elems = capList.elems(tc);
-        for (long i = 0; i < elems; i++) {
-            SixModelObject codeObj = capList.at_pos_boxed(tc, i);
-            CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
-                gcx.Code, "$!do", HINT_CODE_DO);
-            CallFrame ctxToDiddle = closure.outer;
-            ctxToDiddle.outer = tc.curFrame;
-        }
-        return capList;
-    }
-    
     public static SixModelObject p6captureouters2(SixModelObject capList, SixModelObject target, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!(target instanceof CodeRef))

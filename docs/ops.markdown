@@ -13,7 +13,6 @@
     - [p6box_u](#p6box_u)
     - [p6capturelex](#p6capturelex)
     - [p6capturelexwhere](#p6capturelexwhere)
-    - [p6captureouters](#p6captureouters)
     - [p6captureouters2](#p6captureouters2)
     - [p6clearpre](#p6clearpre)
     - [p6configposbindfailover](#p6configposbindfailover)
@@ -106,8 +105,6 @@ Box a native uint into a Perl 6 UInt.
 
 ## p6capturelexwhere
 * p6capturelexwhere(Mu $closure)
-
-## p6captureouters
 
 ## p6captureouters2
 * p6captureouters2(Mu $coderef)

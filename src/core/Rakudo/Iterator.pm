@@ -540,8 +540,8 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(nqp::isnull(
-                                 nqp::getattr($elem,List,'$!todo'))),
+                            && nqp::not_i(
+                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
@@ -802,8 +802,8 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(nqp::isnull(
-                                 nqp::getattr($elem,List,'$!todo'))),
+                            && nqp::not_i(
+                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(

@@ -859,7 +859,9 @@ class Rakudo::Iterator {
                     nqp::stmts(
 
                       # set up result of this pull
-                      (my $result := $!mapper($!next)),
+                      # we *MUST* clone here, because we cannot be sure
+                      # the mapper isn't going to throw the buffer away.
+                      (my $result := $!mapper(nqp::clone($!next))),
 
                       # start working on next result
                       nqp::unless(

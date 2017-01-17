@@ -1745,6 +1745,59 @@ class Rakudo::Iterator {
         }.new(list)
     }
 
+    # Return a lazy iterator that will repeat the values of a given
+    # source iterator indefinitely.  Even when given a lazy iterator,
+    #  it will cache the values seen to handle case that the iterator
+    # will exhaust after all.  Only if the source iterator did not
+    # produce any values at all, then the returned iterator will not
+    # produce any either.
+    method Repeat(\iterator) {
+        class :: does Iterator {
+            has $!iterator;
+            has $!reified;
+            has int $!i;
+            method !SET-SELF(\iterator) {
+                nqp::stmts(
+                  ($!iterator := iterator),
+                  ($!reified  := nqp::create(IterationBuffer)),
+                  self
+                )
+            }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::isnull($!iterator),
+                  nqp::atpos(                # supplying from cache
+                    $!reified,
+                    nqp::mod_i(
+                      ($!i = nqp::add_i($!i,1)),
+                      nqp::elems($!reified)
+                    )
+                  ),
+                  nqp::if(                   # supplying from iterator
+                    nqp::eqaddr(
+                      (my $pulled := $!iterator.pull-one),
+                      IterationEnd
+                    ),
+                    nqp::if(
+                      nqp::elems($!reified),
+                      nqp::stmts(            # exhausted, something in cache
+                        ($!iterator := nqp::null),
+                        nqp::atpos($!reified,0)
+                      ),
+                      IterationEnd           # exhausted, nothing in cache
+                    ),
+                    nqp::push(               # cache and supply
+                      $!reified,
+                      $pulled
+                    )
+                  )
+                )
+            }
+            method is-lazy(--> True) { }     # we're lazy, always
+        }.new(iterator)
+    }
+
     # Return a lazy iterator that keeps calling .roll on the given object.
     # Basically the functionality of List.roll(*), but could be on any
     # object that has a .roll method.

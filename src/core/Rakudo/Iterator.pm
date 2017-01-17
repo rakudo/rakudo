@@ -1153,7 +1153,7 @@ class Rakudo::Iterator {
             # Eat the iterator trying to find out the number of elements
             # produced by the iterator.  Intended to provide information
             # for error messages.
-            method count-elems() {                  
+            method count-elems() {
                 nqp::if(
                   $!ended,
                   nqp::elems($!buffer),
@@ -1855,6 +1855,112 @@ class Rakudo::Iterator {
     # object that has a .roll method.
     method Roller(\source) {
         Rakudo::Iterator.Callable( { source.roll }, True )
+    }
+
+    # Return an iterator that rotorizes the given iterator with the
+    # given cycle.  If the cycle is a Cool, then it is assumed to
+    # be a single Int value to R:It.Batch with.  Otherwise it is
+    # considered to be something Iterable that will be repeated
+    # until the source iterator is exhausted.  The third parameter
+    # indicates whether a partial result is acceptable when the
+    # source iterator is exhausted.
+    method Rotor(\iterable,\cycle,\partial) {
+        class :: does Iterator {
+            has $!iterator;
+            has $!cycle;
+            has $!buffer;
+            has int $!complete;
+            method !SET-SELF(\iterator,\cycle,\partial) {
+                nqp::stmts(
+                  ($!iterator := iterator),
+                  ($!cycle    := Rakudo::Iterator.Repeat(cycle.iterator)),
+                  ($!buffer   := nqp::create(IterationBuffer)),
+                  ($!complete  = !partial),
+                  self
+                )
+            }
+            method new(\iterator,\cycle,\partial) {
+                nqp::if(
+                  nqp::istype(cycle,Iterable),
+                  nqp::create(self)!SET-SELF(iterator,cycle,partial),
+                  Rakudo::Iterator.Batch(iterator,cycle.Int,partial)
+                )
+            }
+            method pull-one() is raw {
+                nqp::stmts(
+                  nqp::if(
+                    nqp::istype((my $todo := $!cycle.pull-one),Pair),
+                    nqp::if(                    # have a size => gap spec
+                      nqp::islt_i((my int $elems = $todo.key.Int),1),
+                      X::OutOfRange.new(        # size out of range
+                        what    => "Rotorizing sublist length is",
+                        got     => $elems,
+                        range   => "1..^Inf",
+                      ).throw,
+                      nqp::if(
+                        nqp::isle_i(
+                          (my int $step = nqp::add_i(
+                            $elems,
+                            (my int $gap = $todo.value.Int)
+                          )),
+                          0
+                        ),
+                        X::OutOfRange.new(             # gap out of range
+                          what    => "Rotorizing gap is",
+                          got     => $gap,
+                          range   => "-{nqp::sub_i($elems,1)}..^Inf",
+                          comment => "\nEnsure a negative gap is not larger than the length of the sublist",
+                        ).throw
+                      )
+                    ),
+                    nqp::if(                           # just a size
+                      nqp::islt_i(($elems = $todo.Int),1),
+                      X::OutOfRange.new(               # size out of range
+                        what    => "Rotorizing sublist length is",
+                        got     => $elems,
+                        range   => "1..^Inf",
+                        comment => "\nDid you mean to specify a Pair with => $elems?"
+                      ).throw
+                    )
+                  ),
+                  nqp::until(                          # fill the buffer
+                    nqp::iseq_i(nqp::elems($!buffer),$elems)
+                      || nqp::eqaddr(
+                           (my $pulled := $!iterator.pull-one),
+                           IterationEnd
+                         ),
+                    nqp::push($!buffer,$pulled)
+                  ),
+                  nqp::if(
+                    nqp::eqaddr($pulled,IterationEnd)
+                      && ($!complete || nqp::not_i(nqp::elems($!buffer))),
+                    IterationEnd,                      # done
+                    nqp::if(
+                      nqp::islt_i($gap,0),
+                      nqp::stmts(                      # keep some for next
+                        (my $result := nqp::p6bindattrinvres(
+                          nqp::create(List),List,'$!reified',
+                          nqp::clone($!buffer)
+                        )),
+                        nqp::splice($!buffer,$empty,0,$step),
+                        $result
+                      ),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::isgt_i($gap,0),
+                          $!iterator.skip-at-least($gap) # need to skip a few
+                        ),
+                        ($result := nqp::p6bindattrinvres(
+                          nqp::create(List),List,'$!reified',$!buffer)),
+                        ($!buffer := nqp::create(IterationBuffer)),
+                        $result
+                      )
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!iterator.is-lazy }
+        }.new(iterable,cycle,partial)
     }
 
     # Return an iterator that will roundrobin the given iterables

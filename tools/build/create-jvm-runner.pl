@@ -43,7 +43,6 @@ my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
-$postamble = " $blib $postamble" if $blib;
 
 sub install {
     my ($name, $command) = @_;
@@ -74,7 +73,7 @@ if ($debugger) {
     install "perl6-debug-j", "java $jopts perl6-debug";
 }
 else {
-    install "perl6-j", "java $jopts perl6";
-    install "perl6-jdb-server", "java $jdbopts $jopts perl6";
+    install "perl6-j", "java $jopts perl6 $blib";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
     install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
 }

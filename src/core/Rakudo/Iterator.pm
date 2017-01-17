@@ -373,6 +373,53 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    # Return an iterator that batches the given source iterator in
+    # batches of the given size.  The third parameter indicates whether
+    # a partial batch should be returned when the source iterator has
+    # exhausted.  The returned iterator is as lazy as the source iterator.
+    method Batch(\iterable,\size,\partial) {
+        class :: does Iterator {
+            has $!iterator;
+            has int $!size;
+            has int $!complete;
+            method !SET-SELF(\iterator,\size,\partial) {
+                nqp::if(
+                  size < 1,
+                  (die "Cannot batch with {size} elements in a batch"),
+                  nqp::stmts(
+                    ($!iterator := iterator),
+                    ($!size      = size),
+                    ($!complete  = !partial),
+                    self
+                  )
+                )
+            }
+            method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
+            method pull-one() is raw {
+                nqp::stmts(
+                  (my $reified := nqp::create(IterationBuffer)),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($reified),$!size)
+                      || nqp::eqaddr(
+                           (my $pulled := $!iterator.pull-one),
+                           IterationEnd
+                         ),
+                    nqp::push($reified,$pulled)
+                  ),
+                  nqp::if(
+                    nqp::eqaddr($pulled,IterationEnd)
+                      && ($!complete || nqp::not_i(nqp::elems($reified))),
+                    IterationEnd,
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',$reified
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!iterator.is-lazy }
+        }.new(iterable,size,partial)
+    }
+
     # Return an iterator for a given Callable.  The Callable is supposed
     # to return a value for the iterator, or IterationEnd to indicate the
     # data from the Callable is exhausted.  No checks for Slips are done,

@@ -1021,51 +1021,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method rotor(List:D: *@cycle, :$partial) is nodal {
-        die "Must specify *how* to rotor a List"
-          unless @cycle.is-lazy || @cycle;
-
-        # done if there's nothing to rotor on
-        return Seq.new(Rakudo::Iterator.Empty)
-          unless nqp::getattr(self,List,'$!reified').DEFINITE
-                   || nqp::getattr(self,List,'$!todo').DEFINITE;
-
-        my $finished = 0;
-        # (Note, the xx should be harmless if the cycle is already infinite by accident.)
-        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).cache;
-        gather for flat @c -> $s {
-            my $elems;
-            my $gap;
-            if $s ~~ Pair {
-                $elems = $s.key.Int;
-                $gap   = $s.value.Int;
-            }
-            elsif $s < 1 {
-                die "Cannot have elems < 1, did you mean to specify a Pair with => $s?";
-            }
-            else {
-                $elems = $s.Int;
-                $gap   = 0;
-            }
-            $!todo.reify-at-least($finished + $elems) if $!todo.DEFINITE;
-            if $finished + $elems <= nqp::elems($!reified) {
-                take self[$finished ..^ $finished + $elems];
-                $finished += $elems + $gap;
-
-                X::OutOfRange.new(
-                    what    => ".rotor position is",
-                    got     => $finished,
-                    range   => "0..^Inf",
-                    comment => '(ensure the negative gap is not larger than'
-                                ~ ' the length of the sublist)',
-                ).throw if $finished < 0;
-            }
-            else {
-                take self[$finished .. *]
-                  if $partial and $finished < self.elems;
-                last;
-            }
-        }
+    proto method rotor(|) is nodal { * }
+    multi method rotor(List:D: Int:D $batch, :$partial) {
+        Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
+    }
+    multi method rotor(List:D: *@cycle, :$partial) {
+        Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 
     proto method combinations(|) is nodal {*}

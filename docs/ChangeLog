@@ -1,5 +1,5 @@
 New in 2016.12
- + Fixes
+ + Fixes:
     + Fixed inability to autocurry superscript exponents properly [c35d562]
     + Fixed Match.prematch and Match.postmatch for zero-width matches [c04b8b5]
     + Fixed Match objects being erroneously treated as value types [7f26e8b]

@@ -9,6 +9,7 @@
 #    Rakudo::Iterator, feels better.
 
 class Rakudo::Iterator {
+    my $empty := nqp::list;   # an empty list for nqp::splice
 
 #-------------------------------------------------------------------------------
 # Roles that are used by iterators in the rest of the core settings, in
@@ -1854,7 +1855,6 @@ class Rakudo::Iterator {
 
     # Return an iterator that will roundrobin the given iterables
     # (with &[,]).  Basically the functionality of roundrobin(@a,@b)
-    my $empty := nqp::list;   # an empty list for nqp::splice
     method RoundrobinIterables(@iterables) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies

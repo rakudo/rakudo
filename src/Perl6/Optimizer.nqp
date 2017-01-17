@@ -617,9 +617,6 @@ my class BlockVarOptimizer {
     }
 
     method lexical_vars_to_locals($block) {
-#if js
-        return 0;
-#endif
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {
@@ -1347,9 +1344,6 @@ class Perl6::Optimizer {
     }
 
     method optimize_p6typecheckrv($op) {
-#if js
-        return 0;
-#endif
         try {
             my $rettype        := $!symbols.top_routine.returns;
             my int $rettype_ps := nqp::objprimspec($rettype);

@@ -386,7 +386,11 @@ class Rakudo::Iterator {
             method !SET-SELF(\iterator,\size,\partial) {
                 nqp::if(
                   size < 1,
-                  (die "Cannot batch with {size} elements in a batch"),
+                  X::OutOfRange.new(
+                    what    => "Batching sublist length is",
+                    got     => size,
+                    range   => "1..^Inf",
+                  ).throw,
                   nqp::stmts(
                     ($!iterator := iterator),
                     ($!size      = size),

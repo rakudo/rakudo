@@ -51,7 +51,7 @@ New in 2017.01
     + Fixed threading issues in ||=, //=, and &&= [d1c2e76]
     + Fixed GC in spesh triggered by managed mutex use [25615c7]
     + Fixed bugs in interaction between inlining, GC, and threads [25615c7]
-    + Fixed endpoint-excusion on string ranges with non-alphanumeric chars [daf7e51]
+    + Fixed endpoint-exclusion on string ranges with non-alphanumeric chars [daf7e51]
     + [TEST] Test.pm tests no longer backslash every backslash in descriptions [b183cab]
     + [TEST] Fixed TAP::Harness parsing of single backslashes in test descriptions [b120ac4]
     + [TEST] Fixed TAP::Harness failing to parse full-file skip directive [aee7af3]

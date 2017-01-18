@@ -687,7 +687,6 @@ my class Rakudo::Internals {
         method pick(|c)         { self.flat.pick(|c) }
         method permutations(|c) { self.flat.permutations(|c) }
         method combinations(|c) { self.flat.combinations(|c) }
-        method rotor(|c)        { self.flat.rotor(|c) }
         method join(|c)         { self.flat.join(|c) }
         method sort(|c)         { self.flat.sort(|c) }
 

@@ -1,7 +1,11 @@
+# for our tantrums
 my class X::TypeCheck { ... };
+my class X::TypeCheck::Splice { ... }
 my class X::Subscript::Negative { ... };
 my class X::NotEnoughDimensions { ... };
 my class X::Assignment::ArrayShapeMismatch { ... };
+
+# stub what we need now
 my class array is repr('VMArray') { ... };
 
 # An Array is a List that ensures every item added to it is in a Scalar

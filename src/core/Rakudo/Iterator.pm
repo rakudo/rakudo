@@ -1385,23 +1385,36 @@ class Rakudo::Iterator {
             has $!lastn;
             has int $!todo;
             has int $!index;
-            method !SET-SELF(\iterator, \size, $action, \full) {
+            method !SET-SELF(\iterator, \size, \full) {
+                nqp::stmts(
+                  ($!iterator := iterator),
+                  ($!full = full),
+                  ($!lastn := nqp::setelems(nqp::list, $!size = size)),
+                  nqp::setelems($!lastn, 0),
+                  self
+                )
+            }
+            method new(\iterator,\n,\action,\f) {
                 nqp::if(
-                  ($!iterator := iterator).is-lazy,
-                  X::Cannot::Lazy.new(:$action).throw,
+                  iterator.is-lazy,
+                  X::Cannot::Lazy.new(:action(action)).throw,
                   nqp::if(
-                    nqp::isle_i(size, 0),
-                    Rakudo::Iterator.Empty,
-                    nqp::stmts(
-                      ($!full = full),
-                      ($!lastn := nqp::setelems(nqp::list, $!size = size)),
-                      nqp::setelems($!lastn, 0),
-                      self
+                    nqp::istype(n,Whatever),
+                    iterator,                   # * just give back itself
+                    nqp::if(
+                      n <= 0,                   # must be HLL comparison
+                      Rakudo::Iterator.Empty,   # negative is just nothing
+                      nqp::if(
+                        (nqp::istype(n,Int)
+                          && nqp::isbig_I(nqp::decont(n)))
+                          || n == Inf,
+                        iterator,               # big value = itself
+                        nqp::create(self)!SET-SELF(iterator,n,f)
+                      )
                     )
                   )
                 )
             }
-            method new(\i,\n,\a,\f) { nqp::create(self)!SET-SELF(i,n,a,f) }
             method !next() is raw {
                 nqp::stmts(
                   (my int $index = $!index),
@@ -1584,7 +1597,23 @@ class Rakudo::Iterator {
             has $!iterator;
             has int $!times;
             method !SET-SELF($!iterator,$!times) { self }
-            method new(\i,\t) { nqp::create(self)!SET-SELF(i,t) }
+            method new(\iterator,\times) {
+                nqp::if(
+                  nqp::istype(times,Whatever),
+                  iterator,                   # * just give back itself
+                  nqp::if(
+                    times <= 0,               # must be HLL comparison
+                    Rakudo::Iterator.Empty,   # negative is just nothing
+                    nqp::if(
+                      (nqp::istype(times,Int)
+                        && nqp::isbig_I(nqp::decont(times)))
+                        || times == Inf,
+                      iterator,               # big value = itself
+                      nqp::create(self)!SET-SELF(iterator,times)
+                    )
+                  )
+                )
+            }
             method pull-one() is raw {
                 nqp::if(
                   nqp::isgt_i($!times,0),

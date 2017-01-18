@@ -1869,13 +1869,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method head(Any:D: Int(Cool) $n) {
+    multi method head(Any:D: $n) {
         Seq.new(
-          nqp::if(
-            nqp::isle_i($n,0),
-            Rakudo::Iterator.Empty,
-            Rakudo::Iterator.NextNValues(self.iterator,$n)
-          )
+          Rakudo::Iterator.NextNValues(self.iterator,$n)
         )
     }
 
@@ -1890,9 +1886,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method tail(Any:D: Int(Cool) $n) {
+    multi method tail(Any:D: $n) {
         Seq.new(
-          Rakudo::Iterator.LastNValues(self.iterator,$n,'tail'))
+          Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
+        )
     }
 
     proto method minpairs(|) { * }

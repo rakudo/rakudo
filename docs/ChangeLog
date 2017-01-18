@@ -22,7 +22,7 @@ New in 2017.01
     + Fixed combinations() incorrectly returning 1-item list in some cases [d86c419]
     + Made combinations() always return a Seq on succcess [db1836a]
     + Fixed useless "useless use" warnings in hypered ++ and -- [7193df1]
-    + Fixed numerious bugs with $limit in lines() [19df358]
+    + Fixed numerous bugs with $limit in lines() [19df358]
     + Fixed regression with mutability of .pairs on shaped arrays [dc7b688]
     + Fixed regression with infinite lists assignment to shaped arrays [aa35065]
     + Fixed regression with looping over uninitialized shaped array [696b1f4]

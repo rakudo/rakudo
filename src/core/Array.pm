@@ -193,7 +193,12 @@ my class Array { # declared in BOOTSTRAP
     method from-iterator(Array:U: Iterator $iter) {
         nqp::if(
           nqp::eqaddr(
-            $iter.push-until-lazy(my \buffer := nqp::create(IterationBuffer)),
+            $iter.push-until-lazy(
+              my \target := ArrayReificationTarget.new(
+                (my \buffer := nqp::create(IterationBuffer)),
+                nqp::null
+              )
+            ),
             IterationEnd
           ),
           nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
@@ -205,7 +210,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindattr(todo,
               List::Reifier,'$!reified',buffer),
             nqp::bindattr(todo,
-              List::Reifier,'$!reification-target',result.reification-target),
+              List::Reifier,'$!reification-target',target),
             nqp::p6bindattrinvres(result,List,'$!todo',todo)
           )
         )

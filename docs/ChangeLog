@@ -133,7 +133,7 @@ New in 2017.01
     + Made zip(@a,@a,:with(&[=>])) about 5x faster [46cdf16]
     + Made generic right-assoc zip ops in zip(@a,@a,:with(...)) form
         at least 2x faster [6703b4c]
-    + Made Zop handling (excep for non-LHS-thunky ops) 13x faster [f66d4b3]
+    + Made Zop handling (except for non-LHS-thunky ops) 13x faster [f66d4b3]
     + Made List.from-iterator about 10% faster [8f3476d]
     + Streamlined Array.from-iterator, making it 30% faster in some cases [fab1a14]
     + Improved ||=, //=, and &&= by avoiding thunking and invocation [d1c2e76]
@@ -234,6 +234,7 @@ New in 2016.12
  + Removals:
     + Removed X::Syntax::Number::InvalidCharacter exception [a8ff3b9]
  + Efficiency:
+    + Made compilation of custom operators about 1.5x faster [c99fbc6]
     + Made indirect type lookup 3x as fast [939d273]
     + Made shaped(int|num|str)array.AT-POS at least 15% faster [bfe89a5]
     + Made shaped(int|num|str)array.ASSIGN-POS at least 10% faster [ecc202e]

@@ -1,11 +1,3 @@
-sub combinations(Int() $n, Int() $k) {
-    Seq.new(Rakudo::Iterator.Combinations($n,$k,0))
-}
-
-sub permutations(Int() $n) {
-    Seq.new(Rakudo::Iterator.Permutations($n,0))
-}
-
 # A List is a (potentially infite) immutable list. The immutability is not
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
@@ -1244,6 +1236,14 @@ multi sub infix:<,>(|) {
         $list
       )
     )
+}
+
+sub combinations(Int() $n, Int() $k) {
+    Seq.new(Rakudo::Iterator.Combinations($n,$k,0))
+}
+
+sub permutations(Int() $n) {
+    Seq.new(Rakudo::Iterator.Permutations($n,0))
 }
 
 sub list(+l) { l }

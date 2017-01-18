@@ -1477,6 +1477,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
+    sub find-reducer-for-op(&op) {
+        nqp::if(
+          nqp::iseq_s(&op.prec("prec"),"f="),
+          &METAOP_REDUCE_LISTINFIX,
+          nqp::if(
+            nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0),
+            &METAOP_REDUCE_LEFT,
+            ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
+          )
+        )
+    }
+
     proto method reduce(|) { * }
     multi method reduce(&with) is nodal {
         return unless self.DEFINITE;

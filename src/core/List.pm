@@ -6,18 +6,6 @@ sub permutations(Int() $n) {
     Seq.new(Rakudo::Iterator.Permutations($n,0))
 }
 
-sub find-reducer-for-op(&op) {
-    nqp::if(
-      nqp::iseq_s(&op.prec("prec"),"f="),
-      &METAOP_REDUCE_LISTINFIX,
-      nqp::if(
-        nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0),
-        &METAOP_REDUCE_LEFT,
-        ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
-      )
-    )
-}
-
 # A List is a (potentially infite) immutable list. The immutability is not
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also

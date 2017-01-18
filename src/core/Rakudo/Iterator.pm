@@ -1739,7 +1739,9 @@ class Rakudo::Iterator {
                               ),
                               ($l = nqp::sub_i($l,1))
                             ),
-                            self!swap($k,$l),
+                            (my $tmp := nqp::atpos($!next,$k)),
+                            nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
+                            nqp::bindpos($!next,$l,$tmp)
                           )
                         ),
                         ($l = $!n),
@@ -1748,7 +1750,11 @@ class Rakudo::Iterator {
                             ($k = nqp::add_i($k,1)),
                             ($l = nqp::sub_i($l,1))
                           ),
-                          self!swap($k,$l)
+                          nqp::stmts(
+                            ($tmp := nqp::atpos($!next,$k)),
+                            nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
+                            nqp::bindpos($!next,$l,$tmp)
+                          )
                         ),
                         nqp::if(
                           $b,
@@ -1759,11 +1765,6 @@ class Rakudo::Iterator {
                       ),
                       IterationEnd
                     )
-                }
-                method !swap(int $k,int $l --> Nil) {
-                    my $tmp := nqp::atpos($!next,$k);
-                    nqp::bindpos($!next,$k,nqp::atpos($!next,$l));
-                    nqp::bindpos($!next,$l,$tmp)
                 }
                 method count-only { $!elems }
                 method bool-only(--> True) { }

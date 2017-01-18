@@ -609,7 +609,6 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
-S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-construction/TWEAK.t

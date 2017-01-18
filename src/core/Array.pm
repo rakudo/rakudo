@@ -815,7 +815,7 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method splice(Array:D: Range:D $range) {
         nqp::if(
-          ((my int $low, my int $high) = $range.int-bounds),
+          $range.int-bounds(my int $low, my int $high),
           self.splice($low, nqp::add_i(nqp::sub_i($high,$low),1))
         )
     }

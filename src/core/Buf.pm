@@ -133,7 +133,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $pos;
         my int $todo;
         if nqp::istype($from,Range) {
-            ($pos,my int $max) = $from.int-bounds;
+            $from.int-bounds($pos, my int $max);
             $todo = $max - $pos + 1;
         }
         else {

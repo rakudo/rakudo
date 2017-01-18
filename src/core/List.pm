@@ -1040,7 +1040,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method combinations(Range:D $ofrange) {
         nqp::stmts(
           (my int $elems = self.elems),      # reifies
-          ((my int $i, my int $to) = $ofrange.int-bounds),
+          $ofrange.int-bounds(my int $i, my int $to),
           ($i = nqp::if(nqp::islt_i($i,0),-1,nqp::sub_i($i,1))),
           nqp::if(nqp::isgt_i($to,$elems),($to = $elems)),
           Seq.new(

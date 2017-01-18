@@ -72,10 +72,10 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(\min, \max) { nqp::create(self)!SET-SELF(min,max,0,0,0) }
 
-    method excludes-min() { ?$!excludes-min }
-    method excludes-max() { ?$!excludes-max }
-    method infinite()     { ?$!infinite     }
-    method is-int()       { ?$!is-int       }
+    method excludes-min() { nqp::p6bool($!excludes-min) }
+    method excludes-max() { nqp::p6bool($!excludes-max) }
+    method infinite()     { nqp::p6bool($!infinite)     }
+    method is-int()       { nqp::p6bool($!is-int)       }
 
     multi method WHICH (Range:D:) {
         self.^name

@@ -397,7 +397,9 @@ class Rakudo::Iterator {
                         range   => "1..^Inf",
                       ).throw,
                       nqp::if(
-                        size == Inf || nqp::isbig_I(nqp::decont(size)),
+                        (nqp::istype(size,Int)
+                          && nqp::isbig_I(nqp::decont(size)))
+                          || size == Inf,
                         ($!size = -1),    # set to never stop and ok partial
                         nqp::stmts(
                           ($!size     = size),
@@ -1931,37 +1933,74 @@ class Rakudo::Iterator {
                 nqp::stmts(
                   nqp::if(
                     nqp::istype((my $todo := $!cycle.pull-one),Pair),
-                    nqp::if(                    # have a size => gap spec
-                      nqp::islt_i((my int $elems = $todo.key.Int),1),
-                      X::OutOfRange.new(        # size out of range
-                        what    => "Rotorizing sublist length is",
-                        got     => $elems,
-                        range   => "1..^Inf",
-                      ).throw,
+                    nqp::stmts(
+                      (my $size := $todo.key),
                       nqp::if(
-                        nqp::isle_i(
-                          (my int $step = nqp::add_i(
-                            $elems,
-                            (my int $gap = $todo.value.Int)
-                          )),
-                          0
+                        nqp::istype($size,Whatever),
+                        nqp::stmts(                    # eat everything
+                          (my int $elems = -1),
+                          ($!complete = 0)
                         ),
-                        X::OutOfRange.new(             # gap out of range
-                          what    => "Rotorizing gap is",
-                          got     => $gap,
-                          range   => "-{nqp::sub_i($elems,1)}..^Inf",
-                          comment => "\nEnsure a negative gap is not larger than the length of the sublist",
-                        ).throw
+                        nqp::if(
+                          $size < 1,                   # must be HLL comparison
+                          X::OutOfRange.new(
+                            what    => "Rotorizing sublist length is",
+                            got     => $size,
+                            range   => "1..^Inf",
+                          ).throw,
+                          nqp::if(
+                            $size == Inf || (
+                              nqp::istype($size,Int)
+                                && nqp::isbig_I(nqp::decont($size))
+                            ),
+                            nqp::stmts(                # eat everything
+                              ($elems = -1),
+                              ($!complete = 0)
+                            ),
+                            nqp::if(
+                              nqp::isle_i(
+                                nqp::add_i(
+                                  ($elems = $todo.key.Int),
+                                  (my int $gap = $todo.value.Int)
+                                ),
+                                0
+                              ),
+                              X::OutOfRange.new(       # gap out of range
+                                what    => "Rotorizing gap is",
+                                got     => $gap,
+                                range   => "-{nqp::sub_i($elems,1)}..^Inf",
+                                comment => "\nEnsure a negative gap is not larger than the length of the sublist",
+                              ).throw
+                            )
+                          )
+                        )
                       )
                     ),
                     nqp::if(                           # just a size
-                      nqp::islt_i(($elems = $todo.Int),1),
-                      X::OutOfRange.new(               # size out of range
-                        what    => "Rotorizing sublist length is",
-                        got     => $elems,
-                        range   => "1..^Inf",
-                        comment => "\nDid you mean to specify a Pair with => $elems?"
-                      ).throw
+                      nqp::istype($todo,Whatever),
+                      nqp::stmts(                      # eat everything
+                        ($elems = -1),
+                        ($!complete = 0)
+                      ),
+                      nqp::if(
+                        $todo < 1,                     # must be HLL comparison
+                        X::OutOfRange.new(             # size out of range
+                          what    => "Rotorizing sublist length is",
+                          got     => $todo,
+                          range   => "1..^Inf",
+                          comment => "\nDid you mean to specify a Pair with => $todo?"
+                        ).throw,
+                        nqp::if(
+                          (nqp::istype($todo,Int)
+                            && nqp::isbig_I(nqp::decont($todo)))
+                            || $todo == Inf,
+                          nqp::stmts(                  # eat everything
+                            ($elems = -1),
+                            ($!complete = 0)
+                          ),
+                          ($elems = $todo.Int)
+                        )
+                      )
                     )
                   ),
                   nqp::until(                          # fill the buffer
@@ -1983,7 +2022,7 @@ class Rakudo::Iterator {
                           nqp::create(List),List,'$!reified',
                           nqp::clone($!buffer)
                         )),
-                        nqp::splice($!buffer,$empty,0,$step),
+                        nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap)),
                         $result
                       ),
                       nqp::stmts(

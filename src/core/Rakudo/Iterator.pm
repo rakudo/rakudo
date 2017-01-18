@@ -645,7 +645,12 @@ class Rakudo::Iterator {
               method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
+#?if jvm
+                    nqp::eqaddr($!next,Mu),
+#?endif
+#?if !jvm
                     nqp::isnull($!next),
+#?endif
                     IterationEnd,
                     nqp::stmts(
 
@@ -785,7 +790,12 @@ class Rakudo::Iterator {
                             # was last iteration, free up everything now
                             ($!next :=
                               $!iterators := $!reifieds := $!indices :=
+#?if jvm
+                              Mu)
+#?endif
+#?if !jvm
                               nqp::null)
+#?endif
                           )
                         )
                       ),
@@ -908,7 +918,12 @@ class Rakudo::Iterator {
               method new(\its,\map) { nqp::create(self)!SET-SELF(its,map) }
               method pull-one() {
                   nqp::if(
+#?if jvm
+                    nqp::eqaddr($!next,Mu),
+#?endif
+#?if !jvm
                     nqp::isnull($!next),
+#?endif
                     IterationEnd,
                     nqp::stmts(
 
@@ -1049,7 +1064,12 @@ class Rakudo::Iterator {
                             # was last iteration, free up everything now
                             ($!next :=
                               $!iterators := $!reifieds := $!indices :=
+#?if jvm
+                              Mu)
+#?endif
+#?if !jvm
                               nqp::null)
+#?endif
                           )
                         )
                       ),
@@ -1818,7 +1838,12 @@ class Rakudo::Iterator {
             method new(\iter) { nqp::create(self)!SET-SELF(iter) }
             method pull-one() is raw {
                 nqp::if(
+#?if jvm
+                  nqp::eqaddr($!iterator,Mu),
+#?endif
+#?if !jvm
                   nqp::isnull($!iterator),
+#?endif
                   nqp::atpos(                # supplying from cache
                     $!reified,
                     nqp::mod_i(
@@ -1834,7 +1859,12 @@ class Rakudo::Iterator {
                     nqp::if(
                       nqp::elems($!reified),
                       nqp::stmts(            # exhausted, something in cache
+#?if jvm
+                        ($!iterator := Mu),
+#?endif
+#?if !jvm
                         ($!iterator := nqp::null),
+#?endif
                         nqp::atpos($!reified,0)
                       ),
                       IterationEnd           # exhausted, nothing in cache
@@ -1996,7 +2026,12 @@ class Rakudo::Iterator {
               method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
+#?if jvm
+                    nqp::eqaddr($!iters,Mu),
+#?endif
+#?if !jvm
                     nqp::isnull($!iters),
+#?endif
                     IterationEnd,
                     nqp::stmts(
                       (my int $i = -1),
@@ -2022,7 +2057,12 @@ class Rakudo::Iterator {
                         nqp::p6bindattrinvres( # at least one not exhausted
                           nqp::create(List),List,'$!reified',$list),
                         nqp::stmts(            # we're done
+#?if jvm
+                          ($!iters := Mu),
+#?endif
+#?if !jvm
                           ($!iters := nqp::null),
+#?endif
                           IterationEnd
                         )
                       )
@@ -2250,7 +2290,12 @@ class Rakudo::Iterator {
               method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
+#?if jvm
+                    nqp::eqaddr($!iters,Mu),
+#?endif
+#?if !jvm
                     nqp::isnull($!iters),
+#?endif
                     IterationEnd,
                     nqp::stmts(
                       (my int $i = -1),
@@ -2267,7 +2312,12 @@ class Rakudo::Iterator {
                       nqp::if(
                         nqp::islt_i($i,$elems),  # at least one exhausted
                         nqp::stmts(
+#?if jvm
+                          ($!iters := Mu),
+#?endif
+#?if !jvm
                           ($!iters := nqp::null),
+#?endif
                           IterationEnd
                         ),
                         nqp::p6bindattrinvres(
@@ -2325,7 +2375,12 @@ class Rakudo::Iterator {
               method new(\iters,\map) { nqp::create(self)!SET-SELF(iters,map) }
               method pull-one() {
                   nqp::if(
+#?if jvm
+                    nqp::eqaddr($!iters,Mu),
+#?endif
+#?if !jvm
                     nqp::isnull($!iters),
+#?endif
                     IterationEnd,
                     nqp::stmts(
                       (my int $i = -1),
@@ -2343,7 +2398,12 @@ class Rakudo::Iterator {
                       nqp::if(
                         nqp::islt_i($i,$elems),  # at least one exhausted
                         nqp::stmts(
+#?if jvm
+                          ($!iters := Mu),
+#?endif
+#?if !jvm
                           ($!iters := nqp::null),
+#?endif
                           IterationEnd
                         ),
                         $!mapper($list)

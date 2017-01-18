@@ -1,5 +1,4 @@
 # for our tantrums
-my class Supplier { ... }
 my class X::TypeCheck::Splice { ... }
 
 sub combinations(Int() $n, Int() $k) {

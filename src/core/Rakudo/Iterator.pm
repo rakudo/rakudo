@@ -384,19 +384,29 @@ class Rakudo::Iterator {
             has int $!size;
             has int $!complete;
             method !SET-SELF(\iterator,\size,\partial) {
-                nqp::if(
-                  size < 1,
-                  X::OutOfRange.new(
-                    what    => "Batching sublist length is",
-                    got     => size,
-                    range   => "1..^Inf",
-                  ).throw,
-                  nqp::stmts(
-                    ($!iterator := iterator),
-                    ($!size      = size),
-                    ($!complete  = !partial),
-                    self
-                  )
+                nqp::stmts(
+                  ($!iterator := iterator),
+                  nqp::if(
+                    nqp::istype(size,Whatever),
+                    ($!size = -1),        # set to never stop and ok partial
+                    nqp::if(
+                      size < 1,
+                      X::OutOfRange.new(
+                        what    => "Batching sublist length is",
+                        got     => size,
+                        range   => "1..^Inf",
+                      ).throw,
+                      nqp::if(
+                        size == Inf || nqp::isbig_I(nqp::decont(size)),
+                        ($!size = -1),    # set to never stop and ok partial
+                        nqp::stmts(
+                          ($!size     = size),
+                          ($!complete = !partial),
+                        )
+                      )
+                    )
+                  ),
+                  self
                 )
             }
             method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
@@ -1914,7 +1924,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   nqp::istype(cycle,Iterable),
                   nqp::create(self)!SET-SELF(iterator,cycle,partial),
-                  Rakudo::Iterator.Batch(iterator,cycle.Int,partial)
+                  Rakudo::Iterator.Batch(iterator,cycle,partial)
                 )
             }
             method pull-one() is raw {

@@ -1021,14 +1021,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method rotor(|) is nodal { * }
-    multi method rotor(List:D: Int:D $batch, :$partial) {
-        Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
-    }
-    multi method rotor(List:D: *@cycle, :$partial) {
-        Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
-    }
-
     proto method combinations(|) is nodal {*}
     multi method combinations() {
         nqp::stmts(

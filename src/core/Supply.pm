@@ -766,7 +766,6 @@ my class Supply {
         }
     }
 
-    proto method rotor(|) {*}
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
         supply {

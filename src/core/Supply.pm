@@ -56,7 +56,7 @@ my class X::Supply::New is Exception {
 # a Supply go in here.
 my class Supplier { ... }
 my class Supplier::Preserving { ... }
-my class Supply {
+my class Supply does Awaitable {
     has Tappable $!tappable;
 
     proto method new(|) { * }

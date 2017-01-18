@@ -8,7 +8,7 @@ my class X::Channel::ReceiveOnClosed is Exception {
     has $.channel;
     method message() { "Cannot receive a message on a closed channel" }
 }
-my class Channel {
+my class Channel does Awaitable {
     # The queue of events moving through the channel.
     my class Queue is repr('ConcBlockingQueue') { }
     has $!queue;

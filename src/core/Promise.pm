@@ -24,7 +24,7 @@ my role X::Promise::Broken {
             callsame().indent(4)
     }
 }
-my class Promise {
+my class Promise does Awaitable {
     has $.scheduler;
     has $.status;
     has $!result is default(Nil);

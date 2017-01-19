@@ -767,10 +767,30 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method Array(List:D:) {
-        # We need to populate the Array slots with Scalar containers, so no
-        # shortcuts (and no special casing is likely worth it; iterators can
-        # batch up the work too).
-        Array.from-iterator(self.iterator)
+        # We need to populate the Array slots with Scalar containers
+        nqp::if(
+          $!todo.DEFINITE,
+          Array.from-iterator(self.iterator),
+          nqp::if(
+            $!reified.DEFINITE,
+            nqp::stmts(
+              (my int $elems = nqp::elems($!reified)),
+              (my $array := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos($array, $i,
+                  nqp::assign(
+                    nqp::p6scalarfromdesc(nqp::null),
+                    nqp::atpos($!reified,$i)
+                  )
+                )
+              ),
+              nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$array)
+            ),
+            nqp::create(Array)
+          )
+        )
     }
 
     method eager {

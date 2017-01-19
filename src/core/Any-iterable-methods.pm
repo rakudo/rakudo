@@ -1189,10 +1189,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           )
         )
     }
-    method !iterator-and-first($what,\first) is raw {
+    method !iterator-and-first($action,\first) is raw {
         nqp::if(
           self.is-lazy,
-          (die "Cannot $what on an infinite list"),
+          X::Cannot::Lazy.new(:$action).throw,
           nqp::stmts(
             (my $iterator := self.iterator),
             nqp::until(

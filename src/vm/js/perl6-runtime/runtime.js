@@ -112,6 +112,14 @@ op.p6capturelex = function(ctx, codeObj) {
   if (ctx.codeRef().staticCode === wantedStaticInfo) {
     closure.forcedOuter = ctx;
     closure.outerCtx = ctx;
+
+    let closureCtx = ctx;
+    let updatedCtxs = [];
+    while (updatedCtxs.length < closure.staticCode.closureTemplate.length) {
+      updatedCtxs.unshift(closureCtx);
+      closureCtx = closureCtx.$$outer;
+    }
+    closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
   } else if (ctx.$$outer.codeRef().staticCode === wantedStaticInfo) {
     closure.outerCtx = ctx;
     closure.forcedOuter = ctx.$$outer;

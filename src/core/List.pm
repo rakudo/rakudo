@@ -391,8 +391,38 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method fmt($format = '%s', $separator = ' ') {
-        self.map({ .fmt($format) }).join($separator);
+    proto method fmt(|) { * }
+    multi method fmt() {
+        nqp::if(
+          (my int $elems = self.elems),             # reifies
+          nqp::stmts(
+            (my $list    := $!reified),
+            (my $strings := nqp::setelems(nqp::list_s,$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s($strings,$i,nqp::atpos($list,$i).Str)
+            ),
+            nqp::p6box_s(nqp::join(' ',$strings))
+          ),
+          ''
+        )
+    }
+    multi method fmt($format, $separator = ' ') {
+        nqp::if(
+          (my int $elems = self.elems),             # reifies
+          nqp::stmts(
+            (my $list    := $!reified),
+            (my $strings := nqp::setelems(nqp::list_s,$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s($strings,$i,nqp::atpos($list,$i).fmt($format))
+            ),
+            nqp::p6box_s(nqp::join($separator,$strings))
+          ),
+          ''
+        )
     }
 
     multi method elems(List:D:) is nodal {

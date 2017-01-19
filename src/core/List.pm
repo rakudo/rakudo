@@ -408,20 +408,48 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ''
         )
     }
-    multi method fmt($format, $separator = ' ') {
+    multi method fmt(Str(Cool) $format) {
         nqp::if(
-          (my int $elems = self.elems),             # reifies
-          nqp::stmts(
-            (my $list    := $!reified),
-            (my $strings := nqp::setelems(nqp::list_s,$elems)),
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos_s($strings,$i,nqp::atpos($list,$i).fmt($format))
+          nqp::iseq_s($format,'%s'),
+          self.fmt,
+          self.fmt($format,' ')
+        )
+    }
+    multi method fmt(Str(Cool) $format, $separator) {
+        nqp::if(
+          nqp::iseq_s($format,'%s') && nqp::iseq_s($separator,' '),
+          self.fmt,
+          nqp::if(
+            (my int $elems = self.elems),             # reifies
+            nqp::stmts(
+              (my $list    := $!reified),
+              (my $strings := nqp::setelems(nqp::list_s,$elems)),
+              (my int $i = -1),
+              nqp::if(
+                nqp::iseq_i(                          # only one % in format?
+                  nqp::elems(nqp::split('%',$format)),
+                  2
+                ) && nqp::iseq_i(                     # only one %s in format
+                       nqp::elems(my $parts := nqp::split('%s',$format)),
+                       2
+                     ),
+                nqp::while(                           # only a single %s
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_s($strings,$i,
+                    nqp::join(nqp::atpos($list,$i).Str,$parts)
+                  )
+                ),
+                nqp::while(                           # something else
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_s($strings,$i,
+                    nqp::atpos($list,$i).fmt($format)
+                  )
+                )
+              ),
+              nqp::p6box_s(nqp::join($separator,$strings))
             ),
-            nqp::p6box_s(nqp::join($separator,$strings))
-          ),
-          ''
+            ''
+          )
         )
     }
 

@@ -1150,40 +1150,48 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method join(List:D: $separator = '') is nodal {
-        my int $infinite;
-        if $!todo.DEFINITE {
-            $!todo.reify-until-lazy;
-            $!todo.fully-reified
-              ?? ($!todo := nqp::null)
-              !! ($infinite = 1);
-        }
-
-        # something to join
-        if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
-            my Mu $strings := nqp::setelems(nqp::list_s,$elems + $infinite);
-            my int $i = -1;
-
-            my $tmp;
-            nqp::bindpos_s($strings,$i,
-              nqp::isnull($tmp := nqp::atpos($!reified,$i))
-              ?? ''
-              !! nqp::unbox_s(nqp::isconcrete($tmp) && nqp::istype($tmp,Str)
-                  ?? $tmp
-                  !! nqp::can($tmp,'Str')
-                    ?? $tmp.Str
-                    !! nqp::box_s($tmp,Str)
-                 )
-            ) while nqp::islt_i(++$i,$elems);
-
-            nqp::bindpos_s($strings,$i,'...') if $infinite;
-            nqp::join(nqp::unbox_s($separator.Str),$strings)
-        }
-
-        # nothing to join
-        else {
-            $infinite ?? '...' !! ''
-        }
+    method join(List:D: Str(Cool) $separator = '') is nodal {
+        nqp::stmts(
+          nqp::if(
+            $!todo.DEFINITE,
+            nqp::stmts(
+              $!todo.reify-until-lazy,
+              nqp::if(
+                $!todo.fully-reified,
+                ($!todo := nqp::null),
+                (my int $infinite = 1)
+              )
+            )
+          ),
+          nqp::if(
+            $!reified.DEFINITE
+              && (my int $elems = nqp::elems($!reified)),
+            nqp::stmts(                       # something to join
+              (my $strings :=
+                nqp::setelems(nqp::list_s,nqp::add_i($elems,$infinite))),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_s($strings,$i,nqp::if(
+                  nqp::isnull(my $tmp := nqp::atpos($!reified,$i)),
+                  '',
+                  nqp::if(
+                    nqp::isconcrete($tmp) && nqp::istype($tmp,Str),
+                    $tmp,
+                    nqp::if(
+                      nqp::can($tmp,'Str'),
+                      $tmp.Str,
+                      nqp::box_s($tmp,Str)
+                    )
+                  )
+                ))
+              ),
+              nqp::if($infinite,nqp::bindpos_s($strings,$i,'...')),
+              nqp::p6box_s(nqp::join($separator,$strings))
+            ),
+            nqp::if($infinite,'...','')
+          )
+        )
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation

@@ -1690,12 +1690,21 @@ sub SUPPLY(&block) {
                                 'REDO', 0)
                         }
                     }
+                    my $last = -> {
+                        $state.delete-active-tap($tap) if $tap.DEFINITE;
+                        my @phasers := &whenever-block.phasers('LAST');
+                        if @phasers {
+                            self!run-supply-code({ .() for @phasers }, $state)
+                        }
+                        self!deactivate-one($state);
+                    };
                     my $tap = $supply.tap(
                         -> \value {
                             self!run-supply-code({
                                 nqp::handle(
                                     whenever-block(value),
-                                    'REDO', $redoable(value))
+                                    'REDO', $redoable(value),
+                                    'LAST', $last())
                             }, $state)
                         },
                         done => {

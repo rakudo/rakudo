@@ -28,13 +28,8 @@ multi sub infix:<cmp>(\a, Real:D \b) {
 }
 
 multi sub infix:<cmp>(Real:D \a, Real:D \b) {
-    (
-        nqp::istype(a, Rational)
-        && nqp::isfalse(nqp::getattr(nqp::decont(a), a.WHAT, '$!denominator'))
-    ) || (
-        nqp::istype(b, Rational)
-        && nqp::isfalse(nqp::getattr(nqp::decont(b), b.WHAT, '$!denominator'))
-    )
+       (nqp::istype(a, Rational) && nqp::isfalse(a.denominator))
+    || (nqp::istype(b, Rational) && nqp::isfalse(b.denominator))
     ?? a.Bridge cmp b.Bridge
     !! a === -Inf || b === Inf
         ?? Less

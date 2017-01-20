@@ -1683,6 +1683,7 @@ sub SUPPLY(&block) {
             $state.run-operation({
                 my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
                     $state.increment-active();
+                    my $tap;
                     my $redoable = -> \value {
                         loop {
                             nqp::handle(
@@ -1698,7 +1699,7 @@ sub SUPPLY(&block) {
                         }
                         self!deactivate-one($state);
                     };
-                    my $tap = $supply.tap(
+                    $tap = $supply.tap(
                         -> \value {
                             self!run-supply-code({
                                 nqp::handle(

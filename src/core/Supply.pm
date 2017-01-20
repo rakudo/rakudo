@@ -1683,9 +1683,20 @@ sub SUPPLY(&block) {
             $state.run-operation({
                 my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
                     $state.increment-active();
+                    my $redoable = -> \value {
+                        loop {
+                            nqp::handle(
+                                nqp::stmts(whenever-block(value), last),
+                                'REDO', 0)
+                        }
+                    }
                     my $tap = $supply.tap(
                         -> \value {
-                            self!run-supply-code({ whenever-block(value) }, $state)
+                            self!run-supply-code({
+                                nqp::handle(
+                                    whenever-block(value),
+                                    'REDO', $redoable(value))
+                            }, $state)
                         },
                         done => {
                             $state.delete-active-tap($tap) if $tap.DEFINITE;

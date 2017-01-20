@@ -7,10 +7,12 @@ my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    my int $bpe = (T.^nativesize / 8).Int;  # other then *8 not supported yet
+    X::NYI.new(
+      feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}"
+    ).throw unless nqp::istype(T,Int);
 
-    X::NYI.new(feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}").throw
-      unless nqp::istype(T,Int);
+    # other then *8 not supported yet
+    my int $bpe = try { (T.^nativesize / 8).Int } // 1;
 
     multi method WHICH(Blob:D:) {
         self.^name ~ '|' ~ nqp::sha1(self.decode("latin-1"))

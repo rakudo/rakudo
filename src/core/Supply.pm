@@ -1735,7 +1735,8 @@ sub SUPPLY(&block) {
                 nqp::handle(code(),
                     'EMIT', $emitter(),
                     'DONE', $done(),
-                    'CATCH', $catch());
+                    'CATCH', $catch(),
+                    'NEXT', 0);
             });
         }
 

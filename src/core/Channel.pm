@@ -157,6 +157,10 @@ my class Channel does Awaitable {
     method Seq(Channel:D:)  { Seq.new(self.iterator) }
     method list(Channel:D:) { self.Seq.list }
 
+    method get-await-handle(--> Awaitable::Handle) {
+        !!! "get-await-handle NYI"
+    }
+
     method close() {
         $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);

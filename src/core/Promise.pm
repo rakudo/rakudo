@@ -167,6 +167,48 @@ my class Promise does Awaitable {
         }
     }
 
+    my class PromiseAwaitableHandle does Awaitable::Handle {
+        has &!add-subscriber;
+
+        method not-ready(&add-subscriber) {
+            self.CREATE!not-ready(&add-subscriber)
+        }
+        method !not-ready(&add-subscriber) {
+            $!already = False;
+            &!add-subscriber := &add-subscriber;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            &!add-subscriber(&subscriber);
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        if $!status == Broken {
+            PromiseAwaitableHandle.already-failure($!result)
+        }
+        elsif $!status == Kept {
+            PromiseAwaitableHandle.already-success($!result)
+        }
+        else {
+            PromiseAwaitableHandle.not-ready: -> &on-ready {
+                nqp::lock($!lock);
+                if $!status == Broken || $!status == Kept {
+                    # Already have the result, call on-ready immediately.
+                    nqp::unlock($!lock);
+                    on-ready($!status == Kept, $!result)
+                }
+                else {
+                    # Push 2 entries to @!thens: one for success, one for failure.
+                    @!thens.push({ on-ready(True, $!result) });
+                    @!thens.push(-> \ex { on-ready(False, ex) });
+                    nqp::unlock($!lock);
+                }
+            }
+        }
+    }
+
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
         my $p := Promise.new(:$scheduler);
         nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());

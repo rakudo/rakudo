@@ -620,6 +620,10 @@ my class Supply does Awaitable {
 
     method wait(Supply:D:) { await self.Promise }
 
+    method get-await-handle(--> Awaitable::Handle) {
+        !!! "get-await-handle NYI"
+    }
+
     method unique(Supply:D $self: :&as, :&with, :$expires) {
         supply {
             if $expires {

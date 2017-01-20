@@ -23,8 +23,11 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method FALLBACK(*@)   { Nil }
 
     # These suggest using Nil.new if they fall through, which is LTA
-    method ords { self.Str.ords }
-    method chrs { self.Int.chrs }
+    method ords() { self.Str.ords }
+    method chrs() { self.Int.chrs }
+
+    method chop()  { self.Str.chop }
+    method chomp() { self.Str.chomp }
 
     method iterator() { self.list.iterator }
 }

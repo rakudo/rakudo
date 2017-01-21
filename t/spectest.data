@@ -692,6 +692,7 @@ S15-nfg/concatenation.t         # moar
 S15-nfg/crlf-encoding.t         # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
+S15-nfg/grapheme-break.t        # moar
 S15-nfg/GraphemeBreakTest.t     # moar
 S15-nfg/emoji-test.t            # moar
 S15-nfg/long-uni.t              # moar

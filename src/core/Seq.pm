@@ -368,6 +368,9 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(CStyleLoopIter.new(&body, &cond, &afterwards))
     }
+
+    multi method skip()         { nqp::stmts( $!iter.skip-one, self) }
+    multi method skip(Int() $n) { nqp::stmts( $!iter.skip-at-least($n), self) }
 }
 
 sub GATHER(&block) {

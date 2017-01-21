@@ -120,9 +120,9 @@ op.p6capturelex = function(ctx, codeObj) {
       closureCtx = closureCtx.$$outer;
     }
     closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
-  } else if (ctx.$$outer.codeRef().staticCode === wantedStaticInfo) {
-    closure.outerCtx = ctx;
-    closure.forcedOuter = ctx.$$outer;
+  } else {
+    /* HACK - workaround for rakudo bugs */
+    console.log("HORRIBLE hack - p6capturelex will do nothing");
   }
 
   return codeObj;

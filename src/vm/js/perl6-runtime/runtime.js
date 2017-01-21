@@ -225,6 +225,12 @@ RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$iscont', function() {
     return 1;
   });
+
+  this.STable.addInternalMethod('$$isrwcont', function() {
+    if (this.typeObject_) return 0;
+    var desc = this.$$getattr(Scalar, '$!descriptor', desc);
+    return desc.$$getattr_i(ContainerDescriptor, '$!rw');
+  });
 };
 
 

@@ -52,6 +52,9 @@ New in 2017.01
     + Fixed GC in spesh triggered by managed mutex use [25615c7]
     + Fixed bugs in interaction between inlining, GC, and threads [25615c7]
     + Fixed endpoint-exclusion on string ranges with non-alphanumeric chars [daf7e51]
+    + Fixed fatality of Nil.chomp/chop (back to just a warning) [7c81bec]
+    + Fixed infix:<eqv> on NaN and signed zeros [3f80e13]
+    + Fixed crash in infix:<cmp> when comparing Real and RatStr [8ec54ba]
     + [TEST] Test.pm tests no longer backslash every backslash in descriptions [b183cab]
     + [TEST] Fixed TAP::Harness parsing of single backslashes in test descriptions [b120ac4]
     + [TEST] Fixed TAP::Harness failing to parse full-file skip directive [aee7af3]
@@ -79,6 +82,8 @@ New in 2017.01
     + Implemented .List on shaped arrays [8568dd1]
     + Added own .perl method to Empty [ec0258a]
     + Made Inf and Whatever work as part of rotor()'s cycle [7ddc5f7]
+    + Made it possible to use Inf and Whatever in .head and .tail [93b0ffa]
+    + Implemented `next` in `whenever` blocks [f97d5c2]
     + [TEST] Test::is() now handles Mu types [268dc92]
     + [UNI] uniprop now handles Emoji properties [3baffe7]
     + [UNI] Implemented Bidi_Mirroring_Glyph as an integer property [7c8b705]
@@ -145,6 +150,12 @@ New in 2017.01
     + Made Xop about 7x faster [a26f513]
     + Made 1 X foo about 20% faster [d4a5b69]
     + Made List.rotor between 15x and 20x faster [d7b8214]
+    + Made Range.excludes-(min|max|infinite|is-int) 2.5x as fast [99b186b]
+    + Made reified List.Array about 3x faster [c9a9bc8]
+    + Made List/Array.sum about 30% faster [017c6cf]
+    + Made List/Array.fmt with no args about 60x faster [22e589a]
+    + Made List/Array.fmt("%s") about 60x faster [7ef3682]
+    + Made List/Array.join about 20% faster [ed482ec]
 
 New in 2016.12
  + Fixes:

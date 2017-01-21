@@ -45,7 +45,7 @@ multi sub MAIN(
                     push @files, $fn;
                 }
             } else {
-                warn "Missing test file: $fn\n";
+                #warn "Missing test file: $fn\n";
             }
         }
     }

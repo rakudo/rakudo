@@ -1367,7 +1367,7 @@ multi sub infix:<xx>(&x, Whatever) {
               @!slipped.shift,
               nqp::if(
                 nqp::istype((my $pulled := $!x.()),Slip),
-                (@!slipped = $pulled).shift,
+                ( (@!slipped = $pulled) ?? @!slipped.shift !! IterationEnd ),
                 nqp::if(
                   nqp::istype($pulled,Seq),
                   $pulled.cache,

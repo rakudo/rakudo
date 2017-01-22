@@ -1926,6 +1926,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         @found
     }
 
+    proto method batch(|) is nodal { * }
+    multi method batch(Any:D: Int:D $batch) {
+        Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,1))
+    }
+
     proto method rotor(|) is nodal { * }
     multi method rotor(Any:D: Int:D $batch, :$partial) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))

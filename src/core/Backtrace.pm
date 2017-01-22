@@ -60,8 +60,12 @@ my class Backtrace::Frame {
     }
     method is-setting(Backtrace::Frame:D:) {
         $!file.starts-with("SETTING::")
-          || $!file.ends-with("CORE.setting." ~ Rakudo::Internals.PRECOMP-EXT)
+#?if jvm
           || $!file.ends-with("CORE.setting")
+#?endif
+#?if !jvm
+          || $!file.ends-with("CORE.setting." ~ Rakudo::Internals.PRECOMP-EXT)
+#?endif
     }
 }
 

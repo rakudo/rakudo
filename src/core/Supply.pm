@@ -1034,6 +1034,16 @@ my class Supply {
         }
     }
 
+    method skip(Supply:D: Int(Cool) $number = 1) {
+        my int $size = $number + 1;
+        my int $skipping = $size > 1;
+        supply {
+            whenever self {
+                .emit unless $skipping && ($skipping = --$size) 
+            }
+        }
+    }
+
     method min(Supply:D $self: &by = &infix:<cmp>) {
         my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
         supply {

@@ -1021,6 +1021,7 @@ S32-list/reverse.t
 S32-list/roll.t
 S32-list/rotor.t
 S32-list/seq.t
+S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
 S32-list/unique.t

@@ -1035,9 +1035,9 @@ my class Supply {
     }
 
     method skip(Supply:D: Int(Cool) $number = 1) {
-        my int $size = $number + 1;
-        my int $skipping = $size > 1;
         supply {
+            my int $size = $number + 1;
+            my int $skipping = $size > 1;
             whenever self {
                 .emit unless $skipping && ($skipping = --$size) 
             }

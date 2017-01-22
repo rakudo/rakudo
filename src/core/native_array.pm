@@ -1266,7 +1266,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-01-13T19:05:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-22T22:27:18+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1527,7 +1527,15 @@ my class array does Iterable {
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
-                    Pair.new(self.indices,nqp::atposnd_i($!list,$!indices))
+                    Pair.new(
+                      self.indices,
+#?if moar
+                      nqp::multidimref_i($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_i($!list,nqp::clone($!indices))
+#?endif
+                    )
                 }
             }.new(self))
         }
@@ -1655,7 +1663,15 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.Pair(self.iterator))
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::if(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  Pair.new($i,nqp::atposref_i(self,$i)),
+                  IterationEnd
+                )
+            }))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
@@ -1768,7 +1784,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-01-13T19:05:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-22T22:27:18+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2029,7 +2045,15 @@ my class array does Iterable {
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
-                    Pair.new(self.indices,nqp::atposnd_n($!list,$!indices))
+                    Pair.new(
+                      self.indices,
+#?if moar
+                      nqp::multidimref_n($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_n($!list,nqp::clone($!indices))
+#?endif
+                    )
                 }
             }.new(self))
         }
@@ -2157,7 +2181,15 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.Pair(self.iterator))
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::if(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  Pair.new($i,nqp::atposref_n(self,$i)),
+                  IterationEnd
+                )
+            }))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
@@ -2270,7 +2302,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-01-13T19:05:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-01-22T22:27:18+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2531,7 +2563,15 @@ my class array does Iterable {
         multi method pairs(::?CLASS:D:) {
             Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() {
-                    Pair.new(self.indices,nqp::atposnd_s($!list,$!indices))
+                    Pair.new(
+                      self.indices,
+#?if moar
+                      nqp::multidimref_s($!list,nqp::clone($!indices))
+#?endif
+#?if !moar
+                      nqp::atposnd_s($!list,nqp::clone($!indices))
+#?endif
+                    )
                 }
             }.new(self))
         }
@@ -2659,7 +2699,15 @@ my class array does Iterable {
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.Pair(self.iterator))
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::if(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  Pair.new($i,nqp::atposref_s(self,$i)),
+                  IterationEnd
+                )
+            }))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))

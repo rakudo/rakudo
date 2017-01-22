@@ -433,7 +433,19 @@ for $*IN.lines -> $line {
             }.new(self)
         }
         multi method kv(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
+            my int $i = -1;
+            my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::if(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::bitand_i($i,1),
+                    nqp::atposref_#postfix#(self,nqp::bitshiftr_i($i,1)),
+                    nqp::bitshiftr_i($i,1)
+                  ),
+                  IterationEnd
+                )
+            }))
         }
         multi method pairs(::?CLASS:D:) {
             my int $i = -1;

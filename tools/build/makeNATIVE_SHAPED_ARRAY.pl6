@@ -411,7 +411,7 @@ for $*IN.lines -> $line {
                         ($!pos = nqp::add_i($!pos,1)),
                         nqp::elems($!list)
                       ),
-                      nqp::atpos_#postfix#($!list,$!pos),
+                      nqp::atposref_#postfix#($!list,$!pos),
                       IterationEnd
                     )
                 }

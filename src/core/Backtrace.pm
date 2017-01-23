@@ -66,6 +66,7 @@ my class Backtrace::Frame {
 #?if !jvm
           || $!file.ends-with("CORE.setting." ~ Rakudo::Internals.PRECOMP-EXT)
 #?endif
+          || $!file.ends-with(".nqp")
     }
 }
 

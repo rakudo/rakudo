@@ -59,17 +59,8 @@ $ops.add_simple_op('p6setitertype', $ops.VOID, [$ops.OBJ], sub ($iterable) {
     "nqp.p6binder.set_iterable($*CTX, null, nqp.p6binder, $iterable)"
 }, :side_effects);
 
-$ops.add_op('p6trialbind', :!inlinable, sub ($comp, $node, :$want, :$cps) {
-    my $ops := nqp::getcomp('QAST').operations;
-
-    my @setup;
-    my $compiled_args := $comp.args($node.list, :invocant('nqp.p6binder'));
-    my $call := $compiled_args.is_args_array ?? ".apply(nqp.p6binder," !! '(';
-
-    @setup.push($compiled_args);
-
-    $comp.stored_result(
-        Chunk.new($ops.OBJ,"nqp.p6binder.trial_bind" ~ $call ~ $compiled_args.expr ~ ")", @setup, :$node), :$want);
+$ops.add_simple_op('p6trialbind', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $args, $sig_flags) {
+        "nqp.p6binder.trial_bind($*CTX, null, nqp.p6binder, $sig, $args, $sig_flags)"
 });
 
 $ops.add_simple_op('p6isbindable', $ops.INT, [$ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $cap) {

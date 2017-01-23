@@ -76,7 +76,7 @@ my class Pair does Associative {
         sprintf($format, $!key, $!value);
     }
 
-    multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Mu }
+    multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Nil }
     multi method EXISTS-KEY(Pair:D: $key) { $key eq $!key }
 
     method FLATTENABLE_LIST() { nqp::list() }

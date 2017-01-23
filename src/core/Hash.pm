@@ -636,6 +636,33 @@ my class Hash { # declared in BOOTSTRAP
               TValue
             )
         }
+        method IterationBuffer() {
+            nqp::stmts(
+              (my $buffer := nqp::create(IterationBuffer)),
+              nqp::if(
+                nqp::defined(
+                  nqp::getattr(self,Map,'$!storage')
+                ) && nqp::elems(
+                  nqp::getattr(self,Map,'$!storage')
+                ),
+                nqp::stmts(
+                  (my $iterator := nqp::iterator(
+                    nqp::getattr(self,Map,'$!storage')
+                  )),
+                  nqp::setelems($buffer,nqp::elems(
+                    nqp::getattr(self,Map,'$!storage')
+                  )),
+                  (my int $i = -1),
+                  nqp::while(
+                    $iterator,
+                    nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
+                      nqp::iterval(nqp::shift($iterator)))
+                  )
+                )
+              ),
+              $buffer
+            )
+        }
 
         method keys() {
             Seq.new(class :: does Rakudo::Iterator::Mappy {

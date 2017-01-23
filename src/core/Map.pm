@@ -50,33 +50,46 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Numeric(Map:D:) { self.elems }
     multi method Str(Map:D:)     { self.sort.join("\n") }
 
-    multi method sort(Map:D:) {
-        Seq.new(nqp::if(
-          nqp::defined($!storage) && nqp::elems($!storage),
-          nqp::stmts(
-            (my $iterator := nqp::iterator($!storage)),
-            (my $pairs := nqp::setelems(nqp::list,nqp::elems($!storage))),
-            (my int $i = -1),
-            nqp::while(
-              $iterator,
-              nqp::bindpos($pairs,($i = nqp::add_i($i,1)),
-                Pair.new(
-                  nqp::iterkey_s(nqp::shift($iterator)),
-                  nqp::iterval($iterator)
+    method IterationBuffer() {
+        nqp::stmts(
+          (my $buffer := nqp::create(IterationBuffer)),
+          nqp::if(
+            nqp::defined($!storage) && nqp::elems($!storage),
+            nqp::stmts(
+              (my $iterator := nqp::iterator($!storage)),
+              nqp::setelems($buffer,nqp::elems($!storage)),
+              (my int $i = -1),
+              nqp::while(
+                $iterator,
+                nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
+                  Pair.new(
+                    nqp::iterkey_s(nqp::shift($iterator)),
+                    nqp::iterval($iterator)
+                  )
                 )
-              )
-            ),
-            Rakudo::Iterator.ReifiedList(
-              Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
-                nqp::p6bindattrinvres(
-                  nqp::create(List),List,'$!reified',$pairs
-                ),
-                { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
               )
             )
           ),
-          Rakudo::Iterator.Empty
-        ))
+          $buffer
+        )
+    }
+
+    method List() {
+        nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',self.IterationBuffer)
+    }
+
+    multi method sort(Map:D:) {
+        Seq.new(
+          Rakudo::Iterator.ReifiedList(
+            Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+              nqp::p6bindattrinvres(
+                nqp::create(List),List,'$!reified',self.IterationBuffer
+              ),
+              { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
+            )
+          )
+        )
     }
 
     multi method ACCEPTS(Map:D: Any $topic) {

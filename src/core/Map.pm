@@ -48,7 +48,36 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method Int(Map:D:)     { self.elems }
     multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.pairs.sort.join("\n") }
+    multi method Str(Map:D:)     { self.sort.join("\n") }
+
+    multi method sort(Map:D:) {
+        Seq.new(nqp::if(
+          nqp::defined($!storage) && nqp::elems($!storage),
+          nqp::stmts(
+            (my $iterator := nqp::iterator($!storage)),
+            (my $pairs := nqp::setelems(nqp::list,nqp::elems($!storage))),
+            (my int $i = -1),
+            nqp::while(
+              $iterator,
+              nqp::bindpos($pairs,($i = nqp::add_i($i,1)),
+                Pair.new(
+                  nqp::iterkey_s(nqp::shift($iterator)),
+                  nqp::iterval($iterator)
+                )
+              )
+            ),
+            Rakudo::Iterator.ReifiedList(
+              Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                nqp::p6bindattrinvres(
+                  nqp::create(List),List,'$!reified',$pairs
+                ),
+                { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
+              )
+            )
+          ),
+          Rakudo::Iterator.Empty
+        ))
+    }
 
     multi method ACCEPTS(Map:D: Any $topic) {
         self.EXISTS-KEY($topic.any);
@@ -82,7 +111,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method perl(Map:D:) {
         self.^name
           ~ '.new(('
-          ~ self.pairs.sort.map({.perl}).join(',')
+          ~ self.sort.map({.perl}).join(',')
           ~ '))';
     }
 

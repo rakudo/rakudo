@@ -684,9 +684,7 @@ my class Hash { # declared in BOOTSTRAP
                 }
             }.new(self))
         }
-        method pairs() {
-            Seq.new(Rakudo::Iterator.Mappy-values(self))
-        }
+        method iterator() { Rakudo::Iterator.Mappy-values(self) }
         method antipairs() {
             Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {

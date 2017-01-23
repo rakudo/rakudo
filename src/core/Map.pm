@@ -115,11 +115,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ~ '))';
     }
 
-    method iterator(Map:) { self.pairs.iterator }
-    method list(Map:) { self.pairs.cache }
-
-    multi method pairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
+    method iterator(Map:D:) {
+        class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,
@@ -140,8 +137,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
-        }.new(self))
+        }.new(self)
     }
+    method list(Map:D:) { Seq.new(self.iterator) }
+    multi method pairs(Map:D:) { Seq.new(self.iterator) }
     multi method keys(Map:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {

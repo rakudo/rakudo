@@ -698,9 +698,6 @@ my class Hash { # declared in BOOTSTRAP
                  }
             }.new(self))
         }
-        method invert() {
-            self.map: { .value »=>» .key }
-        }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 my $TKey-perl   := TKey.perl;

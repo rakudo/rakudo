@@ -217,7 +217,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method invert(Map:D:) {
-        self.map: { (.value »=>» .key).cache.Slip }
+        self.pairs.map: { |(.value »=>» .key) }
     }
 
     multi method AT-KEY(Map:D: Str:D \key) is raw {

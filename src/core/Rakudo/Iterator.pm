@@ -1520,6 +1520,66 @@ class Rakudo::Iterator {
         )
     }
 
+    # An often occurring use of the Mappy role to generate alternating
+    # key and values of a Map/Hash in which each value is a Pair to
+    # be interpreted as the actual key/value.  Takes a Map / Hash as
+    # the only parameter.
+    method Mappy-kv-from-pairs(\map) {
+        class :: does Mappy {
+            has Mu $!value;
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!value.DEFINITE,
+                  nqp::stmts(
+                    (my $tmp := $!value),
+                    ($!value := nqp::null),
+                    $tmp
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                      ($!value := nqp::getattr($tmp,Pair,'$!value')),
+                      (nqp::getattr($tmp,Pair,'$!key'))
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+            method skip-one() {               # must define our own skip-one
+                nqp::if(
+                  $!value.DEFINITE,
+                  nqp::stmts(
+                    ($!value := nqp::null),
+                    1
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      $!value := nqp::getattr(
+                        nqp::decont(nqp::iterval(nqp::shift($!iter))),
+                        Pair,
+                        '$!value'
+                      ),
+                      1
+                    )
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    (my $tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                    ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
+                    ($target.push(nqp::getattr($tmp,Pair,'$!value')))
+                  )
+                )
+            }
+        }.new(map)
+    }
+
     # An often occurring use of the Mappy role to generate all of the
     # values of a Map / Hash.  Takes a Map / Hash as the only parameter.
     method Mappy-values(\map) {

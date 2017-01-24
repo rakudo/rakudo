@@ -17,6 +17,8 @@ my role QuantHash does Associative {
           ?? die "Cannot auto-vivify an immutable {SELF.^name}"
           !! (SELF = self.new).AT-KEY($key)
     }
+
+    multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
 }
 
 # vim: ft=perl6 expandtab sw=4

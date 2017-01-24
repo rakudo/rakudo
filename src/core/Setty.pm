@@ -40,7 +40,6 @@ my role Setty does QuantHash {
 
     method elems(Setty:D: --> Int) { %!elems.elems }
     method total(Setty:D: --> Int) { %!elems.elems }
-    multi method pairs(Setty:D:) { Seq.new(self.iterator) }
     multi method antipairs(Setty:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {

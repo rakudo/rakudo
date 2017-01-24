@@ -215,26 +215,29 @@ my role Baggy does QuantHash {
             has Mu $!value;
 
             method pull-one() is raw {
-                if $!value.DEFINITE {
-                    my \tmp  = $!value;
-                    $!value := nqp::null;
-                    tmp
-                }
-                elsif $!iter {
-                    my \tmp = nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $!value := nqp::getattr(tmp,Pair,'$!value');
-                    nqp::getattr(tmp,Pair,'$!key')
-                }
-                else {
+                nqp::if(
+                  $!value.DEFINITE,
+                  nqp::stmts(
+                    (my $tmp := $!value),
+                    ($!value := nqp::null),
+                    $tmp
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                      ($!value := nqp::getattr($tmp,Pair,'$!value')),
+                      (nqp::getattr($tmp,Pair,'$!key'))
+                    ),
                     IterationEnd
-                }
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
-                my $tmp;
                 nqp::while(
                   $!iter,
                   nqp::stmts(  # doesn't sink
-                    ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                    (my $tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
                     ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
                     ($target.push(nqp::getattr($tmp,Pair,'$!value')))
                   )

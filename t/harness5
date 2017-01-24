@@ -120,7 +120,7 @@ if (eval "require $tap_harness_class;") {
         jobs        => $jobs,
         ignore_exit => 1,
         merge       => 1,
-        $TAP::Harness::VERSION > 3.21 ? (trap => 1) : (),
+        $TAP::Harness::VERSION gt 3.21 ? (trap => 1) : (),
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );

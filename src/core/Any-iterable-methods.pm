@@ -1926,6 +1926,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         @found
     }
 
+    proto method batch(|) is nodal { * }
+    multi method batch(Any:D: Int:D :$elems!) {
+        Seq.new(Rakudo::Iterator.Batch(self.iterator,$elems,1))
+    }
+    multi method batch(Any:D: Int:D $batch) {
+        Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,1))
+    }
+
     proto method rotor(|) is nodal { * }
     multi method rotor(Any:D: Int:D $batch, :$partial) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
@@ -1933,6 +1941,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method rotor(Any:D: *@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
+
+    proto method skip(|) { * }
+    multi method skip()         { Seq.new(self.iterator).skip }
+    multi method skip(Int() $n) { Seq.new(self.iterator).skip($n) }
 }
 
 BEGIN Attribute.^compose;
@@ -1988,13 +2000,9 @@ proto sub repeated(|) { * }
 multi sub repeated(+values, |c) { my $laze = values.is-lazy; values.repeated(|c).lazy-if($laze) }
 
 proto sub sort(|) {*}
-multi sub sort(@values) {
-    @values.sort
-}
-multi sub sort($cmp, +values) {
-    nqp::istype($cmp, Callable)
-        ?? values.sort($cmp)
-        !! (|$cmp,|values).sort;
-}
+multi sub sort(&by, @values) { @values.sort(&by) }
+multi sub sort(&by, +values) { values.sort(&by) }
+multi sub sort(@values)      { @values.sort }
+multi sub sort(+values)      { values.sort }
 
 # vim: ft=perl6 expandtab sw=4

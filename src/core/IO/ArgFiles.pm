@@ -101,6 +101,7 @@ my class IO::ArgFiles is IO::Handle {
 
             method pull-one() {
                 nqp::stmts(
+                  (nqp::unless(nqp::defined($!iter), return IterationEnd)),
                   (my \value = $!iter.pull-one),
                   nqp::if(nqp::eqaddr(value, IterationEnd),
                     nqp::stmts(

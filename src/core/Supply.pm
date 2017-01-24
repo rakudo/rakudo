@@ -766,6 +766,9 @@ my class Supply {
         }
     }
 
+    multi method rotor(Supply:D $self: Int:D $batch, :$partial) {
+        self.rotor(($batch,), :$partial)
+    }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
         supply {
@@ -1030,6 +1033,16 @@ my class Supply {
             }
             else {  # number <= 0, needed to keep tap open
                 whenever self -> \val { }
+            }
+        }
+    }
+
+    method skip(Supply:D: Int(Cool) $number = 1) {
+        supply {
+            my int $size = $number + 1;
+            my int $skipping = $size > 1;
+            whenever self {
+                .emit unless $skipping && ($skipping = --$size) 
             }
         }
     }

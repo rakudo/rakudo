@@ -813,12 +813,6 @@ my class Array { # declared in BOOTSTRAP
           self.splice       # offset 0, take the quick route out
         )
     }
-    multi method splice(Array:D: Range:D $range) {
-        nqp::if(
-          $range.int-bounds(my int $low, my int $high),
-          self.splice($low, nqp::add_i(nqp::sub_i($high,$low),1))
-        )
-    }
     method !splice-offset(int $offset) {
         nqp::stmts(
           (my int $elems = nqp::elems(nqp::getattr(self,List,'$!reified'))),

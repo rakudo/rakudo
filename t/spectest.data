@@ -692,6 +692,7 @@ S15-nfg/concatenation.t         # moar
 S15-nfg/crlf-encoding.t         # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
+S15-nfg/grapheme-break.t        # moar
 S15-nfg/GraphemeBreakTest.t     # moar
 S15-nfg/emoji-test.t            # moar
 S15-nfg/long-uni.t              # moar
@@ -845,6 +846,7 @@ S17-supply/return-in-tap.t
 S17-supply/reverse.t
 S17-supply/rotor.t
 S17-supply/schedule-on.t
+S17-supply/skip.t
 S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t       # slow
@@ -981,6 +983,7 @@ S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
+S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t
 S32-list/classify.t
@@ -1020,6 +1023,7 @@ S32-list/reverse.t
 S32-list/roll.t
 S32-list/rotor.t
 S32-list/seq.t
+S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
 S32-list/unique.t

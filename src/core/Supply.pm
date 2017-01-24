@@ -766,6 +766,9 @@ my class Supply {
         }
     }
 
+    multi method rotor(Supply:D $self: Int:D $batch, :$partial) {
+        self.rotor(($batch,), :$partial)
+    }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
         supply {

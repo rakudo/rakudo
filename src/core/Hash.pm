@@ -689,27 +689,7 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method kv() {
-            Seq.new(class :: does Rakudo::Iterator::Mappy {
-                has $!pair;
-
-                method pull-one() {
-                    nqp::if(
-                      $!pair,
-                      nqp::stmts(
-                        (my $value := nqp::getattr($!pair,Pair,'$!value')),
-                        ($!pair := nqp::null),
-                        $value
-                      ),
-                      nqp::if(
-                        $!iter,
-                        nqp::getattr(
-                          ($!pair := nqp::iterval(nqp::shift($!iter))),
-                          Pair,'$!key'),
-                        IterationEnd
-                      )
-                    )
-                }
-            }.new(self))
+            Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(self))
         }
         method iterator() { Rakudo::Iterator.Mappy-values(self) }
         method antipairs() {

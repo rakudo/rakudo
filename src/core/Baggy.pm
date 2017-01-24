@@ -211,39 +211,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has Mu $!value;
-
-            method pull-one() is raw {
-                nqp::if(
-                  $!value.DEFINITE,
-                  nqp::stmts(
-                    (my $tmp := $!value),
-                    ($!value := nqp::null),
-                    $tmp
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                      ($!value := nqp::getattr($tmp,Pair,'$!value')),
-                      (nqp::getattr($tmp,Pair,'$!key'))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    (my $tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!value')))
-                  )
-                )
-            }
-        }.new(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(%!elems))
     }
     multi method values(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {

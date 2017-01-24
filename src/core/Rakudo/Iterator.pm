@@ -72,6 +72,7 @@ class Rakudo::Iterator {
             )
         }
         method new(\hash) { nqp::create(self).SET-SELF(hash) }
+        method skip-one() { nqp::if($!iter,nqp::shift($!iter)) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }

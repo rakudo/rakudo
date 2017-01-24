@@ -274,6 +274,9 @@ my role Baggy does QuantHash {
                     IterationEnd
                 }
             }
+            method skip-one() { # the default skip-one, too difficult to handle
+                nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
+            }
             method push-all($target --> IterationEnd) {
                 my $tmp;
                 nqp::while(

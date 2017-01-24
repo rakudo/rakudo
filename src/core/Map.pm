@@ -190,6 +190,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
+            method skip-one() {
+                nqp::if(
+                  $!on-value,
+                  nqp::not_i($!on-value = 0), # skipped a value
+                  nqp::if(
+                    $!iter,                   # if false, we didn't skip
+                    nqp::stmts(               # skipped a key
+                      nqp::shift($!iter),
+                      ($!on-value = 1)
+                    )
+                  )
+                )
+            }
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,

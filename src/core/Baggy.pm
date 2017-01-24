@@ -233,22 +233,16 @@ my role Baggy does QuantHash {
     multi method antipairs(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
-                if $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    Pair.new(tmp.value, tmp.key)
-                }
-                else {
-                    IterationEnd
-                }
+                nqp::if(
+                  $!iter,
+                  nqp::iterval(nqp::shift($!iter)).antipair,
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
-                my $tmp;
                 nqp::while(
                   $!iter,
-                  nqp::stmts(  # doesn't sink
-                    ($tmp := nqp::iterval(nqp::shift($!iter))),
-                    ($target.push(Pair.new($tmp.value,$tmp.key)))
-                  )
+                  $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
                 )
             }
         }.new(%!elems))

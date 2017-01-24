@@ -260,34 +260,47 @@ my role Baggy does QuantHash {
             has int $!times;
 
             method pull-one() is raw {
-                if $!times {
-                    $!times = $!times - 1;
+                nqp::if(
+                  $!times,
+                  nqp::stmts(
+                    ($!times = nqp::sub_i($!times,1)),
                     $!key
-                }
-                elsif $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $!key  := tmp.key;
-                    $!times = tmp.value - 1;
-                    $!key
-                }
-                else {
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($!key := nqp::getattr(
+                        (my $pair := nqp::decont(
+                          nqp::iterval(nqp::shift($!iter)))),
+                        Pair,
+                        '$!key'
+                      )),
+                      ($!times =
+                        nqp::sub_i(nqp::getattr($pair,Pair,'$!value'),1)),
+                      $!key
+                    ),
                     IterationEnd
-                }
+                  )
+                )
             }
             method skip-one() { # the default skip-one, too difficult to handle
                 nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
             }
             method push-all($target --> IterationEnd) {
-                my $tmp;
                 nqp::while(
                   $!iter,
                   nqp::stmts(
-                    ($tmp   := nqp::iterval(nqp::shift($!iter))),
-                    ($!key  := $tmp.key),
-                    ($!times = nqp::add_i($tmp.value,1)),
+                    ($!key := nqp::getattr(
+                      (my $pair := nqp::decont(
+                        nqp::iterval(nqp::shift($!iter)))),
+                      Pair,
+                      '$!key'
+                    )),
+                    ($!times =
+                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)),
                     nqp::while(  # doesn't sink
                       ($!times = nqp::sub_i($!times,1)),
-                      ($target.push($!key))
+                      $target.push($!key)
                     )
                   )
                 )

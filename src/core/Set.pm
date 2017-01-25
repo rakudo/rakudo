@@ -54,6 +54,11 @@ my class Set does Setty {
                   )
                 )
             }
+            method count-only() {
+                nqp::p6box_i(
+                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+                )
+            }
         }.new(%!elems))
     }
     multi method values(Set:D:) { True xx self.total }

@@ -212,6 +212,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
+            method count-only() {
+                nqp::p6box_i(
+                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+                )
+            }
         }.new(self))
     }
     multi method values(Map:D:) {

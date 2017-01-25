@@ -1578,6 +1578,11 @@ class Rakudo::Iterator {
                   )
                 )
             }
+            method count-only() {
+                nqp::p6box_i(
+                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+                )
+            }
         }.new(map)
     }
 

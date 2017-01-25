@@ -621,7 +621,7 @@ my class Supply does Awaitable {
     method wait(Supply:D:) { await self.Promise }
 
     my class SupplyAwaitableHandle does Awaitable::Handle {
-        has $.supply;
+        has $!supply;
 
         method not-ready(Supply:D \supply) {
             self.CREATE!not-ready(supply)

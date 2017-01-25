@@ -99,6 +99,7 @@ New in 2017.01
  + Efficiency:
     + [UNI] Made unival() slightly faster for repeated lookups [dbbf9dd]
     + [UNI] Made decoding UTF-8 text 14% faster [528ec53]
+    + Made compilation of custom operators about 1.5x faster [c99fbc6]
     + Made improvements to memory management of various aspects of invocation records
         (aka call frames), greatly reducing memory pressure in a number of cases,
         especially in applications that produce and store a large number of closures.
@@ -245,7 +246,6 @@ New in 2016.12
  + Removals:
     + Removed X::Syntax::Number::InvalidCharacter exception [a8ff3b9]
  + Efficiency:
-    + Made compilation of custom operators about 1.5x faster [c99fbc6]
     + Made indirect type lookup 3x as fast [939d273]
     + Made shaped(int|num|str)array.AT-POS at least 15% faster [bfe89a5]
     + Made shaped(int|num|str)array.ASSIGN-POS at least 10% faster [ecc202e]

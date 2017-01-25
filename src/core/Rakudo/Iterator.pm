@@ -1521,6 +1521,26 @@ class Rakudo::Iterator {
         )
     }
 
+    # An often occurring use of the Mappy role to generate all of the
+    # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
+    method Mappy-keys(\map) {
+        class :: does Rakudo::Iterator::Mappy {
+            method pull-one() {
+                nqp::if(
+                  $!iter,
+                  nqp::iterkey_s(nqp::shift($!iter)),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
+                )
+            }
+        }.new(map)
+    }
+
     # An often occurring use of the Mappy role to generate alternating
     # key and values of a Map/Hash in which each value is a Pair to
     # be interpreted as the actual key/value.  Takes a Map / Hash as

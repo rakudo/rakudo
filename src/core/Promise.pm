@@ -200,9 +200,10 @@ my class Promise does Awaitable {
                     on-ready($!status == Kept, $!result)
                 }
                 else {
-                    # Push 2 entries to @!thens: one for success, one for failure.
-                    @!thens.push({ on-ready(True, $!result) });
-                    @!thens.push(-> \ex { on-ready(False, ex) });
+                    # Push 2 entries to @!thens (only need the first one in
+                    # this case; second we push 'cus .then uses it).
+                    @!thens.push({ on-ready($!status == Kept, $!result) });
+                    @!thens.push(Callable);
                     nqp::unlock($!lock);
                 }
             }

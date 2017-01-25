@@ -698,9 +698,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(self.iterator)
     }
     multi method keys(List:D:) {
-        self.is-lazy
-          ?? self.values.map: { (state $)++ }
-          !! Seq.new(Rakudo::Iterator.IntRange(0, self.elems - 1))
+        Seq.new(nqp::if(
+          self.is-lazy,
+          nqp::stmts(
+            (my int $i = -1),
+            Rakudo::Iterator.Callable( { $i = nqp::add_i($i,1) }, True )
+          ),
+          Rakudo::Iterator.IntRange(0, self.elems - 1)
+        ))
     }
     multi method kv(List:D:) {
         Seq.new(Rakudo::Iterator.KeyValue(self.iterator))

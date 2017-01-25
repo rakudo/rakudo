@@ -154,21 +154,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method list(Map:D:) { Seq.new(self.iterator) }
     multi method pairs(Map:D:) { Seq.new(self.iterator) }
-    multi method keys(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                $!iter
-                  ?? nqp::iterkey_s(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
-                )
-            }
-        }.new(self))
-    }
+    multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
+    multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
+
     multi method kv(Map:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             has int $!on-value;
@@ -218,9 +206,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 )
             }
         }.new(self))
-    }
-    multi method values(Map:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-values(self))
     }
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {

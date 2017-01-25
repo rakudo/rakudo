@@ -69,9 +69,11 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method list(Capture:D:) {
-        nqp::isnull(@!list)
-          ?? nqp::create(List)
-          !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!list)
+        nqp::if(
+          (nqp::defined(@!list) && nqp::elems(@!list)),
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!list),
+          nqp::create(List)
+        )
     }
 
     method elems(Capture:D:) {

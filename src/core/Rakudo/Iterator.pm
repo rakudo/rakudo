@@ -1558,11 +1558,11 @@ class Rakudo::Iterator {
                   nqp::if(
                     $!iter,
                     nqp::stmts(
-                      $!value := nqp::getattr(
+                      ($!value := nqp::getattr(
                         nqp::decont(nqp::iterval(nqp::shift($!iter))),
                         Pair,
                         '$!value'
-                      ),
+                      )),
                       1
                     )
                   )

@@ -71,7 +71,7 @@ my class Awaiter::Blocking does Awaiter {
                 my int $insert = nqp::atpos_i(indices, $i);
                 $handle.subscribe-awaiter(-> \success, \result {
                     $l.protect: {
-                        if success {
+                        if success && $remaining {
                             nqp::bindpos(results, $insert, result);
                             --$remaining;
                             $ready.signal unless $remaining;

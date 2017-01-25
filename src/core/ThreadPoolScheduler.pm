@@ -87,7 +87,7 @@ my class ThreadPoolScheduler does Scheduler {
                         $handle.subscribe-awaiter(-> \success, \result {
                             my int $resume;
                             $l.protect: {
-                                if success {
+                                if success && $remaining {
                                     nqp::bindpos(results, $insert, result);
                                     --$remaining;
                                     $resume = 1 unless $remaining;

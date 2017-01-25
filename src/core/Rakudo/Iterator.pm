@@ -1913,7 +1913,12 @@ class Rakudo::Iterator {
                   ($!i = $i)
                 )
             }
-            method skip-one(--> 1) { $!i = nqp::add_i($!i,1) }
+            method skip-one() {
+                nqp::islt_i(
+                  ($!i = nqp::add_i($!i,1)),
+                  nqp::elems($!reified)
+                )
+            }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
             method sink-all(--> IterationEnd) { }

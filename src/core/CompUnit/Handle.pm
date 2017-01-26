@@ -68,7 +68,7 @@ class CompUnit::Handle {
     method globalish-package() { # returns Stash {
         nqp::if(
           nqp::defined($!module_ctx),
-          nqp::ifnull(nqp::atkey(nqp::ctxlexpad($!module_ctx),'GLOBALish'),Nil),
+          nqp::ifnull(nqp::atkey(nqp::ctxlexpad($!module_ctx),'GLOBALish').WHO, Nil),
           Nil
         )
     }

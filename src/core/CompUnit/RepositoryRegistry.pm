@@ -227,7 +227,7 @@ class CompUnit::RepositoryRegistry {
 
                 my $global := nqp::list(); # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
                 nqp::push($global, "GLOBAL");
-                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package.WHO);
+                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package);
                 my $new-repo = self.repository-for-spec($_.value.path-spec, :$next-repo);
                 if $i > 0 {
                     @repos[$i - 1].next-repo = $new-repo if $i > 0;

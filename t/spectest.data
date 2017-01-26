@@ -1011,6 +1011,7 @@ S32-list/grep-kv.t
 S32-list/grep-p.t
 S32-list/grep-v.t
 S32-list/head.t
+S32-list/iterator.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t

@@ -67,7 +67,7 @@ $ops.add_simple_op('p6isbindable', $ops.INT, [$ops.OBJ, $ops.OBJ], :!inlinable, 
     "nqp.p6binder.is_bindable($*CTX, null, nqp.p6binder, $sig, $cap)"
 });
 
-$ops.add_simple_op('p6captosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, $cap) {
+$ops.add_simple_op('p6bindcaptosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, $cap) {
     "nqp.p6binder.bind_cap_to_sig($*CTX, null, nqp.p6binder, $sig, $cap)"
 }, :side_effects);
 

@@ -56,7 +56,7 @@ my class X::Supply::New is Exception {
 # a Supply go in here.
 my class Supplier { ... }
 my class Supplier::Preserving { ... }
-my class Supply {
+my class Supply does Awaitable {
     has Tappable $!tappable;
 
     proto method new(|) { * }
@@ -619,6 +619,31 @@ my class Supply {
     }
 
     method wait(Supply:D:) { await self.Promise }
+
+    my class SupplyAwaitableHandle does Awaitable::Handle {
+        has $!supply;
+
+        method not-ready(Supply:D \supply) {
+            self.CREATE!not-ready(supply)
+        }
+        method !not-ready(\supply) {
+            $!already = False;
+            $!supply := supply;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            my $final := Nil;
+            $!supply.tap:
+                -> \val { $final := val },
+                done => { subscriber(True, $final) },
+                quit => -> \ex { subscriber(False, ex) };
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        SupplyAwaitableHandle.not-ready(self)
+    }
 
     method unique(Supply:D $self: :&as, :&with, :$expires) {
         supply {

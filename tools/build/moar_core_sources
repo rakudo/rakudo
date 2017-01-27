@@ -130,6 +130,8 @@ src/core/Thread.pm
 src/core/Lock.pm
 src/core/Semaphore.pm
 src/core/Cancellation.pm
+src/core/Awaitable.pm
+src/core/Awaiter.pm
 src/core/Scheduler.pm
 src/core/Env.pm
 src/core/ThreadPoolScheduler.pm

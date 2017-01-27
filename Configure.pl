@@ -163,7 +163,7 @@ MAIN: {
         }
     }
 
-    for my $target (qw/common_bootstrap_sources moar_core_sources jvm_core_sources/) {
+    for my $target (qw/common_bootstrap_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";
         my @lines;

@@ -8,7 +8,7 @@ my class X::Channel::ReceiveOnClosed is Exception {
     has $.channel;
     method message() { "Cannot receive a message on a closed channel" }
 }
-my class Channel {
+my class Channel does Awaitable {
     # The queue of events moving through the channel.
     my class Queue is repr('ConcBlockingQueue') { }
     has $!queue;
@@ -156,6 +156,77 @@ my class Channel {
 
     method Seq(Channel:D:)  { Seq.new(self.iterator) }
     method list(Channel:D:) { self.Seq.list }
+
+    my class ChannelAwaitableHandle does Awaitable::Handle {
+        has $!channel;
+        has $!closed_promise;
+        has $!async-notify;
+
+        method not-ready(Channel:D $channel, Promise:D $closed_promise, Supplier:D $async-notify) {
+            self.CREATE!not-ready($channel, $closed_promise, $async-notify)
+        }
+        method !not-ready($channel, $closed_promise, $async-notify) {
+            $!already = False;
+            $!channel := $channel;
+            $!closed_promise := $closed_promise;
+            $!async-notify := $async-notify;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            # Need some care here to avoid a race. We must tap the notification
+            # supply first, and then do an immediate poll after it, just to be
+            # sure we won't miss notifications between the two. Also, we need
+            # to take some care that we never call subscriber twice; a lock is
+            # a tad heavy-weight for it, in the future we can just CAS an int.
+            my $notified := False;
+            my $l := Lock.new;
+            my $t := $!async-notify.unsanitized-supply.tap: &poll-now;
+            poll-now();
+
+            sub poll-now($discard?) {
+                $l.protect: {
+                    unless $notified {
+                        my \maybe = $!channel.poll;
+                        if maybe === Nil {
+                            if $!closed_promise.status == Kept {
+                                $notified := True;
+                                subscriber(False, X::Channel::ReceiveOnClosed.new(:$!channel))
+                            }
+                            elsif $!closed_promise.status == Broken {
+                                $notified := True;
+                                subscriber(False, $!closed_promise.cause)
+                            }
+                        }
+                        else {
+                            $notified := True;
+                            subscriber(True, maybe);
+                        }
+                        $t.close if $notified;
+                    }
+                }
+            }
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        my \maybe = self.poll;
+        if maybe === Nil {
+            if $!closed_promise {
+                ChannelAwaitableHandle.already-failure(
+                    $!closed_promise.status == Kept
+                        ?? X::Channel::ReceiveOnClosed.new(channel => self)
+                        !! $!closed_promise.cause
+                )
+            }
+            else {
+                ChannelAwaitableHandle.not-ready(self, $!closed_promise, $!async-notify)
+            }
+        }
+        else {
+            ChannelAwaitableHandle.already-success(maybe)
+        }
+    }
 
     method close() {
         $!closed = 1;

@@ -24,7 +24,7 @@ my role X::Promise::Broken {
             callsame().indent(4)
     }
 }
-my class Promise {
+my class Promise does Awaitable {
     has $.scheduler;
     has $.status;
     has $!result is default(Nil);
@@ -164,6 +164,49 @@ my class Promise {
             @!thens.push(-> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
             $then_promise
+        }
+    }
+
+    my class PromiseAwaitableHandle does Awaitable::Handle {
+        has &!add-subscriber;
+
+        method not-ready(&add-subscriber) {
+            self.CREATE!not-ready(&add-subscriber)
+        }
+        method !not-ready(&add-subscriber) {
+            $!already = False;
+            &!add-subscriber := &add-subscriber;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            &!add-subscriber(&subscriber);
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        if $!status == Broken {
+            PromiseAwaitableHandle.already-failure($!result)
+        }
+        elsif $!status == Kept {
+            PromiseAwaitableHandle.already-success($!result)
+        }
+        else {
+            PromiseAwaitableHandle.not-ready: -> &on-ready {
+                nqp::lock($!lock);
+                if $!status == Broken || $!status == Kept {
+                    # Already have the result, call on-ready immediately.
+                    nqp::unlock($!lock);
+                    on-ready($!status == Kept, $!result)
+                }
+                else {
+                    # Push 2 entries to @!thens (only need the first one in
+                    # this case; second we push 'cus .then uses it).
+                    @!thens.push({ on-ready($!status == Kept, $!result) });
+                    @!thens.push(Callable);
+                    nqp::unlock($!lock);
+                }
+            }
         }
     }
 

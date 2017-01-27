@@ -421,7 +421,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
                  :continue(:$c), :pos(:$p),
                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex),
                  # :st(:nd(:rd(:th($nth)))) is cute, but slow
+#?if js
+                 # Workaround a JS backend bug
+                 :st(:nd(:rd(:th($nth)))) , :$x) {
+#?endif
+#?if !js
                  :st(:$nd), :rd(:$th), :$nth = $nd // $th, :$x) {
+#?endif
         my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }

@@ -1,5 +1,3 @@
-=begin pod
-
 =head1 NAME
 
 perl6 - Rakudo Perl 6 Compiler
@@ -141,11 +139,11 @@ C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
 C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
 semicolon-delimited list.
 
+=back
+
 =head1 AUTHORS
 
 Written by the Rakudo contributors, see the CREDITS file.
 
 This manual page was written by Reini Urban, Moritz Lenz and the Rakudo
 contributors.
-
-=end pod

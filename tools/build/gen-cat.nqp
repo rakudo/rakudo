@@ -20,14 +20,14 @@ sub MAIN(*@ARGS) {
     }
     my $stderr := nqp::getstderr();
     for @ARGS -> $file {
-        say("#line 1 $file\n");
+        say("#line 1 SETTING::$file");
         my $fh := open($file, :r);
         my int $in_cond := 0;
         my int $in_omit := 0;
         my int $line    := 1;
         while nqp::readlinefh($fh) -> $_ {
             if my $x := $_ ~~ / ^ '#?if' \s+ ('!')? \s* (\w+) \s* $ / {
-                nqp::die("Nested conditionals not supported") if $in_cond;
+                nqp::die("Nested conditionals not supported, line $line") if $in_cond;
                 $in_cond := 1;
                 $in_omit := $x[0] && $x[1] eq $backend || !$x[0] && $x[1] ne $backend;
                 print("\n");

@@ -79,7 +79,13 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     if (rcd && IS_CONCRETE(rcd))
         rw = rcd->rw;
     if (!rw)
-        MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
+        if (rcd && IS_CONCRETE(rcd) && rcd->name) {
+            char *c_name = MVM_string_utf8_encode_C_string(tc, rcd->name);
+            char *waste[] = { c_name, NULL };
+            MVM_exception_throw_adhoc_free(tc, waste, "Cannot assign to a readonly variable (%s) or a value", c_name);
+        }
+        else
+            MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
 
     /* Handle Nil and type-checking. */
     if (!obj) {
@@ -106,9 +112,16 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
             /* If we get here, need to call .^type_check on the value we're
              * checking, unless it's an accepts check. */
             if (!STABLE(obj)->type_check_cache || (mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD)) {
-                MVMObject *HOW = MVM_6model_get_how_obj(tc, rcd->of);
-                MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
-                    tc->instance->str_consts.type_check);
+                MVMObject *HOW, *meth;
+                MVMROOT(tc, obj, {
+                MVMROOT(tc, rcd, {
+                    HOW = MVM_6model_get_how_obj(tc, rcd->of);
+                    MVMROOT(tc, HOW, {
+                        meth = MVM_6model_find_method_cache_only(tc, HOW,
+                            tc->instance->str_consts.type_check);
+                    });
+                });
+                });
                 if (meth) {
                     /* Set up the call, using a fake register in special return
                      * data as the target. */
@@ -131,9 +144,16 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
 
             /* If the flag to call .accepts_type on the target value is set, do so. */
             if (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) {
-                MVMObject *HOW = MVM_6model_get_how_obj(tc, rcd->of);
-                MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
-                    tc->instance->str_consts.accepts_type);
+                MVMObject *HOW, *meth;
+                MVMROOT(tc, obj, {
+                MVMROOT(tc, rcd, {
+                    HOW = MVM_6model_get_how_obj(tc, rcd->of);
+                    MVMROOT(tc, HOW, {
+                        meth = MVM_6model_find_method_cache_only(tc, HOW,
+                            tc->instance->str_consts.accepts_type);
+                    });
+                });
+                });
                 if (meth) {
                     /* Set up the call, using the result register as the target. */
                     MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);

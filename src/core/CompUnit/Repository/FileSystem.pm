@@ -4,8 +4,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!id;
     has %!meta;
     has $!precomp-stores;
+    has $!precomp-store;
 
     my @extensions = <pm6 pm>;
+    my $extensions := nqp::hash('pm6',1,'pm',1);
 
     # global cache of files seen
     my %seen;
@@ -56,27 +58,42 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        $!id //= !self.prefix.e
-            ?? nqp::sha1('')
-            !! do {
-                my $content-id = nqp::sha1(
-                    [~]
-                    map    {
-                        if $_.IO.open -> $handle {
-                            nqp::sha1($handle.slurp-rest(:enc<latin1>,:close));
-                        }
-                        else {
-                            ''
-                        }
-                    },
-                    grep   {
-                        try Rakudo::Internals.FILETEST-F($_)
-                        and Rakudo::Internals.MAKE-EXT($_) eq @extensions.any
-                    },
-                    Rakudo::Internals.DIR-RECURSE(self.prefix.absolute)
-                );
-                nqp::sha1($content-id ~ self.next-repo.id) if self.next-repo;
-            }
+        my $parts := nqp::list_s;
+        my $prefix = self.prefix;
+        my $dir  := { .match(/ ^ <.ident> [ <[ ' - ]> <.ident> ]* $ /) }; # ' hl
+        my $file := -> str $file {
+            nqp::eqat($file,'.pm',nqp::sub_i(nqp::chars($file),3))
+            || nqp::eqat($file,'.pm6',nqp::sub_i(nqp::chars($file),4))
+        };
+        nqp::if(
+          $!id,
+          $!id,
+          ($!id = nqp::if(
+            $prefix.e,
+            nqp::stmts(
+              (my $iter := Rakudo::Internals.DIR-RECURSE(
+                $prefix.absolute,:$dir,:$file).iterator),
+              nqp::until(
+                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::filereadable($pulled)
+                    && (my $pio := nqp::open($pulled,'r')),
+                  nqp::stmts(
+                    nqp::setencoding($pio,'iso-8859-1'),
+                    nqp::push_s($parts,nqp::sha1(nqp::readallfh($pio))),
+                    nqp::closefh($pio)
+                  )
+                )
+              ),
+              nqp::if(
+                (my $next := self.next-repo),
+                nqp::push_s($parts,$next.id),
+              ),
+              nqp::sha1(nqp::join('',$parts))
+            ),
+            nqp::sha1('')
+          ))
+        )
     }
 
     method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {
@@ -184,7 +201,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method precomp-store() returns CompUnit::PrecompilationStore {
-        CompUnit::PrecompilationStore::File.new(
+        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('.precomp')),
         )
     }

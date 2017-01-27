@@ -1,5 +1,5 @@
 my class Block { # declared in BOOTSTRAP
-    # class Block is Code {
+    # class Block is Code
     #     has Mu $!phasers;
     #     has Mu $!why;
 
@@ -7,7 +7,7 @@ my class Block { # declared in BOOTSTRAP
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {
-        nqp::bindattr(self,Block,'$!phasers',nqp::hash)
+        $!phasers := nqp::hash
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;
@@ -176,7 +176,7 @@ my class Block { # declared in BOOTSTRAP
         # but really Signature should be able to tell us that.
         #
         # Until then, we will add slurpy behaviors, assuming we
-        # do not aready have them, if we see a capture.
+        # do not already have them, if we see a capture.
         my $need_cap = ($sig.count == Inf and not ($slurp_p and $slurp_n));
         if $need_cap {
             $need_cap = False;
@@ -321,6 +321,18 @@ my class Block { # declared in BOOTSTRAP
 
     method set_why($why) {
         $!why := $why;
+    }
+
+    # helper method for array slicing
+    method pos(Block:D $self: \list) {
+      nqp::if(
+        (nqp::istype(
+          (my $n := nqp::getattr(
+            nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
+          ),Num) && nqp::isnanorinf($n)) || nqp::iseq_i(nqp::unbox_i($n),1),
+        $self(nqp::if(nqp::isconcrete(list),list.elems,0)),
+        $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx $n))
+      )
     }
 }
 

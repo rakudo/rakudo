@@ -3,6 +3,9 @@ my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = nqp::create(Mu);
+
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }
@@ -43,6 +46,9 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method split(|) { * }
 
+    method emit {
+        emit self;
+    }
     method take {
         take self;
     }
@@ -444,7 +450,11 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
+        nqp::if(
+          nqp::eqaddr(self,IterationEnd),
+          "IterationEnd",
+          self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
+        )
     }
 
     proto method Stringy(|) { * }
@@ -517,14 +527,18 @@ my class Mu { # declared in BOOTSTRAP
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
-        self.perlseen(self.^name, {
-            my @attrs;
-            for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                my $name := substr($attr.Str,2);
-                @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-            }
-            self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-        })
+        nqp::if(
+          nqp::eqaddr(self,IterationEnd),
+          "IterationEnd",
+          self.perlseen(self.^name, {
+              my @attrs;
+              for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                  my $name := substr($attr.Str,2);
+                  @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+              }
+              self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+          })
+        )
     }
 
     proto method DUMP(|) { * }
@@ -609,7 +623,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method clone(*%twiddles) {
-        my $cloned := nqp::clone(nqp::decont(self));
+        my $cloned := nqp::clone(self);
         if %twiddles.elems {
             for self.^attributes.flat -> $attr {
                 my $name    := $attr.name;
@@ -617,7 +631,8 @@ my class Mu { # declared in BOOTSTRAP
 
                 nqp::bindattr($cloned, $package, $name,
                   nqp::clone(nqp::getattr($cloned, $package, $name).VAR)
-                ) unless nqp::objprimspec($attr.type);
+                ) if nqp::attrinited(self, $package, $name)
+                    and nqp::not_i(nqp::objprimspec($attr.type));
 
                 my $acc_name := substr($name,2);
                 nqp::getattr($cloned, $package, $name) =
@@ -630,10 +645,12 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::objprimspec($attr.type) {
                     my $name     := $attr.name;
                     my $package  := $attr.package;
-                    my $attr_val := nqp::getattr($cloned, $package, $name);
-                    nqp::bindattr($cloned,
-                      $package, $name, nqp::clone($attr_val.VAR))
-                        if nqp::iscont($attr_val);
+                    if nqp::attrinited(self, $package, $name) {
+                        my $attr_val := nqp::getattr($cloned, $package, $name);
+                        nqp::bindattr($cloned,
+                          $package, $name, nqp::clone($attr_val.VAR))
+                            if nqp::iscont($attr_val);
+                    }
                 }
             }
         }
@@ -650,7 +667,7 @@ my class Mu { # declared in BOOTSTRAP
             }
         }
         my $capture := nqp::create(Capture);
-        nqp::bindattr($capture,Capture,'$!hash',$attrs) if nqp::elems($attrs);
+        nqp::bindattr($capture,Capture,'%!hash',$attrs) if nqp::elems($attrs);
         $capture
     }
 
@@ -683,18 +700,14 @@ my class Mu { # declared in BOOTSTRAP
             ).throw;
     }
 
-    method dispatch:<.^>(Mu \SELF: \name, |c) is raw {
-        self.HOW."{name}"(SELF, |c)
-    }
-
-    method dispatch:<.=>(\mutate: \name, |c) is raw {
+    method dispatch:<.=>(\mutate: Str() $name, |c) is raw {
         $/ := nqp::getlexcaller('$/');
-        mutate = mutate."{name}"(|c)
+        mutate = mutate."$name"(|c)
     }
 
-    method dispatch:<.?>(Mu \SELF: \name, |c) is raw {
-        nqp::can(SELF, name) ??
-            SELF."{name}"(|c) !!
+    method dispatch:<.?>(Mu \SELF: Str() $name, |c) is raw {
+        nqp::can(SELF,$name) ??
+            SELF."$name"(|c) !!
             Nil
     }
 
@@ -721,20 +734,23 @@ my class Mu { # declared in BOOTSTRAP
             $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', $results);
-        $list
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
     }
 
-    method dispatch:<hyper>(Mu \SELF: \name, |c) {
-        my $listcan = List.can(name);
-        $listcan && $listcan[0].?nodal
-          ?? c
-            ?? HYPER( sub (\obj) is nodal { obj."{name}"(|c) }, SELF )
-            !! HYPER( sub (\obj) is nodal { obj."{name}"() }, SELF )
-          !! c
-            ?? HYPER( -> \obj { obj."{name}"(|c) }, SELF )
-            !! HYPER( -> \obj { obj."{name}"() }, SELF )
+    method dispatch:<hyper>(Mu \SELF: Str() $name, |c) {
+        nqp::if(
+          nqp::can(List,$name) && nqp::can(List.can($name).AT-POS(0),"nodal"),
+          nqp::if(
+            c,
+            HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF ),
+            HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
+          ),
+          nqp::if(
+            c,
+            HYPER( -> \obj { obj."$name"(|c) }, SELF ),
+            HYPER( -> \obj { obj."$name"() }, SELF )
+          )
+        )
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
@@ -827,26 +843,43 @@ multi sub infix:<=:=>(Mu \a, Mu \b) {
 
 proto sub infix:<eqv>(Any $?, Any $?) is pure { * }
 multi sub infix:<eqv>($?)            { Bool::True }
-multi sub infix:<eqv>(Any $a, Any $b) {
-    # Last ditch snapshot semantics.  We shouldn't come here too often, so
-    # please do not change this to be faster but wronger.  (Instead, add
-    # specialized multis for datatypes that can be tested piecemeal.)
-    $a.WHAT === $b.WHAT and $a.perl eq $b.perl;
+
+# Last ditch snapshot semantics.  We shouldn't come here too often, so
+# please do not change this to be faster but wronger.  (Instead, add
+# specialized multis for datatypes that can be tested piecemeal.)
+multi sub infix:<eqv>(Any:U \a, Any:U \b) {
+    nqp::p6bool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
+}
+multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
+multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
+multi sub infix:<eqv>(Any:D \a, Any:D \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
+    )
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    if @a =:= @b {
-        True
-    }
-    elsif @a.WHAT =:= @b.WHAT && (my int $n = @a.elems) == @b.elems {
-        my int $i = -1;
-        return False unless @a.AT-POS($i) eqv @b.AT-POS($i)
-          while nqp::islt_i(++$i,$n);
-        True
-    }
-    else {
-        False
-    }
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(@a,@b),                                    # identity
+        nqp::if(
+          nqp::eqaddr(@a.WHAT,@b.WHAT),                        # same type
+          nqp::if(
+            nqp::iseq_i((my int $elems = @a.elems),@b.elems),  # same # elems
+            nqp::stmts(
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)    # not exhausted
+                  && @a.AT-POS($i) eqv @b.AT-POS($i),          # still same
+                nqp::null
+              ),
+              nqp::iseq_i($i,$elems)                      # exhausted = success!
+            )
+          )
+        )
+      )
+    )
 }
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
@@ -908,6 +941,12 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         }
     }
 }
+
+# U+2212 minus (forward call to regular minus)
+proto sub  infix:<−>(|)  is pure { * }
+multi sub  infix:<−>(|c)         {  infix:<->(|c) }
+proto sub prefix:<−>(|)  is pure { * }
+multi sub prefix:<−>(|c)         { prefix:<->(|c) }
 
 # These must collapse Junctions
 proto sub so(Mu $) {*}

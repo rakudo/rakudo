@@ -24,7 +24,7 @@ BEGIN {
 }
 BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
-    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: Mu \topic ) { nqp::istype(topic, Bool) });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::istype(topic, Bool) });
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
     Bool.^add_multi_method('perl', my multi method perl(Bool:U:) { 'Bool' });
 
@@ -110,7 +110,7 @@ multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
-multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b() }
+multi sub infix:<^^>(Mu \a, &b)           { a ^^ b() }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<^^>(+@a) {
     my Mu $a = shift @a;

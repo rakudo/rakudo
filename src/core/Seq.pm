@@ -60,7 +60,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    method is-lazy(Seq:D:) {
+    multi method is-lazy(Seq:D:) {
         nqp::if(
           $!iter.DEFINITE,
           $!iter.is-lazy,
@@ -153,6 +153,31 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
             return self.^name ~ '.new-consumed()';
         }
         self.cache.perl ~ '.Seq';
+    }
+
+    method join(Seq:D: $separator = '' --> Str) {
+        nqp::if(
+          (my $iterator := self.iterator).is-lazy,
+          '...',
+          nqp::stmts(
+            (my $strings  := nqp::list_s),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+              nqp::push_s($strings,nqp::unbox_s(
+                nqp::if(
+                  nqp::isconcrete($pulled) && nqp::istype($pulled,Str),
+                  $pulled,
+                  nqp::if(
+                    nqp::can($pulled,'Str'),
+                    $pulled.Str,
+                    nqp::box_s($pulled,Str)
+                  )
+                )
+              ))
+            ),
+            nqp::box_s(nqp::join(nqp::unbox_s($separator.Str),$strings),Str)
+          )
+        )
     }
 
     method sink() {
@@ -272,8 +297,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
                 }
             }
         }
-
-        method is-lazy() { False }
     }
 
     my class CStyleLoopIter does SlippyIterator {
@@ -333,8 +356,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
                 }
             }
         }
-
-        method is-lazy() { False }
     }
 
     proto method from-loop(|) { * }
@@ -429,12 +450,12 @@ sub GATHER(&block) {
                     nqp::eqaddr(self!slip-wanted,IterationEnd)
                   ),
                   nqp::stmts(
-                    ($!push-target := Mu),
+                    ($!push-target := nqp::null),
                     $n
                   ),
                   nqp::stmts(
                     nqp::continuationreset(PROMPT, &!resumption),
-                    ($!push-target := Mu),
+                    ($!push-target := nqp::null),
                     nqp::if(
                       &!resumption.DEFINITE,
                       ($n - $!wanted),
@@ -492,25 +513,37 @@ sub GATHER(&block) {
 }
 
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
-
-    # we're us
-    return True  if a =:= b;
-
-    # not same container type
-    return False unless a.WHAT =:= b.WHAT;
-
-    my \ia := a.iterator;
-    my \ib := b.iterator;
-    my $va;
-    my $vb;
-
-    # same until a-list exhausted
-    return False
-      if    ($vb := ib.pull-one) =:= IterationEnd || !($va eqv $vb)
-      until ($va := ia.pull-one) =:= IterationEnd;
-
-    # b-list also exhausted?
-    ib.pull-one =:= IterationEnd
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::if(
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(
+            nqp::iseq_i(
+              (my \ia := a.iterator).is-lazy,
+              (my \ib := b.iterator).is-lazy
+            ),
+            nqp::if(
+              ia.is-lazy,
+              (die "Cannot eqv lazy Sequences"),
+              nqp::stmts(
+                nqp::until(
+                  nqp::stmts(
+                    (my \pa := ia.pull-one),
+                    (my \pb := ib.pull-one),
+                    nqp::eqaddr(pa,IterationEnd)
+                      || nqp::eqaddr(pb,IterationEnd)
+                      || nqp::not_i(pa eqv pb)
+                  ),
+                  nqp::null
+                ),
+                nqp::eqaddr(pa,pb)  # exhausted if both IterationEnd
+              )
+            )
+          )
+        )
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -4,8 +4,8 @@ my class X::Numeric::DivideByZero { ... }
 my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
-    multi method ACCEPTS(Numeric:D: \a) {
-        self.isNaN ?? a.defined && a.isNaN !! a == self;
+    multi method ACCEPTS(Numeric:D: Any:D \a) {
+        self.isNaN && a.isNaN or a == self;
     }
 
     proto method log(|) {*}
@@ -30,7 +30,9 @@ my role Numeric {
 }
 
 multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
-    nqp::p6bool(a =:= b || (a.WHAT =:= b.WHAT && a == b)) # RT #127951
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a == b) # RT #127951
+    )
 }
 
 ## arithmetic operators
@@ -40,8 +42,6 @@ multi sub prefix:<+>(\a) { a.Numeric }
 
 proto sub prefix:<->($?) is pure { * }
 multi sub prefix:<->(\a) { -a.Numeric }
-
-sub prefix:<−>($n) is pure { prefix:<->($n) }
 
 proto sub abs($) is pure { * }
 multi sub abs(\a) { abs a.Numeric }
@@ -189,10 +189,6 @@ proto sub infix:<->(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<->($x = 0)      { -$x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
-proto sub infix:<−>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<−>($x = 0)    { -$x.Numeric }
-multi sub infix:<−>(\a, \b) is pure { a.Numeric - b.Numeric }
-
 proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
@@ -250,7 +246,7 @@ multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
 proto sub infix:<≅>(Mu $?, Mu $?, *%) { * }  # note, can't be pure due to dynvar
-multi sub infix:<≅>($?)        { Bool::True }
+multi sub infix:<≅>($?) { Bool::True }
 multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
     # If operands are non-0, scale the tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.

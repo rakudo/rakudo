@@ -8,7 +8,7 @@ my class Exception {
     method backtrace(Exception:D:) {
         if $!bt { $!bt }
         elsif nqp::isconcrete($!ex) {
-            nqp::bindattr(self, Exception, '$!bt', Backtrace.new($!ex));
+            $!bt := Backtrace.new($!ex);
         }
         else { '' }
     }
@@ -18,7 +18,7 @@ my class Exception {
         nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
     }
     method reset-backtrace(Exception:D:) {
-        nqp::bindattr(self, Exception, '$!ex', Nil)
+        $!ex := Nil
     }
 
     multi method Str(Exception:D:) {
@@ -51,9 +51,8 @@ my class Exception {
     }
 
     method throw(Exception:D: $bt?) {
-        nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::isconcrete($!ex) and $bt;
-        nqp::bindattr(self, Exception, '$!bt', $bt); # Even if !$bt
+        $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
+        $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         my $msg := try self.?message;
         if defined($msg) {
@@ -64,6 +63,7 @@ my class Exception {
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
+        $!ex := nqp::newexception() unless nqp::isconcrete($!ex);
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -149,7 +149,7 @@ my class X::Dynamic::NotFound is Exception {
     }
 }
 my class X::Method::NotFound is Exception {
-    has $.invocant;
+    has Mu $.invocant;
     has $.method;
     has $.typename;
     has Bool $.private = False;
@@ -240,6 +240,12 @@ my class CX::Proceed does X::Control {
 my class CX::Return does X::Control {
     method message() { "<return control exception>" }
 }
+my class CX::Emit does X::Control {
+    method message() { "<emit control exception>" }
+}
+my class CX::Done does X::Control {
+    method message() { "<done control exception>" }
+}
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -276,6 +282,14 @@ sub EXCEPTION(|) {
         elsif $type == nqp::const::CONTROL_RETURN {
             $ex := CX::Return.new();
         }
+        elsif $type == nqp::const::CONTROL_EMIT {
+            $ex := CX::Emit.new();
+        }
+        elsif $type == nqp::const::CONTROL_DONE {
+            $ex := CX::Done.new();
+        }
+#?if !moar
+        # for MoarVM this check is done in src/Perl6/Metamodel/BOOTSTRAP.nqp, cmp 222d16b0b9
         elsif !nqp::isnull_s(nqp::getmessage($vm_ex)) &&
                 nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
             $ex := X::Method::NotFound.new(
@@ -283,6 +297,7 @@ sub EXCEPTION(|) {
                 typename => ~$1,
             );
         }
+#?endif
         else {
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex) // 'unknown exception'));
@@ -846,7 +861,7 @@ my class X::Placeholder::NonPlaceholder does X::Comp {
 
 my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
-        "Cannot use placeholder parameter $.placeholder in the mainline"
+        "Cannot use placeholder parameter $.placeholder outside of a sub or block"
     }
 }
 
@@ -948,9 +963,9 @@ my class X::Redeclaration does X::Comp {
     has $.postfix = '';
     has $.what    = 'symbol';
     method message() {
-        my $m = "Redeclaration of $.what '$.symbol$.postfix'";
-        $m ~= " (did you mean to declare a multi-sub?)" if $.what eq 'routine';
-        $m
+        "Redeclaration of $.what '$.symbol'"
+          ~ (" $.postfix" if $.postfix)
+          ~ (" (did you mean to declare a multi-sub?)" if $.what eq 'routine');
     }
 }
 
@@ -1206,6 +1221,17 @@ my class X::Invalid::Value is Exception {
     }
 }
 
+my class X::Invalid::ComputedValue is Exception {
+    has $.method;
+    has $.name;
+    has $.value;
+    has $.reason;
+    method message {
+        "$.name on $.method computed to $.value, which cannot be used"
+            ~ (" because $.reason" if $.reason);
+    }
+}
+
 my class X::Value::Dynamic does X::Comp {
     has $.what;
     method message() { "$.what value must be known at compile time" }
@@ -1216,7 +1242,13 @@ my class X::Syntax::Name::Null does X::Syntax {
 }
 
 my class X::Syntax::UnlessElse does X::Syntax {
-    method message() { '"unless" does not take "else", please rewrite using "if"' }
+    has $.keyword;
+    method message() { qq|"unless" does not take "$!keyword", please rewrite using "if"| }
+}
+
+my class X::Syntax::WithoutElse does X::Syntax {
+    has $.keyword;
+    method message() { qq|"without" does not take "$!keyword", please rewrite using "with"| }
 }
 
 my class X::Syntax::KeywordAsFunction does X::Syntax {
@@ -1267,7 +1299,7 @@ my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.what = 'variable';
     has $.twigil;
     has $.scope;
-    has $.additional;
+    has $.additional = '';
     method message() { "Cannot use $.twigil twigil on '$.scope' $.what$.additional" }
 }
 
@@ -1810,6 +1842,14 @@ my class X::Str::Match::x is Exception {
     }
 }
 
+my class X::Str::Subst::Adverb is Exception {
+    has $.name;
+    has $.got;
+    method message() {
+        "Cannot use :$.name adverb in Str.subst, got $.got"
+    }
+}
+
 my class X::Str::Trans::IllegalKey is Exception {
     has $.key;
     method message {
@@ -1921,7 +1961,7 @@ my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
     has $.composer;
     method message() {
-        $.composer.^name ~ " is not composable, so $.target-name cannot compose it";
+        $!composer.^name ~ " is not composable, so $!target-name cannot compose it";
     }
 }
 
@@ -2068,8 +2108,8 @@ my class X::Inheritance::Unsupported does X::Comp {
     has $.child-typename;
     has $.parent;
     method message {
-        $.parent.^name ~ ' does not support inheritance, so '
-        ~ $.child-typename ~ ' cannot inherit from it';
+        $!parent.^name ~ ' does not support inheritance, so '
+        ~ $!child-typename ~ ' cannot inherit from it';
     }
 }
 
@@ -2218,8 +2258,13 @@ my class X::Numeric::Confused is Exception {
     has $.num;
     has $.base;
     method message() {
-        "This call only converts base-$.base strings to numbers; value {$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!\n"
-            ~ "(If you really wanted to convert {$.num.perl} to a base-$.base string, use {$.num.perl}.base($.base) instead.)";
+        "This call only converts base-$.base strings to numbers; value "
+        ~ "{$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!"
+        ~ (
+            "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
+                ~ " string, use {$.num.perl}.base($.base) instead.)"
+            if $.num.perl.^can('base')
+        );
     }
 }
 
@@ -2258,6 +2303,17 @@ my class X::Multi::NoMatch is Exception {
     has $.capture;
     method message {
         my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my @un-rw-cand;
+        if first / 'is rw' /, @cand {
+            my $rw-capture = Capture.new(
+                :list( $!capture.list.map({ $ = $_ })                  ),
+                :hash( $!capture.hash.map({ .key => $ = .value }).hash ),
+            );
+            @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
+                $rw-capture ~~ $^cand
+            })».gist;
+        }
+
         my $where = so first / where /, @cand;
         my @bits;
         my @priors;
@@ -2277,8 +2333,8 @@ my class X::Multi::NoMatch is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)($($where ?? .value.?perl !! .value.WHAT.?perl ))");
-                    @bits.push($_.value.^name) if $!;
+                    try @bits.push(":$(.key)\($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    @bits.push(':' ~ .value.^name) if $!;
                 }
             }
         }
@@ -2292,10 +2348,18 @@ my class X::Multi::NoMatch is Exception {
         }
         my $cap = '(' ~ @bits.join(", ") ~ ')';
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
-        @priors.join ~
-        join "\n    ",
-            "Cannot resolve caller $.dispatcher.name()$cap; none of these signatures match:",
-            @cand;
+        @priors.join ~ "Cannot resolve caller $.dispatcher.name()$cap; " ~ (
+            @un-rw-cand
+            ?? "the following candidates\nmatch the type but require "
+                ~ 'mutable arguments:' ~  join("\n    ", '', @un-rw-cand) ~ (
+                        "\n\nThe following do not match for other reasons:"
+                        ~  join("\n    ", '', sort keys @cand ∖ @un-rw-cand)
+                    unless @cand == @un-rw-cand
+                )
+            !! join "\n    ",
+                'none of these signatures match:',
+                @cand
+        );
     }
 }
 
@@ -2357,7 +2421,7 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  sub ($invocant, $method, $typename, $private = False) {
+  sub (Mu $invocant, $method, $typename, $private = False) {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
   },
   'X::Multi::Ambiguous',
@@ -2594,9 +2658,14 @@ my class Exceptions::JSON {
         nqp::printfh(
           nqp::getstderr,
           Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
-            (message => $ex.message),
+            (message => $ex.?message),
             $ex.^attributes.grep(*.has_accessor).map: {
-                $_ => $ex."$_"() with .name.substr(2)
+                with .name.substr(2) -> $attr {
+                    $attr => (
+                        (.defined and not $_ ~~ Real|Positional|Associative)
+                        ?? .Str !! $_
+                    ) given $ex."$attr"()
+                }
             }
           ))
         );

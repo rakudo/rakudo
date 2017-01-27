@@ -1,23 +1,60 @@
 my class IO::Spec::Unix is IO::Spec {
 
     method canonpath( $patharg, :$parent --> Str) {
-        my $path = $patharg.Str;
-        return '' unless $path.chars;
-
-        $path.subst-mutate('//', '/', :g) while $path.contains('//');
-        $path.subst-mutate: rx[ '/.'+ ['/' | $] ], '/', :g if $path.contains('/.');     # xx/././xx -> xx/xx
-        if $path.starts-with('./') && $path.chars > 2 {
-            $path .= substr(2);
-        }
-        if $parent {
-            Nil while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '';
-            $path = '.' if $path eq '';
-        }
-        $path.subst-mutate: rx[ ^ '/..'+ ['/' | $] ],  '/' if $path.starts-with('/');     # /../..(/xx) -> /(xx)
-        unless $path.chars == 1 {
-            $path = $path.chop if $path.ends-with('/');
-        }
-        $path
+        nqp::if(
+          (my str $path = $patharg.Str),
+          nqp::stmts(
+            nqp::while(                # // -> /
+              nqp::isne_i(nqp::index($path,'//'),-1),
+              $path = nqp::join('/',nqp::split('//',$path))
+            ),
+            nqp::while(                # /./ -> /
+              nqp::isne_i(nqp::index($path,'/./'),-1),
+              $path = nqp::join('/',nqp::split('/./',$path))
+            ),
+            nqp::if(                   # /. $ -> /
+              nqp::eqat($path,'/.',nqp::sub_i(nqp::chars($path),2)),
+              $path = nqp::substr($path,0,nqp::sub_i(nqp::chars($path),1))
+            ),
+            nqp::if(                   # ^ ./ ->
+              nqp::eqat($path,'./',0) && nqp::isgt_i(nqp::chars($path),2),
+              $path = nqp::substr($path,2)
+            ),
+            nqp::if(
+              $parent,
+              nqp::stmts(
+                nqp::while(          # ^ /.. -> /
+                  ($path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = ''),
+                  nqp::null
+                ),
+                nqp::unless(
+                  $path,
+                  $path = '.'
+                )
+              )
+            ),
+            nqp::if(                       # ^ /
+              nqp::eqat($path,'/',0),
+              nqp::stmts(
+                nqp::while(                # ^ /../ -> /
+                  nqp::eqat($path,'/../',0),
+                  $path = nqp::substr($path,3)
+                ),
+                nqp::if(                   # ^ /.. $ -> /
+                  nqp::iseq_s($path,'/..'),
+                  $path = '/'
+                )
+              )
+            ),
+            nqp::if(                       # .+/ -> .+
+              nqp::isgt_i(nqp::chars($path),1)
+                && nqp::eqat($path,'/',nqp::sub_i(nqp::chars($path),1)),
+              nqp::substr($path,0,nqp::sub_i(nqp::chars($path),1)),
+              $path
+            )
+          ), 
+          ''
+        )
     }
 
     method dir-sep  {  '/' }

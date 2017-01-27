@@ -1,5 +1,5 @@
 my class Junction { # declared in BOOTSTRAP
-    # class Junction is Mu {
+    # class Junction is Mu
     #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
 
@@ -22,6 +22,59 @@ my class Junction { # declared in BOOTSTRAP
     }
     multi method new(Junction: Str:D \type, \values) {
         nqp::create(Junction)!SET-SELF(type,values)
+    }
+
+    method defined(Junction:D:) {
+        nqp::stmts(
+          (my int $elems = nqp::elems($!storage)),
+          (my int $i = 0),
+          nqp::if(
+            nqp::iseq_s($!type,'any'),
+            nqp::stmts(
+              nqp::while(
+                (nqp::islt_i($i,$elems)
+                  && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
+                ($i = nqp::add_i($i,1))
+              ),
+              nqp::p6bool(nqp::islt_i($i,$elems))
+            ),
+            nqp::if(
+              nqp::iseq_s($!type,'all'),
+              nqp::stmts(
+                nqp::while(
+                  (nqp::islt_i($i,$elems)
+                    && nqp::atpos($!storage,$i).defined),
+                  ($i = nqp::add_i($i,1))
+                ),
+                nqp::p6bool(nqp::iseq_i($i,$elems))
+              ),
+              nqp::if(
+                nqp::iseq_s($!type,'none'),
+                nqp::stmts(
+                  nqp::while(
+                    (nqp::islt_i($i,$elems)
+                      && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
+                    ($i = nqp::add_i($i,1))
+                  ),
+                  nqp::p6bool(nqp::iseq_i($i,$elems))
+                ),
+                nqp::stmts(    # $!type eq 'one'
+                  (my int $seen = 0),
+                  ($i = nqp::sub_i($i,1)),  # increment in condition
+                  nqp::while(
+                    (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      && nqp::isle_i($seen,1)),
+                    nqp::if(
+                      nqp::atpos($!storage,$i).defined,
+                      ($seen = nqp::add_i($seen,1))
+                    )
+                  ),
+                  nqp::p6bool(nqp::iseq_i($seen,1))
+                )
+              )
+            )
+          )
+        )
     }
 
     multi method Bool(Junction:D:) {
@@ -171,7 +224,7 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method AUTOTHREAD(&call, |args) {
-        my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'$!list');
+        my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'@!list');
 
         sub thread_junction(int $pos) {
             my $junction := nqp::decont(nqp::atpos($positionals, $pos));
@@ -204,7 +257,7 @@ my class Junction { # declared in BOOTSTRAP
             # Junctional positional argument?
             my Mu $arg := nqp::atpos($positionals, $i);
             if nqp::istype($arg,Junction) {
-                my str $type = nqp::getattr(nqp::decont($arg),Junction,'$!type');
+                my str $type = nqp::getattr_s(nqp::decont($arg),Junction,'$!type');
                 nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
                   ?? $first_any_one == -1
                     ?? ($first_any_one = $i)
@@ -215,7 +268,7 @@ my class Junction { # declared in BOOTSTRAP
         return thread_junction($first_any_one) if $first_any_one >= 0;
 
         # Otherwise, look for one in the nameds.
-        my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '$!hash');
+        my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '%!hash');
         my $iter := nqp::iterator($nameds);
         while $iter {
             my \tmp = nqp::shift($iter);
@@ -258,7 +311,7 @@ sub AUTOTHREAD(|c) {
 
 sub AUTOTHREAD_METHOD($name, |c) {
     Junction.AUTOTHREAD(
-        -> $obj, |c { $obj."$name"(|c) },
+        -> \obj, |c { obj."$name"(|c) },
         |c);
 }
 

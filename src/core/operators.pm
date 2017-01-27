@@ -44,6 +44,13 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
 
+# we need this candidate tighter than infix:<cmp>(Real:D, Real:D)
+# but can't yet use `is default` at the place where that candidate
+# is defined because it uses `infix:<does>`
+multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
+    a.Num cmp b.Num
+}
+
 proto sub infix:<but>(|) is pure { * }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -536,34 +543,60 @@ sub prefix:<let>(\cont) is raw {
     cont
 }
 
-# not sure where this should go
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
-    # note that each part of @chunks itself can
-    # contain double colons. That's why joining and
-    # re-splitting is necessary
-    my Str $name = @chunks.join('::');
-    my @parts    = $name.split('::');
-    my $first    = @parts.shift;
-    if @parts && '$@%&'.index(substr($first,0, 1)).defined {
-        # move sigil from first to last chunk, because
-        # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
-        my $last_idx      = @parts.end;
-        @parts[$last_idx] = substr($first,0, 1) ~ @parts[$last_idx];
-        $first            = substr($first,1);
-        if $first eq '' {
-            $first = @parts.shift;
-            $name = @chunks.join('::');
-        }
-    }
-    my Mu $thing := $root.EXISTS-KEY($first) ?? $root{$first} !!
-                    GLOBAL::.EXISTS-KEY($first) ?? GLOBAL::{$first} !!
-                    X::NoSuchSymbol.new(symbol => $name).fail;
-    for @parts {
-        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.EXISTS-KEY($_);
-        $thing := $thing.WHO{$_};
-    }
-    $thing;
+    nqp::if(
+      # Note that each part of @chunks itself can contain double colons.
+      # That's why joining and re-splitting is necessary
+      nqp::elems(my $parts :=
+        nqp::split('::',my str $name = @chunks.join('::'))),
+      nqp::stmts(
+        (my str $first = nqp::shift($parts)),
+        nqp::if(
+          nqp::elems($parts),
+          nqp::stmts(
+            (my str $sigil = nqp::substr($first,0,1)),
+            nqp::if(
+              nqp::iseq_s($sigil,'$')
+                || nqp::iseq_s($sigil,'@')
+                || nqp::iseq_s($sigil,'%')
+                || nqp::iseq_s($sigil,'&'),
+              nqp::stmts(
+                nqp::push($parts,
+                  nqp::concat($sigil,nqp::unbox_s(nqp::pop($parts)))),
+                ($first = nqp::substr($first,1))
+              )
+            ),
+            nqp::unless(
+              $first,
+              nqp::stmts(
+                ($first = nqp::shift($parts)),
+                ($name  = nqp::join("::",$parts)),
+              )
+            )
+          )
+        ),
+        (my Mu $thing := nqp::if(
+          $root.EXISTS-KEY($first),
+          $root.AT-KEY($first),
+          nqp::if(
+            GLOBAL::.EXISTS-KEY($first),
+            GLOBAL::.AT-KEY($first),
+            X::NoSuchSymbol.new(symbol => $name).fail
+          )
+        )),
+        nqp::while(
+          nqp::elems($parts),
+          nqp::if(
+            $thing.WHO.EXISTS-KEY(my $part := nqp::shift($parts)),
+            ($thing := $thing.WHO.AT-KEY($part)),
+            X::NoSuchSymbol.new(symbol => $name).fail
+          )
+        ),
+        $thing
+      ),
+      X::NoSuchSymbol.new(symbol => $name).fail
+    )
 }
 
 sub REQUIRE_IMPORT($compunit, *@syms) {
@@ -591,36 +624,62 @@ sub infix:<andthen>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty unless $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return Empty unless $current.defined),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
     $current;
 }
 sub infix:<notandthen>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty if $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return Empty if $current.defined),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
     $current;
 }
+
 sub infix:<orelse>(+a) {
     my $ai := a.iterator;
     my Mu $current := $ai.pull-one;
     return Nil if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return $current if $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
+
+    # Flag for heuristic when we were passed an Empty as LHS
+    my int $handle-empty = 1;
+    nqp::until(
+        (($_ := $ai.pull-one) =:= IterationEnd),
+        nqp::stmts(
+            (return $current if $current.defined),
+            ($handle-empty = 0),
+            ($current := $_ ~~ Callable
+                ?? (.count ?? $_($current) !! $_())
+                !! $_
+            ),
+        ),
+        :nohandler, # do not handle control stuff in thunks
+    );
+
+    if $handle-empty and $current ~~ Callable {
+        $_ := Empty; # set $_ in the Callable
+        $current := $current.count ?? $current($_) !! $current();
     }
+
     $current;
 }
 

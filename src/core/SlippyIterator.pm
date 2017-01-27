@@ -12,20 +12,34 @@ my role SlippyIterator does Iterator {
         $slip
     }
     multi method start-slip(Slip:D $slip) {
-        $!slipping = 1;
-        $!slip-iter := $slip.iterator;
-        self.slip-one()
+        nqp::if(
+          nqp::eqaddr($slip,Empty),
+          IterationEnd,                  # we know there's nothing
+          nqp::if(
+            nqp::eqaddr(
+              (my \result := ($!slip-iter := $slip.iterator).pull-one),
+              IterationEnd
+            ),
+            IterationEnd,                # we've determined there's nothing
+            nqp::stmts(                  # need to start a Slip
+              ($!slipping = 1),
+              result
+            )
+          )
+        )
     }
 
     method slip-one() {
-        nqp::if(
-          nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd),
-          nqp::stmts(
-            ($!slipping = 0),
-            ($!slip-iter := Mu)
-          )
-        );
-        result
+        nqp::stmts(
+          nqp::if(
+            nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd),
+            nqp::stmts(
+              ($!slipping = 0),
+              ($!slip-iter := nqp::null)
+            )
+          ),
+          result
+        )
     }
 }
 

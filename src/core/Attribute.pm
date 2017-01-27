@@ -1,5 +1,5 @@
 my class Attribute { # declared in BOOTSTRAP
-    # class Attribute is Any {
+    # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;

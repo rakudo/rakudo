@@ -1,5 +1,6 @@
 ## Order enumeration, for cmp and <=>
 my enum Order (:Less(-1), :Same(0), :More(1));
+role Rational { ... }
 
 sub ORDER(int $i) {
     nqp::iseq_i($i,0) ?? Same !! nqp::islt_i($i,0) ?? Less !! More
@@ -25,12 +26,21 @@ multi sub infix:<cmp>(\a, Real:D \b) {
          ?? More
          !! a.Stringy cmp b.Stringy
 }
+
 multi sub infix:<cmp>(Real:D \a, Real:D \b) {
-     a === -Inf || b === Inf
-       ?? Less
-       !! a === Inf || b === -Inf
-         ?? More
-         !! a.Bridge cmp b.Bridge
+    (
+        nqp::istype(a, Rational)
+        && nqp::isfalse(nqp::getattr(nqp::decont(a), a.WHAT, '$!denominator'))
+    ) || (
+        nqp::istype(b, Rational)
+        && nqp::isfalse(nqp::getattr(nqp::decont(b), b.WHAT, '$!denominator'))
+    )
+    ?? a.Bridge cmp b.Bridge
+    !! a === -Inf || b === Inf
+        ?? Less
+        !! a === Inf || b === -Inf
+            ?? More
+            !! a.Bridge cmp b.Bridge
 }
 multi sub infix:<cmp>(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))

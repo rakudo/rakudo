@@ -8,13 +8,7 @@ sub MAIN (
     :$moar   = 'nqp/MoarVM',
     :$roast  = 't/spec',
 ) {
-    $last_release //= do {
-        Date.new-from-daycount:
-            .daycount  # daycount for 1st of previous month
-            + (.day-of-week == 7 ?? 6 !! 6 - .day-of-week) # offset of the first Saturday
-    	+ 2*7  # add two extra weeks, to get 3rd Saturday
-        given Date.today.earlier(:1month).truncated-to: 'month';
-    }
+    $last_release //= get-last-release-date-for $rakudo;
 
     # Check all the places with repos that may be applicable.  Get all of the
     # committers in that repo since the given date as commit ID => author pairs.
@@ -32,8 +26,10 @@ sub MAIN (
         ###############################################################
         END
 
+    my @*CREDITS = ($rakudo, $doc, $nqp, $moar, $roast
+        )».IO».child('CREDITS').grep(*.r)».lines.flat;
+
     say "Contributors to Rakudo since the release on $last_release:";
-    my $*CREDITS_FILE = $rakudo.IO.child: 'CREDITS';
     my @contributors = @repos.map({
       |get-committers($_,$last_release)
     }).unique(:as(*.key))».value.Bag.sort(*.value).reverse».key;
@@ -52,12 +48,21 @@ sub MAIN (
     say @contributors.join(', ');
 }
 
+sub get-last-release-date-for ($rakudo-repo) {
+    given $rakudo-repo.IO.child('VERSION') {
+        .e or die "Could not find rakudo's VERSION file at $_";
+        Date.new: Instant.from-posix: run(
+            :out, :cwd($rakudo-repo), <git log --pretty=format:%ct>, $_
+        ).out.lines.head;
+    }
+}
+
 sub get-committers($repo, $since) {
     die "Expected a repo in `$repo` but did not find one"
          unless $repo.IO.d && "$repo/.git".IO.d;
 
-    gather for shell(:out, :cwd($repo),
-      "git log --since=$since --pretty='format:%an|%cn|%H|%s'"
+    gather for run(:out, :cwd($repo),
+      <git log --since>, $since, '--pretty=format:%an|%cn|%H|%s'
     ).out.lines.grep(?*) -> $line {  # grep needed because of (Str) on empty pipe
 
         my ($author,$committer,$id,$msg) = $line.split('|',4);
@@ -84,7 +89,7 @@ sub get-committers($repo, $since) {
 sub nick-to-name($nick) {
     state %nick-to-name = do {
         my $name;
-        gather for $*CREDITS_FILE.IO.lines {
+        gather for @*CREDITS {
             when /^N:/ {
                 $name = .substr(3);
             }
@@ -93,5 +98,7 @@ sub nick-to-name($nick) {
             }
         }
     }
-    $nick ?? ( %nick-to-name{lc $nick} // $nick ) !! '<unknown>';
+    $nick
+    ?? (%nick-to-name{lc $nick} // $nick).subst(/\S+ '@' <(\S+/, '<redacted>')
+    !! '<unknown>';
 }

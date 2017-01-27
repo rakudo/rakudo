@@ -67,7 +67,7 @@ class CompUnit::RepositoryRegistry {
         my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
           !! nqp::concat(
-               nqp::atkey(nqp::backendconfig,'prefix'),
+               nqp::atkey(nqp::getcomp('perl6').config,'prefix'),
                '/share/perl6'
              );
 
@@ -329,8 +329,8 @@ class CompUnit::RepositoryRegistry {
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
         # for all possible specs
-        for $specs.split(/ \s* ',' \s* /) -> $spec {
-            if parse-include-spec($spec, $default-short-id) -> $triplet {
+        for $specs.split(',') -> $spec {
+            if parse-include-spec($spec.trim, $default-short-id) -> $triplet {
                 @found.push: join "#",
                   $triplet[0],
                   $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),

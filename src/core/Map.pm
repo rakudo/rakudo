@@ -1,7 +1,7 @@
 my class X::Hash::Store::OddNumber { ... }
 
 my class Map does Iterable does Associative { # declared in BOOTSTRAP
-    # my class Map is Iterable is Cool {
+    # my class Map is Iterable is Cool
     #   has Mu $!storage;
 
     multi method WHICH(Map:D:) {
@@ -90,7 +90,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method list(Map:) { self.pairs.cache }
 
     multi method pairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,
@@ -114,7 +114,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method keys(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 $!iter
                   ?? nqp::iterkey_s(nqp::shift($!iter))
@@ -129,7 +129,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method kv(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has int $!on-value;
 
             method pull-one() is raw {
@@ -161,10 +161,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method values(Map:D:) {
-        Seq.new(Rakudo::Internals::MappyIterator-values.new(self))
+        Seq.new(Rakudo::Iterator.Mappy-values(self))
     }
     multi method antipairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,
@@ -267,7 +267,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method Capture(Map:D:) {
         nqp::defined($!storage)
           ?? nqp::p6bindattrinvres(
-               nqp::create(Capture),Capture,'$!hash',$!storage)
+               nqp::create(Capture),Capture,'%!hash',$!storage)
           !! nqp::create(Capture)
     }
 
@@ -289,31 +289,31 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {
-    nqp::if(
-      nqp::eqaddr(a,b),
-      True,
-      nqp::if(
-        (nqp::eqaddr(a.WHAT,b.WHAT) && (my int $elems = a.elems) == b.elems),
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
         nqp::if(
-          nqp::iseq_i($elems,0),
-          True,
-          nqp::stmts(
-            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
-            (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
-            (my $iter := nqp::iterator($amap)),
-            nqp::while(
-              $iter,
-              nqp::unless(
-                (nqp::existskey(
-                  $bmap,my str $key = nqp::iterkey_s(nqp::shift($iter))
-                ) && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key)),
-                return False
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(
+            nqp::iseq_i((my int $elems = a.elems),b.elems),
+            nqp::unless(
+              nqp::iseq_i($elems,0),
+              nqp::stmts(
+                (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
+                (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+                (my $iter := nqp::iterator($amap)),
+                nqp::while(
+                  $iter
+                  && nqp::existskey($bmap,
+                    my str $key = nqp::iterkey_s(nqp::shift($iter)))
+                  && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key),
+                  ($elems = nqp::sub_i($elems,1))
+                ),
+                nqp::iseq_i($elems,0)    # checked all, so ok
               )
-            ),
-            True
+            )
           )
-        ),
-        False
+        )
       )
     )
 }

@@ -2,11 +2,11 @@
 
 This is Rakudo Perl, a Perl 6 compiler for the MoarVM and JVM.
 
-Rakudo Perl is Copyright (C) 2008-2016, The Perl Foundation. Rakudo Perl
+Rakudo Perl is Copyright (C) 2008-2017, The Perl Foundation. Rakudo Perl
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
-This directory contains only the Rakudo Perl 6 compiler itself; it 
+This directory contains only the Rakudo Perl 6 compiler itself; it
 does not contain any of the modules, documentation, or other items
 that would normally come with a full Perl 6 distribution.  If you're
 after more than just the bare compiler, please download [the latest
@@ -92,12 +92,14 @@ This is always a good starting point.
 
 If you have a question about Perl 6 syntax or the right way to approach
 a problem using Perl 6, you probably want the "perl6-users@perl.org"
-mailing list or the "irc.freenode.net/#perl6" channel.  The perl6-users
+mailing list or the [irc.freenode.net/#perl6 IRC
+channel](https://webchat.freenode.net/?channels=#perl6). The perl6-users
 list is primarily for the people who want to use Perl 6 to write
 programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #perl6 channel; the Rakudo and Perl 6
 development teams tend to hang out there and are generally glad
-to help.  You can follow "@rakudoperl" on Twitter, and there's
+to help.  You can follow [@perl6org](https://twitter.com/perl6org)
+and [@rakudoperl](https://twitter.com/rakudoperl) on Twitter, and there's
 a Perl 6 news aggregator at [Planet Perl 6](http://pl6anet.org/).
 
 Questions about NQP can also be posted to the #perl6 IRC channel.

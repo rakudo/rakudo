@@ -20,6 +20,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     my $lle;
     my $profile;
+    my $optimize;
 
     method try-load(
         CompUnit::PrecompilationDependency::File $dependency,
@@ -186,6 +187,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
                     $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
                 }
+                $unit.close;
                 fail "Outdated precompiled $unit";
             }
         }
@@ -222,6 +224,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
+        $optimize //= Rakudo::Internals.OPTIMIZE;
         my %ENV := %*ENV;
         %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
@@ -233,7 +236,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
         %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        $RMD("Precompiling $path into $bc") if $RMD;
+        $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
         my $perl6 = $*EXECUTABLE
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
@@ -246,6 +249,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           $perl6,
           $lle,
           $profile,
+          $optimize,
           "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
           "--output=$bc",
           "--source-name=$source-name",

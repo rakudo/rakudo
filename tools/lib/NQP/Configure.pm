@@ -232,7 +232,8 @@ sub gen_nqp {
     my $nqp_want = shift;
     my %options  = @_;
 
-    my $backends    = $options{'backends'};
+    my $backends = $options{'backends'};
+    my $nqp_bin  = $options{'with-nqp'};
     my $gen_nqp     = $options{'gen-nqp'};
     my $gen_moar    = $options{'gen-moar'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
@@ -246,9 +247,9 @@ sub gen_nqp {
     for my $b (qw/jvm moar/) {
         if ($backends =~ /$b/) {
             my $postfix = substr $b, 0, 1;
-            my $bin = $sdkroot
+            my $bin = $nqp_bin || ($sdkroot
                 ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "nqp-$postfix$bat" )
-                : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
+                : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" ));
             $impls{$b}{bin} = $bin;
             my %c = read_config($bin);
             my $nqp_have = $c{'nqp::version'} || '';

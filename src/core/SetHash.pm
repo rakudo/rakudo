@@ -23,6 +23,8 @@ my class SetHash does Setty {
         %!elems.values.map: -> \key --> Pair { Pair.new(True,key) }
     }
 
+    method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }
+
     method Set(SetHash:D: :$view) {
         nqp::p6bindattrinvres(
           nqp::create(Set),Set,'%!elems',

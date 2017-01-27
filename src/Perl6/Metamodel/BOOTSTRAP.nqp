@@ -37,6 +37,9 @@ my class BOOTSTRAPATTR {
         self.new(:name($!name), :box_target($!box_target), :type($ins))
     }
     method compose($obj, :$compiler_services) { }
+    method gist() { $!type.HOW.name($!type) ~ ' ' ~ $!name }
+    method perl() { 'BOOTSTRAPATTR.new' }
+    method Str()  { $!name }
 }
 
 # Stub all types.
@@ -86,6 +89,7 @@ my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?if moar
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
 # Implement the signature binder.
@@ -123,7 +127,7 @@ my class Binder {
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
     my int $SIG_ELEM_CODE_SIGIL          := 33554432;
 
-    # Binding reuslt flags.
+    # Binding result flags.
     my int $BIND_RESULT_OK       := 0;
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
@@ -144,7 +148,7 @@ my class Binder {
             my $param := nqp::atpos($params, $param_i);
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
 
-            if !nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            if !nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
             }
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
             }
@@ -198,7 +202,7 @@ my class Binder {
             $has_varname := 0;
         }
 
-        # Check if boxed/unboxed expections are met.
+        # Check if boxed/unboxed expectations are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
         my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
         if $is_rw && $desired_native {
@@ -345,7 +349,7 @@ my class Binder {
         }
 
         # Do we have any type captures to bind?
-        my $type_caps := nqp::getattr($param, Parameter, '$!type_captures');
+        my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
         unless nqp::isnull($type_caps) {
             my int $num_type_caps := nqp::elems($type_caps);
             my int $i := 0;
@@ -381,7 +385,7 @@ my class Binder {
                     $oval := $oval."$coerce_method"();
                 }
                 else {
-                    # No coercion method availale; whine and fail to bind.
+                    # No coercion method available; whine and fail to bind.
                     if nqp::defined($error) {
                         $error[0] := "Unable to coerce value for '$varname' from " ~
                             $oval.HOW.name($oval) ~
@@ -489,7 +493,7 @@ my class Binder {
 
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
-        my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
+        my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
         unless nqp::isnull($post_cons) {
             my int $n := nqp::elems($post_cons);
             my int $i := 0;
@@ -637,7 +641,7 @@ my class Binder {
     # Drives the overall binding process.
     sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
         # Get params.
-        my @params := nqp::getattr($sig, Signature, '$!params');
+        my @params := nqp::getattr($sig, Signature, '@!params');
         
         # If we do have some named args, we get hold of a hash of them. We
         # can safely delete from this as we go.
@@ -669,7 +673,7 @@ my class Binder {
                 # much nothing.
                 if nqp::isnull_s($var_name)
                     && !nqp::getattr($param, Parameter, '$!sub_signature')
-                    && !nqp::getattr($param, Parameter, '$!post_constraints') {
+                    && !nqp::getattr($param, Parameter, '@!post_constraints') {
                     $bind_fail := $BIND_RESULT_OK;
                 }
                 else {
@@ -693,13 +697,13 @@ my class Binder {
                         }
                         $k++;
                     }
-                    nqp::bindattr($capsnap, Capture, '$!list', @pos_args);
+                    nqp::bindattr($capsnap, Capture, '@!list', @pos_args);
 
                     if $named_args {
-                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::clone($named_args));
+                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::clone($named_args));
                     }
                     else {
-                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::hash());
+                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::hash());
                     }
 
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
@@ -730,13 +734,12 @@ my class Binder {
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
-#?if !js
-                nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
-#?endif
-#?if js
-                # BUILDALL doesn't like a Mu in $!storage
+
+                # JS WORKAROUND - BUILDALL doesn't like a Mu in $!storage
                 nqp::bindattr($hash, Map, '$!storage', $named_args || nqp::hash());
-#?endif
+
+                ### nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
+
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
@@ -747,7 +750,7 @@ my class Binder {
             }
             
             # Otherwise, maybe it's a positional.
-            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
+            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
                 # Slurpy or LoL-slurpy?
                 if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
                     # Create Perl 6 array, create VM Array of all remaining things, then
@@ -948,9 +951,9 @@ my class Binder {
     
     sub make_vm_capture($capture) {
         sub vm_capture(*@pos, *%named) { nqp::savecapture() }                
-        my @list := nqp::getattr($capture, Capture, '$!list');
+        my @list := nqp::getattr($capture, Capture, '@!list');
         @list    := nqp::list() unless nqp::islist(@list);
-        my %hash := nqp::getattr($capture, Capture, '$!hash');
+        my %hash := nqp::getattr($capture, Capture, '%!hash');
         %hash    := nqp::hash() unless nqp::ishash(%hash);
         vm_capture(|@list, |%hash)
     }
@@ -983,7 +986,7 @@ my class Binder {
     my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
     my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
     method trial_bind($sig, $args, $sigflags) {
-        my @params         := nqp::getattr($sig, Signature, '$!params');
+        my @params         := nqp::getattr($sig, Signature, '@!params');
         my int $num_params := nqp::elems(@params);
 
         # If there's a single capture parameter, then we're OK. (Worth
@@ -1012,13 +1015,13 @@ my class Binder {
                     $SIG_ELEM_IS_OPTIONAL) || $flags +& $SIG_ELEM_IS_RW {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '@!type_captures')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!coerce_type')) {
@@ -1361,6 +1364,7 @@ BEGIN {
 #?if moar
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
+    setup_native_ref_type(StrMultidimRef, str, 'multidim');
 #?endif
 
     # class Proxy is Any {
@@ -1392,34 +1396,40 @@ BEGIN {
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
-    # Attribute instance, complete with container desciptor and auto-viv
-    # container.
-    sub scalar_attr($name, $type, $package, :$associative_delegate) {
+    # Attribute instance, complete with container descriptor and optional
+    # auto-viv container.
+    sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-            :of($type), :rw(1), :name($name));
-        my $scalar := nqp::create(Scalar);
-        nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-        nqp::bindattr($scalar, Scalar, '$!value', $type);
-        return Attribute.new( :name($name), :type($type), :package($package),
-            :container_descriptor($cd), :auto_viv_container($scalar),
-            :$associative_delegate);
+            :of($type), :rw(1), :$name);
+        if $auto_viv_container {
+            my $scalar := nqp::create(Scalar);
+            nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
+            nqp::bindattr($scalar, Scalar, '$!value', $type);
+            return Attribute.new( :$name, :$type, :$package,
+                :container_descriptor($cd), :auto_viv_container($scalar),
+                :$associative_delegate );
+        }
+        else {
+            return Attribute.new( :$name, :$type, :$package,
+                :container_descriptor($cd), :$associative_delegate );
+        }
     }
-        
+
     # class Signature is Any{
-    #    has Mu $!params;
+    #    has @!params;
     #    has Mu $!returns;
-    #    has Mu $!arity;
-    #    has Mu $!count;
-    #    has Mu $!code;
+    #    has int $!arity;
+    #    has Num $!count;
+    #    has Code $!code;
     Signature.HOW.add_parent(Signature, Any);
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!code>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<@!params>, :type(List), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, scalar_attr('$!returns', Mu, Signature, :!auto_viv_container));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If any parameter is generic, so are we.
-            my @params := nqp::getattr($self, Signature, '$!params');
+            my @params := nqp::getattr($self, Signature, '@!params');
             for @params {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
@@ -1431,7 +1441,7 @@ BEGIN {
             # are generic, instantiate them. Otherwise leave them
             # as they are.
             my $ins    := nqp::clone($self);
-            my @params := nqp::getattr($self, Signature, '$!params');
+            my @params := nqp::getattr($self, Signature, '@!params');
             my @ins_params;
             for @params {
                 if $_.is_generic() {
@@ -1441,7 +1451,7 @@ BEGIN {
                     @ins_params.push($_);
                 }
             }
-            nqp::bindattr($ins, Signature, '$!params', @ins_params);
+            nqp::bindattr($ins, Signature, '@!params', @ins_params);
             $ins
         }));
     Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {
@@ -1468,32 +1478,32 @@ BEGIN {
         
     # class Parameter is Any {
     #     has str $!variable_name
-    #     has Mu $!named_names
-    #     has Mu $!type_captures
+    #     has @!named_names
+    #     has @!type_captures
     #     has int $!flags
     #     has Mu $!nominal_type
-    #     has Mu $!post_constraints
+    #     has @!post_constraints
     #     has Mu $!coerce_type
     #     has str $!coerce_method
-    #     has Mu $!sub_signature
-    #     has Mu $!default_value
+    #     has Signature $!sub_signature
+    #     has Code $!default_value
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
     #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!post_constraints', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!coerce_type', Mu, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!sub_signature', Signature, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!default_value', Code, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
@@ -1606,13 +1616,13 @@ BEGIN {
 #endif
     
     # class Code {
-    #     has Mu $!do;                # Low level code object
-    #     has Mu $!signature;         # Signature object
-    #     has Mu $!compstuff;         # Place for the compiler to hang stuff
+    #     has Code $!do;              # Low level code object
+    #     has Signature $!signature;  # Signature object
+    #     has @!compstuff;            # Place for the compiler to hang stuff
     Code.HOW.add_parent(Code, Any);
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!compstuff>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Code), :package(Code)));
+    Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Signature), :package(Code)));
+    Code.HOW.add_attribute(Code, scalar_attr('@!compstuff', List, Code, :!auto_viv_container));
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
@@ -1622,7 +1632,7 @@ BEGIN {
             my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
             }
@@ -1638,9 +1648,9 @@ BEGIN {
             # need to clone dispatchees list.
             my $dcself := nqp::decont($self);
             my $ins := $self.clone();
-            if nqp::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
-                nqp::bindattr($ins, Routine, '$!dispatchees',
-                    nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
+            if nqp::defined(nqp::getattr($dcself, Routine, '@!dispatchees')) {
+                nqp::bindattr($ins, Routine, '@!dispatchees',
+                    nqp::clone(nqp::getattr($dcself, Routine, '@!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             nqp::bindattr($ins, Code, '$!signature',
@@ -1676,7 +1686,7 @@ BEGIN {
     #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
-    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
             my $cloned    := nqp::clone($dcself);
@@ -1684,7 +1694,50 @@ BEGIN {
             my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+#?if moar
+            my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
+            if nqp::isconcrete($phasers) {
+                my int $next := nqp::existskey($phasers, 'NEXT');
+                my int $last := nqp::existskey($phasers, 'LAST');
+                my int $quit := nqp::existskey($phasers, 'QUIT');
+                if $next +| $last +| $quit {
+                    my %pclone := nqp::clone($phasers);
+                    if $next {
+                        my @nexts := nqp::clone($phasers<NEXT>);
+                        my int $i := 0;
+                        while $i < nqp::elems(@nexts) {
+                            @nexts[$i] := @nexts[$i].clone();
+                            $i++;
+                        }
+                        %pclone<NEXT> := @nexts;
+                    }
+                    if $last {
+                        my @lasts := nqp::clone($phasers<LAST>);
+                        my int $i := 0;
+                        while $i < nqp::elems(@lasts) {
+                            nqp::captureinnerlex(nqp::getattr(
+                                (@lasts[$i] := @lasts[$i].clone()),
+                                Code, '$!do'));
+                            $i++;
+                        }
+                        %pclone<LAST> := @lasts;
+                    }
+                    if $quit {
+                        my @quits := nqp::clone($phasers<QUIT>);
+                        my int $i := 0;
+                        while $i < nqp::elems(@quits) {
+                            nqp::captureinnerlex(nqp::getattr(
+                                (@quits[$i] := @quits[$i].clone()),
+                                Code, '$!do'));
+                            $i++;
+                        }
+                        %pclone<QUIT> := @quits;
+                    }
+                    nqp::bindattr($cloned, Block, '$!phasers', %pclone);
+                }
+            }
+#?endif
+            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
             }
@@ -1696,6 +1749,39 @@ BEGIN {
             }
             $cloned
         }));
+    Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
+            my $dcself    := nqp::decont($self);
+#?if moar
+            my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
+            if nqp::isconcrete($phasers) {
+                my @next := nqp::atkey($phasers, 'NEXT');
+                if nqp::islist(@next) {
+                    my int $i := 0;
+                    while $i < nqp::elems(@next) {
+                        nqp::p6capturelexwhere(@next[$i]);
+                        $i++;
+                    }
+                }
+                my @last := nqp::atkey($phasers, 'LAST');
+                if nqp::islist(@last) {
+                    my int $i := 0;
+                    while $i < nqp::elems(@last) {
+                        nqp::p6capturelexwhere(@last[$i]);
+                        $i++;
+                    }
+                }
+                my @quit := nqp::atkey($phasers, 'QUIT');
+                if nqp::islist(@quit) {
+                    my int $i := 0;
+                    while $i < nqp::elems(@quit) {
+                        nqp::p6capturelexwhere(@quit[$i]);
+                        $i++;
+                    }
+                }
+            }
+#?endif
+            $dcself
+    }));
     Block.HOW.compose_repr(Block);
     Block.HOW.compose_invocation(Block);
 
@@ -1704,7 +1790,7 @@ BEGIN {
 #endif
 
     # class Routine is Block {
-    #     has Mu $!dispatchees;
+    #     has @!dispatchees;
     #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!rw;
@@ -1712,34 +1798,34 @@ BEGIN {
     #     has int $!yada;
     #     has Mu $!package;
     #     has int $!onlystar;
-    #     has Mu $!dispatch_order;
+    #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!rw>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!yada>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             nqp::p6bool(nqp::defined($disp_list));
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
                 nqp::bindattr(nqp::decont($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
-                nqp::bindattr($dc_self, Routine, '$!dispatch_order', nqp::null());
+                nqp::bindattr($dc_self, Routine, '@!dispatch_order', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
                 nqp::scwbenable();
@@ -1751,8 +1837,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {
             my $clone := $self.clone();
-            nqp::bindattr($clone, Routine, '$!dispatchees',
-                nqp::clone(nqp::getattr($self, Routine, '$!dispatchees')));
+            nqp::bindattr($clone, Routine, '@!dispatchees',
+                nqp::clone(nqp::getattr($self, Routine, '@!dispatchees')));
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', nqp::getstaticcode(sub ($self) {
@@ -1761,7 +1847,7 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'dispatchees', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
-                Routine, '$!dispatchees')
+                Routine, '@!dispatchees')
         }));
     Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
         nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
@@ -1888,14 +1974,14 @@ BEGIN {
             }
             
             my $dcself     := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatchees');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatchees');
             
             # Create a node for each candidate in the graph.
             my @graph;
             for @candidates -> $candidate {
                 # Get hold of signature.
                 my $sig    := nqp::getattr($candidate, Code, '$!signature');
-                my @params := nqp::getattr($sig, Signature, '$!params');
+                my @params := nqp::getattr($sig, Signature, '@!params');
 
                 # Create it an entry.
                 my %info := nqp::hash(
@@ -1920,7 +2006,7 @@ BEGIN {
                     # to check constraint on every dispatch. Same if it's got a
                     # `where` clause.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
-                           nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
                     }
@@ -1928,7 +2014,7 @@ BEGIN {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
-                    my $named_names := nqp::getattr($param, Parameter, '$!named_names');
+                    my $named_names := nqp::getattr($param, Parameter, '@!named_names');
                     unless nqp::isnull($named_names) {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
@@ -1970,7 +2056,7 @@ BEGIN {
                         %info<types>[$significant_param] :=
                             nqp::getattr($param, Parameter, '$!nominal_type');
                     }
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
@@ -2107,8 +2193,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'sort_dispatchees', nqp::getstaticcode(sub ($self) {
         my $dcself := nqp::decont($self);
-        unless nqp::isnull(nqp::getattr($dcself, Routine, '$!dispatch_order')) {
-            nqp::bindattr($dcself, Routine, '$!dispatch_order',
+        unless nqp::isnull(nqp::getattr($dcself, Routine, '@!dispatch_order')) {
+            nqp::bindattr($dcself, Routine, '@!dispatch_order',
                 $self.'!sort_dispatchees_internal'());
         }
     }));
@@ -2130,11 +2216,11 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();
                 @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
 
@@ -2271,7 +2357,7 @@ BEGIN {
                             # Otherwise, may need full bind check.
                             elsif nqp::existskey(%info, 'bind_check') {
                                 my $sub := nqp::atkey(%info, 'sub');
-                                my $cs := nqp::getattr($sub, Code, '$!compstuff');
+                                my $cs := nqp::getattr($sub, Code, '@!compstuff');
                                 unless nqp::isnull($cs) {
                                     # We need to do the tie-break on something not yet compiled.
                                     # Get it compiled.
@@ -2470,8 +2556,8 @@ BEGIN {
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
         sub assemble_capture(*@pos, *%named) {
             my $c := nqp::create(Capture);
-            nqp::bindattr($c, Capture, '$!list', @pos);
-            nqp::bindattr($c, Capture, '$!hash', %named);
+            nqp::bindattr($c, Capture, '@!list', @pos);
+            nqp::bindattr($c, Capture, '%!hash', %named);
             $c
         }
         nqp::invokewithcapture(&assemble_capture, $capture)
@@ -2501,11 +2587,11 @@ BEGIN {
             
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();
                 @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
             
@@ -2721,38 +2807,38 @@ BEGIN {
 #endif
 
     # class Regex is Method {
-    #     has Mu $!caps;
+    #     has @!caps;
     #     has Mu $!nfa;
-    #     has Mu $!alt_nfas;
-    #     has Mu $!source;
+    #     has @!alt_nfas;
+    #     has str $!source;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!alt_nfas', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('@!alt_nfas', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
-            nqp::bindattr(nqp::decont($self), Regex, '$!caps', $caps)
+            nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
         }));
     Regex.HOW.add_method(Regex, 'SET_ALT_NFA', nqp::getstaticcode(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas');
+            my %alts := nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas');
             unless %alts {
                 %alts := nqp::hash();
-                nqp::bindattr(nqp::decont($self), Regex, '$!alt_nfas', %alts);
+                nqp::bindattr(nqp::decont($self), Regex, '@!alt_nfas', %alts);
             }
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '$!caps')
+            nqp::getattr(nqp::decont($self), Regex, '@!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self), Regex, '$!nfa')
         }));
     Regex.HOW.add_method(Regex, 'ALT_NFA', nqp::getstaticcode(sub ($self, str $name) {
             nqp::atkey(
-                nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas'),
+                nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas'),
                 $name)
         }));
     Regex.HOW.compose_repr(Regex);
@@ -2790,22 +2876,21 @@ BEGIN {
     Nil.HOW.compose_repr(Nil);
     
     # class List is Cool {
-    #     has Mu $!reified;
+    #     has List $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', List, List));
     List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!WHICH', Str, List));
     List.HOW.compose_repr(List);
 
-    # class Slip is Cool {
+    # class Slip is List {
     Slip.HOW.add_parent(Slip, List);
     Slip.HOW.compose_repr(Slip);
 
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    Array.HOW.add_attribute(Array, scalar_attr('$!descriptor', Mu, Array, :!auto_viv_container));
     Array.HOW.compose_repr(Array);
 
     # my class Map is Cool {
@@ -2817,31 +2902,31 @@ BEGIN {
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
+    Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
     Hash.HOW.compose_repr(Hash);
 
     # class Capture is Any {
-    #     has Mu $!list;
-    #     has Mu $!hash;
+    #     has @!list;
+    #     has %!hash;
     Capture.HOW.add_parent(Capture, Any);
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
-    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
+    Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture, :!auto_viv_container));
+    Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture, :!auto_viv_container));
     Capture.HOW.compose_repr(Capture);
     
     # class Junction is Mu {
     #     has Mu $!storage;
-    #     has Mu $!type;
+    #     has str $!type;
     Junction.HOW.add_parent(Junction, Mu);
     Junction.HOW.add_attribute(Junction, scalar_attr('$!storage', Mu, Junction));
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', Mu, Junction));
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction));
     Junction.HOW.compose_repr(Junction);
     
     # class Bool is Int {
     #     has str $!key;
     #     has int $!value;
     Bool.HOW.set_base_type(Bool, Int);
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!key>, :type(str), :package(Bool)));
-    Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!key>, :type(str), :package(Bool)));
+    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!value>, :type(int), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
@@ -2863,15 +2948,16 @@ BEGIN {
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
-    ForeignCode.HOW.add_attribute(ForeignCode, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
+    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Code), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
+	#     has str $!longname;
     Stash.HOW.add_parent(Stash, Hash);
-    Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!longname>, :type(str), :package(Attribute)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.
@@ -2909,6 +2995,7 @@ BEGIN {
 #?if moar
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
 #?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
@@ -3059,7 +3146,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     };
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '$!dispatchees', []);
+    nqp::bindattr($sel, Routine, '@!dispatchees', []);
     $sel
 });
 
@@ -3068,7 +3155,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 my %excluded := nqp::hash(
     'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
     'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'so', Mu, 'not', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
     'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
     'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
     'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
@@ -3263,6 +3350,10 @@ nqp::sethllconfig('perl6', nqp::hash(
                 nqp::atkey(%ex, 'X::Assignment::RO')($type);
             }
         }
+        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Method::NotFound') {
+            nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $type);
+        }
         nqp::die("Method '$name' not found for invocant of class '$type'");
     },
 #?endif
@@ -3299,6 +3390,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if moar
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
+    'str_multidim_ref', StrMultidimRef,
 #?endif
 ));
 
@@ -3309,3 +3401,5 @@ nqp::gethllsym('perl6', 'JavaModuleLoader').set_interop_loader(-> {
 });
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
+
+# vim: expandtab shiftwidth=4

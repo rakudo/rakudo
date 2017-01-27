@@ -2,12 +2,13 @@ my class X::TypeCheck { ... };
 my class X::Subscript::Negative { ... };
 my class X::NotEnoughDimensions { ... };
 my class X::Assignment::ArrayShapeMismatch { ... };
+my class array is repr('VMArray') { ... };
 
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
 # and so forth.
 my class Array { # declared in BOOTSTRAP
-    # class Array is List {
+    # class Array is List
     #     has Mu $!descriptor;
 
     my class ArrayReificationTarget {
@@ -15,10 +16,12 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            my \rt = nqp::create(self);
-            nqp::bindattr(rt, self, '$!target', target);
-            nqp::bindattr(rt, self, '$!descriptor', descriptor);
-            rt
+            nqp::stmts(
+              nqp::bindattr((my \rt = nqp::create(self)),
+                self,'$!target',target),
+              nqp::p6bindattrinvres(rt,
+                self,'$!descriptor',descriptor)
+            )
         }
 
         method push(Mu \value) {
@@ -54,7 +57,7 @@ my class Array { # declared in BOOTSTRAP
                 method !SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
-                    $!reified    := 
+                    $!reified    :=
                       nqp::ifnull(
                         nqp::getattr( array,List,'$!reified'),
                         nqp::bindattr(array,List,'$!reified',
@@ -180,269 +183,72 @@ my class Array { # declared in BOOTSTRAP
 
         # nothing now or in the future to iterate over
         else {
-            Rakudo::Internals.EmptyIterator
+            Rakudo::Iterator.Empty
         }
     }
     method from-iterator(Array:U: Iterator $iter) {
-        my \result := nqp::create(self);
-        my \buffer := nqp::create(IterationBuffer);
-        my \todo := nqp::create(List::Reifier);
-        nqp::bindattr(result, List, '$!reified', buffer);
-        nqp::bindattr(result, List, '$!todo', todo);
-        nqp::bindattr(todo, List::Reifier, '$!reified', buffer);
-        nqp::bindattr(todo, List::Reifier, '$!current-iter', $iter);
-        nqp::bindattr(todo, List::Reifier, '$!reification-target',
-            result.reification-target());
-        todo.reify-until-lazy();
-        result
-    }
-
-    sub allocate-shaped-storage(\arr, @dims) {
-        nqp::bindattr(arr, List, '$!reified',
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(@dims, nqp::knowhow(), Mu));
-        arr
-    }
-
-    my role ShapedArray[::TValue] does Positional[TValue] does Rakudo::Internals::ShapedArrayCommon {
-        has $.shape;
-
-        proto method AT-POS(|) is raw {*}
-        multi method AT-POS(Array:U: |c) is raw {
-            self.Any::AT-POS(|c)
-        }
-        multi method AT-POS(Array:D: **@indices) is raw {
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
-
-                my \elem = nqp::ifnull(
-                    nqp::atposnd($storage, $idxs),
-                    nqp::p6bindattrinvres(
-                        (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
-                        Scalar,
-                        '$!whence',
-                        -> { nqp::bindposnd($storage, $idxs, v) }));
-                @indices ?? elem.AT-POS(|@indices) !! elem
-            }
-            else {
-                X::NYI.new(feature => "Partially dimensioned views of arrays").throw
-            }
-        }
-
-        proto method ASSIGN-POS(|) {*}
-        multi method ASSIGN-POS(Array:U: |c) {
-            self.Any::ASSIGN-POS(|c)
-        }
-        multi method ASSIGN-POS(**@indices) {
-            my \value = @indices.pop;
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind == $numdims {
-                # Dimension counts match, so fast-path it
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
-                nqp::ifnull(
-                    nqp::atposnd($storage, $idxs),
-                    nqp::bindposnd($storage, $idxs,
-                        nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor')))
-                    ) = value
-            }
-            elsif $numind > $numdims {
-                # More than enough dimensions; may work, fall to slow path
-                self.AT-POS(@indices) = value
-            }
-            else {
-                # Not enough dimensions, cannot possibly assign here
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
-        }
-
-        proto method EXISTS-POS(|) {*}
-        multi method EXISTS-POS(Array:U: |c) {
-            self.Any::EXISTS-POS(|c)
-        }
-        multi method EXISTS-POS(**@indices) {
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my $dims       := nqp::dimensions($storage);
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            my int $i = -1;
-
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                my int $idx;
-
-                ($idx = @indices.shift) >= nqp::atpos_i($dims,$i)
-                  ?? return False
-                  !! nqp::push_i($idxs, $idx)
-                  while nqp::islt_i(++$i,$numind);
-
-                nqp::isnull(nqp::atposnd($storage, $idxs))
-                  ?? False
-                  !! @indices
-                     ?? nqp::atposnd($storage, $idxs).EXISTS-POS(|@indices)
-                     !! True
-            }
-            else {
-                return False
-                  if @indices[$i] >= nqp::atpos_i($dims,$i)
-                  while nqp::islt_i(++$i,$numind);
-
-                True
-            }
-        }
-
-        proto method DELETE-POS(|) {*}
-        multi method DELETE-POS(Array:U: |c) {
-            self.Any::DELETE-POS(|c)
-        }
-        multi method DELETE-POS(**@indices) {
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems;
-            if $numind >= $numdims {
-                my $idxs := nqp::list_i();
-                nqp::push_i($idxs, @indices.shift)
-                  while nqp::isge_i(--$numdims,0);
-
-                my \value = nqp::ifnull(nqp::atposnd($storage, $idxs), Nil);
-                if @indices {
-                    value.DELETE-POS(|@indices)
-                }
-                else {
-                    nqp::bindposnd($storage, $idxs, nqp::null());
-                    value
-                }
-            }
-            else {
-                # Not enough dimensions, cannot delete
-                X::NotEnoughDimensions.new(
-                    operation => 'delete from',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
-        }
-
-        proto method BIND-POS(|) is raw {*}
-        multi method BIND-POS(Array:U: |c) is raw {
-            self.Any::BIND-POS(|c)
-        }
-        multi method BIND-POS(Array:D: **@indices is raw) is raw {
-            my Mu $storage := nqp::getattr(self, List, '$!reified');
-            my int $numdims = nqp::numdimensions($storage);
-            my int $numind  = @indices.elems - 1;
-            my \value = @indices.AT-POS($numind);
-            if $numind >= $numdims {
-                # At least enough indices that binding will work out or we can
-                # pass the bind target on down the chain.
-                my $idxs := nqp::list_i();
-                my int $i = -1;
-                nqp::push_i($idxs, @indices.AT-POS($i))
-                  while nqp::islt_i(++$i,$numdims);
-                $numind == $numdims
-                    ?? nqp::bindposnd($storage, $idxs, value)
-                    !! nqp::atposnd($storage, $idxs).BIND-POS(|@indices[$numdims..*])
-            }
-            else {
-                # Not enough dimensions, cannot possibly assign here
-                X::NotEnoughDimensions.new(
-                    operation => 'assign to',
-                    got-dimensions => $numind,
-                    needed-dimensions => $numdims
-                ).throw
-            }
-        }
-
-        proto method STORE(|) { * }
-        multi method STORE(::?CLASS:D: Iterable:D \in) {
-            allocate-shaped-storage(self, self.shape);
-            my \in-shape = nqp::can(in, 'shape') ?? in.shape !! Nil;
-            if in-shape && !nqp::istype(in-shape.AT-POS(0), Whatever) {
-                if self.shape eqv in-shape {
-                    # Can do a VM-supported memcpy-like thing in the future
-                    self.ASSIGN-POS(|$_, in.AT-POS(|$_)) for self.keys;
-                }
-                else {
-                    X::Assignment::ArrayShapeMismatch.new(
-                        source-shape => in-shape,
-                        target-shape => self.shape
-                    ).throw
-                }
-            }
-            else {
-                self!STORE-PATH((), self.shape, in)
-            }
-        }
-        multi method STORE(::?CLASS:D: Mu \item) {
-            self.STORE((item,))
-        }
-
-        method reverse(::?CLASS:D:) {
-            self.shape.elems == 1
-                ?? self.new(:shape(self.shape), self.List.reverse())
-                !! X::IllegalOnFixedDimensionArray.new(operation => 'reverse').throw
-        }
-
-        method rotate(::?CLASS:D: Cool \n) {
-            self.shape.elems == 1
-                ?? self.new(:shape(self.shape), self.List.rotate(n))
-                !! X::IllegalOnFixedDimensionArray.new(operation => 'rotate').throw
-        }
-
-        # A shaped array isn't lazy, we these methods don't need to go looking
-        # into the "todo".
-        multi method elems(::?CLASS:D:) is nodal {
-            nqp::elems(nqp::getattr(self, List, '$!reified'))
-        }
-        method eager() { self }
-        method is-lazy() { False }
+        nqp::if(
+          nqp::eqaddr(
+            $iter.push-until-lazy(my \buffer := nqp::create(IterationBuffer)),
+            IterationEnd
+          ),
+          nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
+          nqp::stmts(
+            nqp::bindattr((my \result := nqp::create(self)),
+              List,'$!reified',buffer),
+            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
+              List::Reifier,'$!current-iter',$iter),
+            nqp::bindattr(todo,
+              List::Reifier,'$!reified',buffer),
+            nqp::bindattr(todo,
+              List::Reifier,'$!reification-target',result.reification-target),
+            nqp::p6bindattrinvres(result,List,'$!todo',todo)
+          )
+        )
     }
 
     proto method new(|) { * }
     multi method new(:$shape!) {
-        self!new-internal(my @, $shape)
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
+        )
     }
     multi method new() {
         nqp::create(self)
     }
-    multi method new(Mu:D \values, :$shape!) {
-        self!new-internal(values, $shape)
+    multi method new(\values, :$shape!) {
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
+        ).STORE(values)
     }
-    multi method new(Mu:D \values) {
+    multi method new(\values) {
         nqp::create(self).STORE(values)
     }
     multi method new(**@values is raw, :$shape!) {
-        self!new-internal(@values, $shape)
+        nqp::if(
+          nqp::defined($shape),
+          set-shape(self,$shape),
+          nqp::if(
+            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
+            set-shape(self,$shape.^elems),
+            nqp::create(self)
+          )
+        ).STORE(@values)
     }
     multi method new(**@values is raw) {
         nqp::create(self).STORE(@values)
-    }
-
-    method !new-internal(\values, \shape) {
-        my \arr = nqp::create(self);
-        if shape.DEFINITE {
-            my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
-            allocate-shaped-storage(arr, list-shape);
-            arr does ShapedArray[Mu];
-            arr.^set_name('Array');
-            nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-            arr.STORE(values) if values;
-        }
-        else {
-            arr.STORE(values);
-        }
-        arr
     }
 
     proto method STORE(|) { * }
@@ -493,7 +299,7 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D: :$view) {
         nqp::if(
           self.is-lazy,                           # can't make a List
-          Failure.new(X::Cannot::Lazy.new(:action<List>)),
+          X::Cannot::Lazy.new(:action<List>).throw,
 
           nqp::if(                                # all reified
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
@@ -523,7 +329,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::ifnull(
@@ -558,7 +364,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::ifnull(
@@ -601,7 +407,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(
@@ -640,7 +446,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(
@@ -679,7 +485,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -701,7 +507,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -723,7 +529,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..Inf>)),
+            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::if(
@@ -742,7 +548,7 @@ my class Array { # declared in BOOTSTRAP
                     nqp::while(
                       (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
                         && nqp::not_i(nqp::existspos($reified,$i))),
-                      Nil
+                      nqp::null
                     ),
                     nqp::setelems($reified,nqp::add_i($i,1))
                   ),
@@ -762,13 +568,13 @@ my class Array { # declared in BOOTSTRAP
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          ?? X::Cannot::Lazy.new(action => 'push to').throw
           !! self!append-list(value)
     }
     multi method push(Array:D: \value) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'push to')),
+          X::Cannot::Lazy.new(action => 'push to').throw,
           nqp::stmts(
             nqp::push(
               nqp::if(
@@ -785,14 +591,14 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'push to'))
+          ?? X::Cannot::Lazy.new(action => 'push to').throw
           !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'append to')),
+          X::Cannot::Lazy.new(action => 'append to').throw,
           nqp::if(
             (nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))),
             nqp::stmts(
@@ -813,7 +619,7 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => 'append to'))
+          ?? X::Cannot::Lazy.new(action => 'append to').throw
           !! self!append-list(@values)
     }
     method !append-list(@values) {
@@ -833,7 +639,7 @@ my class Array { # declared in BOOTSTRAP
             IterationEnd
           ),
           self,
-          Failure.new(X::Cannot::Lazy.new(:action<push>,:what(self.^name)))
+          X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
         )
     }
 
@@ -1014,12 +820,12 @@ my class Array { # declared in BOOTSTRAP
           nqp::splice(
             nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$size),
           $result
-        ) 
+        )
     }
     method !splice-offset-fail($got) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what('Offset argument to splice'), :$got, :range("0..{self.elems}")
-        ))
+        ).throw
     }
 
     #------ splice(offset,size) candidates
@@ -1029,6 +835,10 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method splice(Array:D: Whatever $, Int:D $size) {
         self.splice(self.elems,$size)
+    }
+    multi method splice(Array:D: Whatever $, Callable:D $size) {
+        my int $elems = self.elems;
+        self.splice($elems,$size(nqp::sub_i($elems,$elems)));
     }
     multi method splice(Array:D: Callable:D $offset, Callable:D $size) {
         nqp::stmts(
@@ -1094,7 +904,7 @@ my class Array { # declared in BOOTSTRAP
           nqp::splice(
             nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$removed),
           $result
-        ) 
+        )
     }
     method !splice-save(int $offset,int $size, \removed) {
         nqp::stmts(
@@ -1130,22 +940,37 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           $offset > self.elems,
           self!splice-offset-fail($offset),
-          Failure.new(X::OutOfRange.new(
+          X::OutOfRange.new(
             :what('Size argument to splice'),
             :$got,
             :range("0..^{self.elems - $offset}")
-          ))
+          ).throw
         )
     }
     #------ splice(offset,size,array) candidates
-    multi method splice(Array:D: $offset, $size, **@new) {
-        self.splice($offset, $size, @new)
-    }
+
+    # we have these 9 multies to avoid infiniloop when incorrect types are
+    # given to $offset/$size. Other attempts to resolve this showed 30%+
+    # performance decreases
+    multi method splice(Array:D: Whatever   $offset, Whatever   $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Whatever   $offset, Callable:D $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Whatever   $offset, Int:D      $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Callable:D $offset, Whatever   $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Callable:D $offset, Callable:D $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Callable:D $offset, Int:D      $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Int:D      $offset, Whatever   $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Int:D      $offset, Callable:D $size, **@new) { self.splice($offset, $size, @new) }
+    multi method splice(Array:D: Int:D      $offset, Int:D      $size, **@new) { self.splice($offset, $size, @new) }
+
     multi method splice(Array:D: Whatever $, Whatever $, @new) {
         self.splice(self.elems,0,@new)
     }
     multi method splice(Array:D: Whatever $, Int:D $size, @new) {
         self.splice(self.elems,$size,@new)
+    }
+    multi method splice(Array:D: Whatever $, Callable:D $size, @new) {
+        my int $elems = self.elems;
+        self.splice($elems,$size(nqp::sub_i($elems,$elems)),@new);
     }
     multi method splice(Array:D: Callable:D $offset, Callable:D $size, @new) {
         nqp::stmts(
@@ -1224,15 +1049,15 @@ my class Array { # declared in BOOTSTRAP
               nqp::while(
                 (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                   && nqp::istype(nqp::atpos($new,$i),$expected)),
-                Nil
+                nqp::null
               ),
               nqp::if(
                 nqp::islt_i($i,$elems),   # exited loop because of wrong type
-                Failure.new(X::TypeCheck::Splice.new(
+                X::TypeCheck::Splice.new(
                   :action<splice>,
                   :got(nqp::atpos($new,$i).WHAT),
                   :$expected
-                )),
+                ).throw,
                 nqp::stmts(
                   ($result := self!splice-save($offset,$size,$removed)),
                   nqp::splice(
@@ -1242,7 +1067,7 @@ my class Array { # declared in BOOTSTRAP
               )
             )
           ),
-          Failure.new(X::Cannot::Lazy.new(:action('splice in')))
+          X::Cannot::Lazy.new(:action('splice in')).throw
         )
     }
 
@@ -1273,133 +1098,6 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method WHICH(Array:D:) { self.Mu::WHICH }
 
-    my role TypedArray[::TValue] does Positional[TValue] {
-        proto method new(|) { * }
-        multi method new(**@values is raw, :$shape) {
-            self!new-internal(@values, $shape);
-        }
-        multi method new(\values, :$shape) {
-            self!new-internal(values, $shape);
-        }
-
-        method !new-internal(\values, \shape) {
-            my \arr = nqp::create(self);
-            nqp::bindattr(
-              arr,
-              Array,
-              '$!descriptor',
-              Perl6::Metamodel::ContainerDescriptor.new(
-                :of(TValue), :rw(1), :default(TValue))
-            );
-            if shape.DEFINITE {
-                my \list-shape = nqp::istype(shape, List) ?? shape !! shape.list;
-                allocate-shaped-storage(arr, list-shape);
-                arr does ShapedArray[Mu];
-                arr.^set_name('Array');
-                nqp::bindattr(arr, arr.WHAT, '$!shape', list-shape);
-                arr.STORE(values) if values;
-            } else {
-                arr.STORE(values);
-            }
-            arr
-        }
-
-        proto method BIND-POS(|) { * }
-        multi method BIND-POS(Array:D: Int $pos, TValue \bindval) is raw {
-            my int $ipos = $pos;
-            my $todo := nqp::getattr(self, List, '$!todo');
-            $todo.reify-at-least($ipos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $ipos, bindval)
-        }
-        multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {
-            my $todo := nqp::getattr(self, List, '$!todo');
-            $todo.reify-at-least($pos + 1) if $todo.DEFINITE;
-            nqp::bindpos(nqp::getattr(self, List, '$!reified'), $pos, bindval)
-        }
-        multi method perl(::?CLASS:D \SELF:) {
-            my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');
-            'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
-        }
-    }
-    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
-        if c.elems == 0 {
-            my $what := arr.^mixin(TypedArray[t]);
-            # needs to be done in COMPOSE phaser when that works
-            $what.^set_name("{arr.^name}[{t.^name}]");
-            $what;
-        }
-        else {
-            die "Can only type-constrain Array with [ValueType]"
-        }
-    }
-}
-
-# The [...] term creates an Array.
-proto circumfix:<[ ]>(|) { * }
-multi circumfix:<[ ]>() {
-    nqp::create(Array)
-}
-multi circumfix:<[ ]>(Iterable:D \iterable) {
-    my $reified;
-    nqp::if(
-      nqp::iscont(iterable),
-      nqp::p6bindattrinvres(
-        nqp::create(Array),List,'$!reified',
-        nqp::stmts(
-          nqp::push(
-            ($reified := nqp::create(IterationBuffer)),
-            nqp::assign(nqp::p6scalarfromdesc(nqp::null),iterable)
-          ),
-          $reified
-        )
-      ),
-      nqp::if(
-        nqp::eqaddr(iterable.WHAT,List),
-        nqp::if(
-          iterable.is-lazy,
-          Array.from-iterator(iterable.iterator),
-          nqp::stmts(     # immutable List
-            (my int $elems = iterable.elems),  # reifies
-            (my $params  := nqp::getattr(iterable,List,'$!reified')),
-            (my int $i    = -1),
-            ($reified := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($reified,$i,nqp::assign(
-                nqp::p6scalarfromdesc(nqp::null),nqp::atpos($params,$i))
-              )
-            ),
-            nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$reified)
-          ),
-        ),
-        Array.from-iterator(iterable.iterator)
-      )
-    )
-}
-multi circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
-    nqp::p6bindattrinvres(
-      nqp::create(Array),List,'$!reified',
-      nqp::stmts(
-        nqp::push(
-          (my $reified := nqp::create(IterationBuffer)),
-          nqp::assign(nqp::p6scalarfromdesc(nqp::null),x)
-        ),
-        $reified
-      )
-    )
-}
-
-proto sub pop(@) {*}
-multi sub pop(@a) { @a.pop }
-
-proto sub shift(@) {*}
-multi sub shift(@a) { @a.shift }
-
-sub push   (\a, |elems) { a.push:    |elems }
-sub append (\a, |elems) { a.append:  |elems }
-sub unshift(\a, |elems) { a.unshift: |elems }
-sub prepend(\a, |elems) { a.prepend: |elems }
-
-sub splice(@arr, |c)         { @arr.splice(|c) }
+#=============== class Array is closed in src/core/TypedArray.pm ===============
 
 # vim: ft=perl6 expandtab sw=4

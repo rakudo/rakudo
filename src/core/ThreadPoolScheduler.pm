@@ -123,7 +123,7 @@ my class ThreadPoolScheduler does Scheduler {
                             ?? cancellation().cancel
                             !! code();
                       },
-                    ($delay * 1000).Int, ($every * 1000).Int,
+                    to-millis($delay), to-millis($every),
                     TimerCancellation);
                 self!maybe_new_thread();
                 return cancellation()
@@ -135,7 +135,7 @@ my class ThreadPoolScheduler does Scheduler {
                     &catch
                       ?? -> { code(); CATCH { default { catch($_) } } }
                       !! &code,
-                    ($delay * 1000).Int, ($every * 1000).Int,
+                    to-millis($delay), to-millis($every),
                     TimerCancellation);
                 self!maybe_new_thread();
                 return Cancellation.new(async_handles => [$handle]);
@@ -148,11 +148,10 @@ my class ThreadPoolScheduler does Scheduler {
                 ?? -> { code(); CATCH { default { catch($_) } } }
                 !! &code;
             my @async_handles;
-            for 1 .. $times {
-                @async_handles.push(nqp::timer($!queue, $todo,
-                    ($delay * 1000).Int, 0, TimerCancellation));
-                $delay = 0;
-            }
+            $delay = to-millis($delay) if $delay;
+            @async_handles.push(
+              nqp::timer($!queue, $todo, $delay, 0, TimerCancellation)
+            ) for 1 .. $times;
             self!maybe_new_thread();
             return Cancellation.new(:@async_handles);
         }
@@ -171,6 +170,21 @@ my class ThreadPoolScheduler does Scheduler {
     method loads() {
         return 0 unless $!started_any;
         $!loads
+    }
+
+    multi to-millis(Int $value) {
+        1000 * $value
+    }
+    multi to-millis(Numeric $value) {
+        my $proposed = (1000 * $value).Int;
+        if $value && $proposed == 0 {
+            warn "Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms";
+            $proposed = 1;
+        }
+        $proposed
+    }
+    multi to-millis($value) {
+        to-millis(+$value)
     }
 
     method !initialize() {

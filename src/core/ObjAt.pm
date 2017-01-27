@@ -1,5 +1,5 @@
 my class ObjAt { # declared in BOOTSTRAP
-    # class ObjAt is Any {
+    # class ObjAt is Any
     #     has str $!value;
     method new(str $s) {
         nqp::box_s($s, self.WHAT)

@@ -16,7 +16,7 @@ my class Range is Cool does Iterable does Positional {
         $!is-int   = nqp::istype($!min,Int) && nqp::istype($!max,Int);
         self
     }
-    method is-lazy { self.infinite }
+    multi method is-lazy(Range:D:) { self.infinite }
 
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
@@ -104,26 +104,8 @@ my class Range is Cool does Iterable does Positional {
         if $!is-int
           && !nqp::isbig_I(nqp::decont($!min))
           && !nqp::isbig_I(nqp::decont($!max)) {
-            class :: does Iterator {
-                has int $!i;
-                has int $!n;
-
-                method !SET-SELF(\i,\n) { $!i = i - 1; $!n = n; self }
-                method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
-
-                method pull-one() {
-                    ( $!i = $!i + 1 ) <= $!n ?? $!i !! IterationEnd
-                }
-                method push-all($target --> IterationEnd) {
-                    my int $i = $!i;
-                    my int $n = $!n;
-                    $target.push(nqp::p6box_i($i)) while ($i = $i + 1) <= $n;
-                    $!i = $i;
-                }
-                method count-only() { nqp::p6box_i($!n - $!i) }
-                method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
-                method sink-all(--> IterationEnd) { $!i = $!n }
-            }.new($!min + $!excludes-min, $!max - $!excludes-max)
+            Rakudo::Iterator.IntRange(
+              $!min + $!excludes-min, $!max - $!excludes-max)
         }
 
         # doesn't make much sense, but there you go
@@ -149,21 +131,23 @@ my class Range is Cool does Iterable does Positional {
 
         # if we have (simple) char range
         elsif nqp::istype($!min,Str) {
-            my $min = $!excludes-min ?? $!min.succ !! $!min;
-            $min after $!max
+            $!min after $!max
               ?? ().iterator
-              !! $min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
+              !! $!min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
                 ?? class :: does Iterator {
                        has int $!i;
                        has int $!n;
 
-                       method !SET-SELF(\from,\end) {
-                           $!i = nqp::ord(nqp::unbox_s(from)) - 1;
-                           $!n = nqp::ord(nqp::unbox_s(end));
+                       method !SET-SELF(\from,\end,\excludes-min,\excludes-max) {
+                           $!i = nqp::ord(nqp::unbox_s(from))
+                               - (excludes-min ?? 0 !! 1);
+                           $!n = nqp::ord(nqp::unbox_s(end))
+                               - (excludes-max ?? 1 !! 0);
                            self
                        }
-                       method new(\from,\end) {
-                           nqp::create(self)!SET-SELF(from,end)
+                       method new(\from,\end,\excludes-min,\excludes-max) {
+                           nqp::create(self)!SET-SELF(
+                              from,end,excludes-min,excludes-max)
                        }
                        method pull-one() {
                            ( $!i = $!i + 1 ) <= $!n
@@ -179,8 +163,11 @@ my class Range is Cool does Iterable does Positional {
                        method count-only() { nqp::p6box_i($!n - $!i) }
                        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
                        method sink-all(--> IterationEnd) { $!i = $!n }
-                   }.new($min, $!excludes-max ?? $!max.pred !! $!max)
-                !! SEQUENCE($min,$!max,:exclude_end($!excludes-max)).iterator
+                   }.new($!min, $!max, $!excludes-min, $!excludes-max)
+                !! SEQUENCE(
+                       ($!excludes-min ?? $!min.succ !! $!min),
+                       $!max, :exclude_end($!excludes-max)
+                   ).iterator
         }
 
         # General case according to spec
@@ -428,16 +415,20 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
             ?? self.EXISTS-POS(pos)
                 ?? $!min + $!excludes-min + pos
-                !! Failure.new(X::OutOfRange.new(
-                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+                !! pos < 0
+                    ?? Failure.new(X::OutOfRange.new(
+                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
+                    )) !! Nil
             !! self.list.AT-POS(pos);
     }
     multi method AT-POS(Range:D: Int:D \pos) {
         $!is-int
             ?? self.EXISTS-POS(pos)
                 ?? $!min + $!excludes-min + pos
-                !! Failure.new(X::OutOfRange.new(
-                    :what($*INDEX // 'Index'), :got(pos), :range(0..$.elems-1)))
+                !! pos < 0
+                    ?? Failure.new(X::OutOfRange.new(
+                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
+                    )) !! Nil
             !! self.list.AT-POS(nqp::unbox_i(pos));
     }
 
@@ -582,29 +573,31 @@ my class Range is Cool does Iterable does Positional {
         my $min    = $!min [&op] $value;
         my $max    = $!max [&op] $value;
         my $is-int = nqp::istype($min,Int) && nqp::istype($max,Int);
-        self.clone( :$min, :$max, :$is-int );
+        my $clone := self.clone( :$min, :$max );
+        nqp::bindattr_i($clone, $clone.WHAT, '$!is-int', $is-int);
+        $clone;
     }
 
     method push(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<push>).throw
-    }   
+    }
     method append(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<append>).throw
-    }   
+    }
     method unshift(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<unshift>).throw
-    }   
+    }
     method prepend(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<prepend>).throw
-    }   
+    }
     method shift(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<shift>).throw
-    }   
+    }
     method pop(|) is nodal {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
-    }   
+    }
 
-    method sum() {
+    method sum() is nodal {
         my ($start,$stop) = self.int-bounds || nextsame;
         my $elems = 0 max $stop - $start + 1;
         ($start + $stop) * $elems div 2;
@@ -627,26 +620,28 @@ my class Range is Cool does Iterable does Positional {
         if $!excludes-min || $!excludes-max {
             if $!excludes-min {
                 if $!excludes-max {
-                    $value = $range.rand while $value == 0 || $value == $range;
+                    $value = $range.rand
+                        while $value+$!min == $!min || $value+$!min == $!max;
                 }
                 else {
-                    $value = $range.rand while $value == 0;
+                    $value = $range.rand while $value+$!min == $!min;
                 }
             }
             else {  # $!excludes-max
-                $value = $range;
-                $value = $range.rand while $value == $range;
+                repeat {
+                    $value = $range.rand
+                } while $value+$!min == $!max;
             }
         }
         else {
             $value = $range.rand
         }
-        $!min + $value
+        $value + $!min;
     }
 
     method in-range($got, $what?) {
-        self.ACCEPTS($got) 
-          || X::OutOfRange.new(:what($what // 'Value'),:$got,:range(self)).throw
+        self.ACCEPTS($got)
+          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self)).throw
     }
 
     multi method minmax(Range:D:) {
@@ -675,12 +670,20 @@ sub prefix:<^>($max) is pure {
 }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {
-    a =:= b
-      || (a.WHAT =:= b.WHAT
-        && a.min eqv b.min
-        && a.max eqv b.max
-        && a.excludes-min eqv b.excludes-min
-        && a.excludes-max eqv b.excludes-max)
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.min eqv b.min
+             && a.max eqv b.max
+             && nqp::iseq_i(
+               nqp::getattr_i(nqp::decont(a),Range,'$!excludes-min'),
+               nqp::getattr_i(nqp::decont(b),Range,'$!excludes-min')
+             )
+             && nqp::iseq_i(
+               nqp::getattr_i(nqp::decont(a),Range,'$!excludes-max'),
+               nqp::getattr_i(nqp::decont(b),Range,'$!excludes-max')
+             ))
+    )
 }
 
 multi sub infix:<+>(Range:D \a, Real:D \b) { a.clone-with-op(&[+], b) }

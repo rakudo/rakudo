@@ -12,23 +12,23 @@ class Version {
 
     multi method new(Version:) {
         # "v" highlander
-        once nqp::create(self)!SET-SELF(nqp::list,0,"")
+        INIT nqp::create(Version)!SET-SELF(nqp::list,0,"")      # should be once
     }
     multi method new(Version: Whatever) {
         # "v*" highlander
-        once nqp::create(self)!SET-SELF(nqp::list(*),-1,"*")
+        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,"*") # should be once
     }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
     }
     multi method new(Version: Str() $s) {
 
-        # higlanderize most common
+        # highlanderize most common
         if $s eq '6' {
-            once nqp::create(self)!SET-SELF(nqp::list(6),0,"6")
+            INIT nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
         }
         elsif $s eq '6.c' {
-            once nqp::create(self)!SET-SELF(nqp::list(6,"c"),0,"6.c")
+            INIT nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
         }
 
         # something sensible given
@@ -58,7 +58,7 @@ class Version {
 
         # "v+" highlander
         elsif $s.ends-with("+") {
-            once nqp::create(self)!SET-SELF(nqp::list,1,"")
+            INIT nqp::create(Version)!SET-SELF(nqp::list,1,"") # should be once
         }
         # get "v" highlander
         else {
@@ -115,7 +115,14 @@ class Version {
 
 
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
-    a =:= b || (a.WHAT =:= b.WHAT && a.Str eq b.Str)
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && nqp::iseq_s(
+               nqp::getattr_s(a,Version,'$!string'),
+               nqp::getattr_s(b,Version,'$!string')
+             ))
+    )
 }
 
 multi sub infix:<cmp>(Version:D \a, Version:D \b) {

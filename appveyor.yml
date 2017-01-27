@@ -2,9 +2,9 @@
 # For appveyor.yml syntax reference, please see
 # https://www.appveyor.com/docs/appveyor-yml
 #
-# JVM is already preinstalled in build worker. Please see 
+# JVM is already preinstalled in build worker. Please see
 # https://www.appveyor.com/docs/installed-software#java
-# 
+#
 
 # Platforms (e.g. x64, x86)
 platform:
@@ -46,7 +46,7 @@ matrix:
 # Installation
 install:
   - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
-  - choco install strawberryperl
+  - appveyor-retry choco install strawberryperl --version 5.20.1.1 --allow-empty-checksums
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - ECHO %RAKUDO_OPTIONS%
   - CD %APPVEYOR_BUILD_FOLDER%

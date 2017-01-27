@@ -1,5 +1,5 @@
 my class Scalar { # declared in BOOTSTRAP
-    # class Scalar is Any {
+    # class Scalar is Any
     #     has Mu $!descriptor;
     #     has Mu $!value;
     #     has Mu $!whence;

@@ -11,6 +11,12 @@ my role QuantHash does Associative {
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)
     }
+
+    multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
+        nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
+          ?? die "Cannot auto-vivify an immutable {SELF.^name}"
+          !! (SELF = self.new).AT-KEY($key)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

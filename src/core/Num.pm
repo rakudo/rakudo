@@ -2,7 +2,7 @@ my class X::Numeric::DivideByZero { ... };
 my role Rational { ... };
 
 my class Num does Real { # declared in BOOTSTRAP
-    # class Num is Cool {
+    # class Num is Cool
     #     has num $!value is box_target;
 
     multi method WHICH(Num:D:) {
@@ -188,7 +188,9 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method asinh(|) {*}
     multi method asinh(Num:D: ) {
-        (self + (self * self + 1e0).sqrt).log;
+        nqp::isnanorinf(self)
+            ?? self
+            !! (self + (self * self + 1e0).sqrt).log;
     }
     proto method cosh(|) {*}
     multi method cosh(Num:D: ) {
@@ -196,13 +198,16 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method acosh(|) {*}
     multi method acosh(Num:D: ) {
-        (self + (self * self - 1e0).sqrt).log;
+        self < 1e0
+            ?? NaN
+            !! (self + (self * self - 1e0).sqrt).log;
     }
     proto method tanh(|) {*}
     multi method tanh(Num:D: ) {
         nqp::p6box_n(nqp::tanh_n(nqp::unbox_n(self)));
     }
     proto method atanh(|) {*}
+    multi method atanh(1e0:) { ∞ }
     multi method atanh(Num:D: ) {
         ((1e0 + self) / (1e0 - self)).log / 2e0;
     }
@@ -255,7 +260,7 @@ multi sub prefix:<++>(Num:D $a is rw) {
 multi sub prefix:<++>(Num:U $a is rw) {
     $a = 1e0;
 }
-multi sub prefix:<++>(num $a is rw) {
+multi sub prefix:<++>(num $a is rw) returns num {
     $a = nqp::add_n($a, 1e0)
 }
 multi sub prefix:<-->(Num:D $a is rw) {
@@ -264,7 +269,7 @@ multi sub prefix:<-->(Num:D $a is rw) {
 multi sub prefix:<-->(Num:U $a is rw) {
     $a = -1e0;
 }
-multi sub prefix:<-->(num $a is rw) {
+multi sub prefix:<-->(num $a is rw) returns num {
     $a = nqp::sub_n($a, 1e0)
 }
 multi sub postfix:<++>(Num:D $a is rw) {
@@ -274,9 +279,9 @@ multi sub postfix:<++>(Num:D $a is rw) {
 }
 multi sub postfix:<++>(Num:U $a is rw) {
     $a = 1e0;
-    0
+    0e0
 }
-multi sub postfix:<++>(num $a is rw) {
+multi sub postfix:<++>(num $a is rw) returns num {
     my num $b = $a;
     $a = nqp::add_n($a, 1e0);
     $b
@@ -290,7 +295,7 @@ multi sub postfix:<-->(Num:U $a is rw) {
     $a = -1e0;
     0e0
 }
-multi sub postfix:<-->(num $a is rw) {
+multi sub postfix:<-->(num $a is rw) returns num {
     my num $b = $a;
     $a = nqp::sub_n($a, 1e0);
     $b
@@ -299,35 +304,35 @@ multi sub postfix:<-->(num $a is rw) {
 multi sub prefix:<->(Num:D \a) {
     nqp::p6box_n(nqp::neg_n(nqp::unbox_n(a)))
 }
-multi sub prefix:<->(num $a) {
+multi sub prefix:<->(num $a) returns num {
     nqp::neg_n($a);
 }
 
 multi sub abs(Num:D \a) {
     nqp::p6box_n(nqp::abs_n(nqp::unbox_n(a)))
 }
-multi sub abs(num $a) {
+multi sub abs(num $a) returns num {
     nqp::abs_n($a)
 }
 
 multi sub infix:<+>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi sub infix:<+>(num $a, num $b) {
+multi sub infix:<+>(num $a, num $b) returns num {
     nqp::add_n($a, $b)
 }
 
 multi sub infix:<->(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi sub infix:<->(num $a, num $b) {
+multi sub infix:<->(num $a, num $b) returns num {
     nqp::sub_n($a, $b)
 }
 
 multi sub infix:<*>(Num:D \a, Num:D \b) {
     nqp::p6box_n(nqp::mul_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi sub infix:<*>(num $a, num $b) {
+multi sub infix:<*>(num $a, num $b) returns num {
     nqp::mul_n($a, $b)
 }
 
@@ -336,7 +341,7 @@ multi sub infix:</>(Num:D \a, Num:D \b) {
       ?? nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
       !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator(a)))
 }
-multi sub infix:</>(num $a, num $b) {
+multi sub infix:</>(num $a, num $b) returns num {
     $b
       ?? nqp::div_n($a, $b)
       !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator($a)))
@@ -347,7 +352,7 @@ multi sub infix:<%>(Num:D \a, Num:D \b) {
       ?? nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
       !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
-multi sub infix:<%>(num $a, num $b) {
+multi sub infix:<%>(num $a, num $b) returns num {
     $b
       ?? nqp::mod_n($a, $b)
       !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
@@ -360,7 +365,7 @@ multi sub infix:<**>(Num:D \a, Num:D \b) {
         ?? 0e0
         !! Failure.new(X::Numeric::Underflow.new)
 }
-multi sub infix:<**>(num $a, num $b) {
+multi sub infix:<**>(num $a, num $b) returns num {
     nqp::pow_n($a, $b)
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
@@ -370,11 +375,15 @@ multi sub infix:<**>(num $a, num $b) {
 # Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
      ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
-         a === b ?? Same !! a.Stringy cmp b.Stringy;
+         a === b ?? Same # === cares about signed zeros, we don't, so:
+            !! nqp::iseq_n(a, 0e0) && nqp::iseq_n(b, 0e0)
+                ?? Same !! a.Stringy cmp b.Stringy;
 }
 multi sub infix:<cmp>(num $a, num $b) {
     ORDER(nqp::cmp_n($a, $b)) or
-         $a === $b ?? Same !! $a.Stringy cmp $b.Stringy;
+         $a === $b ?? Same # === cares about signed zeros, we don't, so:
+            !! nqp::iseq_n($a, 0e0) && nqp::iseq_n($b, 0e0)
+                ?? Same !! $a.Stringy cmp $b.Stringy;
 }
 
 # Here we treat NaN as undefined
@@ -389,16 +398,51 @@ multi sub infix:«<=>»(num $a, num $b) {
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {
     nqp::p6bool(
-      nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b))
+        nqp::eqaddr(a.WHAT,b.WHAT)
+        && (
+            ( # Both are NaNs
+                   nqp::not_i(nqp::isle_n(a, nqp::inf))
+                && nqp::not_i(nqp::isle_n(b, nqp::inf))
+            )
+            || (
+                nqp::iseq_n(a, b)
+                && ( # if we're dealing with zeros, ensure the signs match
+                    nqp::isne_n(a, 0e0)
+                    || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                        nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                        nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                        nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+                    )
+                )
+            )
+        )
     )
 }
-multi sub infix:<===>(NaN, NaN) {
-    True;
+multi sub infix:<===>(num \a, num \b) returns Bool:D {
+    nqp::p6bool(
+        nqp::eqaddr(a.WHAT,b.WHAT)
+        && (
+            ( # Both are NaNs
+                   nqp::not_i(nqp::isle_n(a, nqp::inf))
+                && nqp::not_i(nqp::isle_n(b, nqp::inf))
+            )
+            || (
+                nqp::iseq_n(a, b)
+                && ( # if we're dealing with zeros, ensure the signs match
+                    nqp::isne_n(a, 0e0)
+                    || nqp::if( # 1/-0 = -Inf; 1/0 = +Inf
+                        nqp::islt_n(nqp::div_n(1e0,a), 0e0), # a is -0, if true:
+                        nqp::islt_n(nqp::div_n(1e0,b), 0e0), #   check b is -0 too
+                        nqp::isgt_n(nqp::div_n(1e0,b), 0e0), #   check b is +0 too
+                    )
+                )
+            )
+        )
+    )
 }
-multi sub infix:<===>(num $a, num $b) returns Bool:D {
-    nqp::p6bool(nqp::iseq_n($a, $b))
-}
+
+multi sub infix:<≅>( Inf,  Inf) { Bool::True }
+multi sub infix:<≅>(-Inf, -Inf) { Bool::True }
 
 multi sub infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
@@ -459,76 +503,92 @@ multi sub acosec(Num:D \x) {
     nqp::p6box_n(nqp::asin_n(nqp::div_n(1e0, nqp::unbox_n(x))));
 }
 
-multi sub log(num $x) {
+multi sub log(num $x) returns num {
     nqp::log_n($x);
 }
 
-multi sub sin(num $x) {
+multi sub sin(num $x) returns num {
     nqp::sin_n($x);
 }
-multi sub asin(num $x) {
+multi sub asin(num $x) returns num {
     nqp::asin_n($x);
 }
-multi sub cos(num $x) {
+multi sub cos(num $x) returns num {
     nqp::cos_n($x);
 }
-multi sub acos(num $x) {
+multi sub acos(num $x) returns num {
     nqp::acos_n($x);
 }
-multi sub tan(num $x) {
+multi sub tan(num $x) returns num {
     nqp::tan_n($x);
 }
-multi sub atan(num $x) {
+multi sub atan(num $x) returns num {
     nqp::atan_n($x);
 }
-multi sub sec(num $x) {
+multi sub sec(num $x) returns num {
     nqp::sec_n($x);
 }
-multi sub asec(num $x) {
+multi sub asec(num $x) returns num {
     nqp::asec_n($x);
 }
 
-multi sub cotan(num $x) {
+multi sub cotan(num $x) returns num {
     nqp::div_n(1e0, nqp::tan_n($x));
 }
-multi sub acotan(num $x) {
-    nqp::div_n(1e0, nqp::atan_n($x));
+multi sub acotan(num $x) returns num {
+    nqp::atan_n(nqp::div_n(1e0, $x));
 }
-multi sub sinh(num $x) {
+multi sub sinh(num $x) returns num {
     nqp::sinh_n($x);
 }
-multi sub asinh(num $x) {
-    log($x + ($x * $x + 1e0));
+multi sub asinh(num $x) returns num {
+    # ln(x + √(x²+1))
+    nqp::isnanorinf($x)
+        ?? $x
+        !! nqp::log_n(
+            nqp::add_n(
+                $x,
+                nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+            )
+        )
 }
 
-multi sub cosh(num $x) {
+multi sub cosh(num $x) returns num {
     nqp::cosh_n($x);
 }
-multi sub acosh(num $x) {
-    log($x + ($x * $x - 1e0))
+multi sub acosh(num $x) returns num {
+    # ln(x + √(x²-1))
+    $x < 1e0
+        ?? NaN
+        !! nqp::log_n(
+            nqp::add_n(
+                $x,
+                nqp::pow_n( nqp::sub_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+            )
+        )
 }
-multi sub tanh(num $x) {
+multi sub tanh(num $x) returns num {
     nqp::tanh_n($x);
 }
-multi sub atanh(num $x) {
-    log((1e0 + $x) / (1e0 - $x)) / 2e0;
+multi sub atanh(num $x) returns num {
+    $x == 1e0 ?? Inf !! log((1e0 + $x) / (1e0 - $x)) / 2e0;
 }
-multi sub sech(num $x) {
+multi sub sech(num $x) returns num {
     nqp::sech_n($x);
 }
-multi sub asech(num $x) {
+multi sub asech(num $x) returns num {
     acosh(1e0 / $x);
 }
-multi sub cosech(num $x) {
+multi sub cosech(num $x) returns num {
     1e0 / sinh($x)
 }
-multi sub acosech(num $x) {
+multi sub acosech(num $x) returns num {
     asinh(1e0 / $x);
 }
-multi sub cotanh(num $x) {
+multi sub cotanh(num $x) returns num {
     1e0 / tanh($x);
 }
-multi sub acotanh(num $x) {
+multi sub acotanh(num $x) returns num {
     atanh(1e0 / $x)
 }
 

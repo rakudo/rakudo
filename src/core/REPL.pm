@@ -54,12 +54,21 @@ do {
     my role ReadlineBehavior[$WHO] {
         my &readline    = $WHO<&readline>;
         my &add_history = $WHO<&add_history>;
-
+        my $Readline = try { require Readline }
+        my $read = $Readline.new;
+        if ! $*DISTRO.is-win {
+            $read.read-init-file("/etc/inputrc");
+            $read.read-init-file("~/.inputrc");
+        }
+        method init-line-editor {
+            $read.read-history($.history-file);
+        }
         method repl-read(Mu \prompt) {
-            my $line = readline(prompt);
+            my $line = $read.readline(prompt);
 
             if $line.defined {
-                add_history($line);
+                $read.add-history($line);
+                $read.append-history(1, $.history-file);
             }
 
             $line
@@ -253,7 +262,7 @@ do {
                     say 'Continuing without tab completions or line editor';
                     say 'You may want to consider using rlwrap for simple line editor functionality';
                 } else {
-                    say 'You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor';
+                    say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor' unless $*DISTRO.is-win;
                 }
                 say '';
             }
@@ -308,6 +317,8 @@ do {
             }
 
             CONTROL {
+                when CX::Emit | CX::Take { .rethrow; }
+                when CX::Warn { .gist.say; .resume;  }
                 return $!control-not-allowed;
             }
 

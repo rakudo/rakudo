@@ -137,9 +137,6 @@
     the "roast" repository <http://github.com/perl6/roast/> and run all
     of these tests that are currently known to pass.
 
-    You can compare your own results to the results of the daily runs in
-    <https://github.com/coke/perl6-roast-data/>.
-
     At present we do not have any plans to directly store the official test
     suite as part of the Rakudo repository, but will continue to fetch it
     from the roast repository.  Releases of Rakudo get a snapshot of

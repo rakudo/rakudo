@@ -15,6 +15,15 @@ my class X::Promise::Vowed is Exception {
     has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
+my role X::Promise::Broken {
+    has $.result-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "Tried to get the result of a broken Promise\n" ~
+            ((try $!result-backtrace ~ "\n") // '') ~
+            "Original exception:\n" ~
+            callsame().indent(4)
+    }
+}
 my class Promise {
     has $.scheduler;
     has $.status;
@@ -117,7 +126,7 @@ my class Promise {
             $!result
         }
         elsif $!status == Broken {
-            $!result.throw
+            ($!result but X::Promise::Broken(Backtrace.new)).rethrow
         }
     }
 
@@ -182,14 +191,14 @@ my class Promise {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int $N, Str $combinator) {
-        X::Promise::Combinator.new(:$combinator).throw
-          if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@promises, Promise);
-
         my $p = Promise.new;
         unless @promises {
             $p.keep;
             return $p
         }
+
+        X::Promise::Combinator.new(:$combinator).throw
+          unless Rakudo::Internals.ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;
         my int $c  = $n;
@@ -218,14 +227,12 @@ my class Promise {
             });
         }
     }
-
-    # experimental
-    method Str(Promise:D:)     { self.result.Str     }
-    method Numeric(Promise:D:) { self.result.Numeric }
 }
 
 multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
-    a =:= b || a.result eqv b.result
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || a.result eqv b.result
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

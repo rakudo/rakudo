@@ -176,11 +176,20 @@ my @input-lines;
 }
 
 {
-    for <return redo next last warn proceed succeed> -> $cmd {
+    for <return redo next last proceed succeed> -> $cmd {
         @input-lines = $cmd;
         like feed_repl_with(@input-lines), / "Control flow commands not allowed in topleve" /,
             "Raises error when you run control flow command '$cmd'";
     }
+
+    like feed_repl_with(['emit 42']), /'emit without'/,
+        '`emit` prints useful message';
+
+    like feed_repl_with(['take 42']), /'take without'/,
+        '`take` prints useful message';
+
+    like feed_repl_with(['warn "foo"']), /'foo'/,
+        'Warnings print their message';
 }
 
 done-testing;

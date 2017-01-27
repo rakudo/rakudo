@@ -67,7 +67,10 @@ my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6-ModuleLoader.js");
 my $Perl6-Ops := nqp('src/vm/js/Perl6/Ops.nqp', "$blib/Perl6-Ops.js");
 my $Perl6-Pod := nqp('src/Perl6/Pod.nqp', "$blib/Perl6-Pod.js");
 my $Perl6-World := nqp('src/Perl6/World.nqp', "$blib/Perl6-World.js", :deps([$Perl6-Ops, $Perl6-Pod, $Perl6-ModuleLoader]));
-my $Perl6-Actions := nqp('src/Perl6/Actions.nqp', "$blib/Perl6-Actions.js", :deps([$Perl6-Ops, $Perl6-World]));
+
+my $Actions-nqp := combine(:sources("src/Perl6/Actions.nqp"), :file<Perl6-Actions.nqp>);
+my $Perl6-Actions := nqp($Actions-nqp, "$blib/Perl6-Actions.js", :deps([$Perl6-Ops, $Perl6-World]));
+
 my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6-Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
 
 my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<js-Perl6-Optimizer.nqp>);

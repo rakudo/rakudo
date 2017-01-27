@@ -16,6 +16,7 @@
 # Each file may have one or more markers that deselects the test:
 #     long   - run tests unless --quick
 #     stress - run tests only if --stress
+#     moar   - run tests only for MoarVM backend
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
@@ -120,6 +121,7 @@ S02-types/array.t
 S02-types/assigning-refs.t
 S02-types/autovivification.t
 S02-types/bag.t
+S02-types/baggy.t
 S02-types/baghash.t
 S02-types/bool.t
 S02-types/built-in.t
@@ -142,6 +144,7 @@ S02-types/lists.t
 S02-types/mix.t
 S02-types/mixhash.t
 S02-types/mixed_multi_dimensional.t
+S02-types/mu.t
 S02-types/multi_dimensional_array.t
 S02-types/nan.t
 S02-types/native.t
@@ -247,6 +250,7 @@ S03-operators/spaceship.t
 S03-operators/subscript-adverbs.t
 S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
+S03-operators/u2212-minus.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
@@ -290,6 +294,7 @@ S04-exception-handlers/catch.t
 S04-exception-handlers/control.t
 S04-exception-handlers/top-level.t
 S04-exceptions/control_across_runloop.t
+S04-exceptions/exceptions-json.t
 S04-exceptions/fail.t
 S04-exceptions/pending.t
 S04-phasers/ascending-order.t
@@ -607,6 +612,7 @@ S12-construction/construction.t
 S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
+S12-construction/TWEAK.t
 S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t
@@ -623,6 +629,7 @@ S12-introspection/parents.t
 S12-introspection/roles.t
 S12-introspection/walk.t
 S12-introspection/WHAT.t
+S12-meta/classhow.t
 S12-meta/exporthow.t
 S12-meta/grammarhow.t
 S12-meta/primitives.t
@@ -686,7 +693,8 @@ S15-nfg/concatenation.t         # moar
 S15-nfg/crlf-encoding.t         # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
-S15-nfg/grapheme-break.t        # moar
+S15-nfg/GraphemeBreakTest.t     # moar
+S15-nfg/emoji-test.t            # moar
 S15-nfg/long-uni.t              # moar
 S15-nfg/mass-chars.t            # moar
 S15-nfg/many-combiners.t        # moar
@@ -782,16 +790,18 @@ S16-io/tmpdir.t
 S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
+S17-channel/stress.t     # stress
 S17-lowlevel/lock.t      # slow
 S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
+S17-procasync/encoding.t # moar
 S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar
 S17-procasync/many-processes-no-close-stdin.t # moar
-S17-procasync/stress.t   # moar
+S17-procasync/stress.t   # moar stress
 S17-promise/allof.t      # slow
 S17-promise/at.t
 S17-promise/anyof.t
@@ -832,6 +842,7 @@ S17-supply/on-demand.t
 S17-supply/Promise.t
 S17-supply/produce.t
 S17-supply/reduce.t
+S17-supply/return-in-tap.t
 S17-supply/reverse.t
 S17-supply/rotor.t
 S17-supply/schedule-on.t
@@ -862,6 +873,7 @@ S24-testing/0-compile.t
 S24-testing/3-output.t
 S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
+S24-testing/9-is_deeply.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -870,6 +882,7 @@ S26-documentation/04-code.t
 S26-documentation/05-comment.t
 S26-documentation/06-lists.t
 S26-documentation/07-tables.t
+S26-documentation/07a-tables-todo-skipped.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
@@ -915,10 +928,12 @@ S32-array/rotate.t
 S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
+S32-basics/pairup.t
 S32-basics/warn.t
 S32-basics/xxKEY.t
 S32-basics/xxPOS.t
 S32-basics/xxPOS-native.t    # moar
+S32-container/buf.t
 S32-container/cat.t
 S32-container/roundrobin.t
 S32-container/stringify.t
@@ -945,6 +960,8 @@ S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/io-handle.t
+S32-io/socket-host-port-split.t
+S32-io/socket-fail-invalid-values.t
 S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t
@@ -960,14 +977,20 @@ S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
 S32-io/rename.t
+S32-io/seek.t
 S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
+S32-list/categorize-list.t
 S32-list/classify.t
+S32-list/classify-list.t
 S32-list/create.t
+S32-list/cross.t
 S32-list/combinations.t
+S32-list/deepmap.t
+S32-list/duckmap.t
 S32-list/end.t
 S32-list/first.t
 S32-list/first-end.t
@@ -1013,6 +1036,7 @@ S32-num/int.t
 S32-num/is-prime.t
 S32-num/log.t
 S32-num/narrow.t
+S32-num/negative-zero.t
 S32-num/pi.t
 S32-num/polar.t
 S32-num/polymod.t
@@ -1050,6 +1074,7 @@ S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
+S32-str/parse-base.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samemark.t
@@ -1185,7 +1210,9 @@ integration/advent2014-day05.t #stress
 integration/advent2014-day13.t
 integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t
+integration/deep-recursion-initing-native-array.t # moar
 integration/error-reporting.t  # slow
+integration/failure-and-callsame.t
 integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t

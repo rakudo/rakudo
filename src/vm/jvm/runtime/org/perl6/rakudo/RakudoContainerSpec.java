@@ -41,8 +41,15 @@ public class RakudoContainerSpec extends ContainerSpec {
             rw = tc.native_i;
         }
         if (rw == 0)
-            throw ExceptionHandling.dieInternal(tc,
-                "Cannot assign to a readonly variable or a value");
+            if (desc != null) {
+                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
+                throw ExceptionHandling.dieInternal(tc,
+                    "Cannot assign to a readonly variable (" + tc.native_s  + ") or a value");
+            }
+            else {
+                throw ExceptionHandling.dieInternal(tc,
+                    "Cannot assign to a readonly variable or a value");
+            }
 
         if (value.st.WHAT == gcx.Nil) {
             value = desc.get_attribute_boxed(tc,

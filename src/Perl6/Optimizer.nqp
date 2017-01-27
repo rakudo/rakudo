@@ -404,7 +404,7 @@ my class Problems {
     }
 }
 
-# Implements analsyis related to variable declarations within a block, which
+# Implements analysis related to variable declarations within a block, which
 # includes lexical to local handling and deciding when immediate blocks may
 # be flattened into their surrounding block.
 my class BlockVarOptimizer {
@@ -728,7 +728,7 @@ my class JunctionOptimizer {
         }
         if $found == 1 {
             my $signature := $!symbols.find_in_setting("Signature");
-            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
+            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '@!params'));
             while $iter {
                 my $p := nqp::shift($iter);
                 unless nqp::istype($p.type, $!symbols.Any) {
@@ -941,9 +941,11 @@ class Perl6::Optimizer {
 
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
-        $vars_info.delete_unused_magicals($block);
-        $vars_info.delete_unused_autoslurpy();
-        $vars_info.simplify_takedispatcher();
+        if $!level >= 1 {
+            $vars_info.delete_unused_magicals($block);
+            $vars_info.delete_unused_autoslurpy();
+            $vars_info.simplify_takedispatcher();
+        }
 
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
@@ -981,7 +983,9 @@ class Perl6::Optimizer {
         }
 
         # Do any possible lexical => local lowering.
-        $vars_info.lexical_vars_to_locals($block);
+        if $!level >= 2 {
+            $vars_info.lexical_vars_to_locals($block);
+        }
 
         # Incorporate this block's info into outer block's info.
         @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)
@@ -1879,7 +1883,7 @@ class Perl6::Optimizer {
             try $ok_type := nqp::istype($type, $!symbols.Mu) &&
                 $type.HOW.archetypes.nominal();
             unless $ok_type {
-                # nqp::ops end up labeled with nqp primtive types; we swap
+                # nqp::ops end up labeled with nqp primitive types; we swap
                 # those out for their Perl 6 equivalents.
                 my int $ps := nqp::objprimspec($type);
                 if $ps >= 1 && $ps <= 3 {
@@ -2153,7 +2157,7 @@ class Perl6::Optimizer {
         }
         $inlined.node($call.node);
 
-        # Do an optimzation pass over the inlined code.
+        # Do an optimization pass over the inlined code.
         $!symbols.faking_top_routine($code_obj,
             { self.visit_children($inlined) });
 
@@ -2178,7 +2182,7 @@ class Perl6::Optimizer {
                     $call.unshift(QAST::Op.new(
                         :op('atpos'),
                         QAST::Var.new(
-                            :name('$!dispatchees'), :scope('attribute'),
+                            :name('@!dispatchees'), :scope('attribute'),
                             QAST::Var.new( :name($call.name), :scope('lexical') ),
                             QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
                         ),
@@ -2219,7 +2223,7 @@ class Perl6::Optimizer {
                         my int $aref  := $scope eq 'attributeref';
                         if $lref || $aref {
                             my $Signature := $!symbols.find_in_setting("Signature");
-                            my $param := nqp::getattr($sig, $Signature, '$!params')[$p];
+                            my $param := nqp::getattr($sig, $Signature, '@!params')[$p];
                             if nqp::can($param, 'rw') {
                                 unless $param.rw {
                                     $arg.scope($lref ?? 'lexical' !! 'attribute');

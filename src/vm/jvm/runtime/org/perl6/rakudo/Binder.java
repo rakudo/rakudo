@@ -5,6 +5,10 @@ import java.util.*;
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
+import org.perl6.nqp.sixmodel.reprs.P6int;
+import org.perl6.nqp.sixmodel.reprs.P6str;
+import org.perl6.nqp.sixmodel.reprs.P6num;
+import org.perl6.nqp.sixmodel.reprs.P6OpaqueREPRData;
 
 @SuppressWarnings("unused")
 public final class Binder {
@@ -94,7 +98,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
 
             if (namedNames != null)
                 continue;
@@ -143,27 +147,60 @@ public final class Binder {
         /* Find self. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
         Integer selfIdx = sci.oTryGetLexicalIdx("self");
+        SixModelObject self = null;
         if (selfIdx == null) {
-            if (error != null)
-                error[0] = String.format(
-                    "Unable to bind attributive parameter '%s' - could not find self",
-                    varName);
-            return BIND_RESULT_FAIL;
+            self = Ops.getlexouter("self", tc);
+            if (self == null) {
+                if (error != null)
+                    error[0] = String.format(
+                        "Unable to bind attributive parameter '%s' - could not find self",
+                        varName);
+                return BIND_RESULT_FAIL;
+            }
         }
-        SixModelObject self = cf.oLex[selfIdx];
+        else {
+            self = cf.oLex[selfIdx];
+        }
 
         /* If it's private, just need to fetch the attribute. */
         SixModelObject assignee;
         if ((paramFlags & SIG_ELEM_BIND_PRIVATE_ATTR) != 0) {
-            assignee = self.get_attribute_boxed(tc, attrPackage, varName, STable.NO_HINT);
+            /* If we have a native Attribute we can't get a container for it, and 
+               since *trying* to get a container would throw already, we first check
+               if the target Attribute is native. */
+            int hint = -1;
+            for (HashMap<String, Integer> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
+                try {
+                    hint = map.get(varName);
+                }
+                catch (Exception e) {
+                    continue;
+                }
+            }
+            REPR attrREPR = null;
+            if (((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint] != null) {
+                /* We sometimes don't have flattenedSTables. I'm not sure that's okay, honestly... */
+                attrREPR = ((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint].REPR;
+            }
+            if (attrREPR instanceof P6int) {
+                Ops.bindattr_i(self, attrPackage, varName, Ops.unbox_i(value, tc), tc);
+            }
+            else if (attrREPR instanceof P6num) {
+                Ops.bindattr_n(self, attrPackage, varName, Ops.unbox_n(value, tc), tc);
+            }
+            else if (attrREPR instanceof P6str) {
+                Ops.bindattr_s(self, attrPackage, varName, Ops.unbox_s(value, tc), tc);
+            }
+            else {
+                /* ...but we'll just assume it's probably some boxed Attribute. */
+                assignee = self.get_attribute_boxed(tc, attrPackage, varName, STable.NO_HINT);
+                RakOps.p6store(assignee, value, tc);
+            }
         }
-
         /* Otherwise if it's public, do a method call to get the assignee. */
         else {
             throw new RuntimeException("$.x parameters NYI");
         }
-
-        RakOps.p6store(assignee, value, tc);
         return BIND_RESULT_OK;
     }
     
@@ -208,7 +245,7 @@ public final class Binder {
         String arg_s = null;
         SixModelObject arg_o = null;
         
-        /* Check if boxed/unboxed expections are met. */
+        /* Check if boxed/unboxed expectations are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
         int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
@@ -344,8 +381,8 @@ public final class Binder {
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
                     SixModelObject HOW = nomType.st.HOW;
-                    SixModelObject ig = Ops.findmethod(tc, HOW,
-                        "instantiate_generic");
+                    SixModelObject ig = Ops.findmethod(HOW,
+                        "instantiate_generic", tc);
                     SixModelObject ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;
@@ -358,13 +395,13 @@ public final class Binder {
                  * positional bind failover. */
                 if (nomType == gcx.Positional) {
                     if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
-                        SixModelObject ig = Ops.findmethod(tc, arg_o, "cache");
+                        SixModelObject ig = Ops.findmethod(arg_o, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
                         arg_o = Ops.result_o(tc.curFrame);
                         decontValue = Ops.decont(arg_o, tc);
                     }
                     else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
-                        SixModelObject ig = Ops.findmethod(tc, decontValue, "cache");
+                        SixModelObject ig = Ops.findmethod(decontValue, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
                         decontValue = Ops.result_o(tc.curFrame);
                     }
@@ -400,27 +437,27 @@ public final class Binder {
                        seeing as we don't have a isconcrete_nodecont */
                     if ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1) {
                         if (error != null) {
-                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
-                                error[0] = "Invocant requires a type object, but an object instance was passed";
-                            }
-                            else {
-                                error[0] = String.format(
-                                    "Parameter '%s' requires a type object, but an object instance was passed",
-                                    varName);
-                            }
+                            String typeName = Ops.typeName(param.get_attribute_boxed(tc,
+                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
+                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+                                ? "Invocant"
+                                : String.format("Parameter '%s'", varName);
+                            error[0] = String.format(
+                                "%s requires a type object of type %s, but an object instance was passed.  Did you forget a 'multi'?",
+                                what, typeName);
                         }
                         return juncOrFail(tc, gcx, decontValue);
                     }
                     if ((paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1) {
                         if (error != null) {
-                            if ((paramFlags & SIG_ELEM_INVOCANT) != 0) {
-                                error[0] = "Invocant requires an instance, but a type object was passed";
-                            }
-                            else {
-                                error[0] = String.format(
-                                    "Parameter '%s' requires an instance, but a type object was passed",
-                                    varName);
-                            }
+                            String typeName = Ops.typeName(param.get_attribute_boxed(tc,
+                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
+                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+                                ? "Invocant"
+                                : String.format("Parameter '%s'", varName);
+                            error[0] = String.format(
+                                "%s requires an instance of type %s, but a type object was passed.  Did you forget a .new?",
+                                what, typeName);
                         }
                         return juncOrFail(tc, gcx, decontValue);
                     }
@@ -430,7 +467,7 @@ public final class Binder {
         
         /* Type captures. */
         SixModelObject typeCaps = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!type_captures", HINT_type_captures);
+            "@!type_captures", HINT_type_captures);
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
         
@@ -451,8 +488,7 @@ public final class Binder {
             if (Ops.istype(decontValue, coerceType, tc) == 0) {
                 param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
                 String methName = tc.native_s;
-                SixModelObject coerceMeth = Ops.findmethod(tc,
-                    decontValue, methName);
+                SixModelObject coerceMeth = Ops.findmethodNonFatal(decontValue, methName, tc);
                 if (coerceMeth != null) {
                     Ops.invokeDirect(tc, coerceMeth,
                         Ops.invocantCallSite,
@@ -624,7 +660,7 @@ public final class Binder {
                 capture = decontValue;
             }
             else {
-                SixModelObject meth = Ops.findmethod(decontValue, "Capture", tc);
+                SixModelObject meth = Ops.findmethodNonFatal(decontValue, "Capture", tc);
                 if (meth == null) {
                     if (error != null)
                         error[0] = "Could not turn argument into capture";
@@ -635,7 +671,7 @@ public final class Binder {
             }
 
             SixModelObject subParams = subSignature
-                .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_params);
+                .get_attribute_boxed(tc, gcx.Signature, "@!params", HINT_SIG_params);
             /* Recurse into signature binder. */
             CallSiteDescriptor subCsd = explodeCapture(tc, gcx, capture);
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
@@ -668,8 +704,8 @@ public final class Binder {
         capture = Ops.decont(capture, tc);
 
         SixModelObject capType = gcx.Capture;
-        SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
-        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
+        SixModelObject list = capture.get_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list);
+        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash);
         if (list == null)
             list = gcx.EMPTYARR;
         if (hash == null)
@@ -758,7 +794,7 @@ public final class Binder {
             param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                gcx.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "@!named_names", HINT_named_names);
             
             /* Is it looking for us to bind a capture here? */
             if ((flags & SIG_ELEM_IS_CAPTURE) != 0) {
@@ -791,8 +827,8 @@ public final class Binder {
                     
                     SixModelObject capType = gcx.Capture;
                     SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list, posArgs);
-                    capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list, posArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash, namedArgs);
                     
                     bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);               
@@ -856,9 +892,10 @@ public final class Binder {
                     }
 
                     SixModelObject slurpyType = (flags & SIG_ELEM_IS_RAW) != 0 ? gcx.List : gcx.Array;
-                    SixModelObject sm = Ops.findmethod(tc, slurpyType,
+                    SixModelObject sm = Ops.findmethod(slurpyType,
                         (flags & SIG_ELEM_SLURPY_ONEARG) != 0 ? "from-slurpy-onearg" :
-                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy");
+                        (flags & SIG_ELEM_SLURPY_POS) != 0 ? "from-slurpy-flat" : "from-slurpy",
+                        tc);
                     Ops.invokeDirect(tc, sm, slurpyFromArgs, new Object[] { slurpyType, slurpy });
                     SixModelObject bindee = Ops.result_o(tc.curFrame);
 

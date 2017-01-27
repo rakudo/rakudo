@@ -10,7 +10,7 @@ my class Set does Setty {
     }
 
     multi method kv(Setty:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has int $!on-value;
             method pull-one() is raw {
                 nqp::if(
@@ -33,7 +33,7 @@ my class Set does Setty {
     }
     multi method values(Setty:D:) { True xx self.total }
     multi method pairs(Setty:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               $!iter
                 ?? Pair.new(nqp::iterval(nqp::shift($!iter)),True)
@@ -42,7 +42,7 @@ my class Set does Setty {
         }.new(%!elems))
     }
     multi method antipairs(Setty:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               $!iter
                 ?? Pair.new(True,nqp::iterval(nqp::shift($!iter)))
@@ -51,10 +51,10 @@ my class Set does Setty {
         }.new(%!elems))
     }
 
-    method grab ($count?) {
+    multi method grab(Set:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    method grabpairs ($count?) {
+    multi method grabpairs(Set:D $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

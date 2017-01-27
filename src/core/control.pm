@@ -51,31 +51,13 @@ multi sub return(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
-# RT #122732 - control operator crossed continuation barrier
-#?if jvm
-my &take-rw := -> | {
-    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray));
-}
-#?endif
-#?if !jvm
 proto sub take-rw(|) { * }
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
-#?endif
 
-# RT #122732 - control operator crossed continuation barrier
-#?if jvm
-my &take := -> | {
-    THROW(
-      nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
-    )
-}
-#?endif
-#?if !jvm
 proto sub take(|) { * }
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
@@ -87,7 +69,6 @@ multi sub take(|) {
       nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
     )
 }
-#?endif
 
 proto sub goto(|) { * }
 multi sub goto(Label:D \x --> Nil) { x.goto }
@@ -113,45 +94,45 @@ multi sub succeed(| --> Nil) {
 
 sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
-my &callwith := -> |c {
-    my $/ := nqp::getlexcaller('$/');
+sub callwith(|c) is raw {
+    $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('callwith');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_args(|c)
-};
+}
 
-my &nextwith := -> |c {
-    my $/ := nqp::getlexcaller('$/');
+sub nextwith(|c) is raw {
+    $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_args(|c))
-};
+}
 
-my &callsame := -> {
-    my $/ := nqp::getlexcaller('$/');
+sub callsame() is raw {
+    $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('callsame');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_capture(
             nqp::p6argsfordispatcher($dispatcher))
-};
+}
 
-my &nextsame := -> {
-    my $/ := nqp::getlexcaller('$/');
+sub nextsame() is raw {
+    $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
-};
+}
 
-my &lastcall := -> --> True {
+sub lastcall(--> True) {
     nqp::p6finddispatcher('lastcall').last();
-};
+}
 
-my &nextcallee := -> {
+sub nextcallee() {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
     $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
-};
+}
 
 sub samewith(|c) {
     $/ := nqp::getlexcaller('$/');

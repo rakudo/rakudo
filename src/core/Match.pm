@@ -15,25 +15,33 @@ my class Match is Capture is Cool {
         nqp::create(self)!SET-SELF($orig,$from,$to,$CURSOR,$made);
     }
 
+    multi method WHICH (Match:D:) {
+        self.Mu::WHICH # skip Capture's as Match is not a value type
+    }
+
     method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {
-        $!to > $!from ?? substr($!orig,$!from,$!to-$!from) !! ''
+        nqp::if(
+          nqp::isgt_i($!to,$!from),
+          nqp::substr($!CURSOR.target,$!from,nqp::sub_i($!to,$!from)),
+          ''
+        )
     }
 
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
     multi method Bool(Match:D:) {
-        $!to >= $!from
+        nqp::p6bool(nqp::isge_i($!to,$!from))
     }
     multi method ACCEPTS(Match:D: Any $) { self }
 
     method prematch(Match:D:) {
-        substr($!orig,0,$!from);
+        nqp::substr($!CURSOR.target,0,$!from)
     }
     method postmatch(Match:D:) {
-        substr($!orig,$!to)
+        nqp::substr($!CURSOR.target,$!to)
     }
 
     method caps(Match:D:) {

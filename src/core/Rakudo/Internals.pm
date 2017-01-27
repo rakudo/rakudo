@@ -1,6 +1,11 @@
 my class DateTime { ... }
+my role  IO { ... }
+my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
+my class Rakudo::Iterator { ... }
+my class Rakudo::Metaops { ... }
+my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
 my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
@@ -9,265 +14,6 @@ my class X::Str::Sprintf::Directives::Unsupported { ... };
 my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
-
-    our role MappyIterator does Iterator {
-        has $!storage;
-        has $!iter;
-
-        method !SET-SELF(\hash) {
-            $!storage := nqp::getattr(hash,Map,'$!storage');
-            nqp::if(
-              ($!storage.DEFINITE && nqp::elems($!storage)),
-              nqp::stmts(
-                ($!iter := nqp::iterator($!storage)),
-                self
-              ),
-              Rakudo::Internals.EmptyIterator
-            )
-        }
-        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
-        method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
-        method bool-only(--> True) { }
-        method sink-all(--> IterationEnd) { $!iter := Mu }
-    }
-
-    our class MappyIterator-values does MappyIterator {
-        method pull-one() is raw {
-            $!iter
-              ?? nqp::iterval(nqp::shift($!iter))
-              !! IterationEnd
-        }
-        method push-all($target --> IterationEnd) {
-            nqp::while(  # doesn't sink
-              $!iter,
-              $target.push(nqp::iterval(nqp::shift($!iter)))
-            )
-        }
-    }
-
-    our role BlobbyIterator does Iterator {
-        has $!blob;
-        has int $!elems;
-        has Int $!i;   # cannot be an int yet sadly enough
-
-        method SET-SELF(\blob) {
-            nqp::if(
-              nqp::isgt_i($!elems = nqp::elems(blob),0),
-              nqp::stmts(
-                ($!blob := blob),
-                ($!i     = -1),
-                self
-              ),
-              Rakudo::Internals.EmptyIterator
-            )
-        }
-        method new(\blob) { nqp::create(self).SET-SELF(blob) }
-        method push-all($target --> IterationEnd) {
-            my $blob      := $!blob;  # attribute access is slower
-            my int $i      = $!i;
-            my int $elems  = $!elems;
-            $target.push(nqp::atpos_i($blob,$i))
-              while nqp::islt_i(++$i,$elems);
-        }
-        method count-only() {
-            nqp::p6box_i($!elems)
-        }
-        method sink-all(--> IterationEnd) { $!i = $!elems }
-    }
-
-    our class WhateverIterator does Iterator {
-        has $!source;
-        has $!last;
-        has int $!whatever;
-        method new(\source) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '$!source', source);
-            $iter
-        }
-        method pull-one() is raw {
-            nqp::if(
-              $!whatever,
-              $!last,
-              nqp::if(
-                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                IterationEnd,
-                nqp::if(
-                  nqp::istype(value, Whatever),
-                  nqp::stmts(
-                    ($!whatever = 1),
-                    self.pull-one
-                  ),
-                  ($!last := value)
-                )
-              )
-            )
-        }
-    }
-
-    our class DwimIterator does Iterator {
-        has $!source;
-        has $!buffer;
-        has int $!ended;
-        has int $!whatever;
-        has int $!i;
-        has int $!elems;
-        method !SET-SELF(\source) {
-            $!source := source;
-            $!buffer := IterationBuffer.new;
-            self
-        }
-        method new(\source) { nqp::create(self)!SET-SELF(source) }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!ended,
-              nqp::if(
-                $!whatever,
-                $!buffer.AT-POS(nqp::sub_i($!elems,1)),
-                $!buffer.AT-POS(
-                  nqp::mod_i(nqp::sub_i(($!i = nqp::add_i($!i,1)),1),$!elems)
-                )
-              ),
-              nqp::if(
-                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
-                nqp::stmts(
-                  ($!ended = 1),
-                  nqp::if(
-                    nqp::iseq_i($!elems,0),
-                    IterationEnd,
-                    self.pull-one
-                  )
-                ),
-                nqp::if(
-                  nqp::istype(value,Whatever),
-                  nqp::stmts(
-                    ($!whatever = $!ended = 1),
-                    self.pull-one
-                  ),
-                  nqp::stmts(
-                    ($!elems = nqp::add_i($!elems,1)),
-                    $!buffer.push(value),
-                    value
-                  )
-                )
-              )
-            )
-        }
-        method ended() { nqp::p6bool($!ended) }
-        method count-elems() {
-            nqp::unless(
-              $!ended,
-              nqp::until(
-                nqp::eqaddr($!source.pull-one,IterationEnd),
-                $!elems = nqp::add_i($!elems,1)
-              )
-            );
-            $!elems
-        }
-    }
-
-    # given a List and a Seq, use the lists with indexes of the Seq to
-    # map the List with another Seq
-    method ListsFromSeq(\list,\seq --> Seq) {
-        if list.elems -> $elems {
-            Seq.new(class :: does Iterator {
-                has $!iter;
-                has $!list;
-                method !SET-SELF(\list,\seq) {
-                    $!iter := seq.iterator;
-                    $!list := nqp::getattr(list,List,'$!reified');
-                    self
-                }
-                method new(\list,\seq) {
-                    nqp::create(self)!SET-SELF(list,seq)
-                }
-                method pull-one() {
-                    nqp::if(
-                      nqp::eqaddr((my $result := $!iter.pull-one),IterationEnd),
-                      IterationEnd,
-                      nqp::stmts(
-                        nqp::if(
-                          (my $reified :=
-                            nqp::getattr($result,List,'$!reified')),
-                          nqp::stmts(  # actually has elements, so map them
-                            (my int $elems = nqp::elems($reified)),
-                            (my int $i = -1),
-                            nqp::while(  # repurpose pulled List as result
-                              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                              nqp::bindpos($reified,$i,
-                                nqp::atpos($!list,nqp::atpos($reified,$i)))
-                            )
-                          )
-                        ),
-                        $result
-                      )
-                    )
-                }
-            }.new(list,seq))
-        }
-        else {
-            ((),).Seq # an empty list should occur once
-        }
-    }
-
-    method SeqFromSeqs(\seq-from-seqs) {
-        Seq.new(class :: does Iterator {
-            has $!sfs;
-            has $!current;
-            method !SET-SELF(\seq-from-seqs) {
-                nqp::stmts(
-                  ($!sfs := seq-from-seqs.iterator),
-                  nqp::if(
-                    nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
-                    Rakudo::Internals.EmptyIterator,
-                    nqp::stmts(
-                      ($!current := $!current.iterator),
-                      self
-                    )
-                  )
-                )
-            }
-            method new(\seq-from-seqs) {
-                nqp::create(self)!SET-SELF(seq-from-seqs)
-            }
-            method pull-one() {
-                nqp::stmts(
-                  nqp::while(
-                    nqp::eqaddr((my $value := $!current.pull-one),IterationEnd),
-                    nqp::stmts(
-                      nqp::if(
-                        nqp::eqaddr(($!current := $!sfs.pull-one),IterationEnd),
-                        return IterationEnd  # really done
-                      ),
-                      ($!current := $!current.iterator)
-                    )
-                  ),
-                  $value
-                )
-            }
-        }.new(seq-from-seqs))
-    }
-
-    method EmptyIterator() {
-        once class :: does Iterator {
-            method new() { nqp::create(self) }
-            method pull-one(--> IterationEnd)  { }
-            method push-all($ --> IterationEnd) { }
-            method sink-all(--> IterationEnd)  { }
-            method count-only(--> 0) { }
-            method bool-only(--> False) { }
-        }.new
-    }
-
-    method RollerIterator(\baggy) {
-        Seq.new(class :: does Iterator {
-            has $!baggy;
-            method !SET-SELF(\baggy) { $!baggy := baggy; self }
-            method new(\bag) { nqp::create(self)!SET-SELF(bag) }
-            method is-lazy() { True }
-            method pull-one() { $!baggy.roll }
-        }.new(baggy))
-    }
 
     our class WeightedRoll {
         has @!pairs;
@@ -290,6 +36,320 @@ my class Rakudo::Internals {
             my $seen = 0;
             return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
         }
+    }
+
+    # rotate nqp list to another given list without using push/pop
+    method RotateListToList(\from,\n,\to) {
+        nqp::stmts(
+          (my $from := nqp::getattr(from,List,'$!reified')),
+          (my int $elems = nqp::elems($from)),
+          (my $to := nqp::getattr(to,List,'$!reified')),
+          (my int $i = -1),
+          (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
+          nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos(
+              $to,
+              ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+              nqp::atpos($from,$i)
+            ),
+          ),
+          to
+        )
+    }
+
+    method ReverseListToList(\from,\to) {
+        nqp::stmts(
+          (my $from := nqp::getattr(from,List,'$!reified')),
+          (my int $elems = nqp::elems($from)),
+          (my int $last  = nqp::sub_i($elems,1)),
+          (my int $i     = -1),
+          (my $to := nqp::getattr(to,List,'$!reified')),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos($to,nqp::sub_i($last,$i),nqp::atpos($from,$i))
+          ),
+          to
+        )
+    }
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # The parameter is the HLL List to be sorted *in place* using simple cmp.
+    method MERGESORT-REIFIED-LIST(\list) {
+        nqp::stmts(
+
+          # $A has the items to sort; $B is a work array
+          (my Mu $A := nqp::getattr(list,List,'$!reified')),
+          nqp::if(
+            nqp::isgt_i((my int $n = nqp::elems($A)),2),
+            nqp::stmts(     # we actually need to sort
+              (my Mu $B := nqp::setelems(nqp::list,$n)),
+
+              # Each 1-element run in $A is already "sorted"
+              # Make successively longer sorted runs of length 2, 4, 8, 16...
+              # until $A is wholly sorted
+              (my int $width = 1),
+              nqp::while(
+                nqp::islt_i($width,$n),
+                nqp::stmts(
+                  (my int $l = 0),
+
+                  # $A is full of runs of length $width
+                  nqp::while(
+                    nqp::islt_i($l,$n),
+
+                    nqp::stmts(
+                      (my int $left  = $l),
+                      (my int $right = nqp::add_i($l,$width)),
+                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                      (my int $i = $left),
+                      (my int $j = $right),
+                      (my int $k = nqp::sub_i($left,1)),
+
+                      # Merge two runs: $A[i       .. i+width-1] and
+                      #                 $A[i+width .. i+2*width-1]
+                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                      nqp::while(
+                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                        nqp::if(
+                          nqp::islt_i($i,$right) && (
+                            nqp::isge_i($j,$end)
+                              || nqp::iseq_i(
+                                   nqp::decont(  # for some reason we need this
+                                     nqp::atpos($A,$i) cmp nqp::atpos($A,$j)
+                                       || nqp::cmp_i($i,$j)
+                                   ), # apparently code gen with || isn't right
+                                   -1
+                                 )
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                            ($i = nqp::add_i($i,1))
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                            ($j = nqp::add_i($j,1))
+                          )
+                        )
+                      ),
+                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                    )
+                  ),
+
+                  # Now work array $B is full of runs of length 2*width.
+                  # Copy array B to array A for next iteration.  A more
+                  # efficient implementation would swap the roles of A and B.
+                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
+                  # Now array $A is full of runs of length 2*width.
+
+                  ($width = nqp::add_i($width,$width))
+                )
+              ),
+              nqp::p6bindattrinvres(list,List,'$!reified',$A)
+            ),
+            nqp::if(
+              nqp::islt_i($n,2)
+                || nqp::isle_i(nqp::atpos($A,0) cmp nqp::atpos($A,1),0),
+              list,  # nothing to be done, we already have the result
+              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
+                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
+            )
+          )
+        )
+    }
+    # Takes the HLL List to be sorted *in place* using the comparator
+    method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {
+        nqp::stmts(
+
+          # $A has the items to sort; $B is a work array
+          (my Mu $A := nqp::getattr(list,List,'$!reified')),
+          nqp::if(
+            nqp::isgt_i((my int $n = nqp::elems($A)),2),
+            nqp::stmts(     # we actually need to sort
+              (my Mu $B := nqp::setelems(nqp::list,$n)),
+
+              # Each 1-element run in $A is already "sorted"
+              # Make successively longer sorted runs of length 2, 4, 8, 16...
+              # until $A is wholly sorted
+              (my int $width = 1),
+              nqp::while(
+                nqp::islt_i($width,$n),
+                nqp::stmts(
+                  (my int $l = 0),
+
+                  # $A is full of runs of length $width
+                  nqp::while(
+                    nqp::islt_i($l,$n),
+
+                    nqp::stmts(
+                      (my int $left  = $l),
+                      (my int $right = nqp::add_i($l,$width)),
+                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                      (my int $i = $left),
+                      (my int $j = $right),
+                      (my int $k = nqp::sub_i($left,1)),
+
+                      # Merge two runs: $A[i       .. i+width-1] and
+                      #                 $A[i+width .. i+2*width-1]
+                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                      nqp::while(
+                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                        nqp::if(
+                          nqp::islt_i($i,$right) && (
+                            nqp::isge_i($j,$end)
+                              || nqp::iseq_i(
+                                   nqp::decont(  # for some reason we need this
+                                     comparator(
+                                       nqp::atpos($A,$i),nqp::atpos($A,$j))
+                                        || nqp::cmp_i($i,$j)
+                                   ), # apparently code gen with || isn't right
+                                   -1
+                                 )
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                            ($i = nqp::add_i($i,1))
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                            ($j = nqp::add_i($j,1))
+                          )
+                        )
+                      ),
+                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                    )
+                  ),
+
+                  # Now work array $B is full of runs of length 2*width.
+                  # Copy array B to array A for next iteration. A more
+                  # efficient implementation would swap the roles of A and B.
+                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
+                  # Now array $A is full of runs of length 2*width.
+
+                  ($width = nqp::add_i($width,$width))
+                )
+              ),
+              nqp::p6bindattrinvres(list,List,'$!reified',$A)
+            ),
+            nqp::if(
+              nqp::islt_i($n,2)
+                || nqp::iseq_i(
+                    comparator(nqp::atpos($A,0),nqp::atpos($A,1)),-1),
+              list,  # nothing to be done, we already have the result
+              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
+                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
+            )
+          )
+        )
+    }
+    # Takes the HLL List to be sorted *in place* using the mapper
+    method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
+        nqp::stmts(
+
+          (my Mu $O := nqp::getattr(list,List,'$!reified')),  # Original
+          nqp::if(
+            nqp::isgt_i((my int $n = nqp::elems($O)),2),
+            nqp::stmts(     # we actually need to sort
+              (my Mu $S := nqp::clone($O)),                   # the Schwartz
+              (my Mu $A := nqp::setelems(nqp::list_i,$n)),    # indexes to sort
+              (my Mu $B := nqp::setelems(nqp::list_i,$n)),    # work array
+              (my int $s = -1),
+              nqp::while(  # set up the Schwartz and the initial indexes
+                nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+                nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),
+                  mapper(nqp::atpos($S,$s)))
+              ),
+
+              # Each 1-element run in $A is already "sorted"
+              # Make successively longer sorted runs of length 2, 4, 8, 16...
+              # until $A is wholly sorted
+              (my int $width = 1),
+              nqp::while(
+                nqp::islt_i($width,$n),
+                nqp::stmts(
+                  (my int $l = 0),
+
+                  # $A is full of runs of length $width
+                  nqp::while(
+                    nqp::islt_i($l,$n),
+
+                    nqp::stmts(
+                      (my int $left  = $l),
+                      (my int $right = nqp::add_i($l,$width)),
+                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                      (my int $i = $left),
+                      (my int $j = $right),
+                      (my int $k = nqp::sub_i($left,1)),
+
+                      # Merge two runs: $A[i       .. i+width-1] and
+                      #                 $A[i+width .. i+2*width-1]
+                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                      nqp::while(
+                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                        nqp::if(
+                          nqp::islt_i($i,$right) && (
+                            nqp::isge_i($j,$end)
+                              || (nqp::iseq_i(
+                                   nqp::decont(
+                                     nqp::atpos($S,nqp::atpos_i($A,$i))
+                                       cmp nqp::atpos($S,nqp::atpos_i($A,$j))
+                                       || nqp::cmp_i($i,$j)
+                                   ),
+                                   -1
+                                 ))
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                            ($i = nqp::add_i($i,1))
+                          ),
+                          nqp::stmts(
+                            (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                            ($j = nqp::add_i($j,1))
+                          )
+                        )
+                      ),
+                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                    )
+                  ),
+
+                  # Now work array $B is full of runs of length 2*width.
+                  # Copy array B to array A for next iteration. A more
+                  # efficient implementation would swap the roles of A and B.
+                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
+                  # Now array $A is full of runs of length 2*width.
+
+                  ($width = nqp::add_i($width,$width))
+                )
+              ),
+              ($s = -1),
+              nqp::while(   # repurpose the Schwartz for the result
+                nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+                nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
+              ),
+              nqp::p6bindattrinvres(list,List,'$!reified',$S)
+            ),
+
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+              nqp::if(
+                nqp::islt_i($n,2)
+                  || nqp::iseq_i(
+                      mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),-1),
+                nqp::clone($O), # nothing to be done, we already have the result
+                nqp::list(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
+              )
+            )
+          )
+        )
     }
 
     method SET_LEADING_DOCS($obj, $docs) {
@@ -468,21 +528,52 @@ my class Rakudo::Internals {
         Nil
     }
 
-    # True if given array does not just contain objects of given type
-    method NOT_ALL_TYPE(\values,\type) {
-        return True unless nqp::istype($_,type) for values;
-        False;
+    # number of elems of type if all, otherwise 0
+    method ALL_TYPE(\values,\type) {
+        nqp::stmts(
+          (my int $elems = values.elems),   # reifies
+          (my $values := nqp::getattr(values,List,'$!reified')),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::istype(nqp::atpos($values,$i),type),
+            nqp::null
+          ),
+          nqp::iseq_i($i,$elems) && $elems
+        )
     }
 
-    # True if given array does not just contain defined objects of given type
-    method NOT_ALL_DEFINED_TYPE(\values,\type) {
-        return True unless nqp::defined($_) && nqp::istype($_,type) for values;
-        False;
+    # number of elems of defined && type if all, otherwise 0
+    method ALL_DEFINED_TYPE(\values,\type) {
+        nqp::stmts(
+          (my int $elems = values.elems),   # reifies
+          (my $values := nqp::getattr(values,List,'$!reified')),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::defined(nqp::atpos($values,$i))
+              && nqp::istype(nqp::atpos($values,$i),type),
+            nqp::null
+          ),
+          nqp::iseq_i($i,$elems) && $elems
+        )
     }
 
-    method TRANSPOSE(Str \string, Str \original, Str \final) {
-        nqp::join(nqp::unbox_s(final),
-          nqp::split(nqp::unbox_s(original),nqp::unbox_s(string)))
+    method TRANSPOSE(str $string, str $original, str $final) {
+        nqp::join($final,nqp::split($original,$string))
+    }
+    method TRANSPOSE-ONE(str $string, str $original, str $final) {
+        nqp::if(
+          nqp::iseq_i((my int $index = nqp::index($string, $original)), -1),
+          $string,
+          nqp::concat(
+            nqp::substr($string,0,$index),
+            nqp::concat(
+              $final,
+              nqp::substr($string,nqp::add_i($index,nqp::chars($final)))
+            )
+          )
+        )
     }
 
 #?if moar
@@ -519,22 +610,43 @@ my class Rakudo::Internals {
         $root
     }
 
-    method SHAPED-ARRAY-STORAGE(@dims, Mu \meta-obj, Mu \type-key) {
-        my $keys := nqp::list(meta-obj);
-        my $dims := nqp::list_i;
-        for @dims {
-            X::NYI.new(feature => 'Jagged array shapes').throw
-              if nqp::istype($_,Whatever);
-            my int $dim = $_.Int;
-            X::IllegalDimensionInShape.new(:$dim).throw
-              if nqp::isle_i($dim,0);
-
-            nqp::push($keys, type-key);
-            nqp::push_i($dims, $dim);
-        }
-
-        nqp::setdimensions(
-          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$keys)),$dims);
+    method SHAPED-ARRAY-STORAGE(\spec, Mu \meta-obj, Mu \type) {
+        nqp::stmts(
+          (my $types := nqp::list(meta-obj)),  # meta + type of each dimension
+          (my $dims  := nqp::list_i),          # elems per dimension
+          nqp::if(
+            nqp::istype(spec,List),
+            nqp::stmts(                        # potentially more than 1 dim
+              (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
+              (my int $elems = nqp::elems($spec)),
+              (my int $i     = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::if(
+                  nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
+                  X::NYI.new(feature => 'Jagged array shapes').throw,
+                  nqp::if(
+                    nqp::isbig_I(nqp::decont($dim := nqp::decont($dim.Int)))
+                      || nqp::isle_i($dim,0),
+                    X::IllegalDimensionInShape.new(:$dim).throw,
+                    nqp::stmts(
+                      nqp::push($types,type),
+                      nqp::push_i($dims,$dim)
+                    )
+                  )
+                )
+              )
+            ),
+            nqp::stmts(                        # only 1 dim
+              nqp::push($types,type),
+              nqp::push_i($dims,spec.Int)
+            )
+          ),
+          nqp::setdimensions(
+            nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$types)),
+            $dims
+          )
+        )
     }
 
     our role ShapedArrayCommon {
@@ -558,52 +670,26 @@ my class Rakudo::Internals {
             self.DEFINITE ?? self!illegal("prepend") !! self.Any::prepend(|c)
         }
 
+        # illegal unless overridden for 1dimmed case
+        method reverse(::?CLASS:D: |) { self!illegal("reverse") }
+        method rotate(::?CLASS:D: |)  { self!illegal("rotate") }
+
+        multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
         multi method keys(::?CLASS:D:) {
-            my @shape := self.shape;
-            @shape.elems == 1
-                ?? Seq.new((^@shape[0]).iterator)
-                !! cross(@shape.map({ 0..^$_ }).list)
-        }
-        multi method values(::?CLASS:D:) {
-            self.keys.map({ self.AT-POS(|$_) })
-        }
-        multi method kv(::?CLASS:D:) {
-            self.keys.map({ slip($_, self.AT-POS(|$_)) })
-        }
-        multi method pairs(::?CLASS:D:) {
-            self.keys.map({ Pair.new($_,self.AT-POS(|$_)) })
-        }
-        multi method antipairs(::?CLASS:D:) {
-            self.keys.map({ Pair.new(self.AT-POS(|$_),$_) })
+            Seq.new(Rakudo::Iterator.ShapeIndex(self.shape))
         }
         multi method invert(::?CLASS:D:) {
             self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
         }
 
-        method iterator(::?CLASS:D:) {
-            # This can be fairly heavily optimized in various ways later
-            self.values.iterator
-        }
-
         # These work on the flat view
-        method roll(|c) {
-            self.flat.roll(|c)
-        }
-        method pick(|c) {
-            self.flat.pick(|c)
-        }
-        method permutations(|c) {
-            self.flat.permutations(|c)
-        }
-        method combinations(|c) {
-            self.flat.combinations(|c)
-        }
-        method rotor(|c) {
-            self.flat.rotor(|c)
-        }
-        method join(|c) {
-            self.flat.join(|c)
-        }
+        method roll(|c)         { self.flat.roll(|c) }
+        method pick(|c)         { self.flat.pick(|c) }
+        method permutations(|c) { self.flat.permutations(|c) }
+        method combinations(|c) { self.flat.combinations(|c) }
+        method rotor(|c)        { self.flat.rotor(|c) }
+        method join(|c)         { self.flat.join(|c) }
+        method sort(|c)         { self.flat.sort(|c) }
 
         multi method gist(::?CLASS:D:) {
             self.gistseen('Array', { self!gist([], self.shape) })
@@ -645,31 +731,35 @@ my class Rakudo::Internals {
             }
         }
 
-        method !STORE-PATH(@path, @rest, \in) {
-            my int $cur-pos = 0;
-            if @rest.elems == 1 {
-                for in -> \item {
-                    self.ASSIGN-POS(|@path, $cur-pos, item);
-                    $cur-pos = $cur-pos + 1;
-                }
-            }
-            else {
-                my @nextrest = @rest[1..^@rest.elems];
-                for in -> \item {
-                    my @nextpath = flat @path, $cur-pos;
-                    if nqp::istype(item, Iterable) && nqp::isconcrete(item) {
-                        self!STORE-PATH(@nextpath, @nextrest, item)
-                    }
-                    else {
-                        X::Assignment::ToShaped.new(shape => self.shape).throw;
-                    }
-                    $cur-pos = $cur-pos + 1;
-                }
-            }
-        }
-
         multi method Slip() {
             Slip.from-iterator(self.iterator)
+        }
+
+        proto method AT-POS(|) is raw {*}
+        multi method AT-POS(::?CLASS:U: |c) is raw {
+            self.Any::AT-POS(|c)
+        }
+        multi method AT-POS(::?CLASS:D:) is raw {
+            die "Must specify at least one index with {self.^name}.AT-POS"
+        }
+
+        proto method ASSIGN-POS(|) {*}
+        multi method ASSIGN-POS(::?CLASS:U: |c) {
+            self.Any::ASSIGN-POS(|c)
+        }
+        multi method ASSIGN-POS(::?CLASS:D:) {
+            die "Must specify at least one index and a value with {self.^name}.ASSIGN-POS"
+        }
+        multi method ASSIGN-POS(::?CLASS:D: $) {
+            die "Must specify at least one index and a value with {self.^name}.ASSIGN-POS"
+        }
+
+        proto method EXISTS-POS(|) {*}
+        multi method EXISTS-POS(::?CLASS:U: |c) {
+            self.Any::EXISTS-POS(|c)
+        }
+        multi method EXISTS-POS(::?CLASS:D:) {
+            die "Must specify at least one index with {self.^name}.EXISTS-POS"
         }
     }
 
@@ -723,7 +813,6 @@ my class Rakudo::Internals {
         }
     }
 
-
     my int $sprintfHandlerInitialized = 0;
     method initialize-sprintf-handler(--> Nil) {
         class SprintfHandler {
@@ -750,7 +839,7 @@ my class Rakudo::Internals {
         X::OutOfRange.new(
           :what('Number of characters argument to substr'),
           :got(chars.gist),
-          :range("0..Inf"),
+          :range<0..^Inf>,
           :comment("use *-{abs chars} if you want to index relative to the end"),
         );
     }
@@ -884,6 +973,12 @@ my class Rakudo::Internals {
           ?? '--profile'
           !! Empty
     }
+    # running with --optimize=X
+    method OPTIMIZE() {
+        nqp::existskey($compiling-options, 'optimize')
+          ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
+          !! Empty
+    }
     # whatever specified with -I
     method INCLUDE() {
         nqp::existskey($compiling-options,'I')
@@ -906,7 +1001,7 @@ my class Rakudo::Internals {
     method get-local-timezone-offset() {
         my $utc     = time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
-        
+
         DateTime.new(
           :year(nqp::atpos_i($fia,5)),
           :month(nqp::atpos_i($fia,4)),
@@ -1030,7 +1125,7 @@ my class Rakudo::Internals {
           nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
     }
 
-    my $initializers := nqp::hash;
+    my $initializers;
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
@@ -1041,7 +1136,10 @@ my class Rakudo::Internals {
         nqp::stmts(
           (my str $with = $version ~ "\0" ~ name),
           nqp::if(
-            nqp::existskey($initializers,$with),
+            nqp::existskey(
+              nqp::unless($initializers,$initializers := nqp::hash),
+              $with
+            ),
             (die "Already have initializer for '{name}' ('$version')"),
             nqp::bindkey($initializers,$with,&code)
           ),
@@ -1058,7 +1156,10 @@ my class Rakudo::Internals {
         nqp::stmts(
           (my str $with = nqp::getcomp('perl6').language_version ~ "\0" ~ name),
           nqp::if(
-            nqp::existskey($initializers,$with),
+            nqp::existskey(
+              nqp::unless($initializers,$initializers := nqp::hash),
+              $with
+            ),
             nqp::atkey($initializers,$with)(),
             nqp::if(
               nqp::existskey($initializers,name),
@@ -1239,18 +1340,98 @@ my class Rakudo::Internals {
           !! path;
     }
 
-    method DIR-RECURSE(Str(Cool) \abspath, Mu :$test = none(<. .. .precomp>)) {
-        my @paths = Rakudo::Internals.FILETEST-E(abspath)
-            ?? dir(abspath, :$test)
-            !! ();
-        gather while ( @paths.pop ) -> Str(Cool) $path {
-            @paths.append( dir($path, :$test) ) if try Rakudo::Internals.FILETEST-D($path);
-            take $path;
-        }
+    method DIR-RECURSE(
+      \abspath,
+      Mu :$dir  = -> str $elem { nqp::not_i(nqp::eqat($elem,'.',0)) },
+      Mu :$file = True
+    ) {
+        Seq.new(class :: does Iterator {
+            has str $!abspath;
+            has $!handle;
+            has $!dir;
+            has $!file,
+            has str $!dir-sep;
+            has $!todo;
+            has $!seen;
+            method !SET-SELF(\abspath,$!dir,$!file) {
+                $!abspath = abspath;
+                if nqp::stat($!abspath,nqp::const::STAT_EXISTS)
+                  && nqp::stat($!abspath,nqp::const::STAT_ISDIR) {
+                    $!handle := nqp::opendir($!abspath);
+                    $!dir-sep = $*SPEC.dir-sep;
+                    $!todo   := nqp::list_s;
+                    $!seen   := nqp::hash($!abspath,1);
+                    $!abspath = nqp::concat($!abspath,$!dir-sep);
+                    self
+                }
+                else {
+                    Rakudo::Iterator.Empty
+                }
+            }
+            method new(\ap,\d,\f) { nqp::create(self)!SET-SELF(ap,d,f) }
+
+            method !next() {
+                nqp::while(
+                  nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
+                    || nqp::iseq_i(nqp::chars($elem),0),
+                  nqp::stmts(
+                    nqp::closedir($!handle),
+                    nqp::if(
+                      nqp::elems($!todo),
+                      nqp::stmts(
+                        ($!abspath = nqp::pop_s($!todo)),
+                        ($!handle := nqp::opendir($!abspath)),
+                        ($!abspath = nqp::concat($!abspath,$!dir-sep))
+                      ),
+                      return ''
+                    )
+                  )
+                );
+                $elem
+            }
+            method pull-one() {
+                nqp::while(
+                  nqp::chars(my str $entry = self!next),
+                  nqp::if(
+                    nqp::stat(
+                      (my str $path = nqp::concat($!abspath,$entry)),
+                      nqp::const::STAT_EXISTS
+                    ),
+                    nqp::if(
+                      nqp::stat($path,nqp::const::STAT_ISREG)
+                        && $!file.ACCEPTS($entry),
+                      (return $path),
+                      nqp::if(
+                        nqp::stat($path,nqp::const::STAT_ISDIR)
+                          && $!dir.ACCEPTS($entry),
+                        nqp::stmts(
+                          nqp::if(
+                            nqp::fileislink($path),
+                            $path = IO::Path.new(
+                              $path,:CWD($!abspath)).resolve.abspath
+                          ),
+                          nqp::unless(
+                            nqp::existskey($!seen,$path),
+                            nqp::stmts(
+                              nqp::bindkey($!seen,$path,1),
+                              nqp::push_s($!todo,$path)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                );
+                IterationEnd
+            }
+        }.new(abspath,$dir,$file))
     }
 
     method FILETEST-E(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    }
+    method FILETEST-LE(Str:D \abspath) {
+        nqp::lstat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
     }
     method FILETEST-D(Str:D \abspath) {
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
@@ -1368,7 +1549,7 @@ my class Rakudo::Internals {
 
     # normal increment magic chars & incremented char at same index
     my $succ-nlook = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨۰۱۲۳۴۵۶۷۸߀߁߂߃߄߅߆߇߈०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮௦௧௨௩௪௫௬௭௮౦౧౨౩౪౫౬౭౮೦೧೨೩೪೫೬೭೮൦൧൨൩൪൫൬൭൮෦෧෨෩෪෫෬෭෮๐๑๒๓๔๕๖๗๘໐໑໒໓໔໕໖໗໘༠༡༢༣༤༥༦༧༨၀၁၂၃၄၅၆၇၈႐႑႒႓႔႕႖႗႘០១២៣៤៥៦៧៨᠐᠑᠒᠓᠔᠕᠖᠗᠘᥆᥇᥈᥉᥊᥋᥌᥍᥎᧐᧑᧒᧓᧔᧕᧖᧗᧘᪀᪁᪂᪃᪄᪅᪆᪇᪈᪐᪑᪒᪓᪔᪕᪖᪗᪘᭐᭑᭒᭓᭔᭕᭖᭗᭘᮰᮱᮲᮳᮴᮵᮶᮷᮸᱀᱁᱂᱃᱄᱅᱆᱇᱈᱐᱑᱒᱓᱔᱕᱖᱗᱘⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾꘠꘡꘢꘣꘤꘥꘦꘧꘨꣐꣑꣒꣓꣔꣕꣖꣗꣘꣠꣡꣢꣣꣤꣥꣦꣧꣨꤀꤁꤂꤃꤄꤅꤆꤇꤈꧐꧑꧒꧓꧔꧕꧖꧗꧘꧰꧱꧲꧳꧴꧵꧶꧷꧸꩐꩑꩒꩓꩔꩕꩖꩗꩘꯰꯱꯲꯳꯴꯵꯶꯷꯸０１２３４５６７８🍺🐪';
-    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩۱۲۳۴۵۶۷۸۹߁߂߃߄߅߆߇߈߉१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯௧௨௩௪௫௬௭௮௯౧౨౩౪౫౬౭౮౯೧೨೩೪೫೬೭೮೯൧൨൩൪൫൬൭൮൯෧෨෩෪෫෬෭෮෯๑๒๓๔๕๖๗๘๙໑໒໓໔໕໖໗໘໙༡༢༣༤༥༦༧༨༩၁၂၃၄၅၆၇၈၉႑႒႓႔႕႖႗႘႙១២៣៤៥៦៧៨៩᠑᠒᠓᠔᠕᠖᠗᠘᠙᥇᥈᥉᥊᥋᥌᥍᥎᥏᧑᧒᧓᧔᧕᧖᧗᧘᧙᪁᪂᪃᪄᪅᪆᪇᪈᪉᪑᪒᪓᪔᪕᪖᪗᪘᪙᭑᭒᭓᭔᭕᭖᭗᭘᭙᮱᮲᮳᮴᮵᮶᮷᮸᮹᱁᱂᱃᱄᱅᱆᱇᱈᱉᱑᱒᱓᱔᱕᱖᱗᱘᱙ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿꘡꘢꘣꘤꘥꘦꘧꘨꘩꣑꣒꣓꣔꣕꣖꣗꣘꣙꣡꣢꣣꣤꣥꣦꣧꣨꣩꤁꤂꤃꤄꤅꤆꤇꤈꤉꧑꧒꧓꧔꧕꧖꧗꧘꧙꧱꧲꧳꧴꧵꧶꧷꧸꧹꩑꩒꩓꩔꩕꩖꩗꩘꩙꯱꯲꯳꯴꯵꯶꯷꯸꯹１２３４５６７８９🍻🐫'; 
+    my $succ-nchrs = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩۱۲۳۴۵۶۷۸۹߁߂߃߄߅߆߇߈߉१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯௧௨௩௪௫௬௭௮௯౧౨౩౪౫౬౭౮౯೧೨೩೪೫೬೭೮೯൧൨൩൪൫൬൭൮൯෧෨෩෪෫෬෭෮෯๑๒๓๔๕๖๗๘๙໑໒໓໔໕໖໗໘໙༡༢༣༤༥༦༧༨༩၁၂၃၄၅၆၇၈၉႑႒႓႔႕႖႗႘႙១២៣៤៥៦៧៨៩᠑᠒᠓᠔᠕᠖᠗᠘᠙᥇᥈᥉᥊᥋᥌᥍᥎᥏᧑᧒᧓᧔᧕᧖᧗᧘᧙᪁᪂᪃᪄᪅᪆᪇᪈᪉᪑᪒᪓᪔᪕᪖᪗᪘᪙᭑᭒᭓᭔᭕᭖᭗᭘᭙᮱᮲᮳᮴᮵᮶᮷᮸᮹᱁᱂᱃᱄᱅᱆᱇᱈᱉᱑᱒᱓᱔᱕᱖᱗᱘᱙ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿꘡꘢꘣꘤꘥꘦꘧꘨꘩꣑꣒꣓꣔꣕꣖꣗꣘꣙꣡꣢꣣꣤꣥꣦꣧꣨꣩꤁꤂꤃꤄꤅꤆꤇꤈꤉꧑꧒꧓꧔꧕꧖꧗꧘꧙꧱꧲꧳꧴꧵꧶꧷꧸꧹꩑꩒꩓꩔꩕꩖꩗꩘꩙꯱꯲꯳꯴꯵꯶꯷꯸꯹１２３４５６７８９🍻🐫';
 
     # magic increment chars at boundary & incremented char at same index
     my $succ-blook = '9ZzΩωתЯя٩۹߉९৯੯૯୯௯౯೯൯෯๙໙༩၉႙៩᠙᥏᧙᪉᪙᭙᮹᱉᱙⁹₉Ⅻⅻ⑳⒇⒵█⚅❿꘩꣙꣩꤉꧙꧹꩙꯹９🍻🐫';
@@ -1376,7 +1557,7 @@ my class Rakudo::Internals {
 
     # normal decrement magic chars & incremented char at same index
     my $pred-nlook = '123456789BCDEFGHIJKLMNOPQRSTUVWXYZbcdefghijklmnopqrstuvwxyzΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩβγδεζηθικλμνξοπρστυφχψωבגדהוזחטיךכלםמןנסעףפץצקרשתБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯбвгдежзийклмнопрстуфхцчшщъыьэюя١٢٣٤٥٦٧٨٩۱۲۳۴۵۶۷۸۹߁߂߃߄߅߆߇߈߉१२३४५६७८९১২৩৪৫৬৭৮৯੧੨੩੪੫੬੭੮੯૧૨૩૪૫૬૭૮૯୧୨୩୪୫୬୭୮୯௧௨௩௪௫௬௭௮௯౧౨౩౪౫౬౭౮౯೧೨೩೪೫೬೭೮೯൧൨൩൪൫൬൭൮൯෧෨෩෪෫෬෭෮෯๑๒๓๔๕๖๗๘๙໑໒໓໔໕໖໗໘໙༡༢༣༤༥༦༧༨༩၁၂၃၄၅၆၇၈၉႑႒႓႔႕႖႗႘႙១២៣៤៥៦៧៨៩᠑᠒᠓᠔᠕᠖᠗᠘᠙᥇᥈᥉᥊᥋᥌᥍᥎᥏᧑᧒᧓᧔᧕᧖᧗᧘᧙᪁᪂᪃᪄᪅᪆᪇᪈᪉᪑᪒᪓᪔᪕᪖᪗᪘᪙᭑᭒᭓᭔᭕᭖᭗᭘᭙᮱᮲᮳᮴᮵᮶᮷᮸᮹᱁᱂᱃᱄᱅᱆᱇᱈᱉᱑᱒᱓᱔᱕᱖᱗᱘᱙ⁱ⁲⁳⁴⁵⁶⁷⁸⁹₁₂₃₄₅₆₇₈₉ⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵▂▃▄▅▆▇█⚁⚂⚃⚄⚅❷❸❹❺❻❼❽❾❿꘡꘢꘣꘤꘥꘦꘧꘨꘩꣑꣒꣓꣔꣕꣖꣗꣘꣙꣡꣢꣣꣤꣥꣦꣧꣨꣩꤁꤂꤃꤄꤅꤆꤇꤈꤉꧑꧒꧓꧔꧕꧖꧗꧘꧙꧱꧲꧳꧴꧵꧶꧷꧸꧹꩑꩒꩓꩔꩕꩖꩗꩘꩙꯱꯲꯳꯴꯵꯶꯷꯸꯹１２３４５６７８９🍻🐫';
-    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨۰۱۲۳۴۵۶۷۸߀߁߂߃߄߅߆߇߈०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮௦௧௨௩௪௫௬௭௮౦౧౨౩౪౫౬౭౮೦೧೨೩೪೫೬೭೮൦൧൨൩൪൫൬൭൮෦෧෨෩෪෫෬෭෮๐๑๒๓๔๕๖๗๘໐໑໒໓໔໕໖໗໘༠༡༢༣༤༥༦༧༨၀၁၂၃၄၅၆၇၈႐႑႒႓႔႕႖႗႘០១២៣៤៥៦៧៨᠐᠑᠒᠓᠔᠕᠖᠗᠘᥆᥇᥈᥉᥊᥋᥌᥍᥎᧐᧑᧒᧓᧔᧕᧖᧗᧘᪀᪁᪂᪃᪄᪅᪆᪇᪈᪐᪑᪒᪓᪔᪕᪖᪗᪘᭐᭑᭒᭓᭔᭕᭖᭗᭘᮰᮱᮲᮳᮴᮵᮶᮷᮸᱀᱁᱂᱃᱄᱅᱆᱇᱈᱐᱑᱒᱓᱔᱕᱖᱗᱘⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾꘠꘡꘢꘣꘤꘥꘦꘧꘨꣐꣑꣒꣓꣔꣕꣖꣗꣘꣠꣡꣢꣣꣤꣥꣦꣧꣨꤀꤁꤂꤃꤄꤅꤆꤇꤈꧐꧑꧒꧓꧔꧕꧖꧗꧘꧰꧱꧲꧳꧴꧵꧶꧷꧸꩐꩑꩒꩓꩔꩕꩖꩗꩘꯰꯱꯲꯳꯴꯵꯶꯷꯸０１２３４５６７８🍺🐪'; 
+    my $pred-nchrs = '012345678ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxyΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨαβγδεζηθικλμνξοπρστυφχψאבגדהוזחטיךכלםמןנסעףפץצקרשАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮабвгдежзийклмнопрстуфхцчшщъыьэю٠١٢٣٤٥٦٧٨۰۱۲۳۴۵۶۷۸߀߁߂߃߄߅߆߇߈०१२३४५६७८০১২৩৪৫৬৭৮੦੧੨੩੪੫੬੭੮૦૧૨૩૪૫૬૭૮୦୧୨୩୪୫୬୭୮௦௧௨௩௪௫௬௭௮౦౧౨౩౪౫౬౭౮೦೧೨೩೪೫೬೭೮൦൧൨൩൪൫൬൭൮෦෧෨෩෪෫෬෭෮๐๑๒๓๔๕๖๗๘໐໑໒໓໔໕໖໗໘༠༡༢༣༤༥༦༧༨၀၁၂၃၄၅၆၇၈႐႑႒႓႔႕႖႗႘០១២៣៤៥៦៧៨᠐᠑᠒᠓᠔᠕᠖᠗᠘᥆᥇᥈᥉᥊᥋᥌᥍᥎᧐᧑᧒᧓᧔᧕᧖᧗᧘᪀᪁᪂᪃᪄᪅᪆᪇᪈᪐᪑᪒᪓᪔᪕᪖᪗᪘᭐᭑᭒᭓᭔᭕᭖᭗᭘᮰᮱᮲᮳᮴᮵᮶᮷᮸᱀᱁᱂᱃᱄᱅᱆᱇᱈᱐᱑᱒᱓᱔᱕᱖᱗᱘⁰ⁱ⁲⁳⁴⁵⁶⁷⁸₀₁₂₃₄₅₆₇₈ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴▁▂▃▄▅▆▇⚀⚁⚂⚃⚄❶❷❸❹❺❻❼❽❾꘠꘡꘢꘣꘤꘥꘦꘧꘨꣐꣑꣒꣓꣔꣕꣖꣗꣘꣠꣡꣢꣣꣤꣥꣦꣧꣨꤀꤁꤂꤃꤄꤅꤆꤇꤈꧐꧑꧒꧓꧔꧕꧖꧗꧘꧰꧱꧲꧳꧴꧵꧶꧷꧸꩐꩑꩒꩓꩔꩕꩖꩗꩘꯰꯱꯲꯳꯴꯵꯶꯷꯸０１２３４５６７８🍺🐪';
 
     # magic decrement chars at boundary & incremented char at same index
     my $pred-blook = '0AaΑαאАа٠۰߀०০੦૦୦௦౦೦൦෦๐໐༠၀႐០᠐᥆᧐᪀᪐᭐᮰᱀᱐⁰₀Ⅰⅰ①⑴⒜▁⚀❶꘠꣐꣠꤀꧐꧰꩐꯰０🍺🐪';
@@ -1512,6 +1693,99 @@ my class Rakudo::Internals {
           while nqp::islt_i(++$i,$elems);
         $target
     }
+
+    proto method coremap(|) { * }
+
+    multi method coremap(\op, Associative \h, Bool :$deep) {
+        my @keys = h.keys;
+        hash @keys Z self.coremap(op, h{@keys}, :$deep)
+    }
+
+    multi method coremap(\op, \obj, Bool :$deep) {
+        my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
+                ?? obj
+                !! obj.list;
+
+        my \result := class :: does SlippyIterator {
+            has &!block;
+            has $!source;
+
+            method new(&block, $source) {
+                my $iter := nqp::create(self);
+                nqp::bindattr($iter, self, '&!block', &block);
+                nqp::bindattr($iter, self, '$!source', $source);
+                $iter
+            }
+
+            method is-lazy() {
+                $!source.is-lazy
+            }
+
+            method pull-one() is raw {
+                my int $redo = 1;
+                my $value;
+                my $result;
+                if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
+                    $result
+                }
+                elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
+                    $value
+                }
+                else {
+                    nqp::while(
+                        $redo,
+                        nqp::stmts(
+                            $redo = 0,
+                            nqp::handle(
+                                nqp::stmts(
+                                    nqp::if(
+                                        $deep,
+                                        nqp::if(
+                                            nqp::istype($value, Iterable),
+                                            ($result := Rakudo::Internals.coremap(&!block, $value, :$deep).item),
+                                            ($result := &!block($value))
+                                        ),
+                                        ($result := &!block($value))
+                                    ),
+                                    nqp::if(
+                                        nqp::istype($result, Slip),
+                                        nqp::stmts(
+                                            ($result := self.start-slip($result)),
+                                            nqp::if(
+                                                nqp::eqaddr($result, IterationEnd),
+                                                nqp::stmts(
+                                                    ($value := $!source.pull-one()),
+                                                    ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
+                                            ))
+                                        ))
+                                ),
+                                'NEXT', nqp::stmts(
+                                    ($value := $!source.pull-one()),
+                                    nqp::eqaddr($value, IterationEnd)
+                                        ?? ($result := IterationEnd)
+                                        !! ($redo = 1)),
+                                'REDO', $redo = 1,
+                                'LAST', ($result := IterationEnd))),
+                        :nohandler);
+                    $result
+                }
+            }
+        }.new(op, iterable.iterator);
+
+        my $type = nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
+        my \buffer := IterationBuffer.new;
+        result.push-all(buffer);
+        my \retval = $type.new;
+        nqp::bindattr(retval, List, '$!reified', buffer);
+        nqp::iscont(obj) ?? retval.item !! retval;
+    }
+
+}
+
+# expose the number of bits a native int has
+my constant $?BITS = do {
+    my int $a = 0x1ffffffff;
+    nqp::iseq_i($a,8589934591) ?? 64 !! 32
 }
 
 # we need this to run *after* the mainline of Rakudo::Internals has run

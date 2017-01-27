@@ -1,18 +1,22 @@
 my class Code does Callable { # declared in BOOTSTRAP
-    # class Code is Any {
-    #     has Mu $!do;                # Low level code object
-    #     has Mu $!signature;         # Signature object
-    #     has Mu $!compstuff;         # Place for the compiler to hang stuff
+    # class Code is Any
+    #     has Code $!do;              # Low level code object
+    #     has Signature $!signature;  # Signature object
+    #     has @!compstuff;            # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic) {
         $self.count ?? $self($topic) !! $self()
     }
 
-    method arity(Code:D:) { nqp::getattr($!signature,Signature,'$!arity') }
+    method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
     method count(Code:D:) { nqp::getattr($!signature,Signature,'$!count') }
 
     method signature(Code:D:) { $!signature }
+
+    proto method prec(|) { * }
+    multi method prec() { my % }
+    multi method prec(Str:D $) { '' }
 
     multi method Str(Code:D:) {
         warn( self.WHAT.perl ~ " object coerced to string (please use .gist or .perl to do that)"); self.name

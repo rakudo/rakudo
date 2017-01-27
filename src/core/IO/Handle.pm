@@ -118,7 +118,7 @@ my class IO::Handle does IO {
     method close(IO::Handle:D: --> True) {
         # TODO: catch errors
         nqp::closefh($!PIO) if nqp::defined($!PIO);
-        $!PIO := Mu;
+        $!PIO := nqp::null;
     }
 
     method eof(IO::Handle:D:) {
@@ -190,7 +190,7 @@ my class IO::Handle does IO {
             method push-all($target --> IterationEnd) {
                 my str $str = $!handle.readchars($!size);
                 nqp::while(
-                  nqp::iseq_i(nqp::chars($str),$!size), 
+                  nqp::iseq_i(nqp::chars($str),$!size),
                   nqp::stmts(
                     $target.push(nqp::p6box_s($str)),
                     ($str = $!handle.readchars($!size))
@@ -267,7 +267,6 @@ my class IO::Handle does IO {
                         $!elems = nqp::elems($!strings);
                     }
                 }
-                Nil
             }
             method pull-one() {
                 if $!elems {
@@ -325,7 +324,6 @@ my class IO::Handle does IO {
                 $!str   = $!handle.readchars;
                 $!index = 0;
                 $!chars = nqp::chars($!str);
-                Nil
             }
             method pull-one() {
                 self!next-chunk if !$!index == $!chars;
@@ -419,7 +417,6 @@ my class IO::Handle does IO {
                     }
                     $!elems = nqp::elems($!strings);
                 }
-                Nil
             }
             method pull-one() {
                 if $!elems {
@@ -549,11 +546,11 @@ my class IO::Handle does IO {
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: $limit) {
+    multi method lines(IO::Handle:D: $limit, |c) {
         # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines
-          !! self.lines[ 0 .. $limit.Int - 1 ]
+          ?? self.lines(|c)
+          !! self.lines(|c)[ lazy 0 .. $limit.Int - 1 ]
     }
     multi method lines(IO::Handle:D: :$close) {
         Seq.new(class :: does Iterator {
@@ -568,10 +565,11 @@ my class IO::Handle does IO {
                 nqp::create(self)!SET-SELF(handle, close);
             }
             method pull-one() is raw {
-                $!handle.get // do {
-                    $!handle.close if $!close;
-                    IterationEnd
-                }
+                nqp::if(nqp::defined(my \g = $!handle.get),
+                  g,
+                  nqp::stmts(
+                    nqp::if($!close, $!handle.close),
+                    IterationEnd))
             }
             method push-all($target --> IterationEnd) {
                 my $line;
@@ -656,6 +654,9 @@ my class IO::Handle does IO {
         nqp::unlockfh($!PIO);
     }
 
+    method printf(IO::Handle:D: |c) {
+        nqp::printfh($!PIO, sprintf |c);
+    }
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: str:D \x --> True) {

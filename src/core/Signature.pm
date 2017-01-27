@@ -1,10 +1,10 @@
 my class Signature { # declared in BOOTSTRAP
-    # class Signature is Any {
-    #   has Mu $!params;          # VM's array of parameters
+    # class Signature is Any
+    #   has @!params;             # VM's array of parameters
     #   has Mu $!returns;         # return type
-    #   has Mu $!arity;           # arity
-    #   has Mu $!count;           # count
-    #   has Mu $!code;
+    #   has int $!arity;          # arity
+    #   has Num $!count;          # count
+    #   has Code $!code;
 
     multi method ACCEPTS(Signature:D: Capture $topic) {
         nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
@@ -89,7 +89,7 @@ my class Signature { # declared in BOOTSTRAP
 
     method params() {
         nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-            nqp::clone($!params));
+            nqp::clone(@!params));
     }
 
     method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu,
@@ -109,7 +109,10 @@ my class Signature { # declared in BOOTSTRAP
                 my $parmstr = $param.perl(:$elide-type, :&where);
                 return Nil without $parmstr;
                 $text ~= $sep ~ $parmstr;
-                $text .= subst(/' $'$/,'') unless $perl;
+
+                # Remove sigils from anon typed scalars, leaving type only
+                $text .= subst(/» ' $'$/,'') unless $perl;
+
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
                   !! ', '
@@ -134,7 +137,7 @@ my class Signature { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Signature \a, Signature \b) {
+multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
 
     # we're us
     return True if a =:= b;
@@ -170,7 +173,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         my $lookup := nqp::hash;
         while nqp::islt_i(++$j,$elems) {
             my $p  := nqp::atpos($ap,$j);
-            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key =
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
             die "Found named parameter '{
@@ -183,7 +186,7 @@ multi sub infix:<eqv>(Signature \a, Signature \b) {
         # named variable mismatch
         while nqp::islt_i(++$i,$elems) {
             my $p  := nqp::atpos($bp,$i);
-            my $nn := nqp::getattr($p,Parameter,'$!named_names');
+            my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key = nqp::defined($nn) && nqp::elems($nn)
               ?? nqp::atpos($nn,0)
               !! '';

@@ -6,6 +6,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has Int $!version;
     has %!dist-metas;
     has $!precomp-stores;
+    has $!precomp-store;
 
     my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -82,6 +83,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         exit 1;
     }
 
+    %*ENV<PERL6_PROGRAM_NAME> = $*PROGRAM-NAME;
     exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
@@ -575,7 +577,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method precomp-store() returns CompUnit::PrecompilationStore {
-        CompUnit::PrecompilationStore::File.new(
+        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('precomp')),
         )
     }

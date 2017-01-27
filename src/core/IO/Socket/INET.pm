@@ -14,11 +14,13 @@ my class IO::Socket::INET does IO::Socket {
         constant SOCK_MAX       = 6;
         constant PROTO_TCP      = 6;
         constant PROTO_UDP      = 17;
+        constant MIN_PORT       = 0;
+        constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
 
     has Str $.encoding = 'utf8';
     has Str $.host;
-    has Int $.port = 80;
+    has Int $.port;
     has Str $.localhost;
     has Int $.localport;
     has Int $.backlog;
@@ -29,6 +31,24 @@ my class IO::Socket::INET does IO::Socket {
     has $.nl-in is rw = ["\x0A", "\r\n"];
     has int $.ins;
 
+    my sub split-host-port(:$host is copy, :$port is copy, :$family) {
+        if ($host) {
+            my ($split-host, $split-port) = $family == PIO::PF_INET6
+                ?? v6-split($host)
+                !! v4-split($host);
+
+            if $split-port {
+                $host = $split-host.Str;
+                $port //= $split-port.Int
+            }
+        }
+
+        fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
+            unless PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
+
+        return ($host, $port);
+    }
+
     my sub v4-split($uri) {
         return $uri.split(':', 2);
     }
@@ -38,32 +58,64 @@ my class IO::Socket::INET does IO::Socket {
         return $host ?? ($host, $port) !! $uri;
     }
 
-    method new (*%args is copy) {
-        fail "Nothing given for new socket to connect or bind to" unless %args<host> || %args<listen>;
+    # Create new socket that listens on $localhost:$localport
+    multi method new(
+        Bool:D :$listen!,
+        Str    :$localhost is copy,
+        Int    :$localport is copy,
+        Int    :$family where {
+                $family == PIO::PF_INET
+             || $family == PIO::PF_INET6
+        } = PIO::PF_INET,
+               *%rest,
+        --> IO::Socket::INET:D) {
 
-        if %args<host>  {
-            my ($host, $port) = %args<family> && %args<family> == PIO::PF_INET6
-                ?? v6-split(%args<host>)
-                !! v4-split(%args<host>);
-            if $port {
-                %args<port> //= $port.Int;
-                %args<host> = $host;
-            }
-        }
-        if %args<localhost> {
-            my ($peer, $port) = %args<family> && %args<family> == PIO::PF_INET6
-                ?? v6-split(%args<localhost>)
-                !! v4-split(%args<localhost>);
-            if $port {
-                %args<localport> //= $port.Int;
-                %args<localhost> = $peer;
-            }
-        }
+        ($localhost, $localport) = split-host-port(
+            :host($localhost),
+            :port($localport),
+            :$family,
+        );
 
-        %args<listening> = %args<listen>.Bool if %args.EXISTS-KEY('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(|%args)!initialize()
+        self.bless(
+            :$localhost,
+            :$localport,
+            :$family,
+            :listening($listen),
+            |%rest,
+        )!initialize()
+    }
+
+    # Open new connection to socket on $host:$port
+    multi method new(
+        Str:D :$host! is copy,
+        Int   :$port is copy,
+        Int   :$family where {
+               $family == PIO::PF_INET
+            || $family == PIO::PF_INET6
+        } = PIO::PF_INET,
+              *%rest,
+        --> IO::Socket::INET:D) {
+
+        ($host, $port) = split-host-port(
+            :$host,
+            :$port,
+            :$family,
+        );
+
+        #TODO: Learn what protocols map to which socket types and then determine which is needed.
+        self.bless(
+            :$host,
+            :$port,
+            :$family,
+            |%rest,
+        )!initialize()
+    }
+
+    # Fail if no valid parameters are passed
+    multi method new() {
+        fail "Nothing given for new socket to connect or bind to";
     }
 
     method !initialize() {

@@ -20,10 +20,8 @@ my class Lock {
 
     method protect(Lock:D: &code) {
         nqp::lock(self);
-        my \res := code();
-        nqp::unlock(self);
-        CATCH { nqp::unlock(self); }
-        res
+        LEAVE nqp::unlock(self);
+        code()
     }
 
     method condition(Lock:D:) {

@@ -13,7 +13,13 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
-    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE; 
+    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE;
+
+    sub thevalue(\a) {
+        ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
+          ?? $type
+          !! val(a)
+    }
 
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
@@ -25,13 +31,13 @@ my sub MAIN_HELPER($retval = 0) {
 
             # rest considered to be non-parsed
             if nqp::iseq_s($passed-value,'--') {
-                nqp::push($positional, val($_)) for @args;
+                nqp::push($positional, thevalue($_)) for @args;
                 last;
             }
 
             # no longer accepting nameds
             elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
-                nqp::push($positional, val($passed-value));
+                nqp::push($positional, thevalue($passed-value));
             }
 
             # named
@@ -44,10 +50,10 @@ my sub MAIN_HELPER($retval = 0) {
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
                     %named.push: $name => $0.chars
-                      ?? val(nqp::join("=",$split)) but False
-                      !! val(nqp::join("=",$split));
+                      ?? thevalue(nqp::join("=",$split)) but False
+                      !! thevalue(nqp::join("=",$split));
                 }
-                
+
                 # implicit value
                 else {
                     %named.push: $arg => !($0.chars);
@@ -56,7 +62,7 @@ my sub MAIN_HELPER($retval = 0) {
 
             # positional
             else {
-                nqp::push($positional, val($passed-value));
+                nqp::push($positional, thevalue($passed-value));
             }
         }
 
@@ -85,9 +91,12 @@ my sub MAIN_HELPER($retval = 0) {
             $name;
         }
 
-        my $prog-name = $*PROGRAM-NAME eq '-e'
+        my $prog-name = %*ENV<PERL6_PROGRAM_NAME>:exists
+          ?? %*ENV<PERL6_PROGRAM_NAME>
+          !! $*PROGRAM-NAME;
+        $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
-          !! strip_path_prefix($*PROGRAM-NAME);
+          !! strip_path_prefix($prog-name);
         for $m.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
 
@@ -100,13 +109,23 @@ my sub MAIN_HELPER($retval = 0) {
                 my $argument;
                 if $param.named {
                     if $param.slurpy {
-                        $argument  = "--<$param.usage-name()>=...";
-                        @optional-named.push("[$argument]");
+                        if $param.name { # ignore anon *%
+                            $argument  = "--<$param.usage-name()>=...";
+                            @optional-named.push("[$argument]");
+                        }
                     }
                     else {
                         my @names  = $param.named_names.reverse;
                         $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                        $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
+                        if $param.type !=== Bool {
+                            $argument ~= "=<{$param.type.^name}>";
+                            if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
+                                my $options = $param.type.^enum_values.keys.sort.Str;
+                                $argument ~= $options.chars > 50
+                                  ?? ' (' ~ substr($options,0,50) ~ '...'
+                                  !! " ($options)"
+                            }
+                        }
                         if $param.optional {
                             @optional-named.push("[$argument]");
                         }

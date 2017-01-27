@@ -65,7 +65,7 @@ my role Baggy does QuantHash {
     method !SET-SELF(Baggy:D: Mu \elems) {
         %!elems := elems;
 
-        if self.^name.chars == 3 { # shoddy heuristic for Bag/Mix
+        if nqp::istype(self, Bag) || nqp::istype(self, Mix) {
             my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
             while $iter {
                 my \pair = nqp::iterval(nqp::shift($iter));
@@ -193,10 +193,10 @@ my role Baggy does QuantHash {
 
 #--- iterator methods
     multi method pairs(Baggy:D:) {
-        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-values(%!elems))
     }
     multi method keys(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 $!iter
                   ?? nqp::iterval(nqp::shift($!iter)).key
@@ -211,13 +211,13 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has Mu $!value;
 
             method pull-one() is raw {
                 if $!value.DEFINITE {
                     my \tmp  = $!value;
-                    $!value := Mu;
+                    $!value := nqp::null;
                     tmp
                 }
                 elsif $!iter {
@@ -243,7 +243,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method values(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() is raw {
                 $!iter
                     ?? nqp::getattr(nqp::decont(
@@ -260,7 +260,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method antipairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 if $!iter {
                     my \tmp = nqp::iterval(nqp::shift($!iter));
@@ -284,7 +284,7 @@ my role Baggy does QuantHash {
     }
     proto method kxxv(|) { * }
     multi method kxxv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has Mu $!key;
             has int $!times;
 
@@ -374,6 +374,9 @@ my role Baggy does QuantHash {
     multi method pickpairs(Baggy:D:) {
         %!elems.AT-KEY(%!elems.keys.pick);
     }
+    multi method pickpairs(Baggy:D: Callable:D $calculate) {
+        self.pickpairs( $calculate(self.total) )
+    }
     multi method pickpairs(Baggy:D: $count) {
         %!elems{ %!elems.keys.pick(
           nqp::istype($count,Whatever) || $count == Inf
@@ -388,6 +391,9 @@ my role Baggy does QuantHash {
         %!elems.DELETE-KEY(grabbed.WHICH)
           if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
         grabbed;
+    }
+    multi method grab(Baggy:D: Callable:D $calculate) {
+        self.grab( $calculate(self.total) )
     }
     multi method grab(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
@@ -408,6 +414,9 @@ my role Baggy does QuantHash {
 
     proto method pick(|) { * }
     multi method pick(Baggy:D:) { self.roll }
+    multi method pick(Baggy:D: Callable:D $calculate) {
+        self.pick( $calculate(self.total) )
+    }
     multi method pick(Baggy:D: $count) {
         my $hash     := nqp::getattr(%!elems,Map,'$!storage');
         my int $elems = nqp::elems($hash);
@@ -435,26 +444,25 @@ my role Baggy does QuantHash {
 
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
-        my Int $rand = self.total.rand.Int;
-        my Int $seen = 0;
-        my \iter    := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-
-        nqp::while(
-          iter,
-          nqp::stmts(
-            nqp::shift(iter),
-            ($seen = $seen + nqp::iterval(iter).value),
-            nqp::if(
-              $seen > $rand,
-              return nqp::iterval(iter).key
-            )
+        nqp::stmts(
+          (my Int $rand = self.total.rand.Int),
+          (my Int $seen = 0),
+          (my \iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'))),
+          nqp::while(
+            iter && ($seen = $seen + nqp::getattr(
+              nqp::iterval(nqp::shift(iter)),Pair,'$!value')) <= $rand,
+            nqp::null
+          ),
+          nqp::if(
+            $seen > $rand,
+            nqp::getattr(nqp::iterval(iter),Pair,'$!key'),
+            Nil
           )
-        );
-        Nil
+        )
     }
     multi method roll(Baggy:D: $count) {
         nqp::istype($count,Whatever) || $count == Inf
-          ?? Rakudo::Internals.RollerIterator(self)
+          ?? Seq.new(Rakudo::Iterator.Roller(self))
           !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 
@@ -509,67 +517,83 @@ my role Baggy does QuantHash {
 
 #--- classification method
     proto method classify-list(|) { * }
-    multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
-        if @list {
+    multi method classify-list( &test, \list) {
+        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
-            # multi-level classify
-            if nqp::istype(test(@list[0]),Iterable) {
-                for @list -> $l {
-                    my @keys  = test($l);
-                    my $last := @keys.pop;
-                    my $bag   = self;
-                    $bag = $bag{$_} //= self.new for @keys;
-                    $bag{$last}++;
-                }
+        while (my $value := iter.pull-one) !=:= IterationEnd {
+            my $tested := test($value);
+            if nqp::istype($tested, Iterable) { # multi-level classify
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<classify-list>,
+                    :value<an Iterable item>,
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level classification'),
+                ).throw;
             }
-
-            # just a simple classify
             else {
-                self{test $_}++ for @list;
+                self{$tested}++;
             }
         }
         self;
     }
-    multi method classify-list( %test, *@list ) {
-        self.classify-list( { %test{$^a} }, @list );
+    multi method classify-list( %test, |c ) {
+        self.classify-list( { %test{$^a} }, |c );
     }
-    multi method classify-list( @test, *@list ) {
-        self.classify-list( { @test[$^a] }, @list );
+    multi method classify-list( @test, |c ) {
+        self.classify-list( { @test[$^a] }, |c );
+    }
+    multi method classify-list(&test, **@list, |c) {
+        self.classify-list(&test, @list, |c);
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-        if @list {
+    multi method categorize-list( &test, \list ) {
+        fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
 
             # multi-level categorize
-            if nqp::istype(test(@list[0])[0],List) {
-                for @list -> $l {
-                    for test($l) -> $k {
-                        my @keys  = @($k);
-                        my $last := @keys.pop;
-                        my $bag   = self;
-                        $bag = $bag{$_} //= self.new for @keys;
-                        $bag{$last}++;
-                    }
-                }
+            if nqp::istype($tested[0],Iterable) {
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<categorize-list>,
+                    :value<a nested Iterable item>,
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level categorization'),
+                ).throw;
             }
-
-            # just a simple categorize
+            # simple categorize
             else {
-                for @list -> $l {
-                    self{$_}++ for test($l);
-                }
+                loop {
+                    self{$_}++ for @$tested;
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    nqp::istype(($tested := test($value))[0], Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                };
             }
-        }
-        self;
+       }
+       self;
     }
-    multi method categorize-list( %test, *@list ) {
-        self.categorize-list( { %test{$^a} }, @list );
+    multi method categorize-list( %test, |c ) {
+        self.categorize-list( { %test{$^a} }, |c );
     }
-    multi method categorize-list( @test, *@list ) {
-        self.categorize-list( { @test[$^a] }, @list );
+    multi method categorize-list( @test, |c ) {
+        self.categorize-list( { @test[$^a] }, |c );
+    }
+    multi method categorize-list( &test, **@list, |c ) {
+        self.categorize-list( &test, @list, |c );
     }
 
 #--- coercion methods

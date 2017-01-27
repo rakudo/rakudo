@@ -9,6 +9,7 @@ my class Complex is Cool does Numeric {
         self
     }
     proto method new(|) { * }
+    multi method new() { self.new: 0, 0 }
     multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
 
     multi method WHICH(Complex:D:) {
@@ -47,10 +48,16 @@ my class Complex is Cool does Numeric {
 
     method Complex() { self }
     multi method Str(Complex:D:) {
-        my Str $i = nqp::isnanorinf($!im) ?? '\\i' !! 'i';
-        $!im < 0e0
-            ?? nqp::p6box_s($!re) ~ '-' ~ nqp::p6box_s(nqp::abs_n($!im)) ~ $i
-            !! nqp::p6box_s($!re) ~ '+' ~ nqp::p6box_s($!im) ~ $i;
+        nqp::concat(
+          $!re,
+          nqp::concat(
+            nqp::if(nqp::iseq_i(nqp::ord($!im),45),'','+'),
+            nqp::concat(
+              $!im,
+              nqp::if(nqp::isnanorinf($!im),'\\i','i')
+            )
+          )
+        )
     }
 
     multi method perl(Complex:D:) {
@@ -421,20 +428,30 @@ multi sub infix:</>(Real \a, Complex:D \b) returns Complex:D {
 }
 
 multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {
-    (a.re == 0e0 && a.im == 0e0) ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
+    (a.re == 0e0 && a.im == 0e0)
+        ?? ( b.re == 0e0 && b.im == 0e0
+                ?? Complex.new(1e0, 0e0)
+                !! Complex.new(0e0, 0e0)
+           )
+        !! (b * a.log).exp
 }
 multi sub infix:<**>(Num(Real) \a, Complex:D \b) returns Complex:D {
-    a == 0e0 ?? Complex.new(0e0, 0e0) !! (b * a.log).exp
+    a == 0e0
+        ?? ( b.re == 0e0 && b.im == 0e0
+                ?? Complex.new(1e0, 0e0)
+                !! Complex.new(0e0, 0e0)
+           )
+        !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b) returns Complex:D {
-    (b * a.log).exp
+    b == 0e0 ?? Complex.new(1e0, 0e0) !! (b * a.log).exp
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re && a.im == b.im }
 multi sub infix:<==>(Complex:D \a, Num(Real) \b) returns Bool:D { a.re == b    && a.im == 0e0  }
 multi sub infix:<==>(Num(Real) \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0  == b.im }
 multi sub infix:<===>(Complex:D \a, Complex:D \b) returns Bool:D {
-    a.WHAT =:= b.WHAT && a == b
+    a.WHAT =:= b.WHAT && a.re === b.re && a.im === b.im
 }
 
 multi sub infix:<≅>(Complex:D \a, Complex:D \b) returns Bool:D { a.re ≅ b.re && a.im ≅ b.im || a <=> b =:= Same }

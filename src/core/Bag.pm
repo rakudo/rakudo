@@ -38,6 +38,13 @@ my class Bag does Baggy {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
     }
     method MixHash { MixHash.new-from-pairs(%!elems.values) }
+
+    proto method classify-list(|) {
+        X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
+    }
+    proto method categorize-list(|) {
+        X::Immutable.new(:method<categorize-list>, :typename(self.^name)).throw;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

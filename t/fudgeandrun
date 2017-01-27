@@ -39,6 +39,6 @@ my $nt = `t/spec/fudge @OPTS @ARGV`;
 # uninstalled rakudo doesn't know how to find Test.pm
 # ... or any other modules
 my $pwd = `pwd`; chomp $pwd;
-$ENV{PERL6LIB}="$pwd/lib:.";
+$ENV{PERL6LIB}="$pwd/lib";
 my $first = substr($backend, 0, 1);
 system("./perl6-$first", split ' ', $nt);

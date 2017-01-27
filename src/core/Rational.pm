@@ -65,32 +65,43 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method Int() { self.truncate }
-
     method Bridge() { self.Num }
+    method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
+    method isNaN {
+        nqp::p6bool(
+            nqp::isfalse(self.numerator) && nqp::isfalse(self.denominator)
+        )
+    }
 
     multi method Str(::?CLASS:D:) {
         if nqp::istype($!numerator,Int) {
-            my $s = $!numerator < 0 ?? '-' !! '';
-            my $r = self.abs;
-            my $i = $r.floor;
-            $r -= $i;
-            $s ~= $i;
-            if $r {
-                $s ~= '.';
-                my $want = $!denominator < 100_000
-                           ?? 6
-                           !! $!denominator.Str.chars + 1;
-                my $f = '';
-                while $r and $f.chars < $want {
-                    $r *= 10;
-                    $i = $r.floor;
-                    $f ~= $i;
-                    $r -= $i;
+            my $whole  = self.abs.floor;
+            my $fract  = self.abs - $whole;
+
+            # fight floating point noise issues RT#126016
+            if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+            my $result = nqp::if(
+                nqp::islt_I($!numerator, 0), '-', ''
+            ) ~ $whole;
+
+            if $fract {
+                my $precision = $!denominator < 100_000
+                    ?? 6 !! $!denominator.Str.chars + 1;
+
+                my $fract-result = '';
+                while $fract and $fract-result.chars < $precision {
+                    $fract *= 10;
+                    given $fract.floor {
+                        $fract-result ~= $_;
+                        $fract        -= $_;
+                    }
                 }
-                $f++ if  2 * $r >= 1;
-                $s ~= $f;
+                $fract-result++ if 2*$fract >= 1; # round off fractional result
+
+                $result ~= '.' ~ $fract-result;
             }
-            $s
+            $result
         }
         else {
             $!numerator.Str
@@ -113,7 +124,8 @@ my role Rational[::NuT, ::DeT] does Real {
             }
             else {
                 fail X::OutOfRange.new(
-                    what => 'digits argument to base', got => $digits, range => "0..*"
+                    :what('digits argument to base'), :got($digits),
+                    :range<0..^Inf>,
                 )
             }
         }
@@ -121,40 +133,39 @@ my role Rational[::NuT, ::DeT] does Real {
             $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
         }
 
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
+        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
+        my $whole = self.abs.floor;
+        my $fract = self.abs - $whole;
+
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+        my $result = $sign ~ $whole.base($base);
         my @conversion := <0 1 2 3 4 5 6 7 8 9
                            A B C D E F G H I J
                            K L M N O P Q R S T
                            U V W X Y Z>;
-        $r -= $i;
-        if $digits // $r {
-            my @f;
-            my $p = $i.base($base);
-            while @f < $prec and ($digits // $r) {
-                $r *= $base;
-                my $d = $r.floor;
-                push @f, $d;
-                $r -= $d;
-            }
-            if 2 * $r >= 1 {
-                for @f-1 ... 0 -> $x {
-                    last if ++@f[$x] < $base;
-                    @f[$x] = 0;
-                    $p = ($i+1).base($base) if $x == 0;
-                }
-            }
-            $s ~= $p;
-            if @f {
-                $s ~= '.';
-                $s ~= @conversion[@f].join;
+
+        my @fract-digits;
+        while @fract-digits < $prec and ($digits // $fract) {
+            $fract *= $base;
+            my $digit = $fract.floor;
+            push @fract-digits, $digit;
+            $fract -= $digit;
+        }
+
+        # Round the final number, based on the remaining fractional part
+        if 2*$fract >= 1 {
+            for @fract-digits-1 ... 0 -> $n {
+                last if ++@fract-digits[$n] < $base;
+                @fract-digits[$n] = 0;
+                $result = $sign ~ ($whole+1).base($base) if $n == 0;
             }
         }
-        else {
-            $s ~= $i.base($base);
-        }
-        $s;
+
+        @fract-digits
+            ?? $result ~ '.' ~ @conversion[@fract-digits].join
+            !! $result;
     }
 
     method base-repeating($base = 10) {

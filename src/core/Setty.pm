@@ -35,7 +35,7 @@ my role Setty does QuantHash {
     method default(--> False) { }
 
     multi method keys(Setty:D:) {
-        Seq.new(Rakudo::Internals::MappyIterator-values.new(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-values(%!elems))
     }
 
     method elems(Setty:D: --> Int) { %!elems.elems }
@@ -76,15 +76,33 @@ my role Setty does QuantHash {
         ~ ')';
     }
 
-    method grab(Setty:D: $count = 1) {
+    proto method grab(|) { * }
+    multi method grab(Setty:D:) {
+        %!elems.DELETE-KEY(%!elems.keys.pick)
+    }
+    multi method grab(Setty:D: Callable:D $calculate) {
+        self.grab($calculate(%!elems.elems))
+    }
+    multi method grab(Setty:D: $count) {
         (%!elems{ %!elems.keys.pick($count) }:delete).cache;
     }
-    method grabpairs(Setty:D: $count = 1) {
+
+    proto method grabpairs(|) { * }
+    multi method grabpairs(Setty:D:) {
+        Pair.new(%!elems.DELETE-KEY(%!elems.keys.pick),True)
+    }
+    multi method grabpairs(Setty:D: Callable:D $calculate) {
+        self.grabpairs($calculate(%!elems.elems))
+    }
+    multi method grabpairs(Setty:D: $count) {
         (%!elems{ %!elems.keys.pick($count) }:delete).map( { ($_=>True) } );
     }
 
     proto method pick(|) { * }
     multi method pick(Setty:D:)       { %!elems.values.pick()       }
+    multi method pick(Setty:D: Callable:D $calculate) {
+        %!elems.values.pick($calculate(%!elems.elems))
+    }
     multi method pick(Setty:D: $count) { %!elems.values.pick($count) }
 
     proto method roll(|) { * }
@@ -99,6 +117,8 @@ my role Setty does QuantHash {
 
     method Bag { Bag.new( %!elems.values ) }
     method BagHash { BagHash.new( %!elems.values ) }
+    method Mix { Mix.new( %!elems.values ) }
+    method MixHash { MixHash.new( %!elems.values ) }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

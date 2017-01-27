@@ -21,59 +21,50 @@ proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub say(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
 }
 multi sub say(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub put(|) { * }
 multi sub put() { $*OUT.print-nl }
 multi sub put(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub put(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.Str),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
 }
 multi sub put(**@args is raw) {
     my $out := $*OUT;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    my str $str = nqp::concat("Noted",$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat("Noted",$err.nl-out));
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat(nqp::unbox_s(x),$err.nl-out));
 }
 multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat($str,$err.nl-out));
 }
 
 sub gist(|) {
@@ -147,8 +138,9 @@ multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
     $result // $result.throw;
 }
 
-sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
-    my $result := $path.IO.spurt($contents, :$enc, |c);
+proto sub spurt(|) { * }
+multi sub spurt(Cool $path, $contents, |c) {
+    my $result := $path.IO.spurt($contents,|c);
     $result // $result.throw;
 }
 
@@ -170,12 +162,6 @@ sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
 }
 
 sub chdir(Str() $path, :$test = 'r') {
-
-    if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
-        $*CWD = $*CWD.IO;
-    }
-
     my $newCWD := $*CWD.chdir($path,:$test);
     $newCWD // $newCWD.throw;
 

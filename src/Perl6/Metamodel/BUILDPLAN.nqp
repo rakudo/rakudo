@@ -7,7 +7,7 @@ role Perl6::Metamodel::BUILDPLAN {
     # through the "todo list" each time we need to make an object.
     # The plan is an array of arrays. The first element of each
     # nested array is an "op" representing the task to perform:
-    #   0 code = call specified BUILD method
+    #   0 code = call specified BUILD or TWEAK method
     #   1 class name attr_name = try to find initialization value
     #   2 class name attr_name = try to find initialization value, or set nqp::list()
     #   3 class name attr_name = try to find initialization value, or set nqp::hash()
@@ -96,6 +96,12 @@ role Perl6::Metamodel::BUILDPLAN {
         # Add vivify instructions.
         for %attrs_untouched {
             @plan[+@plan] := [13, $obj, $_.key];
+        }
+
+        # Does it have a TWEAK?
+        my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
+        if !nqp::isnull($TWEAK) && $TWEAK {
+            @plan[+@plan] := [0, $TWEAK];
         }
 
         # Install plan for this class.

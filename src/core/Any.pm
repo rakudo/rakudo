@@ -11,11 +11,8 @@ my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
 
-# We use a sentinel value to mark the end of an iteration.
-my constant IterationEnd = nqp::create(Mu);
-
 my class Any { # declared in BOOTSTRAP
-    # my class Any is Mu {
+    # my class Any is Mu
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
     multi method ACCEPTS(Any:D: Mu:U \a) { False }
@@ -38,7 +35,13 @@ my class Any { # declared in BOOTSTRAP
     multi method DELETE-POS(Any:D: $pos) {
         Failure.new("Can not remove elements from a {self.^name}")
     }
-    multi method DELETE-POS(**@indices) {
+    multi method DELETE-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).DELETE-POS(two)
+    }
+    multi method DELETE-POS(Any:D: \one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).DELETE-POS(three)
+    }
+    multi method DELETE-POS(Any:D: **@indices) {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).DELETE-POS($final)
     }
@@ -114,6 +117,9 @@ my class Any { # declared in BOOTSTRAP
 
     proto method iterator(|) { * }
     multi method iterator(Any:) { self.list.iterator }
+
+    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    multi method match(Any:U: |) { self.Str; nqp::getlexcaller('$/') = Nil }
 
     proto method classify(|) is nodal { * }
     multi method classify() {
@@ -225,23 +231,43 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method EXISTS-POS(**@indices) {
+    multi method EXISTS-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).EXISTS-POS(two)
+    }
+    multi method EXISTS-POS(Any:D: \one, \two,\three) is raw {
+        self.AT-POS(one).AT-POS(two).EXISTS-POS(three)
+    }
+    multi method EXISTS-POS(Any:D: **@indices) {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
     }
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(pos, $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(pos, $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(nqp::unbox_i(pos), $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(pos, $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -275,7 +301,13 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:   Any:U \pos) is raw {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method AT-POS(**@indices) is raw {
+    multi method AT-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).AT-POS(two)
+    }
+    multi method AT-POS(Any:D: \one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).AT-POS(three)
+    }
+    multi method AT-POS(Any:D: **@indices) is raw {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
@@ -322,7 +354,13 @@ my class Any { # declared in BOOTSTRAP
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method ASSIGN-POS(**@indices) {
+    multi method ASSIGN-POS(Any:D: \one, \two, Mu \assignee) is raw {
+        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    }
+    multi method ASSIGN-POS(Any:D: \one, \two, \three, Mu \assignee) is raw {
+        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    }
+    multi method ASSIGN-POS(Any:D: **@indices) {
         my \value := @indices.pop;
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
@@ -335,7 +373,7 @@ my class Any { # declared in BOOTSTRAP
 #        my $final := @indices.pop;
 #        Rakudo::Internals.WALK-AT-POS(self,@indices).BIND-POS($final,value)
 
-        my int $elems = @indices.elems;
+        my int $elems = @indices.elems;   # reifies
         my \value  := @indices.AT-POS(--$elems);
         my $final  := @indices.AT-POS(--$elems);
         my $target := self;
@@ -359,11 +397,18 @@ my class Any { # declared in BOOTSTRAP
           !! "Type {self.WHAT.perl} does not support associative indexing."
         )
     }
-    multi method AT-KEY(Any:U \SELF: $key) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Hash.new);
-                 SELF.BIND-KEY($key, $v) });
-        $v
+    multi method AT-KEY(Any:U \SELF: \key) is raw {
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Hash.new)
+               ).BIND-KEY(key, $scalar)
+             }
+        )
     }
 
     proto method BIND-KEY(|) is nodal { * }
@@ -402,7 +447,7 @@ my class Any { # declared in BOOTSTRAP
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
 
-    method sum() {
+    method sum() is nodal {
         my \iter = self.iterator;
         my $sum = 0;
         my Mu $value;
@@ -520,14 +565,15 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
 } #SLICE_HUH
 
 sub DELETEKEY(Mu \d, str $key) {
-    if nqp::existskey(d,$key) {
-        my Mu $value := nqp::atkey(d,$key);
-        nqp::deletekey(d,$key);
-        $value;
-    }
-    else {
-        Nil;
-    }
+    nqp::if(
+      nqp::existskey(d,$key),
+      nqp::stmts(
+        (my Mu $value := nqp::atkey(d,$key)),
+        (nqp::deletekey(d,$key)),
+        $value
+      ),
+      Nil
+    )
 } #DELETEKEY
 
 sub dd(|) {
@@ -538,7 +584,7 @@ sub dd(|) {
             my $name := try $var.VAR.?name;
             my $type := $var.WHAT.^name;
             my $what := $var.?is-lazy
-              ?? $var[^10].perl.chop ~ "... (lazy list)"
+              ?? $var[^10].perl.chop ~ "... lazy list)"
               !! $var.perl;
             note $name ?? "$type $name = $what" !! $what;
         }

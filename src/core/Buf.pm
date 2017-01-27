@@ -103,11 +103,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method list(Blob:D:) {
-        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
             method pull-one() is raw {
-                nqp::islt_i(++$!i,$!elems)
-                  ?? nqp::atpos_i($!blob,$!i)
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atpos_i($!blob,$!i),
+                  IterationEnd
+                )
             }
         }.new(self))
     }
@@ -211,7 +213,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $i     = -1;
 
         nqp::bindpos_s($list,$i,
-          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i)))) 
+          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
           while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)
@@ -430,37 +432,39 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method AT-POS(Buf:D: int \pos) is raw {
         nqp::islt_i(pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::atposref_i(self, pos)
     }
     multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::atposref_i(self,$pos)
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
         nqp::islt_i(pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,\pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>))
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,$pos,assignee)
     }
 
     multi method list(Buf:D:) {
-        Seq.new(class :: does Rakudo::Internals::BlobbyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
             method pull-one() is raw {
-                nqp::islt_i(++$!i,$!elems)
-                  ?? nqp::atposref_i($!blob,$!i)
-                  !! IterationEnd
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atposref_i($!blob,$!i),
+                  IterationEnd
+                )
             }
         }.new(self))
     }
@@ -612,7 +616,7 @@ multi sub pack(@template, *@items) {
                 my $data = shift @items // Buf.new;
                 $data.=encode if nqp::istype($data,Str);
                 if $amount eq '*' {
-                    $amount = $data.cache.elems;
+                    $amount = $data.elems;
                 }
                 if $amount eq '' {
                     $amount = 1;
@@ -666,6 +670,7 @@ multi sub pack(@template, *@items) {
     return Buf.new(@bytes);
 }
 
+multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
     my $adc := nqp::decont($a);

@@ -1,5 +1,7 @@
+my class X::Invalid::ComputedValue { ... };
+
 my class Hash { # declared in BOOTSTRAP
-    # my class Hash is Map {
+    # my class Hash is Map
     #     has Mu $!descriptor;
 
     multi method WHICH(Hash:D:) { self.Mu::WHICH }
@@ -314,87 +316,121 @@ my class Hash { # declared in BOOTSTRAP
 
             # multi-level classify
             if nqp::istype($tested, Iterable) {
+                my $els = $tested.elems;
                 loop {
-                    my @keys  = $tested;
+                    my @keys = @$tested;
+                    @keys == $els or X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<classify-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
                     my $last := @keys.pop;
                     my $hash  = self;
                     $hash = $hash{$_} //= self.new for @keys;
-                    ($hash{$last} //= []).push(
-                      &as ?? as($value) !! $value);
+                    $hash{$last}.push(&as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     $tested := test($value);
                 };
             }
-
-            # simple classify to store a specific value
-            elsif &as {
-                loop {
-                    (self{$tested} //= []).push(as($value));
-                    last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
-                };
-            }
-
             # just a simple classify
             else {
                 loop {
-                    (self{$tested} //= []).push($value);
+                    self{$tested}.push(&as ?? as($value) !! $value);
                     last if ($value := iter.pull-one) =:= IterationEnd;
-                    $tested := test($value);
+                    nqp::istype(($tested := test($value)), Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<classify-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
                 };
             }
         }
         self;
     }
-    multi method classify-list( %test, $list, |c ) {
-        self.classify-list( { %test{$^a} }, $list, |c );
+    multi method classify-list( %test, |c ) {
+        self.classify-list( { %test{$^a} }, |c );
     }
-    multi method classify-list( @test, $list, |c ) {
-        self.classify-list( { @test[$^a] }, $list, |c );
+    multi method classify-list( @test, |c ) {
+        self.classify-list( { @test[$^a] }, |c );
+    }
+    multi method classify-list(&test, **@list, |c) {
+        self.classify-list(&test, @list, |c);
     }
 
     proto method categorize-list(|) { * }
-    # XXX GLR possibly more efficient taking an Iterable, not a @list
-    # XXX GLR replace p6listitems op use
-    # XXX GLR I came up with simple workarounds but this can probably
-    #         be done more efficiently better.
-    multi method categorize-list( &test, @list, :&as ) {
-       fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-       if @list {
-           # multi-level categorize
-           if nqp::istype(test(@list[0])[0],Iterable) {
-               @list.map: -> $l {
-                   my $value := &as ?? as($l) !! $l;
-                   for test($l) -> $k {
-                       my @keys = @($k);
+    multi method categorize-list( &test, \list, :&as ) {
+       fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
+
+            # multi-level categorize
+            if nqp::istype($tested[0],Iterable) {
+                my $els = $tested[0].elems;
+                loop {
+                    for $tested.cache -> $cat {
+                       my @keys = @$cat or next;
                        my $last := @keys.pop;
                        my $hash  = self;
                        $hash = $hash{$_} //= self.new for @keys;
-                       $hash{$last}.push: $value;
-                   }
-               }
-           } else {    
-           # just a simple categorize
-               @list.map: -> $l {
-                  my $value := &as ?? as($l) !! $l;
-                  (self{$_} //= []).push: $value for test($l);
-               }
-               # more efficient (maybe?) nom version that might
-               # yet be updated for GLR
-               # @list.map: -> $l {
-               #     my $value := &as ?? as($l) !! $l;
-               #     nqp::push(
-               #       nqp::p6listitems(nqp::decont(self{$_} //= [])), $value )
-               #       for test($l);
-           }
+                       $hash{$last}.push(&as ?? as($value) !! $value);
+                    }
+
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    $tested := test($value);
+
+                    nqp::istype($tested[0],Iterable)
+                        and $els == $tested[0]
+                        or X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                }
+            }
+            # simple categorize
+            else {
+                loop {
+                    self{$_}.push(&as ?? as($value) !! $value)
+                        for @$tested;
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    nqp::istype(($tested := test($value))[0], Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                };
+            }
        }
        self;
     }
-    multi method categorize-list( %test, $list ) {
-        self.categorize-list( { %test{$^a} }, $list );
+    multi method categorize-list( %test, |c ) {
+        self.categorize-list( { %test{$^a} }, |c );
     }
-    multi method categorize-list( @test, $list ) {
-        self.categorize-list( { @test[$^a] }, $list );
+    multi method categorize-list( @test, |c ) {
+        self.categorize-list( { @test[$^a] }, |c );
+    }
+    multi method categorize-list( &test, **@list, |c ) {
+        self.categorize-list( &test, @list, |c );
     }
 
     # push a value onto a hash slot, constructing an array if necessary
@@ -602,7 +638,7 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method keys() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,
@@ -614,7 +650,7 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method values() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,
@@ -626,7 +662,7 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method kv() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 has $!pair;
 
                 method pull-one() {
@@ -649,10 +685,10 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         method pairs() {
-            Seq.new(Rakudo::Internals::MappyIterator-values.new(self))
+            Seq.new(Rakudo::Iterator.Mappy-values(self))
         }
         method antipairs() {
-            Seq.new(class :: does Rakudo::Internals::MappyIterator {
+            Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {
                     nqp::if(
                       $!iter,
@@ -671,9 +707,11 @@ my class Hash { # declared in BOOTSTRAP
                 my $TValue-perl := TValue.perl;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
                   ?? ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
-                  !! "(my $TValue-perl %\{$TKey-perl\} = {
-                      self.pairs.sort.map({.perl}).join(', ')
-                    })"
+                  !! self.elems
+                        ?? "(my $TValue-perl %\{$TKey-perl\} = {
+                          self.pairs.sort.map({.perl}).join(', ')
+                        })"
+                        !! "(my $TValue-perl %\{$TKey-perl\})"
             })
         }
 
@@ -688,7 +726,7 @@ my class Hash { # declared in BOOTSTRAP
                            nqp::unbox_s(nqp::istype(k,Str) ?? k !! k.Str),
                            v)
                      }
-                     nqp::bindattr($cap,Capture,'$!hash',$h);
+                     nqp::bindattr($cap,Capture,'%!hash',$h);
                      $cap
                  }
               !! nqp::create(Capture)

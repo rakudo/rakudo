@@ -79,6 +79,11 @@ D: Pugs, a Perl6->Parrot implementation.
 N: bacek
 E: bacek@illusion.dev.optusnet.com.au
 
+N: Bahtiar `kalkin-` Gadimov
+U: kalkin
+E: bahtiar@gadimov.de
+W: https://bahtiar.gadimov.de/
+
 N: Bart Wiegmans
 U: bdw
 U: brrt
@@ -348,6 +353,10 @@ S: Brooklyn, NY, USA
 N: Jan Ingvoldstad
 E: jani+perl6-2010@ifi.uio.no
 
+N: Jan-Olof Hendig
+U: dogbert17
+E: jan-olof.hendig@bredband.net
+
 N: japhb
 E: gjb@sonic.net
 
@@ -504,6 +513,10 @@ S: South Lake Tahoe, CA, USA
 
 N: Mark Grimes
 E: mgrimes@cpan.org
+
+N: Mark Rushing
+E: seatek@gmail.com
+U: adaptiveoptics
 
 N: Mark Shoulson
 E: mark@kli.org
@@ -662,6 +675,11 @@ E: ruz@bestpractical.com
 N: Salve J. Nilsen
 E: sjn+gnurf@kaizendo.org
 
+N: Samantha McVey
+E: samantham@posteo.net
+W: cry.nu
+U: samcv
+
 N: sergot
 E: filip@sergot.pl
 
@@ -808,6 +826,10 @@ E: foollbar@gmail.com
 N: Zach Morgan
 E: zpmorgan@gmail.com
 D: Rakudo patch
+
+N: Zoffix Znet
+E: cpan@zoffix.com
+W: perl6.party
 
 N: Zohar Kelrich
 E: lumimies@gmail.com

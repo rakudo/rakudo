@@ -2,7 +2,7 @@ my class IO::ArgFiles is IO::Handle {
     has $.args;
     has $.filename;
     has $!io;
-    has $.ins;
+    has Int $.ins = 0;
     has $!nl-in = ["\x0A", "\r\n"];
     has $!has-args;
 
@@ -76,71 +76,73 @@ my class IO::ArgFiles is IO::Handle {
         $line;
     }
 
-    method lines($limit = *) {
-        my $l = nqp::istype($limit,Whatever) ?? Inf !! $limit;
+    proto method lines(|) {*}
+    multi method lines() {
         Seq.new(class :: does Iterator {
             has $!args;
             has $!iter;
-            has $!limit;
             has $!next-io;
-            has $!ins;
+            has Int $!ins;
 
-            method new(\args, \ins, \limit, \next-io) {
+            method new(\args, \ins, \next-io) {
                 my \iter = nqp::create(self);
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);
                 my $io = next-io.();
                 if $io.defined {
-                    nqp::bindattr(iter, self, '$!limit', limit);
                     nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
                 }
                 else {
                     return $io if nqp::istype($io, Failure);
-                    nqp::bindattr(iter, self, '$!limit', my $ = 0);
                 }
                 iter
             }
 
             method pull-one() {
-                return IterationEnd if $!limit-- <= 0;
-                my \value = $!iter.pull-one;
-                if value =:= IterationEnd {
-                    my $io = $!next-io.();
-                    return $io if nqp::istype($io, Failure);
-                    return IterationEnd unless $io.defined;
-                    $!iter := $io.lines(:close).iterator;
-                    self.pull-one;
-                }
-                else {
-                    $!ins++;
-                    value;
-                }
+                nqp::stmts(
+                  (my \value = $!iter.pull-one),
+                  nqp::if(nqp::eqaddr(value, IterationEnd),
+                    nqp::stmts(
+                      (my $io = $!next-io.()),
+                      nqp::if(nqp::istype($io, Failure), return $io),
+                      nqp::unless(nqp::defined($io), return IterationEnd),
+                      ($!iter := $io.lines(:close).iterator),
+                      self.pull-one),
+                    nqp::stmts(
+                      ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
+                      value)))
             }
-        }.new(self, $!ins, $l, -> { self!next-io }));
+        }.new(self, $!ins, -> { self!next-io }));
+    }
+    multi method lines($limit) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.lines
+          !! self.lines[ lazy 0 .. $limit.Int - 1 ]
     }
 
-    method slurp(IO::ArgFiles:D:) {
+    method slurp(IO::ArgFiles:D: |c) {
         # NOTE: $.filename and $.ins will be incorrect after this is called
 
         # make sure $!has-args is in the proper state since !next-io() may not have been called
         $!has-args = ?$!args unless $!has-args.defined;
 
         # TODO should probably get the STDIN filehandle the same way as !next-io()
-        return $*IN.slurp-rest unless $!has-args;
+        return $*IN.slurp-rest(|c) unless $!has-args;
 
         my @chunks;
         if $!io.defined && $!io.opened {
-            @chunks.push: nqp::p6box_s($!io.slurp-rest(:close));
+            @chunks.push: $!io.slurp-rest(:close, |c);
         }
+
         while $!args {
-            @chunks.push: slurp $!args.shift;
+            @chunks.push: slurp $!args.shift, |c;
         }
 
         # TODO Should this be a failure?
         return Nil unless @chunks;
 
-        @chunks.join;
+        [~] @chunks;
     }
 
     method nl-in is rw {

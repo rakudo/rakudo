@@ -145,7 +145,15 @@ multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
 }
 multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     my role Precedence {
-        has %.prec;
+        has %!prec;
+        proto method prec(|) { * }
+        multi method prec() is raw { %!prec }
+        multi method prec(Str:D $key) {
+            nqp::ifnull(
+              nqp::atkey(nqp::getattr(%!prec,Map,'$!storage'),$key),
+              ''
+            )
+        }
     }
     if nqp::istype($r, Precedence) {
         for %spec {

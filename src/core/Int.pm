@@ -3,10 +3,10 @@ my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }
 
 my class Int { ... }
-my subset UInt of Int where * >= 0;
+my subset UInt of Int where {not .defined or $_ >= 0};
 
 my class Int does Real { # declared in BOOTSTRAP
-    # class Int is Cool {
+    # class Int is Cool
     #     has bigint $!value is box_target;
 
     multi method WHICH(Int:D:) {
@@ -19,7 +19,9 @@ my class Int does Real { # declared in BOOTSTRAP
         );
     }
     multi method new($value) {
-        nqp::box_i($value, self.WHAT);
+        # clone to ensure we return a new object for any cached
+        # numeric constants
+        $value.Int.clone;
     }
     multi method perl(Int:D:) {
         self.Str;
@@ -68,10 +70,10 @@ my class Int does Real { # declared in BOOTSTRAP
     }
     multi method base(Int:D: Int(Cool) $base, $digits?) {
         2 <= $base <= 36
-          ?? $digits
+          ?? $digits && ! nqp::istype($digits, Whatever)
             ?? $digits < 0
               ?? Failure.new(X::OutOfRange.new(
-                   :what('digits argument to base'),:got($digits),:range<0..*>))
+                   :what('digits argument to base'),:got($digits),:range<0..1073741824>))
               !!  nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
                     ~ '.'
                     ~ '0' x $digits
@@ -84,7 +86,7 @@ my class Int does Real { # declared in BOOTSTRAP
     # If do-not-want, user should cast invocant to proper domain.
     method polymod(Int:D: +@mods) {
         fail X::OutOfRange.new(
-          what => 'invocant to polymod', got => self, range => "0..*"
+          :what('invocant to polymod'), :got(self), :range<0..^Inf>
         ) if self < 0;
 
         gather {
@@ -151,11 +153,6 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method narrow(Int:D:) { self }
-
-    my constant $?BITS = do {
-        my int $a = 0x1ffffffff;
-        nqp::iseq_i($a,8589934591) ?? 64 !! 32;
-    }
 
     method Range(Int:U:) {
         given self {
@@ -258,7 +255,7 @@ multi sub infix:<*>(Int:D \a, Int:D \b) returns Int {
     nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<*>(int $a, int $b) returns int {
-    nqp::mul_i($a, $b)
+    nqp::mul_i($a, $b);
 }
 
 multi sub infix:<div>(Int:D \a, Int:D \b) {
@@ -282,14 +279,19 @@ multi sub infix:<%>(int $a, int $b) returns int {
 }
 
 multi sub infix:<**>(Int:D \a, Int:D \b) {
-    b >= 0 ?? nqp::pow_I(nqp::decont(a), nqp::decont(b), Num, Int)
-           !! 1 / nqp::pow_I(nqp::decont(a), nqp::decont(-b), Num, Int)
-    or a == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new)
+    my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
+    # when a**b is too big nqp::pow_I returns Inf
+    nqp::istype($power, Num)
+        ?? Failure.new(
+            b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new
+        ) !! b >= 0 ?? $power
+            !! ($power := 1 / $power) == 0 && a != 0
+                ?? Failure.new(X::Numeric::Underflow.new)
+                    !! $power;
 }
 
 multi sub infix:<**>(int $a, int $b) returns int {
-    nqp::pow_i($a, $b)
-        or $a == 0 ?? 0 !! Failure.new(X::Numeric::Overflow.new)
+    nqp::pow_i($a, $b);
 }
 
 multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {
@@ -359,21 +361,21 @@ multi sub infix:«>=»(int $a, int $b) {
 multi sub infix:<+|>(Int:D \a, Int:D \b) {
     nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+|>(int $a, int $b) {
+#multi sub infix:<+|>(int $a, int $b) { RT#128655
 #    nqp::bitor_i($a, $b)
 #}
 
 multi sub infix:<+&>(Int:D \a, Int:D \b) {
     nqp::bitand_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+&>(int $a, int $b) {
+#multi sub infix:<+&>(int $a, int $b) { RT#128655
 #    nqp::bitand_i($a, $b)
 #}
 
 multi sub infix:<+^>(Int:D \a, Int:D \b) {
     nqp::bitxor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+^>(int $a, int $b) {
+#multi sub infix:<+^>(int $a, int $b) { RT#128655
 #    nqp::bitxor_i($a, $b);
 #}
 
@@ -382,7 +384,7 @@ multi sub infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
       ?? Failure.new(X::NYI::BigInt.new(:op('+<'),:big(b)))
       !! nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-#multi sub infix:«+<»(int $a, int $b) {
+#multi sub infix:«+<»(int $a, int $b) { RT#128655
 #    nqp::bitshiftl_i($a, $b);
 #}
 
@@ -390,17 +392,17 @@ multi sub infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
     nqp::isbig_I(nqp::decont(b))
       ?? Failure.new(X::NYI::BigInt.new(:op('+>'),:big(b)))
       !! a < 0 && b > 31
-        ?? -1 # temp fix for #126942, remove if fixed otherwise
+        ?? -1 # temp fix for RT#126942, remove if fixed otherwise
         !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-#multi sub infix:«+>»(int $a, int $b) {
+#multi sub infix:«+>»(int $a, int $b) { RT#128655
 #    nqp::bitshiftr_i($a, $b)
 #}
 
 multi sub prefix:<+^>(Int:D \a) {
     nqp::bitneg_I(nqp::decont(a), Int);
 }
-#multi sub prefix:<+^>(int $a) {
+#multi sub prefix:<+^>(int $a) { RT#128655
 #    nqp::bitneg_i($a);
 #}
 

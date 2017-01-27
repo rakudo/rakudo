@@ -11,8 +11,9 @@ src/core/Stringy.pm
 src/core/Any.pm
 src/core/Attribute.pm
 src/core/Iterator.pm
-src/core/Rakudo/Internals.pm
 src/core/SlippyIterator.pm
+src/core/Rakudo/Internals.pm
+src/core/Rakudo/Iterator.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm
 src/core/HyperIterable.pm
@@ -43,6 +44,7 @@ src/core/Num.pm
 src/core/Buf.pm
 src/core/Uni.pm
 src/core/Str.pm
+src/core/Rakudo/Internals/VMBackedDecoder.pm
 src/core/Capture.pm
 src/core/IterationBuffer.pm
 src/core/HyperConfiguration.pm
@@ -53,8 +55,16 @@ src/core/Nil.pm
 src/core/Range.pm
 src/core/List.pm
 src/core/array_slice.pm
+src/core/multidim_slice.pm
 src/core/Slip.pm
 src/core/Array.pm
+src/core/ShapedArray.pm
+src/core/Shaped1Array.pm
+src/core/Shaped2Array.pm
+src/core/Shaped3Array.pm
+src/core/ShapedNArray.pm
+src/core/TypedArray.pm
+src/core/array_operators.pm
 src/core/native_array.pm
 src/core/Pair.pm
 src/core/Map.pm
@@ -168,4 +178,5 @@ src/core/StrDistance.pm
 src/core/Slang.pm
 src/core/Metamodel/Primitives.pm
 src/core/REPL.pm
+src/core/Rakudo/Metaops.pm
 src/core/core_epilogue.pm

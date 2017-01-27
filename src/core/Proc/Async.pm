@@ -2,8 +2,8 @@ my class Proc::Async { ... }
 
 my role X::Proc::Async is Exception {
     has Proc::Async $.proc;
-
 }
+
 my class X::Proc::Async::TapBeforeSpawn does X::Proc::Async {
     has $.handle;
     method message() {
@@ -45,6 +45,7 @@ my class Proc::Async {
     has $.path;
     has @.args;
     has $.w;
+    has $.enc = 'utf8';
     has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
@@ -54,7 +55,10 @@ my class Proc::Async {
     has $!exit_promise;
     has @!promises;
 
-    multi method new($path, *@args, :$w) { self.bless(:$path,:@args,:$w) }
+    proto method new(|) { * }
+    multi method new($path, *@args, *%_) {
+        self.bless(:$path, :@args, |%_)
+    }
 
     method !supply(\what,\the-supply,\type,\value) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
@@ -63,26 +67,38 @@ my class Proc::Async {
           if the-supply and type != value;
 
         type         = value;
-        the-supply //= Supplier.new;
+        the-supply //= Supplier::Preserving.new;
     }
 
     proto method stdout(|) { * }
-    multi method stdout(Proc::Async:D:) {
-        self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply;
-    }
     multi method stdout(Proc::Async:D: :$bin!) {
-        self!supply('stdout',$!stdout_supply,$!stdout_type,$bin ?? Bytes !! Chars).Supply;
+        $bin
+            ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
+            !! self.stdout(|%_)
+    }
+    multi method stdout(Proc::Async:D: :$enc) {
+        self!wrap-decoder:
+            self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
+            $enc
     }
 
     proto method stderr(|) { * }
-    multi method stderr(Proc::Async:D:) {
-        self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply;
-    }
     multi method stderr(Proc::Async:D: :$bin!) {
-        self!supply('stderr',$!stderr_supply,$!stderr_type,$bin ?? Bytes !! Chars).Supply;
+        $bin
+            ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
+            !! self.stderr(|%_)
+    }
+    multi method stderr(Proc::Async:D: :$enc) {
+        self!wrap-decoder:
+            self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
+            $enc
     }
 
-    method !capture(\callbacks,\std,\type,\the-supply) {
+    method !wrap-decoder(Supply:D $bin-supply, $enc) {
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc)
+    }
+
+    method !capture(\callbacks,\std,\the-supply) {
         my $promise = Promise.new;
         my $vow = $promise.vow;
         my $ss = Rakudo::Internals::SupplySequencer.new(
@@ -90,7 +106,7 @@ my class Proc::Async {
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
         nqp::bindkey(callbacks,
-            std ~ ( type ?? '_chars' !! '_bytes' ),
+            std ~ '_bytes' ,
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });
         $promise;
     }
@@ -105,17 +121,20 @@ my class Proc::Async {
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
-            $!exit_promise.keep(Proc.new(:exitcode(status +> 8), :signal(status +& 0xFF)))
+           $!exit_promise.keep(Proc.new(
+               :exitcode(status +> 8), :signal(status +& 0xFF),
+               :command[ $!path, |@!args ],
+           ))
         });
         nqp::bindkey($callbacks, 'error', -> Mu \err {
             $!exit_promise.break(X::OS.new(os-error => err));
         });
 
         @!promises.push(
-          self!capture($callbacks,'stdout',$!stdout_type,$!stdout_supply)
+          self!capture($callbacks,'stdout',$!stdout_supply)
         ) if $!stdout_supply;
         @!promises.push(
-          self!capture($callbacks,'stderr',$!stderr_type,$!stderr_supply)
+          self!capture($callbacks,'stderr',$!stderr_supply)
         ) if $!stderr_supply;
 
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
@@ -143,21 +162,7 @@ my class Proc::Async {
         X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritestr(
-            $!process_handle,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::unbox_s($str), ProcessCancellation);
-        $p
+        self.write($str.encode($!enc))
     }
 
     method put(Proc::Async:D: \x, |c) {
@@ -194,6 +199,7 @@ my class Proc::Async {
             nqp::decont($b), ProcessCancellation);
         $p
     }
+
     method close-stdin(Proc::Async:D:) {
         X::Proc::Async::OpenForWriting.new(:method<close-stdin>, proc => self).throw
           if !$!w;

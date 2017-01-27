@@ -11,7 +11,7 @@ This release implements the 6.c version of the Perl 6 specifications.
 It includes bugfixes and optimizations on top of
 the 2015.12 release of Rakudo, but no new features.
 
-Upcoming releases in 2016 will include new functionality that is not
+Upcoming releases in 2017 will include new functionality that is not
 part of the 6.c specification, available with a lexically scoped
 pragma. Our goal is to ensure that anything that is tested as part of the
 6.c specification will continue to work unchanged. There may be incremental
@@ -64,9 +64,8 @@ The Rakudo compiler is a compiler for the Perl 6 language.
 Not much more.
 
 The Rakudo Star distribution is the Rakudo compiler plus a selection
-of useful Perl 6 modules, a module installer, the most recent
-incarnation of the “Using Perl 6” book, and other software that can
-be used with the Rakudo compiler to enhance its utility.
+of useful Perl 6 modules, a module installer, Perl 6 introductory documentation, 
+and other software that can be used with the Rakudo compiler to enhance its utility.
 END_TEMPLATE
 
 my @ENGLISH-MONTHS = flat Any,

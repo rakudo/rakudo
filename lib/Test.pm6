@@ -1,7 +1,7 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2016 The Perl Foundation.
+# Copyright (C) 2007 - 2017 The Perl Foundation.
 
 # settable from outside
 my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
@@ -114,7 +114,13 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
             ~ "     got: '$got'";
     }
     else {
-        my $test = $got === $expected;
+        # infix:<===> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got === $expected;
+
         $ok = proclaim(?$test, $desc);
         if !$test {
             _diag "expected: ($expected.^name())\n"
@@ -129,7 +135,12 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok;
     if $got.defined { # also hack to deal with Failures
-        my $test = $got eq $expected;
+        # infix:<eq> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got eq $expected;
         $ok = proclaim(?$test, $desc);
         if !$test {
             if try    $got     .Str.subst(/\s/, '', :g)
@@ -228,7 +239,7 @@ sub bail-out ($desc?) is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx'); # Remove at 20161217 release (6 months from today)
+    DEPRECATED('is-approx'); # Remove for 6.d release
 
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
@@ -242,8 +253,16 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+# We're picking and choosing which tolerance to use here, to make it easier
+# to test numbers close to zero, yet maintain relative tolerance elsewhere.
+# For example, relative tolerance works equally well with regular and huge,
+# but once we go down to zero, things break down: is-approx sin(τ), 0; would
+# fail, because the computed relative tolerance is 1. For such cases, absolute
+# tolerance is better suited, so we DWIM in the no-tol version of the sub.
 multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
-    is-approx-calculate($got, $expected, 1e-5, Nil, $desc);
+    $expected.abs < 1e-6
+        ?? is-approx-calculate($got, $expected, 1e-5, Nil, $desc) # abs-tol
+        !! is-approx-calculate($got, $expected, Nil, 1e-6, $desc) # rel-tol
 }
 
 multi sub is-approx(
@@ -287,12 +306,22 @@ sub is-approx-calculate (
         $abs-tol-ok = $abs-tol-got <= $abs-tol;
     }
     if $rel-tol.defined {
-        $rel-tol-got = abs($got - $expected) / max($got.abs, $expected.abs);
-        $rel-tol-ok = $rel-tol-got <= $rel-tol;
+        if max($got.abs, $expected.abs) -> $max {
+            $rel-tol-got = abs($got - $expected) / $max;
+            $rel-tol-ok = $rel-tol-got <= $rel-tol;
+        }
+        else {
+            # if $max is zero, then both $got and $expected are zero
+            # and so our relative difference is also zero
+            $rel-tol-got = 0;
+        }
     }
 
     my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);
     unless $ok {
+            _diag "    expected approximately: $expected\n"
+                ~ "                       got: $got";
+
         unless $abs-tol-ok {
             _diag "maximum absolute tolerance: $abs-tol\n"
                 ~ "actual absolute difference: $abs-tol-got";
@@ -310,7 +339,8 @@ sub is-approx-calculate (
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = "# TODO $reason";
+    # Adding a space to not backslash the # TODO
+    $todo_reason = " # TODO $reason";
     $time_before = nqp::time_n;
 }
 
@@ -351,7 +381,7 @@ multi sub subtest(&subtests, $desc = '') is export {
       $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
     _pop_vars;
     $indents .= chop(4);
-    proclaim($status,$desc);
+    proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
 sub diag(Mu $message) is export {
@@ -367,9 +397,11 @@ sub _diag(Mu $message, :$force-stderr) {
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
-    my $str-message = nqp::join("\n# ", nqp::split("\n", "# $message"));
-    $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $out.say: $indents ~ $str-message;
+    my $str-message = nqp::join(
+        "\n$indents# ", nqp::split("\n", "$indents# $message")
+    );
+    $str-message .= subst(rx/^^ "$indents#" \s+ $$/, '', :g);
+    $out.say: $str-message;
     $time_before = nqp::time_n;
 }
 
@@ -479,6 +511,15 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+multi sub is-deeply(Seq $got, Seq $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected.cache, $reason;
+}
+multi sub is-deeply(Seq $got, Mu $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected, $reason;
+}
+multi sub is-deeply(Mu $got, Seq $expected, $reason = '') is export {
+    is-deeply $got, $expected.cache, $reason;
+}
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     $time_after = nqp::time_n;
     my $test = _is_deeply( $got, $expected );
@@ -574,10 +615,11 @@ sub proclaim($cond, $desc is copy ) {
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+    # So, adding a ' \' before it.
     $desc = $desc
-    ??  nqp::join('\\#',
+    ??  nqp::join(' \\#',
             nqp::split('#',
-                nqp::join('\\\\', nqp::split('\\', $desc.Str))
+                $desc.Str
             )
         )
     !! '';

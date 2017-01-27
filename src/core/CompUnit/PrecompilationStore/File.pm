@@ -60,6 +60,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             self.path.Str
         }
 
+        method close(--> Nil) {
+            $!file.close if $!file;
+            $!file = Nil;
+        }
+
         method save-to(IO::Path $precomp-file) {
             my $handle = $precomp-file.open(:w);
             $handle.print($!checksum ~ "\n");

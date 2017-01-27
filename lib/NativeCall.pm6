@@ -313,15 +313,15 @@ my role Native[Routine $r, $libname where Str|Callable|List] {
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r, :$!entry-point));
-            $!setup = 1;
             $!rettype := nqp::decont(map_return_type($r.returns));
+            $!setup = 1;
         }
     }
 
     method CALL-ME(|args) {
         self!setup unless $!setup;
 
-        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '$!list');
+        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $r.signature.arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),
@@ -399,18 +399,17 @@ multi refresh($obj) is export(:DEFAULT, :utils) {
     1;
 }
 
-sub nativecast($target-type, $source) is export(:DEFAULT) {
-    if $target-type ~~ Signature {
-        my $r := sub { };
-        $r does Native[$r, Str];
-        nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
-        nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
-        $r
-    }
-    else {
-        nqp::nativecallcast(nqp::decont($target-type),
-            nqp::decont(map_return_type($target-type)), nqp::decont($source));
-    }
+multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
+    my $r := sub { };
+    $r does Native[$r, Str];
+    nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
+    nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
+    $r
+}
+
+multi sub nativecast($target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {

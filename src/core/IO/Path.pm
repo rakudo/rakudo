@@ -13,7 +13,7 @@ my class IO::Path is Cool {
         nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.abspath)));
     }
 
-    multi method ACCEPTS(IO::Path:D: Mu \that) {
+    multi method ACCEPTS(IO::Path:D: Cool:D \that) {
         nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 
@@ -236,9 +236,6 @@ my class IO::Path is Cool {
     }
 
     proto method chdir(|) { * }
-    multi method chdir(IO::Path:U: $path, :$test = 'r') {
-        $*CWD.chdir($path,:$test);
-    }
     multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
         if !$!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);
@@ -406,15 +403,18 @@ my class IO::Path is Cool {
               :path($.abspath), :os-error(.Str) );
         } }
 
-        my str $abspath = $.abspath.ends-with($!SPEC.dir-sep)
-          ?? $.abspath
-          !! $.abspath ~ $!SPEC.dir-sep;
+        my str $dir-sep  = $!SPEC.dir-sep;
+        my int $relative = !$absolute && !$.is-absolute;
 
-        my str $path = $.path eq '.' | $!SPEC.dir-sep
+        my str $abspath = $.abspath.ends-with($dir-sep)
+          ?? $.abspath
+          !! $.abspath ~ $dir-sep;
+
+        my str $path = $!path eq '.' || $!path eq $dir-sep
           ?? ''
-          !! $.path.ends-with($!SPEC.dir-sep)
-            ?? $.path
-            !! $.path ~ $!SPEC.dir-sep;
+          !! $!path.ends-with($dir-sep)
+            ?? $!path
+            !! $!path ~ $dir-sep;
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
         gather {
@@ -431,23 +431,26 @@ my class IO::Path is Cool {
                 }
             }
 #?endif
-            loop {
-                my str $str_elem = nqp::nextfiledir($dirh);
-                if nqp::isnull_s($str_elem) || nqp::chars($str_elem) == 0 {
-                    nqp::closedir($dirh);
-                    last;
-                }
-
-                if $test.ACCEPTS($str_elem) {
-                    $Str
-                      ?? !$absolute && !$.is-absolute
-                        ?? take $path ~ $str_elem
-                        !! take $abspath ~ $str_elem
-                      !! !$absolute && !$.is-absolute
-                        ?? take IO::Path.new($path ~ $str_elem,:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($abspath ~ $str_elem,:$!SPEC,:$CWD);
-                }
-            }
+            nqp::until(
+              nqp::isnull_s(my str $str_elem = nqp::nextfiledir($dirh))
+                || nqp::iseq_i(nqp::chars($str_elem),0),
+              nqp::if(
+                $test.ACCEPTS($str_elem),
+                nqp::if(
+                  $Str,
+                  (take
+                    nqp::concat(nqp::if($relative,$path,$abspath),$str_elem)),
+                  nqp::if(
+                    $relative,
+                    (take IO::Path.new(
+                      nqp::concat($path,$str_elem),:$!SPEC,:$CWD)),
+                    (take IO::Path.new-from-absolute-path(
+                      nqp::concat($abspath,$str_elem),:$!SPEC,:$CWD))
+                  )
+                )
+              )
+            );
+            nqp::closedir($dirh);
         }
     }
 
@@ -458,21 +461,22 @@ my class IO::Path is Cool {
 
         my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
         if $bin {
+            my $res;
             # normal file
             if Rakudo::Internals.FILETEST-S(self.abspath) -> int $size {
-                nqp::readfh($PIO,buf8.new,$size)
+                $res := nqp::readfh($PIO,buf8.new,$size)
             }
             # spooky file with zero size?
             else {
-                my $res := buf8.new();
+                $res := buf8.new();
                 loop {
                     my $buf := nqp::readfh($PIO,buf8.new,0x100000);
                     last unless nqp::elems($buf);
                     $res.append($buf);
                 }
-                $handle.close;
-                $res
             }
+            $handle.close;
+            $res
         }
         else {
             $handle.encoding($enc) if $enc.defined;
@@ -504,8 +508,8 @@ my class IO::Path is Cool {
     }
 
     proto method lines(|) { * }
-    multi method lines(IO::Path:D: |c) {
-        self.open(|c).lines(:close);
+    multi method lines(IO::Path:D: $limit = Inf, |c) {
+        self.open(|c).lines($limit, :close);
     }
 
     proto method comb(|) { * }
@@ -555,7 +559,7 @@ my class IO::Path is Cool {
     }
 
     method l(--> Bool) {
-        $.e
+        ?Rakudo::Internals.FILETEST-LE($.abspath)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<l>))
     }

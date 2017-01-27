@@ -1,7 +1,7 @@
 use v6;
 use Test;
 
-plan 28;
+plan 30;
 
 {
     use java::lang::String:from<JavaRuntime>;
@@ -159,6 +159,11 @@ plan 28;
         is $out.out.lines, "baz womble", "(compiling and) loading a .class file via 'use lib' works";
            $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.trizzle([1, 2e0, <bar>])'", :out);
         is $out.out.lines, "12.0bar", "passing arrays with mixed types to Object[] works";
+           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.suzzle([1, 2e0, <bar>])'", :out);
+        is $out.out.lines, "12.0bar", "passing arrays with mixed types to List<Object> works";
+           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.foozzle(%(a => 1e0, b => 2, c => \"foo\"))'", 
+                    :out);
+        is $out.out.lines, "a => 1.0, b => 2, c => foo, ", "passing Hash[Str] with mixed types to Map works";
     }
     else {
         skip 2;

@@ -1,0 +1,17 @@
+#!/usr/bin/env perl6
+use v6;
+use Test;
+plan 12;
+
+ok 1, 'fake todo # TODO it is fake 1';
+ok 1, 'fake todo \# TODO it is fake 2';
+ok 1, 'fake todo \\# TODO it is fake 3';
+ok 1, 'fake todo \\# TODO it is fake 4';
+ok 1, 'fake todo \\\# TODO it is fake 5';
+ok 1, 'fake todo \\\\# TODO it is fake 6';
+ok 1, 'fake todo \\\\\# TODO it is fake 7';
+ok 1, '\\';
+ok 1, '\\\\';
+ok 1, '\\\\\\';
+ok 1, '\\\\\\\\';
+ok 1, '\\\\\\\\\\';

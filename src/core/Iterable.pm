@@ -47,23 +47,26 @@ my role Iterable {
                 );
                 $result
             }
+
             method push-all($target --> IterationEnd) {
-                my $got;
-                my $nested;
+                my $iter := $!nested || $!source;
                 nqp::until(
-                  nqp::eqaddr(($got := $!source.pull-one),IterationEnd),
-                  nqp::if(  # doesn't sink
-                    nqp::istype($got,Iterable) && nqp::not_i(nqp::iscont($got)),
-                    nqp::stmts(
-                      ($nested := $got.flat.iterator),
-                      nqp::until(  # doesn't sink
-                        nqp::eqaddr(($got := $nested.pull-one),IterationEnd),
-                        $target.push($got)
-                      )
-                    ),
-                    $target.push($got)
-                  )
-                )
+                       nqp::eqaddr((my $got := $iter.pull-one), IterationEnd)
+                    && nqp::eqaddr($iter, $!source),
+                    nqp::if(
+                        nqp::eqaddr($got, IterationEnd),
+                        nqp::stmts(
+                            ($!nested := Iterator),
+                            ($iter    := $!source),
+                        ),
+                        nqp::if(
+                               nqp::istype($got,Iterable)
+                            && nqp::not_i(nqp::iscont($got)),
+                            ($iter := $got.flat.iterator),
+                            $target.push($got),
+                        ),
+                    )
+                );
             }
         }.new(self.iterator))
     }
@@ -100,11 +103,11 @@ my role Iterable {
 
     method !valid-hyper-race($method,$batch,$degree --> Nil) {
         $batch <= 0
-          ?? Failure.new(X::Invalid::Value.new(
-               :$method,:name<batch>,:value($batch)))
+          ?? X::Invalid::Value.new(
+               :$method,:name<batch>,:value($batch)).throw
           !! $degree <= 0
-            ?? Failure.new(X::Invalid::Value.new(
-                 :$method,:name<degree>,:value($degree)))
+            ?? X::Invalid::Value.new(
+                 :$method,:name<degree>,:value($degree)).throw
             !! Nil
     }
 

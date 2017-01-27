@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 # Copyright (C) 2009 The Perl Foundation
 
 use 5.10.1;
@@ -35,7 +35,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                'sysroot=s', 'sdkroot=s',
                'backends=s', 'no-clean!',
-               'gen-nqp:s',
+               'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
                'git-protocol=s',
                'make-install!', 'makefile-timing!',
@@ -70,6 +70,11 @@ MAIN: {
     }
     my @backends;
     my %backends;
+    if (my $nqp_bin  = $options{'with-nqp'}) {
+        die "Could not find $nqp_bin" unless -e $nqp_bin;
+        $options{backends} = qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
+            or die "Could not get backend information from $nqp_bin";
+    }
     if (defined $options{backends}) {
         $options{backends} = join ",", @known_backends
             if uc($options{backends}) eq 'ALL';
@@ -107,7 +112,7 @@ MAIN: {
             $backends{moar} = 1;
             $default_backend ||= 'moar';
         }
-        unless (%backends) {
+        unless (%backends or exists $options{'with-nqp'}) {
             die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n\n"
               . "Example to build for all backends (which will take a while):\n"
               . "\tperl Configure.pl --backends=moar,jvm --gen-moar\n\n"
@@ -137,6 +142,13 @@ MAIN: {
     $config{'runner_suffix'} = $win ? '.bat' : '';
 
     my $make = 'make';
+    if ($^O eq 'solaris') {
+        if (not -X '/usr/bin/gmake') {
+            die "gmake is required to compile rakudo. Please install by 'pkg install gnu-make'";
+        }
+        $make = 'gmake';
+    }
+
     if ($win) {
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
@@ -154,7 +166,7 @@ MAIN: {
         }
     }
 
-    for my $target (qw/common_bootstrap_sources moar_core_sources/) {
+    for my $target (qw/common_bootstrap_sources moar_core_sources jvm_core_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";
         my @lines;
@@ -248,6 +260,7 @@ MAIN: {
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'bld_nqp_jars'}  = join( $config{'cpsep'}, map { $config{'sysroot'} . $_ } split( $config{'cpsep'}, $nqp_config{'jvm::runtime.jars'} ) );
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
+            $config{'nqp_libdir'}    = $nqp_config{'nqp::libdir'};
             $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 
@@ -273,8 +286,8 @@ MAIN: {
         unless ($win) {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)';
-            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
-                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
+            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
         }
 
         unless (@errors) {
@@ -378,6 +391,8 @@ General Options:
                        Download, build, and install a copy of NQP before writing the Makefile
     --gen-moar[=branch]
                        Download, build, and install a copy of MoarVM to use before writing the Makefile
+    --with-nqp='/path/to/nqp'
+                       Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl

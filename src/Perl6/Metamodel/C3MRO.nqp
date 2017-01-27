@@ -15,7 +15,7 @@ role Perl6::Metamodel::C3MRO {
             if +@immediate_parents == 1 {
                 @result := nqp::clone(@immediate_parents[0].HOW.mro(@immediate_parents[0]));
             } else {
-                # Build merge list of lineraizations of all our parents, add
+                # Build merge list of linearizations of all our parents, add
                 # immediate parents and merge.
                 my @merge_list;
                 for @immediate_parents {

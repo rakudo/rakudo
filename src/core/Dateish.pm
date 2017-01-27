@@ -5,27 +5,21 @@ my role Dateish {
     has Int $.daycount;
     has     &.formatter;
 
-    method IO(|c) { IO::Path.new(self) }  # because Dateish is not Cool
+    method IO(Dateish:D: |c) { IO::Path.new(~self) }  # because Dateish is not Cool
 
+    # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
-    proto method is-leap-year(|) { * }
-    multi method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
-    multi method is-leap-year(Dateish: $y) { IS-LEAP-YEAR($y) }
+    method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
 
     my $days-in-month := nqp::list_i(
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
-    method !DAYS-IN-MONTH(\year, \month) {
+    # This method is used by Date and DateTime:
+    method DAYS-IN-MONTH(\year, \month) {
         nqp::atpos_i($days-in-month,month) ||
           ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
-    proto method days-in-month(|) { * }
-    multi method days-in-month(Dateish:D:) {
-        self!DAYS-IN-MONTH($!year,$!month)
-    }
-    multi method days-in-month(Dateish: $y, $m) {
-        self!DAYS-IN-MONTH($y,$m)
-    }
+    method days-in-month(Dateish:D:) { self.DAYS-IN-MONTH($!year,$!month) }
 
     method !year-Str() {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
@@ -75,10 +69,7 @@ my role Dateish {
     }
 
     method day-of-month() { $!day }
-
-    method day-of-week($daycount = self.daycount) {
-        ($daycount + 2) % 7 + 1
-    }
+    method day-of-week(Dateish:D:) { (self.daycount + 2) % 7 + 1 }
 
     method week() { # algorithm from Claus Tøndering
         my int $a = $!year - ($!month <= 2).floor.Int;
@@ -121,8 +112,7 @@ my role Dateish {
 
     method !truncate-ymd(Cool:D $unit, %parts? is copy) {
         if $unit eq 'week' | 'weeks' {
-            my $dc = self.daycount;
-            my $new-dc = $dc - self.day-of-week($dc) + 1;
+            my $new-dc = self.daycount - self.day-of-week + 1;
             self!ymd-from-daycount($new-dc,
               %parts<year>,%parts<month>,%parts<day>);
         }

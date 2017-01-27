@@ -6,7 +6,7 @@ use Test;
 
 plan 1;
 
-class Foo is repr("CStruct") {
+class Foo {
    method foo(Mu:U $type, Int $a ) {
       my @buff := CArray[$type].new;
       my $ctype = $type ~~ Num ?? Num !! Int;

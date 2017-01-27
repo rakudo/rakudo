@@ -35,7 +35,7 @@ op.p6bool = function(value) {
 };
 
 op.p6definite = function(obj) {
-  return obj.typeObject_ ? False : True;
+  return (obj === Null || obj.typeObject_) ? False : True;
 };
 
 op.p6typecheckrv = function(rv, routine, bypassType) {

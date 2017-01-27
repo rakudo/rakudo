@@ -567,7 +567,7 @@ my class IO::Handle does IO {
             method pull-one() is raw {
                 nqp::if(
                     nqp::isnull(
-                        nqp::getattr(nqp::decont($!handle), $!handle.WHAT, '$!PIO')),
+                        nqp::getattr(nqp::decont($!handle), IO::Handle, '$!PIO')),
                     IterationEnd,
                     nqp::if(nqp::defined(my \g = $!handle.get),
                         g,

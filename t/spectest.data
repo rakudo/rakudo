@@ -142,6 +142,7 @@ S02-types/isDEPRECATED.t
 S02-types/keyhash.t
 S02-types/lazy-lists.t
 S02-types/lists.t
+S02-types/mix-iterator.t
 S02-types/mix.t
 S02-types/mixhash.t
 S02-types/mixed_multi_dimensional.t

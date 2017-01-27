@@ -730,7 +730,13 @@ my class Binder {
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
+#?if !js
                 nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
+#?endif
+#?if js
+                # BUILDALL doesn't like a Mu in $!storage
+                nqp::bindattr($hash, Map, '$!storage', $named_args || nqp::hash());
+#?endif
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;

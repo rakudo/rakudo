@@ -1946,7 +1946,7 @@ class Rakudo::Iterator {
             }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
-            method sink-all(--> IterationEnd) { }
+            method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
         }.new(list)
     }
 

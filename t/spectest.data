@@ -157,6 +157,7 @@ S02-types/num.t
 S02-types/pair.t
 S02-types/list.t
 S02-types/parsing-bool.t
+S02-types/range-iterator.t
 S02-types/range.t
 S02-types/resolved-in-setting.t    # moar
 S02-types/set-iterator.t

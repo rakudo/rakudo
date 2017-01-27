@@ -212,8 +212,9 @@ my class Range is Cool does Iterable does Positional {
                             $i = $i.succ;
                         }
                     }
+                    $!i = $e.succ;
                 }
-                method sink-all(--> IterationEnd) { $!i = $!e }
+                method sink-all(--> IterationEnd) { $!i = $!e.succ }
             }.new($!excludes-min ?? $!min.succ !! $!min,$!excludes-max,$!max)
         }
     }

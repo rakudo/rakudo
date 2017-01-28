@@ -1301,7 +1301,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method parse-base(Str:D: Int:D $radix) {
         fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
-            unless 2 <= $radix <= 36;
+            unless 2 <= $radix <= 36; # (0..9,"a".."z").elems == 36
 
         # do not modify $!value directly as that affects other same strings
         my ($value, $sign, $sign-offset) = $!value, 1, 0;

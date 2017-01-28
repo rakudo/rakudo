@@ -319,8 +319,14 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     multi method from-loop(&body) {
         Seq.new(Rakudo::Iterator.Loop(&body))
     }
-    multi method from-loop(&body, &cond, :$repeat) {
-        Seq.new(WhileLoopIter.new(&body, &cond, :$repeat))
+    multi method from-loop(&body, &cond, :$repeat!) {
+        Seq.new($repeat
+          ?? Rakudo::Iterator.RepeatLoop(&body,&cond)
+          !! WhileLoopIter.new(&body, &cond, :$repeat)
+        )
+    }
+    multi method from-loop(&body, &cond) {
+        Seq.new(WhileLoopIter.new(&body, &cond))
     }
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(CStyleLoopIter.new(&body, &cond, &afterwards))

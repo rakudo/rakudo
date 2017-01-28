@@ -1523,7 +1523,13 @@ BEGIN {
             }
             my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
             unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
-                nqp::die("Can only use 'is rw' on a scalar ('$' sigil) parameter");
+                my $error;
+                if nqp::eqat($varname, '%', 0) || nqp::eqat($varname, '@', 0)  {
+                    my $sig := nqp::substr($varname, 0, 1);
+                    $error := "'$sig' sigil containers don't need 'is rw' to be writable\n";
+                }
+                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter";
+                nqp::die($error);
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }

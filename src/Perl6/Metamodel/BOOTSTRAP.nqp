@@ -240,7 +240,7 @@ my class Binder {
                 }
                 $got_native := 0;
             }
-            
+
             # Otherwise, maybe we need to unbox.
             elsif !$got_native {
                 # XXX Probably want to do this a little differently to get a
@@ -258,7 +258,7 @@ my class Binder {
                     $got_native := $SIG_ELEM_NATIVE_STR_VALUE;
                 }
             }
-            
+
             # Otherwise, incompatible native types.
             else {
                 if nqp::defined($error) {
@@ -312,7 +312,7 @@ my class Binder {
                         ?? $BIND_RESULT_JUNCTION
                         !! $BIND_RESULT_FAIL;
                 }
-            
+
                 # Also enforce definedness constraints.
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
@@ -407,7 +407,7 @@ my class Binder {
                     nqp::bindkey_s($lexpad, $varname, $sval);
                 }
             }
-            
+
             # Otherwise it's some objecty case.
             elsif $is_rw {
                 if nqp::isrwcont($oval) {
@@ -445,7 +445,7 @@ my class Binder {
                         nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
                 }
-                
+
                 # If it's a hash, similar approach to array.
                 elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
@@ -457,7 +457,7 @@ my class Binder {
                         nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
                 }
-                
+
                 # If it's a scalar, we always need to wrap it into a new
                 # container and store it, for copy or ro case (the rw bit
                 # in the container descriptor takes care of the rest).
@@ -523,7 +523,7 @@ my class Binder {
                 }
                 return $BIND_RESULT_FAIL;
             }
-            
+
             # Ensure it's not native; NYI.
             if $got_native {
                 if nqp::defined($error) {
@@ -588,7 +588,7 @@ my class Binder {
         # Binding of this parameter was thus successful - we're done.
         $BIND_RESULT_OK
     }
-    
+
     # This takes a signature element and either runs the closure to get a default
     # value if there is one, or creates an appropriate undefined-ish thingy.
     sub handle_optional($param, int $flags, $lexpad) {
@@ -627,7 +627,7 @@ my class Binder {
     sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
         # Get params.
         my @params := nqp::getattr($sig, Signature, '@!params');
-        
+
         # If we do have some named args, we get hold of a hash of them. We
         # can safely delete from this as we go.
         my $named_args;
@@ -648,7 +648,7 @@ my class Binder {
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
             my str $var_name := nqp::getattr_s($param, Parameter, '$!variable_name');
             $i := $i + 1;
-            
+
             # Is it looking for us to bind a capture here?
             my int $bind_fail;
             my int $got_prim;
@@ -711,7 +711,7 @@ my class Binder {
                     }
                 }
             }
-            
+
             # Could it be a named slurpy?
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
@@ -723,12 +723,12 @@ my class Binder {
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
-                
+
                 # Undefine named arguments hash now we've consumed it, to mark all
                 # is well.
                 $named_args := NQPMu;
             }
-            
+
             # Otherwise, maybe it's a positional.
             elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
                 # Slurpy or LoL-slurpy?
@@ -806,7 +806,7 @@ my class Binder {
                     }
                 }
             }
-            
+
             # Else, it's a non-slurpy named.
             else {
                 # Try and get hold of value.
@@ -850,7 +850,7 @@ my class Binder {
                 return $bind_fail if $bind_fail;
             }
         }
-        
+
         # Do we have any left-over args?
         if $cur_pos_arg < $num_pos_args && !$suppress_arity_fail {
             # Oh noes, too many positionals passed.
@@ -877,7 +877,7 @@ my class Binder {
             }
             return $BIND_RESULT_FAIL;
         }
-        
+
         # If we get here, we're done.
         return $BIND_RESULT_OK;
     }
@@ -928,16 +928,16 @@ my class Binder {
         }
         nqp::null();
     }
-    
+
     sub make_vm_capture($capture) {
-        sub vm_capture(*@pos, *%named) { nqp::savecapture() }                
+        sub vm_capture(*@pos, *%named) { nqp::savecapture() }
         my @list := nqp::getattr($capture, Capture, '@!list');
         @list    := nqp::list() unless nqp::islist(@list);
         my %hash := nqp::getattr($capture, Capture, '%!hash');
         %hash    := nqp::hash() unless nqp::ishash(%hash);
         vm_capture(|@list, |%hash)
     }
-    
+
     method is_bindable($sig, $capture) {
         unless nqp::reprname($capture) eq 'MVMCallCapture' {
             $capture := make_vm_capture($capture);
@@ -1291,7 +1291,7 @@ BEGIN {
             $ins
         }));
     Attribute.HOW.compose_repr(Attribute);
-    
+
     # class Scalar is Any {
     #     has Mu $!descriptor;
     #     has Mu $!value;
@@ -1449,7 +1449,7 @@ BEGIN {
             );
         }));
     Signature.HOW.compose_repr(Signature);
-        
+
     # class Parameter is Any {
     #     has str $!variable_name
     #     has @!named_names
@@ -1591,7 +1591,7 @@ BEGIN {
             }
         }));
     Parameter.HOW.compose_repr(Parameter);
-    
+
     # class Code {
     #     has Code $!do;              # Low level code object
     #     has Signature $!signature;  # Signature object
@@ -1648,7 +1648,7 @@ BEGIN {
                 Code, '$!do'))
         }));
     Code.HOW.compose_repr(Code);
-        
+
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
@@ -1780,7 +1780,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
-    
+
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
@@ -1850,7 +1850,7 @@ BEGIN {
             my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
             my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
             my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
-            
+
             # Takes two candidates and determines if the first one is narrower
             # than the second. Returns a true value if they are.
             sub is_narrower(%a, %b) {
@@ -1928,7 +1928,7 @@ BEGIN {
                 elsif $tied != $types_to_check {
                     return 0;
                 }
-                
+
                 # Otherwise, we see if one has a slurpy and the other not. A lack of
                 # slurpiness makes the candidate narrower.
                 if %a<max_arity> != $SLURPY_ARITY && %b<max_arity> == $SLURPY_ARITY {
@@ -1941,10 +1941,10 @@ BEGIN {
                 return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
                     && (%a<bind_check> && !%b<bind_check>);
             }
-            
+
             my $dcself     := nqp::decont($self);
             my @candidates := nqp::getattr($dcself, Routine, '@!dispatchees');
-            
+
             # Create a node for each candidate in the graph.
             my @graph;
             for @candidates -> $candidate {
@@ -2154,7 +2154,7 @@ BEGIN {
                 # This is end of a tied group, so leave a gap.
                 nqp::push(@result, Mu);
             }
-            
+
             # Add final null sentinel.
             nqp::push(@result, Mu);
 
@@ -2167,7 +2167,7 @@ BEGIN {
                 $self.'!sort_dispatchees_internal'());
         }
     }));
-    Routine.HOW.add_method(Routine, 'find_best_dispatchee', nqp::getstaticcode(sub ($self, $capture, int $many = 0) {        
+    Routine.HOW.add_method(Routine, 'find_best_dispatchee', nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
             my int $DEFCON_DEFINED    := 1;
             my int $DEFCON_UNDEFINED  := 2;
             my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
@@ -2179,7 +2179,7 @@ BEGIN {
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
-            
+
             # Count arguments.
             my int $num_args := nqp::captureposelems($capture);
 
@@ -2293,7 +2293,7 @@ BEGIN {
                             }
                             $i++;
                         }
-                        
+
                         unless $type_mismatch || $rwness_mismatch {
                             # It's an admissable candidate; add to list.
                             nqp::push(@possibles, $cur_candidate);
@@ -2310,7 +2310,7 @@ BEGIN {
                         $i := 0;
                         while $i < nqp::elems(@possibles) {
                             %info := nqp::atpos(@possibles, $i);
-                            
+
                             # First, if there's a required named parameter and it was
                             # not passed, we can very quickly eliminate this candidate
                             # without doing a full bindability check.
@@ -2333,14 +2333,14 @@ BEGIN {
                                     my $ctf := $cs[1];
                                     $ctf() if $ctf;
                                 }
-                                
+
                                 # Since we had to do a bindability check, this is not
                                 # a result we can cache on nominal type.
                                 $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
-                                
+
                                 # If we haven't got a possibles storage space, allocate it now.
                                 $new_possibles := [] unless nqp::islist($new_possibles);
-                                
+
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
                                 unless $done_bind_check {
                                     # Need a copy of the capture, as we may later do a
@@ -2356,7 +2356,7 @@ BEGIN {
                                     }
                                 }
                             }
-                            
+
                             # Otherwise, it's just nominal; accept it.
                             elsif $new_possibles {
                                 nqp::push($new_possibles, nqp::atpos(@possibles, $i));
@@ -2398,7 +2398,7 @@ BEGIN {
                     }
                 }
             }
-            
+
             # If we were looking for many candidates, we're done now.
             if $many {
                 return $many_res;
@@ -2533,7 +2533,7 @@ BEGIN {
             my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.
             my $MD_CT_DECIDED  :=  1;  # Worked it out; see result.
             my $MD_CT_NO_WAY   := -1;  # Proved it'd never manage to dispatch.
-            
+
             # Other constants we need.
             my int $DEFCON_DEFINED    := 1;
             my int $DEFCON_UNDEFINED  := 2;
@@ -2547,10 +2547,10 @@ BEGIN {
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
             my int $ARG_IS_LITERAL    := 32;
-            
+
             # Count arguments.
             my int $num_args := nqp::elems(@args);
-            
+
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
             my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
@@ -2560,7 +2560,7 @@ BEGIN {
                 nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
                 nqp::scwbenable();
             }
-            
+
             # Look through the candidates. If we see anything that needs a bind
             # check or a definedness check, we can't decide it at compile time,
             # so bail out immediately.
@@ -2602,7 +2602,7 @@ BEGIN {
                     $cur_idx++;
                     next;
                 }
-                
+
                 # If we got this far, something at least matched on arity.
                 $arity_possible := 1;
 
@@ -2642,17 +2642,17 @@ BEGIN {
                             $got_prim == $BIND_VAL_INT ?? Int !!
                             $got_prim == $BIND_VAL_NUM ?? Num !!
                                                           Str;
-                
+
                         # If we're here, it's a non-native.
                         $all_native := 0;
-                        
+
                         # Check type. If that doesn't rule it out, then check if it's
                         # got definedness constraints. If it does, note that; if we
                         # match but depend on definedness constraints we can't do
                         # any more.
                         if !nqp::eqaddr($type_obj, Mu) && !nqp::istype($param, $type_obj) {
                             $type_mismatch := 1;
-                            
+
                             # We didn't match, but that doesn't mean we cannot at
                             # runtime (e.g. the most we know about the type could
                             # be that it's Any, but at runtime that feasibly could
@@ -2696,7 +2696,7 @@ BEGIN {
                     $cur_idx++;
                 }
             }
-            
+
             # If we saw all the candidates, and got no result, and the arity never
             # matched or when it did there was no way any candidates could get
             # passed matching types, then we know it would never work.
@@ -2709,7 +2709,7 @@ BEGIN {
                 }
                 return [$MD_CT_NO_WAY, NQPMu];
             }
-            
+
             # If we got a result, return it.
             if nqp::isconcrete($cur_result) {
                 return [$MD_CT_DECIDED, $cur_result];
@@ -2824,7 +2824,7 @@ BEGIN {
 
     # class Nil is Cool {
     Nil.HOW.compose_repr(Nil);
-    
+
     # class List is Cool {
     #     has List $!reified;
     #     has Mu $!todo;
@@ -2862,7 +2862,7 @@ BEGIN {
     Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture, :!auto_viv_container));
     Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture, :!auto_viv_container));
     Capture.HOW.compose_repr(Capture);
-    
+
     # class Junction is Mu {
     #     has Mu $!storage;
     #     has str $!type;
@@ -2870,7 +2870,7 @@ BEGIN {
     Junction.HOW.add_attribute(Junction, scalar_attr('$!storage', Mu, Junction));
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction));
     Junction.HOW.compose_repr(Junction);
-    
+
     # class Bool is Int {
     #     has str $!key;
     #     has int $!value;
@@ -2894,7 +2894,7 @@ BEGIN {
     ObjAt.HOW.add_parent(ObjAt, Any);
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
-    
+
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
@@ -3186,7 +3186,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     unless nqp::isnull(@keeps) {
                         for @keeps {
                             if nqp::decont($_) =:= $phaser {
-                                $run := !nqp::isnull($resultish) && 
+                                $run := !nqp::isnull($resultish) &&
                                          nqp::isconcrete($resultish) &&
                                          $resultish.defined;
                                 last;
@@ -3215,7 +3215,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     $i++;
                 }
             }
-            
+
             my @posts := nqp::atkey(%phasers, 'POST');
             unless nqp::isnull(@posts) {
                 my int $n := nqp::elems(@posts);

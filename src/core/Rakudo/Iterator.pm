@@ -2123,8 +2123,6 @@ class Rakudo::Iterator {
                 )
 } # needed for some reason
             }
-
-            method is-lazy() { True }
         }.new(&body,&cond)
     }
 
@@ -2536,6 +2534,69 @@ class Rakudo::Iterator {
                 )
             }
         }.new(source)
+    }
+
+    # Returns an iterator that handles all properties of a -while- with
+    # a condition.  Takes a Callable to be considered the body of the loop,
+    # and a Callable for the condition..
+    method WhileLoop(&body, &cond) {
+        class :: does SlippyIterator {
+            has $!body;
+            has $!cond;
+   
+            method !SET-SELF(\body,\cond) {
+                nqp::stmts(
+                  ($!body := body),
+                  ($!cond := cond),
+                  self
+                )
+            }
+            method new(\body,\cond) {
+                nqp::create(self)!SET-SELF(body,cond)
+            }
+
+            method pull-one() {
+                my $result;
+                my int $stopped;
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+                nqp::if(
+                  $!slipping && nqp::not_i(
+                    nqp::eqaddr(($result := self.slip-one),IterationEnd)
+                  ),
+                  $result,
+                  nqp::if(
+                    $!cond(),
+                    nqp::stmts(
+                      nqp::until(
+                        $stopped,
+                        nqp::stmts(
+                          ($stopped = 1),
+                          nqp::handle(
+                            nqp::if(
+                              nqp::istype(($result := $!body()),Slip),
+                              ($stopped = nqp::eqaddr(
+                                ($result := self.start-slip($result)),
+                                IterationEnd
+                              ) && nqp::if($!cond(),0,1))
+                            ),
+                            'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                            'REDO', ($stopped = 0),
+                            'LAST', ($result := IterationEnd)
+                          )
+                        ),
+                        :nohandler
+                      ),
+                      $result
+                    ),
+                    IterationEnd
+                  )
+                )
+} # needed for some reason
+            }
+        }.new(&body,&cond)
     }
 
     # Return an iterator that will zip the given iterables (with &[,])

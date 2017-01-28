@@ -967,6 +967,7 @@ S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
+S32-io/indir.t
 S32-io/io-handle.t
 S32-io/socket-host-port-split.t
 S32-io/socket-fail-invalid-values.t

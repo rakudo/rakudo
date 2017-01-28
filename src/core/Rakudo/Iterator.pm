@@ -2060,6 +2060,74 @@ class Rakudo::Iterator {
         }.new(iterator)
     }
 
+    # Returns an iterator that handles all properties of a -repeat- with
+    # a condition.  Takes a Callable to be considered the body of the loop,
+    # and a Callable for the condition..
+    method RepeatLoop(&body, &cond) {
+        class :: does SlippyIterator {
+            has $!body;
+            has $!cond;
+            has int $!skip;
+   
+            method !SET-SELF(\body,\cond) {
+                nqp::stmts(
+                  ($!body := body),
+                  ($!cond := cond),
+                  ($!skip = 1),
+                  self
+                )
+            }
+            method new(\body,\cond) {
+                nqp::create(self)!SET-SELF(body,cond)
+            }
+
+            method pull-one() {
+                my $result;
+                my int $stopped;
+# for some reason, this scope is needed.  Otherwise, settings compilation
+# will end in the mast stage with something like:
+#   Cannot reference undeclared local '__lowered_lex_3225'
+{
+                nqp::if(
+                  $!slipping && nqp::not_i(
+                    nqp::eqaddr(($result := self.slip-one),IterationEnd)
+                  ),
+                  $result,
+                  nqp::if(
+                    $!skip || $!cond(),
+                    nqp::stmts(
+                      ($!skip = 0),
+                      nqp::until(
+                        $stopped,
+                        nqp::stmts(
+                          ($stopped = 1),
+                          nqp::handle(
+                            nqp::if(
+                              nqp::istype(($result := $!body()),Slip),
+                              ($stopped = nqp::eqaddr(
+                                ($result := self.start-slip($result)),
+                                IterationEnd
+                              ) && nqp::if($!cond(),0,1))
+                            ),
+                            'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                            'REDO', ($stopped = 0),
+                            'LAST', ($result := IterationEnd)
+                          )
+                        ),
+                        :nohandler
+                      ),
+                      $result
+                    ),
+                    IterationEnd
+                  )
+                )
+} # needed for some reason
+            }
+
+            method is-lazy() { True }
+        }.new(&body,&cond)
+    }
+
     # Return a lazy iterator that keeps calling .roll on the given object.
     # Basically the functionality of List.roll(*), but could be on any
     # object that has a .roll method.

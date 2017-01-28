@@ -1521,6 +1521,53 @@ class Rakudo::Iterator {
         )
     }
 
+    # Returns an iterator that handles all properties of a bare -loop-
+    # Takes a Callable to be considered the body of the loop.
+    method Loop(&body) {
+        class :: does SlippyIterator {
+            has &!body;
+
+            method new(&body) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'&!body',&body)
+            }
+
+            method pull-one() {
+                my $result;
+                my int $stopped;
+                nqp::if(
+                  $!slipping && nqp::not_i(
+                    nqp::eqaddr(($result := self.slip-one),IterationEnd)
+                  ),
+                  $result,
+                  nqp::stmts(
+                    nqp::until(
+                      $stopped,
+                      nqp::stmts(
+                        ($stopped = 1),
+                        nqp::handle(
+                          nqp::if(
+                            nqp::istype(($result := &!body()),Slip),
+                            ($stopped = nqp::eqaddr(
+                              ($result := self.start-slip($result)),
+                              IterationEnd
+                            ))
+                          ),
+                          'NEXT', ($stopped = 0),
+                          'REDO', ($stopped = 0),
+                          'LAST', ($result := IterationEnd)
+                        )
+                      ),
+                      :nohandler
+                    ),
+                    $result
+                  )
+                )
+            }
+
+            method is-lazy() { True }
+        }.new(&body)
+    }
+
     # An often occurring use of the Mappy role to generate all of the
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
     method Mappy-keys(\map) {

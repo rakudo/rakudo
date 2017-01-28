@@ -209,40 +209,40 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         has &!body;
 
         method new(&body) {
-            my \iter = nqp::create(self);
-            nqp::bindattr(iter, self, '&!body', &body);
-            iter
+            nqp::p6bindattrinvres(nqp::create(self),self,'&!body',&body)
         }
 
         method pull-one() {
-            my int $redo = 1;
             my $result;
-            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+            my int $stopped;
+            nqp::if(
+              $!slipping && nqp::not_i(
+                nqp::eqaddr(($result := self.slip-one),IterationEnd)
+              ),
+              $result,
+              nqp::stmts(
+                nqp::until(
+                  $stopped,
+                  nqp::stmts(
+                    ($stopped = 1),
+                    nqp::handle(
+                      nqp::if(
+                        nqp::istype(($result := &!body()),Slip),
+                        ($stopped = nqp::eqaddr(
+                          ($result := self.start-slip($result)),
+                          IterationEnd
+                        ))
+                      ),
+                      'NEXT', ($stopped = 0),
+                      'REDO', ($stopped = 0),
+                      'LAST', ($result := IterationEnd)
+                    )
+                  ),
+                  :nohandler
+                ),
                 $result
-            }
-            else {
-                nqp::while(
-                    $redo,
-                    nqp::stmts(
-                        $redo = 0,
-                        nqp::handle(
-                            nqp::stmts(
-                                ($result := &!body()),
-                                nqp::if(
-                                    nqp::istype($result, Slip),
-                                    nqp::stmts(
-                                        ($result := self.start-slip($result)),
-                                        nqp::if(
-                                            nqp::eqaddr($result, IterationEnd),
-                                            ($redo = 1)
-                                        ))
-                                    )),
-                            'NEXT', ($redo = 1),
-                            'REDO', ($redo = 1),
-                            'LAST', ($result := IterationEnd))),
-                    :nohandler);
-                $result
-            }
+              )
+            )
         }
 
         method is-lazy() { True }

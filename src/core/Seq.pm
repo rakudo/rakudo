@@ -205,49 +205,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
 
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few
     # special cases of that.
-    my class InfiniteLoopIter does SlippyIterator {
-        has &!body;
-
-        method new(&body) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'&!body',&body)
-        }
-
-        method pull-one() {
-            my $result;
-            my int $stopped;
-            nqp::if(
-              $!slipping && nqp::not_i(
-                nqp::eqaddr(($result := self.slip-one),IterationEnd)
-              ),
-              $result,
-              nqp::stmts(
-                nqp::until(
-                  $stopped,
-                  nqp::stmts(
-                    ($stopped = 1),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::istype(($result := &!body()),Slip),
-                        ($stopped = nqp::eqaddr(
-                          ($result := self.start-slip($result)),
-                          IterationEnd
-                        ))
-                      ),
-                      'NEXT', ($stopped = 0),
-                      'REDO', ($stopped = 0),
-                      'LAST', ($result := IterationEnd)
-                    )
-                  ),
-                  :nohandler
-                ),
-                $result
-              )
-            )
-        }
-
-        method is-lazy() { True }
-    }
-
     my class WhileLoopIter does SlippyIterator {
         has &!body;
         has &!cond;
@@ -360,7 +317,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
 
     proto method from-loop(|) { * }
     multi method from-loop(&body) {
-        Seq.new(InfiniteLoopIter.new(&body))
+        Seq.new(Rakudo::Iterator.Loop(&body))
     }
     multi method from-loop(&body, &cond, :$repeat) {
         Seq.new(WhileLoopIter.new(&body, &cond, :$repeat))

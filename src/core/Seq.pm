@@ -205,57 +205,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
 
     # Lazy loops produce a Seq wrapping a loop iterator. We have a few
     # special cases of that.
-    my class WhileLoopIter does SlippyIterator {
-        has &!body;
-        has &!cond;
-        has int $!skip-cond;
-
-        method new(&body, &cond, :$repeat) {
-            my \iter = nqp::create(self);
-            nqp::bindattr(iter, self, '&!body', &body);
-            nqp::bindattr(iter, self, '&!cond', &cond);
-            nqp::bindattr_i(iter, self, '$!skip-cond', $repeat ?? 1 !! 0);
-            iter
-        }
-
-        method pull-one() {
-            my int $redo = 1;
-            my $result;
-            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
-                $result
-            }
-            else {
-                if $!skip-cond || &!cond() {
-                    $!skip-cond = 0;
-                    nqp::while(
-                        $redo,
-                        nqp::stmts(
-                            $redo = 0,
-                            nqp::handle(
-                                nqp::stmts(
-                                    ($result := &!body()),
-                                    nqp::if(
-                                        nqp::istype($result, Slip),
-                                        nqp::stmts(
-                                            ($result := self.start-slip($result)),
-                                            nqp::if(
-                                                nqp::eqaddr($result, IterationEnd),
-                                                ($redo = &!cond() ?? 1 !! 0)
-                                            ))
-                                        )),
-                                'NEXT', ($redo = &!cond() ?? 1 !! 0),
-                                'REDO', ($redo = 1),
-                                'LAST', ($result := IterationEnd))),
-                        :nohandler);
-                    $result
-                }
-                else {
-                    IterationEnd
-                }
-            }
-        }
-    }
-
     my class CStyleLoopIter does SlippyIterator {
         has &!body;
         has &!cond;
@@ -321,12 +270,12 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
     multi method from-loop(&body, &cond, :$repeat!) {
         Seq.new($repeat
-          ?? Rakudo::Iterator.RepeatLoop(&body,&cond)
-          !! WhileLoopIter.new(&body, &cond, :$repeat)
+          ?? Rakudo::Iterator.RepeatLoop(&body, &cond)
+          !! Rakudo::Iterator.WhileLoop(&body, &cond)
         )
     }
     multi method from-loop(&body, &cond) {
-        Seq.new(WhileLoopIter.new(&body, &cond))
+        Seq.new(Rakudo::Iterator.WhileLoop(&body, &cond))
     }
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(CStyleLoopIter.new(&body, &cond, &afterwards))

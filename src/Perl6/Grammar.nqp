@@ -426,6 +426,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
 
+        # A cacheable false dynvar value.
+        my $*WANTEDOUTERBLOCK := 0;
+
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
         # issue is that we may have no setting to provide them, e.g. when we

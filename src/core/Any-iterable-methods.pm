@@ -429,10 +429,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ($redo = 0),
                     nqp::handle(
                       nqp::if(
-                        nqp::istype(
-                          ($result := &!block($value)),Slip
-                        ) && nqp::defined($result),
-                        $result.iterator.push-all($target),
+                        nqp::istype(($result := &!block($value)),Slip),
+                        self.slip-all($result,$target),
                         $target.push($result)
                       ),
                       'LABELED',
@@ -602,8 +600,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         nqp::stmts(
                           ($result := &!block($value)),
                           nqp::if(
-                            (nqp::istype($result,Slip) && nqp::defined($result)),
-                            $result.iterator.push-all($target),
+                            nqp::istype($result,Slip),
+                            self.slip-all($result,$target),
                             $target.push($result)
                           ),
                           (return IterationEnd)

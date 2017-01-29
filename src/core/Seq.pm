@@ -203,67 +203,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
 
     multi method invert(Seq:D:) { self.list.invert }
 
-    # Lazy loops produce a Seq wrapping a loop iterator. We have a few
-    # special cases of that.
-    my class CStyleLoopIter does SlippyIterator {
-        has &!body;
-        has &!cond;
-        has &!afterwards;
-        has int $!first-time;
-
-        method new(&body, &cond, &afterwards) {
-            my \iter = nqp::create(self);
-            nqp::bindattr(iter, self, '&!body', &body);
-            nqp::bindattr(iter, self, '&!cond', &cond);
-            nqp::bindattr(iter, self, '&!afterwards', &afterwards);
-            nqp::bindattr_i(iter, self, '$!first-time', 1);
-            iter
-        }
-
-        method pull-one() {
-            my int $redo = 1;
-            my $result;
-            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
-                $result
-            }
-            else {
-                $!first-time
-                    ?? ($!first-time = 0)
-                    !! &!afterwards();
-                if &!cond() {
-                    nqp::while(
-                        $redo,
-                        nqp::stmts(
-                            $redo = 0,
-                            nqp::handle(
-                                nqp::stmts(
-                                    ($result := &!body()),
-                                    nqp::if(
-                                        nqp::istype($result, Slip),
-                                        nqp::stmts(
-                                            ($result := self.start-slip($result)),
-                                            nqp::if(
-                                                nqp::eqaddr($result, IterationEnd),
-                                                nqp::stmts(
-                                                    &!afterwards(),
-                                                    ($redo = &!cond() ?? 1 !! 0))
-                                            ))
-                                        )),
-                                'NEXT', nqp::stmts(
-                                    &!afterwards(),
-                                    ($redo = &!cond() ?? 1 !! 0)),
-                                'REDO', ($redo = 1),
-                                'LAST', ($result := IterationEnd))),
-                        :nohandler);
-                    $result
-                }
-                else {
-                    IterationEnd
-                }
-            }
-        }
-    }
-
     proto method from-loop(|) { * }
     multi method from-loop(&body) {
         Seq.new(Rakudo::Iterator.Loop(&body))
@@ -278,7 +217,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         Seq.new(Rakudo::Iterator.WhileLoop(&body, &cond))
     }
     multi method from-loop(&body, &cond, &afterwards) {
-        Seq.new(CStyleLoopIter.new(&body, &cond, &afterwards))
+        Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards))
     }
 
     multi method skip()         { nqp::stmts( $!iter.skip-one, self) }

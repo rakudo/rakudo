@@ -2158,46 +2158,40 @@ class Rakudo::Iterator {
             }
 
             method pull-one() {
-                my $result;
-                my int $stopped;
-# for some reason, this scope is needed.  Otherwise, settings compilation
-# will end in the mast stage with something like:
-#   Cannot reference undeclared local '__lowered_lex_3225'
-{
-                nqp::if(
-                  $!slipping && nqp::not_i(
-                    nqp::eqaddr(($result := self.slip-one),IterationEnd)
-                  ),
-                  $result,
-                  nqp::if(
-                    $!skip || $!cond(),
-                    nqp::stmts(
-                      ($!skip = 0),
-                      nqp::until(
-                        $stopped,
-                        nqp::stmts(
-                          ($stopped = 1),
-                          nqp::handle(
-                            nqp::if(
-                              nqp::istype(($result := $!body()),Slip),
-                              ($stopped = nqp::eqaddr(
-                                ($result := self.start-slip($result)),
-                                IterationEnd
-                              ) && nqp::if($!cond(),0,1))
-                            ),
-                            'NEXT', ($stopped = nqp::if($!cond(),0,1)),
-                            'REDO', ($stopped = 0),
-                            'LAST', ($result := IterationEnd)
-                          )
+                if $!slipping && nqp::not_i(
+                    nqp::eqaddr((my $result := self.slip-one),IterationEnd)
+                ) {
+                    $result
+                }
+                else {
+                    nqp::if(
+                      $!skip || $!cond(),
+                      nqp::stmts(
+                        ($!skip = 0),
+                        nqp::until(
+                          (my int $stopped),
+                          nqp::stmts(
+                            ($stopped = 1),
+                            nqp::handle(
+                              nqp::if(
+                                nqp::istype(($result := $!body()),Slip),
+                                ($stopped = nqp::eqaddr(
+                                  ($result := self.start-slip($result)),
+                                  IterationEnd
+                                ) && nqp::if($!cond(),0,1))
+                              ),
+                              'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                              'REDO', ($stopped = 0),
+                              'LAST', ($result := IterationEnd)
+                            )
+                          ),
+                          :nohandler
                         ),
-                        :nohandler
+                        $result
                       ),
-                      $result
-                    ),
-                    IterationEnd
-                  )
-                )
-} # needed for some reason
+                      IterationEnd
+                    )
+                }
             }
         }.new(&body,&cond)
     }

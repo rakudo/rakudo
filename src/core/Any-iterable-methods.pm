@@ -222,106 +222,75 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my $pulled;
-            my int $redo;
-            my $result;
-# for some reason, this scope is needed.  Otherwise, settings compilation
-# will end in the mast stage with something like:
-#   Cannot reference undeclared local '__lowered_lex_3225'
-{
-            nqp::if(
-              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              IterationEnd,
-              nqp::stmts(
-                ($redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      ($result := &!block($pulled)),
-                      'LABELED',
-                      $!label,
-                      'NEXT',
-                      nqp::if(
-                        nqp::eqaddr(
-                          ($pulled := $!source.pull-one),IterationEnd),
-                        ($result := IterationEnd),
-                        ($redo = 1)
+            if nqp::eqaddr((my $pulled := $!source.pull-one),IterationEnd) {
+                IterationEnd
+            }
+            else {
+                my $result;
+                nqp::stmts(
+                  nqp::until(
+                    (my int $stopped),
+                    nqp::stmts(
+                      ($stopped = 1),
+                      nqp::handle(
+                        ($result := &!block($pulled)),
+                        'LABELED', $!label,
+                        'NEXT', nqp::if(
+                          nqp::eqaddr(
+                            ($pulled := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          ($result := IterationEnd),
+                          ($stopped = 0)
+                        ),
+                        'REDO', ($stopped = 0),
+                        'LAST', ($result := IterationEnd)
                       ),
-                      'REDO',
-                      ($redo = 1),
-                      'LAST',
-                      ($result := IterationEnd)
                     ),
+                    :nohandler
                   ),
-                  :nohandler
-                ),
-                $result
-              )
-            )
-} # needed for some reason
+                  $result
+                )
+            }
         }
 
         method push-all($target --> IterationEnd) {
             my $pulled;
-            my int $redo;
-# for some reason, this scope is needed.  Otherwise, settings compilation
-# will end in the mast stage with something like:
-#   Cannot reference undeclared local '__lowered_lex_3225'
-{
             nqp::until(
               nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                ($redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      $target.push(&!block($pulled)),
-                      'LABELED',
-                      $!label,
-                      'REDO',
-                      ($redo = 1),
-                      'LAST',
-                      return
-                    )
-                  ),
-                  :nohandler
-                )
+              nqp::until(
+                (my int $stopped),
+                nqp::stmts(
+                  ($stopped = 1),
+                  nqp::handle(
+                    $target.push(&!block($pulled)),
+                    'LABELED', $!label,
+                    'REDO', ($stopped = 0),
+                    'LAST', return
+                  )
+                ),
+                :nohandler
               )
             )
-} # needed for some reason
         }
 
         method sink-all(--> IterationEnd) {
+            my $pulled;
             nqp::until(
-              nqp::eqaddr((my $pulled := $!source.pull-one),IterationEnd),
-# for some reason, this scope is needed.  Otherwise, settings compilation
-# will end in the mast stage with something like:
-#   Cannot reference undeclared local '__lowered_lex_3225'
-{
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      &!block($pulled),
-                      'LABELED',
-                      $!label,
-                      'REDO',
-                      ($redo = 1),
-                      'LAST',
-                      return
-                    )
-                  ),
-                  :nohandler
-                )
+              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+              nqp::until(
+                (my int $stopped),
+                nqp::stmts(
+                  ($stopped = 1),
+                  nqp::handle(
+                    &!block($pulled),
+                    'LABELED', $!label,
+                    'REDO', ($stopped = 0),
+                    'LAST', return
+                  )
+                ),
+                :nohandler
               )
-} # needed for some reason
             )
         }
     }

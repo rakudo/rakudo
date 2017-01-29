@@ -41,6 +41,13 @@ my role SlippyIterator does Iterator {
           result
         )
     }
+
+    method slip-all(Slip:D $slip, $target) {
+        nqp::unless(
+          nqp::eqaddr($slip,Empty),
+          $slip.iterator.push-all($target)
+        )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

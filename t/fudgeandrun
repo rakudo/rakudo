@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-use List::Util qw(first);
-
 ######################################################################
 # Fudge a test and run the fudged result.
 #
@@ -13,6 +11,9 @@ use List::Util qw(first);
 ######################################################################
 
 use Getopt::Long;
+use List::Util qw(first);
+use File::Spec::Functions qw(canonpath catfile splitpath);
+use Cwd 'cwd';
 
 GetOptions(
     'backend=s' => \my $backend,
@@ -47,7 +48,8 @@ if ($backend) {
     }
 }
 else {
-    my $p6 = -x './perl6' ? './perl6' : 'perl6';
+    my $p6 = catfile('.', 'perl6');
+    $p6 = 'perl6' unless -x $p6;
     my $version = `$p6 --version`;
     $backend = ($version =~ /jvm/i) ? "jvm" : 'moar';
 }
@@ -59,7 +61,7 @@ my @already_fudged; # test directories may also have already fudged files
 
 for (my $i = 0; $i < @ARGV; $i++) {
     if (! -e $ARGV[ $i ]) {
-        my $spec = "t/spec/$ARGV[ $i ]";
+        my $spec = canonpath("t/spec/$ARGV[ $i ]");
         $ARGV[ $i ] = $spec if -e $spec;
     }
     die "fudging does not handle directories like $ARGV[ $i ]\n",
@@ -75,17 +77,18 @@ for (my $i = 0; $i < @ARGV; $i++) {
 } @already_fudged;
 
 # look for fudge in spec checkout, then root of roast repo, then PATH
-my ($fudger) = first { -e } ('t/spec/fudgeall', './fudgeall');
+my ($fudger) = first { -e }
+    canonpath('t/spec/fudgeall'), catfile('.', 'fudgeall');
 $fudger //= 'fudgeall';
-my $nt = `$fudger @OPTS @ARGV`;
+my $nt = `$^X $fudger @OPTS @ARGV`;
 die "$fudger failed return code: $?\n" if $?;
 
 # uninstalled rakudo doesn't know how to find Test.pm
 # ... or any other modules
-my $pwd = `pwd`; chomp $pwd;
+my $pwd = cwd();
 $ENV{PERL6LIB}="$pwd/lib";
-my $p6 = './perl6-' . substr($backend, 0, 1);
-$p6 = substr($p6, 2) unless -x $p6;
+my $p6 = catfile('.', 'perl6-' . substr($backend, 0, 1));
+$p6 = (splitpath $p6)[ -1 ] unless -x $p6;
 
 if ($opt_6) {
     system($p6, split(' ', $nt), @already_fudged);

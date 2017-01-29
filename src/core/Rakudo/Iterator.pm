@@ -1117,6 +1117,82 @@ class Rakudo::Iterator {
         )
     }
 
+    # Returns an iterator that handles all properties of a -while- with
+    # a condition.  Takes a Callable to be considered the body of the loop,
+    # and a Callable for the condition..
+    method CStyleLoop(&body,&cond,&afterwards) {
+        class :: does SlippyIterator {
+            has &!body;
+            has &!cond;
+            has &!afterwards;
+            has int $!seen-first;
+   
+            method !SET-SELF(\body,\cond,\afterwards) {
+                nqp::stmts(
+                  (&!body := body),
+                  (&!cond := cond),
+                  (&!afterwards := afterwards),
+                  self
+                )
+            }
+            method new(\body,\cond,\afterwards) {
+                nqp::create(self)!SET-SELF(body,cond,afterwards)
+            }
+
+            method pull-one() {
+                if $!slipping && nqp::not_i(
+                    nqp::eqaddr((my $result := self.slip-one),IterationEnd)
+                ) {
+                    $result
+                }
+                else {
+                    nqp::stmts(
+                      nqp::if(
+                        $!seen-first,
+                        &!afterwards(),
+                        ($!seen-first = 1)
+                      ),
+                      nqp::if(
+                        &!cond(),
+                        nqp::stmts(
+                          nqp::until(
+                            (my int $stopped),
+                            nqp::stmts(
+                              ($stopped = 1),
+                              nqp::handle(
+                                nqp::if(
+                                  nqp::istype(($result := &!body()),Slip),
+                                  nqp::if(
+                                    nqp::eqaddr(
+                                      ($result := self.start-slip($result)),
+                                      IterationEnd
+                                    ),
+                                    nqp::stmts(
+                                      &!afterwards(),
+                                      ($stopped = nqp::if(&!cond(),0,1))
+                                    )
+                                  )
+                                ),
+                                'NEXT', nqp::stmts(
+                                  &!afterwards(),
+                                  ($stopped = nqp::if(&!cond(),0,1))
+                                ),
+                                'REDO', ($stopped = 0),
+                                'LAST', ($result := IterationEnd)
+                              )
+                            ),
+                            :nohandler
+                          ),
+                          $result
+                        ),
+                        IterationEnd
+                      )
+                    )
+                }
+            }
+        }.new(&body,&cond,&afterwards)
+    }
+
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
     # was encountered, in which case it will repeat the last seen value

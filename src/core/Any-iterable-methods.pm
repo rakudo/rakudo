@@ -412,15 +412,17 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             $result
         }
 
-        method push-all($target) {
+        method push-all($target --> IterationEnd) {
+
+# This extra scope serves no other purpose than to make this method JIT
+# and OSR faster.
+{
             my int $redo;
             my $value;
             my $result;
 
             nqp::until(
-              nqp::eqaddr(
-                ($value := $!source.pull-one),IterationEnd
-              ),
+              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
               nqp::stmts(
                 ($redo = 1),
                 nqp::while(
@@ -433,19 +435,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         self.slip-all($result,$target),
                         $target.push($result)
                       ),
-                      'LABELED',
-                      $!label,
-                      'REDO',
-                      ($redo = 1),
-                      'LAST',
-                      (return IterationEnd)
+                      'LABELED', $!label,
+                      'REDO', ($redo = 1),
+                      'LAST', (return IterationEnd),
                     )
                   ),
                   :nohandler
                 )
               )
-            );
-            IterationEnd
+            )
+} # needed for faster JITting and OSRing
         }
 
         method sink-all() {

@@ -152,7 +152,7 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 $(SETTING_D_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(SETTING_JAR) $(J_CORE_SOURCES)
 	$(J_NQP) $(J_GEN_CAT) $(J_CORE_D_SOURCES) > $(J_BUILD_DIR)/CORE.d.setting
 	@echo "The following step can take a long time, please be patient."
-	$(J_RUN_PERL6) --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_D_JAR) $(J_BUILD_DIR)/CORE.d.setting
+	NQP_LIB=blib $(J_RUN_PERL6) --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_D_JAR) --nqp-lib=blib $(J_BUILD_DIR)/CORE.d.setting
 
 $(J_RUNNER):    tools/build/create-jvm-runner.pl
 	$(PERL5) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)

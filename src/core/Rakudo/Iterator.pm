@@ -2263,15 +2263,15 @@ class Rakudo::Iterator {
                             nqp::if(
                               nqp::isle_i(
                                 nqp::add_i(
-                                  ($elems = $todo.key.Int),
+                                  ($elems = $size.Int),
                                   (my int $gap = $todo.value.Int)
                                 ),
-                                0
+                                -1
                               ),
                               X::OutOfRange.new(       # gap out of range
                                 what    => "Rotorizing gap is",
                                 got     => $gap,
-                                range   => "-{nqp::sub_i($elems,1)}..^Inf",
+                                range   => "-$elems..^Inf",
                                 comment => "\nEnsure a negative gap is not larger than the length of the sublist",
                               ).throw
                             )

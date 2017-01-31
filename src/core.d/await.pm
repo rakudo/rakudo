@@ -1,7 +1,7 @@
 my role X::Await::Died {
     has $.await-backtrace;
     multi method gist(::?CLASS:D:) {
-        "An operation first awaited at:\n" ~
+        "An operation first awaited:\n" ~
             ((try $!await-backtrace ~ "\n") // '<unknown location>') ~
             "Died with the exception:\n" ~
             callsame().indent(4)

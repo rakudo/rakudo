@@ -1,3 +1,13 @@
+my role X::Await::Died {
+    has $.await-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "An operation first awaited at:\n" ~
+            ((try $!await-backtrace ~ "\n") // '<unknown location>') ~
+            "Died with the exception:\n" ~
+            callsame().indent(4)
+    }
+}
+
 proto sub await(|) { * }
 multi sub await() {
     die "Must specify an Awaitable to await (got an empty list)";
@@ -8,9 +18,30 @@ multi sub await(Any:U $x) {
 multi sub await(Any:D $x) {
     die "Must specify an Awaitable to await (got a $x.^name())";
 }
-multi sub await(Awaitable:D \a) { $*AWAITER.await(a) }
-multi sub await(Iterable:D \i)  { $*AWAITER.await-all(i) }
-multi sub await(*@awaitables)   { $*AWAITER.await-all(@awaitables) }
+multi sub await(Awaitable:D \a) {
+    CATCH {
+        unless nqp::istype($_, X::Await::Died) {
+            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
+        }
+    }
+    $*AWAITER.await(a)
+}
+multi sub await(Iterable:D \i) {
+    CATCH {
+        unless nqp::istype($_, X::Await::Died) {
+            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
+        }
+    }
+    $*AWAITER.await-all(i)
+}
+multi sub await(*@awaitables) {
+    CATCH {
+        unless nqp::istype($_, X::Await::Died) {
+            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
+        }
+    }
+    $*AWAITER.await-all(@awaitables)
+}
 
 sub REACT(&block --> Nil) {
     my class ReactAwaitable does Awaitable {

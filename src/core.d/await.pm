@@ -43,6 +43,16 @@ multi sub await(*@awaitables) {
     $*AWAITER.await-all(@awaitables)
 }
 
+my role X::React::Died {
+    has $.react-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "A react block:\n" ~
+            ((try $!react-backtrace ~ "\n") // '<unknown location>') ~
+            "Died because of the exception:\n" ~
+            callsame().indent(4)
+    }
+}
+
 sub REACT(&block --> Nil) {
     my class ReactAwaitable does Awaitable {
         has $!handle;
@@ -74,6 +84,9 @@ sub REACT(&block --> Nil) {
                 done => { subscriber(True, Nil) },
                 quit => { subscriber(False, $_) };
         }
+    }
+    CATCH {
+        ($_ but X::React::Died(Backtrace.new(5))).rethrow
     }
     $*AWAITER.await(ReactAwaitable.new(ReactAwaitHandle.not-ready(&block)));
 }

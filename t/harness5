@@ -176,7 +176,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.moar');
+    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;

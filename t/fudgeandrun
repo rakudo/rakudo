@@ -72,8 +72,8 @@ for (my $i = 0; $i < @ARGV; $i++) {
 }
 
 @already_fudged = grep { # ignore files we will generate with fudge
-    my $pre_fudged = s/\Q.$impl\E$/.t/r;
-    not first { $_ eq $pre_fudged } @ARGV
+    my $fudged = $_;
+    not first { /\.t$/ and substr($_, 0, -1) . $impl eq $fudged } @ARGV
 } @already_fudged;
 
 # look for fudge in spec checkout, then root of roast repo, then PATH

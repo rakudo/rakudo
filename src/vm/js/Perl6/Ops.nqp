@@ -81,9 +81,9 @@ $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side_effects);
 $ops.add_simple_op('p6init', $ops.OBJ, [], :side_effects, -> {'require(process.env.RAKUDOJS_RUNTIME)'});
 $ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :side_effects);
 
-$ops.add_simple_op('p6box_s', $ops.OBJ, [$ops.STR]);
-$ops.add_simple_op('p6box_i', $ops.OBJ, [$ops.INT]);
-$ops.add_simple_op('p6box_n', $ops.OBJ, [$ops.NUM]);
+$ops.add_simple_op('p6box_s', $ops.OBJ, [$ops.STR], :side_effects);
+$ops.add_simple_op('p6box_i', $ops.OBJ, [$ops.INT], :side_effects);
+$ops.add_simple_op('p6box_n', $ops.OBJ, [$ops.NUM], :side_effects);
 
 $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ]);
 
@@ -97,12 +97,12 @@ $ops.add_simple_op('p6capturelex', $ops.OBJ, [$ops.OBJ], :side_effects, sub ($co
     "nqp.op.p6capturelex({$*BLOCK.ctx}, $codeObj)"
 });
 
-$ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
+$ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 $ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 
 $ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 
-$ops.add_simple_op('p6recont_ro', $ops.OBJ, [$ops.OBJ]);
+$ops.add_simple_op('p6recont_ro', $ops.OBJ, [$ops.OBJ], :side_effects);
 
 $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side_effects, sub () {
     "nqp.op.p6argvmarray($*CTX, Array.prototype.slice.call(arguments))"
@@ -110,7 +110,7 @@ $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side_effects, sub () {
 
 $ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_marker });
 
-$ops.add_simple_op('p6scalarfromdesc', $ops.OBJ, [$ops.OBJ]);
+$ops.add_simple_op('p6scalarfromdesc', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 
 $ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want, :$cps) {
     my $ops := nqp::getcomp('QAST').operations;

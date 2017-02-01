@@ -209,13 +209,12 @@ RakudoScalar.prototype.configure = function(conf) {
 
 RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
-    console.log('storing into rakudo_scalar unchecked');
-    return this.$$bindattr(Scalar, '$!value', value);
+    this.$$bindattr(Scalar, '$!value', value);
   });
 
   this.STable.addInternalMethod('$$assign', function(ctx, value) {
     /* TODO - checking and WHENCE */
-    return this.$$bindattr(Scalar, '$!value', value);
+    this.$$bindattr(Scalar, '$!value', value);
   });
 
   this.STable.addInternalMethod('$$decont', function(ctx) {

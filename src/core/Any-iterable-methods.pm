@@ -558,16 +558,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             $result
         }
 
-        method push-all($target) {
+        method push-all($target --> IterationEnd) {
+
+# This extra scope serves no other purpose than to make this method JIT
+# and OSR faster.
+{
             my int $redo;
             my $value;
             my $value2;
             my $result;
 
             nqp::until(
-              nqp::eqaddr(
-                ($value := $!source.pull-one),IterationEnd
-              ),
+              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
               nqp::stmts(
                 ($redo = 1),
                 nqp::while(
@@ -576,7 +578,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ($redo = 0),
                     nqp::handle(
                       nqp::if(
-                        nqp::eqaddr(($value2 := $!source.pull-one),IterationEnd),
+                        nqp::eqaddr(
+                          ($value2 := $!source.pull-one),
+                          IterationEnd
+                        ),
                         nqp::stmts(
                           ($result := &!block($value)),
                           nqp::if(
@@ -586,28 +591,25 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                           ),
                           (return IterationEnd)
                         ),
-                        nqp::stmts(
-                          ($result := &!block($value,$value2)),
-                          nqp::if(
-                            (nqp::istype($result,Slip) && nqp::defined($result)),
-                            $result.iterator.push-all($target),
-                            $target.push($result)
-                          )
+                        nqp::if(
+                          nqp::istype(
+                            ($result := &!block($value,$value2)),
+                            Slip
+                          ),
+                          self.slip-all($result,$target),
+                          $target.push($result)
                         )
                       ),
-                      'LABELED',
-                      $!label,
-                      'REDO',
-                      ($redo = 1),
-                      'LAST',
-                      (return IterationEnd)
+                      'LABELED', $!label,
+                      'REDO', ($redo = 1),
+                      'LAST', (return IterationEnd)
                     )
                   ),
                   :nohandler
                 )
               )
-            );
-            IterationEnd
+            )
+} # needed for faster JITting and OSRing
         }
 
         method sink-all() {

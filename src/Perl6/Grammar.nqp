@@ -4475,9 +4475,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<..^>  { <sym> <O(|%structural)> }
     token infix:sym<^..^> { <sym> <O(|%structural)> }
 
-    token infix:sym<leg>  { <sym> >> <O(|%structural)> }
-    token infix:sym<cmp>  { <sym> >> <O(|%structural)> }
-    token infix:sym«<=>»  { <sym> <O(|%structural)> }
+    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
+    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
+    token infix:sym<unicmp> {  <sym> >> <O(|%structural)> }
+    token infix:sym«<=>»    { <sym> <O(|%structural)> }
 
     token infix:sym<but>  { <sym> >> <O(|%structural)> }
     token infix:sym<does> { <sym> >> <O(|%structural)> }

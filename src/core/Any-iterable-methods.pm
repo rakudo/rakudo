@@ -447,54 +447,35 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 } # needed for faster JITting and OSRing
         }
 
-        method sink-all() {
+        method sink-all(--> IterationEnd) {
+
+# This extra scope serves no other purpose than to make this method JIT
+# and OSR faster.
+{
             my int $redo;
-            my int $running = 1;
             my $value;
 
-# for some reason, this scope is needed.  Otherwise, settings compilation
-# will end in the mast stage with something like:
-#   Cannot reference undeclared local '__lowered_lex_3225'
-{
-            nqp::while(
-              $running,
-              nqp::if(
-                nqp::eqaddr(
-                  ($value := $!source.pull-one()),IterationEnd
-                ),
-                ($running = 0),
-                nqp::stmts(
-                  ($redo = 1),
-                  nqp::while(
-                    $redo,
-                    nqp::stmts(
-                      $redo = 0,
-                      nqp::handle(  # doesn't sink
-                        (&!block($value)),
-                        'LABELED',
-                        $!label,
-                        'NEXT',
-                        nqp::if(
-                          nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
-                          ),
-                          ($running = 0),
-                          ($redo = 1)
-                        ),
-                        'REDO',
-                        ($redo = 1),
-                        'LAST',
-                        ($running = 0)
-                      )
+            nqp::until(
+              nqp::eqaddr(($value := $!source.pull-one()),IterationEnd),
+              nqp::stmts(
+                ($redo = 1),
+                nqp::while(
+                  $redo,
+                  nqp::stmts(
+                    ($redo = 0),
+                    nqp::handle(  # doesn't sink
+                      &!block($value),
+                      'LABELED', $!label,
+                      'NEXT', nqp::null,  # need NEXT for next LABEL support
+                      'REDO', ($redo = 1),
+                      'LAST', (return IterationEnd)
                     ),
                   :nohandler
                   )
                 )
               )
-            );
-} # needed for some reason
-            IterationEnd
+            )
+} # needed for faster JITting and OSRing
         }
     }
 

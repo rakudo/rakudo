@@ -7823,6 +7823,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
+        my $S_result      := $past.unique('subst_S_result');
         my $result        := $past.unique('subst_result');
         my $global_result := $past.unique('subst_global_result');
         my $List          := $*W.find_symbol(['List']);
@@ -7844,6 +7845,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
+                # var for final result string of S///
+                $<sym> eq 'S' ?? QAST::Var.new(
+                    :name($S_result), :scope('local'), :decl('var')
+                ) !! QAST::Stmt.new(),
 
                 # my $result;
                 QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
@@ -7877,49 +7882,52 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )
                     ),
 
-                    QAST::Op.new( :op('call'), :name('&infix:<=>'),
-                        WANTED(QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),'s/assign'),
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        WANTED(QAST::Var.new( :name($S_result), :scope('local') ),'s/assign'),
+                        $apply_matches
+                    ) !! QAST::Op.new( :op('call'), :name('&infix:<=>'),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s/assign'),
                         $apply_matches
                     ),
-                    ( $<sym> eq 'S'
-                        ?? QAST::Op.new( :op('p6store'),
-                                QAST::Var.new( :name('$/'), :scope('lexical') ),
-                                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
-                           )
-                        !! QAST::Stmt.new()
-                    ),
+
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :name($S_result), :scope('local') ),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
+                    ) !! QAST::Stmt.new(),
                 ),
 
-                # It will return a list of matches when we match globally, and a single
-                # match otherwise.
-                $<sym> eq 's' ?? (
-                    $global ??
-                    QAST::Op.new( :op('p6store'),
-                        QAST::Var.new( :name('$/'), :scope('lexical') ),
-                        QAST::Stmts.new(
-                            QAST::Op.new( :op('bind'),
-                                QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
-                                QAST::Op.new( :op('callmethod'), :name('CREATE'),
-                                    QAST::WVal.new( :value($List) )
-                                )
-                            ),
-                            QAST::Op.new( :op('bindattr'),
-                                QAST::Var.new( :name($global_result), :scope('local') ),
+                # It will set $/ to a list of matches when we match globally,
+                # and a single match otherwise.
+                $global ?? QAST::Op.new(
+                    :op('p6store'),
+                    QAST::Var.new( :name('$/'), :scope('lexical') ),
+                    QAST::Stmts.new(
+                        QAST::Op.new( :op('bind'),
+                            QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
+                            QAST::Op.new( :op('callmethod'), :name('CREATE'),
+                                QAST::WVal.new( :value($List) )
+                            )
+                        ),
+                        QAST::Op.new( :op('bindattr'),
+                            QAST::Var.new( :name($global_result), :scope('local') ),
+                            QAST::WVal.new( :value($List) ),
+                            QAST::SVal.new( :value('$!reified') ),
+                            QAST::Op.new( :op('getattr'),
+                                QAST::Var.new( :name($result), :scope('local') ),
                                 QAST::WVal.new( :value($List) ),
-                                QAST::SVal.new( :value('$!reified') ),
-                                QAST::Op.new( :op('getattr'),
-                                    QAST::Var.new( :name($result), :scope('local') ),
-                                    QAST::WVal.new( :value($List) ),
-                                    QAST::SVal.new( :value('$!reified') )
-                                )
-                            ),
-                            QAST::Var.new( :name($global_result), :scope('local') )
-                        )
-                    ) !! QAST::Stmt.new()
+                                QAST::SVal.new( :value('$!reified') )
+                            )
+                        ),
+                        QAST::Var.new( :name($global_result), :scope('local') )
+                    )
                 ) !! QAST::Stmt.new(),
 
                 # The result of this operation.
-                QAST::Var.new( :name('$/'), :scope('lexical') )
+                $<sym> eq 's'
+                ?? QAST::Var.new( :name('$/'), :scope('lexical') )
+                !! QAST::Var.new( :name($S_result), :scope('local') ),
             ),
         );
         $past.annotate('is_S', $<sym> eq 'S');

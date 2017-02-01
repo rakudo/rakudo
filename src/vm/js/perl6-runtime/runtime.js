@@ -148,7 +148,7 @@ op.p6bindassert = function(ctx, value, type) {
 };
 
 op.p6store = function(ctx, cont, value) {
-  if (cont) {
+  if (cont.$$assign) {
     cont.$$assign(ctx, value.$$decont(ctx));
   } else {
     if (!cont.STORE) {

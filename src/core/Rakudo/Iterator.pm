@@ -1287,6 +1287,8 @@ class Rakudo::Iterator {
             method pull-one(--> IterationEnd)  { }
             method push-all($ --> IterationEnd) { }
             method sink-all(--> IterationEnd)  { }
+            method skip-one(--> 0) { }
+            method skip-at-least($ --> 0) { }
             method count-only(--> 0) { }
             method bool-only(--> False) { }
         }.new

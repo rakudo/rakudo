@@ -1038,6 +1038,26 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
+    multi method tail(Array:D: $n) {
+        nqp::if(
+          nqp::getattr(self,List,'$!todo').DEFINITE,
+          self.Any::tail($n),
+          Seq.new(
+            nqp::if(
+              (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
+                && nqp::elems($reified),
+              nqp::stmts(
+                (my $iterator :=
+                  Rakudo::Iterator.ReifiedArray(self))
+                  .skip-at-least(nqp::elems($reified) - $n),
+                $iterator
+              ),
+              Rakudo::Iterator.Empty
+            )
+          )
+        )
+    }
+
     # introspection
     method name() {
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name

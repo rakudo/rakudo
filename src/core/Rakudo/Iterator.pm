@@ -2025,6 +2025,77 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator for an Array that has been completely reified
+    # already.  Returns a assignable container for elements don't exist
+    # before the end of the reified array.
+    method ReifiedArray(\array) {
+        class :: does Iterator {
+            has $!reified;
+            has $!descriptor;
+            has int $!i;
+
+            method !SET-SELF(\array) {
+                nqp::stmts(
+                  ($!reified    := nqp::getattr(array, List,  '$!reified')),
+                  ($!descriptor := nqp::getattr(array, Array, '$!descriptor')),
+                  ($!i = -1),
+                  self
+                )
+            }
+            method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+            method pull-one() is raw {
+                nqp::ifnull(
+                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                  nqp::if(
+                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                    nqp::p6bindattrinvres(
+                      (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                      Scalar,
+                      '$!whence',
+                      -> { nqp::bindpos($!reified,$!i,v) }
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  nqp::while(   # doesn't sink
+                    nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                    $target.push(nqp::ifnull(
+                      nqp::atpos($!reified,$!i),
+                      nqp::p6bindattrinvres(
+                        (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                        Scalar,
+                        '$!whence',
+                        -> { nqp::bindpos($!reified,$!i,v) }
+                      )
+                    ))
+                  )
+                )
+            }
+            method skip-one() {
+                nqp::islt_i(
+                  ($!i = nqp::add_i($!i,1)),
+                  nqp::elems($!reified)
+                )
+            }
+            method skip-at-least(int $toskip) {
+                nqp::islt_i(
+                  ($!i =
+                    nqp::add_i($!i,nqp::if(nqp::isgt_i($toskip,0),$toskip,0))),
+                  nqp::elems($!reified)
+                )
+            }
+            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
+        }.new(array)
+    }
+
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements don't exist before
     # the end of the reified list.

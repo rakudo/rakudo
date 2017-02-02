@@ -2067,6 +2067,13 @@ class Rakudo::Iterator {
                   nqp::elems($!reified)
                 )
             }
+            method skip-at-least(int $toskip) {
+                nqp::islt_i(
+                  ($!i =
+                    nqp::add_i($!i,nqp::if(nqp::isgt_i($toskip,0),$toskip,0))),
+                  nqp::elems($!reified)
+                )
+            }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }

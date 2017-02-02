@@ -39,6 +39,9 @@ multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
 
 ## arithmetic operators
 
+multi sub infix:<before>(Numeric \a, Numeric \b) { (a <=> b) < 0 }
+multi sub infix:<after> (Numeric \a, Numeric \b) { (a <=> b) > 0 }
+
 proto sub prefix:<+>($?) is pure { * }
 multi sub prefix:<+>(\a) { a.Numeric }
 

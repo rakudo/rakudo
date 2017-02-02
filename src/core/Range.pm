@@ -422,6 +422,9 @@ my class Range is Cool does Iterable does Positional {
           !! ($!excludes-min ?? got after $!min !! not got before $!min)
                && ($!excludes-max ?? got before $!max !! not got after $!max)
     }
+    multi method ACCEPTS(Range:D: Complex:D \got) {
+        nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_
+    }
     multi method ACCEPTS(Range:D: Range \topic) {
         (topic.min > $!min
          || topic.min == $!min

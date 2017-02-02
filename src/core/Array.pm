@@ -140,49 +140,7 @@ my class Array { # declared in BOOTSTRAP
 
         # everything we need is already there
         elsif nqp::getattr(self,List,'$!reified').DEFINITE {
-            class :: does Iterator {
-                has int $!i;
-                has $!reified;
-                has $!descriptor;
-
-                method !SET-SELF(\array) {
-                    $!i           = -1;
-                    $!reified    := nqp::getattr(array, List,  '$!reified');
-                    $!descriptor := nqp::getattr(array, Array, '$!descriptor');
-                    self
-                }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-                method pull-one() is raw {
-                    nqp::ifnull(
-                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::islt_i($!i,nqp::elems($!reified)) # found a hole
-                        ?? nqp::p6bindattrinvres(
-                             (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                             Scalar,
-                             '$!whence',
-                             -> { nqp::bindpos($!reified,$!i,v) }
-                           )
-                        !! IterationEnd
-                    )
-                }
-
-                method push-all($target --> IterationEnd) {
-                    my int $elems = nqp::elems($!reified);
-                    nqp::while(   # doesn't sink
-                      nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                      $target.push(nqp::ifnull(
-                        nqp::atpos($!reified,$!i),
-                        nqp::p6bindattrinvres(
-                          (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                          Scalar,
-                          '$!whence',
-                          -> { nqp::bindpos($!reified,$!i,v) }
-                        )
-                      ))
-                    )
-                }
-            }.new(self)
+            Rakudo::Iterator.ReifiedArray(self)
         }
 
         # nothing now or in the future to iterate over

@@ -2,11 +2,42 @@
 use strict;
 use warnings;
 
+######################################################################
+# Fudge a test and run the fudged result.
+#
+# Historically, this was part of the Rakudo development repository
+# and it will check for local perl6 and fudge(all?) executables first
+# and give them priority over executables on path.
+######################################################################
+
 use Getopt::Long;
+use List::Util qw(first);
+use File::Spec::Functions qw(canonpath catfile splitpath);
+use Cwd 'cwd';
 
 GetOptions(
     'backend=s' => \my $backend,
+    'quiet' => \my $opt_q,
+    'six|6' => \my $opt_6,
 );
+
+unless (@ARGV) {
+    die <<"USAGE";
+Usage: $0 [options] testfilename ...
+
+    Options:
+    --backend=(moar|jvm)
+        specify backend for fudge
+
+    --quiet
+        By default fudged tests are run with "prove -v". This option
+        turns off the "-v"
+
+    --six|6
+        Runs fudged tests with perl6 instead of prove.
+
+USAGE
+}
 
 if ($backend) {
     if ($backend =~ /^(jvm|moar)/i) {
@@ -17,28 +48,58 @@ if ($backend) {
     }
 }
 else {
-    my $version = `./perl6 --version`;
+    my $p6 = catfile('.', 'perl6');
+    $p6 = 'perl6' unless -x $p6;
+    my $version = `$p6 --version`;
     $backend = ($version =~ /jvm/i) ? "jvm" : 'moar';
 }
 
 my $impl = "rakudo.$backend";
 
 my @OPTS = ('--keep-exit-code', $impl);
+my @already_fudged; # test directories may also have already fudged files
 
-if (@ARGV) {
-    my $file = $ARGV[0];
-    if (! -e $file) {
-        my $spec = "t/spec/$file";
-        if (-e $spec) {
-            $ARGV[0] = $spec;
-        }
+for (my $i = 0; $i < @ARGV; $i++) {
+    if (! -e $ARGV[ $i ]) {
+        my $spec = canonpath("t/spec/$ARGV[ $i ]");
+        $ARGV[ $i ] = $spec if -e $spec;
+    }
+    die "fudging does not handle directories like $ARGV[ $i ]\n",
+        "    try shell glob ('*')\n" if -d $ARGV[ $i ];
+    if ($ARGV[$i] =~ /(?:\.(?:rakudo|jvm|moar))+$/) {
+        push @already_fudged, splice @ARGV, $i--, 1;
     }
 }
 
-my $nt = `t/spec/fudge @OPTS @ARGV`;
+@already_fudged = grep { # ignore files we will generate with fudge
+    my $fudged = $_;
+    not first { /\.t$/ and substr($_, 0, -1) . $impl eq $fudged } @ARGV
+} @already_fudged;
+
+# look for fudge in spec checkout, then root of roast repo, then PATH
+my ($fudger) = first { -e }
+    canonpath('t/spec/fudgeall'), catfile('.', 'fudgeall');
+$fudger //= 'fudgeall';
+my $nt = `$^X $fudger @OPTS @ARGV`;
+die "$fudger failed return code: $?\n" if $?;
+
 # uninstalled rakudo doesn't know how to find Test.pm
 # ... or any other modules
-my $pwd = `pwd`; chomp $pwd;
+my $pwd = cwd();
 $ENV{PERL6LIB}="$pwd/lib";
-my $first = substr($backend, 0, 1);
-system("./perl6-$first", split ' ', $nt);
+my $p6 = catfile('.', 'perl6-' . substr($backend, 0, 1));
+$p6 = (splitpath $p6)[ -1 ] unless -x $p6;
+
+if ($opt_6) {
+    system($p6, split(' ', $nt), @already_fudged);
+}
+else {
+    system( 'prove', ($opt_q ? () : '-v'), "-e$p6",
+            split(' ', $nt), @already_fudged
+    );
+}
+
+my $already_fudge_warn = "Some files were already fudged" if @already_fudged;
+$already_fudge_warn .= " and were run after other tests"
+    if @already_fudged and @ARGV;
+warn "\n$already_fudge_warn\n\n" if $already_fudge_warn;

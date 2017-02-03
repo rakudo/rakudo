@@ -670,6 +670,14 @@ my class Rakudo::Internals {
             self.DEFINITE ?? self!illegal("prepend") !! self.Any::prepend(|c)
         }
 
+        multi method STORE(::?CLASS:D: Slip:D \slip) {
+            nqp::if(
+              nqp::eqaddr(slip,Empty),
+              (die "Cannot Empty a shaped array as its size is fixed"),
+              self.STORE(slip.List)
+            )
+        }
+
         # illegal unless overridden for 1dimmed case
         method reverse(::?CLASS:D: |) { self!illegal("reverse") }
         method rotate(::?CLASS:D: |)  { self!illegal("rotate") }
@@ -687,7 +695,6 @@ my class Rakudo::Internals {
         method pick(|c)         { self.flat.pick(|c) }
         method permutations(|c) { self.flat.permutations(|c) }
         method combinations(|c) { self.flat.combinations(|c) }
-        method rotor(|c)        { self.flat.rotor(|c) }
         method join(|c)         { self.flat.join(|c) }
         method sort(|c)         { self.flat.sort(|c) }
 

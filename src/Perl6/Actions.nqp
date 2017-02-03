@@ -2892,7 +2892,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $initast, $*ATTR_INIT_BLOCK);
                     }
                     elsif $<initializer><sym> eq '.=' {
-                        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+                        my $type := $*W.find_symbol(
+                            nqp::split('::', $*OFTYPE // 'Any')
+                        );
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -3590,12 +3592,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if %*PRAGMAS<soft> {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine'], :setting-only));
             }
-            elsif !nqp::can($code, 'CALL-ME') {
-                my $phasers :=
-                  nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
-                if nqp::isnull($phasers) || !nqp::p6bool($phasers) {
-                    self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
-                }
+            else {
+                self.maybe_add_inlining_info($/, $code, $signature, $block, @params);
             }
         }
 
@@ -3646,26 +3644,40 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $code
     }
 
+    # There are two kinds of inlining that happen: that done by the virtual
+    # machine we run on, and that done by Rakudo. The VM can do it based on
+    # discovered hot paths, and in far more situations than we can here. At
+    # the same time, we can generate much better code as a starting point
+    # for the VM if we inline various operators on natively typed things. So,
+    # that is our distinction: if all of the arguments of the sub are native
+    # types, we figure there's a good chance it's a high-value inline and we
+    # can try to do it at compile time, so we generate inlining info here. In
+    # any other cases, we will not.
     my $SIG_ELEM_IS_COPY := 512;
-    method add_inlining_info_if_possible($/, $code, $sig, $past, @params) {
+    method maybe_add_inlining_info($/, $code, $sig, $past, @params) {
+        # Cannot inline things with custom invocation handler or phasers.
+        return 0 if nqp::can($code, 'CALL-ME');
+        my $phasers := nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
+        return 0 unless nqp::isnull($phasers) || !nqp::p6bool($phasers);
+
         # Make sure the block has the common structure we expect
         # (decls then statements).
         return 0 unless +@($past) == 2;
 
-        # Ensure all parameters are simple and build placeholders for
-        # them.
+        # Ensure all parameters are native, simple, and build placeholders for
+        # them. No parameters also means no inlining.
+        return 0 unless @params;
         my $Param  := $*W.find_symbol(['Parameter'], :setting-only);
         my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         my %arg_placeholders;
         while $i < $n {
-            my %info      := @params[$i];
+            my %info := @params[$i];
+            return 0 unless nqp::objprimspec(%info<nominal_type>); # non-native
+            return 0 if %info<optional> || %info<post_constraints> ||  %info<bind_attr> ||
+                %info<bind_accessor> || %info<named_names> || %info<type_captures>;
             my $param_obj := @p_objs[$i];
-            return 0 if %info<optional> || %info<is_capture> || %info<pos_slurpy> ||
-                %info<named_slurpy> || %info<pos_lol> || %info<pos_onearg> || %info<bind_attr> ||
-                %info<bind_accessor> || %info<nominal_generic> || %info<named_names> ||
-                %info<type_captures> || %info<post_constraints>;
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if $flags +& $SIG_ELEM_IS_COPY;
             %arg_placeholders{%info<variable_name>} :=
@@ -6488,8 +6500,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_smartmatch($/, $negated) {
-        my $lhs := wanted($/[0].ast,'smarmatch/lhs');
-        my $rhs := wanted($/[1].ast,'smarmatch/rhs');
+        my $lhs := wanted($/[0].ast,'smartmatch/lhs');
+        my $rhs := wanted($/[1].ast,'smartmatch/rhs');
         check_smartmatch($/[1],$rhs);
         # autoprime only on Whatever with explicit *
         return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
@@ -7812,6 +7824,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
+        my $S_result      := $past.unique('subst_S_result');
         my $result        := $past.unique('subst_result');
         my $global_result := $past.unique('subst_global_result');
         my $List          := $*W.find_symbol(['List']);
@@ -7833,6 +7846,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
+                # var for final result string of S///
+                $<sym> eq 'S' ?? QAST::Var.new(
+                    :name($S_result), :scope('local'), :decl('var')
+                ) !! QAST::Stmt.new(),
 
                 # my $result;
                 QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
@@ -7866,49 +7883,52 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )
                     ),
 
-                    QAST::Op.new( :op('call'), :name('&infix:<=>'),
-                        WANTED(QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),'s/assign'),
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        WANTED(QAST::Var.new( :name($S_result), :scope('local') ),'s/assign'),
+                        $apply_matches
+                    ) !! QAST::Op.new( :op('call'), :name('&infix:<=>'),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s/assign'),
                         $apply_matches
                     ),
-                    ( $<sym> eq 'S'
-                        ?? QAST::Op.new( :op('p6store'),
-                                QAST::Var.new( :name('$/'), :scope('lexical') ),
-                                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
-                           )
-                        !! QAST::Stmt.new()
-                    ),
+
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :name($S_result), :scope('local') ),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
+                    ) !! QAST::Stmt.new(),
                 ),
 
-                # It will return a list of matches when we match globally, and a single
-                # match otherwise.
-                $<sym> eq 's' ?? (
-                    $global ??
-                    QAST::Op.new( :op('p6store'),
-                        QAST::Var.new( :name('$/'), :scope('lexical') ),
-                        QAST::Stmts.new(
-                            QAST::Op.new( :op('bind'),
-                                QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
-                                QAST::Op.new( :op('callmethod'), :name('CREATE'),
-                                    QAST::WVal.new( :value($List) )
-                                )
-                            ),
-                            QAST::Op.new( :op('bindattr'),
-                                QAST::Var.new( :name($global_result), :scope('local') ),
+                # It will set $/ to a list of matches when we match globally,
+                # and a single match otherwise.
+                $global ?? QAST::Op.new(
+                    :op('p6store'),
+                    QAST::Var.new( :name('$/'), :scope('lexical') ),
+                    QAST::Stmts.new(
+                        QAST::Op.new( :op('bind'),
+                            QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
+                            QAST::Op.new( :op('callmethod'), :name('CREATE'),
+                                QAST::WVal.new( :value($List) )
+                            )
+                        ),
+                        QAST::Op.new( :op('bindattr'),
+                            QAST::Var.new( :name($global_result), :scope('local') ),
+                            QAST::WVal.new( :value($List) ),
+                            QAST::SVal.new( :value('$!reified') ),
+                            QAST::Op.new( :op('getattr'),
+                                QAST::Var.new( :name($result), :scope('local') ),
                                 QAST::WVal.new( :value($List) ),
-                                QAST::SVal.new( :value('$!reified') ),
-                                QAST::Op.new( :op('getattr'),
-                                    QAST::Var.new( :name($result), :scope('local') ),
-                                    QAST::WVal.new( :value($List) ),
-                                    QAST::SVal.new( :value('$!reified') )
-                                )
-                            ),
-                            QAST::Var.new( :name($global_result), :scope('local') )
-                        )
-                    ) !! QAST::Stmt.new()
+                                QAST::SVal.new( :value('$!reified') )
+                            )
+                        ),
+                        QAST::Var.new( :name($global_result), :scope('local') )
+                    )
                 ) !! QAST::Stmt.new(),
 
                 # The result of this operation.
-                QAST::Var.new( :name('$/'), :scope('lexical') )
+                $<sym> eq 's'
+                ?? QAST::Var.new( :name('$/'), :scope('lexical') )
+                !! QAST::Var.new( :name($S_result), :scope('local') ),
             ),
         );
         $past.annotate('is_S', $<sym> eq 'S');
@@ -9164,12 +9184,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
 class Perl6::QActions is HLL::Actions does STDActions {
     # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
+    method charname-panic($/) { $/.CURSOR.panic("Unrecognized character name [$/]") }
     method charname($/) {
 #?if !moar
         my $codepoint := $<integer>
                          ?? $<integer>.made
                          !! nqp::codepointfromname(~$/);
-                         $/.CURSOR.panic("Unrecognized character name $/") if $codepoint < 0;
+                         self.charname-panic($/) if $codepoint < 0;
         make nqp::chr($codepoint);
 #?endif
 #?if moar
@@ -9185,7 +9206,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
                             "FORM FEED or FF",
                             "CARRIAGE RETURN or CR",
                             "NEXT LINE or NEL" );
-        my $text := "Deprecated character name %s in lookup of Unicode character by name.\n" ~
+        my $text := "Deprecated character name [%s] in lookup of Unicode character by name.\n" ~
                     "Unicode 1 names are deprecated.\nPlease use %s";
         if ~$/ eq "LINE FEED (LF)" {
             $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
@@ -9204,7 +9225,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             return nqp::chr(nqp::codepointfromname("NEXT LINE"));
         }
 
-        $/.CURSOR.panic("Unrecognized character name $/");
+        self.charname-panic($/);
     }
     method nibbler($/) {
         my @asts;

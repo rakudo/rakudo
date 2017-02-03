@@ -120,6 +120,7 @@ S02-types/array-shapes.t
 S02-types/array.t
 S02-types/assigning-refs.t
 S02-types/autovivification.t
+S02-types/bag-iterator.t
 S02-types/bag.t
 S02-types/baggy.t
 S02-types/baghash.t
@@ -141,6 +142,7 @@ S02-types/isDEPRECATED.t
 S02-types/keyhash.t
 S02-types/lazy-lists.t
 S02-types/lists.t
+S02-types/mix-iterator.t
 S02-types/mix.t
 S02-types/mixhash.t
 S02-types/mixed_multi_dimensional.t
@@ -155,8 +157,10 @@ S02-types/num.t
 S02-types/pair.t
 S02-types/list.t
 S02-types/parsing-bool.t
+S02-types/range-iterator.t
 S02-types/range.t
 S02-types/resolved-in-setting.t    # moar
+S02-types/set-iterator.t
 S02-types/set.t
 S02-types/sethash.t
 S02-types/sigils-and-types.t
@@ -609,7 +613,6 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
-S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-construction/TWEAK.t
@@ -693,6 +696,7 @@ S15-nfg/concatenation.t         # moar
 S15-nfg/crlf-encoding.t         # moar
 S15-nfg/from-buf.t              # moar
 S15-nfg/from-file.t             # moar
+S15-nfg/grapheme-break.t        # moar
 S15-nfg/GraphemeBreakTest.t     # moar
 S15-nfg/emoji-test.t            # moar
 S15-nfg/long-uni.t              # moar
@@ -838,6 +842,7 @@ S17-supply/merge.t
 S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
+S17-promise/nonblocking-await.t
 S17-supply/on-demand.t
 S17-supply/Promise.t
 S17-supply/produce.t
@@ -846,11 +851,13 @@ S17-supply/return-in-tap.t
 S17-supply/reverse.t
 S17-supply/rotor.t
 S17-supply/schedule-on.t
+S17-supply/skip.t
 S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t       # slow
 S17-supply/start.t        # slow
 S17-supply/syntax.t       # slow
+S17-supply/syntax-nonblocking-await.t
 S17-supply/tail.t
 S17-supply/throttle.t     # slow
 S17-supply/unique.t       # slow
@@ -946,6 +953,7 @@ S32-hash/delete-adverb.t
 S32-hash/exists.t
 S32-hash/exists-adverb.t
 S32-hash/invert.t
+S32-hash/iterator.t
 S32-hash/keys_values.t
 S32-hash/kv.t
 S32-hash/map.t
@@ -959,6 +967,7 @@ S32-io/chdir.t
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
+S32-io/indir.t
 S32-io/io-handle.t
 S32-io/socket-host-port-split.t
 S32-io/socket-fail-invalid-values.t
@@ -982,6 +991,7 @@ S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
+S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t
 S32-list/classify.t
@@ -1008,6 +1018,7 @@ S32-list/grep-kv.t
 S32-list/grep-p.t
 S32-list/grep-v.t
 S32-list/head.t
+S32-list/iterator.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
@@ -1021,6 +1032,7 @@ S32-list/reverse.t
 S32-list/roll.t
 S32-list/rotor.t
 S32-list/seq.t
+S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
 S32-list/unique.t

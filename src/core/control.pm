@@ -230,7 +230,7 @@ multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, Pseudo
     unless $p5 {
         {
             my $compunit := $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
-            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package.WHO);
+            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
             CATCH {
                 #X::Eval::NoSuchLang.new(:$lang).throw;
                 note $_;

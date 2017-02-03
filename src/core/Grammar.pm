@@ -4,20 +4,19 @@ my class Grammar is Cursor {
     my $cursor-init := Cursor.^lookup("!cursor_init");
 
     method parse(\target, :$rule, :$args, Mu :$actions) {
-        nqp::decont(nqp::getlexdyn('$/') = nqp::stmts(
-          (my $*ACTIONS = $actions),
+        nqp::decont(nqp::getlexdyn('$/') =
           nqp::if(
             (my $cursor := nqp::if(
               $rule,
               nqp::if(
                 $args,
-                self!cursor-init(target, %_)."$rule"(|$args.Capture),
-                self!cursor-init(target, %_)."$rule"()
+                self!cursor-init(target, {:$actions, %_})."$rule"(|$args.Capture),
+                self!cursor-init(target, {:$actions, %_})."$rule"()
               ),
               nqp::if(
                 $args,
-                self!cursor-init(target, %_).TOP(|$args.Capture),
-                self!cursor-init(target, %_).TOP()
+                self!cursor-init(target, {:$actions, %_}).TOP(|$args.Capture),
+                self!cursor-init(target, {:$actions, %_}).TOP()
               ),
             )),
             nqp::stmts(
@@ -33,26 +32,25 @@ my class Grammar is Cursor {
             ),
             Nil
           )
-        ))
+        )
     }
 
     method subparse(\target, :$rule, :$args, Mu :$actions) {
-        nqp::decont(nqp::getlexdyn('$/') = nqp::stmts(
-          (my $*ACTIONS = $actions),
+        nqp::decont(nqp::getlexdyn('$/') =
           nqp::if(
             $rule,
             nqp::if(
               $args,
-              self!cursor-init(target, %_)."$rule"(|$args.Capture).MATCH,
-              self!cursor-init(target, %_)."$rule"().MATCH,
+              self!cursor-init(target, {:$actions, %_})."$rule"(|$args.Capture).MATCH,
+              self!cursor-init(target, {:$actions, %_})."$rule"().MATCH,
             ),
             nqp::if(
               $args,
-              self!cursor-init(target, %_).TOP(|$args.Capture).MATCH,
-              self!cursor-init(target, %_).TOP().MATCH
+              self!cursor-init(target, {:$actions, %_}).TOP(|$args.Capture).MATCH,
+              self!cursor-init(target, {:$actions, %_}).TOP().MATCH
             ),
           )
-        ))
+        )
     }
 
     method parsefile(Str(Cool) $filename, :$enc) {

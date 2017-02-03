@@ -7,9 +7,9 @@ use File::Spec qw();
 
 use base qw(Exporter);
 our @EXPORT_OK = qw(sorry slurp system_or_die
-                    cmp_rev 
+                    cmp_rev
                     read_config
-                    fill_template_file fill_template_text 
+                    fill_template_file fill_template_text
                     git_checkout
                     verify_install gen_moar
                     github_url
@@ -197,7 +197,7 @@ sub git_checkout {
 
     if ($checkout) {
         system_or_die('git', 'checkout', $checkout);
-        system_or_die('git', 'pull') 
+        system_or_die('git', 'pull')
             if slurp('.git/HEAD') =~ /^ref:/;
     }
 
@@ -336,7 +336,7 @@ sub gen_moar {
         return $moar_exe;
     }
     elsif ($moar_have) {
-        print "Found $moar_exe version $moar_have, which is too old.\n";
+        print "Found $moar_exe version $moar_have, which is too old. Wanted at least $moar_want\n";
     }
 
     return unless defined $gen_moar;

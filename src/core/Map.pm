@@ -48,7 +48,49 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method Int(Map:D:)     { self.elems }
     multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.pairs.sort.join("\n") }
+    multi method Str(Map:D:)     { self.sort.join("\n") }
+
+    method IterationBuffer() {
+        nqp::stmts(
+          (my $buffer := nqp::create(IterationBuffer)),
+          nqp::if(
+            nqp::defined($!storage) && nqp::elems($!storage),
+            nqp::stmts(
+              (my $iterator := nqp::iterator($!storage)),
+              nqp::setelems($buffer,nqp::elems($!storage)),
+              (my int $i = -1),
+              nqp::while(
+                $iterator,
+                nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
+                  Pair.new(
+                    nqp::iterkey_s(nqp::shift($iterator)),
+                    nqp::iterval($iterator)
+                  )
+                )
+              )
+            )
+          ),
+          $buffer
+        )
+    }
+
+    method List() {
+        nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',self.IterationBuffer)
+    }
+
+    multi method sort(Map:D:) {
+        Seq.new(
+          Rakudo::Iterator.ReifiedList(
+            Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+              nqp::p6bindattrinvres(
+                nqp::create(List),List,'$!reified',self.IterationBuffer
+              ),
+              { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
+            )
+          )
+        )
+    }
 
     multi method ACCEPTS(Map:D: Any $topic) {
         self.EXISTS-KEY($topic.any);
@@ -82,15 +124,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method perl(Map:D:) {
         self.^name
           ~ '.new(('
-          ~ self.pairs.sort.map({.perl}).join(',')
+          ~ self.sort.map({.perl}).join(',')
           ~ '))';
     }
 
-    method iterator(Map:) { self.pairs.iterator }
-    method list(Map:) { self.pairs.cache }
-
-    multi method pairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
+    method iterator(Map:D:) {
+        class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(
                   $!iter,
@@ -111,23 +150,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
-        }.new(self))
+        }.new(self)
     }
-    multi method keys(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                $!iter
-                  ?? nqp::iterkey_s(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  $target.push(nqp::iterkey_s(nqp::shift($!iter)))
-                )
-            }
-        }.new(self))
-    }
+    method list(Map:D:) { Seq.new(self.iterator) }
+    multi method pairs(Map:D:) { Seq.new(self.iterator) }
+    multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
+    multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
+
     multi method kv(Map:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             has int $!on-value;
@@ -149,6 +178,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
+            method skip-one() {
+                nqp::if(
+                  $!on-value,
+                  nqp::not_i($!on-value = 0), # skipped a value
+                  nqp::if(
+                    $!iter,                   # if false, we didn't skip
+                    nqp::stmts(               # skipped a key
+                      nqp::shift($!iter),
+                      ($!on-value = 1)
+                    )
+                  )
+                )
+            }
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
@@ -158,10 +200,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
+            method count-only() {
+                nqp::p6box_i(
+                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+                )
+            }
         }.new(self))
-    }
-    multi method values(Map:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-values(self))
     }
     multi method antipairs(Map:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -188,7 +232,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method invert(Map:D:) {
-        self.map: { (.value »=>» .key).cache.Slip }
+        self.pairs.map: { |(.value »=>» .key) }
     }
 
     multi method AT-KEY(Map:D: Str:D \key) is raw {

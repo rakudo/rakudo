@@ -1,26 +1,97 @@
 my class SetHash does Setty {
 
-    method ISINSET(\key) {
-        Proxy.new(
-          FETCH => { %!elems.EXISTS-KEY(key) },
-          STORE => -> $, \value {
-              %!elems.DELETE-KEY(key) unless value;
-              value;
-          }
-        );
+    role SetHashMappy does Rakudo::Iterator::Mappy {
+        method ISINSET(\key) {
+            Proxy.new(
+              FETCH => {
+                  nqp::p6bool(
+                    nqp::existskey(
+                      nqp::getattr(self,::?CLASS,'$!storage'),
+                      key
+                    )
+                  )
+              },
+              STORE => -> $, \value {
+                  nqp::stmts(
+                    nqp::unless(
+                      value,
+                      nqp::deletekey(
+                        nqp::getattr(self,::?CLASS,'$!storage'),
+                        key
+                      )
+                    ),
+                    value
+                  )
+              }
+            )
+        }
+    }
+
+    method iterator(SetHash:D:) {
+        class :: does SetHashMappy {
+            method pull-one() {
+              nqp::if(
+                $!iter,
+                Pair.new(
+                  nqp::iterval(nqp::shift($!iter)),
+                  self.ISINSET(nqp::iterkey_s($!iter))
+                ),
+                IterationEnd
+              )
+            }
+        }.new(%!elems)
     }
 
     multi method kv(SetHash:D:) {
-        %!elems.kv.map: -> \k,\v { |(v,self.ISINSET(k)) }
+        Seq.new(class :: does SetHashMappy {
+            has int $!on-value;
+            method pull-one() {
+              nqp::if(
+                $!on-value,
+                nqp::stmts(
+                  ($!on-value = 0),
+                  self.ISINSET(nqp::iterkey_s($!iter))
+                ),
+                nqp::if(
+                  $!iter,
+                  nqp::stmts(
+                    ($!on-value = 1),
+                    nqp::iterval(nqp::shift($!iter))
+                  ),
+                  IterationEnd
+                )
+              )
+            }
+            method skip-one() {
+                nqp::if(
+                  $!on-value,
+                  nqp::not_i($!on-value = 0),   # skipped a value
+                  nqp::if(
+                    $!iter,                     # if false, we didn't skip
+                    nqp::stmts(                 # skipped a key
+                      nqp::shift($!iter),
+                      ($!on-value = 1)
+                    )
+                  )
+                )
+            }
+            method count-only() {
+                nqp::p6box_i(
+                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+                )
+            }
+        }.new(%!elems))
     }
     multi method values(SetHash:D:) {
-        %!elems.keys.map: -> \key { self.ISINSET(key) }
-    }
-    multi method pairs(SetHash:D:) {
-        %!elems.kv.map: -> \k,\v --> Pair { Pair.new(v,self.ISINSET(k)) }
-    }
-    multi method antipairs(SetHash:D:) {
-        %!elems.values.map: -> \key --> Pair { Pair.new(True,key) }
+        Seq.new(class :: does SetHashMappy {
+            method pull-one() {
+              nqp::if(
+                $!iter,
+                self.ISINSET(nqp::iterkey_s(nqp::shift($!iter))),
+                IterationEnd
+              )
+            }
+        }.new(%!elems))
     }
 
     method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }

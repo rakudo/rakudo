@@ -20,8 +20,8 @@ my role Rational[::NuT, ::DeT] does Real {
 
         # 0 denominator take it verbatim to support Inf/-Inf/NaN
         if de == 0 {
-            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont(nu));
-            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont(de));
+            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont(nu));
+            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont(de));
         }
 
         # normalize
@@ -33,8 +33,8 @@ my role Rational[::NuT, ::DeT] does Real {
                 $numerator   = -$numerator;
                 $denominator = -$denominator;
             }
-            nqp::bindattr($new,self.WHAT,'$!numerator',  nqp::decont($numerator));
-            nqp::bindattr($new,self.WHAT,'$!denominator',nqp::decont($denominator));
+            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont($numerator));
+            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont($denominator));
         }
 
         $new

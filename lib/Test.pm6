@@ -351,7 +351,7 @@ multi sub skip() {
 }
 multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::time_n;
-    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
+    die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
     $time_before = nqp::time_n;

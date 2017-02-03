@@ -203,7 +203,7 @@ multi sub prefix:<-->(int $a is rw) {
     $a = nqp::sub_i($a, 1);
 }
 multi sub postfix:<++>(Int:D $a is rw) {
-    my \b = nqp::decont($a);
+    my \b := nqp::decont($a);
     $a = nqp::add_I(b, 1, Int);
     b
 }
@@ -213,7 +213,7 @@ multi sub postfix:<++>(int $a is rw) {
     $b
 }
 multi sub postfix:<-->(Int:D $a is rw) {
-    my \b = nqp::decont($a);
+    my \b := nqp::decont($a);
     $a = nqp::sub_I(b, 1, Int);
     b
 }

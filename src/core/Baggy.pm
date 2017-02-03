@@ -192,8 +192,8 @@ my role Baggy does QuantHash {
     }
 
 #--- iterator methods
-    multi method pairs(Baggy:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-values(%!elems))
+    multi method iterator(Baggy:D:) {
+        Rakudo::Iterator.Mappy-values(%!elems)
     }
     multi method keys(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -211,36 +211,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has Mu $!value;
-
-            method pull-one() is raw {
-                if $!value.DEFINITE {
-                    my \tmp  = $!value;
-                    $!value := nqp::null;
-                    tmp
-                }
-                elsif $!iter {
-                    my \tmp = nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $!value := nqp::getattr(tmp,Pair,'$!value');
-                    nqp::getattr(tmp,Pair,'$!key')
-                }
-                else {
-                    IterationEnd
-                }
-            }
-            method push-all($target --> IterationEnd) {
-                my $tmp;
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!value')))
-                  )
-                )
-            }
-        }.new(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(%!elems))
     }
     multi method values(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -262,22 +233,16 @@ my role Baggy does QuantHash {
     multi method antipairs(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
-                if $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    Pair.new(tmp.value, tmp.key)
-                }
-                else {
-                    IterationEnd
-                }
+                nqp::if(
+                  $!iter,
+                  nqp::iterval(nqp::shift($!iter)).antipair,
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
-                my $tmp;
                 nqp::while(
                   $!iter,
-                  nqp::stmts(  # doesn't sink
-                    ($tmp := nqp::iterval(nqp::shift($!iter))),
-                    ($target.push(Pair.new($tmp.value,$tmp.key)))
-                  )
+                  $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
                 )
             }
         }.new(%!elems))
@@ -289,31 +254,47 @@ my role Baggy does QuantHash {
             has int $!times;
 
             method pull-one() is raw {
-                if $!times {
-                    $!times = $!times - 1;
+                nqp::if(
+                  $!times,
+                  nqp::stmts(
+                    ($!times = nqp::sub_i($!times,1)),
                     $!key
-                }
-                elsif $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $!key  := tmp.key;
-                    $!times = tmp.value - 1;
-                    $!key
-                }
-                else {
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($!key := nqp::getattr(
+                        (my $pair := nqp::decont(
+                          nqp::iterval(nqp::shift($!iter)))),
+                        Pair,
+                        '$!key'
+                      )),
+                      ($!times =
+                        nqp::sub_i(nqp::getattr($pair,Pair,'$!value'),1)),
+                      $!key
+                    ),
                     IterationEnd
-                }
+                  )
+                )
+            }
+            method skip-one() { # the default skip-one, too difficult to handle
+                nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
             }
             method push-all($target --> IterationEnd) {
-                my $tmp;
                 nqp::while(
                   $!iter,
                   nqp::stmts(
-                    ($tmp   := nqp::iterval(nqp::shift($!iter))),
-                    ($!key  := $tmp.key),
-                    ($!times = nqp::add_i($tmp.value,1)),
+                    ($!key := nqp::getattr(
+                      (my $pair := nqp::decont(
+                        nqp::iterval(nqp::shift($!iter)))),
+                      Pair,
+                      '$!key'
+                    )),
+                    ($!times =
+                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)),
                     nqp::while(  # doesn't sink
                       ($!times = nqp::sub_i($!times,1)),
-                      ($target.push($!key))
+                      $target.push($!key)
                     )
                   )
                 )

@@ -7,10 +7,18 @@ my class X::Experimental        { ... }
 my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    my int $bpe = (T.^nativesize / 8).Int;  # other then *8 not supported yet
+    X::NYI.new(
+      feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}"
+    ).throw unless nqp::istype(T,Int);
 
-    X::NYI.new(feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}").throw
-      unless nqp::istype(T,Int);
+    # other then *8 not supported yet
+    my int $bpe = try {
+#?if jvm
+        # https://irclog.perlgeek.de/perl6-dev/2017-01-20#i_13961377
+        CATCH { default { Nil } }
+#?endif
+        (T.^nativesize / 8).Int
+    } // 1;
 
     multi method WHICH(Blob:D:) {
         self.^name ~ '|' ~ nqp::sha1(self.decode("latin-1"))
@@ -133,7 +141,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $pos;
         my int $todo;
         if nqp::istype($from,Range) {
-            ($pos,my int $max) = $from.int-bounds;
+            $from.int-bounds($pos, my int $max);
             $todo = $max - $pos + 1;
         }
         else {

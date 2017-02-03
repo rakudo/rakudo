@@ -26,11 +26,15 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_phasers(str $name --> Nil) {
-        if nqp::attrinited(self,Block,'$!phasers') && nqp::existskey($!phasers, $name) {
-            my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
-            nqp::while($iter, nqp::shift($iter).(), :nohandler);
-        }
+    method fire_phasers(Str $name --> Nil) {
+        nqp::if(
+          nqp::attrinited(self,Block,'$!phasers')
+            && nqp::existskey($!phasers,$name),
+          nqp::stmts(
+            (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
+            nqp::while($iter,nqp::shift($iter)(),:nohandler)
+          )
+        )
     }
 
     method has-phasers() { nqp::attrinited(self,Block,'$!phasers') }

@@ -72,10 +72,10 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(\min, \max) { nqp::create(self)!SET-SELF(min,max,0,0,0) }
 
-    method excludes-min() { ?$!excludes-min }
-    method excludes-max() { ?$!excludes-max }
-    method infinite()     { ?$!infinite     }
-    method is-int()       { ?$!is-int       }
+    method excludes-min() { nqp::p6bool($!excludes-min) }
+    method excludes-max() { nqp::p6bool($!excludes-max) }
+    method infinite()     { nqp::p6bool($!infinite)     }
+    method is-int()       { nqp::p6bool($!is-int)       }
 
     multi method WHICH (Range:D:) {
         self.^name
@@ -212,8 +212,9 @@ my class Range is Cool does Iterable does Positional {
                             $i = $i.succ;
                         }
                     }
+                    $!i = $e.succ;
                 }
-                method sink-all(--> IterationEnd) { $!i = $!e }
+                method sink-all(--> IterationEnd) { $!i = $!e.succ }
             }.new($!excludes-min ?? $!min.succ !! $!min,$!excludes-max,$!max)
         }
     }
@@ -369,7 +370,27 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
-    method int-bounds() {
+    proto method int-bounds(|) { * }
+    multi method int-bounds($from is rw, $to is rw) {
+        nqp::if(
+          $!is-int,
+          nqp::stmts(
+            ($from = $!min + $!excludes-min),
+            ($to   = $!max - $!excludes-max)
+          ),
+          nqp::if(
+            nqp::istype($!min,Real)
+              && $!min.floor == $!min
+              && nqp::istype($!max,Real),
+            nqp::stmts(
+              ($from = $!min.floor + $!excludes-min),
+              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
+            ),
+            (die "Cannot determine integer bounds")
+          )
+        )
+    }
+    multi method int-bounds() {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
@@ -400,6 +421,9 @@ my class Range is Cool does Iterable does Positional {
           ?? got >= $!min + $!excludes-min && got <= $!max - $!excludes-max
           !! ($!excludes-min ?? got after $!min !! not got before $!min)
                && ($!excludes-max ?? got before $!max !! not got after $!max)
+    }
+    multi method ACCEPTS(Range:D: Complex:D \got) {
+        nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_
     }
     multi method ACCEPTS(Range:D: Range \topic) {
         (topic.min > $!min

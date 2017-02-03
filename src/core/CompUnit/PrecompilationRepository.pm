@@ -1,5 +1,13 @@
 {
     role CompUnit::PrecompilationRepository {
+        method try-load(
+            CompUnit::PrecompilationDependency::File $dependency,
+            IO::Path :$source,
+            CompUnit::PrecompilationStore :@precomp-stores,
+        ) returns CompUnit::Handle {
+            Nil
+        }
+
         method load(CompUnit::PrecompilationId $id) {
             Nil
         }

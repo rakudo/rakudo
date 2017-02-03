@@ -1197,7 +1197,7 @@ class Perl6::World is HLL::World {
         self.add_object($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
         my $comp_unit := $registry.head.need($spec);
-        my $globalish := $comp_unit.handle.globalish-package.WHO;
+        my $globalish := $comp_unit.handle.globalish-package;
         nqp::gethllsym('perl6','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
 
         return $comp_unit;
@@ -1438,7 +1438,7 @@ class Perl6::World is HLL::World {
 
     # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, str $name, %cont_info, $descriptor, :$scope, :$package, :$cont = self.build_container(%cont_info, $descriptor)) {
+    method install_lexical_container($block, str $name, %cont_info, $descriptor, :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor)) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -1502,7 +1502,7 @@ class Perl6::World is HLL::World {
         $cd
     }
 
-    # Builds a container and adds it to the SC.
+    # Builds a container.
     method build_container(%cont_info, $descriptor) {
         my $cont;
         my $cont_type := %cont_info<container_type>;
@@ -1526,8 +1526,14 @@ class Perl6::World is HLL::World {
             $cont := $cont_type.new;
             try nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         }
-        self.add_object($cont);
         $cont
+    }
+
+    # Builds a container and adds it to the SC.
+    method build_container_and_add_to_sc(%cont_info, $descriptor) {
+        my $cont := self.build_container(%cont_info, $descriptor);
+        self.add_object($cont);
+        $cont;
     }
 
     # Given a sigil and the value type specified, works out the
@@ -1705,7 +1711,7 @@ class Perl6::World is HLL::World {
             my $desc :=
               self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
 
-            my $cont := self.build_container(%info, $desc);
+            my $cont := self.build_container_and_add_to_sc(%info, $desc);
 
             %magical_cds{$name} := [%info, $desc, $cont];
             self.install_lexical_container($block, $name, %info, $desc, :cont($cont));

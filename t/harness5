@@ -120,7 +120,7 @@ if (eval "require $tap_harness_class;") {
         jobs        => $jobs,
         ignore_exit => 1,
         merge       => 1,
-        $TAP::Harness::VERSION > 3.21 ? (trap => 1) : (),
+        $TAP::Harness::VERSION gt 3.21 ? (trap => 1) : (),
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );
@@ -176,7 +176,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.moar');
+    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -196,10 +196,10 @@ Options:
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - fudge (?)
     --verbosity=[level] - set the verbosity level.
-    --jobs - number of jobs.
-    --long - do long.
-    --stress - perform the stress tests/
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --quick - do not run tests marked as long-running
+    --stress - run tests marked as stress tests
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
-    --slow - spread tests marked "slow" equally over the run (on non-Win)
-
+    --slow - spread tests marked "slow" equally over the run (default on non-Win)
+    --moar/--jvm - mutually exclusive. Use MoarVM/JVM backend

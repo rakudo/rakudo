@@ -602,7 +602,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
 sub REQUIRE_IMPORT($compunit, *@syms) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
-    my $GLOBALish := $handle.globalish-package.WHO;
+    my $GLOBALish := $handle.globalish-package;
     my @missing;
     # Set the runtime values for compile time stub symbols
     for @syms {

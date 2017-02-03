@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqpprefix, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -73,7 +73,7 @@ if ($debugger) {
     install "perl6-debug-j", "java $jopts perl6-debug";
 }
 else {
-    install "perl6-j", "java $jopts perl6";
-    install "perl6-jdb-server", "java $jdbopts $jopts perl6";
+    install "perl6-j", "java $jopts perl6 $blib";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
     install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
 }

@@ -149,7 +149,6 @@ my class Any { # declared in BOOTSTRAP
         Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
 
-    method rotor(|c) is nodal { self.list.rotor(|c) }
     method reverse() is nodal { self.list.reverse }
     method combinations(|c) is nodal { self.list.combinations(|c) }
     method permutations(|c) is nodal { self.list.permutations(|c) }

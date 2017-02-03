@@ -147,12 +147,13 @@ Options:
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - apply backend specific fixups to various files
     --verbosity=[level] - set the verbosity level.
-    --jobs - number of jobs.
-    --quick - do not do long-running tests.
-    --stress - perform the stress tests.
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --quick - do not run tests marked as long-running
+    --stress - run tests marked as stress tests
     --randomize randomize the order in which test-files are processed.
     --no-mixslow - don't spread tests marked "slow" equally over the run (on non-Win)
-    --perl5path - path to a working perl5 for various helper utilities
+    --perlpath - path to perl6 (defaults to $*EXECUTABLE)
+    --perl5path - path to perl5 for various helper utilities (defaults to 'perl')
 
 =end pod
 

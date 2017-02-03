@@ -41,6 +41,17 @@ my role SlippyIterator does Iterator {
           result
         )
     }
+
+    proto method slip-all(|) { * }
+    multi method slip-all(Slip:U $slip, $target) {
+        $target.push($slip)
+    }
+    multi method slip-all(Slip:D $slip, $target) {
+        nqp::unless(
+          nqp::eqaddr($slip,Empty),
+          $slip.iterator.push-all($target)
+        )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

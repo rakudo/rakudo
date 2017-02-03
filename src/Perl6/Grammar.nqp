@@ -155,6 +155,7 @@ role STD {
     }
 
     method heredoc () {
+        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
         if @herestub_queue {
             my $here := self.'!cursor_start_cur'();
             $here.'!cursor_pos'(self.pos);
@@ -172,13 +173,14 @@ role STD {
                     $here.'!cursor_pos'($stop.pos);
 
                     # Get it trimmed and AST updated.
-                    $*ACTIONS.trim_heredoc(self, $doc, $stop, $herestub.orignode.MATCH.ast);
+                    $actions.trim_heredoc(self, $doc, $stop, $herestub.orignode.MATCH.ast);
                 }
                 else {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
             }
             $here.'!cursor_pass'($here.pos);
+            nqp::bindattr($here, NQPCursor, '$!actions', $actions);
             $here
         }
         else {
@@ -213,15 +215,20 @@ role STD {
     }
 
     method nibble($lang) {
-        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-        my $*ACTIONS;
+        my $ret;
+        my $actions;
         for %*LANG {
             if nqp::istype($lang, $_.value) {
-                $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                $actions := %*LANG{$_.key ~ '-actions'};
                 last;
             }
         }
-        $lang_cursor.nibbler();
+        {
+            my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()), :actions($actions));
+            $ret := $lang_cursor.nibbler();
+            nqp::bindattr($ret, NQPCursor, '$!actions', nqp::getattr(self, NQPCursor,'$!actions'));
+        }
+        $ret
     }
 
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
@@ -425,6 +432,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<Quote-actions>   := Perl6::QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
+
+        # A cacheable false dynvar value.
+        my $*WANTEDOUTERBLOCK := 0;
 
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -1161,7 +1171,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # for runaway detection
         :my $*LASTQUOTE := [0,0];
 
-        { $*W.loading_and_symbol_setup($/) }
+        {
+            nqp::getcomp('perl6').reset_language_version();
+            $*W.loading_and_symbol_setup($/)
+        }
 
         <.finishpad>
         <.bom>?
@@ -1240,13 +1253,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
-        :my $*ACTIONS := %*LANG<MAIN-actions>;
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
         :my $*IN_STMT_MOD := 0;
         :my $*ESCAPEBLOCK := 0;
+        :my $actions := %*LANG<MAIN-actions>;
+        <!!{ nqp::bindattr($/.CURSOR, NQPCursor, '$!actions', $actions); 1 }>
         <!before <.[\])}]> | $ >
         <!stopper>
-        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
+        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>); 1 }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
@@ -1557,10 +1571,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     ||  <?{ $<version><vnum>[0] == 6 }> {
                             my $version_parts := $<version><vnum>;
                             my $vwant := $<version>.ast.compile_time_value;
-                            my $vhave := $*W.find_symbol(['Version']).new(
-                                nqp::getcomp('perl6').language_version());
+                            my $comp := nqp::getcomp('perl6');
+                            my $vhave := $*W.find_symbol(['Version']).new($comp.language_version());
+                            my $vcould := $*W.find_symbol(['Version']).new('6.d.PREVIEW');
                             my $sm := $*W.find_symbol(['&infix:<~~>']);
-                            if !$sm($vhave,$vwant) {
+                            if $sm($vcould, $vwant) && $vwant.parts.AT-POS($vwant.parts.elems - 1) eq 'PREVIEW' {
+                                $comp.set_language_version('6.d');
+                                $*W.load_setting($/, 'CORE.d');
+                            }
+                            elsif !$sm($vhave,$vwant) {
                                 $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
                             }
                             $*MAIN   := 'MAIN';
@@ -1593,15 +1612,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
     method FOREIGN_LANG($lang, $regex, *@args) {
         if nqp::istype(%*LANG{$lang}, NQPCursor) {
-            return self.LANG($lang, $regex, @args)
+            my $ret := self.LANG($lang, $regex, @args);
+            nqp::bindattr($ret,   NQPCursor, '$!actions',  nqp::getattr(self, NQPCursor, '$!actions'));
+            $ret
         }
         else {
             my $Str := $*W.find_symbol(['Str']);
-            my $lang_cursor := %*LANG{$lang}.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()));
+            my $actions := %*LANG{$lang ~ '-actions'};
+            my $lang_cursor := %*LANG{$lang}.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()), :actions($actions));
             if self.HOW.traced(self) {
                 $lang_cursor.HOW.trace-on($lang_cursor, self.HOW.trace_depth(self));
             }
-            my $*ACTIONS := %*LANG{$lang ~ '-actions'};
             my $ret := $lang_cursor."$regex"(|@args);
 
             # Build up something NQP-levelish we can return.
@@ -1610,11 +1631,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
             nqp::bindattr($new,   NQPCursor, '$!name',  nqp::getattr($ret,   $p6cursor, '$!name'));
+            nqp::bindattr($new,   NQPCursor, '$!actions',  nqp::getattr(self, NQPCursor, '$!actions'));
 
             my $match := nqp::create(NQPMatch);
             nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
             nqp::bindattr($new, NQPCursor, '$!match', $match);
-            $new;
+            $new
         }
     }
 
@@ -4477,13 +4499,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;
+        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
         $name := nqp::substr($name,1) if nqp::eqat($name,"&",0);
         my $categorical := $name ~~ /^((\w+?fix) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         if $categorical {    # Does it look like a metaop?
             my $cat := ~$categorical[0][0];
             my $op := ~$categorical[0][1];
             return self if $op eq '!=';
-            my $lang := self.'!cursor_init'($op, :p(0));
+            my $lang := self.'!cursor_init'($op, :p(0), :actions($actions));
             my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
             $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
             # nqp::printfh(nqp::getstderr(), "$meth $op\n");
@@ -4521,7 +4544,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     'pos', [$pos]);
             }
         }
-        self;
+        self
     }
 
     method explain_mystery() {
@@ -4611,6 +4634,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
+        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
 
         # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
@@ -4661,7 +4685,32 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             return 0;
         }
         else {
-            self.typed_panic('X::Syntax::Extension::Category', :$category);
+            # If the sub is in the form of something:<blah>, then we assume
+            # the user is trying to define a custom op for an unknown category
+            # We also reserve something:sym<blah> form for future use
+            # (see https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093)
+            # If it's neither of those cases, then it's just a sub with an
+            # extended name like sub foo:bar<baz> {}; let the user use it.
+
+            self.typed_panic(
+                'X::Syntax::Extension::Category', :$category
+            ) if nqp::iseq_s($subname, "$category:<$opname>")
+              || nqp::iseq_s($subname, "$category:sym<$opname>");
+            self.typed_panic(
+                'X::Syntax::Reserved', :reserved(':sym<> colonpair')
+            ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
+
+            # XXX TODO: the conditionals above should actually be like below
+            # However, there is a 6.c-errata test that expects a ::Category
+            # exception even for `:sym<>` tokens. So I'll leave this until 6.d
+            #--------------------------------------------------------------
+            # self.typed_panic(
+            #     'X::Syntax::Extension::Category', :$category
+            # ) if nqp::iseq_s($subname, "$category:<$opname>");
+            # self.typed_panic(
+            #     'X::Syntax::Reserved', :reserved(':sym<> colonpair')
+            # ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
+            return 0;
         }
 
         # when importing, reuse known precedence overrides
@@ -4758,7 +4807,7 @@ if $*COMPILING_CORE_SETTING {
                     );
                 }
             };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+            $actions := $actions.HOW.mixin($actions,
                 PostcircumfixAction.HOW.curry(PostcircumfixAction, $canname, $subname));
         }
         elsif $category eq 'circumfix' {
@@ -4770,7 +4819,7 @@ if $*COMPILING_CORE_SETTING {
                     );
                 }
             };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+            $actions := $actions.HOW.mixin($actions,
                 CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
         }
         elsif $is_term {
@@ -4786,11 +4835,17 @@ if $*COMPILING_CORE_SETTING {
                     make QAST::Var.new( :$name, :scope('lexical') );
                 }
             };
-            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+            $actions := $actions.HOW.mixin($actions,
                 $defterm
                     ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
                     !! TermAction.HOW.curry(TermAction, $canname, $subname));
         }
+
+        # Set up next statement to have new actions.
+        %*LANG<MAIN-actions> := $actions;
+
+        # Set up the rest of this statement to have new actions too.
+        nqp::bindattr(self, NQPCursor, '$!actions', $actions);
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
         return 1;

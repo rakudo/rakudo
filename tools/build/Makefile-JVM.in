@@ -37,6 +37,7 @@ PERL6_C_JAR   = blib/Perl6/Compiler.jar
 PERL6_M_JAR   = blib/Perl6/Metamodel.jar
 PERL6_B_JAR   = blib/Perl6/BOOTSTRAP.jar
 SETTING_JAR   = CORE.setting.jar
+SETTING_D_JAR = CORE.d.setting.jar
 
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
   $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR) $(PERL6_DP_JAR)
@@ -55,6 +56,9 @@ J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
 J_CORE_SOURCES = \
   @jvm_core_sources@
 
+J_CORE_D_SOURCES = \
+  @jvm_core_d_sources@
+
 PERL6_DEBUG_JAR = perl6-debug.jar
 J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
 
@@ -62,6 +66,7 @@ J_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.jar \
   $(SETTING_JAR) \
+  $(SETTING_D_JAR) \
   $(PERL6_JAR) \
   j-rakudo_test_run.tar.gz \
   $(J_BUILD_DIR)/* \
@@ -78,7 +83,7 @@ HARNESS_TYPE =
 J_HARNESS5 = $(PERL5) t/harness5 --jvm
 J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
@@ -144,8 +149,13 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	NQP_LIB=blib $(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) --nqp-lib=blib $(J_BUILD_DIR)/CORE.setting
 
+$(SETTING_D_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(SETTING_JAR) $(J_CORE_SOURCES)
+	$(J_NQP) $(J_GEN_CAT) $(J_CORE_D_SOURCES) > $(J_BUILD_DIR)/CORE.d.setting
+	@echo "The following step can take a long time, please be patient."
+	NQP_LIB=blib $(J_RUN_PERL6) --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_D_JAR) --nqp-lib=blib $(J_BUILD_DIR)/CORE.d.setting
+
 $(J_RUNNER):    tools/build/create-jvm-runner.pl
-	$(PERL5) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL5) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)
 
 j-runner-default: j-all
 	$(CP) $(J_RUNNER) perl6$(J_BAT)
@@ -157,7 +167,7 @@ $(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JAR)
 	    $(J_BUILD_DIR)/perl6-debug.nqp
 
 $(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
-	$(PERL5) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL5) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)
 
 eval-client.pl:
 	$(CP) $(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl .
@@ -210,7 +220,7 @@ j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.
 	$(MKPATH) $(DESTDIR)$(J_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(J_LIBPATH)/Perl6
-	$(CP) $(SETTING_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(SETTING_JAR) $(SETTING_D_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
@@ -220,11 +230,11 @@ j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site
 	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/site
 	.@slash@$(J_RUNNER) tools/build/install-core-dist.pl $(DESTDIR)$(PERL6_LANG_DIR)
-	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
-	$(PERL5) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)
+	$(PERL5) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)
 
 j-runner-default-install: j-install
-	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) --nqp-lib=blib $(NQP_JARS)
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
 

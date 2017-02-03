@@ -33,6 +33,7 @@ PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
 PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
 PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
 SETTING_MOAR   = CORE.setting.moarvm
+SETTING_D_MOAR = CORE.d.setting.moarvm
 R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 M_PERL6_OPS_DIR  = dynext
@@ -59,6 +60,8 @@ M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
 # setting - basically anything that feels MOP-ish.
 M_CORE_SOURCES = \
 	@moar_core_sources@
+M_CORE_D_SOURCES = \
+	@moar_core_d_sources@
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
 M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
@@ -69,6 +72,7 @@ M_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.moarvm \
   $(SETTING_MOAR) \
+  $(SETTING_D_MOAR) \
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
   rakudo_test_run.tar.gz \
@@ -90,7 +94,7 @@ M_HARNESS5_WITH_FUDGE = $(M_HARNESS5) --fudge --moar --keep-exit-code
 M_HARNESS6 = .@slash@$(M_RUNNER) -Ilib t/harness6
 M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) 
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(M_INCPATH)/libatomic_ops \
@@ -162,6 +166,11 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(M_NQP) $(M_GEN_CAT) -f tools/build/moar_core_sources > $(M_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) $(M_BUILD_DIR)/CORE.setting
+
+$(SETTING_D_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(SETTING_MOAR) $(M_CORE_D_SOURCES)
+	$(M_NQP) $(M_GEN_CAT) -f tools/build/moar_core_d_sources > $(M_BUILD_DIR)/CORE.d.setting
+	@echo "The following step can take a long time, please be patient."
+	$(M_RUN_PERL6) --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_D_MOAR) $(M_BUILD_DIR)/CORE.d.setting
 
 $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR)
 	$(M_RUN_PERL6) --target=mbc --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
@@ -270,7 +279,7 @@ m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist
 	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(SETTING_MOAR) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext

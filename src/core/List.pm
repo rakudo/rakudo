@@ -1272,6 +1272,35 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
+    multi method tail(List:D:) is raw {
+        nqp::if(
+          $!todo.DEFINITE,
+          self.Any::tail,
+          nqp::if(
+            $!reified.DEFINITE && nqp::elems($!reified),
+            nqp::atpos($!reified,nqp::sub_i(nqp::elems($!reified),1)),
+            Nil
+          )
+        )
+    }
+    multi method tail(List:D: $n) {
+        nqp::if(
+          $!todo.DEFINITE,
+          self.Any::tail($n),
+          Seq.new(
+            nqp::if(
+              $!reified.DEFINITE && nqp::elems($!reified),
+              nqp::stmts(
+                (my $iterator :=
+                  Rakudo::Iterator.ReifiedList(self))
+                  .skip-at-least(nqp::elems($!reified) - $n),
+                $iterator
+              ),
+              Rakudo::Iterator.Empty
+            )
+          )
+        )
+    }
 
     method push(|) is nodal {
         X::Immutable.new(:typename<List>,:method<push>).throw

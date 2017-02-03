@@ -180,9 +180,14 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    method sink() {
-        self.iterator.sink-all if $!iter.DEFINITE;
-        Nil
+    method sink(--> Nil) {
+        nqp::if(
+          $!iter.DEFINITE,
+          nqp::stmts(
+            $!iter.sink-all,
+            ($!iter := Iterator)
+          )
+        )
     }
 
     multi method AT-POS(Seq:D: Int $idx) is raw {

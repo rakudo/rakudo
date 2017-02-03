@@ -96,10 +96,8 @@ do {
 
         method teardown-line-editor {
             my $err = linenoiseHistorySave($.history-file);
-
-            if $err {
-                note "Couldn't save your history to $.history-file";
-            }
+            return if !$err;
+            note "Couldn't save your history to $.history-file";
         }
 
         method repl-read(Mu \prompt) {
@@ -141,10 +139,9 @@ do {
                 my $e := nqp::shift($it);
                 my $k := nqp::iterkey_s($e);
                 my $m = $k ~~ /^ "&"? $<word>=[\w* <.lower> \w*] $/;
-                if $m {
-                    my $word = ~$m<word>;
-                    sorted-set-insert(@!completions, $word);
-                }
+                next if !$m;
+                my $word = ~$m<word>;
+                sorted-set-insert(@!completions, $word);
             }
 
             my $PACKAGE = self.compiler.eval('$?PACKAGE', :outer_ctx($context));
@@ -224,9 +221,6 @@ do {
         }
 
         sub mixin-line-editor($self) {
-            my $new-self;
-            my Bool $problem;
-
             my %editor-to-mixin = (
                 :Linenoise(&mixin-linenoise),
                 :Readline(&mixin-readline),
@@ -234,38 +228,32 @@ do {
             );
 
             if %*ENV<RAKUDO_LINE_EDITOR> -> $line-editor {
-                if %editor-to-mixin{$line-editor} -> $mixin {
-                    ( $new-self, $problem ) = $mixin($self);
-
-                    if $new-self {
-                        return $new-self;
-                    } else {
-                        unless $problem {
-                            say "Could not find $line-editor module";
-                        }
-                        return $self but FallbackBehavior;
-                    }
-                } else {
+                if !%editor-to-mixin{$line-editor} {
                     say "Unrecognized line editor '$line-editor'";
                     return $self but FallbackBehavior;
                 }
-            } else {
-                ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
 
+                my $mixin = %editor-to-mixin{$line-editor};
+                my ( $new-self, $problem ) = $mixin($self);
                 return $new-self if $new-self;
 
-                ( $new-self, $problem ) = mixin-linenoise($self);
-
-                return $new-self if $new-self;
-
-                if $problem {
-                    say 'Continuing without tab completions or line editor';
-                    say 'You may want to consider using rlwrap for simple line editor functionality';
-                } else {
-                    say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor' unless $*DISTRO.is-win;
-                }
-                say '';
+                say "Could not find $line-editor module" unless $problem;
+                return $self but FallbackBehavior;
             }
+
+            my ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
+            return $new-self if $new-self;
+
+            ( $new-self, $problem ) = mixin-linenoise($self);
+            return $new-self if $new-self;
+
+            if $problem {
+                say 'Continuing without tab completions or line editor';
+                say 'You may want to consider using rlwrap for simple line editor functionality';
+            } elsif !$*DISTRO.is-win {
+                say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
+            }
+            say '';
 
             $self but FallbackBehavior
         }
@@ -291,19 +279,15 @@ do {
 
             CATCH {
                 when X::Syntax::Missing {
-                    if $!multi-line-enabled && .pos == $code.chars {
-                        return $!need-more-input;
-                    } else {
-                        .throw;
-                    }
+                    return $!need-more-input
+                      if $!multi-line-enabled && .pos == $code.chars;
+                    .throw;
                 }
 
                 when X::Comp::FailGoal {
-                    if $!multi-line-enabled && .pos == $code.chars {
-                        return $!need-more-input;
-                    } else {
-                        .throw;
-                    }
+                    return $!need-more-input
+                      if $!multi-line-enabled && .pos == $code.chars;
+                    .throw;
                 }
 
                 when X::ControlFlow::Return {

@@ -907,7 +907,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::elems($matches) >= $min,
             nqp::p6bindattrinvres(
               nqp::create(List),List,'$!reified',$matches),
-            Empty    
+            Empty
           )
         ))
     }

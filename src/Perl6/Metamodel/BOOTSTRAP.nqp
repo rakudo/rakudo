@@ -1311,9 +1311,6 @@ BEGIN {
             $ins
         }));
     Attribute.HOW.compose_repr(Attribute);
-#if js
-    Attribute.HOW.cheating_publish_method_cache(Attribute);
-#endif
     
     # class Scalar is Any {
     #     has Mu $!descriptor;
@@ -1472,9 +1469,6 @@ BEGIN {
             );
         }));
     Signature.HOW.compose_repr(Signature);
-#if js
-    Signature.HOW.cheating_publish_method_cache(Signature);
-#endif
         
     # class Parameter is Any {
     #     has str $!variable_name
@@ -1611,9 +1605,6 @@ BEGIN {
             }
         }));
     Parameter.HOW.compose_repr(Parameter);
-#if js
-    Parameter.HOW.cheating_publish_method_cache(Parameter);
-#endif
     
     # class Code {
     #     has Code $!do;              # Low level code object
@@ -1676,10 +1667,6 @@ BEGIN {
     # up the stub.
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
-
-#if js
-    Code.HOW.cheating_publish_method_cache(Code);
-#endif
 
     # class Block is Code {
     #     has Mu $!phasers;                # phasers for this block
@@ -1784,10 +1771,6 @@ BEGIN {
     }));
     Block.HOW.compose_repr(Block);
     Block.HOW.compose_invocation(Block);
-
-#if js
-    Block.HOW.cheating_publish_method_cache(Block);
-#endif
 
     # class Routine is Block {
     #     has @!dispatchees;
@@ -2778,33 +2761,21 @@ BEGIN {
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
-#if js
-    Routine.HOW.cheating_publish_method_cache(Routine);
-#endif
 
     # class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
     Sub.HOW.compose_invocation(Sub);
-#if js
-    Sub.HOW.cheating_publish_method_cache(Sub);
-#endif
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
     Method.HOW.compose_invocation(Method);
-#if js
-    Method.HOW.cheating_publish_method_cache(Method);
-#endif
 
     # class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
     Submethod.HOW.compose_invocation(Submethod);
-#if js
-    Submethod.HOW.cheating_publish_method_cache(Submethod);
-#endif
 
     # class Regex is Method {
     #     has @!caps;
@@ -2843,10 +2814,6 @@ BEGIN {
         }));
     Regex.HOW.compose_repr(Regex);
     Regex.HOW.compose_invocation(Regex);
-
-#if js
-    Regex.HOW.cheating_publish_method_cache(Regex);
-#endif
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -3053,9 +3020,6 @@ BEGIN {
         nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
     }
 
-#if js
-    Bool.HOW.cheating_publish_method_cache(Bool);
-#endif
     # Bool::False and Bool::True.
     my $false := nqp::box_i(0, Bool);
     nqp::bindattr_s($false, Bool, '$!key', 'False');

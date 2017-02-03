@@ -49,34 +49,6 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         @meths
     }
 
-#if js
-    method cheating_publish_method_cache($obj) {
-        # Walk MRO and add methods to cache, unless another method
-        # lower in the class hierarchy "shadowed" it.
-        my %cache;
-        my @mro_reversed;
-        my $authable := 1;
-        for self.mro($obj) {
-            @mro_reversed.unshift($_);
-        }
-        for @mro_reversed {
-            for $_.HOW.method_table($_) {
-                %cache{$_.key} := $_.value;
-            }
-            if nqp::can($_.HOW, 'is_composed') && !$_.HOW.is_composed($_) {
-                $authable := 0;
-            }
-        }
-        
-        # Also add submethods.
-        for $obj.HOW.submethod_table($obj) {
-            %cache{$_.key} := $_.value;
-        }
-        
-        nqp::setmethcache($obj, %cache);
-        nqp::setmethcacheauth($obj, $authable);
-    }
-#endif
     method publish_method_cache($obj) {
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.

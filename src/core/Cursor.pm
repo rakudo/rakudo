@@ -180,6 +180,7 @@ my class Cursor does NQPCursorRole {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
+          nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid),
           nqp::bindattr_i($new,$?CLASS,'$!from',-1),
           nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1)),
           $!regexsub($new)
@@ -190,6 +191,7 @@ my class Cursor does NQPCursorRole {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
+          nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid),
           nqp::bindattr_i($new,$?CLASS,'$!from',-1),
           nqp::bindattr_i($new,$?CLASS,'$!pos',
             nqp::if(

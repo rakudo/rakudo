@@ -155,7 +155,7 @@ role STD {
     }
 
     method heredoc () {
-        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
+        my $actions := self.actions;
         if @herestub_queue {
             my $here := self.'!cursor_start_cur'();
             $here.'!cursor_pos'(self.pos);
@@ -180,7 +180,7 @@ role STD {
                 }
             }
             $here.'!cursor_pass'($here.pos);
-            nqp::bindattr($here, NQPCursor, '$!actions', $actions);
+            $here.setactions($actions);
             $here
         }
         else {
@@ -226,7 +226,7 @@ role STD {
         {
             my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()), :actions($actions));
             $ret := $lang_cursor.nibbler();
-            nqp::bindattr($ret, NQPCursor, '$!actions', nqp::getattr(self, NQPCursor,'$!actions'));
+            $ret.setactions(self.actions);
         }
         $ret
     }
@@ -1257,7 +1257,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_STMT_MOD := 0;
         :my $*ESCAPEBLOCK := 0;
         :my $actions := %*LANG<MAIN-actions>;
-        <!!{ nqp::bindattr($/.CURSOR, NQPCursor, '$!actions', $actions); 1 }>
+        <!!{ $/.CURSOR.setactions($actions); 1 }>
         <!before <.[\])}]> | $ >
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>); 1 }>
@@ -1613,7 +1613,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method FOREIGN_LANG($lang, $regex, *@args) {
         if nqp::istype(%*LANG{$lang}, NQPCursor) {
             my $ret := self.LANG($lang, $regex, @args);
-            nqp::bindattr($ret,   NQPCursor, '$!actions',  nqp::getattr(self, NQPCursor, '$!actions'));
+            $ret.setactions(self.actions);
             $ret
         }
         else {
@@ -1631,12 +1631,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
             nqp::bindattr($new,   NQPCursor, '$!name',  nqp::getattr($ret,   $p6cursor, '$!name'));
-            nqp::bindattr($new,   NQPCursor, '$!actions',  nqp::getattr(self, NQPCursor, '$!actions'));
 
             my $match := nqp::create(NQPMatch);
             nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
             nqp::bindattr($new, NQPCursor, '$!match', $match);
-            $new
+            $new.copy_braid_from(self)
         }
     }
 
@@ -4498,7 +4497,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;
-        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
+        my $actions := self.actions;
         $name := nqp::substr($name,1) if nqp::eqat($name,"&",0);
         my $categorical := $name ~~ /^((\w+?fix) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         if $categorical {    # Does it look like a metaop?
@@ -4633,7 +4632,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
-        my $actions := nqp::getattr(self, NQPCursor, '$!actions');
+        my $actions := self.actions;
 
         # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
@@ -4844,7 +4843,7 @@ if $*COMPILING_CORE_SETTING {
         %*LANG<MAIN-actions> := $actions;
 
         # Set up the rest of this statement to have new actions too.
-        nqp::bindattr(self, NQPCursor, '$!actions', $actions);
+        self.setactions($actions);
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
         return 1;

@@ -214,11 +214,11 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             if $code.defined { }
             elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
-                    if @tail[*-1].WHAT === $endpoint.WHAT {
-                        $code = succpred(@tail[*-1], $endpoint);
+                    if @tail.tail.WHAT === $endpoint.WHAT {
+                        $code = succpred(@tail.tail, $endpoint);
                     }
                     else {
-                        $code = succpred(@tail[*-2], @tail[*-1]);
+                        $code = succpred(@tail[*-2], @tail.tail);
                     }
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {

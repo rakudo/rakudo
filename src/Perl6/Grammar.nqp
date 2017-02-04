@@ -596,12 +596,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # at this point with a simple method, and only if that is not the case do
     # we bother doing any pattern matching.
     method ws() {
-        if self.MARKED('ws') {
-            self
-        }
-        else {
-            self._ws()
-        }
+        self.MARKED('ws') ?? self !! self._ws()
     }
     token _ws {
         :my $old_highexpect := self.'!fresh_highexpect'();

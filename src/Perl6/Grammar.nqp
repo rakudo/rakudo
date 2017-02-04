@@ -3209,7 +3209,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
+                                  || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
 
     token bad_trait_typename {

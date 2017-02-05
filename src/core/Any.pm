@@ -48,64 +48,64 @@ my class Any { # declared in BOOTSTRAP
 
     method cache() { self.list }
 
-    proto method list(|) is nodal { * }
+    proto method list() is nodal { * }
     multi method list(Any:U:) { infix:<,>(self) }
     multi method list(Any:D \SELF:) { infix:<,>(SELF) }
 
-    proto method flat(|) is nodal { * }
+    proto method flat() is nodal { * }
     multi method flat() { self.list.flat }
 
-    proto method eager(|) is nodal { * }
+    proto method eager() is nodal { * }
     multi method eager() { self.list.eager }
 
     # derived from .list
     proto method List(|) is nodal { * }
     multi method List() { self.list }
-    proto method Slip(|) is nodal { * }
+    proto method Slip() is nodal { * }
     multi method Slip() { self.list.Slip }
-    proto method Array(|) is nodal { * }
+    proto method Array() is nodal { * }
     multi method Array() { self.list.Array }
 
-    proto method hash(|) is nodal { * }
+    proto method hash() is nodal { * }
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
 
     # derived from .hash
-    proto method Hash(|) is nodal { * }
+    proto method Hash() is nodal { * }
     multi method Hash() { self.hash.Hash }
 
-    proto method Map(|) is nodal { * }
+    proto method Map() is nodal { * }
     multi method Map() { self.hash.Map }
 
     proto method elems(|) is nodal { * }
     multi method elems(Any:U:) { 1 }
     multi method elems(Any:D:) { self.list.elems }
 
-    proto method end(|) is nodal { * }
+    proto method end() is nodal { * }
     multi method end(Any:U:) { 0 }
     multi method end(Any:D:) { self.list.end }
 
-    proto method keys(|) is nodal { * }
+    proto method keys() is nodal { * }
     multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
-    proto method kv(|) is nodal { * }
+    proto method kv() is nodal { * }
     multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
-    proto method values(|) is nodal { * }
+    proto method values() is nodal { * }
     multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
-    proto method pairs(|) is nodal { * }
+    proto method pairs() is nodal { * }
     multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
-    proto method antipairs(|) is nodal { * }
+    proto method antipairs() is nodal { * }
     multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
-    proto method invert(|) is nodal { * }
+    proto method invert() is nodal { * }
 
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }
@@ -115,7 +115,7 @@ my class Any { # declared in BOOTSTRAP
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
-    proto method iterator(|) { * }
+    proto method iterator() { * }
     multi method iterator(Any:) { self.list.iterator }
 
     proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }

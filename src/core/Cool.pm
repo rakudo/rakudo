@@ -209,7 +209,7 @@ my class Cool { # declared in BOOTSTRAP
         $match
     }
 
-    proto method IO(|) { * }
+    proto method IO() { * }
     multi method IO(Cool:D:) { IO::Path.new(self) }
     multi method IO(Cool:U:) { IO::Path }
 
@@ -234,7 +234,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    proto method Int(|) { * }
+    proto method Int() { * }
     multi method Int()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
@@ -243,7 +243,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    proto method UInt(|) { * }
+    proto method UInt() { * }
     multi method UInt()  {
         my $got := self.Int;
         $got < 0

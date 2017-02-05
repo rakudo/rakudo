@@ -247,7 +247,7 @@ my role Baggy does QuantHash {
             }
         }.new(%!elems))
     }
-    proto method kxxv(|) { * }
+    proto method kxxv() { * }
     multi method kxxv(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             has Mu $!key;

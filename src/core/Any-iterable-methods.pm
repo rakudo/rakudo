@@ -1811,7 +1811,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self, &with))
     }
 
-    proto method pairup(|) is nodal { * }
+    proto method pairup() is nodal { * }
     multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
         my \iter = nqp::istype(self, Iterable)
@@ -1869,7 +1869,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method minpairs(|) { * }
+    proto method minpairs() { * }
     multi method minpairs(Any:D:) {
         my @found;
         my $min = Inf;
@@ -1886,7 +1886,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         @found
     }
 
-    proto method maxpairs(|) { * }
+    proto method maxpairs() { * }
     multi method maxpairs(Any:D:) {
         my @found;
         my $max = -Inf;

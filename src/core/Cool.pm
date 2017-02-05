@@ -358,7 +358,7 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 proto sub uniprop(|) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code) {
-    nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE('General_Category'));
+    nqp::getuniprop_str($code,nqp::unipropcode('General_Category'));
 }
 multi sub uniprop(Int:D $code, Stringy:D $propname) {
     # prop-mappings can be removed when MoarVM bug #448 is fixed...
@@ -452,7 +452,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
     );
     ## End generated code
     $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
-    my $prop := Rakudo::Internals.PROPCODE($propname);
+    my $prop := nqp::unipropcode($propname);
     given nqp::atkey(%prefs, $propname) {
         when 'S'   { nqp::getuniprop_str($code,$prop) }
         when 'I'   { nqp::getuniprop_int($code,$prop) }
@@ -478,7 +478,7 @@ proto sub uniprop-int(|) {*}
 multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-int($str.ord, $propname) !! Nil }
 multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_int($code,Rakudo::Internals.PROPCODE($propname));
+    nqp::getuniprop_int($code,nqp::unipropcode($propname));
 }
 
 proto sub uniprop-bool(|) {*}
@@ -486,7 +486,7 @@ multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
 multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    so nqp::getuniprop_bool($code,Rakudo::Internals.PROPCODE($propname));
+    nqp::p6bool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
 }
 
 proto sub uniprop-str(|) {*}
@@ -494,7 +494,7 @@ multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-str($str.ord, $propname) !! Nil
 }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,Rakudo::Internals.PROPCODE($propname));
+    nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
 proto sub uniprops(|) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
@@ -504,8 +504,8 @@ multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
 proto sub unival(|) {*}
 multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
 multi sub unival(Int:D $code) {
-    state $nuprop = Rakudo::Internals.PROPCODE("Numeric_Value_Numerator");
-    state $deprop = Rakudo::Internals.PROPCODE("Numeric_Value_Denominator");
+    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
     my $nu = nqp::getuniprop_str($code, $nuprop);
     my $de = nqp::getuniprop_str($code, $deprop);
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
@@ -518,11 +518,11 @@ proto sub unimatch(|) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 # This multi below can be removed when MoarVM bug #448 is fixed
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
-    so uniprop($code, $propname) eq $pvalname;
+    uniprop($code, $propname) eq $pvalname;
 }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
-    my $prop := Rakudo::Internals.PROPCODE($propname);
-    so nqp::matchuniprop($code,$prop,Rakudo::Internals.PVALCODE($prop,$pvalname));
+    my $prop := nqp::unipropcode($propname);
+    nqp::p6bool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
 }
 #?endif
 

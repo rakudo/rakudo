@@ -14,7 +14,7 @@ class Deprecation {
         ($!file||"",$!type||"",$!package||"",$!name).join(':');
     }
 
-    proto method report () { * }
+    proto method report (|) { * }
     multi method report (Deprecation:U:) {
         return Nil unless %DEPRECATIONS;
 

@@ -24,7 +24,7 @@ my class Mu { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::where(self))
     }
 
-    proto method WHICH() { * }
+    proto method WHICH(|) {*}
     multi method WHICH(Mu:U:) {
         nqp::box_s(
             nqp::concat(
@@ -63,7 +63,7 @@ my class Mu { # declared in BOOTSTRAP
         $list;
     }
 
-    proto method WHY() { * }
+    proto method WHY(|) { * }
     multi method WHY(Mu:) {
         my Mu $why;
 
@@ -100,7 +100,7 @@ my class Mu { # declared in BOOTSTRAP
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
-    proto method is-lazy() { * }
+    proto method is-lazy (|) { * }
     multi method is-lazy(Mu:) { False }
 
     method CREATE() {
@@ -429,18 +429,18 @@ my class Mu { # declared in BOOTSTRAP
         self
     }
 
-    proto method Numeric() { * }
+    proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
-    proto method Real() { * }
+    proto method Real(|) { * }
     multi method Real(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
-    proto method Str() { * }
+    proto method Str(|) { * }
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
@@ -457,7 +457,7 @@ my class Mu { # declared in BOOTSTRAP
         )
     }
 
-    proto method Stringy() { * }
+    proto method Stringy(|) { * }
     multi method Stringy(Mu:U \v:) {
         my $*VAR_NAME = try v.VAR.?name;
         self.Str

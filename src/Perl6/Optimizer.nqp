@@ -1415,7 +1415,20 @@ class Perl6::Optimizer {
                         last;
                     }
                 }
-                
+
+                # Don't constant fold the 'x' operator if the resulting string would be too big.
+                # 1024 is just a heuristic, measuring might show a bigger value would be fine.
+                if $all_args_known && $op.name eq '&infix:<x>' && $!symbols.is_from_core('&infix:<x>') {
+                    my int $survived := 0;
+                    my int $size;
+                    try {
+                        $size := @args[0].chars * @args[1];
+                        $survived := 1;
+                    }
+
+                    return $op if $survived && $size > 1024;
+                }
+
                 # If so, attempt to constant fold.
                 if $all_args_known {
                     my int $survived := 0;

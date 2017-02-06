@@ -28,10 +28,9 @@ my role Iterator {
     method push-exactly($target, int $n) {
         nqp::stmts(
           (my int $i = -1),
-          nqp::while(  # doesn't sink
-            nqp::islt_i($i = nqp::add_i($i,1),$n)
-              && nqp::not_i(nqp::eqaddr(
-                (my $pulled := self.pull-one),IterationEnd)),
+          nqp::until(  # doesn't sink
+            nqp::isge_i($i = nqp::add_i($i,1),$n)
+              || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
             $target.push($pulled) # don't .sink $pulled here, it can be a Seq
           ),
           nqp::if(

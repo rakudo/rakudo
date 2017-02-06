@@ -23,7 +23,7 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     my @params  = $r.signature.params;
     if $r ~~ Method {
         @params.shift;
-        @params.pop if @params[*-1].name eq '%_';
+        @params.pop if @params.tail.name eq '%_';
     }
 
     my $params = join '', @params.map: {

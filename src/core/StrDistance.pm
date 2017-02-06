@@ -38,7 +38,7 @@ my class StrDistance is Cool {
                        ).min + 1;
             }
 
-            @d[*-1][*-1];
+            @d.tail.tail;
         }
     }
 }

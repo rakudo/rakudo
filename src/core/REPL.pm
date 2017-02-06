@@ -389,7 +389,7 @@ do {
             $value.WHERE == $!need-more-input.WHERE
         }
 
-        method input-toplevel-control($value) {
+        method input-toplevel-control(Mu $value) {
             $value.WHERE == $!control-not-allowed.WHERE
         }
 

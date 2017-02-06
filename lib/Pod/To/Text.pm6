@@ -89,7 +89,7 @@ sub declarator2text($pod) {
     my $what = do given $pod.WHEREFORE {
         when Method {
             my @params=$_.signature.params[1..*];
-              @params.pop if @params[*-1].name eq '%_';
+              @params.pop if @params.tail.name eq '%_';
             'method ' ~ $_.name ~ signature2text(@params)
         }
         when Sub {

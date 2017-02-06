@@ -84,7 +84,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     %*ENV<PERL6_PROGRAM_NAME> = $*PROGRAM-NAME;
-    exit run($*EXECUTABLE, @binaries[0].hash.<files><bin/#name#>, @*ARGS).exitcode
+    exit run($*EXECUTABLE, @binaries.sort(*<ver>).tail.hash.<files><bin/#name#>, @*ARGS).exitcode
 }';
 
     method !sources-dir() {

@@ -2891,7 +2891,16 @@ sub UNBASE_BRACKET($base, @a) {
     }
     $v;
 }
-
+proto sub infix:<unicmp>(|) is pure { * }
+multi sub infix:<unicmp>(Str:D \a, Str:D \b) returns Order:D {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-UNICMP')) and X::Experimental.new(
+        feature => "the 'unicmp' operator",
+        use     => "unicmp"
+    ).throw;
+    ORDER(
+        nqp::unicmp_s(
+            nqp::unbox_s(a), nqp::unbox_s(b), 15,0,0))
+}
 sub chrs(*@c) returns Str:D {
     fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;
     my $list     := nqp::getattr(@c,List,'$!reified');

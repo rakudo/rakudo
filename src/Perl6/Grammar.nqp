@@ -608,12 +608,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # at this point with a simple method, and only if that is not the case do
     # we bother doing any pattern matching.
     method ws() {
-        if self.MARKED('ws') {
-            self
-        }
-        else {
-            self._ws()
-        }
+        self.MARKED('ws') ?? self !! self._ws()
     }
     token _ws {
         :my $old_highexpect := self.'!fresh_highexpect'();
@@ -3225,7 +3220,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
+                                  || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
     rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
 
     token bad_trait_typename {
@@ -4497,9 +4493,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<..^>  { <sym> <O(|%structural)> }
     token infix:sym<^..^> { <sym> <O(|%structural)> }
 
-    token infix:sym<leg>  { <sym> >> <O(|%structural)> }
-    token infix:sym<cmp>  { <sym> >> <O(|%structural)> }
-    token infix:sym«<=>»  { <sym> <O(|%structural)> }
+    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
+    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
+    token infix:sym<unicmp> {  <sym> >> <O(|%structural)> }
+    token infix:sym«<=>»    { <sym> <O(|%structural)> }
 
     token infix:sym<but>  { <sym> >> <O(|%structural)> }
     token infix:sym<does> { <sym> >> <O(|%structural)> }

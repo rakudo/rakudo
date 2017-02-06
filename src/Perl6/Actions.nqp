@@ -2544,19 +2544,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :named($twigil eq ':'), :full_name($name));
         }
         elsif $twigil eq '~' {
-            my $actionsname := $desigilname ~ '-actions';
             $past := QAST::Op.new(
                 :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
                 QAST::Var.new( :name<Slang>, :scope<lexical> ));
-            if nqp::existskey(%*LANG, $desigilname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$desigilname}) );
-                $wval.named('grammar');
-                $past.push($wval);
+            if $/.CURSOR.lang($desigilname) -> $l {
+                if !nqp::isnull($l) {
+                    my $wval := QAST::WVal.new( :value($l) );
+                    $wval.named('grammar');
+                    $past.push($wval);
+                }
             }
-            if nqp::existskey(%*LANG, $actionsname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$actionsname}) );
-                $wval.named('actions');
-                $past.push($wval);
+            if $/.CURSOR.actions($desigilname) -> $l {
+                if !nqp::isnull($l) {
+                    my $wval := QAST::WVal.new( :value($l) );
+                    $wval.named('actions');
+                    $past.push($wval);
+                }
             }
         }
         elsif $twigil eq '=' && $desigilname ne 'pod' && $desigilname ne 'finish' {
@@ -4258,8 +4261,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.install_lexical_magical($block, '$/');
             }
             $past := %*RX<P5>
-                ?? %*LANG<P5Regex-actions>.qbuildsub($qast, $block, code_obj => $code)
-                !! %*LANG<Regex-actions>.qbuildsub($qast, $block, code_obj => $code);
+                ?? $/.CURSOR.actions('P5Regex').qbuildsub($qast, $block, code_obj => $code)
+                !! $/.CURSOR.actions('Regex').qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
         $past.blocktype("declaration_static");
@@ -9706,7 +9709,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     my $nibbled := $name eq 'after'
                         ?? self.flip_ast($<nibbler>.ast)
                         !! $<nibbler>.ast;
-                    my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
+                    my $sub := $/.CURSOR.actions('Regex').qbuildsub($nibbled, :anon(1), :addself(1));
                     $qast[0].push($sub);
                 }
             }

@@ -417,6 +417,7 @@ my class Cursor does NQPCursorRole {
 
     method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
+        $lang_cursor.clone_braid_from(self);
         $lang_cursor."$name"();
     }
 

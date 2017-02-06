@@ -79,6 +79,7 @@ role STD {
         }
         sub con_lang() {
             my $lang := $l.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            $lang.clone_braid_from(self);
             for @base_tweaks {
                 $lang := $lang."tweak_$_"(1);
             }
@@ -155,7 +156,7 @@ role STD {
     }
 
     method heredoc () {
-        my $actions := self.actions;
+        my $actions := self.curactions;
         if @herestub_queue {
             my $here := self.'!cursor_start_cur'();
             $here.'!cursor_pos'(self.pos);
@@ -167,6 +168,7 @@ role STD {
                 if $doc {
                     # Match stopper.
                     my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
+                    $stop.clone_braid_from(self);
                     unless $stop {
                         self.panic("Ending delimiter $*DELIM not found");
                     }
@@ -180,7 +182,7 @@ role STD {
                 }
             }
             $here.'!cursor_pass'($here.pos);
-            $here.setactions($actions);
+            $here.setcuractions($actions);
             $here
         }
         else {
@@ -217,16 +219,22 @@ role STD {
     method nibble($lang) {
         my $ret;
         my $actions;
+        my $key;
         for %*LANG {
             if nqp::istype($lang, $_.value) {
-                $actions := %*LANG{$_.key ~ '-actions'};
+                $key := $_.key;
+                $actions := self.actions($key);
                 last;
             }
         }
+        nqp::printfh(nqp::getstderr(), "DID NOT FIND nibble language for " ~ $lang.HOW.name($lang) ~ "\n") if nqp::isnull($actions);
         {
-            my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()), :actions($actions));
+            my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            $lang_cursor.clone_braid_from(self);
+            $lang_cursor.check_LANG_oopsies('nibble');
+            $lang_cursor.setcuractions($actions);
             $ret := $lang_cursor.nibbler();
-            $ret.setactions(self.actions);
+            $ret.copy_braid_from(self);
         }
         $ret
     }
@@ -432,6 +440,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<Quote-actions>   := Perl6::QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
+        self.setlang('MAIN', Perl6::Grammar, Perl6::Actions);
+        self.setlang('Quote', Perl6::QGrammar, Perl6::QActions);
+        self.setlang('Regex', Perl6::RegexGrammar, Perl6::RegexActions);
+        self.setlang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
 
         # A cacheable false dynvar value.
         my $*WANTEDOUTERBLOCK := 0;
@@ -654,11 +666,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token comment:sym<#`(...)> {
         '#`' <?opener> {}
-        [ <.quibble(%*LANG<Quote>)> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        [ <.quibble(self.lang('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
     token comment:sym<#|(...)> {
-        '#|' <?opener> <attachment=.quibble(%*LANG<Quote>)>
+        '#|' <?opener> <attachment=.quibble(self.lang('Quote'))>
         {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
@@ -686,7 +698,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(%*LANG<Quote>)>
+        '#=' <?opener> <attachment=.quibble(self.lang('Quote'))>
         {
             self.attach_trailing_docs(~$<attachment><nibble>);
         }
@@ -1256,11 +1268,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
         :my $*IN_STMT_MOD := 0;
         :my $*ESCAPEBLOCK := 0;
-        :my $actions := %*LANG<MAIN-actions>;
-        <!!{ $/.CURSOR.setactions($actions); 1 }>
+        :my $actions := self.actions('MAIN');
+        <!!{ $/.CURSOR.setcuractions($actions); 1 }>
         <!before <.[\])}]> | $ >
         <!stopper>
-        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>); 1 }>
+        <!!{ nqp::rebless($/.CURSOR, self.lang('MAIN')); 1 }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
@@ -1610,16 +1622,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
-    method FOREIGN_LANG($lang, $regex, *@args) {
-        if nqp::istype(%*LANG{$lang}, NQPCursor) {
-            my $ret := self.LANG($lang, $regex, @args);
-            $ret.setactions(self.actions);
-            $ret
+    method FOREIGN_LANG($langname, $regex, *@args) {
+        my $lang := self.lang($langname);
+        if nqp::istype($lang, NQPCursor) {
+            self.LANG($langname, $regex, @args);
         }
         else {
             my $Str := $*W.find_symbol(['Str']);
-            my $actions := %*LANG{$lang ~ '-actions'};
-            my $lang_cursor := %*LANG{$lang}.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()), :actions($actions));
+            my $actions := self.actions($langname);
+            my $lang_cursor := $lang.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()), :actions($actions));
+            $lang_cursor.clone_braid_from(self);
             if self.HOW.traced(self) {
                 $lang_cursor.HOW.trace-on($lang_cursor, self.HOW.trace_depth(self));
             }
@@ -3065,7 +3077,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           '{'
           [
           | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-          | <nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>
+          | <nibble(self.quote_lang(%*RX<P5> ?? self.lang('P5Regex') !! self.lang('Regex'), '{', '}'))>
           ]
           '}'<!RESTRICTED><?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
@@ -3615,37 +3627,37 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote_mod:sym<b>  { <sym> }
 
     proto token quote { <...> }
-    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Quote>, "'", "'", ['q']))> }
-    token quote:sym<sapos> { :dba('curly single quotes') "‘" ~ "’" <nibble(self.quote_lang(%*LANG<Quote>, "‘", "’", ['q']))> }
-    token quote:sym<lapos> { :dba('low curly single quotes') "‚" ~ <[’‘]> <nibble(self.quote_lang(%*LANG<Quote>, "‚", ["’","‘"], ['q']))> }
-    token quote:sym<hapos> { :dba('high curly single quotes') "’" ~ <[’‘]> <nibble(self.quote_lang(%*LANG<Quote>, "’", ["’","‘"], ['q']))> }
-    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Quote>, '"', '"', ['qq']))> }
-    token quote:sym<sdblq> { :dba('curly double quotes') '“' ~ '”' <nibble(self.quote_lang(%*LANG<Quote>, '“', '”', ['qq']))> }
-    token quote:sym<ldblq> { :dba('low curly double quotes') '„' ~ <[”“]> <nibble(self.quote_lang(%*LANG<Quote>, '„', ['”','“'], ['qq']))> }
-    token quote:sym<hdblq> { :dba('high curly double quotes') '”' ~ <[”“]> <nibble(self.quote_lang(%*LANG<Quote>, '”', ['”','“'], ['qq']))> }
-    token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(%*LANG<Quote>, '｢', '｣'))> }
+    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(self.lang('Quote'), "'", "'", ['q']))> }
+    token quote:sym<sapos> { :dba('curly single quotes') "‘" ~ "’" <nibble(self.quote_lang(self.lang('Quote'), "‘", "’", ['q']))> }
+    token quote:sym<lapos> { :dba('low curly single quotes') "‚" ~ <[’‘]> <nibble(self.quote_lang(self.lang('Quote'), "‚", ["’","‘"], ['q']))> }
+    token quote:sym<hapos> { :dba('high curly single quotes') "’" ~ <[’‘]> <nibble(self.quote_lang(self.lang('Quote'), "’", ["’","‘"], ['q']))> }
+    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(self.lang('Quote'), '"', '"', ['qq']))> }
+    token quote:sym<sdblq> { :dba('curly double quotes') '“' ~ '”' <nibble(self.quote_lang(self.lang('Quote'), '“', '”', ['qq']))> }
+    token quote:sym<ldblq> { :dba('low curly double quotes') '„' ~ <[”“]> <nibble(self.quote_lang(self.lang('Quote'), '„', ['”','“'], ['qq']))> }
+    token quote:sym<hdblq> { :dba('high curly double quotes') '”' ~ <[”“]> <nibble(self.quote_lang(self.lang('Quote'), '”', ['”','“'], ['qq']))> }
+    token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(self.lang('Quote'), '｢', '｣'))> }
     token quote:sym<q> {
         :my $qm;
         'q'
         [
-        | <quote_mod> {} <.qok($/)> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Quote>, 'q', $qm)>
-        | {} <.qok($/)> <quibble(%*LANG<Quote>, 'q')>
+        | <quote_mod> {} <.qok($/)> { $qm := $<quote_mod>.Str } <quibble(self.lang('Quote'), 'q', $qm)>
+        | {} <.qok($/)> <quibble(self.lang('Quote'), 'q')>
         ]
     }
     token quote:sym<qq> {
         :my $qm;
         'qq'
         [
-        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(%*LANG<Quote>, 'qq', $qm)>
-        | {} <.qok($/)> <quibble(%*LANG<Quote>, 'qq')>
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.lang('Quote'), 'qq', $qm)>
+        | {} <.qok($/)> <quibble(self.lang('Quote'), 'qq')>
         ]
     }
     token quote:sym<Q> {
         :my $qm;
         'Q'
         [
-        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(%*LANG<Quote>, $qm)>
-        | {} <.qok($/)> <quibble(%*LANG<Quote>)>
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.lang('Quote'), $qm)>
+        | {} <.qok($/)> <quibble(self.lang('Quote'))>
         ]
     }
 
@@ -3653,7 +3665,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym</ />  {
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
+        '/' <nibble(self.quote_lang(self.lang('Regex'), '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old_rx_mods>?
     }
     token quote:sym<rx>   {
@@ -3662,7 +3674,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
         <rx_adverbs>
-        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <quibble(%*RX<P5> ?? self.lang('P5Regex') !! self.lang('Regex'))>
         <!old_rx_mods>
     }
 
@@ -3673,7 +3685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx_adverbs>
-        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <quibble(%*RX<P5> ?? self.lang('P5Regex') !! self.lang('Regex'))>
         <!old_rx_mods>
     }
 
@@ -3720,7 +3732,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <.qok($/)>
         <rx_adverbs>
-        <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Quote>, ['qq'])>
+        <sibble(%*RX<P5> ?? self.lang('P5Regex') !! self.lang('Regex'), self.lang('Quote'), ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
     }
 
@@ -3748,7 +3760,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
         <rx_adverbs>
-        <tribble(%*LANG<Quote>, %*LANG<Quote>, ['cc'])>
+        <tribble(self.lang('Quote'), self.lang('Quote'), ['cc'])>
         <.old_rx_mods>?
     }
 
@@ -3796,11 +3808,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
             [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-            <nibble(self.quote_lang(%*LANG<Quote>, "<", ">", ['q', 'w', 'v']))>
+            <nibble(self.quote_lang(self.lang('Quote'), "<", ">", ['q', 'w', 'v']))>
         ]
     }
-    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Quote>, "<<", ">>", ['qq', 'ww', 'v']))> }
-    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Quote>, "«", "»", ['qq', 'ww', 'v']))> }
+    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(self.lang('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> }
+    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(self.lang('Quote'), "«", "»", ['qq', 'ww', 'v']))> }
     token circumfix:sym<{ }> {
         :my $*FAKE_INFIX_FOUND := 0;
         <?[{]> <pblock(1)>
@@ -4131,7 +4143,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token postcircumfix:sym<ang> {
         '<'
         [
-        || <nibble(self.quote_lang(%*LANG<Quote>, "<", ">", ['q', 'w', 'v']))> '>'
+        || <nibble(self.quote_lang(self.lang('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
         || <?before \h* [ \d | <.sigil> | ':' ] >
            { $/.CURSOR.panic("Whitespace required before < operator") }
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
@@ -4143,7 +4155,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '<<'
         [
-        || <nibble(self.quote_lang(%*LANG<Quote>, "<<", ">>", ['qq', 'ww', 'v']))> '>>'
+        || <nibble(self.quote_lang(self.lang('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O(|%methodcall)>
@@ -4153,7 +4165,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('shell-quote words')
         '«'
         [
-        || <nibble(self.quote_lang(%*LANG<Quote>, "«", "»", ['qq', 'ww', 'v']))> '»'
+        || <nibble(self.quote_lang(self.lang('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
         || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O(|%methodcall)>
@@ -4497,7 +4509,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method add_mystery($token, $pos, $ctx) {
         my $name := ~$token;
-        my $actions := self.actions;
+        my $actions := self.curactions;
         $name := nqp::substr($name,1) if nqp::eqat($name,"&",0);
         my $categorical := $name ~~ /^((\w+?fix) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         if $categorical {    # Does it look like a metaop?
@@ -4505,6 +4517,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $op := ~$categorical[0][1];
             return self if $op eq '!=';
             my $lang := self.'!cursor_init'($op, :p(0), :actions($actions));
+            $lang.clone_braid_from(self);
             my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
             $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
             # nqp::printfh(nqp::getstderr(), "$meth $op\n");
@@ -4632,7 +4645,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $self := self;
-        my $actions := self.actions;
+        my $actions := self.curactions;
 
         # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
@@ -4760,7 +4773,7 @@ if $*COMPILING_CORE_SETTING {
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
-                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    :my $stub := self.setlang('MAIN', %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper), NQPMu);
                     $starter ~ $stopper [ <.ws> <statement> ]
                     <O(|%methodcall)>
                 }
@@ -4778,7 +4791,7 @@ if $*COMPILING_CORE_SETTING {
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
-                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    :my $stub := self.setlang('MAIN', %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper), NQPMu);
                     $starter ~ $stopper <semilist>
                 }
             }
@@ -4841,9 +4854,10 @@ if $*COMPILING_CORE_SETTING {
 
         # Set up next statement to have new actions.
         %*LANG<MAIN-actions> := $actions;
+        self.setlang('MAIN', self.WHAT, $actions);
 
         # Set up the rest of this statement to have new actions too.
-        self.setactions($actions);
+        self.setcuractions($actions);
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
         return 1;
@@ -5180,13 +5194,14 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         self.truly($v, ':to');
         # the cursor_init is to ensure it's been initialized the same way
         # 'self' was back in quote_lang
-        %*LANG<Quote>.HOW.mixin(%*LANG<Quote>, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
+        my $q := self.lang('Quote');
+        $q.HOW.mixin($q, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
     }
     method tweak_heredoc($v)    { self.tweak_to($v) }
 
     method tweak_regex($v) {
         self.truly($v, ':regex');
-        return %*LANG<Regex>;
+        return self.lang('Regex');
     }
 }
 
@@ -5257,7 +5272,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        '<' <nibble(self.quote_lang(%*LANG<Quote>, "<", ">", ['q', 'w']))> '>'
+        '<' <nibble(self.quote_lang(self.lang('Quote'), "<", ">", ['q', 'w']))> '>'
         <.SIGOK>
     }
 

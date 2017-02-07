@@ -1454,6 +1454,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
+    method collate {
+        self.sort(&[coll]);
+    }
     sub find-reducer-for-op(&op) {
         nqp::if(
           nqp::iseq_s(&op.prec("prec"),"f="),

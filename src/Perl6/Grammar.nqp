@@ -1382,6 +1382,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
     }
     token newpad { <?> { $*W.push_lexpad($/) } }
+    token newthunk { <?> { $*W.push_thunk($/) } }
     token finishpad { <?> }
 
     token bom { \xFEFF }
@@ -2854,6 +2855,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # We'll collect parameter information into a hash, then use it to
         # build up the parameter object in the action method
         :my %*PARAM_INFO;
+        :my $*CURTHUNK;
         [
         | <type_constraint>+
             [
@@ -2882,6 +2884,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <trait>*
         <post_constraint('param')>*
+        <.newthunk>
         [
             <default_value>
             [ <modifier=.trait> {
@@ -2891,6 +2894,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
             }]?
         ]**0..1
+        { $*CURTHUNK := $*W.pop_thunk() }
 
         # enforce zone constraints
         {

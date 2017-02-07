@@ -1480,7 +1480,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
-            ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+            $*W.push_inner_block(my $uninst := QAST::Stmts.new($block));
             Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
@@ -3481,7 +3481,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # install it in the lexpad.
         my $outer := $*W.cur_lexpad();
         my $clone := !($outer =:= $*UNIT);
-        $outer[0].push(QAST::Stmt.new($block));
+
+        $*W.push_inner_block(QAST::Stmt.new($block));
 
         if $<deflongname> {
             # If it's a multi, need to associate it with the surrounding
@@ -4739,7 +4740,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     check_param_default_type($/, $maybe_code_obj);
                 }
                 %*PARAM_INFO<default_value> :=
-                    $*W.create_thunk($<default_value>[0], $val);
+                    $*W.create_thunk($<default_value>[0], $val, $*CURTHUNK);
             }
         }
 

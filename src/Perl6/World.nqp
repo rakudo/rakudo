@@ -183,7 +183,12 @@ class Perl6::World is HLL::World {
     my class Perl6CompilationContext is HLL::World::CompilationContext {
         # The stack of lexical pads, actually as QAST::Block objects. The
         # outermost frame is at the bottom, the latest frame is on top.
-        has @!BLOCKS;
+        has @!PADS;
+
+        # The stack of QAST::Blocks together with the ones that are not
+        # lexpads.
+        # The outermost block is at the bottom, the latest block is on top.
+        has @!PADS_AND_THUNKS;
 
         # The stack of code objects; phasers get attached to the top one.
         has @!CODES;
@@ -226,7 +231,8 @@ class Perl6::World is HLL::World {
         has %!magical_cds;
 
         method BUILD(:$handle, :$description) {
-            @!BLOCKS := [];
+            @!PADS := [];
+            @!PADS_AND_THUNKS := [];
             @!CODES := [];
             @!stub_check := [];
             @!protos_to_sort := [];
@@ -240,58 +246,82 @@ class Perl6::World is HLL::World {
         }
 
         method blocks() {
-            @!BLOCKS
+            @!PADS
         }
 
-        # Creates a new lexical scope and puts it on top of the stack.
-        method push_lexpad($/) {
-            # Create pad, link to outer, annotate with creating statement, and add to stack.
+        method create_block($/) {
+            # Create pad, link to outer, annotate with creating statement.
             my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
             if $*WANTEDOUTERBLOCK {  # (outside of 1st push/pop pass)
                 $pad.annotate('outer', $*WANTEDOUTERBLOCK);
             }
-            elsif +@!BLOCKS {
-                $pad.annotate('outer', @!BLOCKS[+@!BLOCKS - 1]);
+            elsif +@!PADS {
+                $pad.annotate('outer', @!PADS[+@!PADS - 1]);
             }
             $pad.annotate('statement_id', $*STATEMENT_ID);
             $pad.annotate('in_stmt_mod', $*IN_STMT_MOD);
-            @!BLOCKS[+@!BLOCKS] := $pad;
             $pad
+        }
+
+        # Creates a new lexical scope and puts it on top of the stack.
+        method push_lexpad($/) {
+            my $pad := self.create_block($/);
+            @!PADS[+@!PADS] := $pad;
+            @!PADS_AND_THUNKS[+@!PADS_AND_THUNKS] := $pad;
+            $pad;
         }
 
         # Pops a lexical scope off the stack.
         method pop_lexpad() {
-            @!BLOCKS.pop()
+            @!PADS_AND_THUNKS.pop();
+            @!PADS.pop();
         }
 
         # Gets the top lexpad.
         method cur_lexpad() {
-            @!BLOCKS[+@!BLOCKS - 1]
+            @!PADS[+@!PADS - 1]
+        }
+
+        # Creates a new thunk and puts it on top of the stack
+        method push_thunk($/) {
+            my $thunk := self.create_block($/);
+            @!PADS_AND_THUNKS[+@!PADS_AND_THUNKS] := $thunk;
+            $thunk;
+        }
+
+        # Pops a thunk off the stack
+        method pop_thunk() {
+            @!PADS_AND_THUNKS.pop();
+        }
+
+        # Gets the top block or thunk.
+        method cur_block_or_thunk() {
+            @!PADS_AND_THUNKS[+@!PADS_AND_THUNKS - 1]
         }
 
         # Marks the current lexpad as being a signatured block.
         method mark_cur_lexpad_signatured() {
-            @!BLOCKS[+@!BLOCKS - 1].annotate('signatured', 1);
+            @!PADS[+@!PADS - 1].annotate('signatured', 1);
         }
 
         # Finds the nearest signatured block and checks if it declares
         # a certain symbol.
         method nearest_signatured_block_declares(str $symbol) {
-            my $i := +@!BLOCKS;
+            my $i := +@!PADS;
             while $i > 0 {
                 $i := $i - 1;
-                if @!BLOCKS[$i].ann('signatured') {
-                    return +@!BLOCKS[$i].symbol($symbol);
+                if @!PADS[$i].ann('signatured') {
+                    return +@!PADS[$i].symbol($symbol);
                 }
             }
         }
 
         # Hunts through scopes to find the type of a lexical.
         method find_lexical_container_type(str $name) {
-            my int $i := +@!BLOCKS;
+            my int $i := +@!PADS;
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($name);
+                my %sym := @!PADS[$i].symbol($name);
                 if +%sym {
                     if nqp::existskey(%sym, 'type') {
                         return %sym<type>;
@@ -307,10 +337,10 @@ class Perl6::World is HLL::World {
         # Hunts through scopes to find a lexical and returns if it is
         # known to be read-only.
         method is_lexical_marked_ro(str $name) {
-            my int $i := +@!BLOCKS;
+            my int $i := +@!PADS;
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($name);
+                my %sym := @!PADS[$i].symbol($name);
                 if %sym {
                     return nqp::existskey(%sym, 'ro');
                 }
@@ -321,10 +351,10 @@ class Perl6::World is HLL::World {
         # Checks if the given name is known anywhere in the lexpad
         # and with lexical scope.
         method is_lexical(str $name) {
-            my int $i := +@!BLOCKS;
+            my int $i := +@!PADS;
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($name);
+                my %sym := @!PADS[$i].symbol($name);
                 if +%sym {
                     return %sym<scope> eq 'lexical';
                 }
@@ -334,10 +364,10 @@ class Perl6::World is HLL::World {
 
         # Checks if the symbol is really an alias to an attribute.
         method is_attr_alias(str $name) {
-            my int $i := +@!BLOCKS;
+            my int $i := +@!PADS;
             while $i > 0 {
                 $i := $i - 1;
-                my %sym := @!BLOCKS[$i].symbol($name);
+                my %sym := @!PADS[$i].symbol($name);
                 if +%sym {
                     return %sym<attr_alias>;
                 }
@@ -658,6 +688,22 @@ class Perl6::World is HLL::World {
     # Gets the top lexpad.
     method cur_lexpad() {
         self.context().cur_lexpad()
+    }
+
+    # Creates a new thunk and puts it on top of the stack
+    method push_thunk($/) {
+        self.context().push_thunk($/)
+    }
+
+    # Pops a thunk off the stack.
+    method pop_thunk() {
+        self.context().pop_thunk()
+    }
+
+    # Push inner block
+
+    method push_inner_block($block) {
+        self.context().cur_block_or_thunk()[0].push($block);
     }
 
     # Marks the current lexpad as being a signatured block.
@@ -2101,10 +2147,8 @@ class Perl6::World is HLL::World {
     }
 
     # Turn a QAST tree into a code object, to be called immediately.
-    method create_thunk($/, $to_thunk) {
-        my $block := self.push_lexpad($/);
+    method create_thunk($/, $to_thunk, $block = self.context().create_block($/)) {
         $block.push($to_thunk);
-        self.pop_lexpad();
         self.create_simple_code_object($block, 'Code');
     }
 

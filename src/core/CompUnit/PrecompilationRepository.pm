@@ -233,25 +233,23 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;
         $optimize //= Rakudo::Internals.OPTIMIZE;
-        my %ENV := %*ENV;
-        %ENV<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
+        my %env = %*ENV; # Local copy for us to tweak
+        %env<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
-        my $rakudo_precomp_loading = %ENV<RAKUDO_PRECOMP_LOADING>;
+        my $rakudo_precomp_loading = %env<RAKUDO_PRECOMP_LOADING>;
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
         die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
-        %ENV<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
-
-        my $current_dist = %ENV<RAKUDO_PRECOMP_DIST>;
-        %ENV<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
+        %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
+        %env<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
         $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
         my $perl6 = $*EXECUTABLE
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
-        if %*ENV<RAKUDO_PRECOMP_NESTED_JDB> {
+        if %env<RAKUDO_PRECOMP_NESTED_JDB> {
             $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
-            note "starting jdb on port " ~ ++%*ENV<RAKUDO_JDB_PORT>;
+            note "starting jdb on port " ~ ++%env<RAKUDO_JDB_PORT>;
         }
         my $proc = run(
           $perl6,
@@ -264,16 +262,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           $path,
           :out,
           :err,
+          :%env
         );
-        %ENV.DELETE-KEY(<RAKUDO_PRECOMP_WITH>);
-        if $rakudo_precomp_loading {
-            %ENV<RAKUDO_PRECOMP_LOADING> = $rakudo_precomp_loading;
-        }
-        else {
-            %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
-        }
-        %ENV.DELETE-KEY(<RAKUDO_PRECOMP_LOADING>);
-        %ENV<RAKUDO_PRECOMP_DIST> = $current_dist;
 
         my @result = $proc.out.lines.unique;
         if not $proc.out.close or $proc.status {  # something wrong

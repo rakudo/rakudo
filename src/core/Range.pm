@@ -426,13 +426,23 @@ my class Range is Cool does Iterable does Positional {
         nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_
     }
     multi method ACCEPTS(Range:D: Range \topic) {
-        (topic.min > $!min
-         || topic.min == $!min
-            && !(!topic.excludes-min && $!excludes-min))
-        &&
-        (topic.max < $!max
-         || topic.max == $!max
-            && !(!topic.excludes-max && $!excludes-max))
+        $!is-int && topic.is-int
+          ??
+            (topic.min > $!min
+             || topic.min == $!min
+                && !(!topic.excludes-min && $!excludes-min))
+            &&
+            (topic.max < $!max
+             || topic.max == $!max
+                && !(!topic.excludes-max && $!excludes-max))
+          !!
+            (topic.min after $!min
+             || topic.min eq $!min
+                && !(!topic.excludes-min && $!excludes-min))
+            &&
+            (topic.max before $!max
+             || topic.max eq $!max
+                && !(!topic.excludes-max && $!excludes-max))
     }
 
     multi method AT-POS(Range:D: int \pos) {

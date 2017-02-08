@@ -7,6 +7,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has $!initialized = False;
         has $.checksum;
         has $!bytecode;
+        has Lock $!update-lock = Lock.new;
 
         submethod BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode --> Nil) {
             if $!bytecode {
@@ -24,21 +25,18 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method !read-dependencies() {
-            return if $!initialized;
-            self!open(:r) unless $!file;
+            $!update-lock.protect: {
+                return if $!initialized;
+                self!open(:r) unless $!file;
 
-            $!checksum     = $!file.get;
-            my $dependency = $!file.get;
-            my CompUnit::PrecompilationDependency @deps;
-            while $dependency {
-                @deps.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
-                $dependency = $!file.get;
+                $!checksum     = $!file.get;
+                my $dependency = $!file.get;
+                while $dependency {
+                    @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
+                    $dependency = $!file.get;
+                }
+                $!initialized = True;
             }
-            # This bind helps towards thread safety; we may race to update it
-            # in the very occasional case, but we'll end up with the same data
-            # in there anyway. This saves us on a lock.
-            @!dependencies := @deps;
-            $!initialized = True;
         }
 
         method dependencies(--> Array[CompUnit::PrecompilationDependency]) {
@@ -47,8 +45,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method bytecode(--> Buf) {
-            self!read-dependencies;
-            $!bytecode //= $!file.slurp-rest(:bin,:close)
+            $!update-lock.protect: {
+                self!read-dependencies;
+                $!bytecode //= $!file.slurp-rest(:bin,:close)
+            }
         }
 
         method bytecode-handle(--> IO::Handle) {
@@ -66,8 +66,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method close(--> Nil) {
-            $!file.close if $!file;
-            $!file = Nil;
+            $!update-lock.protect: {
+                $!file.close if $!file;
+                $!file = Nil;
+            }
         }
 
         method save-to(IO::Path $precomp-file) {

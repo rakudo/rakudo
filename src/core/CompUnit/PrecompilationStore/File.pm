@@ -198,7 +198,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         my $precomp-file = self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
-        %!loaded{$precomp-id}:delete;
+        $!update-lock.protect: { %!loaded{$precomp-id}:delete };
     }
 
     method store-repo-id(CompUnit::PrecompilationId $compiler-id,

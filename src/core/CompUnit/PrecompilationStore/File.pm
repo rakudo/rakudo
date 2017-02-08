@@ -29,10 +29,15 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
             $!checksum     = $!file.get;
             my $dependency = $!file.get;
+            my CompUnit::PrecompilationDependency @deps;
             while $dependency {
-                @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
+                @deps.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
                 $dependency = $!file.get;
             }
+            # This bind helps towards thread safety; we may race to update it
+            # in the very occasional case, but we'll end up with the same data
+            # in there anyway. This saves us on a lock.
+            @!dependencies := @deps;
             $!initialized = True;
         }
 

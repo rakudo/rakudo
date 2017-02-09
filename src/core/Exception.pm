@@ -1494,7 +1494,7 @@ my class X::Syntax::NoSelf does X::Syntax {
 
 my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     has $.radix;
-    method message() { "Radix $.radix out of range (allowed: 2..36)" }
+    method message() { "Radix $.radix out of range (allowed: 1..36)" }
 }
 
 my class X::Syntax::Number::IllegalDecimal does X::Syntax {

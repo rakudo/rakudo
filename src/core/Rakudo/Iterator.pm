@@ -429,7 +429,7 @@ class Rakudo::Iterator {
                   ),
                   nqp::if(
                     nqp::eqaddr($pulled,IterationEnd)
-                      && ($!is-exhausted = 1)
+                      && ($!is-exhausted = 1) # set the flag
                       && ($!complete || nqp::not_i(nqp::elems($reified))),
                     IterationEnd,
                     nqp::p6bindattrinvres(

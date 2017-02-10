@@ -109,6 +109,12 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method base($base, Any $digits? is copy) {
+        # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
+        # instead of throwing (which happens in the .log() call before we reach Int.base
+        2 <= $base <= 36 or Failure.new(X::OutOfRange.new(
+            what => "base argument to base", :got($base), :range<2..36>)
+        );
+
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;

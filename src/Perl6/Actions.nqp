@@ -2548,6 +2548,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
                 QAST::Var.new( :name<Slang>, :scope<lexical> ));
             my $g := $/.CURSOR.slang_grammar($desigilname);
+            $*W.add_object($g);
             my $a := $/.CURSOR.slang_actions($desigilname);
             if !nqp::isnull($g) {
                 my $wval := QAST::WVal.new( :value($g) );
@@ -2580,14 +2581,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :full_name($name));
             }
         }
-        elsif $name eq '$?LINE' || $name eq '$?FILE' {
+        elsif $name eq '$?LANG' || $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                   twigil => '?',
                   scope  => $*SCOPE,
                 );
             }
-            if $name eq '$?LINE' {
+            if $name eq '$?LANG' {
+                my $cursor := $*LANG;
+                $*W.add_object($cursor);
+                $past := QAST::WVal.new(:value($cursor));
+            }
+            elsif $name eq '$?LINE' {
                 $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {

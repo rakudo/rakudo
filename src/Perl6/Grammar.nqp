@@ -431,6 +431,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     my $sc_id := 0;
     method TOP() {
         # Language braid.
+        my $*LANG := self;
+        self.add_slang('MAIN',    self,                  self.actions);
+        self.add_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
+        self.add_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
+        self.add_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
+
+        # Old language braid, going away eventually
         my %*LANG;
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;
@@ -440,10 +447,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<Quote-actions>   := Perl6::QActions;
         %*LANG<MAIN>            := self.WHAT;
         %*LANG<MAIN-actions>    := self.actions;
-        self.add_slang('MAIN', self.WHAT, self.actions);
-        self.add_slang('Quote', Perl6::QGrammar, Perl6::QActions);
-        self.add_slang('Regex', Perl6::RegexGrammar, Perl6::RegexActions);
-        self.add_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
 
         # A cacheable false dynvar value.
         my $*WANTEDOUTERBLOCK := 0;
@@ -1207,7 +1210,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statementlist($*statement_level = 0) {
-        :my %*LANG   := self.shallow_copy(self.slangs);
+        :my $*LANG   := self;
+        :my %*LANG   := self.shallow_copy(self.slangs);   # XXX deprecated
         :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :my %*HOWUSE := nqp::hash();
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
@@ -4821,7 +4825,7 @@ if $*COMPILING_CORE_SETTING {
         }
 
         # This also becomes the current MAIN. Also place it in %?LANG.
-        %*LANG<MAIN> := self.WHAT;
+        %*LANG<MAIN> := self;
 
         # Declarand should get precedence traits.
         if $is_oper && nqp::isconcrete($declarand) {
@@ -4882,6 +4886,8 @@ if $*COMPILING_CORE_SETTING {
         self.set_actions($actions);
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        self.clone_braid_from(self);  # treat braid object as somewhat immutable
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '$?LANG', self);
         return 1;
     }
 

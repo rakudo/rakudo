@@ -833,6 +833,8 @@ class Perl6::World is HLL::World {
         $cursor.set_actions($actions);
         # $cursor.braid."!dump"('add_package_declarator ' ~ $/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
         self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
+        self.clone_braid_from(self);
+        self.install_lexical_symbol(self.cur_lexpad(), '$?LANG', self);
     }
 
     method do_import($/, $handle, $package_source_name, $arglist?) {

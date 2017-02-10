@@ -384,6 +384,7 @@ class Rakudo::Iterator {
             has $!iterator;
             has int $!size;
             has int $!complete;
+            has int $!is-exhausted = 0;
             method !SET-SELF(\iterator,\size,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),
@@ -414,6 +415,8 @@ class Rakudo::Iterator {
             }
             method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
             method pull-one() is raw {
+              nqp::if($!is-exhausted,
+                IterationEnd,
                 nqp::stmts(
                   (my $reified := nqp::create(IterationBuffer)),
                   nqp::until(
@@ -426,6 +429,7 @@ class Rakudo::Iterator {
                   ),
                   nqp::if(
                     nqp::eqaddr($pulled,IterationEnd)
+                      && ($!is-exhausted = 1)
                       && ($!complete || nqp::not_i(nqp::elems($reified))),
                     IterationEnd,
                     nqp::p6bindattrinvres(
@@ -433,6 +437,7 @@ class Rakudo::Iterator {
                     )
                   )
                 )
+              )
             }
             method is-lazy() { $!iterator.is-lazy }
         }.new(iterable,size,partial)

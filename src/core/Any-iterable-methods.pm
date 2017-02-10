@@ -190,7 +190,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             !! ($stopped = 0)),
                         'REDO', ($stopped = 0),
                         'LAST', ($done = $!did-iterate = 1)
-                      )  
+                      )
                     ),
                     :nohandler
                   )
@@ -240,7 +240,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             !! ($stopped = 0)),
                         'REDO', ($stopped = 0),
                         'LAST', ($done = $!did-iterate = 1)
-                      )  
+                      )
                     ),
                     :nohandler
                   )
@@ -1454,6 +1454,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
+    method collate {
+        self.sort(&[coll]);
+    }
     sub find-reducer-for-op(&op) {
         nqp::if(
           nqp::iseq_s(&op.prec("prec"),"f="),
@@ -1711,7 +1714,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         $!first = 0;
                     }
                     else {
-                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd { 
+                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd {
                             $!last_as = $which;
                             $which := &!as($value);
                         }

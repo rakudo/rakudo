@@ -4666,6 +4666,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fakesignature($/) {
         my $fake_pad := $*W.pop_lexpad();
+        for <$/ $! $_> {
+            unless $fake_pad.symbol($_) {
+                $*W.install_lexical_magical($fake_pad, $_);
+            }
+        }
         my $sig := $*W.create_signature_and_params($/, $<signature>.ast,
             $fake_pad, 'Mu', :no_attr_check(1));
 

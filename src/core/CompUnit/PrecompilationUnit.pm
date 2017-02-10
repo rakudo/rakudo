@@ -1,11 +1,15 @@
 class CompUnit::PrecompilationId {
     has $.id;
 
+    my $cache-lock = Lock.new;
+    my %cache;
+
     method new(Str:D $id) {
-        state %cache;
-        %cache{$id} //= 2 < $id.chars < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
-            ?? self.bless(:$id)
-            !! die "Invalid precompilation id: $id"
+        $cache-lock.protect: {
+            %cache{$id} //= 2 < $id.chars < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
+                ?? self.bless(:$id)
+                !! die "Invalid precompilation id: $id"
+        }
     }
 
     method Str()      { $!id }

@@ -7,6 +7,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has $!initialized = False;
         has $.checksum;
         has $!bytecode;
+        has Lock $!update-lock = Lock.new;
 
         submethod BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode --> Nil) {
             if $!bytecode {
@@ -24,16 +25,18 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method !read-dependencies() {
-            return if $!initialized;
-            self!open(:r) unless $!file;
+            $!update-lock.protect: {
+                return if $!initialized;
+                self!open(:r) unless $!file;
 
-            $!checksum     = $!file.get;
-            my $dependency = $!file.get;
-            while $dependency {
-                @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
-                $dependency = $!file.get;
+                $!checksum     = $!file.get;
+                my $dependency = $!file.get;
+                while $dependency {
+                    @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
+                    $dependency = $!file.get;
+                }
+                $!initialized = True;
             }
-            $!initialized = True;
         }
 
         method dependencies(--> Array[CompUnit::PrecompilationDependency]) {
@@ -42,8 +45,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method bytecode(--> Buf) {
-            self!read-dependencies;
-            $!bytecode //= $!file.slurp-rest(:bin,:close)
+            $!update-lock.protect: {
+                self!read-dependencies;
+                $!bytecode //= $!file.slurp-rest(:bin,:close)
+            }
         }
 
         method bytecode-handle(--> IO::Handle) {
@@ -61,8 +66,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
 
         method close(--> Nil) {
-            $!file.close if $!file;
-            $!file = Nil;
+            $!update-lock.protect: {
+                $!file.close if $!file;
+                $!file = Nil;
+            }
         }
 
         method save-to(IO::Path $precomp-file) {
@@ -82,6 +89,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has %!loaded;
     has %!compiler-cache;
     has %!dir-cache;
+    has Lock $!update-lock = Lock.new;
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
     }
@@ -93,9 +101,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method !dir(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        %!dir-cache{$compiler-id ~ $precomp-id} //=
-            (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
-                .child($precomp-id.substr(0, 2).IO)
+        $!update-lock.protect: {
+            %!dir-cache{$compiler-id ~ $precomp-id} //=
+                (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
+                    .child($precomp-id.substr(0, 2).IO)
+        }
     }
 
     method path(CompUnit::PrecompilationId $compiler-id,
@@ -105,26 +115,34 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         self!dir($compiler-id, $precomp-id).child(($precomp-id ~ $extension).IO)
     }
 
-    method !lock() {
+    method !lock(--> Nil) {
         return if $*W && $*W.is_precompilation_mode();
-        $!lock //= $.prefix.child('.lock').open(:create, :rw);
-        $!lock.lock(2) if $!lock-count == 0;
-        $!lock-count++;
+        my int $acquire-file-lock = $!update-lock.protect: {
+            $!lock //= $.prefix.child('.lock').open(:create, :rw);
+            $!lock-count++
+        }
+        $!lock.lock(2) if $acquire-file-lock == 0;
     }
 
     method unlock() {
         return if $*W && $*W.is_precompilation_mode();
-        die "unlock when we're not locked!" if $!lock-count == 0;
-        $!lock-count-- if $!lock-count > 0;
-        $!lock && $!lock-count == 0 ?? $!lock.unlock !! True;
+        $!update-lock.protect: {
+            die "unlock when we're not locked!" if $!lock-count == 0;
+            $!lock-count-- if $!lock-count > 0;
+            $!lock && $!lock-count == 0 ?? $!lock.unlock !! True
+        }
     }
 
     method load-unit(CompUnit::PrecompilationId $compiler-id,
                 CompUnit::PrecompilationId $precomp-id)
     {
-        %!loaded{$precomp-id} //= do {
-            my $path = self.path($compiler-id, $precomp-id);
-            $path ~~ :e ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path) !! Nil
+        $!update-lock.protect: {
+            %!loaded{$precomp-id} //= do {
+                my $path = self.path($compiler-id, $precomp-id);
+                $path ~~ :e
+                    ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path)
+                    !! Nil
+            }
         }
     }
 
@@ -180,7 +198,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         my $precomp-file = self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
-        %!loaded{$precomp-id}:delete;
+        $!update-lock.protect: { %!loaded{$precomp-id}:delete };
     }
 
     method store-repo-id(CompUnit::PrecompilationId $compiler-id,

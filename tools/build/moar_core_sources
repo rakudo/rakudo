@@ -43,6 +43,7 @@ src/core/UInt64.pm
 src/core/Num.pm
 src/core/Buf.pm
 src/core/Uni.pm
+src/core/Collation.pm
 src/core/Str.pm
 src/core/Rakudo/Internals/VMBackedDecoder.pm
 src/core/Capture.pm

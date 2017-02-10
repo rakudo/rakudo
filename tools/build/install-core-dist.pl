@@ -41,11 +41,6 @@ $*REPO.install(
 my $core-dist = $*REPO.resolve(
     CompUnit::DependencySpecification.new(:short-name<CompUnit::Repository::Staging>)
 ).distribution;
-
-say $core-dist;
-say $core-dist.meta;
-say $core-dist.meta<provides>;
-
 my $source-id = $core-dist.meta<provides><CompUnit::Repository::Staging>.values[0]<file>;
 my $source = $*REPO.prefix.child('sources').child($source-id);
 my $source-file = $source.relative($*REPO.prefix);

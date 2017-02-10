@@ -51,14 +51,14 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method floor(Rational:D:) {
-        # correct formula
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
-        # correct formula
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)

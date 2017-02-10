@@ -63,14 +63,12 @@ my class Int does Real { # declared in BOOTSTRAP
 
     proto method base(|) { * }
     multi method base(Int:D: Int:D $base) {
-        return nqp::x('1', self) if $base == 1;
         2 <= $base <= 36
           ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
           !! Failure.new(X::OutOfRange.new(
-               what => "base argument to base", :got($base), :range<1..36>))
+               what => "base argument to base", :got($base), :range<2..36>))
     }
     multi method base(Int:D: Int(Cool) $base, $digits?) {
-        return nqp::x('1', self) if $base == 1;
         2 <= $base <= 36
           ?? $digits && ! nqp::istype($digits, Whatever)
             ?? $digits < 0
@@ -81,7 +79,7 @@ my class Int does Real { # declared in BOOTSTRAP
                     ~ '0' x $digits
             !! nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
           !! Failure.new(X::OutOfRange.new(
-               :what('base argument to base'),:got($base),:range<1..36>))
+               :what('base argument to base'),:got($base),:range<2..36>))
     }
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)

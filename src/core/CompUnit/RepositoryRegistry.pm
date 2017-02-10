@@ -38,12 +38,10 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
 
         # starting up for creating precomp
-        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
-            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
-            !! False;
-        if $precomp-specs {
-            # assume well formed strings
-            $raw-specs := nqp::split(',', $precomp-specs);
+        my $precomp-specs;
+        if @*PRECOMP-WITH {
+            $raw-specs := nqp::clone(@*PRECOMP-WITH.FLATTENABLE_LIST);
+            $precomp-specs := 1;
         }
 
         # normal start up

@@ -220,7 +220,7 @@ role STD {
         my $ret;
         my $actions;
         my $key;
-        for %*LANG {
+        for self.slangs {
             if nqp::istype($lang, $_.value) {
                 $key := $_.key;
                 $actions := self.slang_actions($key);
@@ -1617,10 +1617,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     $*W.do_pragma_or_load_module($/,1);
+                    # $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
+                    $/.CURSOR.check_LANG_oopsies('use');
                 }
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         $*W.do_pragma_or_load_module($/,1);
+                        # $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
+                        $/.CURSOR.check_LANG_oopsies('use');
                     }
                 }
             ]
@@ -3914,6 +3918,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method EXPR(str $preclim = '') {
+        # self.braid."!dump"('EXPR ' ~ nqp::substr(self.orig, self.from, 1)) if %*PRAGMAS<MONKEY-WRENCH>;
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
         my $*IN_RETURN := 0;
@@ -4788,7 +4793,8 @@ if $*COMPILING_CORE_SETTING {
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
-                    :my $stub := nqp::getlex('$¢').add_slang('MAIN', %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper), NQPMu);
+                    :my $cursor := nqp::getlex('$¢');
+                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper), $cursor.actions);
                     $starter ~ $stopper [ <.ws> <statement> ]
                     <O(|%methodcall)>
                 }
@@ -4806,7 +4812,8 @@ if $*COMPILING_CORE_SETTING {
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
-                    :my $stub := nqp::getlex('$¢').add_slang('MAIN', %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper), NQPMu);
+                    :my $cursor := nqp::getlex('$¢');
+                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper), $cursor.actions);
                     $starter ~ $stopper <semilist>
                 }
             }

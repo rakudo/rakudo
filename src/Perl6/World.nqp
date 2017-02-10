@@ -827,9 +827,11 @@ class Perl6::World is HLL::World {
                     make $<package_def>.ast;
                 }
             };
-            %*LANG<MAIN-actions> := $actions.HOW.mixin($actions,
+            $actions := %*LANG<MAIN-actions> := $actions.HOW.mixin($actions,
                 PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
         }
+        $cursor.set_actions($actions);
+        # $cursor.braid."!dump"('add_package_declarator ' ~ $/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
         self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
     }
 
@@ -872,7 +874,7 @@ class Perl6::World is HLL::World {
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
                     self.import($/, $storage, $package_source_name);
-                    $/.CURSOR.check_LANG_oopsie("do_import");
+                    $/.CURSOR.check_LANG_oopsies("do_import");
                 }
                 else {
                     nqp::die("&EXPORT sub did not return an Map");

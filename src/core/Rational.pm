@@ -51,7 +51,6 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method floor(Rational:D:) {
-        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator

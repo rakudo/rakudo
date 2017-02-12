@@ -100,7 +100,12 @@ my class Parameter { # declared in BOOTSTRAP
 
     method type() { $!nominal_type }
     method named_names() {
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!named_names)
+        my $nn := nqp::list();
+        my int $elems = @!named_names ?? nqp::elems(@!named_names) !! 0;
+        for ^$elems {
+            nqp::push($nn, nqp::atpos_s(@!named_names, $_));
+        }
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$elems ?? $nn !! nqp::null)
     }
     method named() {
         nqp::p6bool(
@@ -155,7 +160,12 @@ my class Parameter { # declared in BOOTSTRAP
             !! { $!default_value }
     }
     method type_captures() {
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!type_captures)
+        my $ct := nqp::list();
+        my int $elems = @!type_captures ?? nqp::elems(@!type_captures) !! 0;
+        for ^$elems {
+            nqp::push($ct, nqp::atpos_s(@!type_captures, $_));
+        }
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$elems ?? $ct !! nqp::null)
     }
 
     method !flags() { $!flags }
@@ -236,14 +246,14 @@ my class Parameter { # declared in BOOTSTRAP
                 # set up lookup hash
                 my $lookup := nqp::hash;
                 my int $i   = -1;
-                nqp::bindkey($lookup,nqp::atpos(@!named_names,$i),1)
+                nqp::bindkey($lookup,nqp::atpos_s(@!named_names,$i),1)
                   while nqp::islt_i(++$i,$elems);
 
                 # make sure the other nameds are all here
                 $elems = nqp::elems($onamed_names);
                 $i     = -1;
                 return False unless
-                  nqp::existskey($lookup,nqp::atpos($onamed_names,$i))
+                  nqp::existskey($lookup,nqp::atpos_s($onamed_names,$i))
                   while nqp::islt_i(++$i,$elems);
             }
         }

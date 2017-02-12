@@ -811,17 +811,41 @@ implementation detail and has no serviceable parts inside"
         $compiler.addstage('syntaxcheck', :before<ast>);
         $compiler.addstage('optimize', :after<ast>);
 
-        my $*W;
-        $compiler.evalfiles(
-            $path,
-            :ll-exception($lle),
-            :precomp(1),
-            :target(Rakudo::Internals.PRECOMP-TARGET),
-            :$output,
-            :encoding('utf8'),
-            :$source-name,
-            :transcode('ascii iso-8859-1'),
-        );
+        my $end_phasers := nqp::gethllsym('perl6', '@END_PHASERS');
+        nqp::bindhllsym('perl6', '@END_PHASERS', []);
+
+        nqp::bindattr($compiler, HLL::Compiler, '$!user_progname', $path);
+        my $source = $path.IO.slurp;
+        my $dependencies;
+        {
+            my $?FILES := $source-name;
+            my $*CTXSAVE;
+            my $*W;
+            my %*COMPILING;
+            my %adverbs =
+                :ll-exception($lle),
+                :precomp(1),
+                :target(Rakudo::Internals.PRECOMP-TARGET),
+                :$output,
+                :encoding('utf8'),
+                :$source-name,
+                :transcode('ascii iso-8859-1');
+            %*COMPILING<%?OPTIONS> := %adverbs.FLATTENABLE_HASH;
+            my $*LINEPOSCACHE;
+            my $result := $source;
+            for $compiler.stages -> $stage {
+                $result := $compiler.execute_stage(
+                    $stage,
+                    $result,
+                    nqp::getattr(%adverbs, Map, '$!storage'),
+                );
+                last if $stage eq Rakudo::Internals.PRECOMP-TARGET;
+            }
+            $dependencies = %*COMPILING<dependencies>;
+        }
+
+        nqp::bindhllsym('perl6', '@END_PHASERS', $end_phasers);
+        $dependencies ?? $dependencies.list !! Empty;
     }
 
 # Keep track of the differences between TAI and UTC for internal use.

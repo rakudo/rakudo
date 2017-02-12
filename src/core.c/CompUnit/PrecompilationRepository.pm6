@@ -76,7 +76,8 @@ class CompUnit::PrecompilationRepository::Default
         if $World && $World.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
-                $*ADD-DEPENDENCY($dependency);
+                #$*ADD-DEPENDENCY($dependency);
+                %*COMPILING<dependencies>.push: $dependency;
             }
             else {
                 nqp::exit(0);
@@ -221,7 +222,8 @@ Need to re-check dependencies.")
         my $World := $*W;
         if $World && $World.record_precompilation_dependencies {
             for $precomp-unit.dependencies -> $dependency {
-                $*ADD-DEPENDENCY($dependency);
+                #$*ADD-DEPENDENCY($dependency);
+                %*COMPILING<dependencies>.push: $dependency;
             }
         }
 
@@ -369,11 +371,10 @@ Need to re-check dependencies.")
         my @*PRECOMP-WITH = $REPO.repo-chain.map(*.path-spec).join(',');
         my @*PRECOMP-LOADING := @*MODULES;
 
-        my @dependencies;
-        my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
+        #my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
         $!RMD("Precompiling $path into $bc") if $!RMD;
-        Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
+        my @dependencies = Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
 
         unless Rakudo::Internals.FILETEST-ES($bc.absolute) {
             $!RMD("$path aborted precompilation without failure")

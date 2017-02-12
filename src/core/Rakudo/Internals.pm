@@ -738,17 +738,43 @@ my class Rakudo::Internals {
         $compiler.addstage('syntaxcheck', :before<ast>);
         $compiler.addstage('optimize', :after<ast>);
         $compiler.config{$_} = $current_compiler.config{$_} for $current_compiler.config.keys;
-        my $*W;
-        $compiler.evalfiles(
-            $path,
-            :ll-exception($lle),
-            :precomp(1),
-            :target(Rakudo::Internals.PRECOMP-TARGET),
-            :$output,
-            :encoding('utf8'),
-            :$source-name,
-            :transcode('ascii iso-8859-1'),
-        );
+
+        my $end_phasers := nqp::gethllsym('perl6', '@END_PHASERS');
+        nqp::bindhllsym('perl6', '@END_PHASERS', []);
+
+        nqp::bindattr($compiler, HLL::Compiler, '$!user_progname', $path);
+        my $source = $path.IO.slurp;
+        my $dependencies;
+        {
+            my $?FILES := $source-name;
+            my $*CTXSAVE;
+            my $*W;
+            my %*COMPILING;
+            my %adverbs =
+                :ll-exception($lle),
+                :precomp(1),
+                :target(Rakudo::Internals.PRECOMP-TARGET),
+                :$output,
+                :encoding('utf8'),
+                :$source-name,
+                :transcode('ascii iso-8859-1');
+            %*COMPILING<%?OPTIONS> := %adverbs.FLATTENABLE_HASH;
+            my $*LINEPOSCACHE;
+            my $result := $source;
+            for $compiler.stages -> $stage {
+                note "Executing stage $stage for $path";
+                $result := $compiler.execute_stage(
+                    $stage,
+                    $result,
+                    nqp::getattr(%adverbs, Map, '$!storage'),
+                );
+                last if $stage eq Rakudo::Internals.PRECOMP-TARGET;
+            }
+            note $dependencies = %*COMPILING<dependencies>;
+        }
+
+        nqp::bindhllsym('perl6', '@END_PHASERS', $end_phasers);
+        $dependencies ?? $dependencies.list !! Empty;
     }
 
     method get-local-timezone-offset() {

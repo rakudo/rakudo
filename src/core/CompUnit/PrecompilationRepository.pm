@@ -56,7 +56,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $*W and $*W.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
-                $*ADD-DEPENDENCY($dependency);
+                #$*ADD-DEPENDENCY($dependency);
+                %*COMPILING<dependencies>.push: $dependency;
             }
             else {
                 nqp::exit(0);
@@ -152,7 +153,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         # report back id and source location of dependency to dependant
         if $*W and $*W.record_precompilation_dependencies {
             for $precomp-unit.dependencies -> $dependency {
-                $*ADD-DEPENDENCY($dependency);
+                #$*ADD-DEPENDENCY($dependency);
+                %*COMPILING<dependencies>.push: $dependency;
             }
         }
 
@@ -245,11 +247,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
         %env<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
 
-        my @dependencies;
-        my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
+        #my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
         $RMD("Precompiling $path into $bc") if $RMD;
-        Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
+        my @dependencies = Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
 
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;

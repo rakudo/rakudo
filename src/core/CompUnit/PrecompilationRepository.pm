@@ -235,12 +235,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
 
-        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
-        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
-          ?? True
-          !! False;
-        $profile //= Rakudo::Internals.PROFILE;
-        $optimize //= Rakudo::Internals.OPTIMIZE;
         my %env = %*ENV; # Local copy for us to tweak
         my @*PRECOMP-WITH = $*REPO.repo-chain.map(*.path-spec).join(',');
         my @*PRECOMP-LOADING := @*MODULES;
@@ -254,15 +248,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my @dependencies;
         my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
-        $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
-        my $compiler := nqp::getcomp('perl6');
-        $compiler.evalfiles:
-            $path,
-            :ll-exception($lle),
-            :target(Rakudo::Internals.PRECOMP-TARGET),
-            :output($bc),
-            :encoding('utf8'),
-            :transcode('ascii iso-8859-1');
+        $RMD("Precompiling $path into $bc") if $RMD;
+        Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
 
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;

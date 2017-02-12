@@ -798,6 +798,32 @@ implementation detail and has no serviceable parts inside"
     method PRECOMP-TARGET(--> "js") { }
 #?endif
 
+    method compile-file(:$path, :$output, :$source-name) {
+        my Mu $opts := nqp::atkey(%*COMPILING, '%?OPTIONS');
+        my $lle = !nqp::isnull($opts) && !nqp::isnull(nqp::atkey($opts, 'll-exception'))
+          ?? True
+          !! False;
+
+        my $current_compiler := nqp::getcomp('Raku');
+        my $compiler := $current_compiler.WHAT.new;
+        $compiler.parsegrammar($current_compiler.parsegrammar);
+        $compiler.parseactions($current_compiler.parseactions);
+        $compiler.addstage('syntaxcheck', :before<ast>);
+        $compiler.addstage('optimize', :after<ast>);
+
+        my $*W;
+        $compiler.evalfiles(
+            $path,
+            :ll-exception($lle),
+            :precomp(1),
+            :target(Rakudo::Internals.PRECOMP-TARGET),
+            :$output,
+            :encoding('utf8'),
+            :$source-name,
+            :transcode('ascii iso-8859-1'),
+        );
+    }
+
 # Keep track of the differences between TAI and UTC for internal use.
 # The "BEGIN" and "END" comments are for tools/add-leap-second.raku.
 #

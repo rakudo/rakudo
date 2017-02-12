@@ -372,15 +372,8 @@ Need to re-check dependencies.")
         my @dependencies;
         my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
-        $!RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $!RMD;
-        my $compiler := nqp::getcomp('perl6');
-        $compiler.evalfiles:
-            $path,
-            :ll-exception($lle),
-            :target(Rakudo::Internals.PRECOMP-TARGET),
-            :output($bc),
-            :encoding('utf8'),
-            :transcode('ascii iso-8859-1');
+        $!RMD("Precompiling $path into $bc") if $!RMD;
+        Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
 
         unless Rakudo::Internals.FILETEST-ES($bc.absolute) {
             $!RMD("$path aborted precompilation without failure")

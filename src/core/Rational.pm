@@ -201,7 +201,7 @@ my role Rational[::NuT, ::DeT] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self }
+    method norm() { self.REDUCE-ME; self }
 
     method narrow(::?CLASS:D:) {
         self.REDUCE-ME;

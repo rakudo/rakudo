@@ -813,6 +813,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         SELF.perlseen('List', {
             '$' x nqp::iscont(SELF) ~ '('
             ~ (self.elems == 1 ?? self[0].perl ~ ',' !! self.map({.perl}).join(', '))
+            ~ ' ' x nqp::istrue(self.not && nqp::iscont(SELF)) # add space to avoid `$()`
             ~ ')'
         })
     }

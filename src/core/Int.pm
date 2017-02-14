@@ -12,8 +12,12 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method WHICH(Int:D:) {
         nqp::box_s(
             nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::tostr_I(self)
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Int),
+                'Int|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::tostr_I(self)
             ),
             ObjAt
         );

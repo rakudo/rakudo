@@ -51,14 +51,13 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method floor(Rational:D:) {
-        # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
-        # correct formula
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
@@ -202,7 +201,7 @@ my role Rational[::NuT, ::DeT] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self }
+    method norm() { self.REDUCE-ME; self }
 
     method narrow(::?CLASS:D:) {
         self.REDUCE-ME;

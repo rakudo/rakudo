@@ -2589,7 +2589,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 );
             }
             if $name eq '$?LANG' {
-                my $cursor := $*LANG;
+                my $cursor := $/.CURSOR;
                 $*W.add_object($cursor);
                 $past := QAST::WVal.new(:value($cursor));
             }

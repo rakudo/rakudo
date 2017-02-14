@@ -432,7 +432,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method TOP() {
         # Language braid.
         my $*LANG := self;
-        self.add_slang('MAIN',    self,                  self.actions);
+        self.add_slang('MAIN',    self.WHAT,             self.actions);
         self.add_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
         self.add_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
         self.add_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
@@ -1621,13 +1621,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     $*W.do_pragma_or_load_module($/,1);
-                    # $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
+                    $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                     $/.CURSOR.check_LANG_oopsies('use');
                 }
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         $*W.do_pragma_or_load_module($/,1);
-                        # $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
+                        $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                         $/.CURSOR.check_LANG_oopsies('use');
                     }
                 }
@@ -3922,7 +3922,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method EXPR(str $preclim = '') {
-        # self.braid."!dump"('EXPR ' ~ nqp::substr(self.orig, self.from, 1)) if %*PRAGMAS<MONKEY-WRENCH>;
+        self.braid."!dump"('EXPR ' ~ nqp::substr(self.orig, self.from, 1)) if %*PRAGMAS<MONKEY-WRENCH>;
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
         my $*IN_RETURN := 0;
@@ -4668,7 +4668,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
         'prefix:sym<|>', NQPMu);
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
-        my $self := self;
         my $actions := self.actions;
 
         # Ensure it's not a null name or a compiler-handled op.
@@ -4798,7 +4797,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
-                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper), $cursor.actions);
+                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
                     $starter ~ $stopper [ <.ws> <statement> ]
                     <O(|%methodcall)>
                 }
@@ -4817,7 +4816,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
-                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper), $cursor.actions);
+                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
                     $starter ~ $stopper <semilist>
                 }
             }
@@ -4825,7 +4824,7 @@ if $*COMPILING_CORE_SETTING {
         }
 
         # This also becomes the current MAIN. Also place it in %?LANG.
-        %*LANG<MAIN> := self;
+        %*LANG<MAIN> := self.WHAT;
 
         # Declarand should get precedence traits.
         if $is_oper && nqp::isconcrete($declarand) {
@@ -4886,8 +4885,9 @@ if $*COMPILING_CORE_SETTING {
         self.set_actions($actions);
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
-        self.clone_braid_from(self);  # treat braid object as somewhat immutable
-        $*W.install_lexical_symbol($*W.cur_lexpad(), '$?LANG', self);
+
+        $*LANG := self;
+        #$*W.install_lexical_symbol($*W.cur_lexpad(), '$?LANG', self);
         return 1;
     }
 

@@ -93,6 +93,12 @@ role STD {
                     self.sorry("Unrecognized adverb: :$t");
                 }
             }
+            for self.slangs {
+                if nqp::istype($lang, $_.value) {
+                    $lang.set_actions(self.slang_actions($_.key));
+                    last;
+                }
+            }
             nqp::istype($stop,VMArray) ||
             $start ne $stop ?? $lang.balanced($start, $stop)
                             !! $lang.unbalanced($stop);
@@ -163,11 +169,17 @@ role STD {
             while @herestub_queue {
                 my $herestub := nqp::shift(@herestub_queue);
                 my $*DELIM := $herestub.delim;
-                my $grammar := $herestub.grammar.HOW.mixin($herestub.grammar, herestop);
-                my $doc := $here.nibble($grammar);
+                my $lang := $herestub.grammar.HOW.mixin($herestub.grammar, herestop);
+                for self.slangs {
+                    if nqp::istype($lang, $_.value) {
+                        $lang.set_actions(self.slang_actions($_.key));
+                        last;
+                    }
+                }
+                my $doc := $here.nibble($lang);
                 if $doc {
                     # Match stopper.
-                    my $stop := $grammar.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
+                    my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
                     $stop.clone_braid_from(self);
                     unless $stop {
                         self.panic("Ending delimiter $*DELIM not found");
@@ -216,27 +228,9 @@ role STD {
         }
     }
 
+    # Note, $lang must carry its own actions by the time we call this.
     method nibble($lang) {
-        my $ret;
-        my $actions;
-        my $key;
-        for self.slangs {
-            if nqp::istype($lang, $_.value) {
-                $key := $_.key;
-                $actions := self.slang_actions($key);
-                last;
-            }
-        }
-        nqp::printfh(nqp::getstderr(), "DID NOT FIND nibble language for " ~ $lang.HOW.name($lang) ~ "\n") if nqp::isnull($actions);
-        {
-            my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-            $lang_cursor.clone_braid_from(self);
-            $lang_cursor.check_LANG_oopsies('nibble');
-            $lang_cursor.set_actions($actions);
-            $ret := $lang_cursor.nibbler();
-            $ret.set_braid_from(self);
-        }
-        $ret
+        $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
     }
 
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
@@ -1219,7 +1213,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $actions := self.slang_actions('MAIN');
         :dba('statement list')
         <!!{ $/.CURSOR.set_actions($actions); 1 }>
-        <.check_LANG_oopsies('statementlist')>
+#        <.check_LANG_oopsies('statementlist')>
         ''
         [
         | $

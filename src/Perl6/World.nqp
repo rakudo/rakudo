@@ -878,7 +878,7 @@ class Perl6::World is HLL::World {
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
                     self.import($/, $storage, $package_source_name);
-                    $/.CURSOR.check_LANG_oopsies("do_import");
+#                    $/.CURSOR.check_LANG_oopsies("do_import");
                 }
                 else {
                     nqp::die("&EXPORT sub did not return an Map");

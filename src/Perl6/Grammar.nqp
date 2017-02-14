@@ -432,10 +432,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method TOP() {
         # Language braid.
         my $*LANG := self;
-        self.add_slang('MAIN',    self.WHAT,             self.actions);
-        self.add_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
-        self.add_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
-        self.add_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
+        self.define_slang('MAIN',    self.WHAT,             self.actions);
+        self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
+        self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
+        self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
 
         # Old language braid, going away eventually
         my %*LANG;
@@ -1227,7 +1227,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | [ <statement> <.eat_terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
-        <.add_slang('MAIN', $grammar, $actions)>
+        <.define_slang('MAIN', $grammar, $actions)>
         <!!{ nqp::rebless($/.CURSOR, self.WHAT); 1 }>
     }
 
@@ -1621,12 +1621,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     $*W.do_pragma_or_load_module($/,1);
+                    $/.CURSOR.set_braid_from($*LANG);
+                    nqp::rebless($/.CURSOR, $*LANG.WHAT);
                     $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                     $/.CURSOR.check_LANG_oopsies('use');
                 }
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         $*W.do_pragma_or_load_module($/,1);
+                        $/.CURSOR.set_braid_from($*LANG);
+                        nqp::rebless($/.CURSOR, $*LANG.WHAT);
                         $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                         $/.CURSOR.check_LANG_oopsies('use');
                     }
@@ -4797,7 +4801,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
-                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
+                    :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
                     $starter ~ $stopper [ <.ws> <statement> ]
                     <O(|%methodcall)>
                 }
@@ -4816,7 +4820,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
-                    :my $stub := $cursor.add_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
+                    :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
                     $starter ~ $stopper <semilist>
                 }
             }
@@ -4879,7 +4883,7 @@ if $*COMPILING_CORE_SETTING {
 
         # Set up next statement to have new actions.
         %*LANG<MAIN-actions> := $actions;
-        self.add_slang('MAIN', self.WHAT, $actions);
+        self.define_slang('MAIN', self.WHAT, $actions);
 
         # Set up the rest of this statement to have new actions too.
         self.set_actions($actions);

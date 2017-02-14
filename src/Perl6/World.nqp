@@ -830,6 +830,7 @@ class Perl6::World is HLL::World {
             $actions := %*LANG<MAIN-actions> := $actions.HOW.mixin($actions,
                 PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
         }
+        $cursor.define_slang("MAIN", $cursor.WHAT, $actions);
         $cursor.set_actions($actions);
         $cursor.braid."!dump"('add_package_declarator ' ~ $/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
         self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));

@@ -546,13 +546,16 @@ class Perl6::World is HLL::World {
 
         # Take current package from outer context if any, otherwise for a
         # fresh compilation unit we start in GLOBAL.
+        my $package;
         if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
-            $*PACKAGE :=
+            $package :=
               self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
         }
         else {
-            $*PACKAGE := $*GLOBALish;
+            $package := $*GLOBALish;
         }
+        $*PACKAGE := $package;
+        $/.CURSOR.set_package($package);
 
         # If we're eval'ing in the context of a %?LANG, set up our own
         # %*LANG based on it.
@@ -596,8 +599,8 @@ class Perl6::World is HLL::World {
         else {
             self.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
             self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
-            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
-            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
+            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $package);
+            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $package);
             $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
 
             unless $in_eval {
@@ -807,10 +810,11 @@ class Perl6::World is HLL::World {
         unless nqp::can($cursor, $canname) {
             my role PackageDeclarator[$meth_name, $declarator] {
                 token ::($meth_name) {
-                    :my $*OUTERPACKAGE := $*PACKAGE;
+                    :my $*OUTERPACKAGE := self.package;
                     :my $*PKGDECL := $declarator;
                     :my $*LINE_NO := HLL::Compiler.lineof($cursor.orig(), $cursor.from(), :cache(1));
                     $<sym>=[$declarator] <.end_keyword> <package_def>
+                    <.set_braid_from(self)>
                 }
             }
             $cursor.HOW.mixin($cursor, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
@@ -1948,6 +1952,7 @@ class Perl6::World is HLL::World {
 
         my @params := %signature_info<parameters>;
         if $method {
+            my $package := $*PACKAGE;
             unless @params[0]<is_invocant> {
                 @params.unshift(hash(
                     nominal_type => $invocant_type,
@@ -1956,7 +1961,7 @@ class Perl6::World is HLL::World {
                 ));
             }
             unless has_named_slurpy_or_capture(@params) {
-                unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
+                unless nqp::can($package.HOW, 'hidden') && $package.HOW.hidden($package) {
                     @params.push(hash(
                         variable_name => '%_',
                         nominal_type => self.find_symbol(['Mu']),
@@ -2859,13 +2864,14 @@ class Perl6::World is HLL::World {
     # Tries to locate an attribute meta-object; optionally panic right
     # away if we cannot, otherwise add it to the post-resolution list.
     method get_attribute_meta_object($/, $name, $later?) {
-        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+        my $package := $*PACKAGE;
+        unless nqp::can($package.HOW, 'get_attribute_for_usage') {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
         my $attr;
         my int $found := 0;
         try {
-            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $attr := $package.HOW.get_attribute_for_usage($package, $name);
             $found := 1;
         }
         unless $found {
@@ -2884,7 +2890,7 @@ class Perl6::World is HLL::World {
                 self.throw($/, ['X', 'Attribute', 'Undeclared'],
                   symbol       => $name,
                   package-kind => $*PKGDECL,
-                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  package-name => $package.HOW.name($package),
                   what         => 'attribute',
                 );
             }
@@ -3758,7 +3764,7 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package = $*PACKAGE) {
+    method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -3806,6 +3812,7 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
+            $cur-package := $*PACKAGE unless $cur-package;
             if nqp::existskey($cur-package.WHO, $final_name) {
                 return nqp::atkey($cur-package.WHO, $final_name);
             }
@@ -3831,6 +3838,7 @@ class Perl6::World is HLL::World {
                 }
             }
             unless $found {
+                $cur-package := $*PACKAGE unless $cur-package;
                 if nqp::existskey($cur-package.WHO, $first) {
                     $result := nqp::atkey($cur-package.WHO, $first);
                     @name := nqp::clone(@name);

@@ -100,7 +100,7 @@ New in 2017.02
     + Made .tail on reified List/Array about 8x as fast as `[*-1]` and .tail(N)
         about 16x as fast as `[*-N .. *-1] [*-N .. *-1]` [833fe43]
     + Made improvements and refactoring of various internal iterators
-        [f2b97b0][18e6f0d][87f61d9][c069f45][ad90806][4ef37cf][54f647d][49e2d40]
+        [f2b97b0][18e6f0d][87f61d9][c069f45][ad90806][4ef37cf][54f647d][49e2d40a]
         [7c26985][4d8fc05][b1afc13][072d959][9d5c3fd][6b6a0b4][b31c591][b9d9279]
         [f799a03][98f9d8a]
     + Made improvements to performance of internals [ed4ef3b][f85978b]

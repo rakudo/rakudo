@@ -7,6 +7,9 @@ role Perl6::Metamodel::MethodContainer {
     has @!method_order;
     
     # Cache that expires when we add methods (primarily to support NFA stuff).
+    # The hash here is readonly; we copy/replace in on addition, for thread
+    # safety (additions are dominated by lookups, so a lock - even a rw-lock -
+    # is not ideal here).
     has %!cache;
 
     # Add a method.
@@ -98,10 +101,10 @@ role Perl6::Metamodel::MethodContainer {
 
     # Caches or updates a cached value.
     method cache($obj, str $key, $value_generator) {
-        %!cache || (%!cache := {});
-        nqp::existskey(%!cache, $key) ??
-            %!cache{$key} !!
-            (%!cache{$key} := $value_generator())
+        my %orig_cache := %!cache;
+        nqp::ishash(%orig_cache) && nqp::existskey(%!cache, $key)
+            ?? %!cache{$key}
+            !! self.cache_add($obj, $key, $value_generator())
     }
 
     method cache_get($obj, str $key) {
@@ -110,7 +113,10 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     method cache_add($obj, str $key, $value) {
-        %!cache := nqp::hash() unless nqp::ishash(%!cache);
-        %!cache{$key} := $value;
+        my %orig_cache := %!cache;
+        my %copy := nqp::ishash(%orig_cache) ?? nqp::clone(%orig_cache) !! {};
+        %copy{$key} := $value;
+        %!cache := %copy;
+        $value
     }
 }

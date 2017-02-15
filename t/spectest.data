@@ -856,6 +856,7 @@ S17-supply/sort.t
 S17-supply/squish.t
 S17-supply/stable.t       # slow
 S17-supply/start.t        # slow
+S17-supply/supplier-preserving.t
 S17-supply/syntax.t       # slow
 S17-supply/syntax-nonblocking-await.t
 S17-supply/tail.t

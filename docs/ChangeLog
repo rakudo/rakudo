@@ -57,7 +57,7 @@ New in 2017.02
     + Made CompUnitHandle.globalish-package return the actual Stash [960a789]
     + Made Test.pm6's skip() only accept Int test counts [ae9d517]
     + Numerious fixes related to colonpair-extended names on subroutines [48abeee]
-    + Made merging of Perl 5 symbols use the same mechanism for as for Perl 6 [4e7ab20]
+    + Made merging of Perl 5 symbols use the same mechanism as for Perl 6 [4e7ab20]
     + Included try-load in CompUnit::PrecompilationRepository's interface [d932355]
     + Made S/// set $/ to Match objects made during substitution and avoid
         returning the result in $/ causing container-reuse in loops [97359ae]

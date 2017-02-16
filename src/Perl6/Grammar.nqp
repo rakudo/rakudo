@@ -5249,6 +5249,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
 my role CursorPackageNibbler {
     method nibble-in-cursor($parent) {
+        my $*LANG := self;
         my $*PACKAGE := $*W.find_symbol(['Cursor']); self.set_package($*PACKAGE);
         my %*ATTR_USAGES;
         my $cur := nqp::findmethod($parent, 'nibbler')(self);

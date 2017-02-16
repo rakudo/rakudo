@@ -2714,7 +2714,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method package_def($/) {
-        my $package := $/.CURSOR.package;
+        my $*LANG := $/.CURSOR;
+        my $package := $*LANG.package;
         # Get the body block AST.
         my $block;
         if $<blockoid> {
@@ -4022,6 +4023,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
+        my $*LANG := $/.CURSOR;
         # Add signature binding code.
         add_signature_binding_code($past, $signature, %sig_info<parameters>);
 

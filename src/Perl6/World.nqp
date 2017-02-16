@@ -1788,8 +1788,9 @@ class Perl6::World is HLL::World {
             $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
+        nqp::die("auto_declare_var") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LANG.package);
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
-            :scope('our'), :package($*PACKAGE));
+            :scope('our'), :package($*LANG.package));
 
         if $varast.isa(QAST::Var) {
             $varast.scope('lexical');
@@ -2298,6 +2299,7 @@ class Perl6::World is HLL::World {
 
         # If it's a routine, store the package to make backtraces nicer.
         if nqp::istype($code, $routine_type) {
+            nqp::die("finish_code_object") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LANG.package);
             nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
 
@@ -2864,7 +2866,7 @@ class Perl6::World is HLL::World {
     # Tries to locate an attribute meta-object; optionally panic right
     # away if we cannot, otherwise add it to the post-resolution list.
     method get_attribute_meta_object($/, $name, $later?) {
-        my $package := $*PACKAGE;
+        my $package := nqp::istype($/,NQPMu) ?? $*LANG.package !! $/.CURSOR;
         unless nqp::can($package.HOW, 'get_attribute_for_usage') {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
@@ -3812,7 +3814,8 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
-            $cur-package := $*PACKAGE unless $cur-package;
+            nqp::die("find_symbol1") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LANG.package);
+            $cur-package := $*LANG.package unless $cur-package;
             if nqp::existskey($cur-package.WHO, $final_name) {
                 return nqp::atkey($cur-package.WHO, $final_name);
             }
@@ -3838,7 +3841,8 @@ class Perl6::World is HLL::World {
                 }
             }
             unless $found {
-                $cur-package := $*PACKAGE unless $cur-package;
+                nqp::die("find_symbol2") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LANG.package);
+                $cur-package := $*LANG.package unless $cur-package;
                 if nqp::existskey($cur-package.WHO, $first) {
                     $result := nqp::atkey($cur-package.WHO, $first);
                     @name := nqp::clone(@name);

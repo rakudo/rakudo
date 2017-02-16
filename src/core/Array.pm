@@ -47,7 +47,7 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    method clone { [self] }
+    multi method clone(Array:D:) { [self] }
 
     method iterator(Array:D:) {
 

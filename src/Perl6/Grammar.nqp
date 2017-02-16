@@ -736,7 +736,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $pod_block := $block.compile_time_value;
             }
             unless $*PRECEDING_DECL =:= Mu {
-                Perl6::Pod::document($/, $*PRECEDING_DECL, $pod_block, :trailing);
+                Perl6::Pod::document(self.MATCH, $*PRECEDING_DECL, $pod_block, :trailing);
             }
         }
     }

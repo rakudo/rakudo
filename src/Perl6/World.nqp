@@ -1952,7 +1952,7 @@ class Perl6::World is HLL::World {
 
         my @params := %signature_info<parameters>;
         if $method {
-            my $package := $*PACKAGE;
+            my $package := nqp::istype($/,NQPMu) ?? $*LANG.package !! $/.CURSOR;
             unless @params[0]<is_invocant> {
                 @params.unshift(hash(
                     nominal_type => $invocant_type,
@@ -4334,6 +4334,7 @@ class Perl6::World is HLL::World {
         my $ex;
         my int $nok;
         try {
+            my $*LANG := $/.CURSOR;
             $res := $code();
             CATCH {
                 $nok := 1;

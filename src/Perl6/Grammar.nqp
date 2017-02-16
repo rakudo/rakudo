@@ -2264,7 +2264,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]?
 
             <trait>*
-            { $*PACKAGE := NQPMu }
 
             {
                 my $target_package := $longname && $longname.is_declared_in_global()

@@ -267,8 +267,8 @@ role STD {
         self
     }
     method typed_worry($type_str, *%opts) {
-        unless %*PRAGMAS<no-worries> {
-            %*PRAGMAS<fatal>
+        unless self.pragma('no-worries') {
+            self.pragma('fatal')
               ?? self.typed_sorry($type_str, |%opts)
               !! @*WORRIES.push($*W.typed_exception(
                    self.MATCH(), nqp::split('::', $type_str), |%opts));
@@ -419,6 +419,7 @@ role STD {
     }
 
     token RESTRICTED {
+        :my $r := $*RESTRICTED || "(not)";
         [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
         <!>
     }
@@ -429,6 +430,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method TOP() {
         # Language braid.
         my $*LANG := self;
+        my $*LEAF := self;  # the leaf cursor, workaround for when we can't pass via $/ into world
         self.define_slang('MAIN',    self.WHAT,             self.actions);
         self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
         self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
@@ -1133,7 +1135,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
 
         # Extras.
-        :my %*PRAGMAS;                             # compiler-handled lexical pragmas in effect
         :my @*NQP_VIOLATIONS;                      # nqp::ops per line number
         :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
@@ -1208,6 +1209,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statementlist($*statement_level = 0) {
         :my $*LANG   := self;
+        :my $*LEAF   := self;
         :my %*LANG   := self.shallow_copy(self.slangs);   # XXX deprecated
         :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :my %*HOWUSE := nqp::hash();
@@ -1379,7 +1381,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token blockoid {
         :my $*CURPAD;
         :my %*HANDLERS;
-        :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
         <.finishpad>
         :my $borg := $*BORG;
         :my $has_mystery := $*MYSTERY ?? 1 !! 0;
@@ -1620,7 +1621,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*W.do_pragma_or_load_module($/,1);
                     $/.CURSOR.set_braid_from($*LANG);
                     nqp::rebless($/.CURSOR, $*LANG.WHAT);
-#                    $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                     $/.CURSOR.check_LANG_oopsies('use');
                 }
             || {
@@ -1628,7 +1628,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*W.do_pragma_or_load_module($/,1);
                         $/.CURSOR.set_braid_from($*LANG);
                         nqp::rebless($/.CURSOR, $*LANG.WHAT);
-#                        $/.CURSOR.braid."!dump"($/.Str) if %*PRAGMAS<MONKEY-WRENCH>;
                         $/.CURSOR.check_LANG_oopsies('use');
                     }
                 }
@@ -1721,8 +1720,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<sink>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<try>     {
-        :my %*PRAGMAS := self.shallow_copy(nqp::getlexdyn('%*PRAGMAS'));
-        <sym><.kok> { %*PRAGMAS<fatal> := 1; } <blorst>
+        <!!{ $/.CURSOR.clone_braid_from(self).set_pragma('fatal',1); }>
+        <sym><.kok> <blorst>
+        <.set_braid_from(self)>
     }
     token statement_prefix:sym<quietly> { <sym><.kok> <blorst> }
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
@@ -2373,7 +2373,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
                 else {
                     # Augment. Ensure we can.
-                    if !%*PRAGMAS<MONKEY-TYPING> && $longname.text ne 'Cool' {
+                    if !$/.CURSOR.pragma('MONKEY-TYPING') && $longname.text ne 'Cool' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     elsif !$longname {
@@ -3936,7 +3936,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method EXPR(str $preclim = '') {
-#        self.braid."!dump"('EXPR ' ~ nqp::substr(self.orig, self.from, 1)) if %*PRAGMAS<MONKEY-WRENCH>;
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
         my $*IN_RETURN := 0;
@@ -4901,6 +4900,7 @@ if $*COMPILING_CORE_SETTING {
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
 
         $*LANG := self;
+        $*LEAF := self;
         #$*W.install_lexical_symbol($*W.cur_lexpad(), '$?LANG', self);
         return 1;
     }
@@ -5249,7 +5249,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
 my role CursorPackageNibbler {
     method nibble-in-cursor($parent) {
-        my $*LANG := self;
+        my $*LEAF := self;
         my $*PACKAGE := $*W.find_symbol(['Cursor']); self.set_package($*PACKAGE);
         my %*ATTR_USAGES;
         my $cur := nqp::findmethod($parent, 'nibbler')(self);

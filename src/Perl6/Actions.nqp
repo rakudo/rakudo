@@ -485,9 +485,10 @@ register_op_desugar('p6for', -> $qast {
     );
 });
 
-sub monkey_see_no_eval() {
-    nqp::existskey(%*PRAGMAS,'MONKEY-SEE-NO-EVAL')
-        ?? %*PRAGMAS<MONKEY-SEE-NO-EVAL>   # prevails if defined, can be either 1 or 0
+sub monkey_see_no_eval($/) {
+    my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
+    nqp::defined($msne)
+        ?? $msne   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING ||
            try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() } ||
            nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
@@ -791,7 +792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unwantall($mainline, 'comp_unit');
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
-        fatalize($mainline) if %*PRAGMAS<fatal>;
+        fatalize($mainline) if $/.CURSOR.pragma('fatal');
 
         # Emit any worries.  Note that unwanting $mainline can produce worries.
         if @*WORRIES {
@@ -1375,7 +1376,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.annotate('statement_id', $id);
 
             # only trace when running in source
-            if %*PRAGMAS<trace> && !$*W.is_precompilation_mode {
+            if $/.CURSOR.pragma('trace') && !$*W.is_precompilation_mode {
                 my $code := ~$/;
 
                 # don't bother putting ops for activating it
@@ -1522,7 +1523,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK.annotate('handlers', %*HANDLERS) if %*HANDLERS;
-            fatalize($past) if %*PRAGMAS<fatal>;
+            fatalize($past) if $/.CURSOR.pragma('fatal');
             make $BLOCK;
         }
         else {
@@ -2714,8 +2715,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method package_def($/) {
-        my $*LANG := $/.CURSOR;
-        my $package := $*LANG.package;
+        my $*LEAF := $/.CURSOR;
+        my $package := $*LEAF.package;
         # Get the body block AST.
         my $block;
         if $<blockoid> {
@@ -3074,7 +3075,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
-                         ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
+                         ?? ':' ~ $/.CURSOR.pragma($what) ~ ' by pragma'
                          !! 0
             );
         }
@@ -3602,7 +3603,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if %*PRAGMAS<soft> {
+            if $/.CURSOR.pragma('soft') {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine'], :setting-only));
             }
             else {
@@ -4023,7 +4024,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
-        my $*LANG := $/.CURSOR;
+        my $*LEAF := $/.CURSOR;
         # Add signature binding code.
         add_signature_binding_code($past, $signature, %sig_info<parameters>);
 
@@ -5801,7 +5802,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my str $op := ~$<op>;
 
         # using nqp::op outside of setting
-        unless %*PRAGMAS<MONKEY-GUTS> || %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
+        unless $/.CURSOR.pragma('MONKEY-GUTS') || $/.CURSOR.pragma('nqp') || $*COMPILING_CORE_SETTING {
             $/.CURSOR.typed_panic('X::NQP::NotFound', op => $op);
         }
 
@@ -8666,7 +8667,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := $*W.push_lexpad($/);
         $block.blocktype('declaration_static');
         if !$*SUPPOSING {  # don't actually copy the thunk if inside <?before>
-            fatalize($to_thunk) if %*PRAGMAS<fatal>;
+            fatalize($to_thunk) if nqp::can($/,'CURSOR') ?? $/.CURSOR.pragma('fatal') !! $*LEAF.pragma('fatal');
             $block.push(QAST::Stmts.new(autosink($to_thunk)));
         }
         $*W.pop_lexpad();
@@ -8937,7 +8938,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $all_literal := 0 unless nqp::istype($_,QAST::SpecialArg) ||
                     nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
             }
-            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval();
+            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
         }
         WANTALL($args, 'capture_or_raw');
         $args;
@@ -9589,7 +9590,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 $varast,
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9606,7 +9607,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9645,7 +9646,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9793,7 +9794,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
@@ -9808,7 +9809,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                                     wanted($<var>.ast, 'p5var'),
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(0) ),
-                                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*INTERPOLATION) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));

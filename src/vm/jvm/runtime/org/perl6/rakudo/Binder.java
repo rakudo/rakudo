@@ -136,7 +136,8 @@ public final class Binder {
         long elems = typeCaps.elems(tc);
         StaticCodeInfo sci = cf.codeRef.staticInfo;
         for (long i = 0; i < elems; i++) {
-            String name = typeCaps.at_pos_boxed(tc, i).get_str(tc);
+            typeCaps.at_pos_native(tc, i);
+            String name = tc.native_s;
             cf.oLex[sci.oTryGetLexicalIdx(name)] = type;
         }
     }
@@ -943,7 +944,8 @@ public final class Binder {
                 if (namedArgsCopy != null) {
                     long numNames = namedNames.elems(tc);
                     for (long j = 0; j < numNames; j++) {
-                        String name = namedNames.at_pos_boxed(tc, j).get_str(tc);
+                        namedNames.at_pos_native(tc, j);
+                        String name = tc.native_s;
                         lookup = namedArgsCopy.remove(name);
                         if (lookup != null)
                             break;
@@ -960,8 +962,9 @@ public final class Binder {
                     }
                     else if (!suppressArityFail) {
                         if (error != null)
+                            namedNames.at_pos_native(tc, 0);
                             error[0] = "Required named argument '" +
-                                namedNames.at_pos_boxed(tc, 0).get_str(tc) +
+                                tc.native_s +
                                 "' not passed";
                         return BIND_RESULT_FAIL;
                     }

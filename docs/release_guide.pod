@@ -286,10 +286,13 @@ Sign the tarball with your PGP key:
 
 =item 18.
 
-Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
+Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>
+and L<https://rakudo.perl6.org/downloads/source/rakudo/>:
 
   scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
        rakudo@rakudo.org:public_html/downloads/rakudo/
+  scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
+       rakudo@www.p6c.org:public_html/downloads/source/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,

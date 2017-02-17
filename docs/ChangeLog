@@ -78,7 +78,7 @@ New in 2017.02
     + Generalized sink branch optimize logic improving performance for
         sunk post increment [5401a1a]
     + Improved radix operations (50% faster with non-ASCII digits) [9ed4449][c98b3a5]
-    + Made uniprop/unival/unimatch 0.1x to 2.1x faster [411782e]
+    + Made uniprop/unival/unimatch 1.1x to 2.1x faster [411782e]
     + Fixed performance loss on `infix:<x>` with very large number [8878af8]
     + Made Map.sort about 1.5x faster (also affecting its .perl/.gist/.Str) [0ee3b7d]
     + Made an improvement in candidate selection order of &sort [b7c6e73]

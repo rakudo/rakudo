@@ -447,6 +447,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<MAIN>            := self.WHAT;
         %*LANG<MAIN-actions>    := self.actions;
 
+        # We could start out TOP with a fatalizing language in self, conceivably...
+        my $*FATAL := self.pragma('fatal');  # also set if somebody calls 'use fatal' in mainline
+
         # A cacheable false dynvar value.
         my $*WANTEDOUTERBLOCK := 0;
 
@@ -1208,25 +1211,24 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statementlist($*statement_level = 0) {
-        :my $*LANG   := self;
-        :my $*LEAF   := self;
+        :my $*LANG;
+        :my $*LEAF;
         :my %*LANG   := self.shallow_copy(self.slangs);   # XXX deprecated
         :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :my %*HOWUSE := nqp::hash();
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
-        :my $grammar := self.slang_grammar('MAIN');
-        :my $actions := self.slang_actions('MAIN');
+
         :dba('statement list')
-        <!!{ $/.CURSOR.set_actions($actions); 1 }>
 #        <.check_LANG_oopsies('statementlist')>
         ''
+        # Define this scope to be a new language.
+        <!!{ $*LANG := $*LEAF := $/.CURSOR.clone_braid_from(self); 1 }>
         [
         | $
         | <?before <.[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
-        <.define_slang('MAIN', $grammar, $actions)>
         <!!{ nqp::rebless($/.CURSOR, self.WHAT); 1 }>
     }
 
@@ -1333,6 +1335,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_BLOCK;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
+        :my $*FATAL := self.pragma('fatal');  # can also be set inside statementlist
         {
             $*DECLARATOR_DOCS := '';
 
@@ -1372,6 +1375,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('scoped block')
         :my $borg := $*BORG;
         :my $has_mystery := $*MYSTERY ?? 1 !! 0;
+        :my $*FATAL := self.pragma('fatal');  # can also be set inside statementlist
         { $*BORG := {} }
         [ <?[{]> || <.missing_block($borg, $has_mystery)>]
         <.newpad>
@@ -1720,9 +1724,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<sink>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<try>     {
+        :my $*FATAL := 1;
         <!!{ $/.CURSOR.clone_braid_from(self).set_pragma('fatal',1); }>
         <sym><.kok> <blorst>
         <.set_braid_from(self)>
+
     }
     token statement_prefix:sym<quietly> { <sym><.kok> <blorst> }
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
@@ -2444,6 +2450,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             || <?[{]>
                 [
+                :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
                 {
                     $*IN_DECL := '';
                     $*begin_compunit := 0;
@@ -2670,6 +2677,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*SIG_INFO;
         :my $outer := $*W.cur_lexpad();
         :my $*BORG := {};
+        :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2738,6 +2746,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SIG_OBJ;
         :my %*SIG_INFO;
         :my $*BORG := {};
+        :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2798,6 +2807,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         :my $*CODE_OBJECT := $*DECLARAND;
         :my $*BORG := {};
+        :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;

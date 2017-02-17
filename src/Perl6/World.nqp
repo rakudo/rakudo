@@ -918,7 +918,6 @@ class Perl6::World is HLL::World {
 
     # pragmas without args that just set_pragma to true
     my %just_set_pragma := nqp::hash(
-      'fatal',              1,
       'internals',          1,
       'MONKEY-TYPING',      1,
       'MONKEY-SEE-NO-EVAL', 1,
@@ -969,6 +968,13 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::Pragma::NoArgs', :$name)
             }
             $*STRICT  := $on;
+        }
+        elsif $name eq 'fatal' {
+            if nqp::islist($arglist) {
+                self.throw($/, 'X::Pragma::NoArgs', :$name)
+            }
+            $*FATAL  := $on;  # (have to hoist this out of its statementlist so blockoid actions see it)
+            $*LANG.set_pragma($name, $on);
         }
         elsif $name eq 'soft' {
             # This is an approximation; need to pay attention to

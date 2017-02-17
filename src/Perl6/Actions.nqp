@@ -792,7 +792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unwantall($mainline, 'comp_unit');
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
-        fatalize($mainline) if $/.CURSOR.pragma('fatal');
+        fatalize($mainline) if $*FATAL;
 
         # Emit any worries.  Note that unwanting $mainline can produce worries.
         if @*WORRIES {
@@ -1523,7 +1523,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK.annotate('handlers', %*HANDLERS) if %*HANDLERS;
-            fatalize($past) if $/.CURSOR.pragma('fatal');
+            fatalize($past) if $*FATAL;
             make $BLOCK;
         }
         else {
@@ -8667,7 +8667,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := $*W.push_lexpad($/);
         $block.blocktype('declaration_static');
         if !$*SUPPOSING {  # don't actually copy the thunk if inside <?before>
-            fatalize($to_thunk) if nqp::can($/,'CURSOR') ?? $/.CURSOR.pragma('fatal') !! $*LEAF.pragma('fatal');
+            fatalize($to_thunk) if $*FATAL || (nqp::can($/,'CURSOR') ?? $/.CURSOR.pragma('fatal') !! $*LANG.pragma('fatal'));
             $block.push(QAST::Stmts.new(autosink($to_thunk)));
         }
         $*W.pop_lexpad();

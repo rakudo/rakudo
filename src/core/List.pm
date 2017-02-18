@@ -1377,10 +1377,11 @@ sub list(+l) { l }
 
 # Use **@list and then .flat it, otherwise we'll end up remembering all the
 # things we flatten, which would be different semantics to .flat which gives
-# back a Seq.
-sub flat(**@list is raw) {
-    @list.flat
-}
+# back a Seq. We also add an Iterable candidate, to preserve .is-lazy
+# of an Iterable whenever we can.
+proto flat(|) {*}
+multi flat(**@list is raw) { @list.flat }
+multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 

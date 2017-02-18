@@ -6,11 +6,11 @@ New in 2017.02
     + Made `react` non-blocking [4aa8d70]
     + Various improvements to error reporting [ee7c1bb][a2d69a0][f22170f]
  + Fixes:
-     + Fixed data race in NFA cache [8f53a6f]
-     + Fixed handling of Unicode characters on Windows command line [8f53a6f]
-     + Fixed overflow during full GC collection on 32-bit systems [8f53a6f]
-     + Fixed GC problem in string repeat op [8f53a6f]
-     + Fixed .perl.EVAL roundtripping for circular Arrays and
+    + Fixed data race in NFA cache [8f53a6f]
+    + Fixed handling of Unicode characters on Windows command line [8f53a6f]
+    + Fixed overflow during full GC collection on 32-bit systems [8f53a6f]
+    + Fixed GC problem in string repeat op [8f53a6f]
+    + Fixed .perl.EVAL roundtripping for circular Arrays and
          Hashes [67aeefa][673f06b]
     + Fixed instantiation of subclasses of classes that do Rational [7f245f7]
     + Fixed incorrect handling of precision flag in sprintf '%d' [a1c7d01]

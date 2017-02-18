@@ -508,7 +508,7 @@ my class Mu { # declared in BOOTSTRAP
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);
-                "{$sigil}{$id}_{nqp::objectid(SELF)}";
+                $sigil x nqp::isne_s($sigil, '\\') ~ "{$id}_{nqp::objectid(SELF)}";
             }
             else {
                 nqp::bindkey(sems,$WHICH,1);
@@ -516,7 +516,9 @@ my class Mu { # declared in BOOTSTRAP
                 my int $value = nqp::atkey(sems,$WHICH);
                 nqp::deletekey(sems,$WHICH);
                 $value == 2
-                  ?? "((my {$sigil}{$id}_{nqp::objectid(SELF)}) = $result)"
+                  ?? nqp::iseq_s($sigil, '\\')
+                    ??  "(my {$sigil}{$id}_{nqp::objectid(SELF)} = $result)"
+                    !! "((my {$sigil}{$id}_{nqp::objectid(SELF)}) = $result)"
                   !! $result
             }
         }

@@ -470,10 +470,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
-        my $source_id := nqp::sha1(
+        my $source_id := nqp::sha1($file ~ (
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
                 ?? self.target() ~ $sc_id++
-                !! self.target());
+                !! self.target()));
         my $outer_world := nqp::getlexdyn('$*W');
         my $is_nested := (
             $outer_world

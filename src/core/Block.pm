@@ -26,7 +26,7 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_phasers(Str $name --> Nil) {
+    method fire_if_phasers(Str $name --> Nil) {
         nqp::if(
           nqp::attrinited(self,Block,'$!phasers')
             && nqp::existskey($!phasers,$name),
@@ -34,6 +34,13 @@ my class Block { # declared in BOOTSTRAP
             (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
             nqp::while($iter,nqp::shift($iter)(),:nohandler)
           )
+        )
+    }
+
+    method fire_phasers(Str $name --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
+          nqp::while($iter,nqp::shift($iter)(),:nohandler)
         )
     }
 

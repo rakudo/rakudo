@@ -3267,7 +3267,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
     },
-#?if moar
+#?if !jvm
     'bind_error', -> $capture {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());

@@ -50,7 +50,7 @@ sub combine(:$sources, :$file) {
 
     rule($target, $sources,
         make_parents($target),
-        "nqp-m tools/build/gen-cat.nqp js $sources > $target"
+        "./nqp-js tools/build/gen-cat.nqp js $sources > $target"
     ); 
 }
 
@@ -91,7 +91,7 @@ my $Perl6-main := nqp($main-nqp, 'rakudo.js', :deps([$Perl6-Grammar, $Perl6-Acti
 
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";
 rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
-    "nqp-m tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
+    "./nqp-js tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
 ); 
 
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<js-Perl6-BOOTSTRAP.nqp>);

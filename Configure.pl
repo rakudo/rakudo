@@ -307,7 +307,7 @@ MAIN: {
     
     if ($backends{js}) {
         my %nqp_config;
-        system("nqp-m tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
+        system("./nqp-js tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
         fill_template_file('gen/js/Makefile-JS.in', $MAKEFILE, %config, %nqp_config);
     }
 

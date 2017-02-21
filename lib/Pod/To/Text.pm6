@@ -33,14 +33,32 @@ sub pod2text($pod) is export {
 
 sub heading2text($pod) {
     given $pod.level {
-        when 1  {          pod2text($pod.contents)  }
-        when 2  { '  '   ~ pod2text($pod.contents)  }
+        my $content = $pod.contents.first.contents.grep( * !~~ "").first;
+        my $text;
+        if $content ~~ Str {
+            $text = $content;
+        } else {
+            $text = pod2text $content;
+        }
+        my $name = $text.lines[0];
+        my $rest = $text.lines[1…*].join: "\n";
+        when 1  {
+            my $result = colored($name.uc, 'bold') ~ "\n";
+            $result ~= "\n$rest" if $rest.defined;
+            $result.trim;
+        }
+        when 2  {
+            my $result = '  ' ~ colored($name, 'bold') ~ "\n";
+            $result ~= "\n$rest" if $rest.defined;
+            $result.trim-trailing;
+        }
         default { '    ' ~ pod2text($pod.contents)  }
     }
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.contents>>.&pod2text.subst(/\n/, "\n    ", :g)
+    my $text = "    " ~ $pod.contents>>.&pod2text.subst(/\n/, "\n    ", :g);
+    join "\n", $text.lines.map: { colored($_, "green")};
 }
 
 sub item2text($pod) {
@@ -55,6 +73,7 @@ sub named2text($pod) {
                     ~ pod2text($pod.contents[1..*-1]) }
         when 'config' { }
         when 'nested' { }
+        when /<:Lu>+/ { colored($pod.name, 'bold') ~ "\n\t" ~ pod2text($pod.contents) }
         default     { $pod.name ~ "\n" ~ pod2text($pod.contents) }
     }
 }

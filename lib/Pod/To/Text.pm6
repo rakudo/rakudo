@@ -144,10 +144,15 @@ sub param2text($p) {
 }
 
 my %formats =
-  C => "bold",
-  L => "underline",
-  D => "underline",
-  R => "inverse"
+  C => "green",
+  B => "red",
+  L => "blue",
+  X => "blue",
+  D => "cyan",
+  I => "bold",
+  R => "inverse",
+  T => "on_blue",
+  K => "magenta",
 ;
 
 sub formatting2text($pod) {

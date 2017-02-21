@@ -157,9 +157,34 @@ my %formats =
 
 sub formatting2text($pod) {
     my $text = $pod.contents>>.&pod2text.join;
-    $pod.type ~~ %formats
-      ?? colored($text, %formats{$pod.type})
-      !! $text
+    given $pod.type {
+        when <L> {
+            if $pod.meta.first {
+                my $meta = $pod.meta.first;
+                if $meta.starts-with: "/language/" {
+                    $meta = "doc:" ~ $meta.comb[10..*].join.split('#').first;
+                } elsif !$meta.contains(":") {
+                    $meta = "doc:" ~ $meta;
+                }
+                $text ~= " <" ~ $meta ~ ">" ;
+            }  else {
+                $text ~= " <doc:" ~ $text ~ ">" ;
+            }
+            colored($text, %formats{$pod.type});
+        }
+        when %formats {
+            colored($text, %formats{$pod.type})
+        }
+        when <N> {
+            " ($text)"
+        }
+        when <E>|<P> {
+            "$pod.type()\<$text\>";
+        }
+        default {
+            $text;
+        }
+    }
 }
 
 sub twine2text($twine) {

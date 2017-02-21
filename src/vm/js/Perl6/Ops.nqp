@@ -97,6 +97,11 @@ $ops.add_simple_op('p6capturelex', $ops.OBJ, [$ops.OBJ], :side_effects, sub ($co
     "nqp.op.p6capturelex({$*BLOCK.ctx}, $codeObj)"
 });
 
+$ops.add_simple_op('p6capturelexwhere', $ops.OBJ, [$ops.OBJ], :side_effects, sub ($codeObj) {
+    # Use $*BLOCK.ctx instead of $*CTX so it doesn't get overwriten by exception handling
+    "nqp.op.p6capturelexwhere({$*BLOCK.ctx}, $codeObj)"
+});
+
 $ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 $ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 

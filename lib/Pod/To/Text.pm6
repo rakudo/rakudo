@@ -98,6 +98,7 @@ sub declarator2text($pod) {
         when .HOW ~~ Metamodel::EnumHOW {
             "enum $_.perl() { signature2text $_.enums.pairs } \n"
         }
+        when Parameter { next }
         when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.perl
         }

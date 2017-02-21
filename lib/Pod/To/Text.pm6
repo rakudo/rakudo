@@ -24,7 +24,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
+        when Positional        { $pod.map({pod2text($_)}).grep( { $_ !~~ Nil }).join("\n\n")}
         when Pod::Block::Comment { '' }
         when Pod::Config       { '' }
         default                { $pod.Str                       }

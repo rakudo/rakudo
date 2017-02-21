@@ -161,7 +161,7 @@ sub twine2text($twine) {
     return '' unless $twine.elems;
     my $r = $twine[0];
     for $twine[1..*] -> $f, $s {
-        $r ~= twine2text($f.contents);
+        $r ~= $f.?contents ?? twine2text($f.contents) !! $f.Str;
         $r ~= $s;
     }
     $r;

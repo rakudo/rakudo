@@ -308,6 +308,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
+    proto method comb(|) { * }
     multi method comb(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;

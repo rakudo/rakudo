@@ -182,12 +182,8 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method comb(|c) { self.Str.comb(|c) }
-
-    proto method lines(|) {*}
-    multi method lines(Cool:D: |c) { self.Str.lines(|c) }
-
-    proto method words(|) {*}
-    multi method words(Cool:D: |c) { self.Str.words(|c) }
+    method lines(Cool:D: |c) { self.Str.lines(|c) }
+    method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {
         $/ := nqp::getlexdyn('$/');

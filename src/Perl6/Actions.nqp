@@ -7,6 +7,8 @@ use QAST;
 
 my $wantwant := Mu;
 
+my int $?BITS := nqp::iseq_i(0x1ffffffff,8589934591) ?? 64 !! 32;
+
 sub block_closure($code) {
     my $closure := QAST::Op.new(
         :op('callmethod'), :name('clone'),
@@ -7267,25 +7269,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method decint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > 9
+        make $chars > ($?BITS == 64 ?? 16 !! 9)
           ?? string_to_bigint($/, 10, $chars)
           !! string_to_int($/, 10, $chars);
     }
     method hexint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > 8
+        make $chars > ($?BITS == 64 ?? 14 !! 8)
           ?? string_to_bigint($/, 16, $chars)
           !! string_to_int($/, 16, $chars);
     }
     method octint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > 10
+        make $chars > ($?BITS == 64 ?? 20 !! 10)
           ?? string_to_bigint($/, 8, $chars)
           !! string_to_int($/, 8, $chars);
     }
     method binint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > 30
+        make $chars > ($?BITS == 64 ?? 62 !! 30)
           ?? string_to_bigint($/, 2, $chars)
           !! string_to_int($/, 2, $chars);
     }

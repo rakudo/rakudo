@@ -273,9 +273,22 @@ multi sub infix:<div>(int $a, int $b) returns int {
 }
 
 multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
-    b
-      ?? nqp::mod_I(nqp::decont(a), nqp::decont(b), Int)
-      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
+    nqp::if(
+      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
+      nqp::if(
+        b,
+        nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
+        Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
+      ),
+      nqp::if(
+        nqp::isne_i(b,0),
+        nqp::mod_i(    # quick fix RT #128318
+          nqp::add_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)),b),
+          nqp::decont(b)
+        ),
+        Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
+      )
+    )
 }
 multi sub infix:<%>(int $a, int $b) returns int {
     # relies on opcode or hardware to detect division by 0

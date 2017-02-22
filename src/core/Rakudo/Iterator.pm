@@ -2622,10 +2622,10 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
-    method UnendingValue(\value) {
+    method UnendingValue(Mu \value) {
         class :: does Iterator {
             has Mu $!value;
-            method new(\value) {
+            method new(Mu \value) {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }

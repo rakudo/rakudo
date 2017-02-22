@@ -215,11 +215,33 @@ multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 proto sub infix:<%%>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
-multi sub infix:<%%>(\a, \b)   {
-    b
-      ?? a.Real % b.Real == 0
-      !! Failure.new(X::Numeric::DivideByZero.new(
-           using => 'infix:<%%>', numerator => a))
+multi sub infix:<%%>(Int:D \a, Int:D \b) {
+    nqp::if(
+      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
+      nqp::if(
+        b,
+        nqp::p6bool(nqp::not_i(nqp::mod_I(nqp::decont(a),nqp::decont(b),Int))),
+        Failure.new(
+          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+        )
+      ),
+      nqp::if(
+        nqp::isne_i(b,0),
+        nqp::p6bool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
+        Failure.new(
+          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+        )
+      )
+    )
+}
+multi sub infix:<%%>(\a, \b) {
+    nqp::if(
+      b,
+      (a.Real % b.Real == 0),
+      Failure.new(
+        X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+      )
+    )
 }
 
 proto sub infix:<lcm>(Mu $?, Mu $?) is pure  { * }

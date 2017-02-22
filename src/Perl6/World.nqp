@@ -3228,8 +3228,11 @@ class Perl6::World is HLL::World {
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
+            my $handled_block := -> {
+                self.handle-begin-time-exceptions($/, 'evaluating a CHECK', $block);
+            }
             my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
-            self.context().add_check([$block, $result_node]);
+            self.context().add_check([$handled_block, $result_node]);
             return $result_node;
         }
         elsif $phaser eq 'INIT' {

@@ -7061,7 +7061,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $basesym := '';
             }
-            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
+            if $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
+            || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
+            || $basesym eq 'andthen' || $basesym eq 'notandthen' {
                 $ast := WANTED(QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN' ~ $*W.canonicalize_pair('', $basesym)) ),'infixish');
             }

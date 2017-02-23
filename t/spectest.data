@@ -236,6 +236,7 @@ S03-operators/mix.t
 S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
+S03-operators/notandthen.t
 S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t

@@ -37,6 +37,12 @@ multi sub infix:<cmp>(Real:D \a, Real:D \b) {
             ?? More
             !! a.Bridge cmp b.Bridge
 }
+multi sub infix:<cmp>(Int:D \a, Rational:D \b) {
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
+}
+multi sub infix:<cmp>(Rational:D \a, Int:D \b) {
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
+}
 multi sub infix:<cmp>(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }

@@ -48,7 +48,7 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
 # but can't yet use `is default` at the place where that candidate
 # is defined because it uses `infix:<does>`
 multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
-    a.Num cmp b.Num
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
 }
 
 proto sub infix:<but>(|) is pure { * }

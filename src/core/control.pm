@@ -206,16 +206,37 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
         }
         return {*};
     }
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    $context := CALLER:: unless nqp::defined($context);
+    my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
-    my $compiled := $compiler.compile(
-        $code.Stringy,
-        :outer_ctx($eval_ctx),
-        :global(GLOBAL),
-        :mast_frames(mast_frames),
-    );
+    my $compiled;
+    my $LANG := $context<%?LANG>;
+    if !$LANG {
+        $LANG := CALLERS::<%?LANG>;
+    }
+    if $LANG {
+        # XXX
+        my $grammar := $LANG<MAIN>;
+        my $actions := $LANG<MAIN-actions>;
+        $compiled := $compiler.compile(
+            $code.Stringy,
+            :outer_ctx($eval_ctx),
+            :global(GLOBAL),
+            :mast_frames(mast_frames),
+            :grammar($grammar),
+            :actions($actions),
+        );
+    }
+    else {
+        $compiled := $compiler.compile(
+            $code.Stringy,
+            :outer_ctx($eval_ctx),
+            :global(GLOBAL),
+            :mast_frames(mast_frames),
+        );
+    }
     if $*W and $*W.is_precompilation_mode() { # we are still compiling
         $*W.add_additional_frames(mast_frames);
     }

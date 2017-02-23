@@ -6,8 +6,11 @@ sub METAOP_ASSIGN(\op) {
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }
 sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw { lhs || (lhs = $rhs()) }
 sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is raw { lhs && (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is raw { lhs andthen (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw { lhs orelse (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<or>(\lhs, $rhs) is raw { lhs or (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<and>(       \lhs, $rhs) is raw { lhs and        (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<andthen>(   \lhs, $rhs) is raw { lhs andthen    (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<notandthen>(\lhs, $rhs) is raw { lhs notandthen (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<orelse>(    \lhs, $rhs) is raw { lhs orelse     (lhs = $rhs()) }
 
 sub METAOP_NEGATE(\op) {
     -> |c { c.elems > 1 ?? !op.(|c) !! True }

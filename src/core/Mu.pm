@@ -501,12 +501,14 @@ my class Mu { # declared in BOOTSTRAP
     multi method gist(Mu:D:) { self.perl }
 
     method perlseen(Mu:D \SELF: $id, $perl, *%named) {
+        my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
+            !! nqp::iseq_s($id, 'Hash') ?? '%' !! '\\';
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*perlseen'))) {
             my \sems := $*perlseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);
-                "{$id}_{nqp::objectid(SELF)}";
+                $sigil x nqp::isne_s($sigil, '\\') ~ "{$id}_{nqp::objectid(SELF)}";
             }
             else {
                 nqp::bindkey(sems,$WHICH,1);
@@ -514,7 +516,9 @@ my class Mu { # declared in BOOTSTRAP
                 my int $value = nqp::atkey(sems,$WHICH);
                 nqp::deletekey(sems,$WHICH);
                 $value == 2
-                  ?? "(my \\{$id}_{nqp::objectid(SELF)} = $result)"
+                  ?? nqp::iseq_s($sigil, '\\')
+                    ??  "(my {$sigil}{$id}_{nqp::objectid(SELF)} = $result)"
+                    !! "((my {$sigil}{$id}_{nqp::objectid(SELF)}) = $result)"
                   !! $result
             }
         }
@@ -622,7 +626,12 @@ my class Mu { # declared in BOOTSTRAP
         SELF.^can($name)
     }
 
-    method clone(*%twiddles) {
+    proto method clone (|) { * }
+    multi method clone(Mu:U: *%twiddles) {
+        %twiddles and die 'Cannot set attribute values when cloning a type object';
+        self
+    }
+    multi method clone(Mu:D: *%twiddles) {
         my $cloned := nqp::clone(self);
         if %twiddles.elems {
             for self.^attributes.flat -> $attr {

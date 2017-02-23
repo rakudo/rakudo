@@ -308,6 +308,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
+    proto method comb(|) { * }
     multi method comb(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;
@@ -1231,6 +1232,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 
+    proto method lines(|) { * }
     multi method lines(Str:D: :$count!) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
@@ -2077,6 +2079,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
+    proto method words(|) { * }
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
         my @list := self.words.List;
         return @list == 1 ?? @list[0] !! @list;
@@ -2891,6 +2894,47 @@ sub UNBASE_BRACKET($base, @a) {
     }
     $v;
 }
+proto sub infix:<unicmp>(|) is pure { * }
+proto sub infix:<coll>(|) { * }
+#?if moar
+multi sub infix:<unicmp>(Str:D \a, Str:D \b) returns Order:D {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
+        feature => "the 'unicmp' operator",
+        use     => "collation"
+    ).throw;
+    ORDER(
+        nqp::unicmp_s(
+            nqp::unbox_s(a), nqp::unbox_s(b), 15,0,0))
+}
+multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
+    (a.key unicmp b.key) || (a.value unicmp b.value)
+}
+multi sub infix:<coll>(Str:D \a, Str:D \b) returns Order:D {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
+        feature => "the 'coll' operator",
+        use     => "collation"
+    ).throw;
+    ORDER(
+        nqp::unicmp_s(
+            nqp::unbox_s(a), nqp::unbox_s(b), $*COLLATION.collation-level,0,0))
+}
+multi sub infix:<coll>(Cool:D \a, Cool:D \b) returns Order:D {
+    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
+        feature => "the 'coll' operator",
+        use     => "collation"
+    ).throw;
+    ORDER(
+        nqp::unicmp_s(
+            nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), $*COLLATION.collation-level,0,0))
+}
+multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
+    (a.key coll b.key) || (a.value coll b.value)
+}
+#?endif
+#?if jvm
+multi sub infix:<unicmp>(Str:D \a, Str:D \b) { die "unicmp NYI on JVM" }
+multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
+#?endif
 
 sub chrs(*@c) returns Str:D {
     fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;

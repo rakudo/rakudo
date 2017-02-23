@@ -1417,7 +1417,20 @@ class Perl6::Optimizer {
                         last;
                     }
                 }
-                
+
+                # Don't constant fold the 'x' operator if the resulting string would be too big.
+                # 1024 is just a heuristic, measuring might show a bigger value would be fine.
+                if $all_args_known && $op.name eq '&infix:<x>' && $!symbols.is_from_core('&infix:<x>') {
+                    my int $survived := 0;
+                    my int $size;
+                    try {
+                        $size := @args[0].chars * @args[1];
+                        $survived := 1;
+                    }
+
+                    return $op if $survived && $size > 1024;
+                }
+
                 # If so, attempt to constant fold.
                 if $all_args_known {
                     my int $survived := 0;
@@ -1633,16 +1646,29 @@ class Perl6::Optimizer {
                             $op.pop;
 
                             $op.push($assignee);
+
+                            my $call := 'call';
+                            my $obj;
+                            try {
+                                $obj := $!symbols.find_lexical($metaop[0].name);
+                            }
+                            if $obj {
+                                my $scopes := $!symbols.scopes_in($metaop[0].name);
+                                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                                    $call := 'callstatic';
+                                }
+                            }
+
                             if ($is-always-definite) {
-                                $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
                                     $assignee_var,
                                     $operand));
                             } else {
-                                $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
+                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
                                     QAST::Op.new( :op('if'),
                                         QAST::Op.new( :op('p6definite'), $assignee_var),
                                         $assignee_var,
-                                        QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
+                                        QAST::Op.new( :op($call), :name($metaop[0].name) ) ),
                                     $operand));
                             }
 

@@ -30,7 +30,8 @@ The general process for building is running `perl Configure.pl` with
 the desired configuration options (common options listed below), and
 then running `make` or `make install`. Optionally, you may run
 `make spectest` to test your build on [Roast](http://github.com/perl6/roast),
-the Official Perl 6 test suite.
+the Official Perl 6 test suite. To update the test suite, run
+`make spectest_update`.
 
 Installation of Rakudo simply requires building and running `make install`.
 Note that this step is necessary for running Rakudo from outside the build

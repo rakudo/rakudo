@@ -485,9 +485,10 @@ register_op_desugar('p6for', -> $qast {
     );
 });
 
-sub monkey_see_no_eval() {
-    nqp::existskey(%*PRAGMAS,'MONKEY-SEE-NO-EVAL')
-        ?? %*PRAGMAS<MONKEY-SEE-NO-EVAL>   # prevails if defined, can be either 1 or 0
+sub monkey_see_no_eval($/) {
+    my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
+    nqp::defined($msne)
+        ?? $msne   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING ||
            try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() } ||
            nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
@@ -791,7 +792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             unwantall($mainline, 'comp_unit');
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
-        fatalize($mainline) if %*PRAGMAS<fatal>;
+        fatalize($mainline) if $*FATAL;
 
         # Emit any worries.  Note that unwanting $mainline can produce worries.
         if @*WORRIES {
@@ -1372,7 +1373,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.annotate('statement_id', $id);
 
             # only trace when running in source
-            if %*PRAGMAS<trace> && !$*W.is_precompilation_mode {
+            if $/.CURSOR.pragma('trace') && !$*W.is_precompilation_mode {
                 my $code := ~$/;
 
                 # don't bother putting ops for activating it
@@ -1519,7 +1520,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK.annotate('handlers', %*HANDLERS) if %*HANDLERS;
-            fatalize($past) if %*PRAGMAS<fatal>;
+            fatalize($past) if $*FATAL;
             make $BLOCK;
         }
         else {
@@ -2541,17 +2542,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :named($twigil eq ':'), :full_name($name));
         }
         elsif $twigil eq '~' {
-            my $actionsname := $desigilname ~ '-actions';
             $past := QAST::Op.new(
                 :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
                 QAST::Var.new( :name<Slang>, :scope<lexical> ));
-            if nqp::existskey(%*LANG, $desigilname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$desigilname}) );
+            my $g := $/.CURSOR.slang_grammar($desigilname);
+            $*W.add_object($g);
+            my $a := $/.CURSOR.slang_actions($desigilname);
+            if !nqp::isnull($g) {
+                my $wval := QAST::WVal.new( :value($g) );
                 $wval.named('grammar');
                 $past.push($wval);
-            }
-            if nqp::existskey(%*LANG, $actionsname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$actionsname}) );
+                $wval := QAST::WVal.new( :value($a) );
                 $wval.named('actions');
                 $past.push($wval);
             }
@@ -2578,14 +2579,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :full_name($name));
             }
         }
-        elsif $name eq '$?LINE' || $name eq '$?FILE' {
+        elsif $name eq '$?LANG' || $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                   twigil => '?',
                   scope  => $*SCOPE,
                 );
             }
-            if $name eq '$?LINE' {
+            if $name eq '$?LANG' {
+                my $cursor := $/.CURSOR;
+                $*W.add_object($cursor);
+                $past := QAST::WVal.new(:value($cursor));
+            }
+            elsif $name eq '$?LINE' {
                 $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {
@@ -2698,7 +2704,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
 
     method package_declarator:sym<trusts>($/) {
-        $*W.apply_trait($/, '&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
+        $*W.apply_trait($/, '&trait_mod:<trusts>', $/.CURSOR.package, $<typename>.ast);
     }
 
     method package_declarator:sym<also>($/) {
@@ -2706,6 +2712,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method package_def($/) {
+        my $*LEAF := $/.CURSOR;
+        my $package := $*LEAF.package;
         # Get the body block AST.
         my $block;
         if $<blockoid> {
@@ -2734,10 +2742,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # just yet.
         if is_yada($/) {
             unless $*PKGDECL eq 'role' {
-                $*W.add_stub_to_check($*PACKAGE);
+                $*W.add_stub_to_check($package);
             }
             $block.blocktype('declaration');
-            make QAST::Stmts.new( $block, QAST::WVal.new( :value($*PACKAGE) ) );
+            make QAST::Stmts.new( $block, QAST::WVal.new( :value($package) ) );
             return 1;
         }
 
@@ -2764,7 +2772,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # we won't know).
             $block[1].push(QAST::Op.new(
                 :op('list'),
-                QAST::WVal.new( :value($*PACKAGE) ),
+                QAST::WVal.new( :value($package) ),
                 QAST::Op.new( :op('curlexpad') )));
 
             # Finish code object and add it as the role's body block.
@@ -2772,21 +2780,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.attach_signature($code, $sig);
             $*W.finish_code_object($code, $block, 0);
             $*W.add_phasers_handling_code($code, $block);
-            $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
+            $*W.pkg_set_role_body_block($/, $package, $code, $block);
 
             # Compose before we add the role to the group, so the group sees
             # it composed.
-            $*W.pkg_compose($/, $*PACKAGE);
+            $*W.pkg_compose($/, $package);
 
             # Add this role to the group if needed.
-            my $group := $*PACKAGE.HOW.group($*PACKAGE);
-            unless $group =:= $*PACKAGE {
-                $*W.pkg_add_role_group_possibility($/, $group, $*PACKAGE);
+            my $group := $package.HOW.group($package);
+            unless $group =:= $package {
+                $*W.pkg_add_role_group_possibility($/, $group, $package);
             }
         }
         else {
             # Compose.
-            $*W.pkg_compose($/, $*PACKAGE);
+            $*W.pkg_compose($/, $package);
 
             # Finish code object for the block.
             my $code := $*CODE_OBJECT;
@@ -2807,13 +2815,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document
-        Perl6::Pod::document($/, $*PACKAGE, $*POD_BLOCK, :leading);
+        Perl6::Pod::document($/, $package, $*POD_BLOCK, :leading);
         if ~$*POD_BLOCK ne '' {
-            $*POD_BLOCK.set_docee($*PACKAGE);
+            $*POD_BLOCK.set_docee($package);
         }
 
         make QAST::Stmts.new(
-            $block, QAST::WVal.new( :value($*PACKAGE) )
+            $block, QAST::WVal.new( :value($package) )
         );
     }
 
@@ -3064,7 +3072,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
-                         ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
+                         ?? ':' ~ $/.CURSOR.pragma($what) ~ ' by pragma'
                          !! 0
             );
         }
@@ -3119,6 +3127,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
+        my $package := $/.CURSOR.package;
 
         my int $have_of_type;
         my $of_type;
@@ -3167,7 +3176,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
-            unless nqp::can($*PACKAGE.HOW, 'add_attribute') {
+            unless nqp::can($package.HOW, 'add_attribute') {
                 if $*PKGDECL {
                     $*W.throw($/, ['X', 'Attribute', 'Package'],
                         package-kind => $*PKGDECL,
@@ -3202,7 +3211,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %config<container_initializer> := $*W.create_thunk($/,
                     %cont_info<build_ast>);
             }
-            my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($/, $package, $metaattr,
                 %config, %cont_info, $descriptor);
 
             # Document it
@@ -3239,7 +3248,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 elsif $desigilname eq '' {
                     $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
                 }
-                if nqp::can($*PACKAGE.HOW, 'archetypes') && $*PACKAGE.HOW.archetypes.parametric {
+                if nqp::can($package.HOW, 'archetypes') && $package.HOW.archetypes.parametric {
                     $*W.throw($/, 'X::Declaration::OurScopeInRole',
                         declaration => 'variable'
                     );
@@ -3264,7 +3273,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
-                :scope($*SCOPE), :package($*PACKAGE));
+                :scope($*SCOPE), :package($package));
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type or create a fresh container.
@@ -3535,7 +3544,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Always install in lexpad unless predeclared.
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
-                    unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine'], :setting-only), '$!yada') {
+                    my $Routine := $*W.find_symbol(['Routine'], :setting-only);
+                    unless nqp::istype(   $predeclared<value>, $Routine)
+                        && nqp::getattr_i($predeclared<value>, $Routine, '$!yada') {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
                                 what   => 'routine',
@@ -3548,7 +3559,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # Also install in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                    my $package := $*PACKAGE;
+                    my $package := $/.CURSOR.package;
                     if nqp::existskey($package.WHO, $name) {
                         $*W.throw($/, ['X', 'Redeclaration'],
                             symbol  => ~$<deflongname>.ast,
@@ -3590,7 +3601,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if %*PRAGMAS<soft> {
+            if $/.CURSOR.pragma('soft') {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine'], :setting-only));
             }
             else {
@@ -3986,7 +3997,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install in lexpad and in package, and set up code to
                 # re-bind it per invocation of its outer.
                 $*W.install_lexical_symbol($outer, $name, $code);
-                $*W.install_package_symbol($/, $*PACKAGE, $name, $code, 'macro');
+                $*W.install_package_symbol($/, $/.CURSOR.package, $name, $code, 'macro');
                 $outer[0].push(QAST::Op.new(
                     :op('bind'),
                     $*W.symbol_lookup([$name], $/, :package_only(1)),
@@ -4011,6 +4022,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
+        my $*LEAF := $/.CURSOR;
         # Add signature binding code.
         add_signature_binding_code($past, $signature, %sig_info<parameters>);
 
@@ -4036,6 +4048,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Installs a method into the various places it needs to go.
     sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta, :$gen-accessor) {
         my $meta_meth;
+        my $package := $/.CURSOR.package;
         if $private {
             if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
             $meta_meth := 'add_private_method';
@@ -4050,8 +4063,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $scope eq '' || $scope eq 'has' {
             # Ensure that current package supports methods, and if so
             # add the method.
-            if nqp::can($*PACKAGE.HOW, $meta_meth) {
-                $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
+            if nqp::can($package.HOW, $meta_meth) {
+                $*W.pkg_add_method($/, $package, $meta_meth, $name, $code);
             }
             elsif $gen-accessor {
                 $/.PRECURSOR.worry("Useless generation of accessor method in " ~
@@ -4077,7 +4090,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
             }
             $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
-            my $package := $*PACKAGE;
             if nqp::existskey($package.WHO, $name) {
                 $*W.throw($/, ['X', 'Redeclaration'],
                     symbol  => $name,
@@ -4256,8 +4268,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.install_lexical_magical($block, '$/');
             }
             $past := %*RX<P5>
-                ?? %*LANG<P5Regex-actions>.qbuildsub($qast, $block, code_obj => $code)
-                !! %*LANG<Regex-actions>.qbuildsub($qast, $block, code_obj => $code);
+                ?? $/.CURSOR.slang_actions('P5Regex').qbuildsub($qast, $block, code_obj => $code)
+                !! $/.CURSOR.slang_actions('Regex').qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
         $past.blocktype("declaration_static");
@@ -4315,6 +4327,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $longname   := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $name       := $<longname> ?? $longname.name() !! $<variable><desigilname> || '';
         my @name_parts := $<longname> ?? $longname.type_name_parts('enum name', :decl(1)) !! [];
+        my $package := $/.CURSOR.package;
 
         my $type_obj;
         my sub make_type_obj($base_type) {
@@ -4460,7 +4473,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.install_lexical_symbol($block, $cur_key, $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*W.install_package_symbol_unchecked($*PACKAGE, $cur_key, $val_obj);
+                $*W.install_package_symbol_unchecked($package, $cur_key, $val_obj);
             }
         }
 
@@ -4482,7 +4495,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
         $*W.install_package($/, @name_parts,
-            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $block, $type_obj);
+            ($*SCOPE || 'our'), 'enum', $package, $block, $type_obj);
 
         # Compose the added enum values.
         $type_obj.HOW.compose_values($type_obj);
@@ -4517,7 +4530,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if @name {
             my $target_package := $longname.is_declared_in_global()
                 ?? $*GLOBALish
-                !! $*PACKAGE;
+                !! $/.CURSOR.package;
             my $fullname := $longname.fully_qualified_with($target_package);
             $subset := $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement,
                 :name($fullname));
@@ -4621,7 +4634,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
-                'constant', $*PACKAGE, $cur_pad, $value);
+                'constant', $/.CURSOR.package, $cur_pad, $value);
         }
         for $<trait> {
             $_.ast.apply($value, :SYMBOL($name)) if $_.ast;
@@ -4665,6 +4678,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fakesignature($/) {
         my $fake_pad := $*W.pop_lexpad();
+        for <$/ $! $_> {
+            unless $fake_pad.symbol($_) {
+                $*W.install_lexical_magical($fake_pad, $_);
+            }
+        }
         my $sig := $*W.create_signature_and_params($/, $<signature>.ast,
             $fake_pad, 'Mu', :no_attr_check(1));
 
@@ -5298,33 +5316,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # XXX Attribute accesses? Again, maybe for the optimizer, since it
         # runs after CHECK time.
         my $past := $<methodop>.ast;
+        my $package := $/.CURSOR.package;
         if $<methodop><longname> {
             my @parts   := $*W.dissect_longname($<methodop><longname>).components();
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
-                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
+                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $package) {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
                         :method(         $name),
                         :source-package( $methpkg.HOW.name($methpkg)),
-                        :calling-package( $*PACKAGE.HOW.name($*PACKAGE)),
+                        :calling-package( $package.HOW.name($package)),
                     );
                 }
                 $past[1].returns($methpkg);
             }
             else {
-                my $pkg := $*PACKAGE;
-                unless nqp::can($pkg.HOW, 'find_private_method') {
+                unless nqp::can($package.HOW, 'find_private_method') {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
                         :method($name),
                     );
                 }
-                if $pkg.HOW.archetypes.parametric {
+                if $package.HOW.archetypes.parametric {
                     $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
                 }
                 else {
-                    $past.unshift(QAST::WVal.new( :value($pkg) ));
-                    $past[0].returns($pkg);
+                    $past.unshift(QAST::WVal.new( :value($package) ));
+                    $past[0].returns($package);
                 }
                 $past.unshift($*W.add_string_constant($name));
             }
@@ -5332,12 +5350,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<methodop><quote> {
             my $name := $past.shift;
-            my $pkg  := $*PACKAGE;
-            if $pkg.HOW.archetypes.parametric {
+            if $package.HOW.archetypes.parametric {
                 $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
             }
             else {
-                $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
+                $past.unshift(QAST::WVal.new( :value($package) ));
             }
             $past.unshift($name);
             $past.name('dispatch:<!>');
@@ -5432,7 +5449,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method term:sym<self>($/) {
-        make QAST::Var.new( :name('self'), :scope('lexical'), :returns($*PACKAGE), :node($/) );
+        make QAST::Var.new( :name('self'), :scope('lexical'), :returns($/.CURSOR.package), :node($/) );
     }
 
     method term:sym<now>($/) {
@@ -5783,7 +5800,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my str $op := ~$<op>;
 
         # using nqp::op outside of setting
-        unless %*PRAGMAS<MONKEY-GUTS> || %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
+        unless $/.CURSOR.pragma('MONKEY-GUTS') || $/.CURSOR.pragma('nqp') || $*COMPILING_CORE_SETTING {
             $/.CURSOR.typed_panic('X::NQP::NotFound', op => $op);
         }
 
@@ -6310,7 +6327,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make mixin_op($/, $sym);
             return 1;
         }
-        elsif !$past && $thunky && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
+        elsif !$past && $thunky && (
+               $sym eq 'xx'     || $sym eq 'andthen'
+            || $sym eq 'orelse' || $sym eq 'notandthen'
+        ) {
             $past := thunkity_thunk($/, $thunky,
                 QAST::Op.new( :op('call'), :name("&infix" ~ $*W.canonicalize_pair('', $sym))),
                 $/.list);
@@ -6588,8 +6608,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Source needs type check.
                 my $type;
                 try {
-                    $type := $*PACKAGE.HOW.get_attribute_for_usage(
-                        $*PACKAGE, $target.name
+                    my $package := $/.CURSOR.package;
+                    $type := $package.HOW.get_attribute_for_usage(
+                        $package, $target.name
                     ).type;
                 }
                 unless $type =:= $*W.find_symbol(['Mu']) {
@@ -7042,7 +7063,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $basesym := '';
             }
-            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
+            if $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
+            || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
+            || $basesym eq 'andthen' || $basesym eq 'notandthen' {
                 $ast := WANTED(QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN' ~ $*W.canonicalize_pair('', $basesym)) ),'infixish');
             }
@@ -8651,7 +8674,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := $*W.push_lexpad($/);
         $block.blocktype('declaration_static');
         if !$*SUPPOSING {  # don't actually copy the thunk if inside <?before>
-            fatalize($to_thunk) if %*PRAGMAS<fatal>;
+            fatalize($to_thunk) if $*FATAL || (nqp::can($/,'CURSOR') ?? $/.CURSOR.pragma('fatal') !! $*LANG.pragma('fatal'));
             $block.push(QAST::Stmts.new(autosink($to_thunk)));
         }
         $*W.pop_lexpad();
@@ -8869,7 +8892,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         my @params := [
-            hash( is_invocant => 1, nominal_type => $*PACKAGE),
+            hash( is_invocant => 1, nominal_type => $/.CURSOR.package),
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
@@ -8922,7 +8945,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $all_literal := 0 unless nqp::istype($_,QAST::SpecialArg) ||
                     nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
             }
-            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval();
+            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
         }
         WANTALL($args, 'capture_or_raw');
         $args;
@@ -9574,7 +9597,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 $varast,
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9591,7 +9614,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9630,7 +9653,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9708,7 +9731,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     my $nibbled := $name eq 'after'
                         ?? self.flip_ast($<nibbler>.ast)
                         !! $<nibbler>.ast;
-                    my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
+                    my $sub := $/.CURSOR.slang_actions('Regex').qbuildsub($nibbled, :anon(1), :addself(1));
                     $qast[0].push($sub);
                 }
             }
@@ -9778,7 +9801,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
@@ -9793,7 +9816,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                                     wanted($<var>.ast, 'p5var'),
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(0) ),
-                                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*INTERPOLATION) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));

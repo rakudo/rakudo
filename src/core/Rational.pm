@@ -51,14 +51,13 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method floor(Rational:D:) {
-        # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
-        # correct formula
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
@@ -109,6 +108,12 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method base($base, Any $digits? is copy) {
+        # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
+        # instead of throwing (which happens in the .log() call before we reach Int.base
+        2 <= $base <= 36 or Failure.new(X::OutOfRange.new(
+            what => "base argument to base", :got($base), :range<2..36>)
+        );
+
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;
@@ -196,7 +201,7 @@ my role Rational[::NuT, ::DeT] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self }
+    method norm() { self.REDUCE-ME; self }
 
     method narrow(::?CLASS:D:) {
         self.REDUCE-ME;

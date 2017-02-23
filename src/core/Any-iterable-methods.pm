@@ -138,7 +138,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             nqp::if(
               $!did-iterate && nqp::eqaddr($result,IterationEnd),
-              &!block.fire_phasers('LAST')
+              &!block.fire_if_phasers('LAST')
             );
             $result
         }
@@ -190,13 +190,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             !! ($stopped = 0)),
                         'REDO', ($stopped = 0),
                         'LAST', ($done = $!did-iterate = 1)
-                      )  
+                      )
                     ),
                     :nohandler
                   )
                 )
             }
-            nqp::if($!did-iterate,&!block.fire_phasers('LAST'))
+            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
         }
 
         method sink-all(--> IterationEnd) {
@@ -240,13 +240,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             !! ($stopped = 0)),
                         'REDO', ($stopped = 0),
                         'LAST', ($done = $!did-iterate = 1)
-                      )  
+                      )
                     ),
                     :nohandler
                   )
                 )
             }
-            nqp::if($!did-iterate,&!block.fire_phasers('LAST'))
+            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
         }
     }
 
@@ -745,7 +745,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ),
                 :nohandler);
             }
-            &!block.fire_phasers('LAST')
+            &!block.fire_if_phasers('LAST')
               if $!CAN_FIRE_PHASERS
               && $!did-iterate
               && nqp::eqaddr($result, IterationEnd);
@@ -1454,6 +1454,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
+    method collate {
+        self.sort(&[coll]);
+    }
     sub find-reducer-for-op(&op) {
         nqp::if(
           nqp::iseq_s(&op.prec("prec"),"f="),
@@ -1711,7 +1714,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                         $!first = 0;
                     }
                     else {
-                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd { 
+                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd {
                             $!last_as = $which;
                             $which := &!as($value);
                         }

@@ -48,7 +48,7 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
 # but can't yet use `is default` at the place where that candidate
 # is defined because it uses `infix:<does>`
 multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
-    a.Num cmp b.Num
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
 }
 
 proto sub infix:<but>(|) is pure { * }
@@ -214,11 +214,11 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             if $code.defined { }
             elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
-                    if @tail[*-1].WHAT === $endpoint.WHAT {
-                        $code = succpred(@tail[*-1], $endpoint);
+                    if @tail.tail.WHAT === $endpoint.WHAT {
+                        $code = succpred(@tail.tail, $endpoint);
                     }
                     else {
-                        $code = succpred(@tail[*-2], @tail[*-1]);
+                        $code = succpred(@tail[*-2], @tail.tail);
                     }
                 }
                 elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {

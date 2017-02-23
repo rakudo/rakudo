@@ -16,6 +16,7 @@ my role Iterable {
     }
 
     method flat(Iterable:D:) {
+        my $laze := self.is-lazy;
         Seq.new(class :: does Iterator {
             has Iterator $!source;
             has Iterator $!nested;
@@ -68,7 +69,7 @@ my role Iterable {
                     )
                 );
             }
-        }.new(self.iterator))
+        }.new(self.iterator)).lazy-if($laze)
     }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }

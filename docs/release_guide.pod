@@ -22,8 +22,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2017-02-18   Rakudo #108 (Zoffix)
-  2017-03-18   Rakudo #109
+  2017-03-18   Rakudo #109 (Zoffix)
   2017-04-15   Rakudo #110
   2017-05-20   Rakudo #111
   2017-06-17   Rakudo #112
@@ -286,10 +285,13 @@ Sign the tarball with your PGP key:
 
 =item 18.
 
-Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
+Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>
+and L<https://rakudo.perl6.org/downloads/rakudo/>:
 
   scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
        rakudo@rakudo.org:public_html/downloads/rakudo/
+  scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
+       rakudo@www.p6c.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
@@ -424,6 +426,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-11-19   Rakudo #105 "2016.11"           (Zoffix + NeuralAnomaly)
   2016-12-17   Rakudo #106 "2016.12"           (Zoffix + NeuralAnomaly)
   2017-01-20   Rakudo #107 "2017.01"           (Zoffix + NeuralAnomaly)
+  2017-02-18   Rakudo #108 "2017.02"           (Zoffix + NeuralAnomaly)
 
 =head1 COPYRIGHT
 

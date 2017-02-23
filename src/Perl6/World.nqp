@@ -884,7 +884,7 @@ class Perl6::World is HLL::World {
 #                    $/.CURSOR.check_LANG_oopsies("do_import");
                 }
                 else {
-                    nqp::die("&EXPORT sub did not return an Map");
+                    nqp::die("&EXPORT sub did not return a Map");
                 }
             }
             else {

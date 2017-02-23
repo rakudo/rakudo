@@ -6325,7 +6325,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make mixin_op($/, $sym);
             return 1;
         }
-        elsif !$past && $thunky && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
+        elsif !$past && $thunky && (
+               $sym eq 'xx'     || $sym eq 'andthen'
+            || $sym eq 'orelse' || $sym eq 'notandthen'
+        ) {
             $past := thunkity_thunk($/, $thunky,
                 QAST::Op.new( :op('call'), :name("&infix" ~ $*W.canonicalize_pair('', $sym))),
                 $/.list);

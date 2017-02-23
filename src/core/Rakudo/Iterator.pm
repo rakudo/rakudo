@@ -379,7 +379,7 @@ class Rakudo::Iterator {
     # batches of the given size.  The third parameter indicates whether
     # a partial batch should be returned when the source iterator has
     # exhausted.  The returned iterator is as lazy as the source iterator.
-    method Batch(\iterable,\size,\partial) {
+    method Batch(\iterator,\size,\partial) {
         class :: does Iterator {
             has $!iterator;
             has int $!size;
@@ -440,7 +440,7 @@ class Rakudo::Iterator {
               )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,size,partial)
+        }.new(iterator,size,partial)
     }
 
     # Return an iterator for a given Callable.  The Callable is supposed
@@ -2340,7 +2340,7 @@ class Rakudo::Iterator {
     # until the source iterator is exhausted.  The third parameter
     # indicates whether a partial result is acceptable when the
     # source iterator is exhausted.
-    method Rotor(\iterable,\cycle,\partial) {
+    method Rotor(\iterator,\cycle,\partial) {
         class :: does Iterator {
             has $!iterator;
             has $!cycle;
@@ -2473,7 +2473,7 @@ class Rakudo::Iterator {
                 )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,cycle,partial)
+        }.new(iterator,cycle,partial)
     }
 
     # Return an iterator that will roundrobin the given iterables

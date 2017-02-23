@@ -1900,6 +1900,51 @@ class Rakudo::Iterator {
         }.new(value)
     }
 
+    # Return an iterator that only will return the given value for the
+    # given number of times.  Basically the same as 42 xx N.
+    method OneValueTimes(Mu \value,\times) {
+        class :: does Iterator {
+            has Mu $!value;
+            has Int $!times;
+            has int $!is-lazy;
+
+            method !SET-SELF(Mu \value,\times) {
+                nqp::if(
+                  times > 0,
+                  nqp::stmts(
+                    ($!value := value),
+                    ($!times  = times),
+                    ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
+                    self
+                  ),
+                  Rakudo::Iterator.Empty
+                )
+            }
+            method new(Mu \val,\tim) { nqp::create(self)!SET-SELF(val,tim) }
+            method pull-one() is raw {
+                nqp::if(
+                  $!times,
+                  nqp::stmts(
+                    --$!times,
+                    $!value
+                  ),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!times--,
+                  $target.push($!value)
+                )
+            }
+            method skip-one() { nqp::if($!times,$!times--) }
+            method is-lazy() { nqp::p6bool($!is-lazy) }
+            method sink-all(--> IterationEnd) { $!times = 0 }
+            method count-only() { $!times }
+            method bool-only(--> True) { }
+        }.new(value,times)
+    }
+
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.
@@ -2160,7 +2205,7 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
-    #  it will cache the values seen to handle case that the iterator
+    # it will cache the values seen to handle case that the iterator
     # will exhaust after all.  Only if the source iterator did not
     # produce any values at all, then the returned iterator will not
     # produce any either.

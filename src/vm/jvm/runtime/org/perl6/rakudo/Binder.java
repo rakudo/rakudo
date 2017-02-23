@@ -961,11 +961,12 @@ public final class Binder {
                             CallSiteDescriptor.ARG_OBJ, false, error);
                     }
                     else if (!suppressArityFail) {
-                        if (error != null)
+                        if (error != null) {
                             namedNames.at_pos_native(tc, 0);
                             error[0] = "Required named argument '" +
                                 tc.native_s +
                                 "' not passed";
+                        }
                         return BIND_RESULT_FAIL;
                     }
                 }

@@ -270,6 +270,8 @@ multi sub EVALFILE($filename, :$lang = 'perl6') {
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
+# For some reason, we cannot move this to Rakudo::Internals as a class
+# method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     nqp::if(
       nqp::getattr(hash,Map,'$!storage').DEFINITE,
@@ -279,10 +281,10 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
         nqp::while(
           $iter,
           nqp::bindkey($clone,
-            nqp::iterkey_s(my $e := nqp::shift($iter)),
+            nqp::iterkey_s(nqp::shift($iter)),
             nqp::if(
-              nqp::defined(nqp::iterval($e)),
-              nqp::decont(nqp::iterval($e)).Str,
+              nqp::defined(nqp::iterval($iter)),
+              nqp::decont(nqp::iterval($iter)).Str,
               ''
             )
           )

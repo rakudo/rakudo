@@ -47,18 +47,24 @@ my role Baggy does QuantHash {
         }
         fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
     }
-    method !LISTIFY(&formatter) {
-        my $elems := nqp::getattr(%!elems,Map,'$!storage');
-        my $list  := nqp::list();
-        nqp::setelems($list,nqp::elems($elems));  # presize
-        nqp::setelems($list,0);
-
-        my $iter := nqp::iterator($elems);
-        while $iter {
-            my \pair = nqp::iterval(nqp::shift($iter));
-            nqp::push($list,formatter(pair.key,pair.value));
-        }
-        $list
+    method !LISTIFY(&formatter, str $joiner) {
+        nqp::stmts(
+          (my $pairs := nqp::getattr(%!elems,Map,'$!storage')),
+          (my int $elems = nqp::elems($pairs)),
+          (my $list := nqp::setelems(nqp::list_s,$elems)),
+          (my $iter := nqp::iterator($pairs)),
+          (my int $i = -1),
+          nqp::while(
+            $iter,
+            nqp::bindpos_s($list,($i = nqp::add_i($i,1)),
+              formatter(
+                (my $pair := nqp::iterval(nqp::shift($iter))).key,
+                $pair.value
+              )
+            )
+          ),
+          nqp::hllize(nqp::join($joiner,$list))
+        )
     }
 
 #--- interface methods
@@ -320,18 +326,18 @@ my role Baggy does QuantHash {
     method default(Baggy:D:)       { 0 }
 
     multi method Str(Baggy:D: --> Str) {
-        join(' ', self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+        self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ' ')
     }
     multi method gist(Baggy:D: --> Str) {
         my str $name = nqp::unbox_s(self.^name);
         ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
         ~ '('
-        ~ join(', ',self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+        ~ self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ', ')
         ~ ')'
     }
     multi method perl(Baggy:D: --> Str) {
         '('
-        ~ join(',', self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"} ))
+        ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
         ~ ").{self.^name}"
     }
 

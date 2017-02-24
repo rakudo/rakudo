@@ -263,7 +263,7 @@ static MVMuint8 s_p6recont_ro[] = {
 };
 static void p6recont_ro(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *check = GET_REG(tc, 2).o;
-    if (STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
+    if (IS_CONCRETE(check) && STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
         MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
         if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
             /* We have an rw container; re-containerize it. */

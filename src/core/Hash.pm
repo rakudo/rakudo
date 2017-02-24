@@ -224,15 +224,21 @@ my class Hash { # declared in BOOTSTRAP
         })
     }
 
-    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
-        return DUMP(self, :$indent-step) unless %ctx;
-
-        my Mu $attrs := nqp::list();
-        nqp::push($attrs, '$!descriptor');
-        nqp::push($attrs,  $!descriptor );
-        nqp::push($attrs, '$!storage'   );
-        nqp::push($attrs,  nqp::getattr(nqp::decont(self), Map, '$!storage'));
-        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
+    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {
+        nqp::if(
+          %ctx,
+          self.DUMP-OBJECT-ATTRS(
+            nqp::list(
+              '$!descriptor',
+              $!descriptor,
+              '$!storage',
+              nqp::getattr(nqp::decont(self),Map,'$!storage')
+            ),
+            :$indent-step,
+            :%ctx
+          ),
+          DUMP(self, :$indent-step)
+        )
     }
 
     # introspection

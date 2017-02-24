@@ -11,7 +11,7 @@ my class Block { # declared in BOOTSTRAP
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;
-        nqp::bindkey($!phasers,$name,nqp::list)
+        nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
           unless nqp::existskey($!phasers,$name);
 
         if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {

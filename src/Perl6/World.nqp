@@ -1902,12 +1902,10 @@ class Perl6::World is HLL::World {
         nqp::bindattr($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
-            my @names := %param_info<named_names>;
-            nqp::bindattr($parameter, $par_type, '@!named_names', @names);
+            nqp::bindattr($parameter, $par_type, '@!named_names', %param_info<named_names>);
         }
         if %param_info<type_captures> {
-            my @type_names := %param_info<type_captures>;
-            nqp::bindattr($parameter, $par_type, '@!type_captures', @type_names);
+            nqp::bindattr($parameter, $par_type, '@!type_captures', %param_info<type_captures>);
         }
         if %param_info<post_constraints> {
             nqp::bindattr($parameter, $par_type, '@!post_constraints',

@@ -349,7 +349,7 @@ my class Binder {
             my int $num_type_caps := nqp::elems($type_caps);
             my int $i := 0;
             while $i < $num_type_caps {
-                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $oval.WHAT);
+                nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
                 $i++;
             }
         }
@@ -816,7 +816,7 @@ my class Binder {
                     my int $j := 0;
                     my str $cur_name;
                     while $j < $num_names {
-                        $cur_name := nqp::atpos($named_names, $j);
+                        $cur_name := nqp::atpos_s($named_names, $j);
                         $value := nqp::atkey($named_args, $cur_name);
                         unless nqp::isnull($value) {
                             nqp::deletekey($named_args, $cur_name);
@@ -1466,8 +1466,8 @@ BEGIN {
     #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', List, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', Mu, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, scalar_attr('@!post_constraints', List, Parameter, :!auto_viv_container));
@@ -1988,7 +1988,7 @@ BEGIN {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
                                 if nqp::elems($named_names) == 1 {
-                                    %info<req_named> := nqp::atpos($named_names, 0);
+                                    %info<req_named> := nqp::atpos_s($named_names, 0);
                                 }
                             }
                             %info<bind_check> := 1;

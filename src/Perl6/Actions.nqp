@@ -2769,7 +2769,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,
-                type_captures     => ['$?CLASS', '::?CLASS']
+                type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
             my $sig := $*W.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
@@ -5015,10 +5015,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method named_param($/) {
-        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
-        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>); }
-        else                     { %*PARAM_INFO<named_names>.push(''); }
+        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || nqp::list_s();
+        if $<name>               { nqp::push_s(%*PARAM_INFO<named_names>, ~$<name>); }
+        elsif $<param_var><name> { nqp::push_s(%*PARAM_INFO<named_names>, ~$<param_var><name>); }
+        else                     { nqp::push_s(%*PARAM_INFO<named_names>, ''); }
     }
 
     method default_value($/) {
@@ -5030,11 +5030,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my str $typename := ~$<typename>;
             if nqp::eqat($typename, '::', 0) && !nqp::eqat($typename, '?', 2) {
                 # Set up signature so it will find the typename.
-                my $desigilname := nqp::substr($typename, 2);
+                my str $desigilname := nqp::substr($typename, 2);
                 unless %*PARAM_INFO<type_captures> {
-                    %*PARAM_INFO<type_captures> := []
+                    %*PARAM_INFO<type_captures> := nqp::list_s()
                 }
-                %*PARAM_INFO<type_captures>.push($desigilname);
+                nqp::push_s(%*PARAM_INFO<type_captures>, $desigilname);
 
                 # Install type variable in the static lexpad. Of course,
                 # we'll find the real thing at runtime, but in the static
@@ -8163,10 +8163,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
                 if nqp::elems(@names) == 1 {
-                    $var.named(@names[0]);
+                    $var.named(nqp::atpos_s(@names, 0));
                 }
                 elsif nqp::elems(@names) == 2 {
-                    $var.named(@names);
+                    my @names_copy;
+                    @names_copy[0] := nqp::atpos_s(@names, 0);
+                    @names_copy[1] := nqp::atpos_s(@names, 1);
+                    $var.named(@names_copy);
                 }
                 else {
                     return 0;
@@ -8370,10 +8373,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # In theory, we could bind a local with the result of the WHAT
             # operation, but I'm not convinced it's sufficiently expensive.
             if %info<type_captures> {
-                for %info<type_captures> {
+                my $iter := nqp::iterator(%info<type_captures>);
+                while $iter {
                     $var.push( QAST::Op.new(
                         :op<bind>,
-                        QAST::Var.new( :name($_), :scope<lexical> ),
+                        QAST::Var.new( :name(nqp::shift($iter)), :scope<lexical> ),
                         QAST::Op.new( :op<what>,
                             QAST::Var.new( :name($name), :scope<local> ) )
                         )
@@ -8655,7 +8659,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If it's named, just shove it on the end, but before any slurpies.
         elsif $named {
-            %param_info<named_names> := [$ident];
+            %param_info<named_names> := nqp::list_s($ident);
             my @popped;
             while @params
                     && (@params[+@params - 1]<pos_slurpy> || @params[+@params - 1]<named_slurpy>) {

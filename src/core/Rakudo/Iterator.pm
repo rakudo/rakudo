@@ -2156,7 +2156,10 @@ class Rakudo::Iterator {
 
             method !SET-SELF(\list) {
                 nqp::stmts(
-                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
                   ($!i = -1),
                   self
                 )

@@ -36,6 +36,7 @@ my class Instant is Cool does Real {
     }
     method Bridge(Instant:D:) { $!tai.Bridge }
     method Num   (Instant:D:) { $!tai.Num    }
+    method Rat   (Instant:D:) { $!tai        }
     method Int   (Instant:D:) { $!tai.Int    }
     method narrow(Instant:D:) { $!tai.narrow }
 

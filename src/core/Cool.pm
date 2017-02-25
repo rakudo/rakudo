@@ -262,6 +262,14 @@ my class Cool { # declared in BOOTSTRAP
             $numeric.Rat
         )
     }
+
+    method FatRat()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.FatRat
+        )
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

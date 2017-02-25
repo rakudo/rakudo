@@ -20,6 +20,7 @@ my role Numeric {
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
 
+    method FatRat(Numeric:D:) { self.Rat.FatRat }
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }

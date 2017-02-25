@@ -40,7 +40,12 @@ my class Complex is Cool does Numeric {
     # should probably be eventually supplied by role Numeric
     method Num(Complex:D:) { self.coerce-to-real(Num).Num; }
     method Int(Complex:D:) { self.coerce-to-real(Int).Int; }
-    method Rat(Complex:D:) { self.coerce-to-real(Rat).Rat; }
+    method Rat(Complex:D: $epsilon?) {
+        self.coerce-to-real(Rat).Rat( |($epsilon // Empty) );
+    }
+    method FatRat(Complex:D: $epsilon?) {
+        self.coerce-to-real(FatRat).FatRat( |($epsilon // Empty) );
+    }
 
     multi method Bool(Complex:D:) {
         $!re != 0e0 || $!im != 0e0;

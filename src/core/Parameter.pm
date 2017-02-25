@@ -100,12 +100,19 @@ my class Parameter { # declared in BOOTSTRAP
 
     method type() { $!nominal_type }
     method named_names() {
-        my $nn := nqp::list();
-        my int $elems = @!named_names ?? nqp::elems(@!named_names) !! 0;
-        for ^$elems {
-            nqp::push($nn, nqp::atpos_s(@!named_names, $_));
-        }
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$elems ?? $nn !! nqp::null)
+        nqp::if(
+          @!named_names && (my int $elems = nqp::elems(@!named_names)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
     }
     method named() {
         nqp::p6bool(
@@ -160,12 +167,19 @@ my class Parameter { # declared in BOOTSTRAP
             !! { $!default_value }
     }
     method type_captures() {
-        my $ct := nqp::list();
-        my int $elems = @!type_captures ?? nqp::elems(@!type_captures) !! 0;
-        for ^$elems {
-            nqp::push($ct, nqp::atpos_s(@!type_captures, $_));
-        }
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$elems ?? $ct !! nqp::null)
+        nqp::if(
+          @!type_captures && (my int $elems = nqp::elems(@!type_captures)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
     }
 
     method !flags() { $!flags }

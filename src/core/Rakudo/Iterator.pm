@@ -2846,14 +2846,15 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
-                      (my $list := nqp::setelems(nqp::list,$elems)),
+                      (my $buf :=
+                        nqp::setelems(nqp::create(IterationBuffer),$elems)),
                       nqp::until(
                         nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
                          || nqp::eqaddr(
                               (my $pulled := nqp::atpos($!iters,$i).pull-one),
                               IterationEnd
                             ),
-                        nqp::bindpos($list,$i,$pulled)
+                        nqp::bindpos($buf,$i,$pulled)
                       ),
                       nqp::if(
                         nqp::islt_i($i,$elems),  # at least one exhausted
@@ -2867,7 +2868,7 @@ class Rakudo::Iterator {
                           IterationEnd
                         ),
                         nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',$list)
+                          nqp::create(List),List,'$!reified',$buf)
                       )
                     )
                   )

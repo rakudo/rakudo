@@ -1222,7 +1222,7 @@ my class array does Iterable {
             nqp::stmts(
               (my $idims := nqp::dimensions(self)),
               (my int $dims = nqp::elems($idims)),
-              (my $odims  := nqp::setelems(nqp::list,$dims)),
+              (my $odims  := nqp::setelems(nqp::create(IterationBuffer),$dims)),
               (my int $i = -1),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$dims),

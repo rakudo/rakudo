@@ -23,7 +23,7 @@ my sub MAIN_HELPER($retval = 0) {
 
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
-        my $positional := nqp::list;
+        my $positional := nqp::create(IterationBuffer);
         my %named;
 
         while ?@args {

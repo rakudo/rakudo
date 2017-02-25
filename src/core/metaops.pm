@@ -546,7 +546,7 @@ multi sub deepmap(\op, Associative \h) {
 
 proto sub nodemap(|) { * }
 multi sub nodemap(\op, \obj) {
-    my Mu $rpa := nqp::list();
+    my Mu $rpa := nqp::create(IterationBuffer);
     my \objs := obj.list;
     # as a wanted side-effect is-lazy reifies the list
     fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;

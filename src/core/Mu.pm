@@ -735,7 +735,7 @@ my class Mu { # declared in BOOTSTRAP
     method dispatch:<.*>(Mu \SELF: \name, |c) {
         my @mro = SELF.^mro;
         my int $mro_count = @mro.elems;
-        my $results := nqp::list;
+        my $results := nqp::create(IterationBuffer);
         my int $i = -1;
         while nqp::islt_i(++$i,$mro_count) {
             my $obj = @mro[$i];

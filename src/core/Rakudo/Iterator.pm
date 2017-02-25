@@ -2523,7 +2523,7 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
-                      (my $list := nqp::list),
+                      (my $buf := nqp::create(IterationBuffer)),
                       nqp::until(
                         nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
                         nqp::if(
@@ -2536,13 +2536,13 @@ class Rakudo::Iterator {
                             ($i = nqp::sub_i($i,1)),
                             ($elems = nqp::sub_i($elems,1))
                           ),
-                          nqp::push($list,$pulled)
+                          nqp::push($buf,$pulled)
                         )
                       ),
                       nqp::if(
-                        nqp::elems($list),
+                        nqp::elems($buf),
                         nqp::p6bindattrinvres( # at least one not exhausted
-                          nqp::create(List),List,'$!reified',$list),
+                          nqp::create(List),List,'$!reified',$buf),
                         nqp::stmts(            # we're done
 #?if jvm
                           ($!iters := Mu),

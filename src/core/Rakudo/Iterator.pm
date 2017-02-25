@@ -2616,7 +2616,8 @@ class Rakudo::Iterator {
                 nqp::stmts(
                   ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
                   (my int $dims = nqp::elems($!dims)),
-                  ($!indices := nqp::setelems(nqp::list,$dims)),
+                  ($!indices :=
+                    nqp::setelems(nqp::create(IterationBuffer),$dims)),
                   (my int $i = -1),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
@@ -2633,7 +2634,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   $!indices,
                   nqp::stmts(                      # still iterating
-                    (my $result := nqp::clone($!indices)),
+                    (my $buf := nqp::clone($!indices)),
                     nqp::if(
                       nqp::islt_i(                        (my int $i =
                           nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
@@ -2661,7 +2662,8 @@ class Rakudo::Iterator {
                         )
                       )
                     ),
-                    $result                        # what we found
+                    nqp::p6bindattrinvres(         # what we found
+                      nqp::create(List),List,'$!reified',$buf)
                   ),
                   IterationEnd                     # done iterating
                 )

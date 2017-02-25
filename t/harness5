@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 
 # note: Due to a limitation in Getopt::Long options that should be passed
 # through to fudgeall have to come after all other options

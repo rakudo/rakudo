@@ -314,11 +314,11 @@ my role Baggy does QuantHash {
 #--- introspection methods
     multi method WHICH(Baggy:D:)   { self!WHICH }
     method total(Baggy:D:)         { self!TOTAL }
-    method elems(Baggy:D: --> Int) { %!elems.elems }
-    method Bool(Baggy:D: --> Bool) {
+    multi method elems(Baggy:D: --> Int) { %!elems.elems }
+    multi method Bool(Baggy:D: --> Bool) {
         nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
     }
-    method hash(Baggy:D: --> Hash) {
+    multi method hash(Baggy:D: --> Hash) {
         my \h = Hash.^parameterize(Any, Any).new;
         h = %!elems.values;
         h;

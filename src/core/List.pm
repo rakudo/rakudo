@@ -585,8 +585,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       # we already have a place to put values in
                       ?? nqp::getattr(list,List,'$!reified')
                       # create a place here and there to put values in
-                      !! nqp::bindattr(list,List,'$!reified',nqp::list);
-                    $!todo    := nqp::getattr(list, List, '$!todo');
+                      !! nqp::bindattr(list,List,'$!reified',
+                           nqp::create(IterationBuffer));
+                    $!todo := nqp::getattr(list, List, '$!todo');
                     self
                 }
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
@@ -880,7 +881,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         # we have something to work with
         if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
             my $capture := nqp::create(Capture);
-            my $list := nqp::list;
+            my $list := nqp::create(IterationBuffer);
             my $hash := nqp::hash;
             my int $i = -1;
             my $v;
@@ -1377,10 +1378,11 @@ sub list(+l) { l }
 
 # Use **@list and then .flat it, otherwise we'll end up remembering all the
 # things we flatten, which would be different semantics to .flat which gives
-# back a Seq.
-sub flat(**@list is raw) {
-    @list.flat
-}
+# back a Seq. We also add an Iterable candidate, to preserve .is-lazy
+# of an Iterable whenever we can.
+proto flat(|) {*}
+multi flat(**@list is raw) { @list.flat }
+multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 
@@ -1419,7 +1421,7 @@ multi sub infix:<xx>(&x, Whatever) {
 multi sub infix:<xx>(&x, Int $n) {
     my int $todo = $n + 1;
     my Mu $pulled;
-    my Mu $list := nqp::list();
+    my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
       nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
       nqp::if(
@@ -1442,7 +1444,7 @@ multi sub infix:<xx>(Mu \x, Whatever) {
 }
 multi sub infix:<xx>(Mu \x, Int $n) is pure {
     if nqp::isgt_i((my int $elems = $n),0) {
-        my $list := nqp::setelems(nqp::list,$elems);
+        my $list := nqp::setelems(nqp::create(IterationBuffer),$elems);
         my int $i = -1;
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$elems),

@@ -16,4 +16,10 @@ subtest 'curly quotes are not called smart quotes' => {
     }
 }
 
+# RT #130712 https://rt.perl.org/Public/Bug/Display.html?id=130712
+throws-like 'sub infix:<$>() return Nil {}',
+    X::AdHoc,
+    :message{ .contains("'returns'") },
+    'typing "return" instead of "returns" gives a fixing hint';
+
 done-testing;

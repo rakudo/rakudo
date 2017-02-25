@@ -712,7 +712,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    my $nqplist := nqp::list;  # for splicing in without values
+    my $empty := nqp::create(IterationBuffer); # splicing in without values
     proto method splice(|) is nodal { * }
     #------ splice() candidates
     multi method splice(Array:D \SELF:) {
@@ -787,7 +787,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
           ),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$size),
+            nqp::getattr(self,List,'$!reified'),$empty,$offset,$size),
           $result
         )
     }
@@ -871,7 +871,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           (my $result := self!splice-save($offset,$size,my int $removed)),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$removed),
+            nqp::getattr(self,List,'$!reified'),$empty,$offset,$removed),
           $result
         )
     }
@@ -987,7 +987,8 @@ my class Array { # declared in BOOTSTRAP
                   nqp::elems(nqp::if(
                     nqp::getattr(self,List,'$!reified').DEFINITE,
                     nqp::getattr(self,List,'$!reified'),
-                    nqp::bindattr(self,List,'$!reified',nqp::list)
+                    nqp::bindattr(self,List,'$!reified',
+                      nqp::create(IterationBuffer))
                   )),
                   nqp::unbox_i($offset),
                 ),

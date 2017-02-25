@@ -80,7 +80,10 @@ my class Rakudo::Internals {
         nqp::stmts(
 
           # $A has the items to sort; $B is a work array
-          (my Mu $A := nqp::getattr(list,List,'$!reified')),
+          (my Mu $A := nqp::if(
+            nqp::istype(list,List),
+            nqp::getattr(list,List,'$!reified'),
+            list)),
           nqp::if(
             nqp::isgt_i((my int $n = nqp::elems($A)),2),
             nqp::stmts(     # we actually need to sort
@@ -166,7 +169,10 @@ my class Rakudo::Internals {
         nqp::stmts(
 
           # $A has the items to sort; $B is a work array
-          (my Mu $A := nqp::getattr(list,List,'$!reified')),
+          (my Mu $A := nqp::if(
+            nqp::istype(list,List),
+            nqp::getattr(list,List,'$!reified'),
+            list)),
           nqp::if(
             nqp::isgt_i((my int $n = nqp::elems($A)),2),
             nqp::stmts(     # we actually need to sort
@@ -253,7 +259,10 @@ my class Rakudo::Internals {
     method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
         nqp::stmts(
 
-          (my Mu $O := nqp::getattr(list,List,'$!reified')),  # Original
+          (my Mu $O := nqp::if(                               # Original
+            nqp::istype(list,List),
+            nqp::getattr(list,List,'$!reified'),
+            list)),
           nqp::if(
             nqp::isgt_i((my int $n = nqp::elems($O)),2),
             nqp::stmts(     # we actually need to sort

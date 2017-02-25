@@ -11,7 +11,7 @@ my class Block { # declared in BOOTSTRAP
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;
-        nqp::bindkey($!phasers,$name,nqp::list)
+        nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
           unless nqp::existskey($!phasers,$name);
 
         if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
@@ -26,7 +26,7 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_phasers(Str $name --> Nil) {
+    method fire_if_phasers(Str $name --> Nil) {
         nqp::if(
           nqp::attrinited(self,Block,'$!phasers')
             && nqp::existskey($!phasers,$name),
@@ -34,6 +34,13 @@ my class Block { # declared in BOOTSTRAP
             (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
             nqp::while($iter,nqp::shift($iter)(),:nohandler)
           )
+        )
+    }
+
+    method fire_phasers(Str $name --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
+          nqp::while($iter,nqp::shift($iter)(),:nohandler)
         )
     }
 
@@ -323,7 +330,7 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
     }
 

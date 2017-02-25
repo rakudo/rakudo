@@ -48,7 +48,7 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
 # but can't yet use `is default` at the place where that candidate
 # is defined because it uses `infix:<does>`
 multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
-    a.Num cmp b.Num
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
 }
 
 proto sub infix:<but>(|) is pure { * }
@@ -599,7 +599,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms) {
+sub REQUIRE_IMPORT($compunit, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
@@ -617,7 +617,6 @@ sub REQUIRE_IMPORT($compunit, *@syms) {
     }
     # Merge GLOBAL from compunit.
     GLOBAL::.merge-symbols($GLOBALish);
-    Nil;
 }
 
 sub infix:<andthen>(+a) {

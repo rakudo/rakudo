@@ -379,7 +379,7 @@ class Rakudo::Iterator {
     # batches of the given size.  The third parameter indicates whether
     # a partial batch should be returned when the source iterator has
     # exhausted.  The returned iterator is as lazy as the source iterator.
-    method Batch(\iterable,\size,\partial) {
+    method Batch(\iterator,\size,\partial) {
         class :: does Iterator {
             has $!iterator;
             has int $!size;
@@ -440,7 +440,7 @@ class Rakudo::Iterator {
               )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,size,partial)
+        }.new(iterator,size,partial)
     }
 
     # Return an iterator for a given Callable.  The Callable is supposed
@@ -1900,6 +1900,51 @@ class Rakudo::Iterator {
         }.new(value)
     }
 
+    # Return an iterator that only will return the given value for the
+    # given number of times.  Basically the same as 42 xx N.
+    method OneValueTimes(Mu \value,\times) {
+        class :: does Iterator {
+            has Mu $!value;
+            has Int $!times;
+            has int $!is-lazy;
+
+            method !SET-SELF(Mu \value,\times) {
+                nqp::if(
+                  times > 0,
+                  nqp::stmts(
+                    ($!value := value),
+                    ($!times  = times),
+                    ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
+                    self
+                  ),
+                  Rakudo::Iterator.Empty
+                )
+            }
+            method new(Mu \val,\tim) { nqp::create(self)!SET-SELF(val,tim) }
+            method pull-one() is raw {
+                nqp::if(
+                  $!times,
+                  nqp::stmts(
+                    --$!times,
+                    $!value
+                  ),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!times--,
+                  $target.push($!value)
+                )
+            }
+            method skip-one() { nqp::if($!times,$!times--) }
+            method is-lazy() { nqp::p6bool($!is-lazy) }
+            method sink-all(--> IterationEnd) { $!times = 0 }
+            method count-only() { $!times }
+            method bool-only(--> True) { }
+        }.new(value,times)
+    }
+
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.
@@ -2111,7 +2156,10 @@ class Rakudo::Iterator {
 
             method !SET-SELF(\list) {
                 nqp::stmts(
-                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
                   ($!i = -1),
                   self
                 )
@@ -2160,7 +2208,7 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
-    #  it will cache the values seen to handle case that the iterator
+    # it will cache the values seen to handle case that the iterator
     # will exhaust after all.  Only if the source iterator did not
     # produce any values at all, then the returned iterator will not
     # produce any either.
@@ -2295,7 +2343,7 @@ class Rakudo::Iterator {
     # until the source iterator is exhausted.  The third parameter
     # indicates whether a partial result is acceptable when the
     # source iterator is exhausted.
-    method Rotor(\iterable,\cycle,\partial) {
+    method Rotor(\iterator,\cycle,\partial) {
         class :: does Iterator {
             has $!iterator;
             has $!cycle;
@@ -2428,7 +2476,7 @@ class Rakudo::Iterator {
                 )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,cycle,partial)
+        }.new(iterator,cycle,partial)
     }
 
     # Return an iterator that will roundrobin the given iterables
@@ -2622,10 +2670,10 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
-    method UnendingValue(\value) {
+    method UnendingValue(Mu \value) {
         class :: does Iterator {
             has Mu $!value;
-            method new(\value) {
+            method new(Mu \value) {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }

@@ -6,6 +6,12 @@ New in 2017.02
     + Made `react` non-blocking [4aa8d70]
     + Various improvements to error reporting [ee7c1bb][a2d69a0][f22170f]
  + Fixes:
+    + Fixed data race in NFA cache [8f53a6f]
+    + Fixed handling of Unicode characters on Windows command line [8f53a6f]
+    + Fixed overflow during full GC collection on 32-bit systems [8f53a6f]
+    + Fixed GC problem in string repeat op [8f53a6f]
+    + Fixed .perl.EVAL roundtripping for circular Arrays and
+         Hashes [67aeefa][673f06b]
     + Fixed instantiation of subclasses of classes that do Rational [7f245f7]
     + Fixed incorrect handling of precision flag in sprintf '%d' [a1c7d01]
     + Fixed `infix:<xx>(..., *)` for empty Slips [4e49ec1]
@@ -28,7 +34,7 @@ New in 2017.02
     + Fixed memory leaks on startup and module load with augmented types [9ed4449]
     + Fixed smartmatch of Complex against Ranges [f2894d3]
     + Fixed premature overflow of `div` on native int types [c98b3a5]
-    + Fixed Iterable.flat failing to propagate `is-lazy` [51b0aba]
+    + Fixed flat()/Iterable.flat not propagating `is-lazy` [51b0aba][ca102c5]
     + Fixed hang with `*@` slurpies when given infinite list [51b0aba]
     + Fixed abs() failing with negative zeros [f85978b]
     + Fixed List.perl of containerized empty lists [a148c70]
@@ -38,11 +44,13 @@ New in 2017.02
     + Fixed occasional disordering of messages in Supplier::Preserving [cabf6fb]
     + Fixed a data race in NFA caching causing SEGV [62bd30b]
     + Fixed data races and over-sharing of %*ENV in precompilation [bab1c02]
-    + Fixed data races in CompUnit::PrecompilationStore::File 
+    + Fixed data races in CompUnit::PrecompilationStore::File
         [accc156][39c517e][917d473][a88da2e][6c374d5][2b1eb64]
     + Various improvements to error reporting [10bcec2][5822605][f230224][b51a550]
         [8733aa5][483e4fd][f0b9234][e922275][51ebfb1][acae345][1b99196][301bcf9]
  + Additions:
+    + Implemented Array.clone [dc69daf]
+    + Implemented Mu:U.clone [11d005e][4b85db6]
     + Added experimental `infix:<unicmp>` [6f6f0cf][5870ef9][eb3356c][6990133]
     + Added experimental `infix:<coll>`, `Any.collate`, and `$*COLLATION`
         [2061485][4efcc29][46313fa][1923878][5611425][6990133][f85978b]
@@ -78,7 +86,7 @@ New in 2017.02
     + Generalized sink branch optimize logic improving performance for
         sunk post increment [5401a1a]
     + Improved radix operations (50% faster with non-ASCII digits) [9ed4449][c98b3a5]
-    + Made uniprop/unival/unimatch 0.1x to 2.1x faster [411782e]
+    + Made uniprop/unival/unimatch 1.1x to 2.1x faster [411782e]
     + Fixed performance loss on `infix:<x>` with very large number [8878af8]
     + Made Map.sort about 1.5x faster (also affecting its .perl/.gist/.Str) [0ee3b7d]
     + Made an improvement in candidate selection order of &sort [b7c6e73]
@@ -104,7 +112,7 @@ New in 2017.02
         [7c26985][4d8fc05][b1afc13][072d959][9d5c3fd][6b6a0b4][b31c591][b9d9279]
         [f799a03][98f9d8a]
     + Made improvements to performance of internals [ed4ef3b][f85978b]
-    
+
 New in 2017.01
  + Fixes:
     + Fixed importing globals nested in imported packages [85d8b14]

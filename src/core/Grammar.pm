@@ -10,13 +10,13 @@ my class Grammar is Cursor {
               $rule,
               nqp::if(
                 $args,
-                self!cursor-init(target, {:$actions, %_})."$rule"(|$args.Capture),
-                self!cursor-init(target, {:$actions, %_})."$rule"()
+                self!cursor-init(target, %_).set_actions($actions)."$rule"(|$args.Capture),
+                self!cursor-init(target, %_).set_actions($actions)."$rule"()
               ),
               nqp::if(
                 $args,
-                self!cursor-init(target, {:$actions, %_}).TOP(|$args.Capture),
-                self!cursor-init(target, {:$actions, %_}).TOP()
+                self!cursor-init(target, %_).set_actions($actions).TOP(|$args.Capture),
+                self!cursor-init(target, %_).set_actions($actions).TOP()
               ),
             )),
             nqp::stmts(
@@ -41,13 +41,13 @@ my class Grammar is Cursor {
             $rule,
             nqp::if(
               $args,
-              self!cursor-init(target, {:$actions, %_})."$rule"(|$args.Capture).MATCH,
-              self!cursor-init(target, {:$actions, %_})."$rule"().MATCH,
+              self!cursor-init(target, %_).set_actions($actions)."$rule"(|$args.Capture).MATCH,
+              self!cursor-init(target, %_).set_actions($actions)."$rule"().MATCH,
             ),
             nqp::if(
               $args,
-              self!cursor-init(target, {:$actions, %_}).TOP(|$args.Capture).MATCH,
-              self!cursor-init(target, {:$actions, %_}).TOP().MATCH
+              self!cursor-init(target, %_).set_actions($actions).TOP(|$args.Capture).MATCH,
+              self!cursor-init(target, %_).set_actions($actions).TOP().MATCH
             ),
           )
         )

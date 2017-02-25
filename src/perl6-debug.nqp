@@ -401,6 +401,9 @@ class Perl6::HookGrammar is Perl6::Grammar {
         %*LANG<P5Regex-actions> := QRegex::P5Regex::HookActions;
         %*LANG<MAIN>            := Perl6::HookGrammar;
         %*LANG<MAIN-actions>    := Perl6::HookActions;
+	self.setlang('MAIN',Perl6::HookGrammar, Perl6::HookActions);
+	self.setlang('Regex',Perl6::HookRegexGrammar, Perl6::HookRegexActions);
+	self.setlang('P5Regex',Perl6::HookP5RegexGrammar, Perl6::HookP5RegexActions);
         
         Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'comp_unit')(self)
     }

@@ -181,16 +181,9 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.match($target, |%adverbs)
     }
 
-    proto method comb(|) { * }
-    multi method comb() { self.Str.comb() }
-    multi method comb(Regex $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
-    multi method comb(Str $matcher, $limit = Inf) { self.Str.comb($matcher, $limit) }
-
-    proto method lines(|) {*}
-    multi method lines(Cool:D: |c) { self.Str.lines(|c) }
-
-    proto method words(|) {*}
-    multi method words(Cool:D: |c) { self.Str.words(|c) }
+    method comb(|c) { self.Str.comb(|c) }
+    method lines(Cool:D: |c) { self.Str.lines(|c) }
+    method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {
         $/ := nqp::getlexdyn('$/');

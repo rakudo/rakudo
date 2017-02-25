@@ -308,6 +308,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
+    proto method comb(|) { * }
     multi method comb(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;
@@ -1231,6 +1232,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 
+    proto method lines(|) { * }
     multi method lines(Str:D: :$count!) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
@@ -2077,6 +2079,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
+    proto method words(|) { * }
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
         my @list := self.words.List;
         return @list == 1 ?? @list[0] !! @list;

@@ -20,5 +20,5 @@ class IO::Special {
     method modified(IO::Special:D:) { Instant }
     method accessed(IO::Special:D:) { Instant }
     method changed(IO::Special:D:)  { Instant }
-    method mode(IO::Special:D:)     { Nil     }
+    method mode(IO::Special:D: --> Nil) { }
 }

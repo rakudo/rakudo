@@ -4,17 +4,24 @@ my class Junction { # declared in BOOTSTRAP
     #     has str $!type;                # type of Junction
 
     method !SET-SELF(\type,\values) {
-        $!type = type;
-        fail "Junction Can only have 'any', 'all', 'none', 'one' type"
-          unless nqp::iseq_s($!type,"any")
+        nqp::stmts(
+          ($!type = type),
+          nqp::if(
+            nqp::iseq_s($!type,"any")
               || nqp::iseq_s($!type,"all") 
               || nqp::iseq_s($!type,"none") 
-              || nqp::iseq_s($!type,"one");
-        $!storage :=
-          nqp::attrinited((my $List := values.eager.list),List,'$!reified')
-            ?? nqp::getattr($List,List,'$!reified')
-            !! nqp::list;
-        self
+              || nqp::iseq_s($!type,"one"),
+            nqp::stmts(
+              ($!storage := nqp::if(
+                nqp::attrinited((my $L := values.eager.list),List,'$!reified'),
+                nqp::getattr($L,List,'$!reified'),
+                nqp::create(IterationBuffer)
+              )),
+              self
+            ),
+            Failure.new("Junction can only have 'any', 'all', 'none', 'one' type")
+          )
+        )
     }
 
     multi method new(Junction: \values, Str :$type!) {
@@ -220,7 +227,7 @@ my class Junction { # declared in BOOTSTRAP
     method sink(Junction:D: --> Nil) {
         my int $elems = nqp::elems($!storage);
         my int $i     = -1;
-        nqp::atpos($!storage,$i).?sink while nqp::islt_i(++$i,$elems);
+        nqp::atpos($!storage,$i).sink while nqp::islt_i(++$i,$elems);
     }
 
     method AUTOTHREAD(&call, |args) {

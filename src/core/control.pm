@@ -18,7 +18,6 @@ sub THROW-NIL(int $type --> Nil) {
 #    nqp::setpayload($ex, Nil);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
-    Nil
 }
 
 sub RETURN-LIST(Mu \list) is raw {
@@ -206,16 +205,37 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
         }
         return {*};
     }
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
+    $context := CALLER:: unless nqp::defined($context);
+    my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
-    my $compiled := $compiler.compile(
-        $code.Stringy,
-        :outer_ctx($eval_ctx),
-        :global(GLOBAL),
-        :mast_frames(mast_frames),
-    );
+    my $compiled;
+    my $LANG := $context<%?LANG>;
+    if !$LANG {
+        $LANG := CALLERS::<%?LANG>;
+    }
+    if $LANG {
+        # XXX
+        my $grammar := $LANG<MAIN>;
+        my $actions := $LANG<MAIN-actions>;
+        $compiled := $compiler.compile(
+            $code.Stringy,
+            :outer_ctx($eval_ctx),
+            :global(GLOBAL),
+            :mast_frames(mast_frames),
+            :grammar($grammar),
+            :actions($actions),
+        );
+    }
+    else {
+        $compiled := $compiler.compile(
+            $code.Stringy,
+            :outer_ctx($eval_ctx),
+            :global(GLOBAL),
+            :mast_frames(mast_frames),
+        );
+    }
     if $*W and $*W.is_precompilation_mode() { # we are still compiling
         $*W.add_additional_frames(mast_frames);
     }
@@ -249,6 +269,8 @@ multi sub EVALFILE($filename, :$lang = 'perl6') {
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
+# For some reason, we cannot move this to Rakudo::Internals as a class
+# method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     nqp::if(
       nqp::getattr(hash,Map,'$!storage').DEFINITE,
@@ -258,10 +280,10 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
         nqp::while(
           $iter,
           nqp::bindkey($clone,
-            nqp::iterkey_s(my $e := nqp::shift($iter)),
+            nqp::iterkey_s(nqp::shift($iter)),
             nqp::if(
-              nqp::defined(nqp::iterval($e)),
-              nqp::decont(nqp::iterval($e)).Str,
+              nqp::defined(nqp::iterval($iter)),
+              nqp::decont(nqp::iterval($iter)).Str,
               ''
             )
           )

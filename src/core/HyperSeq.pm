@@ -80,7 +80,7 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
                 }
             }
 
-            method !start() {
+            method !start(--> Nil) {
                 # Mark that we've started the work (done here because this
                 # may get upgraded to ALL_ADDED if there's not much work).
                 $!status := STARTED;
@@ -156,7 +156,7 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
                 }
             }
 
-            method !block-for-result() {
+            method !block-for-result(--> Nil) {
                 my int $we-got-an-empty-buffer;
                 my int $last-amount-of-completed = 0;
                 repeat while $we-got-an-empty-buffer {
@@ -219,12 +219,11 @@ my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
     method Array(HyperSeq:D:) {
         Array.from-iterator(self.iterator)
     }
-    method sink(HyperSeq:D:) {
+    method sink(HyperSeq:D: --> Nil) {
         # Means we're doing parallel work for its side-effects. Doesn't need
         # any special handling, nor does it warrant a warning since this is
         # what 'hyper for @xs -> $x { }' will end up calling.
         self.iterator.sink-all;
-        Nil
     }
 
     # Not indexable.

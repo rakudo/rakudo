@@ -138,7 +138,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             nqp::if(
               $!did-iterate && nqp::eqaddr($result,IterationEnd),
-              &!block.fire_phasers('LAST')
+              &!block.fire_if_phasers('LAST')
             );
             $result
         }
@@ -196,7 +196,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   )
                 )
             }
-            nqp::if($!did-iterate,&!block.fire_phasers('LAST'))
+            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
         }
 
         method sink-all(--> IterationEnd) {
@@ -246,7 +246,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   )
                 )
             }
-            nqp::if($!did-iterate,&!block.fire_phasers('LAST'))
+            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
         }
     }
 
@@ -745,7 +745,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ),
                 :nohandler);
             }
-            &!block.fire_phasers('LAST')
+            &!block.fire_if_phasers('LAST')
               if $!CAN_FIRE_PHASERS
               && $!did-iterate
               && nqp::eqaddr($result, IterationEnd);
@@ -909,7 +909,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 has $!arity;
                 has $!count;
 
-                method set-cheat($new-arity, $new-count) {
+                method set-cheat($new-arity, $new-count --> Nil) {
                     $!arity = $new-arity;
                     $!count = $new-count;
                 }

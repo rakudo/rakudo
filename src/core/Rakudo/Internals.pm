@@ -3,7 +3,6 @@ my role  IO { ... }
 my class IO::Path { ... }
 my class Seq { ... }
 my class Lock is repr('ReentrantMutex') { ... }
-my class Rakudo::Iterator { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };

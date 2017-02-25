@@ -115,7 +115,6 @@ my class Any { # declared in BOOTSTRAP
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
-    proto method iterator(|) { * }
     multi method iterator(Any:) { self.list.iterator }
 
     proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }

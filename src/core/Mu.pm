@@ -44,6 +44,16 @@ my class Mu { # declared in BOOTSTRAP
         )
     }
 
+    proto method iterator(|) { * }
+    multi method iterator(Mu:) {
+        my $buf := nqp::create(IterationBuffer);
+        $buf.push(Mu);
+        # note: cannot use R:I.OneValue, as that doesn't (and shouldn't)
+        # take Mu for the value to produce, as Mu is used to indicate
+        # exhaustion.
+        Rakudo::Iterator.ReifiedList($buf)
+    }
+
     proto method split(|) { * }
 
     method emit {

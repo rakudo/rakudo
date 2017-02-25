@@ -7,6 +7,7 @@ my class Cursor { ... }
 my class Failure { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
+my class Rakudo::Iterator { ... }
 my class X::Numeric::Overflow { ... }
 my class X::Numeric::Underflow { ... }
 

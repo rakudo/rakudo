@@ -175,7 +175,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
             my $p  := nqp::atpos($ap,$j);
             my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key =
-              nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos($nn,0) !! '';
+              nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos_s($nn,0) !! '';
             die "Found named parameter '{
               nqp::chars($key) ?? $key !! '(unnamed)'
             }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
@@ -188,7 +188,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
             my $p  := nqp::atpos($bp,$i);
             my $nn := nqp::getattr($p,Parameter,'@!named_names');
             my str $key = nqp::defined($nn) && nqp::elems($nn)
-              ?? nqp::atpos($nn,0)
+              ?? nqp::atpos_s($nn,0)
               !! '';
 
             # named param doesn't exist in other or is not equivalent

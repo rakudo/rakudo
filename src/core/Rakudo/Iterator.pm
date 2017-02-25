@@ -105,13 +105,14 @@ class Rakudo::Iterator {
 
         method dims() {                  # HLL version of $!dims
             nqp::stmts(
-              (my $result := nqp::setelems(nqp::list,nqp::elems($!dims))),
+              (my $buffer :=
+                nqp::setelems(nqp::create(IterationBuffer),nqp::elems($!dims))),
               (my int $i = -1),
               nqp::while(                # convert list_i to list
                 nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                nqp::bindpos($result,$i,nqp::atpos_i($!dims,$i))
+                nqp::bindpos($buffer,$i,nqp::atpos_i($!dims,$i))
               ),
-              $result
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buffer)
             )
         }
 

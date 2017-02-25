@@ -11,7 +11,7 @@
 # of Perl 6. Do NOT add any checks and validation to methods in here. They
 # need to remain trivially inlineable for performance reasons.
 my class IterationBuffer {
-    method clear(IterationBuffer:D:) {
+    method clear(IterationBuffer:D: --> Nil) {
         nqp::setelems(self, 0)
     }
 

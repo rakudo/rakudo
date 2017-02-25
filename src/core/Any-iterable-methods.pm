@@ -909,7 +909,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 has $!arity;
                 has $!count;
 
-                method set-cheat($new-arity, $new-count) {
+                method set-cheat($new-arity, $new-count --> Nil) {
                     $!arity = $new-arity;
                     $!count = $new-count;
                 }

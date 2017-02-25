@@ -227,7 +227,7 @@ my class Junction { # declared in BOOTSTRAP
     method sink(Junction:D: --> Nil) {
         my int $elems = nqp::elems($!storage);
         my int $i     = -1;
-        nqp::atpos($!storage,$i).?sink while nqp::islt_i(++$i,$elems);
+        nqp::atpos($!storage,$i).sink while nqp::islt_i(++$i,$elems);
     }
 
     method AUTOTHREAD(&call, |args) {

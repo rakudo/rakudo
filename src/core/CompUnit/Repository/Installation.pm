@@ -59,7 +59,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
     my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
     unless +@binaries {
-        @binaries = flat @installations.map: { .files(\'bin/#name#\') };
+        @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name) };
         if +@binaries {
             note q:to/SORRY/;
                 ===SORRY!===

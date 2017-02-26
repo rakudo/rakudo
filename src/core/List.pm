@@ -374,8 +374,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
           nqp::if(
-            nqp::attrinited(self,List,'$!reified')
-              && (my int $elems = self.elems),      # reifies
+            $!reified.DEFINITE && (my int $elems = self.elems),      # reifies
             nqp::stmts(
               (my $list := $!reified),
               (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
@@ -581,7 +580,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method !SET-SELF(\list) {
                     $!i        = -1;
                     $!list    := list;
-                    $!reified := nqp::attrinited(list, List,'$!reified')
+                    $!reified := nqp::getattr(list,List,'$!reified').DEFINITE
                       # we already have a place to put values in
                       ?? nqp::getattr(list,List,'$!reified')
                       # create a place here and there to put values in
@@ -1217,7 +1216,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ),
           Seq.new(
             nqp::if(
-              nqp::attrinited(self,List,'$!reified'),
+              $!reified.DEFINITE,
               Rakudo::Iterator.ReifiedList(
                 Rakudo::Internals.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
@@ -1246,7 +1245,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ),
           Seq.new(
             nqp::if(
-              nqp::attrinited(self,List,'$!reified'),
+              $!reified.DEFINITE,
               Rakudo::Iterator.ReifiedList(
                 nqp::if(
                   nqp::eqaddr(&by,&infix:<cmp>),

@@ -63,7 +63,7 @@ my role Baggy does QuantHash {
               )
             )
           ),
-          nqp::hllize(nqp::join($joiner,$list))
+          nqp::p6box_s(nqp::join($joiner,$list))
         )
     }
 

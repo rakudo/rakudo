@@ -1359,7 +1359,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         self!ensure-limit-sanity($limit);
-        return ().list if $limit <= 0;
+        return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
 
         my \matches = $limit == Inf
           ?? self.match($pat, :g)
@@ -1367,7 +1367,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         my str $str   = nqp::unbox_s(self);
         my int $elems = +matches;  # make sure all reified
-        return (self,) unless $elems;
+        return Seq.new(Rakudo::Iterator.OneValue(self)) unless $elems;
 
         my $matches  := nqp::getattr(matches,List,'$!reified');
         my $result   := nqp::create(IterationBuffer);
@@ -1427,7 +1427,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::bindpos($result,$i,nqp::substr($str,$pos));
         }
 
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$result)
+        Seq.new(Rakudo::Iterator.ReifiedList($result))
     }
 
     multi method split(Str:D: Str(Cool) $match;;
@@ -1437,9 +1437,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # nothing to work with
         my str $needle = nqp::unbox_s($match);
         my int $chars  = nqp::chars($needle);
-        if !self.chars {
-            return $chars ?? self.list !! ();
-        }
+        return Seq.new($chars
+          ?? Rakudo::Iterator.OneValue(self)
+          !! Rakudo::Iterator.Empty
+        ) unless self.chars;
 
         # split really, really fast in NQP, also supports ""
         my $matches := nqp::split($needle,nqp::unbox_s(self));
@@ -1485,9 +1486,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::push($matches,"");
         }
 
-        # since most of data structures are built already, there is little
-        # point in making this a lazy iterator here
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$matches)
+        Seq.new(Rakudo::Iterator.ReifiedList($matches))
     }
 
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
@@ -1495,7 +1494,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         self!ensure-limit-sanity($limit);
-        return ().list if $limit <= 0;
+        return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
 
         # nothing to work with
         my int $chars = $match.chars;
@@ -1650,6 +1649,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }.new(self,$limit,$skip-empty));
         }
     }
+
     multi method split(Str:D: @needles, $parts is copy = Inf;;
        :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
@@ -1659,7 +1659,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           unless Rakudo::Internals.ALL_TYPE(@needles,Cool);
 
         self!ensure-limit-sanity($parts);
-        return ().list if $parts <= 0;
+        return Seq.new(Rakudo::Iterator.Empty) if $parts <= 0;
 
         my int $limit = $parts.Int
           unless nqp::istype($parts,Whatever) || $parts == Inf;
@@ -1846,7 +1846,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::push($result,nqp::substr($str,$pos))
           unless $skip && nqp::iseq_i($pos,nqp::chars($str));
 
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$result)
+        Seq.new(Rakudo::Iterator.ReifiedList($result))
     }
 
     # Note that in these same* methods, as used by s/LHS/RHS/, the
@@ -2528,8 +2528,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # use multi-needle split with in-place mapping
             else {
-                my $result :=
-                  nqp::getattr(self.split($needles,:k),List,'$!reified');
+                self.split($needles,:k).iterator.push-all(
+                  my $result := nqp::create(IterationBuffer)
+                );
                 my int $elems = nqp::elems($result);
                 my int $i    = -1;
                 nqp::bindpos($result,$i,

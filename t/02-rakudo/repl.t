@@ -192,4 +192,18 @@ my @input-lines;
         'Warnings print their message';
 }
 
+{
+    like feed_repl_with(['say "hi"; die "meows";']), /meows/,
+        'previous output does not exceptions';
+
+    my $out = feed_repl_with
+        ['say "hi"; my $f = Failure.new: "meows"; $f.Bool; $f'];
+    ok $out.contains('meows').not,
+        'previous output prevents output of handled failures';
+
+    $out = feed_repl_with ['say "hi"; X::AdHoc.new(:payload<meows>)'];
+    ok $out.contains('meows').not,
+        'previous output prevents output of unthrown exceptions';
+}
+
 done-testing;

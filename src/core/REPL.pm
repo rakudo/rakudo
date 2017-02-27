@@ -364,10 +364,17 @@ do {
 
                 reset;
 
-                # Only print the result if there wasn't some other output
-                if $initial_out_position == $*OUT.tell {
-                    self.repl-print($output);
-                }
+                # Print the result if:
+                # - there wasn't some other output
+                # - the result is a *thrown* Exception
+                # - the result is an *unhandled* Failure
+                self.repl-print($output)
+                    if $initial_out_position == $*OUT.tell or try {
+                        $output ~~ Exception and nqp::isconcrete(
+                          nqp::getattr(nqp::decont($output), Exception, '$!ex')
+                        )
+                        or $output ~~ Failure and not $output.handled
+                    }
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {

@@ -175,7 +175,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::stmts(
           (my $need    := nqp::getattr($needle,Str,'$!value')),
           (my int $add  = nqp::if($overlap,1,nqp::chars($need) || 1)),
-          (my $indices := nqp::list),
+          (my $indices := nqp::create(IterationBuffer)),
           (my int $pos),
           (my int $i),
           nqp::while(
@@ -197,7 +197,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::stmts(
               (my $need   := nqp::getattr($needle,Str,'$!value')),
               (my int $add = nqp::if($overlap,1,nqp::chars($need) || 1)),
-              (my $indices := nqp::list),
+              (my $indices := nqp::create(IterationBuffer)),
               (my int $i),
               nqp::while(
                 nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
@@ -807,7 +807,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::if(                       # did not exhaust while skipping
                   $max == Inf,                 # * is Inf in N..*
                   nqp::stmts(                  # open ended
-                    (my $matches := nqp::list),
+                    (my $matches := nqp::create(IterationBuffer)),
                     nqp::until(
                       nqp::eqaddr(
                         (my $pulled := iterator.pull-one),
@@ -820,7 +820,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ),
                   nqp::stmts(                  # upto the max index
                     (my int $todo = $max - $min + 1),
-                    ($matches := nqp::setelems(nqp::list,$todo)),
+                    ($matches :=
+                      nqp::setelems(nqp::create(IterationBuffer),$todo)),
                     (my int $i = -1),
                     nqp::until(
                       nqp::iseq_i(($i = nqp::add_i($i,1)),$todo)
@@ -894,7 +895,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-x-range(\slash, \iterator, $min, $max) {
         nqp::decont(slash = nqp::stmts(
           (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
-          (my $matches := nqp::list),
+          (my $matches := nqp::create(IterationBuffer)),
           nqp::until(
             nqp::islt_i(($todo = nqp::sub_i($todo,1)), 0) ||
               nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
@@ -1369,7 +1370,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return (self,) unless $elems;
 
         my $matches  := nqp::getattr(matches,List,'$!reified');
-        my $result   := nqp::list;
+        my $result   := nqp::create(IterationBuffer);
         my int $i = -1;
         my int $pos;
         my int $found;
@@ -1426,7 +1427,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::bindpos($result,$i,nqp::substr($str,$pos));
         }
 
-        $result
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$result)
     }
 
     multi method split(Str:D: Str(Cool) $match;;
@@ -1775,7 +1776,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # create the final result
         my int $skip = ?$skip-empty;
         my int $pos = 0;
-        my $result := nqp::list;
+        my $result := nqp::create(IterationBuffer);
         if $any {
             nqp::stmts(
               (my int $i = -1),

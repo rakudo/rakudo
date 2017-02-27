@@ -2528,15 +2528,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # use multi-needle split with in-place mapping
             else {
-                self.split($needles,:k).iterator.push-all(
-                  my $result := nqp::create(IterationBuffer)
-                );
-                my int $elems = nqp::elems($result);
-                my int $i    = -1;
-                nqp::bindpos($result,$i,
-                  nqp::atpos($pins,nqp::atpos($result,$i)))
-                  while nqp::islt_i($i = $i + 2,$elems);
-                nqp::join("",$result)
+                nqp::stmts(
+                  (my $iterator := self.split($needles,:k).iterator),
+                  (my $strings := nqp::list_s($iterator.pull-one)),
+                  nqp::until(
+                    nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd),
+                    nqp::stmts(
+                      nqp::push_s($strings,nqp::atpos($pins,$i)),
+                      nqp::push_s($strings,$iterator.pull-one)
+                    )
+                  ),
+                  nqp::join("",$strings)
+                )
             }
         }
 

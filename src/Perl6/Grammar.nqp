@@ -3422,7 +3422,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 $/.CURSOR.'!clear_highwater'();  # don't have suppose
                                 my $orry := $missing ?? "sorry" !! "worry";
                                 if $trap == 1 {        # probably misused P5ism
-                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
+                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
                                 }
                                 elsif $trap == 2 {        # probably misused P6ism
                                     $<longname>.CURSOR."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");

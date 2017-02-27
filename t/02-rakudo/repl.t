@@ -194,7 +194,7 @@ my @input-lines;
 
 {
     like feed_repl_with(['say "hi"; die "meows";']), /meows/,
-        'previous output does not exceptions';
+        'previous output does not silence exceptions';
 
     my $out = feed_repl_with
         ['say "hi"; my $f = Failure.new: "meows"; $f.Bool; $f'];

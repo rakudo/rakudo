@@ -265,8 +265,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method STORE(\to_store) {
-        $!storage := nqp::hash();
-        my $iter  := to_store.iterator;
+        my $temp := nqp::p6bindattrinvres(
+          nqp::clone(self),   # make sure we get a possible descriptor as well
+          Map,
+          '$!storage',
+          my $storage := nqp::hash
+        );
+        my $iter := to_store.iterator;
         my Mu $x;
         my Mu $y;
 
@@ -274,30 +279,30 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
           nqp::if(
             nqp::istype($x,Pair),
-            self.STORE_AT_KEY(
+            $temp.STORE_AT_KEY(
               nqp::getattr(nqp::decont($x),Pair,'$!key'),
               nqp::getattr(nqp::decont($x),Pair,'$!value')
             ),
             nqp::if(
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-              self!STORE_MAP($x),
+              $temp!STORE_MAP($x),
               nqp::if(
                 nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
                 nqp::if(
                   nqp::istype($x,Failure),
                   $x.throw,
                   X::Hash::Store::OddNumber.new(
-                    found => nqp::add_i(nqp::mul_i(nqp::elems($!storage),2),1),
+                    found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
                     last  => $x
                   ).throw
                 ),
-                self.STORE_AT_KEY($x,$y)
+                $temp.STORE_AT_KEY($x,$y)
               )
             )
           )
         );
         
-        self
+        nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
     proto method STORE_AT_KEY(|) { * }

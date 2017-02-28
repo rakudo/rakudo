@@ -342,7 +342,7 @@ do {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
 
-                my Mu $output is default(Nil) = self.repl-eval(
+                my $output is default(Nil) = self.repl-eval(
                     $code,
                     my $exception,
                     :outer_ctx($!save_ctx),

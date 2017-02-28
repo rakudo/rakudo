@@ -46,6 +46,7 @@ my class Proc::Async {
     has @.args;
     has $.w;
     has $.enc = 'utf8';
+    has $.translate-nl = True;
     has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
@@ -76,7 +77,7 @@ my class Proc::Async {
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
             !! self.stdout(|%_)
     }
-    multi method stdout(Proc::Async:D: :$enc, Bool() :$translate-nl = True) {
+    multi method stdout(Proc::Async:D: :$enc = $!enc, Bool() :$translate-nl = $!translate-nl) {
         self!wrap-decoder:
             self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
             $enc, :$translate-nl
@@ -88,7 +89,7 @@ my class Proc::Async {
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
             !! self.stderr(|%_)
     }
-    multi method stderr(Proc::Async:D: :$enc, Bool() :$translate-nl = True) {
+    multi method stderr(Proc::Async:D: :$enc = $!enc, Bool() :$translate-nl = $!translate-nl) {
         self!wrap-decoder:
             self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
             $enc, :$translate-nl
@@ -162,7 +163,7 @@ my class Proc::Async {
         X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
-        self.write($str.encode($!enc))
+        self.write($str.encode($!enc, :$!translate-nl))
     }
 
     method put(Proc::Async:D: \x, |c) {

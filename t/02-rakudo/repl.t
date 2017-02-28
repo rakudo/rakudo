@@ -192,6 +192,7 @@ my @input-lines;
         'Warnings print their message';
 }
 
+# RT#130876
 {
     like feed_repl_with(['say "hi"; die "meows";']), /meows/,
         'previous output does not silence exceptions';

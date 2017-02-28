@@ -177,8 +177,6 @@ do {
     class REPL {
         also does Completions;
 
-        my role Rakudo::Internals::REPL::CaughtError {}
-
         has Mu $.compiler;
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
@@ -277,7 +275,7 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, *%adverbs) {
+        method repl-eval($code, \exception, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
@@ -297,8 +295,8 @@ do {
                 }
 
                 default {
-                    # Use the exception as the result of the eval, to be printed
-                    return $_ but Rakudo::Internals::REPL::CaughtError
+                    exception = $_;
+                    return;
                 }
             }
 
@@ -346,6 +344,7 @@ do {
 
                 my Mu $output is default(Nil) = self.repl-eval(
                     $code,
+                    my $exception,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -368,12 +367,15 @@ do {
 
                 # Print the result if:
                 # - there wasn't some other output
-                # - the result is a *thrown* Exception
                 # - the result is an *unhandled* Failure
-                self.repl-print($output)
-                    if $initial_out_position == $*OUT.tell
-                        or $output ~~ Rakudo::Internals::REPL::CaughtError
-                        or $output ~~ Failure and not $output.handled;
+                # - print an exception if one had occured
+                if $exception.DEFINITE {
+                    self.repl-print($exception);
+                }
+                elsif $initial_out_position == $*OUT.tell
+                    or $output ~~ Failure and not $output.handled {
+                    self.repl-print($output);
+                }
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {

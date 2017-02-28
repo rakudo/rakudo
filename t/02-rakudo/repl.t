@@ -208,6 +208,13 @@ my @input-lines;
     $out = feed_repl_with ['say "hi"; try +"a"; $!'];
     ok $out.contains('meows').not,
         'previous output does not prevent output of unthrown exceptions';
+
+    $out = feed_repl_with([
+          ｢say "hi"; use nqp; my $x = REPL.new(nqp::getcomp("perl6"), %)｣
+        ~ ｢.repl-eval(q|die "meows"|, $);｣
+    ]);
+    ok $out.contains('meows').not,
+        ｢can't trick REPL into thinking an exception was thrown (RT#130876)｣;
 }
 
 done-testing;

@@ -204,6 +204,10 @@ my @input-lines;
     $out = feed_repl_with ['say "hi"; X::AdHoc.new(:payload<meows>)'];
     ok $out.contains('meows').not,
         'previous output prevents output of unthrown exceptions';
+
+    $out = feed_repl_with ['say "hi"; try +"a"; $!'];
+    ok $out.contains('meows').not,
+        'previous output does not prevent output of unthrown exceptions';
 }
 
 done-testing;

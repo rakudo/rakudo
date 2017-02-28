@@ -177,6 +177,8 @@ do {
     class REPL {
         also does Completions;
 
+        my role Rakudo::Internals::REPL::CaughtError {}
+
         has Mu $.compiler;
         has Bool $!multi-line-enabled;
         has IO::Path $!history-file;
@@ -296,7 +298,7 @@ do {
 
                 default {
                     # Use the exception as the result of the eval, to be printed
-                    return $_;
+                    return $_ but Rakudo::Internals::REPL::CaughtError
                 }
             }
 
@@ -369,12 +371,9 @@ do {
                 # - the result is a *thrown* Exception
                 # - the result is an *unhandled* Failure
                 self.repl-print($output)
-                    if $initial_out_position == $*OUT.tell or try {
-                        $output ~~ Exception and nqp::isconcrete(
-                          nqp::getattr(nqp::decont($output), Exception, '$!ex')
-                        )
-                        or $output ~~ Failure and not $output.handled
-                    }
+                    if $initial_out_position == $*OUT.tell
+                        or $output ~~ Rakudo::Internals::REPL::CaughtError
+                        or $output ~~ Failure and not $output.handled;
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {

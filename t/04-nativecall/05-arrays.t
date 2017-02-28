@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 37;
+plan 38;
 
 compile_test_lib('05-arrays');
 
@@ -94,6 +94,11 @@ compile_test_lib('05-arrays');
     is-deeply @arr[100], Struct, 'out-of-bounds access on managed array';
 
     is TakeAStructArray(@arr), 14, 'struct in position 0..2, C-side';
+
+    sub TakeAStructArrayWithANull(CArray[Struct] $obj) returns int32 is native("./05-arrays") { * }
+    @arr[1] = Struct;
+    is TakeAStructArrayWithANull(@arr), 1,
+        'Setting a type object in the array passes a NULL to the C side';
 }
 
 {

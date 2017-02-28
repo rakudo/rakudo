@@ -82,7 +82,7 @@ my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6-Compiler.js", :
 my $main-version := $build_dir ~ '/main-version';
 
 # TODO - generate a new version on changes
-rule($main-version, '', "\$(PERL) tools/build/gen-version.pl > $main-version");
+rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<js-main.nqp>);
 

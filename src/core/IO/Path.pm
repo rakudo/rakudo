@@ -6,7 +6,6 @@ my class IO::Path is Cool {
     has Str      $.path;
     has Bool $!is-absolute;
     has Str  $!abspath;  # should be native for faster file tests, but segfaults
-    has Bool $!e;
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
@@ -379,7 +378,7 @@ my class IO::Path is Cool {
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
-        $!e = True;
+        True;
     }
 
     method rmdir(IO::Path:D:) {
@@ -387,7 +386,6 @@ my class IO::Path is Cool {
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
         } }
-        $!e = False;
         True;
     }
 
@@ -495,7 +493,6 @@ my class IO::Path is Cool {
           ?? $handle.write($contents)
           !! $handle.print($contents);
         $handle.close;  # can't use LEAVE in settings :-(
-        $!e = True;
         $spurt;
     }
 
@@ -536,7 +533,7 @@ my class IO::Path is Cool {
     }
 
     method e(--> Bool) {
-        $!e //= ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath
+        ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath
     }
     method d(--> Bool) {
         $.e

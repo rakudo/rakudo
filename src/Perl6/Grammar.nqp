@@ -1783,6 +1783,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
     token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
+    token term:sym<‼>                 { '‼' <?before \s> }  # actual error produced inside infix:<⁇ ‼>
     token term:sym<∞>                  { <sym> }
 
     token term:sym<::?IDENT> {
@@ -4249,8 +4250,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<->   { <sym> <O(|%symbolic_unary)> }
     token prefix:sym<−>   { <sym> <O(|%symbolic_unary)> }
     token prefix:sym<??>  { <sym> <.dupprefix('??')> <O(|%symbolic_unary)> }
-    token prefix:sym<?>   { <sym> <!before '??'> <O(|%symbolic_unary)> }
-    token prefix:sym<!>   { <sym> <!before '!!'> <O(|%symbolic_unary)> }
+    token prefix:sym<?>   { <sym> <!before '⁇' || '??'> <O(|%symbolic_unary)> }
+    token prefix:sym<⁇>  { <sym> <.dupprefix('⁇')> <O(|%symbolic_unary)> }
+    token prefix:sym<!>   { <sym> <!before '‼' || '!!'> <O(|%symbolic_unary)> }
     token prefix:sym<|>   { <sym>  <O(|%symbolic_unary)> }
     token prefix:sym<+^>  { <sym>  <O(|%symbolic_unary)> }
     token prefix:sym<~^>  { <sym>  <O(|%symbolic_unary)> }
@@ -4402,6 +4404,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
         || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
         || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
+        ]
+        <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
+    }
+
+    token infix:sym<⁇ ‼> {
+        :my $*GOAL := '‼';
+        $<sym>='⁇'
+        <.ws>
+        <EXPR('i=')>
+        [ '‼'
+        || <?before '::' <.-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <.-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
+        || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
+        || <?{ ~$<EXPR> ~~ / '‼' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
+        || <?before \N*? [\n\N*?]? '‼'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the ‼ of conditional operator" }
+        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ⁇ but no ‼" }
         ]
         <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
     }

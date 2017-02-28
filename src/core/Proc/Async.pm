@@ -77,7 +77,7 @@ my class Proc::Async {
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
             !! self.stdout(|%_)
     }
-    multi method stdout(Proc::Async:D: :$enc = $!enc, Bool() :$translate-nl = $!translate-nl) {
+    multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
         self!wrap-decoder:
             self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
             $enc, :$translate-nl
@@ -89,14 +89,15 @@ my class Proc::Async {
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
             !! self.stderr(|%_)
     }
-    multi method stderr(Proc::Async:D: :$enc = $!enc, Bool() :$translate-nl = $!translate-nl) {
+    multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
         self!wrap-decoder:
             self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
             $enc, :$translate-nl
     }
 
-    method !wrap-decoder(Supply:D $bin-supply, $enc, Bool :$translate-nl!) {
-        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc, :$translate-nl)
+    method !wrap-decoder(Supply:D $bin-supply, $enc, :$translate-nl) {
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
+            :translate-nl($translate-nl // $!translate-nl))
     }
 
     method !capture(\callbacks,\std,\the-supply) {

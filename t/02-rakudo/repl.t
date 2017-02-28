@@ -218,4 +218,7 @@ my @input-lines;
         ｢can't trick REPL into thinking an exception was thrown (RT#130876)｣;
 }
 
+# RT#130874
+like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
+
 done-testing;

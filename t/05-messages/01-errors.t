@@ -27,5 +27,9 @@ throws-like ｢'4x'.Rat.nude｣, X::Str::Numeric,
     :message{ not .contains("Metamodel.nqp") },
     '.Rat.nude on non-numeric string does not reference guts in error';
 
+# RT #130509
+throws-like ｢…｣, X::StubCode,
+    :message{ not .contains('CORE.setting') },
+    'stub code does not reference guts when executed';
 
 done-testing;

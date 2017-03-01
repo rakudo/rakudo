@@ -1783,7 +1783,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
     token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
-    token term:sym<‼>                 { '‼' <?before \s> }  # actual error produced inside infix:<⁇ ‼>
+    token term:sym<‼>                  { '‼' <?before \s> }  # actual error produced inside infix:<⁇ ‼>
     token term:sym<∞>                  { <sym> }
 
     token term:sym<::?IDENT> {

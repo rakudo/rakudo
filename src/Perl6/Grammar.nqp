@@ -4391,7 +4391,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<min>  { <sym> >> <O(|%tight_or_minmax)> }
     token infix:sym<max>  { <sym> >> <O(|%tight_or_minmax)> }
 
-    token ternary-explan {
+    token ternary-explain {
         || <?before '::' <.-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
         || <?before ':' <.-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
         || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
@@ -4406,7 +4406,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*TERNARYBEGIN := '??';
         <.ws>
         <EXPR('i=')>
-        [ '!!' || <.ternary-explan> ]
+        [ '!!' || <.ternary-explain> ]
         <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
     }
 
@@ -4416,7 +4416,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*TERNARYBEGIN := '⁇';
         <.ws>
         <EXPR('i=')>
-        [ '‼' || <.ternary-explan> ]
+        [ '‼' || <.ternary-explain> ]
         <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
     }
 

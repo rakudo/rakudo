@@ -44,7 +44,7 @@ my class CallFrame {
     }
 
     method annotations() {
-        nqp::p6bindattrinvres(nqp::create(Map),Map,'$storage',$!annotations)
+        nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$!annotations)
     }
 }
 

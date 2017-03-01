@@ -22,4 +22,10 @@ throws-like 'sub infix:<$>() return Nil {}',
     :message{ .contains("'returns'") },
     'typing "return" instead of "returns" gives a fixing hint';
 
+# RT #130630 https://rt.perl.org/Ticket/Display.html?id=130630
+throws-like ｢'4x'.Rat.nude｣, X::Str::Numeric,
+    :message{ not .contains("Metamodel.nqp") },
+    '.Rat.nude on non-numeric string does not reference guts in error';
+
+
 done-testing;

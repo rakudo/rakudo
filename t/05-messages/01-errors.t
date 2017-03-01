@@ -1,6 +1,6 @@
 use Test;
 
-# RT #129763 https://rt.perl.org/Ticket/Display.html?id=129763
+# RT #129763
 throws-like '1++', X::Multi::NoMatch,
     message => /'but require mutable arguments'/,
 'point out matching `is rw` candidates when passing non-rw';
@@ -16,13 +16,13 @@ subtest 'curly quotes are not called smart quotes' => {
     }
 }
 
-# RT #130712 https://rt.perl.org/Public/Bug/Display.html?id=130712
+# RT #130712
 throws-like 'sub infix:<$>() return Nil {}',
     X::AdHoc,
     :message{ .contains("'returns'") },
     'typing "return" instead of "returns" gives a fixing hint';
 
-# RT #130630 https://rt.perl.org/Ticket/Display.html?id=130630
+# RT #130630
 throws-like ｢'4x'.Rat.nude｣, X::Str::Numeric,
     :message{ not .contains("Metamodel.nqp") },
     '.Rat.nude on non-numeric string does not reference guts in error';

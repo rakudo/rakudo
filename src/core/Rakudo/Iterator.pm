@@ -2207,6 +2207,61 @@ class Rakudo::Iterator {
         }.new(list)
     }
 
+    # Return an iterator that produces values in reverse order for a
+    # List that has been completely reified already.  Returns an nqp::null
+    # for elements don't exist before the end of the reified list.
+    method ReifiedListReverse(\list) {
+        class :: does Iterator {
+            has $!reified;
+            has int $!i;
+
+            method !SET-SELF(\list) {
+                nqp::stmts(
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
+                  ($!i = nqp::elems($!reified)),
+                  self
+                )
+            }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!i,
+                  nqp::atpos($!reified,$!i = nqp::sub_i($!i,1)),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $i = nqp::elems($!reified)),
+                  nqp::while(  # doesn't sink
+                    $i,
+                    $target.push(nqp::atpos($!reified,($i = nqp::sub_i($i,1))))
+                  ),
+                  ($!i = 0)
+                )
+            }
+            method skip-one() {
+                nqp::if(
+                  $!i,
+                  nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
+                )
+            }
+            method skip-at-least(int $toskip) {
+                nqp::unless(
+                  nqp::isge_i(($!i = nqp::sub_i($!i,$toskip)),0),
+                  ($!i = 0)
+                )
+            }
+            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { $!i = 0 }
+        }.new(list)
+    }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator

@@ -1050,18 +1050,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           self.is-lazy,    # reifies
           Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
-          nqp::if(
+          Seq.new(nqp::if(
             $!reified,
-            Rakudo::Internals.ReverseListToList(
-              self,
-              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
-                nqp::setelems(
-                  nqp::create(IterationBuffer),nqp::elems($!reified)
-                )
-              )
-            ),
-            nqp::create(self)
-          )
+            Rakudo::Iterator.ReifiedListReverse($!reified),
+            Rakudo::Iterator.Empty
+          ))
         )
     }
 

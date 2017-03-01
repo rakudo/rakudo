@@ -58,21 +58,6 @@ my class Rakudo::Internals {
         )
     }
 
-    method ReverseListToList(\from,\to) {
-        nqp::stmts(
-          (my $from := nqp::getattr(from,List,'$!reified')),
-          (my int $elems = nqp::elems($from)),
-          (my int $last  = nqp::sub_i($elems,1)),
-          (my int $i     = -1),
-          (my $to := nqp::getattr(to,List,'$!reified')),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos($to,nqp::sub_i($last,$i),nqp::atpos($from,$i))
-          ),
-          to
-        )
-    }
-
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
     method MERGESORT-REIFIED-LIST(\list) {

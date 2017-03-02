@@ -4391,32 +4391,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<min>  { <sym> >> <O(|%tight_or_minmax)> }
     token infix:sym<max>  { <sym> >> <O(|%tight_or_minmax)> }
 
-    token ternary-explain {
+    token infix:sym<?? !!> {
+        $<sym>=['⁇' || '??']
+        {}:my $*GOAL := $<sym> eq '??' ?? '!!' !! '‼';
+        <.ws>
+        <EXPR('i=')>
+        [ $*GOAL
         || <?before '::' <.-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
         || <?before ':' <.-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
         || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
         || <?{ ~$<EXPR> ~~ / $*GOAL / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
         || <?before \N*? [\n\N*?]? $*GOAL> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
-        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found $*TERNARYBEGIN but no $*GOAL" }
-    }
-
-    token infix:sym<?? !!> {
-        :my $*GOAL := '!!';
-        $<sym>='??'
-        :my $*TERNARYBEGIN := '??';
-        <.ws>
-        <EXPR('i=')>
-        [ '!!' || <.ternary-explain> ]
-        <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
-    }
-
-    token infix:sym<⁇ ‼> {
-        :my $*GOAL := '‼';
-        $<sym>='⁇'
-        :my $*TERNARYBEGIN := '⁇';
-        <.ws>
-        <EXPR('i=')>
-        [ '‼' || <.ternary-explain> ]
+        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found $<sym> but no $*GOAL" }
+        ]
         <O(|%conditional, :reducecheck<ternary>, :pasttype<if>)>
     }
 

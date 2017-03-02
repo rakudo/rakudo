@@ -4393,7 +4393,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<?? !!> {
         $<sym>=['⁇' || '??']
-        {}:my $*GOAL := $<sym> eq '??' ?? '!!' !! '‼';
+        {} # update $/, so $<sym> on the next line to have a value
+        :my $*GOAL := $<sym> eq '??' ?? '!!' !! '‼';
         <.ws>
         <EXPR('i=')>
         [ $*GOAL

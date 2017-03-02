@@ -275,18 +275,28 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     }
     else {
         sub (+values) {
-            my \iter = values.reverse.iterator;
-            my \first = iter.pull-one;
-            return op.() if nqp::eqaddr(first,IterationEnd);
-
-            my \second = iter.pull-one;
-            return op.(first) if nqp::eqaddr(second,IterationEnd);
-
-            my $result := op.(second, first);
-            until nqp::eqaddr((my \value = iter.pull-one),IterationEnd) {
-                $result := op.(value, $result);
-            }
-            $result;
+            nqp::if(
+              nqp::isgt_i((my int $i = values.elems),1),        # reifies
+              nqp::stmts(
+                (my $result := nqp::atpos(
+                  nqp::getattr(values,List,'$!reified'),
+                  ($i = nqp::sub_i($i,1))
+                )),
+                nqp::while(
+                  nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                  ($result := op.(
+                    nqp::atpos(nqp::getattr(values,List,'$!reified'),$i),
+                    $result
+                  ))
+                ),
+                $result
+              ),
+              nqp::if(
+                $i,
+                op.(nqp::atpos(nqp::getattr(values,List,'$!reified'),0)),
+                op.()
+              )
+            )
         }
     }
 }

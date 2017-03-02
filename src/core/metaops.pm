@@ -252,53 +252,69 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
-    if op.count > 2 and op.count < Inf {
-        my $count = op.count;
-        sub (+values) {
-            my \iter = values.reverse.iterator;
-            my \first = iter.pull-one;
-           return op.() if nqp::eqaddr(first,IterationEnd);
-
-            my @args.unshift: first;
-            my $result := first;
-            until nqp::eqaddr((my \value = iter.pull-one),IterationEnd) {
-                @args.unshift: value;
-                if @args.elems == $count {
-                    my \val = op.(|@args);
-                    @args = ();
-                    @args.unshift: val;  # allow op to return a Slip
-                    $result := val;
-                }
-            }
-            $result;
-        }
-    }
-    else {
-        sub (+values) {
-            nqp::if(
-              nqp::isgt_i((my int $i = values.elems),1),        # reifies
-              nqp::stmts(
-                (my $result := nqp::atpos(
-                  nqp::getattr(values,List,'$!reified'),
+    nqp::if(
+      op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
+      sub (+values) {
+          nqp::if(
+            nqp::isge_i((my int $i = values.elems),$count),   # reifies
+            nqp::stmts(
+              (my $args := nqp::list(
+                my $result := nqp::atpos(
+                  (my $reified := nqp::getattr(values,List,'$!reified')),
                   ($i = nqp::sub_i($i,1))
-                )),
-                nqp::while(
-                  nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                  ($result := op.(
-                    nqp::atpos(nqp::getattr(values,List,'$!reified'),$i),
-                    $result
-                  ))
-                ),
-                $result
+                )
+              )),
+              nqp::until(
+                nqp::islt_i(($i = nqp::sub_i($i,1)),0),
+                nqp::stmts(
+                  nqp::unshift($args,nqp::atpos($reified,$i)),
+                  nqp::if(
+                    nqp::iseq_i(nqp::elems($args),$count),
+                    nqp::stmts(
+                      ($result := op.(|nqp::hllize($args))),
+                      nqp::bindpos(nqp::setelems($args,1),0,$result)
+                    )
+                  )
+                )
               ),
               nqp::if(
-                $i,
-                op.(nqp::atpos(nqp::getattr(values,List,'$!reified'),0)),
-                op.()
+                nqp::isgt_i(nqp::elems($args),1),
+                op.(|nqp::hllize($args)),    # something left to process
+                $result
               )
+            ),
+            nqp::if(
+              $i,
+              op.(|nqp::getattr(values,List,'$!reified')),
+              op.()
             )
-        }
-    }
+        )
+      },
+      sub (+values) {
+          nqp::if(
+            nqp::isgt_i((my int $i = values.elems),1),        # reifies
+            nqp::stmts(
+              (my $result := nqp::atpos(
+                nqp::getattr(values,List,'$!reified'),
+                ($i = nqp::sub_i($i,1))
+              )),
+              nqp::while(
+                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                ($result := op.(
+                  nqp::atpos(nqp::getattr(values,List,'$!reified'),$i),
+                  $result
+                ))
+              ),
+              $result
+            ),
+            nqp::if(
+              $i,
+              op.(nqp::atpos(nqp::getattr(values,List,'$!reified'),0)),
+              op.()
+            )
+          )
+      }
+    )
 }
 
 proto sub METAOP_REDUCE_LIST(|) { * }

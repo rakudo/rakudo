@@ -199,12 +199,12 @@ Make sure everything compiles and runs from a known clean state:
 
 Install Inline::Perl5 so stresstest can use it.
 
-  git clone https://github.com/tadzik/panda
+  git clone https://github.com/ugexe/zef
   export PATH=`pwd`/install/bin:$PATH
-  cd panda; perl6 bootstrap.pl
+  cd zef; perl6 -Ilib bin/zef install .
   cd ..
   export PATH=`pwd`/install/share/perl6/site/bin:$PATH
-  panda install Inline::Perl5
+  zef install Inline::Perl5
 
 =item 13.
 

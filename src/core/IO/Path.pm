@@ -19,13 +19,13 @@ my class IO::Path is Cool {
     submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD! --> Nil) { }
 
     method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        method !fap() {
+        method !set-absolute() {
             $!is-absolute = True;
             $!abspath := $path;
             self;
         }
 
-        self.bless(:$path, :$SPEC, :$CWD)!fap;
+        self.bless(:$path, :$SPEC, :$CWD)!set-absolute;
     }
 
     proto method new(|) {*}

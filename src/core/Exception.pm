@@ -1810,6 +1810,14 @@ my class X::Phaser::PrePost is Exception {
     }
 }
 
+my class X::Str::InvalidCharName is Exception {
+    has $.name;
+    method message() {
+        $!name.chars ?? "Unrecognized character name [{$!name}]"
+                     !! "Cannot use empty name as character name"
+    }
+}
+
 my class X::Str::Numeric is Exception {
     has $.source;
     has $.pos;

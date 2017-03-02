@@ -1,6 +1,7 @@
 my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
+my class X::Str::InvalidCharName { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Subst::Adverb { ... }
@@ -1351,6 +1352,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             $sign * $parsed[0];
         }
+    }
+
+    method parse-names(Str:D:) {
+        my     \names := nqp::split(',', self);
+        my int $elems  = nqp::elems(names);
+        my int $i      = -1;
+        my str $res    = '';
+        nqp::while(
+            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
+            ($res = nqp::concat($res,
+                nqp::unless(
+                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
+                    X::Str::InvalidCharName.new(
+                        :name(nqp::atpos(names, $i).trim)
+                    ).fail
+            ))),
+        );
+        $res
     }
 
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
@@ -2971,6 +2990,8 @@ sub chrs(*@c) returns Str:D {
 
 proto sub parse-base(|) { * }
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
+
+sub parse-names(Str:D $str) { $str.parse-names }
 
 proto sub substr(|) { * }
 multi sub substr(Str:D \what, Int:D \start) {

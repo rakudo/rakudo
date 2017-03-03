@@ -1992,16 +1992,13 @@ my class X::TypeCheck is Exception {
         ) // "?"
     }
     method priors() {
-        my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
-            "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
-        }
-        else { '' }
-        $prior;
+        (try nqp::isconcrete($!got) && $!got ~~ Failure)
+          ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
+          !! ''
     }
     method message() {
         self.priors() ~
         "Type check failed in $.operation; expected $.expectedn but got $.gotn";
-
     }
 }
 
@@ -2010,8 +2007,9 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
     method message() {
         my $to = $.symbol.defined && $.symbol ne '$'
-            ?? " to $.symbol" !! "";
-        my $expected = $.expected =:= $.got
+            ?? " to '$.symbol'"
+            !! "";
+        my $expected = (try nqp::eqaddr($.expected,$.got))
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         self.priors() ~ "Type check failed in $.operation$to; $expected";

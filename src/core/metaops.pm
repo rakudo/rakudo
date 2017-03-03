@@ -256,11 +256,15 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
       sub (+values) {
           nqp::if(
-            nqp::isge_i((my int $i = values.elems),$count),   # reifies
+            nqp::isge_i((my int $i = (my $v :=
+                nqp::if(nqp::istype(values,List),values,values.List)
+              ).elems),                                       # reifies
+              $count
+            ),   # reifies
             nqp::stmts(
               (my $args := nqp::list(
                 my $result := nqp::atpos(
-                  (my $reified := nqp::getattr(values,List,'$!reified')),
+                  (my $reified := nqp::getattr($v,List,'$!reified')),
                   ($i = nqp::sub_i($i,1))
                 )
               )),
@@ -285,23 +289,27 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             ),
             nqp::if(
               $i,
-              op.(|nqp::getattr(values,List,'$!reified')),
+              op.(|nqp::getattr($v,List,'$!reified')),
               op.()
             )
         )
       },
       sub (+values) {
           nqp::if(
-            nqp::isgt_i((my int $i = values.elems),1),        # reifies
+            nqp::isgt_i((my int $i = (my $v :=
+                nqp::if(nqp::istype(values,List),values,values.List)
+              ).elems),                                       # reifies
+              1
+            ),
             nqp::stmts(
               (my $result := nqp::atpos(
-                nqp::getattr(values,List,'$!reified'),
+                nqp::getattr($v,List,'$!reified'),
                 ($i = nqp::sub_i($i,1))
               )),
               nqp::while(
                 nqp::isge_i(($i = nqp::sub_i($i,1)),0),
                 ($result := op.(
-                  nqp::atpos(nqp::getattr(values,List,'$!reified'),$i),
+                  nqp::atpos(nqp::getattr($v,List,'$!reified'),$i),
                   $result
                 ))
               ),
@@ -309,7 +317,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             ),
             nqp::if(
               $i,
-              op.(nqp::atpos(nqp::getattr(values,List,'$!reified'),0)),
+              op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0)),
               op.()
             )
           )

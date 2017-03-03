@@ -59,7 +59,7 @@ my class Rakudo::Internals {
     }
 
     # Return new IterationBuffer with the two given values
-    sub IB2(\one,\two --> IterationBuffer) {
+    sub IB2(Mu \one,Mu \two --> IterationBuffer) {
         nqp::stmts(
           (my $buf := nqp::create(IterationBuffer)),
           nqp::bindpos($buf,0,one),

@@ -713,7 +713,6 @@ my class Array { # declared in BOOTSTRAP
     }
 
     my $empty := nqp::create(IterationBuffer); # splicing in without values
-    proto method splice(|) is nodal { * }
     #------ splice() candidates
     multi method splice(Array:D \SELF:) {
         nqp::if(

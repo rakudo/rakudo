@@ -1,6 +1,5 @@
 my class Cursor does NQPCursorRole {
     has $!made; # Need it to survive re-creations of the match object.
-    my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
 
     multi method Bool(Cursor:D:) {
@@ -150,7 +149,8 @@ my class Cursor does NQPCursorRole {
                 }
             }
         }
-        nqp::bindattr($match, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
+        nqp::bindattr($match, Capture, '@!list',
+          nqp::isconcrete($list) ?? $list !! ENL);
         nqp::bindattr($match, Capture, '%!hash', $hash);
         nqp::bindattr(self, Cursor, '$!match', $match);
 

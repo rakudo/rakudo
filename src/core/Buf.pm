@@ -490,14 +490,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
 
-    my $empty := nqp::list_i;
     multi method splice(Buf:D \SELF:) { my $buf = SELF; SELF = Buf.new; $buf }
     multi method splice(Buf:D: Int $offset, $size = Whatever) {
         my int $remove = self!remove($offset,$size);
         my $result := $remove
           ?? self.subbuf($offset,$remove)  # until something smarter
           !! nqp::create(self);
-        nqp::splice(self,$empty,$offset,$remove);
+        nqp::splice(self,ENLI,$offset,$remove);
         $result
     }
     multi method splice(Buf:D: Int $offset, $size, int $got) {

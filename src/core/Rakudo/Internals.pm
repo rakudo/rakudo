@@ -351,7 +351,7 @@ my class Rakudo::Internals {
 
             while $i >= 0 {
                 if $docs === nqp::atpos($*POD_BLOCKS, $i) {
-                    nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
+                    nqp::splice($*POD_BLOCKS,ENL,$i,1);
                     last;
                 }
                 $i := $i - 1;
@@ -1248,8 +1248,7 @@ my class Rakudo::Internals {
         }
 
         # front part cleanup
-        my $empty := nqp::list();
-        nqp::splice($parts,$empty,1,1)
+        nqp::splice($parts,ENL,1,1)
           while nqp::existskey($clean-parts-nul,nqp::atpos($parts,1));
 
         # recursive ".." and "." handling
@@ -1257,7 +1256,7 @@ my class Rakudo::Internals {
 
             # the end
             if $index == 1 {
-                nqp::splice($parts,$empty,1,1);
+                nqp::splice($parts,ENL,1,1);
                 1
             }
 
@@ -1268,23 +1267,23 @@ my class Rakudo::Internals {
                         updirs($index - 1);
                     }
                     elsif nqp::iseq_s($part,'.') {
-                        nqp::splice($parts,$empty,$index,1);
+                        nqp::splice($parts,ENL,$index,1);
                         updirs($index - 1);
                     }
                     else {
-                        nqp::splice($parts,$empty,--$index,2);
+                        nqp::splice($parts,ENL,--$index,2);
                         $index;
                     }
                 }
                 else {
-                    nqp::splice($parts,$empty,--$index,2);
+                    nqp::splice($parts,ENL,--$index,2);
                     $index;
                 }
             }
 
             # nul, just ignore
             else {
-                nqp::splice($parts,$empty,$index,1);
+                nqp::splice($parts,ENL,$index,1);
                 updirs($index);
             }
         }
@@ -1296,11 +1295,11 @@ my class Rakudo::Internals {
                 nqp::iseq_s($part,'..')
                   ?? ($checks = updirs($checks))
                   !! nqp::iseq_s($part,'.')
-                    ?? nqp::splice($parts,$empty,$checks--,1)
+                    ?? nqp::splice($parts,ENL,$checks--,1)
                     !! --$checks;
             }
             else {
-                nqp::splice($parts,$empty,$checks--,1);
+                nqp::splice($parts,ENL,$checks--,1);
             }
         }
 

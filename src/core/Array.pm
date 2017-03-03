@@ -712,7 +712,6 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    my $empty := nqp::create(IterationBuffer); # splicing in without values
     #------ splice() candidates
     multi method splice(Array:D \SELF:) {
         nqp::if(
@@ -786,7 +785,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
           ),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$empty,$offset,$size),
+            nqp::getattr(self,List,'$!reified'),ENL,$offset,$size),
           $result
         )
     }
@@ -870,7 +869,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           (my $result := self!splice-save($offset,$size,my int $removed)),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$empty,$offset,$removed),
+            nqp::getattr(self,List,'$!reified'),ENL,$offset,$removed),
           $result
         )
     }

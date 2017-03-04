@@ -60,7 +60,11 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method chr(Int:D:) {
-        nqp::p6box_s(nqp::chr(nqp::unbox_i(self)));
+        nqp::if(
+          nqp::isbig_I(self),
+          (die "chr codepoint too large: {self}"),
+          nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
+        )
     }
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }

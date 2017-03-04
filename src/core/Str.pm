@@ -1480,7 +1480,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                           nqp::not_i(nqp::isne_i(
                             nqp::chars(nqp::atpos($matches,$i)),0)))
                               while $i = nqp::sub_i($i,1);
-                        nqp::splice($matches,ENL,0,1)
+                        nqp::splice($matches,nqp::list,0,1)
                           unless nqp::chars(nqp::atpos($matches,0));
                     }
                     else {
@@ -1761,6 +1761,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # remove elements we don't want
         if nqp::isgt_i($limit,0) {
             nqp::stmts(
+              (my $none := nqp::list),
               (my int $limited = 1),   # split one less than entries returned
               (my int $elems = nqp::elems($positions)),
               (my int $pos),
@@ -1785,7 +1786,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ),
               nqp::if(
                 nqp::islt_i($i,$elems),
-                nqp::splice($positions,ENL,
+                nqp::splice($positions,$none,
                   $i,nqp::sub_i(nqp::elems($positions),$i))
               )
             )

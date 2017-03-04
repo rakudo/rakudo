@@ -9,6 +9,7 @@
 #    Rakudo::Iterator, feels better.
 
 class Rakudo::Iterator {
+    my $empty := nqp::list;   # an empty list for nqp::splice
 
 #-------------------------------------------------------------------------------
 # Roles that are used by iterators in the rest of the core settings, in
@@ -2513,7 +2514,7 @@ class Rakudo::Iterator {
                           nqp::create(List),List,'$!reified',
                           nqp::clone($!buffer)
                         )),
-                        nqp::splice($!buffer,ENL,0,nqp::add_i($elems,$gap)),
+                        nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap)),
                         $result
                       ),
                       nqp::stmts(
@@ -2586,7 +2587,7 @@ class Rakudo::Iterator {
                             IterationEnd
                           ),
                           nqp::stmts(          # remove exhausted iterator
-                            nqp::splice($!iters,ENL,$i,1),
+                            nqp::splice($!iters,$empty,$i,1),
                             ($i = nqp::sub_i($i,1)),
                             ($elems = nqp::sub_i($elems,1))
                           ),

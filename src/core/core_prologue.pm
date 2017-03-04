@@ -22,13 +22,8 @@ my role PositionalBindFailover { ... }
 # we also stub here). This is needed in a bunch of simple constructs (like if
 # with only one branch).
 my class IterationBuffer is repr('VMArray') { ... }
-# note this needs to be an IterationBuffer otherwise auto-hllizing would
-# make this a List, which would *not* be what we wanted.  IterationBuffer
-# uses the same low-level REPR as nqp::list, so we're fine in that respect
-my constant ENL = nqp::create(IterationBuffer);    # Empty Nqp::List
-my constant ENLI = nqp::list_i;                    # Empty Nqp::List_I
-my constant Empty =
-  nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',ENL);
+my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
+    List, '$!reified', nqp::create(IterationBuffer));
 
 # The value for \n.
 my constant $?NL = "\x0A";

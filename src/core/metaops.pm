@@ -214,42 +214,75 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 
 proto sub METAOP_REDUCE_RIGHT(|) { * }
 multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
-    if op.count > 2 and op.count < Inf {
-        my $count = op.count;
-        sub (+values) {
-            my \source = values.reverse.iterator;
-            my \first = source.pull-one;
-            return () if nqp::eqaddr(first,IterationEnd);
+    nqp::if(
+      op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
+      sub (+values) {
+          my \source = values.reverse.iterator;
+          my \first = source.pull-one;
+          return () if nqp::eqaddr(first,IterationEnd);
 
-            my @args.unshift: first;
-            GATHER({
-                take first;
-                until nqp::eqaddr((my \current = source.pull-one),IterationEnd) {
-                    @args.unshift: current;
-                    if @args.elems == $count {
-                        my \val = op.(|@args);
-                        take val;
-                        @args = ();
-                        @args.unshift: val;  # allow op to return a Slip
-                    }
+          my @args.unshift: first;
+          GATHER({
+              take first;
+              until nqp::eqaddr((my \current = source.pull-one),IterationEnd) {
+                  @args.unshift: current;
+                  if @args.elems == $count {
+                      my \val = op.(|@args);
+                      take val;
+                      @args = ();
+                      @args.unshift: val;  # allow op to return a Slip
+                  }
+              }
+          }).lazy-if(source.is-lazy);
+      },
+      sub (+values) {
+          Seq.new(nqp::if(
+            nqp::isgt_i((my int $i = (my $v :=
+                nqp::if(nqp::istype(values,List),values,values.List)
+              ).elems),                                       # reifies
+              1
+            ),
+            class :: does Iterator {
+                has $!op;
+                has $!reified;
+                has $!result;
+                has int $!i;
+                method !SET-SELF(\op,\list,\count) {
+                    nqp::stmts(
+                      ($!op := op),
+                      ($!reified := nqp::getattr(list,List,'$!reified')),
+                      ($!i = count),
+                      self
+                    )
                 }
-            }).lazy-if(source.is-lazy);
-        }
-    }
-    else {
-        sub (+values) {
-            my \iter = values.reverse.iterator;
-            my $result := iter.pull-one;
-            return () if nqp::eqaddr($result,IterationEnd);
-
-            gather {
-                take $result;
-                until nqp::eqaddr((my $elem := iter.pull-one),IterationEnd) {
-                    take $result := op.($elem, $result)
+                method new(\op,\li,\co) { nqp::create(self)!SET-SELF(op,li,co) }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::attrinited(self,self.WHAT,'$!result'),
+                      nqp::if(
+                        nqp::isge_i(($!i = nqp::sub_i($!i,1)),0),
+                        ($!result := $!op.(nqp::atpos($!reified,$!i),$!result)),
+                        IterationEnd
+                      ),
+                      ($!result := nqp::atpos(
+                        $!reified,
+                        ($!i = nqp::sub_i($!i,1))
+                      ))
+                    )
                 }
-            }.lazy-if(values.is-lazy);
-        }
-    }
+                method bool-only(--> True) { };
+                method count-only() { nqp::p6box_i($!i) }
+            }.new(op,$v,$i),
+            Rakudo::Iterator.OneValue(
+              nqp::if(
+                $i,
+                op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0)),
+                op.()
+              )
+            )
+          ))
+      }
+    )
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
     nqp::if(

@@ -1,3 +1,63 @@
+New in 2017.03
+ + Fixes:
+    + Fixed SC collision when loading identical modules from
+        different dists [254f76a]
+    + Fixed CURI loading of modules with identical short-names [c1a0fa7]
+    + Fixed SEGV in exception handler resolution in sub/INIT/return [b2eb115]
+    + Fixed SEGV on `xx` with a huge repeat values [1cafc67]
+    + Fixed SEGV on chars with a huge number of combiners [1cafc67]
+    + Fixed SEGV when `Scalar` type object is processed by `unique` [cfe0e04]
+    + Fixed .comb(Int) failing to work on Cool [a08e953]
+    + Fixed hang in dispatch of .lines/.words when given wrong args [7425737]
+    + Fixed cases of lack of panic upon with quantifiers in regexes [91a4ac5]
+    + Fixed broken thunking of infix:<notandthen> [5e6f30a]
+    + Fixed failure to thunk RHS on `or=`, `and=`, and `notandthen=` [3e88c41]
+    + Fixed precision loss with `cmp` involving Rationals/Int [9e8ecb7]
+    + Fixed crash in .Bool, .so, .not, .hash, and .elems on Baggy:U [e8af855]
+    + Fixed crash in IO::Special .WHICH/.Str [dd4dfb1]
+    + Fixed install wrapper when no binaries are found [796b6a8]
+    + Fixed crash when calling .sort on reified empty Array [8e250db][75e070f]
+    + Fixed `Nil` being displayed as `Mu` in REPL [a274bdd][cd47e2a]
+    + Fixed previous output silencing exceptions in REPL
+        [db70a1f][61a65ce][7f9235c]
+    + Fixed loss of data when using a hash in assignment to itself [ae7bcf1]
+    + Fixed IO::Path.e failing to detect changes on the filesystem [76f7187]
+    + Fixed `infix:<eqv>` with Seq/List containing same elements [f9eb811]
+    + Fixed CArray to pass NULL when for type object elements [26e6993]
+    + Fixed GC deadlock when event loop worker thread was spawned [26e6993]
+    + Fixed `:i` in regexes using lowercase instead of fold case [26e6993]
+    + JVM backend fixes [b1def95][2f6d2c6]
+    + Various improvements to error reporting
+        [dc5fb20][d66c382][b11dc88][6cb9be2][3bf734f][26e6993]
+ + Additions:
+    + Made Proc::Async default to translating newlines [05add43][2973ccd]
+    + Implemented ⁇ ‼ (U+2047, U+203C) as alternative to ?? !! ternary [ed971df]
+    + Implemented Str.parse-names [5c1761a]
+    + Added `$epsilon` argument to Complex.Rat/.FatRat [a4af702]
+    + Fixed loss of precision in Instant.Rat [a4af702]
+    + Implemented .FatRat coercer in Cool and Numeric [a4af702]
+    + Added Mu candidate for `infix:<xx>` [e270a15]
+    + Implemented Mu.iterator [81fcd1b]
+    + Made sure Str.split always returns a Seq [f595733][8301a30]
+    + Made List.reverse return a Seq [beda576]
+    + Implemented new internal braids API to make future optimizations easier.
+        This affects any slang modules that access `%*LANG`, `%*PRAGMAS`, and
+        `$*ACTIONS` internals using unofficial API.
+ + Efficiency:
+    + Made List.reverse 0%–30% faster and reduced memory pressure by up to 70%
+        [beda576]
+    + Made loops/maps with NEXT phaser about 5% faster [80e0bce]
+    + Made `infix:<%%>` about 14x faster for Int,Int case [755e25b]
+    + Made `infix:<%>` about 8x faster for Int,Int case [5ec2517]
+    + Made Junction creation about 20% faster [fafe663]
+    + Made callframe() about 20% faster [7966dad][9a74cd0]
+    + Made meta reduce with right-assoc. op 30%–200% faster [60a8f9e][2cf9b53]
+    + REMOVED caching of IO::Path.e results to fix unwanted behaviour [76f7187]
+    + Assorted internal improvements to CPU/memory use
+        [b2e0ac0][25a3cc5][b61b3c7][829762a][45b3af8][7010ae9][556db9d][9e9a4ad]
+        [8e8cd14][7556498][adb6f87][9a109c9][3de7b08][b283e52][0be7247][74573d0]
+        [79d5670][313e7b2][e723e00][5843ee6][7c279c3][318f8ee][4ef1e69][9d497e9]
+
 New in 2017.02
  + 6.d.PREVIEW changes:
     + It is now possible to use different language versions in different comp units.

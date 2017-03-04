@@ -1877,6 +1877,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $target_package;
         my $has_file;
         my $longname;
+        my $*SCOPE := 'my';
         if $<module_name> {
             for $<module_name><longname><colonpair> -> $colonpair {
                 if ~$colonpair<identifier> eq 'file' {
@@ -1885,7 +1886,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             $longname := $*W.dissect_longname($<module_name><longname>);
-            $target_package := $*W.dissect_longname($<module_name><longname>).name_past;
+            $target_package := $longname.name_past;
         }
         if $<module_name> && nqp::defined($has_file) == 0 {
             my $short_name := nqp::clone($target_package);
@@ -1918,6 +1919,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
             );
         }
+        my $lexpad := $*W.cur_lexpad();
+        if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
+            declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
+        }
         my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
@@ -1925,8 +1930,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);
-            my $lexpad      := $*W.cur_lexpad();
-            my $*SCOPE      := 'my';
 
             while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {
                 my str $symbol := nqp::unbox_s($arg.Str());

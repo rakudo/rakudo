@@ -552,7 +552,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
         nqp::split('::',my str $name = @chunks.join('::'))),
       nqp::stmts(
         (my str $first = nqp::shift($parts)),
-        nqp::if(
+        nqp::if( # move the sigil to the last part of the name if available
           nqp::elems($parts),
           nqp::stmts(
             (my str $sigil = nqp::substr($first,0,1)),
@@ -577,14 +577,19 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
           )
         ),
         (my Mu $thing := nqp::if(
-          $root.EXISTS-KEY($first),
-          $root.AT-KEY($first),
+          $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
+            && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+            && ($REQUIRE_SYMBOLS{$first}:exists),
+          $REQUIRE_SYMBOLS{$first},
           nqp::if(
-            GLOBAL::.EXISTS-KEY($first),
-            GLOBAL::.AT-KEY($first),
-            X::NoSuchSymbol.new(symbol => $name).fail
-          )
-        )),
+            $root.EXISTS-KEY($first),
+            $root.AT-KEY($first),
+            nqp::if(
+              GLOBAL::.EXISTS-KEY($first),
+              GLOBAL::.AT-KEY($first),
+              X::NoSuchSymbol.new(symbol => $name).fail
+            )
+          ))),
         nqp::while(
           nqp::elems($parts),
           nqp::if(
@@ -616,7 +621,11 @@ sub REQUIRE_IMPORT($compunit, *@syms --> Nil) {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
     # Merge GLOBAL from compunit.
-    GLOBAL::.merge-symbols($GLOBALish);
+    my $lexpad := nqp::ctxlexpad(nqp::ctxcaller(nqp::ctx()));
+    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+        nqp::atkey($lexpad, '%REQUIRE_SYMBOLS'),
+        $GLOBALish,
+    );
 }
 
 sub infix:<andthen>(+a) {

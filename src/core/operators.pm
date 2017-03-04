@@ -604,12 +604,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms --> Nil) {
+sub REQUIRE_IMPORT($compunit, $module, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
     my @missing;
     # Set the runtime values for compile time stub symbols
+    CALLER::{$module} := $GLOBALish{$module} if $module;
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
             @missing.push: $_;

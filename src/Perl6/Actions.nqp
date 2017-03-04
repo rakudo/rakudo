@@ -1927,6 +1927,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
                                         ),'require');
+        if $target_package && !$longname.contains_indirect_lookup() {
+            my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($longname.name));
+            $*W.pkg_compose($/, $stub);
+            my $stubvar := QAST::Var.new(
+                :name($longname.name),
+                :scope('lexical'),
+                :decl('var'),
+            );
+            $lexpad[0].unshift($stubvar);
+            $lexpad.symbol($longname.name, :scope('lexical'), :value($stub));
+            $require_past.push($target_package);
+        }
+        else {
+            $require_past.push($*W.symbol_lookup(['Any'], $/));
+        }
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);

@@ -16,6 +16,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # class Str is Cool
     #     has str $!value is box_target;
 
+    my $empty := nqp::list;   # for nqp::splice
+
     multi method WHY('Life, the Universe and Everything':) { 42 }
 
     multi method WHICH(Str:D:) {
@@ -1480,7 +1482,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                           nqp::not_i(nqp::isne_i(
                             nqp::chars(nqp::atpos($matches,$i)),0)))
                               while $i = nqp::sub_i($i,1);
-                        nqp::splice($matches,nqp::list,0,1)
+                        nqp::splice($matches,$empty,0,1)
                           unless nqp::chars(nqp::atpos($matches,0));
                     }
                     else {
@@ -1761,7 +1763,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # remove elements we don't want
         if nqp::isgt_i($limit,0) {
             nqp::stmts(
-              (my $none := nqp::list),
               (my int $limited = 1),   # split one less than entries returned
               (my int $elems = nqp::elems($positions)),
               (my int $pos),
@@ -1786,7 +1787,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ),
               nqp::if(
                 nqp::islt_i($i,$elems),
-                nqp::splice($positions,$none,
+                nqp::splice($positions,$empty,
                   $i,nqp::sub_i(nqp::elems($positions),$i))
               )
             )

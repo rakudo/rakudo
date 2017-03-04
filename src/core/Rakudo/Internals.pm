@@ -14,6 +14,9 @@ my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 
+    # for use in nqp::splice
+    my $empty := nqp::list;
+
     our class WeightedRoll {
         has @!pairs;
         has $!total;
@@ -351,7 +354,7 @@ my class Rakudo::Internals {
 
             while $i >= 0 {
                 if $docs === nqp::atpos($*POD_BLOCKS, $i) {
-                    nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
+                    nqp::splice($*POD_BLOCKS, $empty, $i, 1);
                     last;
                 }
                 $i := $i - 1;
@@ -1248,7 +1251,6 @@ my class Rakudo::Internals {
         }
 
         # front part cleanup
-        my $empty := nqp::list();
         nqp::splice($parts,$empty,1,1)
           while nqp::existskey($clean-parts-nul,nqp::atpos($parts,1));
 

@@ -15,7 +15,7 @@
                   (my int $numdims = nqp::numdimensions($reified))
                 ),
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays").throw,
+                  feature => "Partially dimensioned views of shaped arrays").throw,
                 nqp::stmts(
                   (my $indices := nqp::getattr(@indices,List,'$!reified')),
                   (my $idxs := nqp::list_i),

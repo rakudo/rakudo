@@ -1298,7 +1298,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )
@@ -1828,7 +1828,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )
@@ -2358,7 +2358,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )

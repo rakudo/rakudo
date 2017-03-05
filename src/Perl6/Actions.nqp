@@ -1928,16 +1928,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         $compunit_past,
                                         ),'require');
         if $target_package && !$longname.contains_indirect_lookup() {
-            my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($longname.name));
-            $*W.pkg_compose($/, $stub);
-            my $stubvar := QAST::Var.new(
-                :name($longname.name),
-                :scope('lexical'),
-                :decl('var'),
-            );
-            $lexpad[0].unshift($stubvar);
-            $lexpad.symbol($longname.name, :scope('lexical'), :value($stub));
-            $require_past.push($target_package);
+            my $first := 1;
+            my $current;
+            for $longname.components -> $component {
+                my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($component));
+                $*W.pkg_compose($/, $stub);
+                if $first {
+                    my $stubvar := QAST::Var.new(
+                        :name($component),
+                        :scope('lexical'),
+                        :decl('var'),
+                    );
+                    $lexpad[0].unshift($stubvar);
+                    $lexpad.symbol($component, :scope('lexical'), :value($stub));
+                    $require_past.push(QAST::SVal.new(:value($component)));
+                    $first := 0;
+                }
+                else {
+                    nqp::who($current){$component} := $stub;
+                }
+                $current := $stub;
+            }
         }
         else {
             $require_past.push($*W.symbol_lookup(['Any'], $/));

@@ -191,7 +191,7 @@ my class IO::Path is Cool {
                 nqp::push_s($res-list, $part);
             }
         }
-        $resolved = $sep unless nqp::chars($resolved);
+        $resolved = $sep if nqp::iseq_s($resolved,"");
         IO::Path.new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
     }
 
@@ -431,7 +431,7 @@ my class IO::Path is Cool {
 #?endif
             nqp::until(
               nqp::isnull_s(my str $str_elem = nqp::nextfiledir($dirh))
-                || nqp::iseq_i(nqp::chars($str_elem),0),
+                || nqp::iseq_s($str_elem,""),
               nqp::if(
                 $test.ACCEPTS($str_elem),
                 nqp::if(

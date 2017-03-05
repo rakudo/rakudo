@@ -151,7 +151,7 @@ my class IO::Socket::INET does IO::Socket {
         nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
         my str $line = nqp::readlinechompfh($io);
-        if nqp::chars($line) || !nqp::eoffh($io) {
+        if nqp::isne_s($line,"") || !nqp::eoffh($io) {
             $!ins = $!ins + 1;
             $line
         }

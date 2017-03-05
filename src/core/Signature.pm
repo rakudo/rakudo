@@ -177,7 +177,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
             my str $key =
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos_s($nn,0) !! '';
             die "Found named parameter '{
-              nqp::chars($key) ?? $key !! '(unnamed)'
+              nqp::isne_s($key,"") ?? $key !! '(unnamed)'
             }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
               if nqp::existskey($lookup,$key);
             nqp::bindkey($lookup,$key,$p);

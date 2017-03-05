@@ -458,17 +458,21 @@ multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
 }
 multi sub METAOP_REDUCE_CHAIN(\op) {
     sub (+values) {
-        my $state := True;
-        my \iter = values.iterator;
-        my $current := iter.pull-one;
-        return True if nqp::eqaddr($current,IterationEnd);
-
-        until nqp::eqaddr((my $next := iter.pull-one),IterationEnd) {
-            $state := op.($current, $next);
-            return $state unless $state;
-            $current := $next;
-        }
-        $state;
+        nqp::if(
+          nqp::eqaddr(
+            (my $current := (my $iter := values.iterator).pull-one),
+            IterationEnd
+          ),
+          True,
+          nqp::stmts(
+            nqp::while(
+              nqp::not_i(nqp::eqaddr((my $next := $iter.pull-one),IterationEnd))
+                && op.($current,$next),
+              $current := $next
+            ),
+            nqp::p6bool(nqp::eqaddr($next,IterationEnd))
+          )
+        )
     }
 }
 

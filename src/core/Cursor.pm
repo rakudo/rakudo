@@ -76,7 +76,7 @@ my class Cursor does NQPCursorRole {
 #?if !jvm
             elsif nqp::not_i(nqp::istrue($caplist)) {}
 #?endif
-            elsif nqp::iseq_i($namecount,1) && nqp::isne_s($onlyname,"") && nqp::eqat($onlyname,'$!',0) {
+            elsif nqp::iseq_i($namecount, 1) && nqp::isgt_i(nqp::chars($onlyname), 0) && nqp::eqat($onlyname, '$!', 0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
                 my int $csi = -1;
@@ -104,7 +104,7 @@ my class Cursor does NQPCursorRole {
                 while nqp::islt_i(++$csi,$cselems) {
                     $subcur := nqp::atpos($cs, $csi);
                     $name    = nqp::getattr_s($subcur, $?CLASS, '$!name');
-                    if nqp::not_i(nqp::isnull_s($name)) && nqp::isne_s($name,"") {
+                    if nqp::not_i(nqp::isnull_s($name)) && nqp::isgt_i(nqp::chars($name), 0) {
                         my Mu $submatch := $subcur.MATCH;
                         if nqp::eqat($name, '$', 0) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!to')) {
                             nqp::bindattr_i($match, Match, $name, $submatch.from);

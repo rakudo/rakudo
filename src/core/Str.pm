@@ -34,7 +34,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Bool(Str:D:) {
-        nqp::p6bool(nqp::isne_s('', $!value));
+        nqp::p6bool(nqp::chars($!value));
     }
 
     multi method Str(Str:D:)     { self }
@@ -628,7 +628,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::stmts(
           (my $opts := nqp::getattr(opts,Map,'$!storage')),
           nqp::if(
-            nqp::isne_s($name,""),
+            nqp::chars($name),
             nqp::bindkey($opts,$name,$value)
           ),
           fetch-short-long($opts, "ex", "exhaustive", my $ex),
@@ -1479,10 +1479,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     my int $i = nqp::elems($matches);
                     if $skip-empty {
                         nqp::splice($matches,$match-list,$i,
-                          nqp::iseq_s(nqp::atpos($matches,$i),"")
-                        ) while $i = nqp::sub_i($i,1);
+                          nqp::not_i(nqp::isne_i(
+                            nqp::chars(nqp::atpos($matches,$i)),0)))
+                              while $i = nqp::sub_i($i,1);
                         nqp::splice($matches,$empty,0,1)
-                          unless nqp::isne_s(nqp::atpos($matches,0),"");
+                          unless nqp::chars(nqp::atpos($matches,0));
                     }
                     else {
                         nqp::splice($matches,$match-list,$i,0)
@@ -1494,8 +1495,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my int $i = nqp::elems($matches);
                 my $match-list := nqp::list;
                 while nqp::isge_i($i = nqp::sub_i($i,1),0) {
-                    nqp::splice($matches,$match-list,$i,1)
-                      if nqp::iseq_s(nqp::atpos($matches,$i),"")
+                  nqp::splice($matches,$match-list,$i,1)
+                    if nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0);
                 }
             }
         }
@@ -2367,7 +2368,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             $result = ''
               if $!squash
-              && nqp::isne_s($!prev_result,"")
+              && nqp::chars($!prev_result)
               && nqp::iseq_s($!prev_result,$result)
               && nqp::iseq_s($!unsubstituted_text,'');
 
@@ -2745,7 +2746,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method ord(|) { * }
     multi method ord(Str:D:) returns Int {
-        nqp::isne_s($!value,"")
+        nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Nil;
     }

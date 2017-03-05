@@ -1462,7 +1462,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           nqp::iseq_s(&op.prec("prec"),"f="),
           &METAOP_REDUCE_LISTINFIX,
           nqp::if(
-            nqp::iseq_s((my str $assoc = &op.prec("assoc")),""),
+            nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0),
             &METAOP_REDUCE_LEFT,
             ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
           )

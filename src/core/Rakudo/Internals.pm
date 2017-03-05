@@ -1353,7 +1353,7 @@ my class Rakudo::Internals {
             method !next() {
                 nqp::while(
                   nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
-                    || nqp::iseq_s($elem,""),
+                    || nqp::iseq_i(nqp::chars($elem),0),
                   nqp::stmts(
                     nqp::closedir($!handle),
                     nqp::if(
@@ -1371,7 +1371,7 @@ my class Rakudo::Internals {
             }
             method pull-one() {
                 nqp::while(
-                  nqp::isne_s(my str $entry = self!next,""),
+                  nqp::chars(my str $entry = self!next),
                   nqp::if(
                     nqp::stat(
                       (my str $path = nqp::concat($!abspath,$entry)),

@@ -217,23 +217,63 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
       sub (+values) {
-          my \source = values.reverse.iterator;
-          my \first = source.pull-one;
-          return () if nqp::eqaddr(first,IterationEnd);
-
-          my @args.unshift: first;
-          GATHER({
-              take first;
-              until nqp::eqaddr((my \current = source.pull-one),IterationEnd) {
-                  @args.unshift: current;
-                  if @args.elems == $count {
-                      my \val = op.(|@args);
-                      take val;
-                      @args = ();
-                      @args.unshift: val;  # allow op to return a Slip
-                  }
-              }
-          }).lazy-if(source.is-lazy);
+          Seq.new(nqp::if(
+            nqp::isge_i((my int $i = (my $v :=
+                nqp::if(nqp::istype(values,List),values,values.List)
+              ).elems),                                       # reifies
+              $count
+            ),   # reifies
+            class :: does Iterator {
+                has $!op;
+                has $!reified;
+                has $!result;
+                has int $!count;
+                has int $!i;
+                method !SET-SELF(\op,\list,\count,\index) {
+                    nqp::stmts(
+                      ($!op := op),
+                      ($!reified := nqp::getattr(list,List,'$!reified')),
+                      ($!count = count),
+                      ($!i = index),
+                      self
+                    )
+                }
+                method new(\op,\list,\count,\index) {
+                    nqp::create(self)!SET-SELF(op,list,count,index)
+                }
+                method pull-one() is raw {
+                    nqp::if(
+                      nqp::attrinited(self,self.WHAT,'$!result'),
+                      nqp::stmts(
+                        (my $args := nqp::list($!result)),
+                        nqp::until(
+                          nqp::iseq_i(nqp::elems($args),$!count)
+                            || nqp::islt_i(($!i = nqp::sub_i($!i,1)),0),
+                          nqp::unshift($args,nqp::atpos($!reified,$!i))
+                        ),
+                        nqp::if(
+                          nqp::isgt_i(nqp::elems($args),1),
+                          ($!result := op.(|nqp::hllize($args))),
+                          IterationEnd
+                        )
+                      ),
+                      ($!result := nqp::atpos(
+                        $!reified,
+                        ($!i = nqp::sub_i($!i,1))
+                      ))
+                    )
+                }
+                method bool-only(--> True) { };
+                method count-only() { nqp::p6box_i($!i) }
+            }.new(op,$v,$count,$i),
+            Rakudo::Iterator.OneValue(
+              nqp::if(
+                $i,
+                op.(|nqp::getattr($v,List,'$!reified')),
+                op.()
+              )
+            )
+          ))
       },
       sub (+values) {
           Seq.new(nqp::if(

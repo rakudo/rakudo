@@ -34,7 +34,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Bool(Str:D:) {
-        nqp::p6bool(nqp::chars($!value));
+        nqp::p6bool(nqp::isne_s('', $!value));
     }
 
     multi method Str(Str:D:)     { self }

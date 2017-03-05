@@ -126,30 +126,22 @@ my class IO::Handle does IO {
     }
 
     method get(IO::Handle:D:) {
-        my str $str;
-        nqp::if($!chomp,
-            nqp::stmts(
-                ($str = nqp::readlinechompfh($!PIO)),
-                # loses last empty line because EOF is set too early, RT #126598
-                nqp::if(nqp::chars($str) || !nqp::eoffh($!PIO),
-                    $str,
-                    Nil
-                )
-            ),
-            nqp::stmts(
-                ($str = nqp::readlinefh($!PIO)),
-                # no need to check EOF
-                nqp::if(nqp::chars($str),
-                    $str,
-                    Nil
-                )
-            )
+        nqp::if(
+          $!chomp,
+          nqp::if(
+            nqp::chars(my $str = nqp::readlinechompfh($!PIO))
+              # loses last empty line because EOF is set too early, RT #126598
+              || nqp::not_i(nqp::eoffh($!PIO)),
+            $str,
+            Nil
+          ),
+          # not chomping, no need to check EOF
+          nqp::if(nqp::chars($str = nqp::readlinefh($!PIO)),$str,Nil)
         )
     }
 
     method getc(IO::Handle:D:) {
-        my str $c = nqp::getcfh($!PIO);
-        nqp::chars($c) ?? $c !! Nil
+        nqp::if(nqp::chars(my str $c = nqp::getcfh($!PIO)),$c,Nil)
     }
 
     proto method comb(|) { * }

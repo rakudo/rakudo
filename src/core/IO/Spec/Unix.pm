@@ -161,7 +161,7 @@ my class IO::Spec::Unix is IO::Spec {
     method catfile( |c )     { self.catdir(|c) }
 
     method abs2rel( $path is copy, $base is copy = Str ) {
-        $base = $*CWD unless $base.defined && $base.chars;
+        $base = $*CWD unless $base;
 
         if self.is-absolute($path) || self.is-absolute($base) {
             $path = self.rel2abs( $path );
@@ -182,7 +182,7 @@ my class IO::Spec::Unix is IO::Spec {
         # For UNC paths, the user might give a volume like //foo/bar that
         # strictly speaking has no directory portion.  Treat it as if it
         # had the root directory for that volume.
-        if !$base_directories.chars && self.is-absolute( $base ) {
+        if !$base_directories && self.is-absolute( $base ) {
             $base_directories = self.rootdir;
         }
 

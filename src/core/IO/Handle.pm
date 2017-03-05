@@ -126,30 +126,24 @@ my class IO::Handle does IO {
     }
 
     method get(IO::Handle:D:) {
-        my str $str;
         nqp::if($!chomp,
-            nqp::stmts(
-                ($str = nqp::readlinechompfh($!PIO)),
-                # loses last empty line because EOF is set too early, RT #126598
-                nqp::if(nqp::chars($str) || !nqp::eoffh($!PIO),
-                    $str,
-                    Nil
-                )
-            ),
-            nqp::stmts(
-                ($str = nqp::readlinefh($!PIO)),
-                # no need to check EOF
-                nqp::if(nqp::chars($str),
-                    $str,
-                    Nil
-                )
-            )
+          nqp::if(
+            nqp::isne_s((my $str = nqp::readlinechompfh($!PIO)),"")
+              # loses last empty line because EOF is set too early, RT #126598
+              || nqp::not_i(nqp::eoffh($!PIO)),
+            $str,
+            Nil
+          ),
+          nqp::if( # not chomping, no need to check EOF
+            nqp::isne_s(($str = nqp::readlinefh($!PIO)),""),
+            $str,
+            Nil
+          )
         )
     }
 
     method getc(IO::Handle:D:) {
-        my str $c = nqp::getcfh($!PIO);
-        nqp::chars($c) ?? $c !! Nil
+        nqp::if(nqp::isne_s((my str $c = nqp::getcfh($!PIO)),""),$c,Nil)
     }
 
     proto method comb(|) { * }
@@ -176,7 +170,7 @@ my class IO::Handle does IO {
 
             method pull-one() {
                 nqp::if(
-                  nqp::chars(my str $str = $!handle.readchars($!size)),
+                  nqp::isne_s((my str $str = $!handle.readchars($!size)),""),
                   nqp::p6box_s($str),
                   nqp::stmts(
                     nqp::if(
@@ -196,7 +190,7 @@ my class IO::Handle does IO {
                     ($str = $!handle.readchars($!size))
                   )
                 );
-                $target.push(nqp::p6box_s($str)) if nqp::chars($str);
+                $target.push(nqp::p6box_s($str)) if nqp::isne_s($str,"");
                 $!handle.close if $!close;
             }
         }.new(self, $size, +$close));
@@ -614,7 +608,7 @@ my class IO::Handle does IO {
                 my int $chars = $size;
                 my str $str = self.readchars($chars);
                 nqp::while(
-                  nqp::chars($str),
+                  nqp::isne_s($str,""),
                   nqp::stmts(
                     (emit nqp::p6box_s($str)),
                     ($str = self.readchars($chars))

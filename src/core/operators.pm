@@ -610,21 +610,23 @@ sub REQUIRE_IMPORT($compunit, $module, *@syms --> Nil) {
     my $GLOBALish := $handle.globalish-package;
     my @missing;
     # Set the runtime values for compile time stub symbols
-    CALLER::{$module} := $GLOBALish{$module} if $module;
+    my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
+        ?? CALLER::MY::
+        !! CALLER::OUTER::;
+    $block{$module} := $GLOBALish{$module} if $module;
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
             @missing.push: $_;
             next;
         }
-        OUTER::CALLER::{$_} := $DEFAULT{$_};
+        $block::{$_} := $DEFAULT{$_};
     }
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
     # Merge GLOBAL from compunit.
-    my $lexpad := nqp::ctxlexpad(nqp::ctxcaller(nqp::ctx()));
     nqp::gethllsym('perl6','ModuleLoader').merge_globals(
-        nqp::atkey($lexpad, '%REQUIRE_SYMBOLS'),
+        $block<%REQUIRE_SYMBOLS>,
         $GLOBALish,
     );
 }

@@ -1920,6 +1920,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         my $lexpad := $*W.cur_lexpad();
+        my $block := $lexpad.ann('code_object');
+        $block := $*W.blocks[+$*W.blocks - 2] if $block.HOW.name($block) eq 'Code';
         if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
             declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
         }

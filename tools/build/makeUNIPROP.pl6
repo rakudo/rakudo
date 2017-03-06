@@ -273,9 +273,9 @@ sub create-Str-code {
     # These may or may not currently have short names. When/if they do, we should add these to the hash
     # higher up, or generate from some Unicode provided file. At the time of Emoji 4.0 there
     # are no alias names in the files.
-    %hash<Emoji><type>              = 'B';
-    %hash<Emoji_Presentation><type> = 'B';
-    %hash<Emoji_Modifier><type>     = 'B';
+    for <Emoji Emoji_Presentation Emoji_Modifier Emoji_Modifier_Base> {
+        %hash{$_}<type> = 'B';
+    }
 
     for %hash.kv -> $key, $value {
         if $value<type> eq any( @allowed-types) {

@@ -506,7 +506,13 @@ my class IO::Path is Cool {
 
     proto method lines(|) { * }
     multi method lines(IO::Path:D: $limit = Inf, |c) {
-        self.open(|c).lines($limit, :close);
+        my $handle = self.open(|c);
+        LEAVE $handle.close;
+        my $buf := nqp::create(IterationBuffer);
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? $handle.iterator.push-all($buf)
+          !! $handle.iterator.push-exactly($buf,$limit.Int);
+        Seq.new(Rakudo::Iterator.ReifiedList($buf))
     }
 
     proto method comb(|) { * }

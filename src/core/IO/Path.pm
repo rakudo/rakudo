@@ -505,7 +505,7 @@ my class IO::Path is Cool {
     }
 
     proto method lines(|) { * }
-    multi method lines(IO::Path:D: $limit = Inf, |c) {
+    multi method lines(IO::Path:D: $limit = Whatever, |c) {
         my $handle = self.open(|c);
         LEAVE $handle.close;
         my $buf := nqp::create(IterationBuffer);

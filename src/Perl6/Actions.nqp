@@ -9272,20 +9272,11 @@ class Perl6::QActions is HLL::Actions does STDActions {
     # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
     method charname-panic($/) { $/.CURSOR.panic("Unrecognized character name [$/]") }
     method charname($/) {
-#?if !moar
-        my $codepoint := $<integer>
-                         ?? $<integer>.made
-                         !! nqp::codepointfromname(~$/);
-                         self.charname-panic($/) if $codepoint < 0;
-        make nqp::chr($codepoint);
-#?endif
-#?if moar
         my $codepoint := $<integer>
                          ?? nqp::chr($<integer>.made)
                          !! nqp::getstrfromname(~$/);
         $codepoint := self.charname-notfound($/) if $codepoint eq '';
         make $codepoint;
-#?endif
     }
     method charname-notfound($/) {
         my @worry-text := ( "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL",
@@ -9296,19 +9287,19 @@ class Perl6::QActions is HLL::Actions does STDActions {
                     "Unicode 1 names are deprecated.\nPlease use %s";
         if ~$/ eq "LINE FEED (LF)" {
             $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
-            return nqp::chr(nqp::codepointfromname("LINE FEED"));
+            return nqp::getstrfromname("LINE FEED");
         }
         if ~$/ eq "FORM FEED (FF)" {
             $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
-            return nqp::chr(nqp::codepointfromname("FORM FEED"));
+            return nqp::getstrfromname("FORM FEED");
         }
         if ~$/ eq "CARRIAGE RETURN (CR)" {
             $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
-            return nqp::chr(nqp::codepointfromname("CARRIAGE RETURN"));
+            return nqp::getstrfromname("CARRIAGE RETURN");
         }
         if ~$/ eq "NEXT LINE (NEL)" {
             $/.CURSOR.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
-            return nqp::chr(nqp::codepointfromname("NEXT LINE"));
+            return nqp::getstrfromname("NEXT LINE");
         }
 
         self.charname-panic($/);

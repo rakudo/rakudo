@@ -1365,12 +1365,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
             ($res = nqp::concat($res,
                 nqp::unless(
-#?if moar
                     nqp::getstrfromname(nqp::atpos(names, $i).trim),
-#?endif
-#?if !moar
-                    nqp::chr(nqp::codepointfromname(nqp::atpos(names, $i).trim)),
-#?endif
                     X::Str::InvalidCharName.new(
                         :name(nqp::atpos(names, $i).trim)
                     ).fail

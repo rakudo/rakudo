@@ -118,18 +118,8 @@ multi sub MAIN(
         TAP::Harness::SourceHandler::Perl6.new(:incdirs['lib'], :path($perlpath));
     }
 }
-multi sub MAIN(Bool :$help!) {
-    require Pod::To::Text;
-    my $text = ::('Pod::To::Text').render($=pod[0]);
-    with %*ENV<PERLDOC_PAGER> // %*ENV<PAGER> -> $pager {
-        my $proc = shell($pager, :in);
-        $proc.in.print($text);
-        $proc.in.close;
-    }
-    else {
-        say $text;
-    }
-}
+
+sub USAGE { say "\n" ~ (require ::('Pod::To::Text')).render($=pod[0]) ~ "\n" }
 
 =begin pod
 

@@ -626,7 +626,7 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
                (($dwim-left or lefti.ended) and ($dwim-right or righti.ended));
         last if $++ == 0 and ($dwim-left and lefti.ended or $dwim-right and righti.ended);
 
-        result.push(HYPER(&operator, leftv, rightv, :$dwim-left, :$dwim-right));
+        nqp::push(result,HYPER(&operator, leftv, rightv, :$dwim-left, :$dwim-right));
     }
 
     # Coerce to the original type

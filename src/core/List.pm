@@ -1422,7 +1422,7 @@ multi sub infix:<xx>(&x, Int $n) {
         nqp::if(
           nqp::istype($pulled,Seq),
           nqp::push($list,$pulled.cache),
-          nqp::push($list,$pulled)
+          nqp::push($list,nqp::decont($pulled))
         )
       )
     );

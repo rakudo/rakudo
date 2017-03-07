@@ -539,127 +539,95 @@ my class IO::Handle does IO {
 
     my role PIOIterator does Iterator {
         has $!PIO;
-        has $!handle;  # if set, should be closed at end
-        method !SET-SELF(\handle,\close) {
-            nqp::stmts(
-              ($!PIO := nqp::getattr(handle,IO::Handle,'$!PIO')),
-              nqp::if(close,($!handle := handle)),
-              self
+        method new(\handle) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self.WHAT,'$!PIO',
+              nqp::getattr(handle,IO::Handle,'$!PIO')
             )
         }
-        method new(\ha,\cl) { nqp::create(self)!SET-SELF(ha,cl) }
         method sink-all(--> IterationEnd) {
-            nqp::if(
-              $!handle,
-              $!handle.close,         # don't bother, just close it
-              nqp::seekfh($!PIO,0,2)  # seek to end
-            )
+            nqp::seekfh($!PIO,0,2)  # seek to end
         }
     }
 
-    multi method iterator(IO::Handle:D: :$close) {
+    multi method iterator(IO::Handle:D:) {
         nqp::if(
           nqp::eqaddr(self.WHAT,IO::Handle),
           nqp::if(
             $!chomp,
             class :: does PIOIterator { # shortcircuit .get, chomping
-                method pull-one() is raw {
+                method pull-one() {
                     nqp::if(
                       nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
                         # loses last empty line because EOF is set too early
                         # RT #126598
                         || nqp::not_i(nqp::eoffh($!PIO)),
                       $line,
-                      nqp::stmts(
-                        nqp::if($!handle,$!handle.close),
-                        IterationEnd
-                      )
+                      IterationEnd
                     )
                 }
                 method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      nqp::while(
-                        nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
-                          # loses last empty line because EOF is set too early
-                          # RT #126598
-                          || nqp::not_i(nqp::eoffh($!PIO)),
-                        $target.push(nqp::p6box_s($line))
-                      ),
-                      nqp::if($!handle,$!handle.close)
+                    nqp::while(
+                      nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
+                        # loses last empty line because EOF is set too early
+                        # RT #126598
+                        || nqp::not_i(nqp::eoffh($!PIO)),
+                      $target.push(nqp::p6box_s($line))
                     )
                 }
             },
             class :: does PIOIterator { # shortcircuit .get, *NOT* chomping
-                method pull-one() is raw {
+                method pull-one() {
                     nqp::if(
                       # not chomping, no need to check EOF
                       nqp::chars(my str $line = nqp::readlinefh($!PIO)),
                       $line,
-                      nqp::stmts(
-                        nqp::if($!handle,$!handle.close),
-                        IterationEnd
-                      )
+                      IterationEnd
                     )
                 }
                 method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      nqp::while(
-                        # not chomping, no need to check EOF
-                        nqp::chars(my str $line = nqp::readlinefh($!PIO)),
-                        $target.push(nqp::p6box_s($line))
-                      ),
-                      nqp::if($!handle,$!handle.close)
+                    nqp::while(
+                      # not chomping, no need to check EOF
+                      nqp::chars(my str $line = nqp::readlinefh($!PIO)),
+                      $target.push(nqp::p6box_s($line))
                     )
                 }
             }
           ),
           class :: does Iterator {    # can *NOT* shortcircuit .get
               has $!handle;
-              has int $!close;
-              method !SET-SELF(\handle,\close) {
-                  nqp::stmts(($!handle := handle),($!close = ?close),self)
+              method new(\handle) {
+                  nqp::p6bindattrinvres(
+                    nqp::create(self),self.WHAT,'$!handle',handle)
               }
-              method new(\ha,\cl) { nqp::create(self)!SET-SELF(ha,cl) }
-              method pull-one() is raw {
+              method pull-one() {
                   nqp::if(
                     (my $line := $!handle.get).DEFINITE,
                     $line,
-                    nqp::stmts(
-                      nqp::if($!close,$!handle.close),
-                      IterationEnd
-                    )
+                    IterationEnd
                   )
               }
               method push-all($target --> IterationEnd) {
-                  nqp::stmts(
-                    nqp::while(
-                      (my $line := $!handle.get).DEFINITE,
-                      $target.push($line)
-                    ),
-                    nqp::if($!close,$!handle.close)
+                  nqp::while(
+                    (my $line := $!handle.get).DEFINITE,
+                    $target.push($line)
                   )
               }
               method sink-all(--> IterationEnd) {
-                  nqp::if(
-                    $!close,
-                    $!handle.close,               # don't bother, just close it
-                    $!handle.seek(0,SeekFromEnd)  # seek to end
-                  )
+                  $!handle.seek(0,SeekFromEnd)  # seek to end
               }
           }
-        ).new(self,$close)
+        ).new(self)
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: $limit, |c) {
+    multi method lines(IO::Handle:D: $limit) {
         # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines(|c)
-          !! self.lines(|c)[ lazy 0 .. $limit.Int - 1 ]
+          ?? self.lines
+          !! self.lines.head($limit.Int)
     }
-    multi method lines(IO::Handle:D: :$close) {
-        Seq.new(self.iterator(:$close))
-    }
+    multi method lines(IO::Handle:D:) { Seq.new(self.iterator) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))

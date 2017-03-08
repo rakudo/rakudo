@@ -348,12 +348,12 @@ my class Cursor does NQPCursorRole {
 
                     # ignorecase+ignoremark
                     if $i {
-                        my str $tgt_lc   = nqp::lc(nqp::substr($tgt,$pos,$len));
-                        my str $topic_lc = nqp::lc($topic_str);
+                        my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
+                        my str $topic_fc = nqp::fc($topic_str);
                         Nil while nqp::islt_i(++$k,$len)
                           && nqp::iseq_i(
-                            nqp::ordbaseat($tgt_lc, nqp::add_i($pos,$k)),
-                            nqp::ordbaseat($topic_lc, $k)
+                            nqp::ordbaseat($tgt_fc, nqp::add_i($pos,$k)),
+                            nqp::ordbaseat($topic_fc, $k)
                           );
                     }
 
@@ -372,8 +372,8 @@ my class Cursor does NQPCursorRole {
                 # ignorecase
                 else {
                     $match = nqp::iseq_s(
-                      nqp::lc(nqp::substr($tgt, $pos, $len)),
-                      nqp::lc($topic_str)
+                      nqp::fc(nqp::substr($tgt, $pos, $len)),
+                      nqp::fc($topic_str)
                     )
                 }
 

@@ -1378,12 +1378,6 @@ multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 
-role XX-Whatever does Iterator {
-    has Mu $!x;
-    method new(\x) { nqp::p6bindattrinvres(nqp::create(self),self,'$!x',x) }
-    method is-lazy() { True }
-}
-
 proto sub infix:<xx>(|) { * }
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
@@ -1391,8 +1385,10 @@ multi sub infix:<xx>(&x, Num() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
-    Seq.new(class :: does XX-Whatever {
+    Seq.new(class :: does Iterator {
         has @!slipped;
+        has Mu $!x;
+        method new(\x) { nqp::p6bindattrinvres(nqp::create(self),self,'$!x',x) }
         method pull-one() {
             nqp::if(
               @!slipped,
@@ -1408,6 +1404,7 @@ multi sub infix:<xx>(&x, Whatever) {
               )
             )
         }
+        method is-lazy(--> True) { }
     }.new(&x))
 }
 multi sub infix:<xx>(&x, Int $n) {

@@ -405,6 +405,10 @@ my class Parameter { # declared in BOOTSTRAP
     method set_why($why --> Nil) {
         $!why := $why;
     }
+
+    method set_default(Code:D $default --> Nil) {
+        $!default_value := $default;
+    }
 }
 
 multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {

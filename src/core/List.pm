@@ -1426,7 +1426,7 @@ multi sub infix:<xx>(&x, Int $n) {
         )
       )
     );
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
+    Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
 multi sub infix:<xx>(Mu \x, Num() $n) {
     infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
@@ -1434,19 +1434,12 @@ multi sub infix:<xx>(Mu \x, Num() $n) {
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
-multi sub infix:<xx>(Mu \x, Int $n) is pure {
-    if nqp::isgt_i((my int $elems = $n),0) {
-        my $list := nqp::setelems(nqp::create(IterationBuffer),$elems);
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-          nqp::bindpos($list, $i, x),
-        );
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
-    }
-    else {
-        nqp::create(List)
-    }
+multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
+    Seq.new(nqp::if(
+      nqp::isgt_i($n,0),
+      Rakudo::Iterator.OneValueTimes(x,$n),
+      Rakudo::Iterator.Empty
+    ))
 }
 
 proto sub reverse(|)   { * }

@@ -1934,8 +1934,11 @@ class Rakudo::Iterator {
             }
             method push-all($target --> IterationEnd) {
                 nqp::while(
-                  $!times--,
-                  $target.push($!value)
+                  $!times,
+                  nqp::stmts(
+                    --$!times,
+                    $target.push($!value)
+                  )
                 )
             }
             method skip-one() { nqp::if($!times,$!times--) }

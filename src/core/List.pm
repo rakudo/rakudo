@@ -1468,7 +1468,7 @@ multi sub infix:<X>(+lol, :&with!) {
 multi sub infix:<X>(+lol) {
     Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))
 }
-my &cross := &infix:<X>;
+my constant &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :&with!) {
@@ -1477,7 +1477,7 @@ multi sub infix:<Z>(+lol, :&with!) {
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Iterator.ZipIterables(lol))
 }
-my &zip := &infix:<Z>;
+my constant &zip := &infix:<Z>;
 
 sub roundrobin(+lol) {
     Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))

@@ -1383,7 +1383,7 @@ class Perl6::Optimizer {
                 if $op.name eq '&infix:<,>' {
                     if +@($op) {
                         # keep void setting to distribute sink warnings
-                        try self.visit_children($op);
+                        try self.visit_children($op, :void_default($!void_context));
                     }
                     elsif $!void_context {
                         my $suggest := ($op.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');

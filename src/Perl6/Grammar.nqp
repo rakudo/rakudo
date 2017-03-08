@@ -1622,15 +1622,27 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
+                    my $oldmain := %*LANG<MAIN>;
                     $*W.do_pragma_or_load_module($/,1);
                     $¢ := $*LANG;
-                    $/.CURSOR.check_LANG_oopsies('use');
+                    if nqp::istype($oldmain, %*LANG<MAIN>.WHAT) {
+                        %*LANG := self.shallow_copy($*LANG.slangs);
+                    }
+                    else {
+                        $/.CURSOR.check_LANG_oopsies('use');
+                    }
                 }
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
+                        my $oldmain := %*LANG<MAIN>;
                         $*W.do_pragma_or_load_module($/,1);
                         $¢ := $*LANG;
-                        $/.CURSOR.check_LANG_oopsies('use');
+                        if nqp::istype($oldmain, %*LANG<MAIN>.WHAT) {
+                            %*LANG := self.shallow_copy($*LANG.slangs);
+                        }
+                        else {
+                            $/.CURSOR.check_LANG_oopsies('use');
+                        }
                     }
                 }
             ]

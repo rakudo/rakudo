@@ -1956,7 +1956,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $require_past.push($*W.symbol_lookup(['Any'], $/));
         }
         if $<EXPR> {
-            my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
+            my $p6_argiter   := $*W.compile_time_evaluate($/, WANTED($<EXPR>.ast,'require')).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);
 
             while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {

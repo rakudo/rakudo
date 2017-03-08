@@ -32,4 +32,16 @@ throws-like ｢…｣, X::StubCode,
     :message{ not .contains('CORE.setting') },
     'stub code does not reference guts when executed';
 
+# RT #130913
+subtest 'chr with large codepoints throws useful error' => {
+    my @tests = 'chr 2⁶³-1',   '(2⁶³-1).chr', 'chr 2⁶³',
+                '(2⁶³-1).chr', 'chr 2¹⁰⁰',    '(2¹⁰⁰).chr';
+    plan +@tests;
+    for @tests {
+        throws-like $^code, Exception,
+            :message{ not .contains('negative') and .contains('codepoint') },
+        "$code.perl()";
+    }
+}
+
 done-testing;

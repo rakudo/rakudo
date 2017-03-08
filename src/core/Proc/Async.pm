@@ -149,15 +149,11 @@ my class Proc::Async {
             $callbacks,
         );
 
-        Promise.allof( $!exit_promise, @!promises ).then( {
-            for @!promises -> $promise {
-                given $promise.result {
-                    when Supply { .done }
-                    when List   { $_[0].quit( $_[1] ) }
-                }
-            }
-            $!exit_promise.result;
-        } );
+        Promise.allof( $!exit_promise, @!promises ).then({
+            $!exit_promise.status == Broken
+                ?? $!exit_promise.cause.throw
+                !! $!exit_promise.result
+        })
     }
 
     method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {

@@ -1385,27 +1385,7 @@ multi sub infix:<xx>(&x, Num() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
-    Seq.new(class :: does Iterator {
-        has @!slipped;
-        has Mu $!x;
-        method new(\x) { nqp::p6bindattrinvres(nqp::create(self),self,'$!x',x) }
-        method pull-one() {
-            nqp::if(
-              @!slipped,
-              @!slipped.shift,
-              nqp::if(
-                nqp::istype((my $pulled := $!x.()),Slip),
-                ( (@!slipped = $pulled) ?? @!slipped.shift !! IterationEnd ),
-                nqp::if(
-                  nqp::istype($pulled,Seq),
-                  $pulled.cache,
-                  $pulled
-                )
-              )
-            )
-        }
-        method is-lazy(--> True) { }
-    }.new(&x))
+    Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
 multi sub infix:<xx>(&x, Int $n) {
     my int $todo = $n + 1;

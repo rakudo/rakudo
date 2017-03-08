@@ -802,6 +802,7 @@ S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
 S17-procasync/encoding.t # moar
+S17-procasync/nonexistent.t # moar
 S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar slow

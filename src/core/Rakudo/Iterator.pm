@@ -476,6 +476,38 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator for the "thunk xx *" functionality.
+    method Callable-xx-Whatever(&code) {
+        class :: does Iterator {
+            has @!slipped;
+            has $!code;
+            method new(\code) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!code',code)
+            }
+            method pull-one() {
+                nqp::if(
+                  @!slipped,
+                  @!slipped.shift,
+                  nqp::if(
+                    nqp::istype((my $pulled := $!code()),Slip),
+                    nqp::if(
+                      (@!slipped = $pulled),
+                      @!slipped.shift,
+                      IterationEnd
+                    ),
+                    nqp::if(
+                      nqp::istype($pulled,Seq),
+                      $pulled.cache,
+                      $pulled
+                    )
+                  )
+                )
+            }
+            method is-lazy(--> True) { }
+            method sink-all(--> IterationEnd) { }
+        }.new(&code)
+    }
+
     # Return an iterator for a range of 0..^N with a number of elements.
     # The third parameter indicates whether an IterationBuffer should be
     # returned (1) for each combinatin, or a fully reified List (0).

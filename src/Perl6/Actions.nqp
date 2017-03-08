@@ -1929,32 +1929,52 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
                                         ),'require');
+
+        # An list of the components of the pre-existing outer symbols name (if any)
+        my $existing_path := $*W.symbol_lookup(['Any'], $/);
+        # The top level package object of the  pre-existing outer package (if any)
+        my $top-existing := $*W.symbol_lookup(['Any'], $/);
+        # The name of the lexical stub we insert (if any)
+        my $lexical_stub;
         if $target_package && !$longname.contains_indirect_lookup() {
-            my $first := 1;
             my $current;
-            for $longname.components -> $component {
-                my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($component));
+            my @components := nqp::clone($longname.components);
+            my $top := @components.shift;
+            $existing_path := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+            my $existing := try $*W.find_symbol([$top]);
+
+            if $existing =:= NQPMu {
+                my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($top));
                 $*W.pkg_compose($/, $stub);
-                if $first {
-                    my $stubvar := QAST::Var.new(
-                        :name($component),
-                        :scope('lexical'),
-                        :decl('var'),
-                    );
-                    $lexpad[0].unshift($stubvar);
-                    $lexpad.symbol($component, :scope('lexical'), :value($stub));
-                    $require_past.push(QAST::SVal.new(:value($component)));
-                    $first := 0;
+                $*W.install_lexical_symbol($lexpad,$top,$stub);
+                $current := nqp::who($stub);
+                $lexical_stub := QAST::SVal.new(:value($top));
+            }
+            else {
+                $top-existing := QAST::WVal.new(:value($existing));
+                $current := nqp::who($existing);
+                $existing_path.push: QAST::SVal.new(:value($top));
+            }
+
+            for @components -> $component {
+                if nqp::existskey($current,$component) {
+                    $current := nqp::who($current{$component});
+                    $existing_path.push: QAST::SVal.new(:value($component));
                 }
                 else {
-                    nqp::who($current){$component} := $stub;
+                    $lexical_stub := QAST::SVal.new(:value($component)) unless $lexical_stub;
+                    my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($component));
+                    $*W.pkg_compose($/, $stub);
+                    $current{$component} := $stub;
+                    $current := nqp::who($stub);
                 }
-                $current := $stub;
             }
         }
-        else {
-            $require_past.push($*W.symbol_lookup(['Any'], $/));
-        }
+
+        $require_past.push($existing_path);
+        $require_past.push($top-existing);
+        $require_past.push($lexical_stub // $*W.symbol_lookup(['Any'], $/));
+
         if $<EXPR> {
             my $p6_argiter   := $*W.compile_time_evaluate($/, WANTED($<EXPR>.ast,'require')).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);

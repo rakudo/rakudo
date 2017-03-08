@@ -1458,7 +1458,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # nothing to work with
         my str $needle = nqp::unbox_s($match);
         my int $chars  = nqp::chars($needle);
-        return Seq.new($chars
+        return Seq.new($chars && !$skip-empty
           ?? Rakudo::Iterator.OneValue(self)
           !! Rakudo::Iterator.Empty
         ) unless self.chars;
@@ -1479,6 +1479,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     my int $i = nqp::elems($matches);
                     if $skip-empty {
                         nqp::splice($matches,$match-list,$i,
+
                           nqp::not_i(nqp::isne_i(
                             nqp::chars(nqp::atpos($matches,$i)),0)))
                               while $i = nqp::sub_i($i,1);

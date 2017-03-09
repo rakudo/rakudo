@@ -758,7 +758,7 @@ multi sub infix:<∘> (&f, &g --> Block) {
         ?? -> |args { f |g |args }
         !! -> |args { f  g |args }
 
-    role FakeSignature[$arity, $count, $of] {
+    my role FakeSignature[$arity, $count, $of] {
         method arity { $arity }
         method count { $count }
         method of    { $of    }

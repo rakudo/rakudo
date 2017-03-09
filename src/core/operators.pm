@@ -758,11 +758,12 @@ multi sub infix:<∘> (&f, &g --> Block) {
         ?? -> |args { f |g |args }
         !! -> |args { f  g |args }
 
-    role FakeSignature[$arity, $count] {
+    role FakeSignature[$arity, $count, $of] {
         method arity { $arity }
         method count { $count }
+        method of    { $of    }
     }
-    ret.^mixin(FakeSignature[&g.arity, &g.count]);
+    ret.^mixin(FakeSignature[&g.arity, &g.count, &f.of]);
     ret
 }
 my &infix:<o> := &infix:<∘>;

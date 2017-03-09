@@ -526,10 +526,17 @@ my class IO::Path is Cool {
         self.open(|c).comb($comber, :close);
     }
 
-    multi method split(IO::Path:D: |c) { self.slurp.split(|c) }
+    multi method split(IO::Path:D: Str:D $splitter = "", |c) {
+        self.open(|c).split($splitter, :close);
+    }
+    multi method split(IO::Path:D: Regex:D $splitter, |c) {
+        self.open(|c).split($splitter, :close);
+    }
 
     proto method words(|) { * }
-    multi method words(IO::Path:D:) { self.slurp.words }
+    multi method words(IO::Path:D: |c) {
+        self.open(|c).words(:close);
+    }
 
     method e(--> Bool) {
         ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath

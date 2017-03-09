@@ -9259,7 +9259,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past;
-        if $is_generic || nqp::isnull(nqp::getobjsc($type)) {
+        if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,%*HOW<package>) {
             $past := $*W.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }

@@ -753,7 +753,18 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
 proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
-multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
+multi sub infix:<∘> (&f, &g --> Block) {
+    my \ret = &f.count > 1
+        ?? -> |args { f |g |args }
+        !! -> |args { f  g |args }
+
+    role FakeSignature[$arity, $count] {
+        method arity { $arity }
+        method count { $count }
+    }
+    ret.^mixin(FakeSignature[&g.arity, &g.count]);
+    ret
+}
 my &infix:<o> := &infix:<∘>;
 
 # vim: ft=perl6 expandtab sw=4

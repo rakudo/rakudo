@@ -337,13 +337,23 @@ sub unwanted($ast, $by) {
                         my $op := $node.node.Str;
                         my $t := nqp::index($op,' ');
                         $op := nqp::substr($op, 0, $t) if $t > 0;
-                        # ignore = but carp on ==, ===, and =:=
-                        $t := nqp::index($op,'=');
-                        $t := 0 if nqp::index($op,'=',$t+1) > 0;
-                        $t := 1 if $t < 1 && nqp::index($op, '++') >= 0;
-                        $t := 1 if $t < 1 && nqp::index($op, '--') >= 0;
-                        # (PRECURSOR because otherwise [*] 1..10 puts eject after the expression)
-                        $node.node.PRECURSOR.worry("Useless use of $op in sink context") unless $t > 0;
+                        my $purity := 0;
+                        if $node0[0].ann('is_pure') {
+                            $purity := 1;
+                        }
+                        else {
+                            my $subname := $node0[0].name;
+                            my $subfun := try $*W.find_symbol([$subname]);
+                            if $subfun {
+                                if nqp::index($node0.name, 'ASSIGN') < 0 && nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE {
+                                    $purity := 1;
+                                }
+                            }
+                            else {
+                                $purity := 1;  # "can't happen" except in setting, so assume will be pure
+                            }
+                        }
+                        $node.node.PRECURSOR.worry("Useless use of $op in sink context") if $purity;
                     }
                 }
                 else {
@@ -356,6 +366,7 @@ sub unwanted($ast, $by) {
                               $sym eq '…' ||
                               $sym eq '…^'
                         {
+                            $node.annotate('useless', $sym);
                             $node.node.CURSOR.worry("Useless use of $sym in sink context");
                         }
                     }
@@ -7092,6 +7103,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
+            my $purity := 0;
+            if nqp::istype($basepast, QAST::Var) {
+                my $subfun := try $*W.find_symbol([$basepast.name]);
+                if $subfun {
+                    $purity := 1 if nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE;
+                }
+                else {
+                    $purity := 1;   # assume will be defined pure
+                }
+            }
+            else {
+                $purity := 1 if $basepast.ann('is_pure');
+            }
             my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
@@ -7104,6 +7128,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
+            $metapast.annotate('is_pure', $purity) if $purity;
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
             $ast.annotate('thunky', $t) if $t;
         }

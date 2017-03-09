@@ -529,9 +529,7 @@ my class IO::Path is Cool {
     multi method split(IO::Path:D: |c) { self.slurp.split(|c) }
 
     proto method words(|) { * }
-    multi method words(IO::Path:D: |c) {
-        self.open(|c).words(:close);
-    }
+    multi method words(IO::Path:D:) { self.slurp.words }
 
     method e(--> Bool) {
         ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath

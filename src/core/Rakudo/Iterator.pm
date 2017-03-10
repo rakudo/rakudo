@@ -476,6 +476,53 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator for the "thunk xx 42" functionality.
+    method Callable-xx-Times(&code, Int:D \times) {
+        class :: does Iterator {
+            has @!slipped;
+            has $!code;
+            has $!times;
+            method !SET-SELF(\code,\times) {
+                nqp::if(
+                  times > 0,
+                  nqp::stmts(
+                    ($!code := code),
+                    ($!times = times),
+                    self
+                  ),
+                  Rakudo::Iterator.Empty
+                )
+            }
+            method new(\co,\ti) { nqp::create(self)!SET-SELF(co,ti) }
+            method pull-one() {
+                nqp::if(
+                  @!slipped,
+                  @!slipped.shift,
+                  nqp::if(
+                    $!times > 0,
+                    nqp::stmts(
+                      --$!times,             # consumed a value
+                      nqp::if(
+                        nqp::istype((my $pulled := $!code()),Slip),
+                        nqp::if(
+                          (@!slipped = $pulled),
+                          @!slipped.shift,
+                          IterationEnd
+                        ),
+                        nqp::if(
+                          nqp::istype($pulled,Seq),
+                          $pulled.cache,
+                          $pulled
+                        )
+                      )
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+        }.new(&code,times)
+    }
+
     # Return an iterator for the "thunk xx *" functionality.
     method Callable-xx-Whatever(&code) {
         class :: does Iterator {
@@ -504,7 +551,6 @@ class Rakudo::Iterator {
                 )
             }
             method is-lazy(--> True) { }
-            method sink-all(--> IterationEnd) { }
         }.new(&code)
     }
 

@@ -1955,7 +1955,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $existing := try $*W.find_symbol([$top]);
 
             if $existing =:= NQPMu {
-                my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($top));
+                my $stub := $*W.pkg_create_mo($/, $/.CURSOR.how('package'), :name($top));
                 $*W.pkg_compose($/, $stub);
                 $*W.install_lexical_symbol($lexpad,$top,$stub);
                 $current := nqp::who($stub);
@@ -1974,7 +1974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     $lexical_stub := QAST::SVal.new(:value($component)) unless $lexical_stub;
-                    my $stub := $*W.pkg_create_mo($/, %*HOW<package>, :name($component));
+                    my $stub := $*W.pkg_create_mo($/, $/.CURSOR.how('package'), :name($component));
                     $*W.pkg_compose($/, $stub);
                     $current{$component} := $stub;
                     $current := nqp::who($stub);
@@ -9284,7 +9284,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past;
-        if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,%*HOW<package>) {
+        if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.CURSOR.how('package')) {
             $past := $*W.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }

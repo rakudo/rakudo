@@ -458,10 +458,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # issue is that we may have no setting to provide them, e.g. when we
         # compile the setting, but it still wants some kinda package. We just
         # fudge in knowhow for that.
-        my %*HOW;
-        my %*HOWUSE;
-        %*HOW<knowhow> := nqp::knowhow();
-        %*HOW<package> := nqp::knowhow();
+        self.set_how('knowhow', nqp::knowhow());
+        self.set_how('package', nqp::knowhow());
 
         # Will we use the result of this? (Yes for EVAL and REPL).
         my $*NEED_RESULT := nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
@@ -1214,8 +1212,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*LANG;
         :my $*LEAF;
         :my %*LANG   := self.shallow_copy(self.slangs);   # XXX deprecated
-        :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
-        :my %*HOWUSE := nqp::hash();
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
 
         :dba('statement list')

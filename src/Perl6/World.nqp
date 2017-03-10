@@ -511,7 +511,7 @@ class Perl6::World is HLL::World {
         try {
             my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
             for self.stash_hash($EXPORTHOW) {
-                %*HOW{$_.key} := $_.value;
+                $*LANG.set_how($_.key, $_.value);
             }
         }
 
@@ -525,7 +525,7 @@ class Perl6::World is HLL::World {
         }
         else {
             $*GLOBALish :=
-              self.pkg_create_mo($/,%*HOW<package>,:name('GLOBAL'));
+              self.pkg_create_mo($/,$/.CURSOR.how('package'),:name('GLOBAL'));
             self.pkg_compose($/, $*GLOBALish);
         }
 
@@ -535,7 +535,7 @@ class Perl6::World is HLL::World {
               self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
         }
         else {
-            $*EXPORT := self.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
+            $*EXPORT := self.pkg_create_mo($/, $/.CURSOR.how('package'), :name('EXPORT'));
             self.pkg_compose($/, $*EXPORT);
         }
 
@@ -590,7 +590,7 @@ class Perl6::World is HLL::World {
             }
             for $module<EXPORTHOW>.WHO {
                 my str $key := $_.key;
-                %*HOW{$key} := nqp::decont($_.value);
+                $*LANG.set_how($key, nqp::decont($_.value));
             }
         }
 
@@ -634,7 +634,7 @@ class Perl6::World is HLL::World {
         my $name := $*COMPILING_CORE_SETTING
           ?? '!CORE_MARKER'
           !! '!UNIT_MARKER';
-        my $marker := self.pkg_create_mo($/, %*HOW<package>, :$name);
+        my $marker := self.pkg_create_mo($/, $/.CURSOR.how('package'), :$name);
         $marker.HOW.compose($marker);
         self.install_lexical_symbol($*UNIT, $name, $marker);
 
@@ -754,16 +754,16 @@ class Perl6::World is HLL::World {
                     for %SUPERSEDE {
                         my str $pdecl := $_.key;
                         my $meta  := nqp::decont($_.value);
-                        unless nqp::existskey(%*HOW, $pdecl) {
+                        unless $/.CURSOR.know_how($pdecl) {
                             $/.CURSOR.typed_panic('X::EXPORTHOW::NothingToSupersede',
                                 declarator => $pdecl);
                         }
-                        if nqp::existskey(%*HOWUSE, $pdecl) {
+                        if $/.CURSOR.know_how("U:$pdecl") {
                             $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
                                 declarator => $pdecl, directive => $key);
                         }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('SUPERSEDE', $meta);
+                        $*LANG.set_how($pdecl, $meta);
+                        $*LANG.set_how("U:$pdecl", nqp::hash('SUPERSEDE', $meta));
                     }
                 }
                 elsif $key eq 'DECLARE' {
@@ -771,12 +771,12 @@ class Perl6::World is HLL::World {
                     for %DECLARE {
                         my str $pdecl := $_.key;
                         my $meta  := nqp::decont($_.value);
-                        if nqp::existskey(%*HOW, $pdecl) {
+                        if $/.CURSOR.know_how($pdecl) {
                             $/.CURSOR.typed_panic('X::EXPORTHOW::Conflict',
                                 declarator => $pdecl, directive => $key);
                         }
-                        %*HOW{$pdecl}    := $meta;
-                        %*HOWUSE{$pdecl} := nqp::hash('DECLARE', $meta);
+                        $*LANG.set_how($pdecl, $meta);
+                        $*LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
                         self.add_package_declarator($/,$pdecl);
                     }
                 }
@@ -790,7 +790,7 @@ class Perl6::World is HLL::World {
                         # supersede.
                         # XXX Can give deprecation warning in the future, remove
                         # before 6.0.0.
-                        %*HOW{$key} := nqp::decont($pair.value);
+                        $*LANG.set_how($key, nqp::decont($pair.value));
                     }
                     else {
                         $/.CURSOR.typed_panic('X::EXPORTHOW::InvalidDirective', directive => $key);
@@ -2814,9 +2814,8 @@ class Perl6::World is HLL::World {
 
     # Takes a declarator name and locates the applicable meta-object for it.
     method resolve_mo($/, $declarator) {
-        my %HOW := %*HOW;
-        if nqp::existskey(%HOW, $declarator) {
-            nqp::atkey(%HOW, $declarator)
+        if $/.CURSOR.know_how($declarator) {
+            $/.CURSOR.how($declarator)
         }
         elsif $declarator ~~ /'-attr'$/ {
             self.find_symbol(['Attribute'])
@@ -3080,7 +3079,7 @@ class Perl6::World is HLL::World {
     # interned one).
     method create_coercion_type($/, $target, $constraint) {
         self.ex-handle($/, {
-            my $type := %*HOW<coercion>.new_type($target, $constraint);
+            my $type := $/.CURSOR.how('coercion').new_type($target, $constraint);
             if nqp::isnull(nqp::getobjsc($type)) { self.add_object($type); }
             $type
         })

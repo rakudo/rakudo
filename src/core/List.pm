@@ -1406,17 +1406,17 @@ multi sub infix:<xx>(&x, Int $n) {
     Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
 multi sub infix:<xx>(Mu \x, Num() $n) {
-    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
+    Seq.new(nqp::if(
+      $n == Inf,
+      Rakudo::Iterator.UnendingValue(x),
+      Rakudo::Iterator.OneValueTimes(x,$n.Int)
+    ))
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
-    Seq.new(nqp::if(
-      nqp::isgt_i($n,0),
-      Rakudo::Iterator.OneValueTimes(x,$n),
-      Rakudo::Iterator.Empty
-    ))
+    Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))
 }
 
 proto sub reverse(|)   { * }

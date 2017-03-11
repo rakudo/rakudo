@@ -1110,7 +1110,9 @@ class Perl6::World is HLL::World {
     method arglist($/) {
         my $arglist;
         if $<arglist><EXPR> -> $expr {
-            $arglist := self.compile_time_evaluate($/,$expr.ast).List.FLATTENABLE_LIST;
+            if self.compile_time_evaluate($/,$expr.ast) -> $result {
+                $arglist := $result.List.FLATTENABLE_LIST;
+            }
         }
         $arglist;
     }

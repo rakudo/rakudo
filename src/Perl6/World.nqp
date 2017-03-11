@@ -1110,9 +1110,11 @@ class Perl6::World is HLL::World {
     method arglist($/) {
         my $arglist;
         if $<arglist><EXPR> -> $expr {
-            if self.compile_time_evaluate($/,$expr.ast) -> $result {
-                $arglist := $result.List.FLATTENABLE_LIST;
+            my $result := self.compile_time_evaluate($/,$expr.ast);
+            CATCH {
+                $/.CURSOR.panic("Could not evaluate arguments");
             }
+            $arglist := $result.List.FLATTENABLE_LIST;
         }
         $arglist;
     }

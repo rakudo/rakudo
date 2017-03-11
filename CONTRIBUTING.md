@@ -61,6 +61,80 @@ very basic guidelines:
 * Perl 5 code (part of the build system) should `use strict; use warnings;`
   and loosely follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
 
+## Commit messages
+How to write a good **and** useful commit message. Commit messages are where you
+tell the what, why and how of your commit to others.
+
+The subject/title of a commit should 50 or less characters ideally. The absolute
+maximum is 72. Title's usually will tell what you did. You should almost always
+have a body except in the case of the most trivial changes. These style guidelines
+are best practices, but use your judgment. You may want to fit 100 characters
+into the commit title to get in all the details, but `git` will cut it off if
+the window is not wide enough, and github.com will truncate it at the end if it
+is too long. The commit body is where you can go into detail about these things,
+the subject should be easy to read at a glance what you did.
+
+A good commit is one where months from now you be able to read
+this commit and understand what you did why you did it.
+
+Don't make a commit that only says `Fix RT #130979` because when the time to do
+the monthly changelog comes, someone will need to look up the ticket.
+And then usually wade through several replies on that ticket to figure out what
+the problem was and at the end I'm often unsure what the ACTUAL problem was
+that got fixed in the commit, not just the RT number
+
+If somebody is trying to find a recent commit that affected, say, infix:<xx>,
+would they be able to find it by searching through the subject and body for
+`xx`?
+
+The body should tell the reader:
+* **What** you did/changed
+* **Why** you did it
+* Background info
+
+Don't end commit subjects with periods for ease of viewing a commit log by
+title. If there are multiple
+sentences in the subject, you can have a period, but do not have one at the end
+of the commit. Example: `Fix foo and bar. This is good because reasons`
+
+This makes them look better and easier to read in shortlog/oneline form.
+
+If you fixed a ticket, or the commit relates to a specific ticket, please
+mention the ticket in the title or the body as `RT #12345`.
+
+If there was an IRC conversation that can give some background or useful information,
+you can link to it by visiting [irclog.perlgeek.de](https://irclog.perlgeek.de/perl6/) and
+linking the link provided by the timestamps on the left side of the page.
+
+Put links on their own line if they are going to go over the 76 character maximum
+for the body text.
+
+#### Sample/Tutorial Commit
+```git
+Capitalized, short (50 chars or less) summary
+
+More detailed explanatory text.  The commit relates to a ticket,
+please write it as RT #12345. Wrap at about 72 characters, but never above
+76, unless it is a URL or code that cannot be separated.
+
+The blank line separating the summary from the body is critical;
+tools like rebase can get confused if you run the two together.
+
+Write your commit message in the imperative: "Fix bug" and not "Fixed bug"
+or "Fixes bug."  This convention matches up with commit messages generated
+by commands like git merge and git revert.
+
+Further paragraphs come after blank lines.
+
+- Bullet points are okay, too
+- Typically a hyphen or asterisk is used for the bullet, followed by a
+  single space.
+- Indent the lines following the bullet the same as the line above.
+NOT like this.
+```
+Above faux commit adapted from [here](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+, which also has some more information on how to make a good commit.
+
 ## Have Fun!
 
 Enjoy the ride, and please join our IRC channels to meet the great community.

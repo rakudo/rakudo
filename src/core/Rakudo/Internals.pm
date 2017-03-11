@@ -1334,21 +1334,24 @@ my class Rakudo::Internals {
             has $!todo;
             has $!seen;
             method !SET-SELF(\abspath,$!dir,$!file) {
-                $!abspath = abspath;
-                if nqp::stat($!abspath,nqp::const::STAT_EXISTS)
-                  && nqp::stat($!abspath,nqp::const::STAT_ISDIR) {
-                    $!handle := nqp::opendir($!abspath);
-                    $!dir-sep = $*SPEC.dir-sep;
-                    $!todo   := nqp::list_s;
-                    $!seen   := nqp::hash($!abspath,1);
-                    $!abspath = nqp::concat($!abspath,$!dir-sep);
-                    self
-                }
-                else {
-                    Rakudo::Iterator.Empty
-                }
+                nqp::stmts(
+                  ($!abspath = abspath),
+                  ($!handle := nqp::opendir($!abspath)),
+                  ($!dir-sep = $*SPEC.dir-sep),
+                  ($!todo   := nqp::list_s),
+                  ($!seen   := nqp::hash($!abspath,1)),
+                  ($!abspath = nqp::concat($!abspath,$!dir-sep)),
+                  self
+                )
             }
-            method new(\ap,\d,\f) { nqp::create(self)!SET-SELF(ap,d,f) }
+            method new(\abspath,\dir,\file) {
+                nqp::if(
+                  nqp::stat(abspath,nqp::const::STAT_EXISTS)
+                    && nqp::stat(abspath,nqp::const::STAT_ISDIR),
+                  nqp::create(self)!SET-SELF(abspath,dir,file),
+                  Rakudo::Iterator.Empty
+                )
+            }
 
             method !next() {
                 nqp::while(

@@ -318,17 +318,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!chars;
             has int $!pos;
             method !SET-SELF(\string) {
-                $!str   = nqp::unbox_s(string);
+                nqp::stmts(
+                  ($!str   = nqp::unbox_s(string)),
+                  ($!chars = nqp::chars($!str)),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(\string) {
                 nqp::if(
-                  nqp::isgt_i(($!chars = nqp::chars($!str)),0),
-                  nqp::stmts(
-                    ($!pos = -1),
-                    self
-                  ),
+                  string,
+                  nqp::create(self)!SET-SELF(string),
                   Rakudo::Iterator.Empty
                 )
             }
-            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 nqp::if(
                   nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
@@ -352,20 +355,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
             has int $!max;
             has int $!todo;
             method !SET-SELF(\string,\size,\limit,\inf) {
-                $!str   = nqp::unbox_s(string);
+                nqp::stmts(
+                  ($!str   = nqp::unbox_s(string)),
+                  ($!chars = nqp::chars($!str)),
+                  ($!size  = 1 max size),
+                  ($!pos   = -size),
+                  ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
+                  ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
+                  self
+                )
+            }
+            method new(\string,\size,\limit,\inf) {
                 nqp::if(
-                  nqp::isgt_i(($!chars = nqp::chars($!str)),0),
-                  nqp::stmts(
-                    ($!size  = 1 max size),
-                    ($!pos   = -size),
-                    ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
-                    ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
-                    self
-                  ),
+                  string,
+                  nqp::create(self)!SET-SELF(string,size,limit,inf),
                   Rakudo::Iterator.Empty
                 )
             }
-            method new(\s,\z,\l,\i) { nqp::create(self)!SET-SELF(s,z,l,i) }
             method pull-one() {
                 ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
                   ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))

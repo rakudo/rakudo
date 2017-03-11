@@ -23,17 +23,19 @@ class Rakudo::Iterator {
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
         method SET-SELF(\blob) {
+            nqp::stmts(               # something to iterator over
+              ($!blob := blob),
+              ($!i     = -1),
+              self
+            )
+        }
+        method new(\blob) {
             nqp::if(
               nqp::isgt_i(nqp::elems(blob),0),
-              nqp::stmts(               # something to iterator over
-                ($!blob := blob),
-                ($!i     = -1),
-                self
-              ),
+              nqp::create(self).SET-SELF(blob),
               Rakudo::Iterator.Empty    # nothing to iterate
             )
         }
-        method new(\blob) { nqp::create(self).SET-SELF(blob) }
 
         # We can provide a generic push-all to the iterator as the
         # result of a push-all is always immutable, so we can use
@@ -61,17 +63,20 @@ class Rakudo::Iterator {
         has $!iter;
 
         method SET-SELF(\hash) {
-            $!storage := nqp::getattr(hash,Map,'$!storage');
+            nqp::stmts(
+              ($!storage := nqp::getattr(hash,Map,'$!storage')),
+              ($!iter := nqp::iterator($!storage)),
+              self
+            )
+        }
+        method new(\hash) {
             nqp::if(
-              ($!storage.DEFINITE && nqp::elems($!storage)),
-              nqp::stmts(              # we have something to iterate over
-                ($!iter := nqp::iterator($!storage)),
-                self
-              ),
+              (nqp::getattr(hash,Map,'$!storage').DEFINITE
+                && nqp::elems(nqp::getattr(hash,Map,'$!storage'))),
+              nqp::create(self).SET-SELF(hash),
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
@@ -483,17 +488,19 @@ class Rakudo::Iterator {
             has $!code;
             has $!times;
             method !SET-SELF(\code,\times) {
+                nqp::stmts(
+                  ($!code := code),
+                  ($!times = times),
+                  self
+                )
+            }
+            method new(\code,\times) {
                 nqp::if(
                   times > 0,
-                  nqp::stmts(
-                    ($!code := code),
-                    ($!times = times),
-                    self
-                  ),
+                  nqp::create(self)!SET-SELF(code,times),
                   Rakudo::Iterator.Empty
                 )
             }
-            method new(\co,\ti) { nqp::create(self)!SET-SELF(co,ti) }
             method pull-one() {
                 nqp::if(
                   @!slipped,
@@ -1988,18 +1995,20 @@ class Rakudo::Iterator {
             has int $!is-lazy;
 
             method !SET-SELF(Mu \value,\times) {
+                nqp::stmts(
+                  ($!value := value),
+                  ($!times  = times),
+                  ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
+                  self
+                )
+            }
+            method new(Mu \value,\times) {
                 nqp::if(
                   times > 0,
-                  nqp::stmts(
-                    ($!value := value),
-                    ($!times  = times),
-                    ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
-                    self
-                  ),
+                  nqp::create(self)!SET-SELF(value,times),
                   Rakudo::Iterator.Empty
                 )
             }
-            method new(Mu \val,\tim) { nqp::create(self)!SET-SELF(val,tim) }
             method pull-one() is raw {
                 nqp::if(
                   $!times,

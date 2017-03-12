@@ -64,9 +64,8 @@ my class IO::Path is Cool {
     method basename(IO::Path:D:) { %.parts<basename> }
     method extension(IO::Path:D:) { Rakudo::Internals.MAKE-EXT(self.basename) }
 
-    # core can't do 'basename handles <Numeric Bridge Int>'
+    # core can't do 'basename handles <Numeric Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }
-    method Bridge (IO::Path:D:) { self.basename.Bridge  }
     method Int    (IO::Path:D:) { self.basename.Int     }
 
     multi method Str (IO::Path:D:) { $!path }

@@ -1934,9 +1934,9 @@ multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
 multi sub infix:<min>(Int:D \a, Int:D \b) { nqp::if(nqp::islt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
-multi sub infix:<min>(int:D \a, int:D \b) { nqp::if(nqp::islt_i(nqp::cmp_i(a, b), 0), a, b) }
+multi sub infix:<min>(int   \a, int   \b) { nqp::if(nqp::islt_i(nqp::cmp_i(a, b), 0), a, b) }
 multi sub infix:<min>(Num:D \a, Num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
-multi sub infix:<min>(num:D \a, num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<min>(+args is raw) { args.min }
 sub min(+args, :&by = &infix:<cmp>) { args.min(&by) }
 
@@ -1945,9 +1945,9 @@ multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
 multi sub infix:<max>(Int:D \a, Int:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
-multi sub infix:<max>(int:D \a, int:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_i(a, b), 0), a, b) }
+multi sub infix:<max>(int   \a, int   \b) { nqp::if(nqp::isgt_i(nqp::cmp_i(a, b), 0), a, b) }
 multi sub infix:<max>(Num:D \a, Num:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
-multi sub infix:<max>(num:D \a, num:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<max>(num   \a, num   \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<max>(+args) { args.max }
 sub max(+args, :&by = &infix:<cmp>) { args.max(&by) }
 

@@ -75,15 +75,15 @@ is too long. The commit body is where you can go into detail about these things,
 the subject should be easy to read at a glance what you did.
 
 A good commit is one where months from now you be able to read
-this commit and understand what you did why you did it.
+this commit and understand what you did and why you did it.
 
 Don't make a commit that only says `Fix RT #130979` because when the time to do
 the monthly changelog comes, someone will need to look up the ticket.
 And then usually wade through several replies on that ticket to figure out what
 the problem was and at the end I'm often unsure what the ACTUAL problem was
-that got fixed in the commit, not just the RT number
+that got fixed in the commit, not just the RT number.
 
-If somebody is trying to find a recent commit that affected, say, infix:<xx>,
+If somebody is trying to find a recent commit that affected, say, `infix:<xx>`,
 would they be able to find it by searching through the subject and body for
 `xx`?
 

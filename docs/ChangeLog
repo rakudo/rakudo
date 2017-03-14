@@ -1,5 +1,16 @@
 New in 2017.03
  + Fixes:
+    + Made IO::Path.lines non-lazy so it can always close the file handle [0083c4f]
+    + Fixed unwanted container re-use in `infix:<x>` [5b7b7fb]
+    + Made Emoji_Modifier_Base return Bool instead of int with uniprop [2125d4d]
+    + Fixed JIT rounding bug for negatives in nqp::div_i [deac603][f73d984]
+    + Fixed failure in `\c[]` with non-ASCII names [deac603]
+    + Fixed issues in `infix:<div>` optimization [deac603]
+    + Fixed .split(...:skip-empty) not skipping with empty strings [fc86084]
+    + Fixed duplicated .done/.quit on Channels in Proc::Async on exit [c4a4c84]
+    + Fixed error handling when Proc::Async process failed to spawn [f73d984]
+    + Made sure `infix:<xx>` always returns a Seq [1eb7b1f]
+    + Partially fixed `infix:<xx>` being non-lazy [f190f24]
     + Fixed SC collision when loading identical modules from
         different dists [254f76a]
     + Fixed CURI loading of modules with identical short-names [c1a0fa7]
@@ -26,12 +37,19 @@ New in 2017.03
     + Fixed CArray to pass NULL when for type object elements [26e6993]
     + Fixed GC deadlock when event loop worker thread was spawned [26e6993]
     + Fixed `:i` in regexes using lowercase instead of fold case [26e6993]
-    + JVM backend fixes [b1def95][2f6d2c6]
+    + JVM backend fixes [b1def95][2f6d2c6][dc19892][cef41b2]
     + Various improvements to error reporting
         [dc5fb20][d66c382][b11dc88][6cb9be2][3bf734f][26e6993]
+        [20fa14b][127338a][1934a56][27dc7b1][1e24666]
  + Additions:
-    + Made Proc::Async default to translating newlines [05add43][2973ccd]
+    + Made symbol imports of `require`d modules lexical 
+        [63cf5ca][3e86d0f][5b98caa][6771dee][9da6de4][4fce405][030c4c5]
+    + Added ≤, ≥, ≠ as Unicode versions of <=, >=, and != [5c68ea6]
     + Implemented ⁇ ‼ (U+2047, U+203C) as alternative to ?? !! ternary [ed971df]
+    + Made it possible to hyper ops that return a Seq [e2db7b8]
+    + Made `infix:<∘>` keep RHS's .count and .arity and LHS's .of [032b283][cb149a8]
+    + Made purity propagate up through meta-meta ASTs [68a40f7]
+    + Made Proc::Async default to translating newlines [05add43][2973ccd]
     + Implemented Str.parse-names [5c1761a]
     + Added `$epsilon` argument to Complex.Rat/.FatRat [a4af702]
     + Fixed loss of precision in Instant.Rat [a4af702]
@@ -40,10 +58,22 @@ New in 2017.03
     + Implemented Mu.iterator [81fcd1b]
     + Made sure Str.split always returns a Seq [f595733][8301a30]
     + Made List.reverse return a Seq [beda576]
+    + [EXPERIMENTAL] Added support for Parameter.set_default [d6c95ea]
     + Implemented new internal braids API to make future optimizations easier.
         This affects any slang modules that access `%*LANG`, `%*PRAGMAS`, and
         `$*ACTIONS` internals using unofficial API.
+ + Removals:
+    + Removed IO::Path.Bridge [212cc8a]
+    + Removed support for IO::Handle.lines(:close) agument [76a59cf]
  + Efficiency:
+    + Made min/max/min=/max= about 3x faster [a9c5196]
+    + Made case-insensitive regex match 20%-30% faster [5b6e0fb][f73d984]
+    + Made triangle reduce right op with 2 params 2x faster [e114d52]
+    + Made triangle reduce right op with 2+ params 1.5x faster [d04c47f]
+    + Made IO::Handle.lines about 10% faster [9019a5b]
+    + Made IO::Handle.getc about 3% faster [9019a5b]
+    + Made reduce chain op about 5% faster [9cec31a]
+    + Made IO::Handle.lines about 10% faster [9da50e3]
     + Made List.reverse 0%–30% faster and reduced memory pressure by up to 70%
         [beda576]
     + Made loops/maps with NEXT phaser about 5% faster [80e0bce]
@@ -57,6 +87,7 @@ New in 2017.03
         [b2e0ac0][25a3cc5][b61b3c7][829762a][45b3af8][7010ae9][556db9d][9e9a4ad]
         [8e8cd14][7556498][adb6f87][9a109c9][3de7b08][b283e52][0be7247][74573d0]
         [79d5670][313e7b2][e723e00][5843ee6][7c279c3][318f8ee][4ef1e69][9d497e9]
+        [b597398][4bc826d][9da50e3][2a2e460][0633f03][d444f65]
 
 New in 2017.02
  + 6.d.PREVIEW changes:

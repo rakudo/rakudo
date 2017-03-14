@@ -1809,7 +1809,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<lambda> {
-        <?before '{' | '->' > <!{ $*IN_META }> {
+        <?before '{' | <.lambda> > <!{ $*IN_META }> {
             my $needparens := 0;
             my $pos := $/.from;
             my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));

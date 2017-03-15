@@ -275,9 +275,19 @@ $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
 #$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
 my $p6bool := -> $qastcomp, $op {
-    # Compile instructions.
+    # Having a Var with a lexicalref scope isn't uncommon, so we make extra
+    # sure we do a fast lexical access instead of creating a LexicalRef obj
+    # and going through that.
     my @ops;
-    my $exprres := $qastcomp.as_mast($op[0]);
+    my $exprres;
+    my $want := $MVM_reg_obj;
+    if nqp::istype($op[0], QAST::Var) && $op[0].scope eq 'lexicalref' {
+        my $spec := nqp::objprimspec($op[0].returns);
+        if $spec == 1 { $want := $MVM_reg_int64 }
+        elsif $spec == 2 { $want := $MVM_reg_num64 }
+        elsif $spec == 3 { $want := $MVM_reg_str }
+    }
+    $exprres := $qastcomp.as_mast($op[0], :want($want));
     push_ilist(@ops, $exprres);
 
     # Go by result kind.

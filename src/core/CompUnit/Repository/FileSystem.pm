@@ -96,7 +96,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         )
     }
 
-    method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit) {
         my ($base, $file) = self!matching-file($spec);
 
         return CompUnit.new(
@@ -118,8 +118,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-    )
-        returns CompUnit:D
+
+        --> CompUnit:D)
     {
         my ($base, $file) = self!matching-file($spec);
         if $base {
@@ -153,7 +153,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
-    method load(IO::Path:D $file) returns CompUnit:D {
+    method load(IO::Path:D $file --> CompUnit:D) {
         unless $file.is-absolute {
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
@@ -182,7 +182,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method short-id() { 'file' }
 
-    method loaded() returns Iterable {
+    method loaded(--> Iterable) {
         return %!loaded.values;
     }
 
@@ -200,13 +200,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $.prefix.parent.child('resources').child($key.subst(/^resources\//, ""));
     }
 
-    method precomp-store() returns CompUnit::PrecompilationStore {
+    method precomp-store(--> CompUnit::PrecompilationStore) {
         $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('.precomp')),
         )
     }
 
-    method precomp-repository() returns CompUnit::PrecompilationRepository {
+    method precomp-repository(--> CompUnit::PrecompilationRepository) {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(self.precomp-store),
         ) unless $!precomp;

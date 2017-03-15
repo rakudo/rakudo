@@ -2,8 +2,7 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
         if $spec.from eq 'Perl5' {
             require Inline::Perl5;

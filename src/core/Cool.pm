@@ -57,7 +57,7 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars() returns Int:D {
+    method chars(--> Int:D) {
         self.Str.chars
     }
     method codes() {
@@ -274,12 +274,12 @@ my class Cool { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Cool);
 
 proto sub chop(|) { * }
-multi sub chop(Cool:D $s)           returns Str { $s.chop }
-multi sub chop(Cool:D $s, Int() $n) returns Str { $s.chop($n) }
+multi sub chop(Cool:D $s --> Str) { $s.chop }
+multi sub chop(Cool:D $s, Int() $n --> Str) { $s.chop($n) }
 
-sub chomp(Cool:D $s) returns Str { $s.chomp }
+sub chomp(Cool:D $s --> Str) { $s.chomp }
 
-sub flip(Cool $s) returns Str      { $s.flip }
+sub flip(Cool $s --> Str)      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
@@ -333,7 +333,7 @@ sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
-multi sub chars(str $x) returns int { nqp::chars($x) }
+multi sub chars(str $x --> int) { nqp::chars($x) }
 
 # These probably belong in a separate unicodey file
 

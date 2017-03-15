@@ -24,7 +24,7 @@ class CompUnit::Handle {
 
     # If the compilation unit has a callable EXPORT subroutine, it will
     # be returned here. A Callable type object otherwise.
-    method export-sub() returns Callable {
+    method export-sub(--> Callable) {
         my $module := self.unit;
         $module && nqp::existskey($module, '&EXPORT')
           ?? nqp::atkey($module, '&EXPORT')
@@ -33,7 +33,7 @@ class CompUnit::Handle {
 
     # The EXPORT package from the UNIT of the compilation unit; a
     # Stash type object if none
-    method export-package() returns Stash {
+    method export-package(--> Stash) {
         my $module := self.unit;
         if $module and nqp::existskey($module, 'EXPORT') {
             my $EXPORT := nqp::atkey($module, 'EXPORT');
@@ -48,7 +48,7 @@ class CompUnit::Handle {
 
     # The EXPORTHOW package from the UNIT of the compilation unit;
     # a Stash type object if none.
-    method export-how-package() returns Stash {
+    method export-how-package(--> Stash) {
         my $module := self.unit;
         if $module and nqp::existskey($module, 'EXPORTHOW') {
             my $EXPORTHOW := nqp::atkey($module, 'EXPORTHOW');

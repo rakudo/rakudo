@@ -125,13 +125,13 @@ for $*IN.lines -> $line {
             self
         }
 
-        method pop(#type#array:D:) returns #type# {
+        method pop(#type#array:D: --> #type#) {
             nqp::elems(self) > 0
               ?? nqp::pop_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(#type#array:D:) returns #type# {
+        method shift(#type#array:D: --> #type#) {
             nqp::elems(self) > 0
               ?? nqp::shift_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));

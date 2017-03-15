@@ -680,7 +680,7 @@ my class IO::Handle does IO {
         nqp::seekfh($!PIO, $offset, +$whence);
     }
 
-    method tell(IO::Handle:D:) returns Int {
+    method tell(IO::Handle:D: --> Int) {
         nqp::p6box_i(nqp::tellfh($!PIO));
     }
 
@@ -745,7 +745,7 @@ my class IO::Handle does IO {
     }
 
     proto method slurp-rest(|) { * }
-    multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close) returns Buf {
+    multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close --> Buf) {
         LEAVE self.close if $close;
         my $res := buf8.new;
         loop {
@@ -755,7 +755,7 @@ my class IO::Handle does IO {
               !! return $res
         }
     }
-    multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close) returns Str {
+    multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close --> Str) {
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         nqp::p6box_s(nqp::readallfh($!PIO));

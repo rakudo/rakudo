@@ -4,7 +4,7 @@
             CompUnit::PrecompilationDependency::File $dependency,
             IO::Path :$source,
             CompUnit::PrecompilationStore :@precomp-stores,
-        ) returns CompUnit::Handle {
+            --> CompUnit::Handle) {
             Nil
         }
 
@@ -35,7 +35,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationDependency::File $dependency,
         IO::Path :$source = $dependency.src.IO,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
-    ) returns CompUnit::Handle {
+     --> CompUnit::Handle) {
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $id = $dependency.id;
         $RMD("try-load $id: $source") if $RMD;

@@ -8,8 +8,7 @@ class CompUnit::Repository::Unknown does CompUnit::Repository {
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new(
             self.repo-chain.map(*.precomp-store).grep(*.defined)
         ),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
         return $precomp
             ?? self.next-repo.need($spec, $precomp, :@precomp-stores)

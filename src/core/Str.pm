@@ -2681,7 +2681,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method codes(|) { * }
-    multi method codes(Str:D:) returns Int:D {
+    multi method codes(Str:D: --> Int:D) {
 #?if moar
         self.NFC.codes
 #?endif
@@ -2689,16 +2689,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
 #?endif
     }
-    multi method codes(Str:U:) returns Int:D {
+    multi method codes(Str:U: --> Int:D) {
         self.Str;  # generate undefined warning
         0
     }
 
     proto method chars(|) { * }
-    multi method chars(Str:D:) returns Int:D {
+    multi method chars(Str:D: --> Int:D) {
         nqp::p6box_i(nqp::chars($!value))
     }
-    multi method chars(Str:U:) returns Int:D {
+    multi method chars(Str:U: --> Int:D) {
         self.Str;  # generate undefined warning
         0
     }
@@ -2752,7 +2752,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method ord(|) { * }
-    multi method ord(Str:D:) returns Int {
+    multi method ord(Str:D: --> Int) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Nil;
@@ -2761,117 +2761,117 @@ my class Str does Stringy { # declared in BOOTSTRAP
 }
 
 
-multi sub prefix:<~>(Str:D \a)             { a.Str }
-multi sub prefix:<~>(str   $a) returns str { $a    }
+multi sub prefix:<~>(Str:D \a)         { a.Str }
+multi sub prefix:<~>(str   $a --> str) { $a    }
 
-multi sub infix:<~>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
-multi sub infix:<~>(*@args) returns Str:D { @args.join }
+multi sub infix:<~>(str $a, str $b --> str) { nqp::concat($a, $b) }
+multi sub infix:<~>(*@args --> Str:D) { @args.join }
 
-multi sub infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
+multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {
     nqp::if(nqp::islt_i($repetition, 0),
         '',
         nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition))))
 }
-multi sub infix:<x>(str $s, int $repetition) returns str {
+multi sub infix:<x>(str $s, int $repetition --> str) {
     nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))
 }
 
-multi sub infix:<cmp>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<cmp>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<cmp>(str $a, str $b) returns Order:D {
+multi sub infix:<cmp>(str $a, str $b --> Order:D) {
     ORDER(nqp::cmp_s($a, $b))
 }
 
-multi sub infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<===>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(
       nqp::eqaddr(a.WHAT,b.WHAT)
       && nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b))
     )
 }
-multi sub infix:<===>(str $a, str $b) returns Bool:D {
+multi sub infix:<===>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::iseq_s($a, $b))
 }
 
-multi sub infix:<leg>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<leg>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<leg>(str $a, str $b) returns Order:D {
+multi sub infix:<leg>(str $a, str $b --> Order:D) {
     ORDER(nqp::cmp_s($a, $b))
 }
 
-multi sub infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<eq>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<eq>(str $a, str $b) returns Bool:D {
+multi sub infix:<eq>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::iseq_s($a, $b))
 }
 
-multi sub infix:<ne>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<ne>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::isne_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<ne>(str $a, str $b) returns Bool:D {
+multi sub infix:<ne>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::isne_s($a, $b))
 }
 
-multi sub infix:<lt>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<lt>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<lt>(str $a, str $b) returns Bool:D {
+multi sub infix:<lt>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::islt_s($a, $b))
 }
 
-multi sub infix:<le>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<le>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::isle_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<le>(str $a, str $b) returns Bool:D {
+multi sub infix:<le>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::isle_s($a, $b))
 }
 
-multi sub infix:<gt>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<gt>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::isgt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<gt>(str $a, str $b) returns Bool:D {
+multi sub infix:<gt>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::isgt_s($a, $b))
 }
 
-multi sub infix:<ge>(Str:D \a, Str:D \b) returns Bool:D {
+multi sub infix:<ge>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::p6bool(nqp::isge_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<le>(str $a, str $b) returns Bool:D {
+multi sub infix:<le>(str $a, str $b --> Bool:D) {
     nqp::p6bool(nqp::isle_s($a, $b))
 }
 
-multi sub infix:<~|>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~|>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::bitor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~|>(str $a, str $b) returns str { nqp::bitor_s($a, $b) }
+multi sub infix:<~|>(str $a, str $b --> str) { nqp::bitor_s($a, $b) }
 
-multi sub infix:<~&>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~&>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::bitand_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~&>(str $a, str $b) returns str { nqp::bitand_s($a, $b) }
+multi sub infix:<~&>(str $a, str $b --> str) { nqp::bitand_s($a, $b) }
 
-multi sub infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
+multi sub infix:<~^>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
+multi sub infix:<~^>(str $a, str $b --> str) { nqp::bitxor_s($a, $b) }
 
 multi sub prefix:<~^>(Str \a) {
     Failure.new("prefix:<~^> NYI")   # XXX
 }
 
 # XXX: String-wise shifts NYI
-multi sub infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
+multi sub infix:«~>»(Str:D \a, Int:D \b --> Str:D) {
     X::NYI.new(feature => "infix:«~>»").throw;
 }
 multi sub infix:«~>»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~>»").throw;
 }
-multi sub infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
+multi sub infix:«~<»(Str:D \a, Int:D \b --> Str:D) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 multi sub infix:«~<»(str $a, int $b) {
@@ -2883,9 +2883,9 @@ multi sub ords(Str $s) {
 }
 
 # TODO: Cool  variants
-sub trim         (Str:D $s) returns Str:D { $s.trim }
-sub trim-leading (Str:D $s) returns Str:D { $s.trim-leading }
-sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
+sub trim         (Str:D $s --> Str:D) { $s.trim }
+sub trim-leading (Str:D $s --> Str:D) { $s.trim-leading }
+sub trim-trailing(Str:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }
@@ -2933,7 +2933,7 @@ sub UNBASE_BRACKET($base, @a) {
 proto sub infix:<unicmp>(|) is pure { * }
 proto sub infix:<coll>(|) { * }
 #?if moar
-multi sub infix:<unicmp>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
         feature => "the 'unicmp' operator",
         use     => "collation"
@@ -2945,7 +2945,7 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b) returns Order:D {
 multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
     (a.key unicmp b.key) || (a.value unicmp b.value)
 }
-multi sub infix:<coll>(Str:D \a, Str:D \b) returns Order:D {
+multi sub infix:<coll>(Str:D \a, Str:D \b --> Order:D) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
         feature => "the 'coll' operator",
         use     => "collation"
@@ -2954,7 +2954,7 @@ multi sub infix:<coll>(Str:D \a, Str:D \b) returns Order:D {
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), $*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Cool:D \a, Cool:D \b) returns Order:D {
+multi sub infix:<coll>(Cool:D \a, Cool:D \b --> Order:D) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
         feature => "the 'coll' operator",
         use     => "collation"
@@ -2972,7 +2972,7 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b) { die "unicmp NYI on JVM" }
 multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
 #?endif
 
-sub chrs(*@c) returns Str:D {
+sub chrs(*@c --> Str:D) {
     fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;
     my $list     := nqp::getattr(@c,List,'$!reified');
     my int $i     = -1;

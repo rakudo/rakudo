@@ -127,7 +127,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method expmod(Int:D: Int:D \base, Int:D \mod) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(Int:D:) returns Bool:D {
+    method is-prime(Int:D: --> Bool:D) {
         nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i(100)));
     }
 
@@ -231,38 +231,38 @@ multi sub postfix:<-->(int $a is rw) {
     $b
 }
 
-multi sub prefix:<->(Int:D \a) returns Int {
+multi sub prefix:<->(Int:D \a --> Int) {
     nqp::neg_I(nqp::decont(a), Int);
 }
-multi sub prefix:<->(int $a) returns int {
+multi sub prefix:<->(int $a --> int) {
     nqp::neg_i($a)
 }
 
-multi sub abs(Int:D \a) returns Int:D {
+multi sub abs(Int:D \a --> Int:D) {
     nqp::abs_I(nqp::decont(a), Int);
 }
-multi sub abs(int $a) returns int {
+multi sub abs(int $a --> int) {
     nqp::abs_i($a)
 }
 
-multi sub infix:<+>(Int:D \a, Int:D \b) returns Int:D {
+multi sub infix:<+>(Int:D \a, Int:D \b --> Int:D) {
     nqp::add_I(nqp::decont(a), nqp::decont(b), Int);
 }
-multi sub infix:<+>(int $a, int $b) returns int {
+multi sub infix:<+>(int $a, int $b --> int) {
     nqp::add_i($a, $b)
 }
 
-multi sub infix:<->(Int:D \a, Int:D \b) returns Int:D {
+multi sub infix:<->(Int:D \a, Int:D \b --> Int:D) {
     nqp::sub_I(nqp::decont(a), nqp::decont(b), Int);
 }
-multi sub infix:<->(int $a, int $b) returns int {
+multi sub infix:<->(int $a, int $b --> int) {
     nqp::sub_i($a, $b)
 }
 
-multi sub infix:<*>(Int:D \a, Int:D \b) returns Int {
+multi sub infix:<*>(Int:D \a, Int:D \b --> Int) {
     nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
 }
-multi sub infix:<*>(int $a, int $b) returns int {
+multi sub infix:<*>(int $a, int $b --> int) {
     nqp::mul_i($a, $b);
 }
 
@@ -271,12 +271,12 @@ multi sub infix:<div>(Int:D \a, Int:D \b) {
       ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
       !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator(a)))
 }
-multi sub infix:<div>(int $a, int $b) returns int {
+multi sub infix:<div>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
     nqp::div_i($a, $b)
 }
 
-multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
+multi sub infix:<%>(Int:D \a, Int:D \b --> Int) {
     nqp::if(
       nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
       nqp::if(
@@ -294,7 +294,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b) returns Int {
       )
     )
 }
-multi sub infix:<%>(int $a, int $b) returns int {
+multi sub infix:<%>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
     nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
@@ -311,21 +311,21 @@ multi sub infix:<**>(Int:D \a, Int:D \b) {
                     !! $power;
 }
 
-multi sub infix:<**>(int $a, int $b) returns int {
+multi sub infix:<**>(int $a, int $b --> int) {
     nqp::pow_i($a, $b);
 }
 
-multi sub infix:<lcm>(Int:D \a, Int:D \b) returns Int {
+multi sub infix:<lcm>(Int:D \a, Int:D \b --> Int) {
     nqp::lcm_I(nqp::decont(a), nqp::decont(b), Int);
 }
-multi sub infix:<lcm>(int $a, int $b) returns int {
+multi sub infix:<lcm>(int $a, int $b --> int) {
     nqp::lcm_i($a, $b)
 }
 
-multi sub infix:<gcd>(Int:D \a, Int:D \b) returns Int {
+multi sub infix:<gcd>(Int:D \a, Int:D \b --> Int) {
     nqp::gcd_I(nqp::decont(a), nqp::decont(b), Int);
 }
-multi sub infix:<gcd>(int $a, int $b) returns int {
+multi sub infix:<gcd>(int $a, int $b --> int) {
     nqp::gcd_i($a, $b)
 }
 
@@ -400,7 +400,7 @@ multi sub infix:<+^>(Int:D \a, Int:D \b) {
 #    nqp::bitxor_i($a, $b);
 #}
 
-multi sub infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
+multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
     nqp::isbig_I(nqp::decont(b))
       ?? Failure.new(X::NYI::BigInt.new(:op('+<'),:big(b)))
       !! nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
@@ -409,7 +409,7 @@ multi sub infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
 #    nqp::bitshiftl_i($a, $b);
 #}
 
-multi sub infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
+multi sub infix:«+>»(Int:D \a, Int:D \b --> Int:D) {
     nqp::isbig_I(nqp::decont(b))
       ?? Failure.new(X::NYI::BigInt.new(:op('+>'),:big(b)))
       !! a < 0 && b > 31
@@ -428,9 +428,9 @@ multi sub prefix:<+^>(Int:D \a) {
 #}
 
 proto sub chr($) is pure  {*}
-multi sub chr(Int:D  \x) returns Str:D { x.chr     }
-multi sub chr(Cool \x) returns Str:D { x.Int.chr }
-multi sub chr(int $x) returns str {
+multi sub chr(Int:D  \x --> Str:D) { x.chr     }
+multi sub chr(Cool \x --> Str:D) { x.Int.chr }
+multi sub chr(int $x --> str) {
     nqp::chr($x);
 }
 

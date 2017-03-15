@@ -160,8 +160,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method destination(CompUnit::PrecompilationId $compiler-id,
                        CompUnit::PrecompilationId $precomp-id,
-                       Str :$extension = '')
-        returns IO::Path
+                       Str :$extension = ''
+                       --> IO::Path)
     {
         unless $!prefix.e {
             $!prefix.mkdir or return;
@@ -173,8 +173,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method !file(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
-                 Str :$extension = '')
-        returns IO::Path
+                 Str :$extension = ''
+                 --> IO::Path)
     {
         my $compiler-dir = self.prefix.child($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;

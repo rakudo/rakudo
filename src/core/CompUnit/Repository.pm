@@ -8,15 +8,14 @@ role CompUnit::Repository {
     method need(CompUnit::DependencySpecification $spec,
                 # If we're first in the chain, our precomp repo is the chosen one.
                 CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-                CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($precomp.store))
-        returns CompUnit:D
+                CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($precomp.store)
+                --> CompUnit:D)
         { ... }
 
     # Resolves a dependency specification to a concrete dependency.
     # Returns a CompUnit object that represents the selected dependency.
     # If there is no matching dependency, Nil is returned.
-    method resolve(CompUnit::DependencySpecification $spec)
-        returns CompUnit
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit)
     {
         self.next-repo
           ?? self.next-repo.resolve($spec)
@@ -24,8 +23,7 @@ role CompUnit::Repository {
     }
 
     # Just load the file and return a CompUnit object representing it.
-    method load(IO::Path:D $file)
-        returns CompUnit:D
+    method load(IO::Path:D $file --> CompUnit:D)
     {
         self.next-repo
           ?? self.next-repo.load($file)
@@ -36,21 +34,17 @@ role CompUnit::Repository {
     # Returns the CompUnit objects describing all of the compilation
     # units that have been loaded by this repository in the current
     # process.
-    method loaded()
-        returns Iterable
+    method loaded(--> Iterable)
         { ... }
 
     # Returns a unique ID of this repository
-    method id()
-        returns Str
+    method id(--> Str)
         { ... }
 
-    method precomp-store()
-        returns CompUnit::PrecompilationStore
+    method precomp-store(--> CompUnit::PrecompilationStore)
         { CompUnit::PrecompilationStore }
 
-    method precomp-repository()
-        returns CompUnit::PrecompilationRepository
+    method precomp-repository(--> CompUnit::PrecompilationRepository)
         { CompUnit::PrecompilationRepository::None }
 
     method repo-chain() {

@@ -10,11 +10,11 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
         nqp::decoderaddbytes(self, nqp::decont($bytes));
     }
 
-    method consume-available-chars() returns Str {
+    method consume-available-chars(--> Str) {
         nqp::decodertakeavailablechars(self)
     }
 
-    method consume-all-chars() returns Str {
+    method consume-all-chars(--> Str) {
         nqp::decodertakeallchars(self)
     }
 }

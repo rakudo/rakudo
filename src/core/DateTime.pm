@@ -202,7 +202,7 @@ my class DateTime does Dateish {
           $0,$1,$2,$3,$4,+(~$5.subst(",",".")),%_,:$timezone,:&formatter)
     }
 
-    method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
+    method now(:$timezone=$*TZ, :&formatter --> DateTime:D) {
         self.new(nqp::time_n(), :$timezone, :&formatter)
     }
 

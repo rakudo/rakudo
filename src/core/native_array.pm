@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-03-15T11:21:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -138,13 +138,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(strarray:D:) returns str {
+        method pop(strarray:D: --> str) {
             nqp::elems(self) > 0
               ?? nqp::pop_s(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(strarray:D:) returns str {
+        method shift(strarray:D: --> str) {
             nqp::elems(self) > 0
               ?? nqp::shift_s(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -436,7 +436,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-03-15T11:21:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -517,13 +517,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(intarray:D:) returns int {
+        method pop(intarray:D: --> int) {
             nqp::elems(self) > 0
               ?? nqp::pop_i(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(intarray:D:) returns int {
+        method shift(intarray:D: --> int) {
             nqp::elems(self) > 0
               ?? nqp::shift_i(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -834,7 +834,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-03-15T11:21:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -915,13 +915,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(numarray:D:) returns num {
+        method pop(numarray:D: --> num) {
             nqp::elems(self) > 0
               ?? nqp::pop_n(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(numarray:D:) returns num {
+        method shift(numarray:D: --> num) {
             nqp::elems(self) > 0
               ?? nqp::shift_n(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));

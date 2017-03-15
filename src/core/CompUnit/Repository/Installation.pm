@@ -474,8 +474,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method resolve(
         CompUnit::DependencySpecification $spec,
-    )
-        returns CompUnit
+        --> CompUnit)
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
@@ -504,8 +503,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
@@ -561,7 +559,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method short-id() { 'inst' }
 
-    method loaded() returns Iterable {
+    method loaded(--> Iterable) {
         return %!loaded.values;
     }
 
@@ -569,20 +567,20 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
     }
 
-    method installed() returns Iterable {
+    method installed(--> Iterable) {
         my $dist-dir = self.prefix.child('dist');
         $dist-dir.e
             ?? $dist-dir.dir.map({ self.distribution($_.basename) })
             !! Nil
     }
 
-    method precomp-store() returns CompUnit::PrecompilationStore {
+    method precomp-store(--> CompUnit::PrecompilationStore) {
         $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('precomp')),
         )
     }
 
-    method precomp-repository() returns CompUnit::PrecompilationRepository {
+    method precomp-repository(--> CompUnit::PrecompilationRepository) {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(self.precomp-store),
         ) unless $!precomp;

@@ -1,6 +1,6 @@
 class CompUnit::Loader is repr('Uninstantiable') {
     # Load a file from source and compile it
-    method load-source-file(IO::Path $path) returns CompUnit::Handle {
+    method load-source-file(IO::Path $path --> CompUnit::Handle) {
         # Get the compiler and compile the code, then run it
         # (which runs the mainline and captures UNIT).
         my $?FILES   := $path.Str;
@@ -8,7 +8,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Decode the specified byte buffer as source code, and compile it
-    method load-source(Blob:D $bytes) returns CompUnit::Handle {
+    method load-source(Blob:D $bytes --> CompUnit::Handle) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
 
         my $handle   := CompUnit::Handle.new;
@@ -31,7 +31,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Load a pre-compiled file
     proto method load-precompilation-file(|) { * }
-    multi method load-precompilation-file(IO::Path $path) returns CompUnit::Handle {
+    multi method load-precompilation-file(IO::Path $path --> CompUnit::Handle) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
@@ -39,7 +39,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
         $handle
     }
 
-    multi method load-precompilation-file(IO::Handle $file) returns CompUnit::Handle {
+    multi method load-precompilation-file(IO::Handle $file --> CompUnit::Handle) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
@@ -51,7 +51,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
-    method load-precompilation(Blob:D $bytes) returns CompUnit::Handle {
+    method load-precompilation(Blob:D $bytes --> CompUnit::Handle) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();

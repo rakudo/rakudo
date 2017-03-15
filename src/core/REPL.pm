@@ -85,7 +85,7 @@ do {
 
         method completions-for-line(Str $line, int $cursor-index) { ... }
 
-        method history-file() returns Str { ... }
+        method history-file(--> Str) { ... }
 
         method init-line-editor {
             linenoiseSetCompletionCallback(sub ($line, $c) {
@@ -408,7 +408,7 @@ do {
             }
         }
 
-        method history-file returns Str {
+        method history-file(--> Str) {
             return ~$!history-file if $!history-file.defined;
 
             $!history-file = do

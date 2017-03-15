@@ -2,7 +2,6 @@
 BEGIN {
     Bool.^add_method('Bool',    my proto method Bool(|)    { * });
     Bool.^add_method('gist',    my proto method gist(|)    { * });
-    Bool.^add_method('Str',     my proto method Str(|)     { * });
     Bool.^add_method('Numeric', my proto method Numeric(|) { * });
     Bool.^add_method('Int',     my proto method Int(|)     { * });
     Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) { * });

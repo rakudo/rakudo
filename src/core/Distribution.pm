@@ -6,7 +6,7 @@ role Distribution {
     #   -   A Distribution may be represented internally by some other
     #       spec (such as using the file system itself for prereqs), as
     #       long as it can also be represented as the META6 hash format
-    method meta(--> Hash) {
+    method meta(--> Hash:D) {
         # Cannot just use ... here as that would break legacy code
         my $class-name = ::?CLASS.^name;
 
@@ -22,7 +22,7 @@ role Distribution {
     #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
-    method content($content-id --> IO::Handle) {
+    method content($content-id --> IO::Handle:D) {
         # Cannot just use ... here as that would break legacy code
         my $class-name = ::?CLASS.^name;
 
@@ -49,7 +49,7 @@ role Distribution {
                 has $.source-url;
                 method auth { $!auth // $!author // $!authority }
                 method ver  { $!ver // $!version }
-                method meta(--> Hash) {
+                method meta(--> Hash:D) {
                     {
                         :$!name,
                         :$.auth,
@@ -68,7 +68,7 @@ role Distribution {
                     ~ ":api<{$.meta<api>   // ''}>";
 
                 }
-                method content($content-id --> IO::Handle) { }
+                method content($content-id --> IO::Handle:D) { }
             }.new(|%_)
             !! self.bless(|%_)
     }

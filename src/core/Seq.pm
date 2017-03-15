@@ -155,7 +155,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.perl ~ '.Seq';
     }
 
-    method join(Seq:D: $separator = '' --> Str) {
+    method join(Seq:D: $separator = '' --> Str:D) {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
           '...',

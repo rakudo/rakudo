@@ -1,6 +1,6 @@
 role CompUnit::PrecompilationStore {
     # Prepare a new implementation specific PrecompilationUnit for storage
-    method new-unit(| --> CompUnit::PrecompilationUnit)
+    method new-unit(| --> CompUnit::PrecompilationUnit:D)
     { ... }
 
     # Load the precompilation identified by the pairing of the specified

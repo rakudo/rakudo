@@ -129,7 +129,7 @@ class Kernel does Systemic {
 
     has %!signals_by_Str;
     proto method signal (|) { * }
-    multi method signal(Kernel:D: Str:D $signal --> Int) {
+    multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         once {
             %!signals_by_Str =
               @.signals.pairs.grep(*.value.defined).map({~$_.value => +.key});
@@ -138,7 +138,7 @@ class Kernel does Systemic {
     }
 
     has %!signals_by_Signal;
-    multi method signal(Kernel:D: Signal:D $signal --> Int) {
+    multi method signal(Kernel:D: Signal:D $signal --> Int:D) {
         once {
             %!signals_by_Signal =
               @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => +.key});
@@ -146,7 +146,7 @@ class Kernel does Systemic {
         %!signals_by_Signal{$signal.WHICH} // Int;
     }
 
-    multi method signal(Kernel:D: Int:D $signal --> Int) { $signal }
+    multi method signal(Kernel:D: Int:D $signal --> Int:D) { $signal }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

@@ -104,7 +104,7 @@ my class SetHash does Setty {
     }
     method SetHash(SetHash:D:) { self }
 
-    multi method AT-KEY(SetHash:D: \k --> Bool) is raw {
+    multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {
               %!elems.EXISTS-KEY(k.WHICH);
@@ -116,7 +116,7 @@ my class SetHash does Setty {
               so $value;
           });
     }
-    multi method DELETE-KEY(SetHash:D: \k --> Bool) {
+    multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
         nqp::if(
           %!elems.EXISTS-KEY(my $key := k.WHICH),
           nqp::stmts(

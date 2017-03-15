@@ -15,7 +15,7 @@ role CompUnit::Repository {
     # Resolves a dependency specification to a concrete dependency.
     # Returns a CompUnit object that represents the selected dependency.
     # If there is no matching dependency, Nil is returned.
-    method resolve(CompUnit::DependencySpecification $spec --> CompUnit)
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D)
     {
         self.next-repo
           ?? self.next-repo.resolve($spec)
@@ -34,11 +34,11 @@ role CompUnit::Repository {
     # Returns the CompUnit objects describing all of the compilation
     # units that have been loaded by this repository in the current
     # process.
-    method loaded(--> Iterable)
+    method loaded(--> Iterable:D)
         { ... }
 
     # Returns a unique ID of this repository
-    method id(--> Str)
+    method id(--> Str:D)
         { ... }
 
     method precomp-store(--> CompUnit::PrecompilationStore)

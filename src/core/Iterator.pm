@@ -101,13 +101,13 @@ my role Iterator {
     # but *without* actually generating any values.  This can e.g. be the case
     # when an iterator is created for a hash, or for all the characters in a
     # string, of which the number elements is already known.
-    # method count-only(--> Int) { ... }
+    # method count-only(--> Int:D) { ... }
 
     # The optional "bool-only" method in an Iterator class returns a Bool
     # to indicate whether the generator is able to generate *any* value,
     # *without* actually generating any value.  This can e.g. be the case
     # when an iterator is created for a hash.
-    # method bool-only(--> Bool) { ... }
+    # method bool-only(--> Bool:D) { ... }
 
     # Consumes all of the values in the iterator for their side-effects only.
     # May be overridden by iterators to either warn about use of things in

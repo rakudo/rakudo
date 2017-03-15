@@ -88,7 +88,7 @@ my role Baggy does QuantHash {
     multi method ACCEPTS(Baggy:D: Mu $other) {
         $other (<+) self && self (<+) $other
     }
-    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool) {
+    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool:D) {
         nqp::p6bool(
           nqp::unless(
             nqp::eqaddr(self,$other),
@@ -314,28 +314,28 @@ my role Baggy does QuantHash {
 #--- introspection methods
     multi method WHICH(Baggy:D:)   { self!WHICH }
     method total(Baggy:D:)         { self!TOTAL }
-    multi method elems(Baggy:D: --> Int) { %!elems.elems }
-    multi method Bool(Baggy:D: --> Bool) {
+    multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
+    multi method Bool(Baggy:D: --> Bool:D) {
         nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
     }
-    multi method hash(Baggy:D: --> Hash) {
+    multi method hash(Baggy:D: --> Hash:D) {
         my \h = Hash.^parameterize(Any, Any).new;
         h = %!elems.values;
         h;
     }
     method default(Baggy:D:)       { 0 }
 
-    multi method Str(Baggy:D: --> Str) {
+    multi method Str(Baggy:D: --> Str:D) {
         self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ' ')
     }
-    multi method gist(Baggy:D: --> Str) {
+    multi method gist(Baggy:D: --> Str:D) {
         my str $name = nqp::unbox_s(self.^name);
         ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
         ~ '('
         ~ self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ', ')
         ~ ')'
     }
-    multi method perl(Baggy:D: --> Str) {
+    multi method perl(Baggy:D: --> Str:D) {
         '('
         ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
         ~ ").{self.^name}"

@@ -41,7 +41,7 @@ BEGIN {
 
 multi sub prefix:<++>(Bool $a is rw)  { $a = True; }
 multi sub prefix:<-->(Bool $a is rw)  { $a = False; }
-multi sub postfix:<++>(Bool:U $a is rw) { $a = True; False; }
+multi sub postfix:<++>(Bool:U $a is rw --> False) { $a = True }
 multi sub postfix:<-->(Bool:U $a is rw) { $a = False; }
 
 multi sub postfix:<++>(Bool:D $a is rw) {

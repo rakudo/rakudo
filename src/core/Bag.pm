@@ -10,7 +10,7 @@ my class Bag does Baggy {
           $!WHICH := self!WHICH
         )
     }
-    method total(Bag:D: --> Int) {
+    method total(Bag:D: --> Int:D) {
         nqp::if(
           nqp::attrinited(self,Bag,'$!total'),
           $!total,

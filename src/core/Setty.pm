@@ -2,7 +2,7 @@ my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
     method !SET-SELF(%!elems) { self }
-    multi method new(Setty: +@args --> Setty) {
+    multi method new(Setty: +@args --> Setty:D) {
         nqp::stmts(
           (my $elems := nqp::hash),
           (my $iter  := @args.iterator),
@@ -13,7 +13,7 @@ my role Setty does QuantHash {
           nqp::create(self)!SET-SELF($elems)
         )
     }
-    method new-from-pairs(*@pairs --> Setty) {
+    method new-from-pairs(*@pairs --> Setty:D) {
         nqp::stmts(
           (my $elems := nqp::hash),
           (my $iter  := @pairs.iterator),
@@ -38,8 +38,8 @@ my role Setty does QuantHash {
         Seq.new(Rakudo::Iterator.Mappy-values(%!elems))
     }
 
-    method elems(Setty:D: --> Int) { %!elems.elems }
-    method total(Setty:D: --> Int) { %!elems.elems }
+    method elems(Setty:D: --> Int:D) { %!elems.elems }
+    method total(Setty:D: --> Int:D) { %!elems.elems }
     multi method antipairs(Setty:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
@@ -55,7 +55,7 @@ my role Setty does QuantHash {
     multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D:) { %!elems.Bool }
 
-    multi method hash(Setty:D: --> Hash) {
+    multi method hash(Setty:D: --> Hash:D) {
         my \e = Hash.^parameterize(Bool, Any).new;
         e{$_} = True for %!elems.values;
         e;
@@ -71,15 +71,15 @@ my role Setty does QuantHash {
         $other (<=) self && self (<=) $other
     }
 
-    multi method Str(Setty:D $ : --> Str) { ~ %!elems.values }
-    multi method gist(Setty:D $ : --> Str) {
+    multi method Str(Setty:D $ : --> Str:D) { ~ %!elems.values }
+    multi method gist(Setty:D $ : --> Str:D) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
         ~ %!elems.values.map( {.gist} ).join(', ')
         ~ ')';
     }
-    multi method perl(Setty:D $ : --> Str) {
+    multi method perl(Setty:D $ : --> Str:D) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
@@ -120,7 +120,7 @@ my role Setty does QuantHash {
     multi method roll(Setty:D:)       { %!elems.values.roll()       }
     multi method roll(Setty:D: $count) { %!elems.values.roll($count) }
 
-    multi method EXISTS-KEY(Setty:D: \k --> Bool) {
+    multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
         nqp::p6bool(
           %!elems.elems && nqp::existskey(%!elems, nqp::unbox_s(k.WHICH))
         );

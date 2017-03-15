@@ -15,7 +15,7 @@ my class Mix does Mixy {
           $!WHICH := self!WHICH
         )
     }
-    method total(Mix:D: --> Real) {
+    method total(Mix:D: --> Real:D) {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
@@ -24,10 +24,10 @@ my class Mix does Mixy {
     }
 
 #--- selection methods
-    multi method grab($count? --> Real) {
+    multi method grab($count? --> Real:D) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    multi method grabpairs($count? --> Real) {
+    multi method grabpairs($count? --> Real:D) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

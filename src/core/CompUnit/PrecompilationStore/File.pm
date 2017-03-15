@@ -20,7 +20,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!file = $!path.open(:r);
         }
 
-        method modified(--> Instant) {
+        method modified(--> Instant:D) {
             $!path.modified
         }
 
@@ -44,14 +44,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             @!dependencies
         }
 
-        method bytecode(--> Buf) {
+        method bytecode(--> Buf:D) {
             $!update-lock.protect: {
                 self!read-dependencies;
                 $!bytecode //= $!file.slurp-rest(:bin,:close)
             }
         }
 
-        method bytecode-handle(--> IO::Handle) {
+        method bytecode-handle(--> IO::Handle:D) {
             self!read-dependencies;
             $!file
         }
@@ -61,7 +61,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!checksum
         }
 
-        method Str(--> Str) {
+        method Str(--> Str:D) {
             self.path.Str
         }
 
@@ -161,7 +161,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method destination(CompUnit::PrecompilationId $compiler-id,
                        CompUnit::PrecompilationId $precomp-id,
                        Str :$extension = ''
-                       --> IO::Path)
+                       --> IO::Path:D)
     {
         unless $!prefix.e {
             $!prefix.mkdir or return;
@@ -174,7 +174,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     method !file(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
                  Str :$extension = ''
-                 --> IO::Path)
+                 --> IO::Path:D)
     {
         my $compiler-dir = self.prefix.child($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;

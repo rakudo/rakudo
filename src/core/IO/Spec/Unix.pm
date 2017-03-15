@@ -1,6 +1,6 @@
 my class IO::Spec::Unix is IO::Spec {
 
-    method canonpath( $patharg, :$parent --> Str) {
+    method canonpath( $patharg, :$parent --> Str:D) {
         nqp::if(
           (my str $path = $patharg.Str),
           nqp::stmts(

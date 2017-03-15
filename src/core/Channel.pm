@@ -209,7 +209,7 @@ my class Channel does Awaitable {
         }
     }
 
-    method get-await-handle(--> Awaitable::Handle) {
+    method get-await-handle(--> Awaitable::Handle:D) {
         my \maybe = self.poll;
         if maybe === Nil {
             if $!closed_promise {

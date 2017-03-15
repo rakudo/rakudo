@@ -175,7 +175,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
 
-    method !canon-cat ( $first, *@rest, :$parent --> Str) {
+    method !canon-cat ( $first, *@rest, :$parent --> Str:D) {
 
         $first ~~ /^ ([   <$driveletter> <$slash>?
                         | <$UNCpath>

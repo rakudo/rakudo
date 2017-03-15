@@ -113,7 +113,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
-    method ord(--> Int) {
+    method ord(--> Int:D) {
         self.Str.ord
     }
     method chr() {
@@ -274,12 +274,12 @@ my class Cool { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Cool);
 
 proto sub chop(|) { * }
-multi sub chop(Cool:D $s --> Str) { $s.chop }
-multi sub chop(Cool:D $s, Int() $n --> Str) { $s.chop($n) }
+multi sub chop(Cool:D $s --> Str:D) { $s.chop }
+multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
 
-sub chomp(Cool:D $s --> Str) { $s.chomp }
+sub chomp(Cool:D $s --> Str:D) { $s.chomp }
 
-sub flip(Cool $s --> Str)      { $s.flip }
+sub flip(Cool $s --> Str:D)      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }

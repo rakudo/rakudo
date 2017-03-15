@@ -141,7 +141,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         nqp::sha1($id)
     }
 
-    method name(--> Str) {
+    method name(--> Str:D) {
         CompUnit::RepositoryRegistry.name-for-repository(self)
     }
 
@@ -157,7 +157,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $dist
     }
 
-    method !repository-version(--> Int) {
+    method !repository-version(--> Int:D) {
         return $!version if defined $!version;
         my $version-file = $.prefix.child('version');
         return $!version = 0 unless $version-file ~~ :f;
@@ -462,8 +462,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             method !dist {
                 $!installed-dist //= InstalledDistribution.new($.read-dist()(), :$.prefix)
             }
-            method meta(--> Hash)                      { self!dist.meta }
-            method content($content-id --> IO::Handle) { self!dist.content($content-id) }
+            method meta(--> Hash:D)                      { self!dist.meta }
+            method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
             method Str()                               { self!dist.Str }
         }.new(
             :$dist-id,
@@ -474,7 +474,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method resolve(
         CompUnit::DependencySpecification $spec,
-        --> CompUnit)
+        --> CompUnit:D)
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
@@ -559,7 +559,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
     method short-id() { 'inst' }
 
-    method loaded(--> Iterable) {
+    method loaded(--> Iterable:D) {
         return %!loaded.values;
     }
 
@@ -567,20 +567,20 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
     }
 
-    method installed(--> Iterable) {
+    method installed(--> Iterable:D) {
         my $dist-dir = self.prefix.child('dist');
         $dist-dir.e
             ?? $dist-dir.dir.map({ self.distribution($_.basename) })
             !! Nil
     }
 
-    method precomp-store(--> CompUnit::PrecompilationStore) {
+    method precomp-store(--> CompUnit::PrecompilationStore:D) {
         $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('precomp')),
         )
     }
 
-    method precomp-repository(--> CompUnit::PrecompilationRepository) {
+    method precomp-repository(--> CompUnit::PrecompilationRepository:D) {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(self.precomp-store),
         ) unless $!precomp;

@@ -4,15 +4,13 @@
             CompUnit::PrecompilationDependency::File $dependency,
             IO::Path :$source,
             CompUnit::PrecompilationStore :@precomp-stores,
-            --> CompUnit::Handle) {
+            --> CompUnit::Handle:D) {
             Nil
         }
 
-        method load(CompUnit::PrecompilationId $id) {
-            Nil
-        }
+        method load(CompUnit::PrecompilationId $id --> Nil) { }
 
-        method may-precomp() {
+        method may-precomp(--> Bool:D) {
             True # would be a good place to check an environment variable
         }
     }
@@ -35,7 +33,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationDependency::File $dependency,
         IO::Path :$source = $dependency.src.IO,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
-     --> CompUnit::Handle) {
+     --> CompUnit::Handle:D) {
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $id = $dependency.id;
         $RMD("try-load $id: $source") if $RMD;

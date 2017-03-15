@@ -73,7 +73,7 @@ my class Set does Setty {
     method Set { self }
     method SetHash { SetHash.new(self.keys) }
 
-    multi method AT-KEY(Set:D: \k --> Bool) {
+    multi method AT-KEY(Set:D: \k --> Bool:D) {
         %!elems.EXISTS-KEY(k.WHICH);
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {

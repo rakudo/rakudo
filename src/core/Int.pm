@@ -231,7 +231,7 @@ multi sub postfix:<-->(int $a is rw) {
     $b
 }
 
-multi sub prefix:<->(Int:D \a --> Int) {
+multi sub prefix:<->(Int:D \a --> Int:D) {
     nqp::neg_I(nqp::decont(a), Int);
 }
 multi sub prefix:<->(int $a --> int) {
@@ -259,7 +259,7 @@ multi sub infix:<->(int $a, int $b --> int) {
     nqp::sub_i($a, $b)
 }
 
-multi sub infix:<*>(Int:D \a, Int:D \b --> Int) {
+multi sub infix:<*>(Int:D \a, Int:D \b --> Int:D) {
     nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<*>(int $a, int $b --> int) {
@@ -276,7 +276,7 @@ multi sub infix:<div>(int $a, int $b --> int) {
     nqp::div_i($a, $b)
 }
 
-multi sub infix:<%>(Int:D \a, Int:D \b --> Int) {
+multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
     nqp::if(
       nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
       nqp::if(
@@ -315,14 +315,14 @@ multi sub infix:<**>(int $a, int $b --> int) {
     nqp::pow_i($a, $b);
 }
 
-multi sub infix:<lcm>(Int:D \a, Int:D \b --> Int) {
+multi sub infix:<lcm>(Int:D \a, Int:D \b --> Int:D) {
     nqp::lcm_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<lcm>(int $a, int $b --> int) {
     nqp::lcm_i($a, $b)
 }
 
-multi sub infix:<gcd>(Int:D \a, Int:D \b --> Int) {
+multi sub infix:<gcd>(Int:D \a, Int:D \b --> Int:D) {
     nqp::gcd_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi sub infix:<gcd>(int $a, int $b --> int) {

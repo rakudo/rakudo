@@ -1,8 +1,8 @@
 my role QuantHash does Associative {
-    method Int     ( --> Int)     { self.total.Int }
-    method Num     ( --> Num)     { self.total.Num }
-    method Numeric ( --> Numeric) { self.total.Numeric }
-    method Real    ( --> Real)    { self.total.Real }
+    method Int     ( --> Int:D)     { self.total.Int }
+    method Num     ( --> Num:D)     { self.total.Num }
+    method Numeric ( --> Numeric:D) { self.total.Numeric }
+    method Real    ( --> Real:D)    { self.total.Real }
 
     method list() { self.pairs.cache }
 

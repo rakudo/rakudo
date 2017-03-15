@@ -96,7 +96,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         )
     }
 
-    method resolve(CompUnit::DependencySpecification $spec --> CompUnit) {
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D) {
         my ($base, $file) = self!matching-file($spec);
 
         return CompUnit.new(
@@ -182,7 +182,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method short-id() { 'file' }
 
-    method loaded(--> Iterable) {
+    method loaded(--> Iterable:D) {
         return %!loaded.values;
     }
 
@@ -200,13 +200,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         $.prefix.parent.child('resources').child($key.subst(/^resources\//, ""));
     }
 
-    method precomp-store(--> CompUnit::PrecompilationStore) {
+    method precomp-store(--> CompUnit::PrecompilationStore:D) {
         $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.child('.precomp')),
         )
     }
 
-    method precomp-repository(--> CompUnit::PrecompilationRepository) {
+    method precomp-repository(--> CompUnit::PrecompilationRepository:D) {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
             :store(self.precomp-store),
         ) unless $!precomp;

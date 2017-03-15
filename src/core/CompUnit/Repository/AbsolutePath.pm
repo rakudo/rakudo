@@ -35,7 +35,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
         die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method loaded(--> Iterable) {
+    method loaded(--> Iterable:D) {
         return %!loaded.values;
     }
 

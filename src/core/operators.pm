@@ -753,7 +753,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
 proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
-multi sub infix:<∘> (&f, &g --> Block) {
+multi sub infix:<∘> (&f, &g --> Block:D) {
     my \ret = &f.count > 1
         ?? -> |args { f |g |args }
         !! -> |args { f  g |args }

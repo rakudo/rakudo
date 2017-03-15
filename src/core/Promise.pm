@@ -182,7 +182,7 @@ my class Promise does Awaitable {
         }
     }
 
-    method get-await-handle(--> Awaitable::Handle) {
+    method get-await-handle(--> Awaitable::Handle:D) {
         if $!status == Broken {
             PromiseAwaitableHandle.already-failure($!result)
         }

@@ -5,7 +5,7 @@ my class Semaphore is repr('Semaphore') {
     method acquire() {
         nqp::semacquire(self);
     }
-    method try_acquire(--> Bool) {
+    method try_acquire(--> Bool:D) {
         nqp::semtryacquire(self) ?? True !! False;
     }
     method release() {

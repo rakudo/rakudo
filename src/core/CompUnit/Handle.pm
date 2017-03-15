@@ -23,7 +23,7 @@ class CompUnit::Handle {
     }
 
     # If the compilation unit has a callable EXPORT subroutine, it will
-    # be returned here. A Callable type object otherwise.
+    # be returned here. Nil otherwise.
     method export-sub(--> Callable:D) {
         my $module := self.unit;
         $module && nqp::existskey($module, '&EXPORT')
@@ -32,7 +32,7 @@ class CompUnit::Handle {
     }
 
     # The EXPORT package from the UNIT of the compilation unit; a
-    # Stash type object if none
+    # Nil if none
     method export-package(--> Stash:D) {
         my $module := self.unit;
         if $module and nqp::existskey($module, 'EXPORT') {
@@ -47,7 +47,7 @@ class CompUnit::Handle {
     }
 
     # The EXPORTHOW package from the UNIT of the compilation unit;
-    # a Stash type object if none.
+    # Nil if none.
     method export-how-package(--> Stash:D) {
         my $module := self.unit;
         if $module and nqp::existskey($module, 'EXPORTHOW') {
@@ -63,8 +63,8 @@ class CompUnit::Handle {
     }
 
     # The GLOBALish package from the UNIT of the compilation unit
-    # (the module's contributions to GLOBAL, for merging); a Stash
-    # type object if none.
+    # (the module's contributions to GLOBAL, for merging);
+    # Nil if none.
     method globalish-package() { # returns Stash {
         nqp::if(
           nqp::defined($!module_ctx),

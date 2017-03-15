@@ -4088,6 +4088,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
         ]
 
+        { $*IN_REDUCE := 0 }
         <args>
     }
 

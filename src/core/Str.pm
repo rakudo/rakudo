@@ -22,12 +22,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method WHICH(Str:D:) {
         nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                $!value
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Str),
+              'Str|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            $!value
+          ),
+          ObjAt
+        )
     }
     submethod BUILD(Str() :$value = '' --> Nil) {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))

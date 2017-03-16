@@ -381,7 +381,8 @@ my class Range is Cool does Iterable does Positional {
           nqp::if(
             nqp::istype($!min,Real)
               && $!min.floor == $!min
-              && nqp::istype($!max,Real),
+              && nqp::istype($!max,Real)
+              && $!min.Int && $!max.Int, # exclude NaN and Infs, who will fail() here
             nqp::stmts(
               ($from = $!min.floor + $!excludes-min),
               ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
@@ -394,6 +395,7 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
+                && $!min.Int && $!max.Int # exclude NaN and Infs, who will fail() here
             ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
             !! Failure.new("Cannot determine integer bounds")
     }

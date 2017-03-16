@@ -74,12 +74,16 @@ my class Date does Dateish {
 
     multi method WHICH(Date:D:) {
         nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::unbox_i(self.daycount)
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Date),
+              'Date|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            nqp::unbox_i(self.daycount)
+          ),
+          ObjAt
+        )
     }
 
     method truncated-to(Cool $unit) {

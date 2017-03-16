@@ -11,16 +11,16 @@ my class Int does Real { # declared in BOOTSTRAP
 
     multi method WHICH(Int:D:) {
         nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Int),
-                'Int|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::tostr_I(self)
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Int),
+              'Int|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            nqp::tostr_I(self)
+          ),
+          ObjAt
+        )
     }
     multi method new($value) {
         # clone to ensure we return a new object for any cached

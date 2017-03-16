@@ -18,7 +18,7 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method WHICH (Capture:D:) {
-        my $WHICH = self.^name;
+        my $WHICH = nqp::istype(self.WHAT,Capture) ?? 'Capture' !! self.^name;
         if !nqp::isnull(@!list) && @!list {
             $WHICH ~= '|';
             $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )

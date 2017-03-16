@@ -5,8 +5,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     multi method WHICH(Map:D:) {
-        self.^name
-          ~ '|'
+        (nqp::istype(self.WHAT,Map) ?? 'Map|' !! (self.^name ~ '|'))
           ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } )
     }
     method new(*@args) {

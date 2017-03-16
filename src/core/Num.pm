@@ -7,12 +7,16 @@ my class Num does Real { # declared in BOOTSTRAP
 
     multi method WHICH(Num:D:) {
         nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::unbox_n(self)
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Num),
+              'Num|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            nqp::unbox_n(self)
+          ),
+          ObjAt
+        )
     }
     method Num() { self }
     method Bridge(Num:D:) { self }

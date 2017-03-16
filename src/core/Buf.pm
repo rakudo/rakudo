@@ -21,7 +21,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     } // 1;
 
     multi method WHICH(Blob:D:) {
-        self.^name ~ '|' ~ nqp::sha1(self.decode("latin-1"))
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Blob),
+              'Blob|',
+            nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            nqp::sha1(self.decode("latin-1"))
+          ),
+          ObjAt
+        )
     }
 
     multi method new(Blob:) { nqp::create(self) }

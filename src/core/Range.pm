@@ -78,8 +78,8 @@ my class Range is Cool does Iterable does Positional {
     method is-int()       { nqp::p6bool($!is-int)       }
 
     multi method WHICH (Range:D:) {
-        self.^name
-          ~ "|$!min"
+        (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
+          ~ $!min
           ~ ("^" if $!excludes-min)
           ~ '..'
           ~ ("^" if $!excludes-max)

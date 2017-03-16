@@ -5,7 +5,11 @@ my class Set does Setty {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
           $!WHICH,
-          $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort
+          $!WHICH := nqp::if(
+            nqp::istype(self.WHAT,Set),
+            'Set|',
+            nqp::concat(self.^name,'|')
+          ) ~ %!elems.keys.sort
         )
     }
 

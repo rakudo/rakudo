@@ -404,7 +404,7 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
         GATHER({
             my @list;
             for values -> \v {
-                @list.append(v);
+                @list.push(v);
                 take op.(|@list);
             }
         }).lazy-if(values.is-lazy);

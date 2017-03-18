@@ -708,8 +708,8 @@ multi sub prefix:<~^>(Blob:D \a) {
     my $r := nqp::create($a);
     nqp::setelems($a,$elems);
 
-    my int $i    = -1;
-    my int $mask = 0xFFFFFFFFFFFFFFFF;
+    my int    $i    = -1;
+    my uint64 $mask = 0xFFFFFFFFFFFFFFFF;
     nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
       while nqp::islt_i(++$i,$elems);
 

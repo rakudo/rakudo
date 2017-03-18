@@ -1382,30 +1382,41 @@ proto sub infix:<xx>(|) { * }
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num() $n) {
-    Seq.new(nqp::if(
-      $n == Inf,
-      Rakudo::Iterator.Callable-xx-Whatever(&x),
-      Rakudo::Iterator.Callable-xx-Times(&x, $n.Int)
-    ))
+    infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
-multi sub infix:<xx>(&x, Int:D $n) {
-    Seq.new(Rakudo::Iterator.Callable-xx-Times(&x, $n))
+multi sub infix:<xx>(&x, Int $n) {
+    my int $todo = $n + 1;
+    my Mu $pulled;
+    my Mu $list := nqp::create(IterationBuffer);
+    nqp::while(
+      nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
+      nqp::if(
+        nqp::istype(($pulled := &x.()),Slip),
+        (nqp::push($list,$_) for $pulled),
+        nqp::if(
+          nqp::istype($pulled,Seq),
+          nqp::push($list,$pulled.cache),
+          nqp::push($list,nqp::decont($pulled))
+        )
+      )
+    );
+    Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
 multi sub infix:<xx>(Mu \x, Num() $n) {
     Seq.new(nqp::if(
       $n == Inf,
       Rakudo::Iterator.UnendingValue(x),
-      Rakudo::Iterator.OneValueTimes(x, $n.Int),
+      Rakudo::Iterator.OneValueTimes(x,$n.Int)
     ))
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
-    Seq.new(Rakudo::Iterator.OneValueTimes(x, $n))
+    Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))
 }
 
 proto sub reverse(|)   { * }

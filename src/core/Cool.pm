@@ -128,48 +128,32 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(|c) { self.Str.trans(|c) }
 
-    proto method starts-with(|) {*}
-    multi method starts-with(Cool:D: Str(Cool) $needle) {
-        self.Str.starts-with($needle)
+    method starts-with(Cool:D: |c) {
+        self.Str.starts-with(|c)
     }
 
-    proto method ends-with(|) {*}
-    multi method ends-with(Cool:D: Str(Cool) $suffix) {
-        self.Str.ends-with($suffix)
+    method ends-with(Cool:D: |c) {
+        self.Str.ends-with(|c)
     }
 
-    proto method substr-eq(|) {*}
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
-        self.Str.substr-eq($needle,$pos)
+    method substr-eq(Cool:D: |c) {
+        self.Str.substr-eq(|c)
     }
 
-    proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
-        self.Str.contains($needle,$pos.Int)
+    method contains(Cool:D: |c) {
+        self.Str.contains(|c)
     }
 
-    proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, :$overlap) {
-        self.Str.indices($needle,:$overlap)
-    }
-    multi method indices(Cool:D: Str(Cool) $needle,Int(Cool) $start,:$overlap) {
-        self.Str.indices($needle,$start,:$overlap)
+    method indices(Cool:D: |c) {
+        self.Str.indices(|c)
     }
 
-    proto method index(|) {*}
-    multi method index(Cool:D: Str(Cool) $needle) {
-        self.Str.index($needle)
-    }
-    multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        self.Str.index($needle,$pos)
+    method index(Cool:D: |c) {
+        self.Str.index(|c)
     }
 
-    proto method rindex(|) {*}
-    multi method rindex(Cool:D: Str(Cool) $needle) {
-        self.Str.rindex($needle)
-    }
-    multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        self.Str.rindex($needle,$pos)
+    method rindex(Cool:D: |c) {
+        self.Str.rindex(|c)
     }
 
     method split(Cool: |c) {
@@ -190,11 +174,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst(|c);
     }
 
-    proto method subst-mutate(|) {
-        $/ := nqp::getlexdyn('$/');
-        {*}
-    }
-    multi method subst-mutate(Cool:D $self is rw: |c) {
+    method subst-mutate(Cool:D $self is rw: |c) {
         $/ := nqp::getlexdyn('$/');
         my $str   = $self.Str;
         my $match = $str.subst-mutate(|c);
@@ -288,8 +268,8 @@ sub tc(Cool $s)                    { $s.tc }
 sub fc(Cool $s)                    { $s.fc }
 sub tclc(Cool $s)                  { $s.tclc }
 
-sub indices(Cool $s,$needle,$pos=0,:$overlap) {
-    $s.indices($needle,$pos,:$overlap);
+sub indices(Cool $s, |c) {
+    $s.indices(|c);
 }
 
 proto sub rindex($, $, $?) is pure { * };

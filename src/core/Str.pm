@@ -139,10 +139,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $chars > 0 ?? nqp::p6box_s(nqp::substr($!value,0,$chars)) !! '';
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method starts-with(|) {*}
+    multi method starts-with(Str:D: Cool:D $needle) {self.starts-with: $needle.Str}
     multi method starts-with(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method ends-with(|) {*}
+    multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
     multi method ends-with(Str:D: Str:D $suffix) {
         nqp::p6bool(nqp::eqat(
           $!value,
@@ -151,9 +157,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method substr-eq(|) {*}
+    multi method substr-eq(Str:D: Cool:D $needle) {self.substr-eq: $needle.Str}
     multi method substr-eq(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }
+    multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos) {self.substr-eq: $needle.Str, $pos.Int}
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos) {
         nqp::p6bool(
           nqp::if(
@@ -163,11 +173,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method contains(|) {*}
+    multi method contains(Str:D: Cool:D $needle) {self.contains: $needle.Str}
     multi method contains(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::isne_i(
           nqp::index($!value,nqp::getattr($needle,Str,'$!value'),0),-1
         ))
     }
+    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos) {self.contains: $needle.Str, $pos}
     multi method contains(Str:D: Str:D $needle, Int:D $pos) {
         nqp::p6bool(
           nqp::if(
@@ -178,6 +192,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method indices(|) {*}
+    multi method indices(Str:D: Cool:D $needle, *%pars) {self.indices: $needle.Str, |%pars}
     multi method indices(Str:D: Str:D $needle, :$overlap) {
         nqp::stmts(
           (my $need    := nqp::getattr($needle,Str,'$!value')),
@@ -195,6 +212,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
         )
     }
+    multi method indices(Str:D: Cool:D $needle, Cool:D $start, *%pars) {self.indices: $needle.Str, $start.Int, |%pars}
     multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
         nqp::stmts(
           (my int $pos = $start),
@@ -219,6 +237,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method index(|) {*}
+    multi method index(Str:D: Cool:D $needle) {self.index: $needle.Str}
     multi method index(Str:D: Str:D $needle) {
         nqp::if(
           nqp::islt_i((my int $i =
@@ -229,6 +250,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
+    multi method index(Str:D: Cool:D $needle, Cool:D $pos) {self.index: $needle.Str, $pos.Int}
     multi method index(Str:D: Str:D $needle, Int:D $pos) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)),
@@ -255,6 +277,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    # TODO Use coercer in 1 candidate when RT131014
+    proto method rindex(|) {*}
+    multi method rindex(Str:D: Cool:D $needle) {self.rindex: $needle.Str}
     multi method rindex(Str:D: Str:D $needle) {
         nqp::if(
           nqp::islt_i((my int $i =
@@ -265,6 +290,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
+    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos) {self.rindex: $needle.Str, $pos.Int}
     multi method rindex(Str:D: Str:D $needle, Int:D $pos) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)),
@@ -1058,8 +1084,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    proto method subst-mutate(|) {
+        $/ := nqp::getlexdyn('$/');
+        {*}
+    }
     multi method subst-mutate(
-      Str:D $self is rw: $matcher, $replacement,
+      Str:D $self is rw: Any:D $matcher, $replacement,
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options
     ) {
         my $global = %options<g> || %options<global>;

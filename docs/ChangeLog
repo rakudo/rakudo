@@ -25,6 +25,7 @@ New in 2017.03
     + Fixed failure to thunk RHS on `or=`, `and=`, and `notandthen=` [3e88c41]
     + Fixed precision loss with `cmp` involving Rationals/Int [9e8ecb7]
     + Fixed crash in .Bool, .so, .not, .hash, and .elems on Baggy:U [e8af855]
+    + Fixed crash in .Str on Bool:U [3de5fb2]
     + Fixed crash in IO::Special .WHICH/.Str [dd4dfb1]
     + Fixed install wrapper when no binaries are found [796b6a8]
     + Fixed crash when calling .sort on reified empty Array [8e250db][75e070f]
@@ -37,15 +38,18 @@ New in 2017.03
     + Fixed CArray to pass NULL when for type object elements [26e6993]
     + Fixed GC deadlock when event loop worker thread was spawned [26e6993]
     + Fixed `:i` in regexes using lowercase instead of fold case [26e6993]
+    + Fixed parsing issue with detached methods in `[…]` metaop [e1ebb50]
+    + Fixed unwanted list flattening in triangle reduce [10f5f74]
+    + Fixed Range.int-bounds for NaN and Inf end points [79f2681][16ef21c]
     + JVM backend fixes [b1def95][2f6d2c6][dc19892][cef41b2]
     + Various improvements to error reporting
         [dc5fb20][d66c382][b11dc88][6cb9be2][3bf734f][26e6993]
         [20fa14b][127338a][1934a56][27dc7b1][1e24666]
  + Additions:
-    + Made symbol imports of `require`d modules lexical 
+    + Made symbol imports of `require`d modules lexical. For more information,
+        see http://rakudo.org/2017/03/18/lexical-require-upgrade-info/
         [63cf5ca][3e86d0f][5b98caa][6771dee][9da6de4][4fce405][030c4c5]
     + Added ≤, ≥, ≠ as Unicode versions of <=, >=, and != [5c68ea6]
-    + Implemented ⁇ ‼ (U+2047, U+203C) as alternative to ?? !! ternary [ed971df]
     + Made it possible to hyper ops that return a Seq [e2db7b8]
     + Made `infix:<∘>` keep RHS's .count and .arity and LHS's .of [032b283][cb149a8]
     + Made purity propagate up through meta-meta ASTs [68a40f7]
@@ -67,6 +71,7 @@ New in 2017.03
     + Removed support for IO::Handle.lines(:close) agument [76a59cf]
  + Efficiency:
     + Made min/max/min=/max= about 3x faster [a9c5196]
+    + Made .WHICH of numerous types about 1.8x faster [79bb179][65b0040]
     + Made case-insensitive regex match 20%-30% faster [5b6e0fb][f73d984]
     + Made triangle reduce right op with 2 params 2x faster [e114d52]
     + Made triangle reduce right op with 2+ params 1.5x faster [d04c47f]
@@ -87,7 +92,7 @@ New in 2017.03
         [b2e0ac0][25a3cc5][b61b3c7][829762a][45b3af8][7010ae9][556db9d][9e9a4ad]
         [8e8cd14][7556498][adb6f87][9a109c9][3de7b08][b283e52][0be7247][74573d0]
         [79d5670][313e7b2][e723e00][5843ee6][7c279c3][318f8ee][4ef1e69][9d497e9]
-        [b597398][4bc826d][9da50e3][2a2e460][0633f03][d444f65]
+        [b597398][4bc826d][9da50e3][2a2e460][0633f03][d444f65][f94a2c7]
 
 New in 2017.02
  + 6.d.PREVIEW changes:

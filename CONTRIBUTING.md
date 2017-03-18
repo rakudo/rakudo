@@ -62,8 +62,8 @@ very basic guidelines:
   and loosely follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
 
 ## Commit messages
-How to write a good **and** useful commit message. Commit messages are where you
-tell the what, why and how of your commit to others.
+How to write [a good **and** useful commit message](https://chris.beams.io/posts/git-commit/).
+Commit messages are where you tell the what, why and how of your commit to others.
 
 The subject/title of a commit should 50 or less characters ideally. The absolute
 maximum is 72. Title's usually will tell what you did. You should almost always

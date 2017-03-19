@@ -388,7 +388,8 @@ my class IO::Path is Cool {
         True;
     }
 
-    method dir(IO::Path:D:
+    proto method dir(|){ * }
+    multi method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
         :$absolute,
         :$Str,
@@ -448,6 +449,16 @@ my class IO::Path is Cool {
               )
             );
             nqp::closedir($dirh);
+        }
+    }
+
+    multi method dir(IO::Path:D:
+        :$recursive,
+        |rest
+    ) {
+        gather for callwith(self, |rest) {
+            (take .dir(:recursive, |rest)) if .d;
+            take $_;
         }
     }
 

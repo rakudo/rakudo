@@ -1486,45 +1486,43 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method unique(|) is nodal {*}
     multi method unique() {
         Seq.new(class :: does Iterator {
-            has Mu $!iter;
+            has $!iter;
             has $!seen;
             method !SET-SELF(\list) {
-                $!iter = list.iterator;
-                $!seen := nqp::hash();
-                self
+                nqp::stmts(
+                  ($!iter := list.iterator),
+                  ($!seen := nqp::hash),
+                  self
+                )
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
-                    nqp::stmts(
-                      nqp::bindkey($!seen, $needle, 1),
-                      return $value
-                    )
-                  )
-                );
-                IterationEnd
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+                      || (nqp::not_i(nqp::existskey(
+                        $!seen,
+                        (my $needle := $pulled.WHICH)
+                      )) && nqp::bindkey($!seen,$needle,1)),
+                    nqp::null
+                  ),
+                  $pulled
+                )
             }
-            method push-all($target) {
-                my Mu $value;
-                my str $needle;
+            method push-all($target --> IterationEnd) {
                 nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
                   nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
-                    nqp::stmts(  # doesn't sink
-                      nqp::bindkey($!seen, $needle, 1),
-                      $target.push($value)
+                    nqp::existskey($!seen,(my $needle := $pulled.WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen,$needle,1),
+                      $target.push($pulled)
                     )
                   )
-                );
-                IterationEnd
+                )
             }
             method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
         }.new(self))
     }
     multi method unique( :&as!, :&with! ) {

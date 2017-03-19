@@ -388,7 +388,8 @@ my class IO::Path is Cool {
         True;
     }
 
-    method dir(IO::Path:D:
+    proto method dir(|) {*} # make it possible to augment with multies from modulespace
+    multi method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
         :$absolute,
         :$Str,

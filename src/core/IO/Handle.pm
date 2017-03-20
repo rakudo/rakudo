@@ -614,7 +614,8 @@ my class IO::Handle does IO {
                   )
               }
               method sink-all(--> IterationEnd) {
-                  $!handle.seek(0,SeekFromEnd)  # seek to end
+                  # can't seek pipes, so need the `try`
+                  try $!handle.seek(0,SeekFromEnd)  # seek to end
               }
           }
         ).new(self)

@@ -271,9 +271,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             else {
                 my $result;
+                my int $stopped;
                 nqp::stmts(
                   nqp::until(
-                    (my int $stopped),
+                    $stopped,
                     nqp::stmts(
                       ($stopped = 1),
                       nqp::handle(
@@ -300,40 +301,48 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         method push-all($target --> IterationEnd) {
             my $pulled;
+            my int $stopped;
             nqp::until(
               nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::until(
-                (my int $stopped),
-                nqp::stmts(
-                  ($stopped = 1),
-                  nqp::handle(
-                    $target.push(&!block($pulled)),
-                    'LABELED', $!label,
-                    'REDO', ($stopped = 0),
-                    'LAST', return
-                  )
-                ),
-                :nohandler
+               nqp::stmts(
+                ($stopped = 0),
+                nqp::until(
+                  $stopped,
+                  nqp::stmts(
+                    ($stopped = 1),
+                    nqp::handle(
+                      $target.push(&!block($pulled)),
+                      'LABELED', $!label,
+                      'REDO', ($stopped = 0),
+                      'LAST', return
+                    )
+                  ),
+                  :nohandler
+                )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
             my $pulled;
+            my int $stopped;
             nqp::until(
               nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::until(
-                (my int $stopped),
-                nqp::stmts(
-                  ($stopped = 1),
-                  nqp::handle(
-                    &!block($pulled),
-                    'LABELED', $!label,
-                    'REDO', ($stopped = 0),
-                    'LAST', return
-                  )
-                ),
-                :nohandler
+              nqp::stmts(
+                ($stopped = 0),
+                nqp::until(
+                  $stopped,
+                  nqp::stmts(
+                    ($stopped = 1),
+                    nqp::handle(
+                      &!block($pulled),
+                      'LABELED', $!label,
+                      'REDO', ($stopped = 0),
+                      'LAST', return
+                    )
+                  ),
+                  :nohandler
+                )
               )
             )
         }

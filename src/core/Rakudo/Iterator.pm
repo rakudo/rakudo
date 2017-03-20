@@ -2586,7 +2586,7 @@ class Rakudo::Iterator {
                     )
                   ),
                   nqp::until(                          # fill the buffer
-                    nqp::iseq_i(nqp::elems($!buffer),$elems)
+                    nqp::isge_i(nqp::elems($!buffer),$elems)
                       || nqp::eqaddr(
                            (my $pulled := $!iterator.pull-one),
                            IterationEnd
@@ -2594,8 +2594,11 @@ class Rakudo::Iterator {
                     nqp::push($!buffer,$pulled)
                   ),
                   nqp::if(
-                    nqp::eqaddr($pulled,IterationEnd)
-                      && ($!complete || nqp::not_i(nqp::elems($!buffer))),
+                    nqp::not_i(nqp::elems($!buffer))
+                      || (nqp::eqaddr($pulled,IterationEnd)
+                           && $!complete
+                           && nqp::islt_i(nqp::elems($!buffer),$elems)
+                         ),
                     IterationEnd,                      # done
                     nqp::if(
                       nqp::islt_i($gap,0),
@@ -2604,7 +2607,11 @@ class Rakudo::Iterator {
                           nqp::create(List),List,'$!reified',
                           nqp::clone($!buffer)
                         )),
-                        nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap)),
+                        nqp::if(
+                          nqp::islt_i(nqp::elems($!buffer),$elems),
+                          nqp::setelems($!buffer,0),   # was :partial, now done
+                          nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap))
+                        ),
                         $result
                       ),
                       nqp::stmts(
@@ -2612,9 +2619,28 @@ class Rakudo::Iterator {
                           nqp::isgt_i($gap,0),
                           $!iterator.skip-at-least($gap) # need to skip a few
                         ),
-                        ($result := nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',$!buffer)),
-                        ($!buffer := nqp::create(IterationBuffer)),
+                        nqp::if(
+                          nqp::isle_i(nqp::elems($!buffer),$elems),
+                          nqp::stmts(                    # whole buffer ok
+                            ($result := nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              $!buffer
+                            )),
+                            ($!buffer := nqp::create(IterationBuffer))
+                          ),
+                          nqp::stmts(                    # partial buffer ok
+                            ($result := nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              nqp::splice(
+                                nqp::clone($!buffer),
+                                $empty,
+                                $elems,
+                                nqp::sub_i(nqp::elems($!buffer),$elems)
+                              )
+                            )),
+                            nqp::splice($!buffer,$empty,0,$elems)
+                          )
+                        ),
                         $result
                       )
                     )

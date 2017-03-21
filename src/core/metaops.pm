@@ -424,9 +424,8 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
         GATHER({
             my @list;
             while $i < p.elems {
-                @list.append(p[$i]);
-                $i = $i + 1;
-                take op.(|@list);
+                @list.push(p[$i++]);
+                take op.(|@list.map({nqp::decont($_)}));
             }
         }).lazy-if(p.is-lazy);
     }

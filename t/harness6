@@ -22,10 +22,13 @@ multi sub MAIN(
 ) {
     my @slow;
     with ($tests-from-file) {
-        my $perl5 = not run($perlpath, '-e', 'exit !try { require Inline::Perl5 }');
-        say "Inline::Perl5 not installed: not running Perl 5 integration tests" if !$perl5;
+        my $inline_perl5_is_installed = run(
+            $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
+        ).exitcode == 0;
+        say "Inline::Perl5 not installed: not running Perl 5 integration tests" unless $inline_perl5_is_installed;
 
-        my %traits = :$perl5, :long(!$quick), :$stress, :slow,
+        my %traits = :perl5($inline_perl5_is_installed),
+                    :long(!$quick), :$stress, :slow,
                     :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
                     :conc(?($vm eq any("jvm","moar")));
         my $recode-path = $*SPEC !~~ IO::Spec::Unix;
@@ -146,4 +149,3 @@ Options:
     --perl5path - path to perl5 for various helper utilities (defaults to 'perl')
 
 =end pod
-

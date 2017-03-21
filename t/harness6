@@ -22,12 +22,12 @@ multi sub MAIN(
 ) {
     my @slow;
     with ($tests-from-file) {
-        my $inline_perl5_is_installed = run(
+        my $inline-perl5-is-installed = run(
             $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
         ).exitcode == 0;
-        say "Inline::Perl5 not installed: not running Perl 5 integration tests" unless $inline_perl5_is_installed;
+        say "Inline::Perl5 not installed: not running Perl 5 integration tests" unless $inline-perl5-is-installed;
 
-        my %traits = :perl5($inline_perl5_is_installed),
+        my %traits = :perl5($inline-perl5-is-installed),
                     :long(!$quick), :$stress, :slow,
                     :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
                     :conc(?($vm eq any("jvm","moar")));

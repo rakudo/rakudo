@@ -54,6 +54,10 @@ my class Thread {
         self.finish
     }
 
+    multi method Numeric(Thread:D:) {
+        self.id
+    }
+
     multi method Str(Thread:D:) {
         "Thread<$.id>($.name)"
     }

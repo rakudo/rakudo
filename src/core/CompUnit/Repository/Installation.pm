@@ -508,9 +508,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             return %!loaded{~$spec} if %!loaded{~$spec}:exists;
-            my $loader = $.prefix.child('sources').child(
-                $dist<source> // self!read-dist($dist-id)<provides>{$spec.short-name}.values[0]<file>
-            );
+            my $source-file-name = $dist<source>
+                // do {
+                    my $provides = self!read-dist($dist-id)<provides>;
+                    X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
+                        unless $provides{$spec.short-name}:exists;
+                    $provides{$spec.short-name}.values[0]<file>
+                };
+            my $loader = $.prefix.child('sources').child($source-file-name);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $id = $loader.basename;
             my $repo-prefix = self!repo-prefix;

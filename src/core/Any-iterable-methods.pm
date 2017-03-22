@@ -1882,35 +1882,37 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method minpairs(|) { * }
     multi method minpairs(Any:D:) {
         my @found;
-        my $min = Inf;
-        my $value;
         for self.pairs {
-            if ($value := .value) < $min {
-                @found = $_;
-                $min   = $value;
-            }
-            elsif $value == $min {
-                @found.push: $_;
-            }
+            my $value := .value;
+            state $min = $value;
+            nqp::if(
+                nqp::iseq_i( (my $cmp := $value cmp $min), -1 ),
+                nqp::stmts((@found = $_), ($min = $value)),
+                nqp::if(
+                    nqp::iseq_i($cmp, 0),
+                    @found.push($_)
+                )
+            )
         }
-        @found
+        Seq.new(@found.iterator)
     }
 
     proto method maxpairs(|) { * }
     multi method maxpairs(Any:D:) {
         my @found;
-        my $max = -Inf;
-        my $value;
         for self.pairs {
-            if ($value := .value) > $max {
-                @found = $_;
-                $max   = $value;
-            }
-            elsif $value == $max {
-                @found.push: $_;
-            }
+            my $value := .value;
+            state $max = $value;
+            nqp::if(
+                nqp::iseq_i( (my $cmp := $value cmp $max), 1 ),
+                nqp::stmts((@found = $_), ($max = $value)),
+                nqp::if(
+                    nqp::iseq_i($cmp, 0),
+                    @found.push($_)
+                )
+            )
         }
-        @found
+        Seq.new(@found.iterator)
     }
 
     proto method batch(|) is nodal { * }

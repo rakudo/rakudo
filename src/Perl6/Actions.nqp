@@ -7931,16 +7931,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sigspace := $samespace;
         my $samecase := 0;
         my $samemark := 0;
-        my $global   := 0;
         for $<rx_adverbs>.ast {
             if $_.named eq 'samecase' || $_.named eq 'ii' {
                 $samecase := 1;
             }
             elsif $_.named eq 'samemark' || $_.named eq 'mm' {
                 $samemark := 1;
-            }
-            elsif $_.named eq 'global' || $_.named eq 'g' {
-                $global := 1;
             }
             elsif $_.named eq 'samespace' || $_.named eq 'ss' {
                 $samespace := 1;
@@ -7951,10 +7947,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-        my $S_result      := $past.unique('subst_S_result');
-        my $result        := $past.unique('subst_result');
-        my $global_result := $past.unique('subst_global_result');
-        my $List          := $*W.find_symbol(['List']);
+        my $S_result    := $past.unique('subst_S_result');
+        my $result      := $past.unique('subst_result');
+        my $list_result := $past.unique('subst_list_result');
+        my $List        := $*W.find_symbol(['List']);
 
         my $apply_matches := QAST::Op.new( :op('callmethod'), :name('dispatch:<!>'),
             QAST::Op.new( :op('callmethod'),  :name('Str'),
@@ -8026,31 +8022,36 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ) !! QAST::Stmt.new(),
                 ),
 
-                # It will set $/ to a list of matches when we match globally,
-                # and a single match otherwise.
-                $global ?? QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name('$/'), :scope('lexical') ),
-                    QAST::Stmts.new(
-                        QAST::Op.new( :op('bind'),
-                            QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
-                            QAST::Op.new( :op('callmethod'), :name('CREATE'),
-                                QAST::WVal.new( :value($List) )
-                            )
-                        ),
-                        QAST::Op.new( :op('bindattr'),
-                            QAST::Var.new( :name($global_result), :scope('local') ),
-                            QAST::WVal.new( :value($List) ),
-                            QAST::SVal.new( :value('$!reified') ),
-                            QAST::Op.new( :op('getattr'),
-                                QAST::Var.new( :name($result), :scope('local') ),
+                # If we have a list of matches, then put them into $/,
+                # otherwise, $/ already has the Match object we want it to have
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('istype'),
+                        QAST::Var.new( :name($result), :scope('local') ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Positional'])) )
+                    ),
+                    QAST::Op.new( :op('p6store'),
+                        QAST::Var.new( :name('$/'), :scope('lexical') ),
+                        QAST::Stmts.new(
+                            QAST::Op.new( :op('bind'),
+                                QAST::Var.new( :name($list_result), :scope('local'), :decl('var') ),
+                                QAST::Op.new( :op('callmethod'), :name('CREATE'),
+                                    QAST::WVal.new( :value($List) )
+                                )
+                            ),
+                            QAST::Op.new( :op('bindattr'),
+                                QAST::Var.new( :name($list_result), :scope('local') ),
                                 QAST::WVal.new( :value($List) ),
-                                QAST::SVal.new( :value('$!reified') )
-                            )
-                        ),
-                        QAST::Var.new( :name($global_result), :scope('local') )
-                    )
-                ) !! QAST::Stmt.new(),
+                                QAST::SVal.new( :value('$!reified') ),
+                                QAST::Op.new( :op('getattr'),
+                                    QAST::Var.new( :name($result), :scope('local') ),
+                                    QAST::WVal.new( :value($List) ),
+                                    QAST::SVal.new( :value('$!reified') )
+                                )
+                            ),
+                            QAST::Var.new( :name($list_result), :scope('local') )
+                        )
+                    ),
+                ),
 
                 # The result of this operation.
                 $<sym> eq 's'

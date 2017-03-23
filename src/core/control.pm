@@ -192,6 +192,13 @@ multi sub warn(*@msg) {
     0;
 }
 
+my class Rakudo::Internals::EvalIdSource {
+    my Int $count = 0;
+    my Lock $lock = Lock.new;
+    method next-id() {
+        $lock.protect: { $count++ }
+    }
+}
 proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
@@ -207,7 +214,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     }
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
     my $compiled;

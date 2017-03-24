@@ -169,7 +169,7 @@ my class Promise does Awaitable {
         has &!add-subscriber;
 
         method not-ready(&add-subscriber) {
-            self.CREATE!not-ready(&add-subscriber)
+            nqp::create(self)!not-ready(&add-subscriber)
         }
         method !not-ready(&add-subscriber) {
             $!already = False;

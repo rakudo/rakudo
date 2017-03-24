@@ -587,7 +587,7 @@ my class Supply does Awaitable {
     my class ConcQueue is repr('ConcBlockingQueue') { }
     method list(Supply:D:) {
         gather {
-            my Mu \queue = ConcQueue.CREATE;
+            my Mu \queue = nqp::create(ConcQueue);
             my $exception;
             self.tap(
                 -> \val { nqp::push(queue, val) },
@@ -624,7 +624,7 @@ my class Supply does Awaitable {
         has $!supply;
 
         method not-ready(Supply:D \supply) {
-            self.CREATE!not-ready(supply)
+            nqp::create(self)!not-ready(supply)
         }
         method !not-ready(\supply) {
             $!already = False;

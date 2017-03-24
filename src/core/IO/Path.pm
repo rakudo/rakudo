@@ -63,6 +63,7 @@ my class IO::Path is Cool {
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
     method basename(IO::Path:D:) { %.parts<basename> }
     method extension(IO::Path:D:) { Rakudo::Internals.MAKE-EXT(self.basename) }
+    method stemname(IO::Path:D:) { Rakudo::Internals.MAKE-STEM(self.basename) }
 
     # core can't do 'basename handles <Numeric Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }

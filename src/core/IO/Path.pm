@@ -109,7 +109,7 @@ my class IO::Path is Cool {
     }
 #?endif
 
-    proto method absolute(|) { * }
+    proto method absolute(|) { {*}.IO }
     multi method absolute (IO::Path:D:) { $.abspath }
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute
@@ -118,7 +118,7 @@ my class IO::Path is Cool {
     }
 
     method relative (IO::Path:D: $CWD = $*CWD) {
-        $!SPEC.abs2rel($.abspath, $CWD);
+        $!SPEC.abs2rel($.abspath, $CWD).IO;
     }
 
     method cleanup (IO::Path:D:) {

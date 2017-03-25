@@ -231,7 +231,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }.new(self))
     }
     multi method invert(Map:D:) {
-        self.pairs.map: { |(.value »=>» .key) }
+        Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
     multi method AT-KEY(Map:D: Str:D \key) is raw {

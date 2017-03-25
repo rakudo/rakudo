@@ -106,6 +106,8 @@ my class Any { # declared in BOOTSTRAP
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
+    multi method invert(Any:U:) { () }
+    multi method invert(Any:D:) { self.list.invert }
 
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }

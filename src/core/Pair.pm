@@ -45,7 +45,9 @@ my class Pair does Associative {
     multi method values(Pair:D:)    { ($!value,) }
     multi method pairs(Pair:D:)     { (self,) }
     multi method antipairs(Pair:D:) { (self.new($!value,$!key),) }
-    multi method invert(Pair:D:)    { $!value »=>» $!key }
+    multi method invert(Pair:D:) {
+        Seq.new(Rakudo::Iterator.Invert(self.iterator))
+    }
 
     multi method Str(Pair:D:) { $!key ~ "\t" ~ $!value }
 

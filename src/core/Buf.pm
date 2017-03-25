@@ -4,7 +4,6 @@ my class X::Buf::Pack::NonASCII { ... }
 my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
-my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     X::NYI.new(

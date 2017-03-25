@@ -308,7 +308,7 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method invert(Baggy:D:) {
-        %!elems.values.map: { (.value »=>» .key).cache.Slip }
+        Seq.new(Rakudo::Iterator.Invert(%!elems.values.iterator))
     }
 
 #--- introspection methods

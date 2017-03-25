@@ -206,8 +206,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.EXISTS-POS($idx)
     }
 
-    multi method invert(Seq:D:) { self.list.invert }
-
     proto method from-loop(|) { * }
     multi method from-loop(&body) {
         Seq.new(Rakudo::Iterator.Loop(&body))

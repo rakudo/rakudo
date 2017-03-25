@@ -9,6 +9,7 @@ my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
 my class X::Str::Sprintf::Directives::Count { ... };
 my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::TypeCheck { ... }
 my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
@@ -660,7 +661,7 @@ my class Rakudo::Internals {
             Seq.new(Rakudo::Iterator.ShapeIndex(self.shape))
         }
         multi method invert(::?CLASS:D:) {
-            self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
+            Seq.new(Rakudo::Iterator.Invert(self.pairs.iterator))
         }
 
         # These work on the flat view

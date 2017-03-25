@@ -717,11 +717,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
     }
     multi method invert(List:D:) {
-        my $laze = self.is-lazy;
-        self.map(-> Pair \listelem {
-            my \result = nqp::decont(listelem.value) »=>» listelem.key;
-            result ~~ Pair ?? result !! |result  # Don't make slip where we don't need it.
-        }).lazy-if($laze)
+        Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
     # Store in List targets containers with in the list. This handles list

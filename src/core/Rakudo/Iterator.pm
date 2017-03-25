@@ -1561,7 +1561,19 @@ class Rakudo::Iterator {
                 )
             }
             method is-lazy() { $!iterator.is-lazy }
-            method sink-all() { $!iterator.sink-all }
+            method sink-all(--> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::istype($pulled,Pair),
+                    X::TypeCheck.new(                   # naughty, slap it!
+                      operation => 'invert',
+                      got       => $pulled.WHAT,
+                      expected  => Pair
+                    ).throw
+                  )
+                )
+            }
         }.new(iterator)
     }
 

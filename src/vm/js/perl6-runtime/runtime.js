@@ -70,7 +70,7 @@ op.p6box_s = function(str) {
 };
 
 op.p6captureouters2 = function(ctx, capList, target) {
-  var cf = (target.outerCtx || closure.forcedOuter);
+  var cf = target.outerCtx;
 
   if (cf === Null) {
     return capList;
@@ -83,20 +83,9 @@ op.p6captureouters2 = function(ctx, capList, target) {
 
       var closure = codeObj.$$getattr(Code, "$!do");
 
-      var ctxToDiddle = (closure.outerCtx || closure.forcedOuter);
+      var ctxToDiddle = closure.outerCtx;
       if (ctxToDiddle) {
         ctxToDiddle.$$outer = cf;
-        if (ctxToDiddle.closuresUsingThis) {
-          for (var closure of ctxToDiddle.closuresUsingThis) {
-            let closureCtx = closure.outerCtx;
-            let updatedCtxs = [];
-            while (updatedCtxs.length < closure.staticCode.closureTemplate.length) {
-              updatedCtxs.unshift(closureCtx);
-              closureCtx = closureCtx.$$outer;
-            }
-            closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
-          }
-        }
       } else {
         console.log("can't diddle", closure);
       }
@@ -110,21 +99,8 @@ op.p6capturelex = function(ctx, codeObj) {
   var wantedStaticInfo = closure.staticCode.outerCodeRef;
 
   if (ctx.codeRef().staticCode === wantedStaticInfo) {
-    closure.forcedOuter = ctx;
     closure.outerCtx = ctx;
-
-    let closureCtx = ctx;
-    let updatedCtxs = [];
-    while (updatedCtxs.length < closure.staticCode.closureTemplate.length) {
-      updatedCtxs.unshift(closureCtx);
-      if (!closureCtx) {
-        closureCtx = null;
-        console.log("HACK on HACK on HACK");
-      } else {
-        closureCtx = closureCtx.$$outer;
-      }
-    }
-    closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
+    closure.capture(closure.staticCode.freshBlock());
   } else {
     /* HACK - workaround for rakudo bugs */
     console.log("HORRIBLE hack - p6capturelex will do nothing");
@@ -140,27 +116,15 @@ op.p6capturelexwhere = function(ctx, codeObj) {
 
   var find = ctx;
 
-  console.log("looking for", wantedStaticInfo.closureTemplate);
   while (find) {
-      console.log("we have", find.codeRef().staticCode.closureTemplate);
       if (find.codeRef().staticCode === wantedStaticInfo) {
-//        console.log("p6capturelexwhere found scope");
-        closure.forcedOuter = find;
         closure.outerCtx = find;
-
-        let closureCtx = find;
-        let updatedCtxs = [];
-        while (updatedCtxs.length < closure.staticCode.closureTemplate.length) {
-          updatedCtxs.unshift(closureCtx);
-          closureCtx = closureCtx.$$outer;
-        }
-        closure.capture(closure.staticCode.closureTemplate.apply(null, updatedCtxs));
+        closure.capture(closure.staticCode.freshBlock());
         return codeObj;
       }
       find = find.$$caller;
   }
   console.log("HORRIBLE hack - p6capturelexwhere will do nothing");
-  console.log("we have template", closure.staticCode.closureTemplate);
 
   return codeObj;
 };

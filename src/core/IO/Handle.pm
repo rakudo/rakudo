@@ -73,8 +73,10 @@ my class IO::Handle does IO {
             return self;
         }
 
+#?if jvm
         fail (X::IO::Directory.new(:$!path, :trying<open>))
           if $!path.e && $!path.d;
+#?endif
 
         my $llmode = do given $mode {
             when 'ro' { 'r' }
@@ -90,7 +92,16 @@ my class IO::Handle does IO {
             $exclusive ?? 'x' !! '';
 
         {
-            CATCH { .fail }
+            CATCH {
+                fail X::IO::DoesNotExist.new(:$!path, :trying<open>)
+                    unless $create || $!path.e;
+                fail X::IO::DoesExist.new(:$!path, :trying<open>)
+                    if $exclusive && $!path.e;
+                fail X::IO::Directory.new(:$!path, :trying<open>)
+                    if $!path.d;
+                fail X::IO.new(:os-error(.message));
+            }
+
             $!PIO := nqp::open(
               nqp::unbox_s($!path.abspath),
               nqp::unbox_s($llmode),

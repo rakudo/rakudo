@@ -223,14 +223,28 @@ my class IO::Spec::Unix is IO::Spec {
         return self.canonpath( self.catpath('', $result_dirs, '') );
     }
 
-    method rel2abs( $path, $base? is copy) {
-        return self.canonpath($path) if self.is-absolute($path);
-
-        my $cwd := $*CWD;
-        if !self.is-absolute( $base //= $cwd ) {
-            $base = self.rel2abs( $base, $cwd ) unless $base eq $cwd;
-        }
-        self.catdir( self.canonpath($base), $path );
+    method rel2abs(Str() \path, $base? is copy) {
+        nqp::if(
+          nqp::eqat(path, '/', 0),
+          self.canonpath(path),
+          self.catdir(
+            self.canonpath(
+                nqp::if(
+                    $base.defined,
+                    nqp::if(
+                        nqp::eqat(($base = $base.Str), '/', 0),
+                        $base,
+                        nqp::if(
+                            nqp::iseq_s($base, (my $cwd = $*CWD.Str)),
+                            $base, self.rel2abs($base, $cwd),
+                        ),
+                    ),
+                    $*CWD.Str,
+                ),
+            ),
+            path,
+          ),
+        )
     }
 }
 

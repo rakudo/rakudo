@@ -1553,7 +1553,7 @@ class Rakudo::Iterator {
                       ),
                       X::TypeCheck.new(                 # naughty, slap it!
                         operation => 'invert',
-                        got       => $pulled.WHAT,
+                        got       => $pulled,
                         expected  => Pair
                       ).throw
                     )
@@ -1568,7 +1568,7 @@ class Rakudo::Iterator {
                     nqp::istype($pulled,Pair),
                     X::TypeCheck.new(                   # naughty, slap it!
                       operation => 'invert',
-                      got       => $pulled.WHAT,
+                      got       => $pulled,
                       expected  => Pair
                     ).throw
                   )

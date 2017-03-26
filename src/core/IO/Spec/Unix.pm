@@ -52,7 +52,7 @@ my class IO::Spec::Unix is IO::Spec {
               nqp::substr($path,0,nqp::sub_i(nqp::chars($path),1)),
               $path
             )
-          ), 
+          ),
           ''
         )
     }

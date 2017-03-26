@@ -16,9 +16,13 @@ my class IO::Path is Cool {
         nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
     }
 
-    submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD! --> Nil) { }
+    submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
+        nqp::unless($!path,
+            die "Must specify something as a path: did you mean '.' for the current directory?"
+        )
+    }
 
-    method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+    method new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
         method !set-absolute() {
             $!is-absolute = True;
             $!abspath := $path;
@@ -29,22 +33,28 @@ my class IO::Path is Cool {
     }
 
     proto method new(|) {*}
-    multi method new(IO::Path: Str(Cool) $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        die "Must specify something as a path: did you mean '.' for the current directory?" unless $path.chars;
+    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, Str:D :$CWD) {
         self.bless(:$path, :$SPEC, :$CWD);
+    }
+    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        self.bless(:$path, :$SPEC, :CWD($CWD.Str));
+    }
+    multi method new(IO::Path: Cool $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        self.bless(:path($path.Str), :$SPEC, :CWD($CWD.Str));
     }
     multi method new(IO::Path:
       :$basename!,
-      :$dirname = '',
-      :$volume  = '',
-      :$SPEC    = $*SPEC,
-      :$CWD     = $*CWD,
+      :$dirname  = '',
+      :$volume   = '',
+      :$SPEC     = $*SPEC,
+      Str() :$CWD = $*CWD,
     ) {
         self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
     }
     multi method new(IO::Path:) {
         die "Must specify something as a path: did you mean '.' for the current directory?";
     }
+
 
     method abspath() {
         $!abspath //= $!SPEC.rel2abs($!path,$!CWD);

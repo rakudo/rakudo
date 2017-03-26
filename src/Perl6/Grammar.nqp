@@ -1672,8 +1672,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $p6cursor := $*W.find_symbol(['Cursor']);
             nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
-            nqp::bindattr($new,   NQPCursor, '$!name',  nqp::getattr($ret,   $p6cursor, '$!name'));
-
+            my $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
+            if !nqp::isnull_s($p6c_name) {
+                nqp::bindattr($new,   NQPCursor, '$!name',  $p6c_name);
+            }
             my $match := nqp::create(NQPMatch);
             nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
             nqp::bindattr($new, NQPCursor, '$!match', $match);

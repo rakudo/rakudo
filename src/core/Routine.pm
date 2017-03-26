@@ -1,10 +1,10 @@
 my class X::Routine::Unwrap { ... }
 
 my role HardRoutine {
-    method soft() { False }
+    method soft(--> False) { }
 }
 my role SoftRoutine {
-    method soft() { True }
+    method soft(--> True) { }
 }
 
 my class Routine { # declared in BOOTSTRAP
@@ -85,7 +85,7 @@ my class Routine { # declared in BOOTSTRAP
             method CALL-ME(|c) is raw {
                 $!dispatcher.enter(|c);
             }
-            method soft() { True }
+            method soft(--> True) { }
         }
 
         # We can't wrap a hardened routine (that is, one that's been

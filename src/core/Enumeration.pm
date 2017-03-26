@@ -22,7 +22,7 @@ my role Enumeration {
     multi method Int(::?CLASS:D:)     { $!value.Int }
 
     # Make sure we always accept any element of the enumeration
-    multi method ACCEPTS(::?CLASS:D: ::?CLASS:U) { True }
+    multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
 
     method CALL-ME(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);

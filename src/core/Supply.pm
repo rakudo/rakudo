@@ -102,9 +102,9 @@ my class Supply does Awaitable {
                 Tap.new(&!closing)
             }
             
-            method live() { False }
-            method sane() { True }
-            method serial() { True }
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> True) { }
         }.new(:&producer, :&closing, :$scheduler))
     }
 
@@ -136,9 +136,9 @@ my class Supply does Awaitable {
                 Tap.new({ $cancellation.cancel })
             }
 
-            method live { False }
-            method sane { True }
-            method serial { False }
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> False) { }
         }.new(:$interval, :$delay, :$scheduler));
     }
 
@@ -151,8 +151,8 @@ my class Supply does Awaitable {
     my role SimpleOpTappable does Tappable {
         has $!source;
         method live() { $!source.live }
-        method sane() { True }
-        method serial() { True }
+        method sane(--> True) { }
+        method serial(--> True) { }
         method !cleanup(int $cleaned-up is rw, $source-tap) {
             if $source-tap && !$cleaned-up  {
                 $cleaned-up = 1;
@@ -1478,9 +1478,9 @@ my class Supplier {
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False)  { }
     }
 
     has $!taplist;
@@ -1630,9 +1630,9 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False) { }
     }
 
     method new() {
@@ -1808,9 +1808,9 @@ sub SUPPLY(&block) {
             }
         }
 
-        method live { False }
-        method sane { True }
-        method serial { True }
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
     }.new(:&block))
 }
 

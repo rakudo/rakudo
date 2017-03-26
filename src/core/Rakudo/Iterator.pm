@@ -1810,7 +1810,7 @@ class Rakudo::Iterator {
                 )
             }
 
-            method is-lazy() { True }
+            method is-lazy(--> True) { }
         }.new(&body)
     }
 
@@ -2928,7 +2928,7 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }
-            method is-lazy() { True }
+            method is-lazy(--> True) { }
         }.new(value)
     }
 

@@ -252,8 +252,8 @@ my class Range is Cool does Iterable does Positional {
         elsif $!max === -Inf {
             class :: does Iterator {
                 method new()      { nqp::create(self) }
-                method pull-one() { Inf }
-                method is-lazy()  { True  }
+                method pull-one(--> Inf) { }
+                method is-lazy(--> True) { }
             }.new
         }
 
@@ -492,7 +492,7 @@ my class Range is Cool does Iterable does Positional {
                     }
                     method new(\b,\e) { nqp::create(self)!SET-SELF(b,e) }
                     method pull-one() { $!min + nqp::rand_I($!elems, Int) }
-                    method is-lazy()  { True }
+                    method is-lazy(--> True) { }
                 }.new($!min + $!excludes-min, $elems))
               !! self.list.roll(*)
         }

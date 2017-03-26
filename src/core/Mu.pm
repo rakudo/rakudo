@@ -112,7 +112,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method is-lazy (|) { * }
-    multi method is-lazy(Mu:) { False }
+    multi method is-lazy(Mu: --> False) { }
 
     method CREATE() {
         nqp::create(self)

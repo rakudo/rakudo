@@ -18,7 +18,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my $empty := nqp::list;   # for nqp::splice
 
-    multi method WHY('Life, the Universe and Everything':) { 42 }
+    multi method WHY('Life, the Universe and Everything': --> 42) { }
 
     multi method WHICH(Str:D:) {
         nqp::box_s(

@@ -84,7 +84,7 @@ my class Exception {
         CATCH { $fail.exception.throw }
     }
 
-    method is-compile-time { False }
+    method is-compile-time(--> False) { }
 }
 
 my class X::SecurityPolicy is Exception {}
@@ -623,7 +623,7 @@ my class X::Comp::Group is Exception {
     has @.sorrows;
     has @.worries;
 
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 
     multi method gist(::?CLASS:D:) {
         my $r = "";
@@ -693,14 +693,14 @@ my class X::Comp::BeginTime does X::Comp {
 
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 }
 
 my class X::Comp::FailGoal does X::Comp {
     has $.dba;
     has $.goal;
 
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 
     method message { "Unable to parse expression in $.dba; couldn't find final $.goal" }
 }

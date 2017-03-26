@@ -15,14 +15,14 @@ my class Any { # declared in BOOTSTRAP
     # my class Any is Mu
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U \a) { False }
+    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
     multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
         nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
     proto method EXISTS-KEY(|) is nodal { * }
-    multi method EXISTS-KEY(Any:U: $) { False }
-    multi method EXISTS-KEY(Any:D: $) { False }
+    multi method EXISTS-KEY(Any:U: $ --> False) { }
+    multi method EXISTS-KEY(Any:D: $ --> False) { }
 
     proto method DELETE-KEY(|) is nodal { * }
     multi method DELETE-KEY(Any:U: $ --> Nil) { }
@@ -78,11 +78,11 @@ my class Any { # declared in BOOTSTRAP
     multi method Map() { self.hash.Map }
 
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) { 1 }
+    multi method elems(Any:U: --> 1) { }
     multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) { 0 }
+    multi method end(Any:U: --> 0) { }
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
@@ -208,7 +208,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method EXISTS-POS(|) is nodal { * }
-    multi method EXISTS-POS(Any:U: Any:D $) { False }
+    multi method EXISTS-POS(Any:U: Any:D $ --> False) { }
     multi method EXISTS-POS(Any:U: Any:U $pos) {
         die "Cannot use '{$pos.^name}' as an index";
     }

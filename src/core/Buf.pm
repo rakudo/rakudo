@@ -104,7 +104,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
-    multi method elems(Blob:U:)   { 1 }
+    multi method elems(Blob:U: --> 1)   { }
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 

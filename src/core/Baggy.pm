@@ -323,7 +323,7 @@ my role Baggy does QuantHash {
         h = %!elems.values;
         h;
     }
-    method default(Baggy:D:)       { 0 }
+    method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {
         self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ' ')

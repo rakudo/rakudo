@@ -462,34 +462,43 @@ my class IO::Path is Cool {
     }
 
     proto method slurp() { * }
-    multi method slurp(IO::Path:D: :$bin, :$enc) {
-        my $handle = self.open;
-        $handle // $handle.throw;
+    multi method slurp(IO::Path:D:) {
 
-        my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
-        if $bin {
-            my $res;
-            # normal file
-            if Rakudo::Internals.FILETEST-S(self.abspath) -> int $size {
-                $res := nqp::readfh($PIO,buf8.new,$size)
-            }
-            # spooky file with zero size?
-            else {
-                $res := buf8.new();
-                loop {
-                    my $buf := nqp::readfh($PIO,buf8.new,0x100000);
-                    last unless nqp::elems($buf);
-                    $res.append($buf);
-                }
-            }
-            $handle.close;
-            $res
+        # clean call, try the fast way
+        if nqp::iseq_i(nqp::elems(nqp::getattr(%_,Map,'$!storage')),0)
+            && nqp::open(self.abspath,"r") -> $PIO {
+            LEAVE nqp::closefh(nqp::decont($PIO));
+            nqp::p6box_s(nqp::readallfh(nqp::decont($PIO)))
         }
+
+        # need to do the slow way
         else {
-            $handle.encoding($enc) if $enc.defined;
-            my $slurped := nqp::p6box_s(nqp::readallfh($PIO));
-            $handle.close;
-            $slurped
+            my $handle = self.open;
+            $handle // $handle.throw;
+            LEAVE $handle.close;
+
+            my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
+            if %_<bin> {
+                my $res;
+                # normal file
+                if Rakudo::Internals.FILETEST-S(self.abspath) -> int $size {
+                    $res := nqp::readfh($PIO,buf8.new,$size)
+                }
+                # spooky file with zero size?
+                else {
+                    $res := buf8.new();
+                    loop {
+                        my $buf := nqp::readfh($PIO,buf8.new,0x100000);
+                        last unless nqp::elems($buf);
+                        $res.append($buf);
+                    }
+                }
+                $res
+            }
+            else {
+                $handle.encoding($_) with %_<enc>;
+                nqp::p6box_s(nqp::readallfh($PIO))
+            }
         }
     }
 

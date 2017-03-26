@@ -116,27 +116,63 @@ my class IO::Spec::Unix is IO::Spec {
         }
     }
 
-    multi method split(IO::Spec::Unix: Cool:D $path is copy ) {
-        $path  ~~ s/<?after .> '/'+ $ //;
+    multi method split(IO::Spec::Unix: Cool:D $path) {
+        my str $p = $path.Str;
+        my int $chars = nqp::chars($p);
 
-        $path  ~~ m/^ ( [ .* \/ ]? ) (<-[\/]>*) /;
-        my ($dirname, $basename) = ~$0, ~$1;
+        nqp::while(
+            nqp::if(
+                ($chars = nqp::sub_i(nqp::chars($p), 1)),
+                nqp::eqat($p, '/', $chars),
+            ),
+            $p = nqp::substr($p, 0, $chars),
+        );
 
-        $dirname ~~ s/<?after .> '/'+ $ //; #/
+        my str $dirname;
+        my str $basename;
+        my int $slash-at = nqp::rindex($p, '/');
+        nqp::if(
+            $slash-at,
+            nqp::if(
+                nqp::iseq_i($slash-at, -1),
+                nqp::stmts(
+                    ($dirname = ''),
+                    $basename = $p,
+                ),
+                nqp::stmts(
+                    ($dirname = nqp::substr($p, 0, $slash-at)),
+                    $basename = nqp::substr($p, nqp::add_i($slash-at, 1)),
+                ),
+            ),
+            nqp::stmts(
+                ($dirname = '/'),
+                $basename = nqp::substr($p, 1),
+            ),
+        );
 
-        if $basename eq '' {
-            $basename = '/'  if $dirname eq '/';
-        }
-        else {
-            $dirname = '.'  if $dirname eq '';
-        }
+        nqp::while(
+            nqp::if(
+                ($chars = nqp::sub_i(nqp::chars($dirname), 1)),
+                nqp::eqat($dirname, '/', $chars),
+            ),
+            $dirname = nqp::substr($dirname, 0, $chars),
+        );
+
+        nqp::if(
+            $basename,
+            nqp::unless($dirname, $dirname = '.'),
+            nqp::if(
+                nqp::iseq_s($dirname, '/'),
+                $basename = '/',
+            ),
+        );
+
         # shell dirname '' produces '.', but we don't because it's probably user error
 
         # temporary, for the transition period
         (:volume(''), :$dirname, :$basename, :directory($dirname));
 #        (:volume(''), :$dirname, :$basename);
     }
-
 
     method join ($, \dir, \file) {
         self.catpath(

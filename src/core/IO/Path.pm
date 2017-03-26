@@ -223,8 +223,13 @@ my class IO::Path is Cool {
         }
     }
 
-    method child (IO::Path:D: $child) {
-        self.bless(:path($!SPEC.join('', $!path, $child)), :$!SPEC, :$!CWD);
+    method child (IO::Path:D: \child) {
+        self.bless(
+            :path( $!SPEC.join('', $!path,
+                nqp::if(nqp::istype(child, Str), child, child.Str)
+            )),
+            :$!SPEC, :$!CWD
+        );
     }
 
     proto method chdir(|) { * }

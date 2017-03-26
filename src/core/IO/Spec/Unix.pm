@@ -138,22 +138,38 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
 
-    method join ($, $dirname, $file) {
+    method join ($, \dir, \file) {
         self.catpath(
-          '',
-          ($dirname eq '/' && $file eq '/' or $dirname eq '.' && $file.chars)
-            ?? '' !! $dirname,
-          $file,
+            '',
+            nqp::if(
+                nqp::unless(
+                    nqp::if( nqp::iseq_s(dir, '/'), nqp::iseq_s(file, '/'), ),
+                    nqp::if( nqp::iseq_s(dir, '.'), file ),
+                ),
+                '',
+                dir,
+            ),
+            file,
         );
     }
 
-    method catpath( $, $dirname, $file ) {
-        $dirname ne ''
-          && $file ne ''
-          && substr($dirname, *-1 ) ne '/'
-          && substr($file, 0, 1 )   ne '/'
-          ?? $dirname ~ '/' ~ $file
-          !! $dirname ~ $file
+    method catpath( $, \dirname, \file ) {
+        nqp::if(
+            nqp::if(
+                nqp::isne_s(dirname, ''),
+                nqp::if(
+                    nqp::isne_s(file, ''),
+                    nqp::if(
+                        nqp::isfalse(nqp::eqat(
+                            dirname, '/', nqp::sub_i(nqp::chars(dirname), 1)
+                        )),
+                        nqp::isfalse(nqp::eqat(file, '/', 0)),
+                    ),
+                ),
+            ),
+            nqp::concat(dirname, nqp::concat('/', file)),
+            nqp::concat(dirname, file),
+        )
     }
 
     method catdir( *@parts ) { self.canonpath( (flat @parts, '').join('/') ) }

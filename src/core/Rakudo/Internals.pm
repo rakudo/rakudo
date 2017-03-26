@@ -505,9 +505,12 @@ my class Rakudo::Internals {
     method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
         if nqp::istype($ending, Iterable) {
             my \endings = nqp::list_s();
-            for @$ending -> $e {
-                nqp::push_s(endings, nqp::unbox_s($e.Str));
-            }
+            my int $i = -1;
+            my int $elems = $ending.elems;
+            nqp::while(
+                nqp::isne_i( ($i = nqp::add_i($i, 1)), $elems ),
+                nqp::push_s(endings, nqp::unbox_s($ending.AT-POS($i).Str))
+            );
 #?if !jvm
             nqp::setinputlineseps(handle, endings);
 #?endif

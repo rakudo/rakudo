@@ -208,7 +208,12 @@ my class IO::Spec::Unix is IO::Spec {
         )
     }
 
-    method catdir( *@parts ) { self.canonpath( (flat @parts, '').join('/') ) }
+    method catdir (*@parts) {
+        self.canonpath: nqp::concat(
+            @parts.join('/'),
+            nqp::if(@parts, '/', ''),
+        )
+    }
     method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 

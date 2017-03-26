@@ -93,8 +93,8 @@ my class IO::Spec::Unix is IO::Spec {
         ) ?? $io !! IO::Path.new(".");
     }
 
-    method is-absolute( $file ) {
-        substr( $file, 0, 1 ) eq '/';
+    method is-absolute( Str() \path ) {
+        nqp::p6bool(nqp::eqat(path, '/', 0));
     }
 
     method path {

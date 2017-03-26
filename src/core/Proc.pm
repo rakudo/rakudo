@@ -3,7 +3,6 @@ my class Proc {
     has IO::Pipe $.out;
     has IO::Pipe $.err;
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
-    has $.pid;
     has $.signal;
     has @.command;
 

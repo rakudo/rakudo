@@ -24,31 +24,56 @@ my class IO::Handle does IO {
       :$nl-in is copy = ["\x0A", "\r\n"],
       Str:D :$nl-out is copy = "\n",
     ) {
+        $mode = nqp::if(
+          $mode,
+          nqp::if(nqp::istype($mode, Str), $mode, $mode.Str),
+          nqp::if(
+            nqp::unless(nqp::if($r, $w), $rw), # $r && $w || $rw
+            nqp::stmts(($create = True), 'rw'),
+            nqp::if(
+              nqp::unless(nqp::if($r, $x), $rx),
+              nqp::stmts(($create = $exclusive = True), 'rw'),
+              nqp::if(
+                nqp::unless(nqp::if($r, $a), $ra),
+                nqp::stmts(($create = $append = True), 'rw'),
+                nqp::if(
+                  $r, 'ro',
+                  nqp::if(
+                    $w,
+                    nqp::stmts(($create = $truncate = True), 'wo'),
+                    nqp::if(
+                      $x,
+                      nqp::stmts(($create = $exclusive = True), 'wo'),
+                      nqp::if(
+                        $a,
+                        nqp::stmts(($create = $append = True), 'wo'),
+                        nqp::if(
+                          $update, 'rw',
+                          'ro'
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
 
-        $mode //= do {
-            when so ($r && $w) || $rw { $create              = True; 'rw' }
-            when so ($r && $x) || $rx { $create = $exclusive = True; 'rw' }
-            when so ($r && $a) || $ra { $create = $append    = True; 'rw' }
-
-            when so $r { 'ro' }
-            when so $w { $create = $truncate  = True; 'wo' }
-            when so $x { $create = $exclusive = True; 'wo' }
-            when so $a { $create = $append    = True; 'wo' }
-
-            when so $update { 'rw' }
-
-            default { 'ro' }
-        }
-
-        if $!path eq '-' {
-            given $mode {
-                when 'ro' { return $*IN;  }
-                when 'wo' { return $*OUT; }
-                default {
-                    die "Cannot open standard stream in mode '$_'";
-                }
-            }
-        }
+        nqp::if(
+            nqp::iseq_s($!path.Str, '-'),
+            nqp::stmts(
+                nqp::if(
+                    nqp::iseq_s($mode, 'ro'),
+                    (return $*IN),
+                    nqp::if(
+                        nqp::iseq_s($mode, 'wo'),
+                        (return $*OUT),
+                        die("Cannot open standard stream in mode '$mode'"),
+                    ),
+                ),
+            ),
+        );
 
         if nqp::istype($!path, IO::Special) {
             my $what := $!path.what;
@@ -69,38 +94,55 @@ my class IO::Handle does IO {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            self.encoding( $bin ?? 'bin' !! $enc );
+            nqp::if( $bin,
+                ($!encoding = 'bin'),
+                nqp::setencoding($!PIO,
+                    $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
+                )
+            );
             return self;
         }
 
-        fail (X::IO::Directory.new(:$!path, :trying<open>))
-          if $!path.e && $!path.d;
-
-        my $llmode = do given $mode {
-            when 'ro' { 'r' }
-            when 'wo' { '-' }
-            when 'rw' { '+' }
-            default { die "Unknown mode '$_'" }
-        }
-
-        $llmode = join '', $llmode,
-            $create    ?? 'c' !! '',
-            $append    ?? 'a' !! '',
-            $truncate  ?? 't' !! '',
-            $exclusive ?? 'x' !! '';
+        fail X::IO::Directory.new(:$!path, :trying<open>) if $!path.d;
 
         {
             CATCH { .fail }
             $!PIO := nqp::open(
-              nqp::unbox_s($!path.abspath),
-              nqp::unbox_s($llmode),
+                $!path.abspath,
+                nqp::concat(
+                    nqp::if(
+                        nqp::iseq_s($mode, 'ro'), 'r',
+                        nqp::if(
+                            nqp::iseq_s($mode, 'wo'), '-',
+                            nqp::if(
+                                nqp::iseq_s($mode, 'rw'), '+',
+                                die("Unknown mode '$mode'")
+                            ),
+                        ),
+                    ),
+                    nqp::concat(
+                        nqp::if($create, 'c', ''),
+                        nqp::concat(
+                            nqp::if($append, 'a', ''),
+                            nqp::concat(
+                                nqp::if($truncate,  't', ''),
+                                nqp::if($exclusive, 'x', ''),
+                            ),
+                        ),
+                    )
+                ),
             );
         }
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        self.encoding( $bin ?? 'bin' !! $enc );
+        nqp::if( $bin,
+            ($!encoding = 'bin'),
+            nqp::setencoding($!PIO,
+                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
+            )
+        );
         self;
     }
 

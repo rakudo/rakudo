@@ -36,6 +36,7 @@
     - [RT Tickets](#rt-tickets)
     - [GitHub Issues](#github-issues)
     - [Other Issues](#other-issues)
+- [New Issues](#new-issues)
 # IO Action Plan
 
 This document is a deliverable of [TPF Standardization, Test Coverage, and
@@ -1023,3 +1024,11 @@ resolve the following tickets will be made under the [IO grant](http://news.perl
 ## Other Issues
 
 - `IO::Path.resolve` is not portable and produces wrong results on Windows.
+
+------------------------------
+
+# New Issues
+
+New issues raised since the creation of this proposal
+
+- Deprecate and remove IO::Path.chdir [Issue for discussion](https://github.com/zoffixznet/IOwesomeness/issues/26)

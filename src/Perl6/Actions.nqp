@@ -250,16 +250,23 @@ sub unwanted($ast, $by) {
         $ast.sunk(1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && ($ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>') {
-            UNWANTALL($ast,$byby);
+        if $ast.op eq 'call' {
+            if $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>' {
+                UNWANTALL($ast,$byby);
+            }
+            elsif $ast.name eq '&term:<now>' {
+                $ast.node.CURSOR.worry("Useless use of 'now' in sink context");
+            }
+            else {
+                $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            }
             $ast.sunk(1);
         }
         elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'call' ||
-              $ast.op eq 'callstatic' ||
+        elsif $ast.op eq 'callstatic' ||
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
@@ -369,6 +376,10 @@ sub unwanted($ast, $by) {
                             $node.annotate('useless', $sym);
                             $node.node.CURSOR.worry("Useless use of $sym in sink context");
                         }
+                    }
+                    elsif $node.name eq '&term:<now>' {
+                        $node.annotate('useless', "'now'");
+                        $node.node.CURSOR.worry("Useless use of 'now' in sink context");
                     }
                 }
             }

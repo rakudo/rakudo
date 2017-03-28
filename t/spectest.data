@@ -1229,7 +1229,7 @@ integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t
 integration/deep-recursion-initing-native-array.t # moar
 integration/error-reporting.t  # slow
-integration/eval-and-threads.t
+integration/eval-and-threads.t  # slow
 integration/failure-and-callsame.t
 integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t

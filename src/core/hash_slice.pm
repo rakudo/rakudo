@@ -207,14 +207,32 @@ multi sub postcircumfix:<{; }>(\SELF, @indices) {
 }
 
 multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
-    sub recurse-at-key(\SELF, \indices, \counter){
-        my $idx = indices[counter];
-        (counter < indices.elems)
-            ?? SELF.EXISTS-KEY($idx) && recurse-at-key(SELF{$idx}, indices, counter + 1)
-            !! True
+    sub recurse-at-key(\SELF, \indices) {
+        my \idx     := indices[0];
+        my \exists  := SELF.EXISTS-KEY(idx);
+        nqp::if(
+            nqp::istype(idx, Iterable),
+            idx.map({ |recurse-at-key(SELF, ($_, |indices.skip.cache)) }).List,
+            nqp::if(
+                nqp::iseq_I(indices.elems, 1),
+                exists,
+                nqp::if(
+                    exists,
+                    recurse-at-key(SELF{idx}, indices.skip.cache),
+                    nqp::stmts(
+                        my \times := indices.map({ .elems }).reduce(&[*]);
+                        nqp::if(
+                            nqp::iseq_I(times, 1),
+                            False,
+                            (False xx times).List
+                        )
+                    ).head
+                )
+            )
+        );
     }
 
-    recurse-at-key(SELF, @indices, 0)
+    recurse-at-key(SELF, @indices)
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,3 +1,17 @@
+# Summary of the changes to the original IO Action Plan
+
+1. Instead of using mutually-exclusive named arguments to `.seek`, split it into three methods instead:
+  `.seek-from-start`, `.seek-from-current`, `.seek-from-end`. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/1)
+2. Add `:joiner` argument to `.exension` that defaults to empty string if `$replacement` is an empty string or to a `.` if
+  `$replacement` is not an empty string. [Usage examples and discussion](https://github.com/zoffixznet/IOwesomeness/issues/5#issuecomment-290079205)
+3. Deprecate IO::Path.chdir in 6.d; remove it in 6.e. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/26)
+4. Deprecate `$*SPEC` in 6.d; remove it in 6.e. This depends on how successful the plan is when implemented in a module first.
+  [Details](https://github.com/zoffixznet/IOwesomeness/issues/27)
+
+---------------------------
+
+# Original IO Action Plan
+
 # Table of Contents
 - [IO Action Plan](#io-action-plan)
     - [Terms and Conventions](#terms-and-conventions)
@@ -36,7 +50,7 @@
     - [RT Tickets](#rt-tickets)
     - [GitHub Issues](#github-issues)
     - [Other Issues](#other-issues)
-- [New Issues](#new-issues)
+
 # IO Action Plan
 
 This document is a deliverable of [TPF Standardization, Test Coverage, and
@@ -1025,10 +1039,3 @@ resolve the following tickets will be made under the [IO grant](http://news.perl
 
 - `IO::Path.resolve` is not portable and produces wrong results on Windows.
 
-------------------------------
-
-# New Issues
-
-New issues raised since the creation of this proposal
-
-- Deprecate and remove IO::Path.chdir [Issue for discussion](https://github.com/zoffixznet/IOwesomeness/issues/26)

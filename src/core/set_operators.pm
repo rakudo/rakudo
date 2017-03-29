@@ -3,6 +3,9 @@ proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool:D) {
     $a (elem) $b.Set(:view);
 }
+multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
+    $b.EXISTS-KEY($a);
+}
 multi sub infix:<(elem)>($a, Set $b --> Bool:D) {
     $b.EXISTS-KEY($a);
 }
@@ -18,6 +21,9 @@ only sub infix:<∉>($a, $b --> Bool:D) is pure {
 proto sub infix:<(cont)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(cont)>(Any $a, $b --> Bool:D) {
     $a.Set(:view) (cont) $b;
+}
+multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
+    $a.EXISTS-KEY($b);
 }
 multi sub infix:<(cont)>(Set $a, $b --> Bool:D) {
     $a.EXISTS-KEY($b);

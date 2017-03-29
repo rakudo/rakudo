@@ -57,7 +57,7 @@ multi sub MAIN(
 
     if (@slow) {
         @slow.=flatmap(&all-in);
-        @tfiles = (@slow Z batch(@tfiles / @slow, @tfiles)).flatmap({ .map(|*) })
+        @tfiles = (roundrobin @slow, batch(@tfiles / @slow, @tfiles)).flat;
     }
 
     if $fudge {

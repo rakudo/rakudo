@@ -3,7 +3,7 @@
 1. Instead of using mutually-exclusive named arguments to `.seek`, split it into three methods instead:
   `.seek-from-start`, `.seek-from-current`, `.seek-from-end`. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/1)
 2. Add `:joiner` argument to `.exension` that defaults to empty string if `$replacement` is an empty string or to a `.` if
-  `$replacement` is not an empty string. [Usage examples and discussion](https://github.com/zoffixznet/IOwesomeness/issues/5#issuecomment-290079205)
+  `$replacement` is not an empty string. Also allow `Range` `:parts` parameter. [Usage examples and discussion](https://github.com/zoffixznet/IOwesomeness/issues/5#issuecomment-290079205)
 3. Deprecate IO::Path.chdir in 6.d; remove it in 6.e. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/26)
 4. Deprecate `$*SPEC` in 6.d; remove it in 6.e. This depends on how successful the plan is when implemented in a module first.
   [Details](https://github.com/zoffixznet/IOwesomeness/issues/27)

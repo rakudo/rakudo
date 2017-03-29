@@ -4,7 +4,7 @@ multi sub infix:<(elem)>($a, Any $b --> Bool:D) {
     $a (elem) $b.Set(:view);
 }
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
-    $b.EXISTS-KEY($a);
+    $b.AT-KEY($a).Bool;
 }
 multi sub infix:<(elem)>($a, Set $b --> Bool:D) {
     $b.EXISTS-KEY($a);
@@ -23,7 +23,7 @@ multi sub infix:<(cont)>(Any $a, $b --> Bool:D) {
     $a.Set(:view) (cont) $b;
 }
 multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
-    $a.EXISTS-KEY($b);
+    $a.AT-KEY($b).Bool
 }
 multi sub infix:<(cont)>(Set $a, $b --> Bool:D) {
     $a.EXISTS-KEY($b);

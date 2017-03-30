@@ -165,36 +165,51 @@ my role Baggy does QuantHash {
         nqp::create(self)!SET-SELF($elems)
     }
     method new-from-pairs(*@pairs) {
-        my $elems := nqp::hash();
-        my str $which;
-        my int $seen-pair;
-        for @pairs {
-            when Pair {
-                $seen-pair = 1;
-                $which = nqp::unbox_s(.key.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + .value;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR(.key,.value));
-                }
-            }
-            default {
-                $which = nqp::unbox_s(.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + 1;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR($_,1));
-                }
-            }
-        }
-        self!SANITY($elems) if $seen-pair;
-        nqp::create(self)!SET-SELF($elems)
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iterator := @pairs.iterator),
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::stmts(
+                (my int $seen-pair = 1),
+                nqp::if(
+                  nqp::existskey(
+                    $elems,
+                    (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                  ),
+                  nqp::stmts(
+                    (my $value :=
+                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                    ($value = $value + nqp::getattr($pulled,Pair,'$!value'))
+                  ),
+                  nqp::bindkey($elems,$which,self!PAIR(
+                    nqp::getattr($pulled,Pair,'$!key'),
+                    nqp::getattr($pulled,Pair,'$!value'),
+                  ))
+                )
+              ),
+              nqp::if(
+                nqp::existskey(
+                  $elems,
+                  ($which := $pulled.WHICH)
+                ),
+                nqp::stmts(
+                  ($value :=
+                    nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                  ($value = $value + 1),
+                ),
+                nqp::bindkey($elems,$which,self!PAIR($pulled,1))
+              )
+            )
+          ),
+          nqp::if($seen-pair,self!SANITY($elems)),
+          nqp::create(self)!SET-SELF($elems)
+        )
     }
 
 #--- iterator methods

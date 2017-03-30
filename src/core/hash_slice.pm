@@ -220,7 +220,7 @@ multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
                     exists,
                     recurse-at-key(SELF{idx}, indices.skip.cache),
                     nqp::stmts(
-                        my \times := indices.map({ .elems }).reduce(&[*]);
+                        (my \times := indices.map({ .elems }).reduce(&[*])),
                         nqp::if(
                             nqp::iseq_I(times, 1),
                             False,

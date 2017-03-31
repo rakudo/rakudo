@@ -211,7 +211,9 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is raw {
 multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
+      !! nqp::istype(pos, Range) && pos.min == 0 && pos.max == Inf
+        ?? SELF.ZEN-POS()
+        !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     # MMD is not behaving itself so we do this by hand.

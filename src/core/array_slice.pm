@@ -398,7 +398,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,:$v!,*%other) is raw {
 
 # @a[*]
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D ) is raw {
-    SELF[^SELF.elems];
+    SELF.ZEN-POS();
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
     SELF[^SELF.elems] = assignee;

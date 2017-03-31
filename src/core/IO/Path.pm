@@ -8,12 +8,8 @@ my class IO::Path is Cool {
     has Str  $!abspath;  # should be native for faster file tests, but segfaults
     has %!parts;
 
-    multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.abspath)));
-    }
-
-    multi method ACCEPTS(IO::Path:D: Cool:D \that) {
-        nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
+    multi method ACCEPTS(IO::Path:D: Cool:D \other) {
+        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.IO.abspath)));
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {

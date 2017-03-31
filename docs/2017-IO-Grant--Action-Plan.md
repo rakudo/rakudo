@@ -968,7 +968,7 @@ to `IO::Handle` (`IO::Path.open` call). The point at which the information is
 gathered or actions are performed by the affected routines is generally at the
 `IO::Path` level, not `IO::Handle` level.
 3) All of these *and more* (`IO::Handle` does not provide `.rw`, `.rwx`, or
-`.z` methods) are still available via `IO::Path.path` attribute that, for
+`.z` methods) are still available via `IO::Handle.path` attribute that, for
 `IO::Handle`, contains the path of the object the handle is opened on.
 Subclasses of `IO::Handle` that don't deal with paths can simply override
 *that* method instead of having to override the 15 affected routines.

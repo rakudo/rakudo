@@ -149,20 +149,29 @@ my role Baggy does QuantHash {
 
 #--- object creation methods
     multi method new(Baggy:_: +@args) {
-        my $elems := nqp::hash();
-        my str $which;
-        for @args {
-            $which = nqp::unbox_s(.WHICH);
-            if nqp::existskey($elems,$which) {
-                my $value :=
-                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                $value = $value + 1;
-            }
-            else {
-                nqp::bindkey($elems,$which,self!PAIR($_,1));
-            }
-        }
-        nqp::create(self)!SET-SELF($elems)
+        nqp::stmts(
+          (my $elems := nqp::hash),
+          (my $iterator := @args.iterator),
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::existskey(
+                $elems,
+                (my $which := $pulled.WHICH)
+              ),
+              nqp::stmts(
+                (my $value :=
+                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                ($value = $value + 1),
+              ),
+              nqp::bindkey($elems,$which,self!PAIR($pulled,1))
+            )
+          ),
+          nqp::create(self)!SET-SELF($elems)
+        )
     }
     method new-from-pairs(*@pairs) {
         nqp::stmts(

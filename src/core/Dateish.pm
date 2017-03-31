@@ -5,7 +5,7 @@ my role Dateish {
     has Int $.daycount;
     has     &.formatter;
 
-    method IO(Dateish:D: |c) { IO::Path.new(~self) }  # because Dateish is not Cool
+    method IO(Dateish:D:) { IO::Path.new(~self) }  # because Dateish is not Cool
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }

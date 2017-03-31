@@ -101,7 +101,7 @@ my class IO::Path is Cool {
         );
     }
 
-    method IO(IO::Path:D: |c) { self }
+    multi method IO(IO::Path:D:) { self }
 
     method open(IO::Path:D: |c) {
         my $handle = IO::Handle.new(:path(self));

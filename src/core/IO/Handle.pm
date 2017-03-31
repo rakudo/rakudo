@@ -805,7 +805,7 @@ my class IO::Handle does IO {
     }
 
     method chmod(IO::Handle:D: Int $mode) { $!path.chmod($mode) }
-    method IO(IO::Handle:D: |c)           { $!path.IO(|c) }
+    method IO(IO::Handle:D:)              { $!path.IO }
     method path(IO::Handle:D:)            { $!path.IO }
     multi method Str(IO::Handle:D:)       { $!path }
 

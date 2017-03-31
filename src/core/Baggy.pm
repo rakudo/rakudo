@@ -35,17 +35,40 @@ my role Baggy does QuantHash {
         )
     }
     method !SANITY(%hash --> Nil) {
-        my @toolow;
-        my $elems := nqp::getattr(%hash,Map,'$!storage');
-        my $iter  := nqp::iterator($elems);
-        while $iter {
-            my \tmp   := nqp::shift($iter);
-            my \pair  := nqp::iterval(tmp);
-            my $value := pair.value;
-            @toolow.push( pair.key )                   if $value <  0;
-            nqp::deletekey($elems,nqp::iterkey_s(tmp)) if $value <= 0;
-        }
-        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
+        nqp::stmts(
+          (my $low := nqp::create(IterationBuffer)),
+          (my $elems := nqp::getattr(%hash,Map,'$!storage')),
+          (my $iter := nqp::iterator($elems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::isle_i(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                0
+              ),
+              nqp::stmts(
+                nqp::if(
+                  nqp::islt_i(
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                    0
+                  ),
+                  nqp::push($low,nqp::getattr(nqp::iterval($iter),Pair,'$!key'))
+                ),
+                nqp::deletekey($elems,nqp::iterkey_s($iter))
+              )
+            )
+          ),
+          nqp::if(
+            nqp::elems($low),
+            X::AdHoc.new( payload =>
+              "Found negative values for "
+              ~ nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$low)
+              ~ " in "
+              ~ self.^name
+            ).throw,
+            Nil
+          )
+        )
     }
     method !LISTIFY(&formatter, str $joiner) {
         nqp::stmts(

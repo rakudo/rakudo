@@ -1,7 +1,7 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    method !SET-SELF(\elems) {
+    method SET-SELF(\elems) {
         nqp::stmts(
           nqp::if(
             nqp::elems(nqp::getattr(elems,Map,'$!storage')),
@@ -21,7 +21,7 @@ my role Setty does QuantHash {
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
             nqp::bindkey($elems,$pulled.WHICH,$pulled)
           ),
-          nqp::create(self)!SET-SELF($elems)
+          nqp::create(self).SET-SELF($elems)
         )
     }
     method new-from-pairs(*@pairs --> Setty:D) {
@@ -46,7 +46,7 @@ my role Setty does QuantHash {
               nqp::bindkey($elems,$pulled.WHICH,$pulled)
             )
           ),
-          nqp::create(self)!SET-SELF($elems)
+          nqp::create(self).SET-SELF($elems)
         )
     }
 
@@ -145,10 +145,36 @@ my role Setty does QuantHash {
         )
     }
 
-    method Bag { Bag.new( %!elems.values ) }
-    method BagHash { BagHash.new( %!elems.values ) }
-    method Mix { Mix.new( %!elems.values ) }
-    method MixHash { MixHash.new( %!elems.values ) }
+    method !BAGGIFY(\type, int $bind) {
+        nqp::if(
+          nqp::getattr(%!elems,Map,'$!storage'),
+          nqp::stmts(
+            (my $elems := nqp::clone(nqp::getattr(%!elems,Map,'$!storage'))),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                Pair.new(
+                  nqp::decont(nqp::iterval($tmp)),
+                  nqp::if(
+                    $bind,
+                    1,
+                    (nqp::p6scalarfromdesc(nqp::null) = 1)
+                  )
+                )
+              )
+            ),
+            nqp::create(type).SET-SELF($elems)
+          ),
+          nqp::create(type)
+        )
+    }
+    method Bag()     { self!BAGGIFY(Bag,     1) }
+    method BagHash() { self!BAGGIFY(BagHash, 0) }
+    method Mix()     { self!BAGGIFY(Mix,     1) }
+    method MixHash() { self!BAGGIFY(MixHash, 0) }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

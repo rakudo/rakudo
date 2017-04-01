@@ -94,7 +94,7 @@ my role Baggy does QuantHash {
     }
 
 #--- interface methods
-    method !SET-SELF(Baggy:D: Mu \elems) {
+    method SET-SELF(Baggy:D: Mu \elems) {
         nqp::if(
           elems.elems,
           nqp::stmts(                        # need to have allocated %!elems
@@ -219,7 +219,7 @@ my role Baggy does QuantHash {
               nqp::bindkey($elems,$which,self!PAIR($pulled,1))
             )
           ),
-          nqp::create(self)!SET-SELF($elems)
+          nqp::create(self).SET-SELF($elems)
         )
     }
     method new-from-pairs(*@pairs) {
@@ -266,7 +266,7 @@ my role Baggy does QuantHash {
             )
           ),
           nqp::if($seen-pair && nqp::elems($elems),self!SANITY($elems)),
-          nqp::create(self)!SET-SELF($elems)
+          nqp::create(self).SET-SELF($elems)
         )
     }
 

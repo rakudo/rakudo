@@ -524,34 +524,38 @@ my class Rakudo::Internals {
         Nil
     }
 
-    # number of elems of type if all, otherwise 0
+    # 1 if all elements of given type, otherwise 0
     method ALL_TYPE(\values,\type) {
-        nqp::stmts(
+        nqp::if(
           (my int $elems = values.elems),   # reifies
-          (my $values := nqp::getattr(values,List,'$!reified')),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::istype(nqp::atpos($values,$i),type),
-            nqp::null
-          ),
-          nqp::iseq_i($i,$elems) && $elems
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::istype(nqp::atpos($values,$i),type),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
         )
     }
 
-    # number of elems of defined && type if all, otherwise 0
+    # 1 if all elems defined && type, otherwise 0
     method ALL_DEFINED_TYPE(\values,\type) {
-        nqp::stmts(
+        nqp::if(
           (my int $elems = values.elems),   # reifies
-          (my $values := nqp::getattr(values,List,'$!reified')),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::defined(nqp::atpos($values,$i))
-              && nqp::istype(nqp::atpos($values,$i),type),
-            nqp::null
-          ),
-          nqp::iseq_i($i,$elems) && $elems
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::defined(nqp::atpos($values,$i))
+                && nqp::istype(nqp::atpos($values,$i),type),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
         )
     }
 

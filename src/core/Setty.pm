@@ -1,7 +1,17 @@
 my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
-    method !SET-SELF(%!elems) { self }
+    method !SET-SELF(\elems) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(nqp::getattr(elems,Map,'$!storage')),
+            nqp::bindattr(%!elems,Map,'$!storage',
+              nqp::getattr(elems,Map,'$!storage')
+            )
+          ),
+          self
+        )
+    }
     multi method new(Setty: +@args --> Setty:D) {
         nqp::stmts(
           (my $elems := nqp::hash),
@@ -19,17 +29,17 @@ my role Setty does QuantHash {
           (my $iter  := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(
-              (my $pulled := nqp::decont($iter.pull-one)),
+              (my $pulled := $iter.pull-one),
               IterationEnd
             ),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(
-                nqp::getattr($pulled,Pair,'$!value'),
+                nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
                 nqp::bindkey(
                   $elems,
-                  nqp::getattr($pulled,Pair,'$!key').WHICH,
-                  nqp::getattr($pulled,Pair,'$!key')
+                  nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
+                  nqp::getattr(nqp::decont($pulled),Pair,'$!key')
                 )
               ),
               nqp::bindkey($elems,$pulled.WHICH,$pulled)
@@ -129,8 +139,9 @@ my role Setty does QuantHash {
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
         nqp::p6bool(
-          %!elems.elems && nqp::existskey(%!elems, nqp::unbox_s(k.WHICH))
-        );
+          nqp::getattr(%!elems,Map,'$!storage')
+            && nqp::existskey(nqp::getattr(%!elems,Map,'$!storage'),k.WHICH)
+        )
     }
 
     method Bag { Bag.new( %!elems.values ) }

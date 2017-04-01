@@ -97,9 +97,13 @@ my class SetHash does Setty {
     method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }
 
     method Set(SetHash:D: :$view) {
-        nqp::p6bindattrinvres(
-          nqp::create(Set),Set,'%!elems',
-          $view ?? %!elems !! %!elems.clone
+        nqp::if(
+          nqp::getattr(%!elems,Map,'$!storage'),
+          nqp::p6bindattrinvres(
+            nqp::create(Set),Set,'%!elems',
+            nqp::if($view,%!elems,%!elems.clone)
+          ),
+          nqp::create(Set)
         )
     }
     method SetHash(SetHash:D:) { self }

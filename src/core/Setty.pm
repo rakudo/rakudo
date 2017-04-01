@@ -18,12 +18,19 @@ my role Setty does QuantHash {
           (my $elems := nqp::hash),
           (my $iter  := @pairs.iterator),
           nqp::until(
-            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iter.pull-one)),
+              IterationEnd
+            ),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(
-                $pulled.value,
-                nqp::bindkey($elems,$pulled.key.WHICH,$pulled.key)
+                nqp::getattr($pulled,Pair,'$!value'),
+                nqp::bindkey(
+                  $elems,
+                  nqp::getattr($pulled,Pair,'$!key').WHICH,
+                  nqp::getattr($pulled,Pair,'$!key')
+                )
               ),
               nqp::bindkey($elems,$pulled.WHICH,$pulled)
             )

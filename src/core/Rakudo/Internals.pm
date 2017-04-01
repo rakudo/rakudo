@@ -550,11 +550,29 @@ my class Rakudo::Internals {
             (my int $i = -1),
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                && nqp::defined(nqp::atpos($values,$i))
-                && nqp::istype(nqp::atpos($values,$i),type),
+                && nqp::istype(nqp::atpos($values,$i),type)
+                && nqp::defined(nqp::atpos($values,$i)),
               nqp::null
             ),
             nqp::iseq_i($i,$elems)
+          )
+        )
+    }
+
+    # 1 if any element of defined && type, otherwise 0
+    method ANY_DEFINED_TYPE(\values,\type) {
+        nqp::if(
+          (my int $elems = values.elems),   # reifies
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::until(
+              nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                || (nqp::istype(nqp::atpos($values,$i),type)
+                     && nqp::defined(nqp::atpos($values,$i))),
+              nqp::null
+            ),
+            nqp::isne_i($i,$elems)
           )
         )
     }

@@ -38,7 +38,7 @@ only sub infix:<∌>($a, $b --> Bool:D) is pure {
 }
 
 only sub infix:<(|)>(**@p) is pure {
-    with @p.first(Mixy) {
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -50,7 +50,8 @@ only sub infix:<(|)>(**@p) is pure {
             }
         }
         $mixhash.Mix(:view);
-    } orwith @p.first(Baggy) {
+    }
+    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p, Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -58,7 +59,8 @@ only sub infix:<(|)>(**@p) is pure {
             $baghash{$_} max= $bag{$_} for $bag.keys;
         }
         $baghash.Bag(:view);
-    } else {
+    }
+    else {
         Set.new( @p.map(*.Set(:view).keys.Slip) );
     }
 }
@@ -70,7 +72,7 @@ only sub infix:<∪>(|p) is pure {
 only sub infix:<(&)>(**@p) is pure {
     return set() unless @p;
 
-    with @p.first(Mixy) {
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -81,7 +83,8 @@ only sub infix:<(&)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } orwith @p.first(Baggy) {
+    }
+    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -92,7 +95,8 @@ only sub infix:<(&)>(**@p) is pure {
               for $baghash.keys;
         }
         $baghash.Bag(:view);
-    } else {
+    }
+    else {
         my $sethash = nqp::istype(@p[0], SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
@@ -110,7 +114,7 @@ only sub infix:<∩>(|p) is pure {
 only sub infix:<(-)>(**@p) is pure {
     return set() unless @p;
 
-    with @p.first(Mixy) {
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -121,7 +125,8 @@ only sub infix:<(-)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } orwith @p.first(Baggy) {
+    }
+    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -132,7 +137,8 @@ only sub infix:<(-)>(**@p) is pure {
               for $baghash.keys;
         }
         $baghash.Bag(:view);
-    } else {
+    }
+    else {
         my $sethash = nqp::istype(@p[0],SetHash)
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
@@ -169,7 +175,8 @@ only sub infix:<(^)>(**@p) is pure {
                     # set formula for the two-arg set.
                     !! ($a (|) $b) (-) ($b (&) $a);
     } else {
-        with @p.first(Mixy) || @p.first(Baggy) {
+        if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy)
+             || Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
             my $head;
             while (@p) {
                 my ($a, $b);
@@ -274,7 +281,7 @@ only sub infix:<⊅>($a, $b --> Bool:D) is pure {
 only sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 
-    with @p.first(Mixy) {
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -285,7 +292,8 @@ only sub infix:<(.)>(**@p) is pure {
               for $mixhash.keys;
         }
         $mixhash.Mix(:view);
-    } else {  # go Baggy by default
+    }
+    else {  # go Baggy by default
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;
@@ -306,7 +314,7 @@ only sub infix:<⊍>(|p) is pure {
 only sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 
-    with @p.first(Mixy) {
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
@@ -314,7 +322,8 @@ only sub infix:<(+)>(**@p) is pure {
             $mixhash{$_} += $mix{$_} for $mix.keys;
         }
         $mixhash.Mix(:view);
-    } else {  # go Baggy by default
+    }
+    else {  # go Baggy by default
         my $baghash = nqp::istype(@p[0], BagHash)
             ?? BagHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.BagHash;

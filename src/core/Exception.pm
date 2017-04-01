@@ -2015,6 +2015,18 @@ my class X::TypeCheck::Binding is X::TypeCheck {
         self.priors() ~ "Type check failed in $.operation$to; $expected";
     }
 }
+my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
+    has $.parameter;
+    method message() {
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to parameter '$.symbol'"
+            !! " to anonymous parameter";
+        my $expected = (try nqp::eqaddr($.expected,$.got))
+            ?? "expected type $.expectedn cannot be itself"
+            !! "expected $.expectedn but got $.gotn";
+        self.priors() ~ "Type check failed in $.operation$to; $expected";
+    }
+}
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
@@ -2405,6 +2417,10 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   'X::TypeCheck::Binding',
   sub (Mu $got, Mu $expected, $symbol?) {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
+  },
+  'X::TypeCheck::Binding::Parameter',
+  sub (Mu $got, Mu $expected, $symbol, $parameter) {
+      X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter).throw;
   },
   'X::TypeCheck::Assignment',
   sub (Mu $symbol, Mu $got, Mu $expected) {

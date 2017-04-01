@@ -298,12 +298,13 @@ my class Binder {
                     # Type check failed; produce error if needed.
                     if nqp::defined($error) {
                         my %ex := nqp::gethllsym('perl6', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
                                 "'; expected " ~ $nom_type.HOW.name($nom_type) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval, $nom_type.WHAT, $varname) };
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
+                                $nom_type.WHAT, $varname, $param) };
                         }
                     }
 

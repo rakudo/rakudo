@@ -414,11 +414,12 @@ public final class Binder {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
 
-                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding");
+                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindThrower;
-                            error[2] = new Object[] { decontValue, nomType.st.WHAT, (varName != null ? varName : "<anon>") };
+                            error[2] = new Object[] { decontValue, nomType.st.WHAT,
+                                (varName != null ? varName : "<anon>"), param };
                         }
                         else {
                             error[0] = String.format(

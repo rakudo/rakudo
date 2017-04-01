@@ -655,8 +655,32 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-    method Set()     {     Set.new(self.keys) }
-    method SetHash() { SetHash.new(self.keys) }
+    method !SETIFY(\type, int $bind) {
+        nqp::if(
+          nqp::getattr(%!elems,Map,'$!storage'),
+          nqp::stmts(
+            (my $elems := nqp::clone(nqp::getattr(%!elems,Map,'$!storage'))),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::if(
+                  $bind,
+                  nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+                  (nqp::p6scalarfromdesc(nqp::null) =
+                    nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'))
+                )
+              )
+            ),
+            nqp::create(type).SET-SELF($elems)
+          ),
+          nqp::create(type)
+        )
+    }
+    method Set()     { self!SETIFY(Set,     1) }
+    method SetHash() { self!SETIFY(SetHash, 0) }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {

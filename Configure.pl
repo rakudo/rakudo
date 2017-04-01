@@ -321,7 +321,8 @@ MAIN: {
     sorry(@errors) if @errors;
 
     my $l = uc substr($default_backend, 0, 1);
-    print $MAKEFILE qq[ifeq (\$(HARNESS_TYPE), 6)\n${l}_HARNESS=\$(${l}_HARNESS6_WITH_FUDGE)\nelse\n${l}_HARNESS=\$(${l}_HARNESS5_WITH_FUDGE)\nendif\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS) --verbosity=1 \$\@\n];
+    print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS5_WITH_FUDGE) --verbosity=1 \$\@\n];
+
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 

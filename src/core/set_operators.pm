@@ -38,6 +38,8 @@ only sub infix:<∌>($a, $b --> Bool:D) is pure {
 }
 
 only sub infix:<(|)>(**@p) is pure {
+    return set() unless @p;
+
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)

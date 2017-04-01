@@ -490,21 +490,32 @@ my class Binder {
                     $cons_type := nqp::p6capturelexwhere($cons_type.clone());
                 }
                 my $result;
+                my $bad_value;
                 if $got_native == 0 {
                     $result := $cons_type.ACCEPTS($oval);
+                    $bad_value := $oval unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
+                    $bad_value := $ival unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $result := $cons_type.ACCEPTS($nval);
+                    $bad_value := $nval unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
                     $result := $cons_type.ACCEPTS($sval);
+                    $bad_value := $sval unless $result;
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        $error[0] := "Constraint type check failed for parameter '$varname'";
+                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
+                            $error[0] := "Constraint type check failed for parameter '$varname'";
+                        } else {
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')(
+                                $bad_value, $cons_type, $varname, $param, 1) };
+                        }
                     }
                     return $BIND_RESULT_FAIL;
                 }

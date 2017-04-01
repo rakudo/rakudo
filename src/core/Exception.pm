@@ -2016,7 +2016,13 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     }
 }
 my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
-    has $.parameter;
+    has Parameter $.parameter;
+    has Bool $.constraint;
+    method expectedn() {
+        $.constraint && $.expected ~~ Code
+            ?? 'anonymous constraint to be met'
+            !! callsame()
+    }
     method message() {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to parameter '$.symbol'"
@@ -2024,7 +2030,8 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
         my $expected = (try nqp::eqaddr($.expected,$.got))
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        self.priors() ~ "Type check failed in $.operation$to; $expected";
+        my $what-check = $.constraint ?? 'Constraint' !! 'Type';
+        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
@@ -2419,8 +2426,9 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
   'X::TypeCheck::Binding::Parameter',
-  sub (Mu $got, Mu $expected, $symbol, $parameter) {
-      X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter).throw;
+  sub (Mu $got, Mu $expected, $symbol, $parameter, $is-constraint?) {
+      my $constraint = $is-constraint ?? True !! False;
+      X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
   sub (Mu $symbol, Mu $got, Mu $expected) {

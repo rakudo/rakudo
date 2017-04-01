@@ -2030,7 +2030,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
         my $expected = (try nqp::eqaddr($.expected,$.got))
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        my $what-check = $.constraint ?? 'Constraint' !! 'Type';
+        my $what-check = $.constraint ?? 'Constraint type' !! 'Type';
         self.priors() ~ "$what-check check failed in $.operation$to; $expected";
     }
 }

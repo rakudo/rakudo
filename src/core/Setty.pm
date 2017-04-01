@@ -12,6 +12,7 @@ my role Setty does QuantHash {
           self
         )
     }
+    multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
         nqp::stmts(
           (my $elems := nqp::hash),

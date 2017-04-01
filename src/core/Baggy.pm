@@ -196,6 +196,7 @@ my role Baggy does QuantHash {
     }
 
 #--- object creation methods
+    multi method new(Baggy:_:) { nqp::create(self) }
     multi method new(Baggy:_: +@args) {
         nqp::stmts(
           (my $elems := nqp::hash),

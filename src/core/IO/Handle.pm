@@ -158,9 +158,13 @@ my class IO::Handle does IO {
     }
 
     method close(IO::Handle:D: --> True) {
-        # TODO: catch errors
-        nqp::closefh($!PIO) if nqp::defined($!PIO);
-        $!PIO := nqp::null;
+        nqp::if(
+          nqp::defined($!PIO),
+          nqp::stmts(
+            nqp::closefh($!PIO), # TODO: catch errors
+            $!PIO := nqp::null
+          )
+        )
     }
 
     method eof(IO::Handle:D:) {
@@ -836,7 +840,13 @@ my class IO::Handle does IO {
     }
 
     submethod DESTROY(IO::Handle:D:) {
-        self.close;
+        nqp::if(
+          nqp::defined($!PIO),
+          nqp::stmts(
+            nqp::closefh($!PIO),  # don't bother checking for errors
+            $!PIO := nqp::null
+          )
+        )
     }
 
     # setting cannot do "handles", so it's done by hand here

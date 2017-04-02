@@ -1155,7 +1155,7 @@ my class Rakudo::Internals {
           )
         )
     }
-    method INITIALIZE-DYNAMIC(str \name) {
+    method INITIALIZE-DYNAMIC(str \name) is raw {
 #nqp::print("Initializing");
 #nqp::print(name);
 #nqp::print("\n");

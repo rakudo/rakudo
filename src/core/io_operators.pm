@@ -161,20 +161,16 @@ multi sub spurt(Cool $path, $contents, |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir(Str() $path, :$test = 'r') {
-    my $newCWD := $*CWD.chdir($path,:$test);
-    $newCWD // $newCWD.throw;
+sub chdir(|c) { $*CWD .= chdir(|c) }
+sub indir(IO() $path, &what, |c) {
+    {   # NOTE: we need this extra block so that the IO() coercer doesn't
+        # use our (empty at the time) $*CWD when making the IO::Path object
 
-    $*CWD = $newCWD;
-}
-
-sub indir(Str() $path, $what, :$test = <r w>) {
-    my $newCWD := $*CWD.chdir($path,:$test);
-    $newCWD // $newCWD.throw;
-
-    {
-        my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
-        $what();
+        # We call .chdir for the sake of its doing the :d:r:w:x tests
+        nqp::if(
+            nqp::istype((my $*CWD = $path.chdir($path,|c)), Failure),
+            $*CWD, what,
+        )
     }
 }
 

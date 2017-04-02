@@ -239,8 +239,18 @@ my class IO::Path is Cool {
     }
 
     proto method chdir(|) { * }
-    multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
-        if !$!SPEC.is-absolute($path) {
+    multi method chdir(IO::Path:D: Str() $path, :$test!) {
+        DEPRECATED(
+            :what<:$test argument>,
+            'individual named parameters (e.g. :r, :w, :x)',
+            "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
+        );
+        self.chdir: $path, |$test.words.map(* => True).Hash;
+    }
+    multi method chdir(
+        IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
+    ) {
+        unless $!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);
             @dirs.shift; # the first is always empty for absolute dirs
@@ -257,30 +267,27 @@ my class IO::Path is Cool {
         }
         my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
-        # basic sanity
-        unless $dir.d {
-            fail X::IO::Chdir.new(
-              :$path,
-              :os-error( $dir.e
-                ?? "is not a directory"
-                !! "does not exist"),
-            );
-        }
-
-        if $test eq 'r' {
-            return $dir if $dir.r;
-        }
-        elsif $test eq 'r w' {
-            return $dir if $dir.r and $dir.w;
-        }
-        elsif $test eq 'r w x' {
-            return $dir if $dir.r and $dir.w and $dir.x;
-        }
-
-        fail X::IO::Chdir.new(
-          :$path,
-          :os-error("did not pass 'd $test' test"),
-        );
+        nqp::stmts(
+            nqp::unless(
+                nqp::unless(nqp::isfalse($d), $dir.d),
+                fail X::IO::Chdir.new: :$path, :os-error(
+                    nqp::if($dir.e, 'is not a directory', 'does not exist')
+                )
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($r), $dir.r),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($w), $dir.w),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($x), $dir.x),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
+            ),
+            $dir
+        )
     }
 
     proto method rename(|) { * }

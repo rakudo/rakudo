@@ -3,7 +3,7 @@
 **This document is kept for archival purposes only and does not necessarily describe implemented reality. Do NOT assume the behaviour described here is how things are meant to work. Use the [Perl 6
 Specification](https://github.com/perl6/roast) or [consult with
 core developers](https://webchat.freenode.net/?channels=#perl6) for that
-purpose.***
+purpose.**
 
 # Summary of the changes to the original IO Action Plan
 

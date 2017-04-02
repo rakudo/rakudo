@@ -498,24 +498,13 @@ my class IO::Path is Cool {
         }
     }
 
-    method !spurt($contents, :$enc, :$append, :$createonly, :$bin, |c) {
-        my $mode = $createonly ?? :x !! $append ?? :a !! :w;
-        my $handle = self.open(:enc($enc // 'utf8'), :$bin, |$mode, |c);
-        $handle // $handle.throw;
-
-        my $spurt := $bin
-          ?? $handle.write($contents)
-          !! $handle.print($contents);
-        $handle.close;  # can't use LEAVE in settings :-(
-        $spurt;
-    }
-
-    proto method spurt(|) { * }
-    multi method spurt(IO::Path:D: Blob $contents, :$bin, |c) {
-        self!spurt($contents, :bin, |c );
-    }
-    multi method spurt(IO::Path:D: Cool $contents, :$bin, |c) {
-        self!spurt($contents, :!bin, |c );
+    method spurt(IO::Path:D:
+        $contents, :$enc, :$bin, :$append, :$createonly, |c
+    ) {
+        self.open(
+            |(:$enc if $enc), :$bin,
+            |($createonly ?? :x !! $append ?? :a !! :w), |c
+        ).spurt($contents, :close);
     }
 
     proto method lines(|) { * }

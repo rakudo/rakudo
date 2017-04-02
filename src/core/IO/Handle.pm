@@ -808,6 +808,16 @@ my class IO::Handle {
         nqp::p6box_s(nqp::readallfh($!PIO));
     }
 
+    proto method spurt(|) { * }
+    multi method spurt(IO::Handle:D: Blob $contents, :$close) {
+        LEAVE self.close if $close;
+        self.write($contents);
+    }
+    multi method spurt(IO::Handle:D: Cool $contents, :$close) {
+        LEAVE self.close if $close;
+        self.print($contents);
+    }
+
     method path(IO::Handle:D:)            { $!path.IO }
     multi method Str(IO::Handle:D:)       { $!path }
 

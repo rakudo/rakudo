@@ -178,20 +178,6 @@ sub indir(Str() $path, $what, :$test = <r w>) {
     }
 }
 
-sub tmpdir(Str() $path, :$test = <r w x>) {
-    my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
-    $newTMPDIR // $newTMPDIR.throw;
-
-    $*TMPDIR = $newTMPDIR;
-}
-
-sub homedir(Str() $path, :$test = <r w x>) {
-    my $newHOME := $*HOME.chdir($path,:$test);
-    $newHOME // $newHOME.throw;
-
-    $*HOME = $newHOME;
-}
-
 PROCESS::<$IN> =
   IO::Handle.new(:path(IO::Special.new('<STDIN>'))).open;
 PROCESS::<$OUT> =

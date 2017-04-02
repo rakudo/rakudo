@@ -560,7 +560,7 @@ S09-typed-arrays/native-num.t
 S09-typed-arrays/native-str.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
-S10-packages/precompilation.t
+S10-packages/precompilation.t # slow
 S10-packages/use-with-class.t
 S11-compunit/compunit-dependencyspecification.t
 S11-compunit/compunit-repository.t

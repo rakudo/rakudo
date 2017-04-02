@@ -27,6 +27,8 @@ purpose.**
     default. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/18)
 10. Leave IO::Path.Str as is, without any changes. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/20)
 11. The change to [`IO::Handle.Supply(:bin)` arg handling](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#changes-to-supply-issue-for-discussion), change to `IO::Handle.lock` argument handling, and making `IO::Path.new-from-absolute-path` private is to be done in 6.c and not 6.d; the change were miscategorized.
+12. Make all IO routines that throw fail instead. [Discussion](https://irclog.perlgeek.de/perl6-dev/2016-12-28#i_13814044)
+
 
 ---------------------------
 

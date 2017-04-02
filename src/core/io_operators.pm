@@ -162,14 +162,46 @@ multi sub spurt(Cool $path, $contents, |c) {
 }
 
 sub chdir(|c) { $*CWD .= chdir(|c) }
-sub indir(IO() $path, &what, |c) {
+
+proto sub indir(|) {*}
+multi sub indir(IO() $path, &what, :$test!) {
+    DEPRECATED(
+        :what<:$test argument>,
+        'individual named parameters (e.g. :r, :w, :x)',
+        "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
+    );
+    indir $path, &what, |$test.words.map(* => True).Hash;
+}
+multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     {   # NOTE: we need this extra block so that the IO() coercer doesn't
         # use our (empty at the time) $*CWD when making the IO::Path object
 
-        # We call .chdir for the sake of its doing the :d:r:w:x tests
         nqp::if(
-            nqp::istype((my $*CWD = $path.chdir($path,|c)), Failure),
-            $*CWD, what,
+            nqp::stmts(
+                nqp::unless(
+                    nqp::unless(nqp::isfalse($d), $path.d),
+                    fail X::IO::Chdir.new: :$path, :os-error(
+                        nqp::if($path.e, 'is not a directory', 'does not exist')
+                    )
+                ),
+                nqp::unless(
+                    nqp::unless(nqp::isfalse($r), $path.r),
+                    fail X::IO::Chdir.new: :$path,
+                        :os-error("did not pass :r test")
+                ),
+                nqp::unless(
+                    nqp::unless(nqp::isfalse($w), $path.w),
+                    fail X::IO::Chdir.new: :$path,
+                        :os-error("did not pass :w test")
+                ),
+                nqp::unless(
+                    nqp::unless(nqp::isfalse($x), $path.x),
+                    fail X::IO::Chdir.new: :$path,
+                        :os-error("did not pass :x test")
+                ),
+                my $*CWD = $path,
+            ),
+            what
         )
     }
 }

@@ -740,6 +740,34 @@ my class Hash { # declared in BOOTSTRAP
               !! nqp::create(Capture)
         }
         method Map() { self.pairs.Map }
+
+        method !SETIFY(\type, int $bind) {
+            nqp::if(
+              nqp::getattr(self,Map,'$!storage'),
+              nqp::stmts(
+                (my $elems := nqp::clone(nqp::getattr(self,Map,'$!storage'))),
+                (my $iter := nqp::iterator($elems)),
+                nqp::while(
+                  $iter,
+                  nqp::bindkey(
+                    $elems,
+                    nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                    nqp::if(
+                      $bind,
+                      nqp::getattr(
+                        nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+                      (nqp::p6scalarfromdesc(nqp::null) = nqp::getattr(
+                        nqp::decont(nqp::iterval($tmp)),Pair,'$!key'))
+                    )
+                  )
+                ),
+                nqp::create(type).SET-SELF($elems)
+              ),
+              nqp::create(type)
+            )
+        }
+        method Set()     { self!SETIFY(Set,     1) }
+        method SetHash() { self!SETIFY(SetHash, 0) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

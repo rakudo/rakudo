@@ -7,6 +7,18 @@
 3. Deprecate IO::Path.chdir in 6.d; remove it in 6.e. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/26)
 4. Deprecate `$*SPEC` in 6.d; remove it in 6.e. This depends on how successful the plan is when implemented in a module first.
   [Details](https://github.com/zoffixznet/IOwesomeness/issues/27)
+5. Do not mix anything in for handle's closed status and instead try to make MoarVM give better errors [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/2)
+6. Name nqp multi stat op `nqp::statmulti` [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/4)
+7. Leave IO::Handle.seek as is, without any changes. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/1)
+8. [Behaviour of `:close`](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#make-close-behaviour-the-default-in-iohandle-and-its-subclasses-issue-for-discussion) per [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/15):
+    - do NOT auto-close in IO::Handle's methods
+    - Leave `:close` as is
+    - Make IO::Path's methods close handle when `$limit` is reached or iterator
+        is exhausted
+9. Make IO::Handle.lock default to blocking, exclusive lock, with
+    `(:shared, :non-blocking)` named arguments allowing for change of the
+    default. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/18)
+10. Leave IO::Path.Str as is, without any changes. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/20)
 
 ---------------------------
 
@@ -1038,4 +1050,3 @@ resolve the following tickets will be made under the [IO grant](http://news.perl
 ## Other Issues
 
 - `IO::Path.resolve` is not portable and produces wrong results on Windows.
-

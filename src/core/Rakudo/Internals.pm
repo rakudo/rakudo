@@ -1028,9 +1028,8 @@ my class Rakudo::Internals {
     my int $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
-    my $leap-second-dates :=
+    my $dates := nqp::list_s(
         #BEGIN leap-second-dates
-        (
         '1972-06-30',
         '1972-12-31',
         '1973-12-31',
@@ -1058,9 +1057,8 @@ my class Rakudo::Internals {
         '2012-06-30',
         '2015-06-30',
         '2016-12-31',
-        )
         #END leap-second-dates
-    ;
+    );
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -1070,9 +1068,8 @@ my class Rakudo::Internals {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    my $leap-second-posix :=
+    my $posixes := nqp::list_i(
         #BEGIN leap-second-posix
-        (
           78796800,
           94694400,
          126230400,
@@ -1100,35 +1097,59 @@ my class Rakudo::Internals {
         1341100800,
         1435708800,
         1483228800,
-        )
         #END leap-second-posix
-    ;
-
-    my $dates    := nqp::getattr($leap-second-dates,List,'$!reified');
-    my $posixes  := nqp::getattr($leap-second-posix,List,'$!reified');
+    );
     my int $elems = nqp::elems($dates);
 
     method is-leap-second-date(\date) {
-        my str $date = nqp::unbox_s(date);
-        my int $i    = -1;
-        Nil while ($i = $i + 1) < $elems && $date gt nqp::atpos($dates,$i);
-        $i < $elems && $date eq nqp::atpos($dates,$i);
+        nqp::p6bool(
+          nqp::stmts(
+            (my str $date = date),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isgt_s($date,nqp::atpos_s($dates,$i)),
+              nqp::null
+            ),
+            nqp::islt_i($i,$elems) && nqp::iseq_s($date,nqp::atpos_s($dates,$i))
+          )
+        )
     }
 
-    method tai-from-posix(\posix,$prefer-leap-second = False) {
-        my Int $p = posix.floor;
-        my int $i = -1;
-        Nil while ($i = $i + 1) < $elems && $p > nqp::atpos($posixes,$i);
-        posix + $initial-offset + $i +
-          ($i < $elems && !$prefer-leap-second && $p == nqp::atpos($posixes,$i))
+    method tai-from-posix(\posix, int $prefer-leap-second) {
+        nqp::stmts(
+          (my int $p = posix.floor),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::isgt_i($p,nqp::atpos_i($posixes,$i)),
+            nqp::null
+          ),
+          posix + nqp::add_i(
+            nqp::add_i($initial-offset,$i),
+            nqp::islt_i($i,$elems)
+              && nqp::not_i($prefer-leap-second)
+              && nqp::iseq_i($p,nqp::atpos_i($posixes,$i))
+          )
+        )
     }
 
     method posix-from-tai(\tai) {
-        my Int $t = tai.floor - $initial-offset;
-        my int $i = -1;
-        Nil while ($i = $i + 1) < $elems && nqp::atpos($posixes,$i) < ($t - $i);
-        tai - $initial-offset - $i,
-          nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
+        nqp::stmts(
+          (my int $t = tai.floor - $initial-offset),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+            nqp::null
+          ),
+          (tai - nqp::add_i($initial-offset,$i),
+            nqp::p6bool(
+              nqp::islt_i($i,$elems)
+                && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
+            )
+          )
+        )
     }
 
     my $initializers;

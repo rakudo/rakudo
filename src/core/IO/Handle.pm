@@ -808,8 +808,6 @@ my class IO::Handle {
         nqp::p6box_s(nqp::readallfh($!PIO));
     }
 
-    method chmod(IO::Handle:D: Int $mode) { $!path.chmod($mode) }
-    method IO(IO::Handle:D:)              { $!path.IO }
     method path(IO::Handle:D:)            { $!path.IO }
     multi method Str(IO::Handle:D:)       { $!path }
 
@@ -848,26 +846,6 @@ my class IO::Handle {
           )
         )
     }
-
-    # setting cannot do "handles", so it's done by hand here
-    method e(IO::Handle:D:) { $!path.e }
-    method d(IO::Handle:D:) { $!path.d }
-    method f(IO::Handle:D:) { $!path.f }
-    method s(IO::Handle:D:) { $!path.s }
-    method l(IO::Handle:D:) { $!path.l }
-    method r(IO::Handle:D:) { $!path.r }
-    method w(IO::Handle:D:) { $!path.w }
-    method x(IO::Handle:D:) { $!path.x }
-    method modified(IO::Handle:D:) { $!path.modified }
-    method accessed(IO::Handle:D:) { $!path.accessed }
-    method changed(IO::Handle:D:)  { $!path.changed  }
-    method mode(IO::Handle:D:)     { $!path.mode     }
-
-#?if moar
-    method watch(IO::Handle:D:) {
-        IO::Notification.watch-path($!path);
-    }
-#?endif
 
     method native-descriptor(IO::Handle:D:) {
         nqp::filenofh($!PIO)

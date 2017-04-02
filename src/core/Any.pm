@@ -433,13 +433,13 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
-    # XXX GLR do these really need to force a list?
     method Set()     is nodal {     Set.new-from-pairs(self.list) }
     method SetHash() is nodal { SetHash.new-from-pairs(self.list) }
     method Bag()     is nodal {     Bag.new-from-pairs(self.list) }
     method BagHash() is nodal { BagHash.new-from-pairs(self.list) }
     method Mix()     is nodal {     Mix.new-from-pairs(self.list) }
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
+    # XXX GLR does this really need to force a list?
     method Supply() is nodal { self.list.Supply }
 
     method nl-out() { "\n" }

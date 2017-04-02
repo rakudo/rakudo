@@ -19,7 +19,7 @@
     `(:shared, :non-blocking)` named arguments allowing for change of the
     default. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/18)
 10. Leave IO::Path.Str as is, without any changes. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/20)
-
+11. The change to [`IO::Handle.Supply(:bin)` arg handling](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#changes-to-supply-issue-for-discussion) is to be done in 6.c and not 6.d; the change was miscategorized.
 ---------------------------
 
 # Original IO Action Plan

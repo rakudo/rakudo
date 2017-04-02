@@ -1085,7 +1085,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method subst-mutate(|) {
-        $/ := nqp::getlexdyn('$/');
+        $/ := nqp::getlexcaller('$/');
         {*}
     }
     multi method subst-mutate(
@@ -1133,7 +1133,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method subst(|) {
-        $/ := nqp::getlexdyn('$/');
+        $/ := nqp::getlexcaller('$/');
         {*}
     }
     multi method subst(Str:D: $matcher, $replacement, :global(:$g),

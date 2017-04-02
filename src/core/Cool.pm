@@ -170,12 +170,12 @@ my class Cool { # declared in BOOTSTRAP
     method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {
-        $/ := nqp::getlexdyn('$/');
+        $/ := nqp::getlexcaller('$/');
         self.Stringy.subst(|c);
     }
 
     method subst-mutate(Cool:D $self is rw: |c) {
-        $/ := nqp::getlexdyn('$/');
+        $/ := nqp::getlexcaller('$/');
         my $str   = $self.Str;
         my $match = $str.subst-mutate(|c);
         $self     = $str;

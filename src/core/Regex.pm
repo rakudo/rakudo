@@ -104,7 +104,7 @@ my class Regex { # declared in BOOTSTRAP
 }
 
 multi sub infix:<~~>(Mu \topic, Regex:D \matcher) {
-    $/ := nqp::getlexdyn('$/');
+    $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
     matcher.ACCEPTS(topic)
 }
 

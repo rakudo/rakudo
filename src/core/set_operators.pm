@@ -394,6 +394,41 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Mixy:D \b --> Bool:D) {
       True
     )
 }
+multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
+    nqp::if(
+      (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
+      nqp::if(
+        (my $b := nqp::getattr(b.raw_hash,Map,'$!storage'))
+          && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        nqp::stmts(
+          (my $iter := nqp::iterator($a)),
+          nqp::while(
+            $iter
+              && nqp::existskey(
+                   $b,
+                   (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                 )
+              && nqp::isle_i(
+                   nqp::getattr(
+                     nqp::decont(nqp::atkey($a,$key)),
+                     Pair,
+                     '$!value'
+                   ),
+                   nqp::getattr(
+                     nqp::decont(nqp::atkey($b,$key)),
+                     Pair,
+                     '$!value'
+                   )
+                 ),
+            nqp::null
+          ),
+          nqp::p6bool(nqp::isfalse($iter))
+        ),
+        False
+      ),
+      True
+    )
+}
 multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
 multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:D $b --> True ) {}
 multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:U $b --> Bool:D ) {

@@ -161,7 +161,9 @@ multi sub spurt(Cool $path, $contents, |c) {
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir(|c) { $*CWD .= chdir(|c) }
+sub chdir(|c) {
+    nqp::if(nqp::istype(($_ := $*CWD.chdir(|c)), Failure), $_, $*CWD = $_)
+}
 
 proto sub indir(|) {*}
 multi sub indir(IO() $path, &what, :$test!) {

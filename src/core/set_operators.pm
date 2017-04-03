@@ -351,13 +351,11 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
 multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
 multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:D $b --> True ) {}
 multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:U $b --> Bool:D ) {
-    not $a.keys;
+    not $a.elems
 }
 multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D ) {
-    for $a.keys {
-        return False if $a{$_} > $b{$_};
-    }
-    True;
+    return False if $a.AT-KEY($_) > $b.AT-KEY($_) for $a.keys;
+    True
 }
 # U+227C PRECEDES OR EQUAL TO
 only sub infix:<≼>($a, $b --> Bool:D) is pure {
@@ -368,13 +366,11 @@ proto sub infix:<<(>+)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
 multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:U $b --> True ) {}
 multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:D $b --> Bool:D ) {
-    not $b.keys;
+    not $b.elems
 }
 multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D) {
-    for $b.keys {
-        return False if $b{$_} > $a{$_};
-    }
-    True;
+    return False if $b.AT-KEY($_) > $a.AT-KEY($_) for $b.keys;
+    True
 }
 multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool:D) {
     if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {

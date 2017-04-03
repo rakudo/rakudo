@@ -681,6 +681,8 @@ my role Baggy does QuantHash {
     }
     method Set()     { self!SETIFY(Set,     1) }
     method SetHash() { self!SETIFY(SetHash, 0) }
+
+    method raw_hash() is raw { %!elems }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {

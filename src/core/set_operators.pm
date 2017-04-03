@@ -341,7 +341,7 @@ only sub infix:<⊎>(|p) is pure {
 }
 
 proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<+)>>(Setty:D \a, Setty:D \b --> Bool:D) {
+multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(
       (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
       nqp::if(
@@ -360,7 +360,7 @@ multi sub infix:<<(<+)>>(Setty:D \a, Setty:D \b --> Bool:D) {
       True
     )
 }
-multi sub infix:<<(<+)>>(Mixy:D \a, Mixy:D \b --> Bool:D) {
+multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
       (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
       nqp::if(

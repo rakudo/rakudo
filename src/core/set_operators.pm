@@ -362,26 +362,13 @@ only sub infix:<≼>($a, $b --> Bool:D) is pure {
     $a (<+) $b;
 }
 
-proto sub infix:<<(>+)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
-multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:U $b --> True ) {}
-multi sub infix:<<(>+)>>(QuantHash:U $a, QuantHash:D $b --> Bool:D ) {
-    not $b.elems
-}
-multi sub infix:<<(>+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D) {
-    return False if $b.AT-KEY($_) > $a.AT-KEY($_) for $b.keys;
-    True
-}
-multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool:D) {
-    if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {
-        $a.Mix(:view) (>+) $b.Mix(:view);
-    } else {
-        $a.Bag(:view) (>+) $b.Bag(:view);
-    }
+# $a (>+) $b === $a R(<+) $b
+only sub infix:<<(>+)>>($a, $b --> Bool:D) is pure {
+    $b (<+) $a
 }
 # U+227D SUCCEEDS OR EQUAL TO
 only sub infix:<≽>($a, $b --> Bool:D) is pure {
-    $a (>+) $b;
+    $b (<+) $a;
 }
 
 proto sub set(|) { * }

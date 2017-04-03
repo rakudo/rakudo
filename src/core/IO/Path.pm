@@ -102,12 +102,7 @@ my class IO::Path is Cool {
     }
 
     multi method IO(IO::Path:D:) { self }
-
-    method open(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path(self));
-        $handle // $handle.throw;
-        $handle.open(|c);
-    }
+    method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
 
 #?if moar
     method watch(IO::Path:D:) {

@@ -145,18 +145,14 @@ multi sub spurt(Cool $path, $contents, |c) {
 }
 
 {
-    sub chdir(Str() $path) {
-        nqp::chdir(nqp::unbox_s($path));
-        $*CWD = IO::Path.new(nqp::cwd());
-        return True;
+    sub chdir(IO() $path) {
         CATCH {
             default {
-                X::IO::Chdir.new(
-                    :$path,
-                    os-error => .Str,
-                ).throw;
+                return Failure.new: X::IO::Chdir.new: :$path, :os-error(.Str);
             }
         }
+        nqp::chdir(nqp::unbox_s($path.absolute));
+        $*CWD = IO::Path.new(nqp::cwd());
     }
     PROCESS::<&chdir> := &chdir;
 }

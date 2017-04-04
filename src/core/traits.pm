@@ -171,6 +171,7 @@ multi sub trait_mod:<is>(Routine $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))
         !! die "Routine given to equiv does not appear to be an operator";
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"

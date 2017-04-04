@@ -1498,7 +1498,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<for> {
         <sym><.kok> {}
-        [ <?before 'my'? '$'\w+ '(' >
+        [ <?before 'my'? '$'\w+\s+'(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?

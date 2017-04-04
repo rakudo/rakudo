@@ -198,6 +198,19 @@ op.p6scalarfromdesc = function(desc) {
 
 };
 
+op.p6decodelocaltime = function(sinceEpoch) {
+  let date = new Date(sinceEpoch * 1000);
+
+  return nqp.createArray([
+    date.getSeconds(),
+    date.getMinutes(),
+    date.getHours(),
+    date.getDate(),
+    date.getMonth()+1,
+    date.getFullYear()
+  ]);
+};
+
 var containerSpecs = require('nqp-runtime/container-specs.js');
 
 function RakudoScalar(STable) {

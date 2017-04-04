@@ -128,3 +128,5 @@ $ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want, :$cps) {
         "$*RETURN_FROM_HANDLER = {$value.expr};\n"
     ]);
 });
+
+$ops.add_simple_op('p6decodelocaltime', $ops.OBJ, [$ops.INT], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value

@@ -1,13 +1,16 @@
 
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
-multi sub infix:<(elem)>($a, Any $b --> Bool:D) {
-    $a (elem) $b.Set(:view);
-}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     $b.AT-KEY($a).Bool;
 }
-multi sub infix:<(elem)>($a, Set $b --> Bool:D) {
-    $b.EXISTS-KEY($a);
+multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
+    nqp::p6bool(
+      (my $elems := nqp::getattr($b.raw_hash,Map,'$!storage'))
+        && nqp::existskey($elems,$a.WHICH)
+    )
+}
+multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
+    $a (elem) $b.Set(:view);
 }
 # U+2208 ELEMENT OF
 only sub infix:<∈>($a, $b --> Bool:D) is pure {
@@ -19,14 +22,17 @@ only sub infix:<∉>($a, $b --> Bool:D) is pure {
 }
 
 proto sub infix:<(cont)>($, $ --> Bool:D) is pure {*}
-multi sub infix:<(cont)>(Any $a, $b --> Bool:D) {
-    $a.Set(:view) (cont) $b;
-}
 multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
     $a.AT-KEY($b).Bool
 }
-multi sub infix:<(cont)>(Set $a, $b --> Bool:D) {
-    $a.EXISTS-KEY($b);
+multi sub infix:<(cont)>(QuantHash:D $a, Any $b --> Bool:D) {
+    nqp::p6bool(
+      (my $elems := nqp::getattr($a.raw_hash,Map,'$!storage'))
+        && nqp::existskey($elems,$b.WHICH)
+    )
+}
+multi sub infix:<(cont)>(Any $a, Any $b --> Bool:D) {
+    $a.Set(:view) (cont) $b;
 }
 # U+220B CONTAINS AS MEMBER
 only sub infix:<∋>($a, $b --> Bool:D) is pure {

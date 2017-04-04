@@ -43,7 +43,44 @@ only sub infix:<∌>($a, $b --> Bool:D) is pure {
     $a !(cont) $b;
 }
 
-only sub infix:<(|)>(**@p) is pure {
+proto sub infix:<(|)>(|) is pure { * }
+multi sub infix:<(|)>()             { set() }
+multi sub infix:<(|)>(Set:D $a)     { $a }
+multi sub infix:<(|)>(SetHash:D $a) { $a.Set }
+multi sub infix:<(|)>(Bag:D $a)     { $a }
+multi sub infix:<(|)>(BagHash:D $a) { $a.Bag }
+multi sub infix:<(|)>(Mix:D $a)     { $a }
+multi sub infix:<(|)>(MixHash:D $a) { $a.Mix }
+multi sub infix:<(|)>(Any $a)       { $a.Set }
+
+multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
+    nqp::if(
+      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      nqp::if(                                    # first is initialized
+        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        nqp::stmts(                               # second is initialized
+          (my $elems := nqp::clone($araw)),
+          (my $iter := nqp::iterator($braw)),
+          nqp::while(                             # loop over keys of second
+            $iter,
+            nqp::bindkey(                         # bind into clone of first
+              $elems,
+              nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+              nqp::iterval($tmp)
+            )
+          ),
+          nqp::create(Set).SET-SELF($elems)       # make it a Set
+        ),
+        $a.Set                                    # no second, so first
+      ),
+      nqp::if(                                    # no first
+        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.Set,                                   # but second
+        set()                                     # both empty
+      )
+    )
+}
+multi sub infix:<(|)>(**@p) {
     return set() unless @p;
 
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {

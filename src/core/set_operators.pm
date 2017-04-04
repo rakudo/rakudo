@@ -369,25 +369,18 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
-            $iter
-              && nqp::existskey(
-                   $b,
-                   (my $key := nqp::iterkey_s(nqp::shift($iter)))
-                 )
-              && nqp::not_i(
-                   nqp::getattr(
-                     nqp::decont(nqp::atkey($a,$key)),
-                     Pair,
-                     '$!value'
-                   ) > nqp::getattr(
-                         nqp::decont(nqp::atkey($b,$key)),
-                         Pair,
-                         '$!value'
-                       )
-                 ),
-            nqp::null
+            $iter,
+            nqp::if(
+              nqp::not_i(nqp::existskey(
+                $b,
+                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+              )) ||
+              nqp::getattr(nqp::decont(nqp::atkey($a,$key)),Pair,'$!value')
+                > nqp::getattr(nqp::decont(nqp::atkey($b,$key)),Pair,'$!value'),
+              (return False)
+            )
           ),
-          nqp::p6bool(nqp::isfalse($iter))
+          True
         ),
         False
       ),
@@ -403,26 +396,20 @@ multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
-            $iter
-              && nqp::existskey(
-                   $b,
-                   (my $key := nqp::iterkey_s(nqp::shift($iter)))
-                 )
-              && nqp::isle_i(
-                   nqp::getattr(
-                     nqp::decont(nqp::atkey($a,$key)),
-                     Pair,
-                     '$!value'
-                   ),
-                   nqp::getattr(
-                     nqp::decont(nqp::atkey($b,$key)),
-                     Pair,
-                     '$!value'
-                   )
-                 ),
-            nqp::null
+            $iter,
+            nqp::if(
+              nqp::not_i(nqp::existskey(
+                $b,
+                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+              )) ||
+              nqp::isgt_i(
+                nqp::getattr(nqp::decont(nqp::atkey($a,$key)),Pair,'$!value'),
+                nqp::getattr(nqp::decont(nqp::atkey($b,$key)),Pair,'$!value')
+              ),
+              (return False)
+            )
           ),
-          nqp::p6bool(nqp::isfalse($iter))
+          True
         ),
         False
       ),

@@ -160,6 +160,45 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
       )
     )
 }
+
+multi sub infix:<(|)>(Map:D $a, Map:D $b) {
+    nqp::if(
+      nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+      nqp::stmts(                                 # both ordinary Str hashes
+        (my $elems := nqp::hash),
+        nqp::if(
+          (my $raw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+            && (my $iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::istrue(nqp::iterval(my $tmp := nqp::shift($iter))),
+              nqp::bindkey(
+                $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
+            )
+          )
+        ),
+        nqp::if(
+          ($raw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+            && ($iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::istrue(nqp::iterval($tmp := nqp::shift($iter))),
+              nqp::bindkey(
+                $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
+            )
+          )
+        ),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Set).SET-SELF($elems),
+          set()
+        )
+      ),
+      $a.Set (|) $b.Set                           # object hash(es), coerce!
+    )
+}
 multi sub infix:<(|)>(**@p) {
     return set() unless @p;
 

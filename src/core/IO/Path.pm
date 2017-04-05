@@ -500,13 +500,14 @@ my class IO::Path is Cool {
         }
     }
 
-    method spurt(IO::Path:D:
-        $contents, :$enc, :$bin, :$append, :$createonly, |c
-    ) {
-        self.open(
-            |(:$enc if $enc), :$bin,
-            |($createonly ?? :x !! $append ?? :a !! :w), |c
-        ).spurt($contents, :close);
+    method spurt(IO::Path:D: $data, :$enc = 'utf8', :$append, :$createonly) {
+        my $fh := self.open:
+            :$enc,     :bin(nqp::istype($data, Blob)),
+            :mode<wo>, :create, :exclusive($createonly),
+            :$append,  :truncate(
+                nqp::if(nqp::isfalse($append), nqp::isfalse($createonly))
+            );
+        nqp::if( nqp::istype($fh, Failure), $fh, $fh.spurt($data, :close) )
     }
 
     proto method lines(|) { * }

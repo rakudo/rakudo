@@ -809,13 +809,13 @@ my class IO::Handle {
     }
 
     proto method spurt(|) { * }
-    multi method spurt(IO::Handle:D: Blob $contents, :$close) {
+    multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
-        self.write($contents);
+        self.write($data);
     }
-    multi method spurt(IO::Handle:D: Cool $contents, :$close) {
+    multi method spurt(IO::Handle:D: Cool $data, :$close) {
         LEAVE self.close if $close;
-        self.print($contents);
+        self.print($data);
     }
 
     method path(IO::Handle:D:)            { $!path.IO }

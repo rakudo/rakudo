@@ -135,10 +135,7 @@ multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
 }
 
 proto sub spurt(|) { * }
-multi sub spurt(Cool $path, $contents, |c) {
-    my $result := $path.IO.spurt($contents,|c);
-    $result // $result.throw;
-}
+multi sub spurt(IO() $path, |c) { $path.spurt(|c) }
 
 {
     sub chdir(IO() $path) {

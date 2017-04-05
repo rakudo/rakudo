@@ -655,32 +655,32 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-    method !SETIFY(\type, int $bind) {
+    method !SETIFY(\type) {
         nqp::if(
-          nqp::getattr(%!elems,Map,'$!storage'),
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
           nqp::stmts(
-            (my $elems := nqp::clone(nqp::getattr(%!elems,Map,'$!storage'))),
+            (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
               nqp::bindkey(
                 $elems,
                 nqp::iterkey_s(my $tmp := nqp::shift($iter)),
-                nqp::if(
-                  $bind,
-                  nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
-                  (nqp::p6scalarfromdesc(nqp::null) =
-                    nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'))
-                )
+                nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
               )
             ),
             nqp::create(type).SET-SELF($elems)
           ),
-          nqp::create(type)
+          nqp::if(
+            nqp::eqaddr(type,Set),
+            set(),
+            nqp::create(type)
+          )
         )
     }
-    method Set()     { self!SETIFY(Set,     1) }
-    method SetHash() { self!SETIFY(SetHash, 0) }
+    method Set()     { self!SETIFY(Set)     }
+    method SetHash() { self!SETIFY(SetHash) }
 
     method raw_hash() is raw { %!elems }
 }

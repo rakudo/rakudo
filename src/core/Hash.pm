@@ -741,33 +741,45 @@ my class Hash { # declared in BOOTSTRAP
         }
         method Map() { self.pairs.Map }
 
-        method !SETIFY(\type, int $bind) {
-            nqp::if(
-              nqp::getattr(self,Map,'$!storage'),
-              nqp::stmts(
-                (my $elems := nqp::clone(nqp::getattr(self,Map,'$!storage'))),
-                (my $iter := nqp::iterator($elems)),
-                nqp::while(
-                  $iter,
-                  nqp::bindkey(
-                    $elems,
-                    nqp::iterkey_s(my $tmp := nqp::shift($iter)),
-                    nqp::if(
-                      $bind,
+        method !SETIFY(\type) {
+            nqp::stmts(
+              (my $elems := nqp::hash),
+              nqp::if(
+                (my $raw := nqp::getattr(self,Map,'$!storage'))
+                  && nqp::elems($raw),
+                nqp::stmts(
+                  (my $iter := nqp::iterator($raw)),
+                  nqp::while(
+                    $iter,
+                    nqp::istrue(
+                      nqp::getattr(
+                        nqp::decont(nqp::iterval(my $tmp := nqp::shift($iter))),
+                        Pair,
+                        '$!value'
+                      )
+                    ),
+                    nqp::bindkey(
+                      $elems,
+                      nqp::iterkey_s($tmp),
                       nqp::getattr(
                         nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
-                      (nqp::p6scalarfromdesc(nqp::null) = nqp::getattr(
-                        nqp::decont(nqp::iterval($tmp)),Pair,'$!key'))
                     )
                   )
-                ),
-                nqp::create(type).SET-SELF($elems)
+                )
               ),
-              nqp::create(type)
+              nqp::if(
+                nqp::elems($elems),
+                nqp::create(type).SET-SELF($elems),
+                nqp::if(
+                  nqp::eqaddr(type,Set),
+                  set(),
+                  nqp::create(type)
+                )
+              )
             )
         }
-        method Set()     { self!SETIFY(Set,     1) }
-        method SetHash() { self!SETIFY(SetHash, 0) }
+        method Set()     { self!SETIFY(Set    ) }
+        method SetHash() { self!SETIFY(SetHash) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

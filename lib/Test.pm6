@@ -12,6 +12,7 @@ my @vars;
 my $indents = "";
 
 # variables to keep track of our tests
+my $subtest_callable_type;
 my int $num_of_tests_run;
 my int $num_of_tests_failed;
 my int $todo_upto_test_num;
@@ -55,6 +56,26 @@ our sub failure_output is rw {
 
 our sub todo_output is rw {
     $todo_output
+}
+
+multi sub plan (Cool:D :skip-all($reason)!) {
+    _init_io() unless $output;
+    $output.say: $indents ~ "1..0 # Skipped: $reason";
+
+    exit unless $subtest_level; # just exit if we're not in a subtest
+
+    # but if we are, adjust the vars, so the output matches up with zero
+    # planned tests, all passsing. Also, check the subtest's Callable is
+    # something we can actually return from.
+
+    $subtest_callable_type === Sub|Method
+        or die "Must give `subtest` a (Sub) or a (Method) to be able to use "
+            ~ "`skip-all` plan inside, but you gave a "
+            ~ $subtest_callable_type.gist;
+
+    $done_testing_has_been_run = 1;
+    $num_of_tests_failed = $num_of_tests_planned = $num_of_tests_run = 0;
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, True);
 }
 
 # "plan 'no_plan';" is now "plan *;"
@@ -370,6 +391,7 @@ multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)   
 multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
+    $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
     $subtest_level += 1;
@@ -678,6 +700,7 @@ sub done-testing() is export {
 }
 
 sub _init_vars {
+    $subtest_callable_type = Mu;
     $num_of_tests_run     = 0;
     $num_of_tests_failed  = 0;
     $todo_upto_test_num   = 0;
@@ -691,6 +714,7 @@ sub _init_vars {
 
 sub _push_vars {
     @vars.push: item [
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,
@@ -705,6 +729,7 @@ sub _push_vars {
 
 sub _pop_vars {
     (
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,

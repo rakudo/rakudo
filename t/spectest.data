@@ -884,6 +884,8 @@ S24-testing/3-output.t
 S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
 S24-testing/9-is_deeply.t
+S24-testing/11-plan-skip-all.t
+S24-testing/11-plan-skip-all-subtests.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t

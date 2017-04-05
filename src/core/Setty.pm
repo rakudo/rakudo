@@ -23,12 +23,18 @@ my role Setty does QuantHash {
         )
     }
     method new-from-pairs(*@pairs --> Setty:D) {
+        nqp::create(self).SET-SELF(
+          self.fill_IterationSet(
+            nqp::create(Rakudo::Internals::IterationSet),@pairs.iterator
+          )
+        )
+    }
+
+    method fill_IterationSet(\elems,\iterator) {
         nqp::stmts(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          (my $iter  := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(
-              (my $pulled := $iter.pull-one),
+              (my $pulled := iterator.pull-one),
               IterationEnd
             ),
             nqp::if(
@@ -36,15 +42,15 @@ my role Setty does QuantHash {
               nqp::if(
                 nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
                 nqp::bindkey(
-                  $elems,
+                  elems,
                   nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
                   nqp::getattr(nqp::decont($pulled),Pair,'$!key')
                 )
               ),
-              nqp::bindkey($elems,$pulled.WHICH,$pulled)
+              nqp::bindkey(elems,$pulled.WHICH,$pulled)
             )
           ),
-          nqp::create(self).SET-SELF($elems)
+          elems
         )
     }
 

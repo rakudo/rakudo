@@ -196,7 +196,7 @@ my role Baggy does QuantHash {
     multi method new(Baggy:_:) { nqp::create(self) }
     multi method new(Baggy:_: +@args) {
         nqp::stmts(
-          (my $elems := nqp::create(IterationSet)),
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iterator := @args.iterator),
           nqp::until(
             nqp::eqaddr(
@@ -221,7 +221,7 @@ my role Baggy does QuantHash {
     }
     method new-from-pairs(*@pairs) {
         nqp::stmts(
-          (my $elems := nqp::create(IterationSet)),
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iterator := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(

@@ -13,7 +13,7 @@ my role Setty does QuantHash {
     multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
         nqp::stmts(
-          (my $elems := nqp::create(IterationSet)),
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iter  := @args.iterator),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
@@ -24,7 +24,7 @@ my role Setty does QuantHash {
     }
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::stmts(
-          (my $elems := nqp::create(IterationSet)),
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iter  := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(

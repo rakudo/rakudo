@@ -27,7 +27,7 @@ my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
 
 # To allow passing of nqp::hash without being HLLized, we create a HLL class
 # with the same low level REPR as nqp::hash.
-my class IterationSet is repr('VMHash') { }
+my class Rakudo::Internals::IterationSet is repr('VMHash') { }
 
 # The value for \n.
 my constant $?NL = "\x0A";

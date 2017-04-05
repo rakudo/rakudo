@@ -743,7 +743,7 @@ my class Hash { # declared in BOOTSTRAP
 
         method !SETIFY(\type) {
             nqp::stmts(
-              (my $elems := nqp::create(IterationSet)),
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
               nqp::if(
                 (my $raw := nqp::getattr(self,Map,'$!storage'))
                   && nqp::elems($raw),

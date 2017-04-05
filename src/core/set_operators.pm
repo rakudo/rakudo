@@ -46,12 +46,11 @@ only sub infix:<∌>($a, $b --> Bool:D) is pure {
 proto sub infix:<(|)>(|) is pure { * }
 multi sub infix:<(|)>()             { set() }
 multi sub infix:<(|)>(Set:D $a)     { $a }
-multi sub infix:<(|)>(SetHash:D $a) { $a.Set }
 multi sub infix:<(|)>(Bag:D $a)     { $a }
 multi sub infix:<(|)>(BagHash:D $a) { $a.Bag }
 multi sub infix:<(|)>(Mix:D $a)     { $a }
 multi sub infix:<(|)>(MixHash:D $a) { $a.Mix }
-multi sub infix:<(|)>(Any $a)       { $a.Set }
+multi sub infix:<(|)>(Any $a)       { $a.Set } # also for SetHash:D/Map:D
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(

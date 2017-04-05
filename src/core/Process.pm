@@ -42,7 +42,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TMPDIR', {
-    PROCESS::<$TMPDIR> := $*SPEC.tmpdir;
+    PROCESS::<$TMPDIR> = $*SPEC.tmpdir;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {

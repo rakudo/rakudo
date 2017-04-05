@@ -80,6 +80,86 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
       )
     )
 }
+
+multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
+    nqp::if(
+      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      nqp::if(                                    # first is initialized
+        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        nqp::stmts(                               # second is initialized
+          (my $elems := nqp::clone($araw)),
+          (my $iter := nqp::iterator($braw)),
+          nqp::while(                             # loop over keys of second
+            $iter,
+            nqp::if(
+              nqp::existskey(
+                $araw,
+                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+              ),
+              nqp::if(   # must use HLL < because values can be bignums
+                nqp::getattr(
+                  nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value')
+                < nqp::getattr(
+                    nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value'),
+                nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+              ),
+              nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+            )
+          ),
+          nqp::create(Mix).SET-SELF($elems)       # make it a Mix
+        ),
+        $a.Mix                                    # no second, so first
+      ),
+      nqp::if(                                    # no first
+        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.Mix,                                   # but second
+        mix()                                     # both empty
+      )
+    )
+}
+
+multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
+    nqp::if(
+      nqp::istype($b,Mixy),    # $b can be a Mixy, as Mixy does Baggy
+      infix:<(|)>($a.Mix,$b),  # handle it in the Mixy/Mixy candidate
+      nqp::if(
+        (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+        nqp::if(                                  # first is initialized
+          (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+          nqp::stmts(                             # second is initialized
+            (my $elems := nqp::clone($araw)),
+            (my $iter := nqp::iterator($braw)),
+            nqp::while(                           # loop over keys of second
+              $iter,
+              nqp::if(
+                nqp::existskey(
+                  $araw,
+                  (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                ),
+                nqp::if(
+                  nqp::islt_i(
+                    nqp::getattr(
+                      nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value'),
+                    nqp::getattr(
+                      nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value')
+                  ),
+                  nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+                ),
+                nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+              )
+            ),
+            nqp::create(Bag).SET-SELF($elems)     # make it a Bag
+          ),
+          $a.Bag                                  # no second, so first
+        ),
+        nqp::if(                                  # no first
+          nqp::getattr($b.raw_hash,Map,'$!storage'),
+          $b.Bag,                                 # but second
+          bag()                                   # both empty
+        )
+      )
+    )
+}
 multi sub infix:<(|)>(**@p) {
     return set() unless @p;
 

@@ -34,11 +34,10 @@ my role Baggy does QuantHash {
           0
         )
     }
-    method !SANITY(%hash --> Nil) {
+    method !SANITY(\elems --> Nil) {
         nqp::stmts(
           (my $low := nqp::create(IterationBuffer)),
-          (my $elems := nqp::getattr(%hash,Map,'$!storage')),
-          (my $iter := nqp::iterator($elems)),
+          (my $iter := nqp::iterator(elems)),
           nqp::while(
             $iter,
             nqp::if(
@@ -54,7 +53,7 @@ my role Baggy does QuantHash {
                   ),
                   nqp::push($low,nqp::getattr(nqp::iterval($iter),Pair,'$!key'))
                 ),
-                nqp::deletekey($elems,nqp::iterkey_s($iter))
+                nqp::deletekey(elems,nqp::iterkey_s($iter))
               )
             )
           ),
@@ -94,17 +93,15 @@ my role Baggy does QuantHash {
     }
 
 #--- interface methods
-    method SET-SELF(Baggy:D: Mu \elems) {
+    method SET-SELF(Baggy:D: \elems) {
         nqp::if(
-          elems.elems,
+          nqp::elems(elems),
           nqp::stmts(                        # need to have allocated %!elems
-            (%!elems := elems),
+            nqp::bindattr(%!elems,Map,'$!storage',elems),
             nqp::if(
               nqp::istype(self,Bag) || nqp::istype(self,Mix),
               nqp::stmts(
-                (my $iter := nqp::iterator(
-                  nqp::getattr(%!elems,Map,'$!storage')
-                )),
+                (my $iter := nqp::iterator(elems)),
                 nqp::while(
                   $iter,
                   nqp::stmts(
@@ -199,7 +196,7 @@ my role Baggy does QuantHash {
     multi method new(Baggy:_:) { nqp::create(self) }
     multi method new(Baggy:_: +@args) {
         nqp::stmts(
-          (my $elems := nqp::hash),
+          (my $elems := nqp::create(IterationSet)),
           (my $iterator := @args.iterator),
           nqp::until(
             nqp::eqaddr(
@@ -224,7 +221,7 @@ my role Baggy does QuantHash {
     }
     method new-from-pairs(*@pairs) {
         nqp::stmts(
-          (my $elems := nqp::hash),
+          (my $elems := nqp::create(IterationSet)),
           (my $iterator := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(

@@ -4,10 +4,8 @@ my role Setty does QuantHash {
     method SET-SELF(\elems) {
         nqp::stmts(
           nqp::if(
-            nqp::elems(nqp::getattr(elems,Map,'$!storage')),
-            nqp::bindattr(%!elems,Map,'$!storage',
-              nqp::getattr(elems,Map,'$!storage')
-            )
+            nqp::elems(elems),
+            nqp::bindattr(%!elems,Map,'$!storage',elems)
           ),
           self
         )
@@ -15,7 +13,7 @@ my role Setty does QuantHash {
     multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
         nqp::stmts(
-          (my $elems := nqp::hash),
+          (my $elems := nqp::create(IterationSet)),
           (my $iter  := @args.iterator),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
@@ -26,7 +24,7 @@ my role Setty does QuantHash {
     }
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::stmts(
-          (my $elems := nqp::hash),
+          (my $elems := nqp::create(IterationSet)),
           (my $iter  := @pairs.iterator),
           nqp::until(
             nqp::eqaddr(

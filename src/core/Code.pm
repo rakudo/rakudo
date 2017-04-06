@@ -4,7 +4,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     #     has Signature $!signature;  # Signature object
     #     has @!compstuff;            # Place for the compiler to hang stuff
 
-    multi method ACCEPTS(Code:D $self: Mu $topic) {
+    multi method ACCEPTS(Code:D $self: Mu $topic is raw) {
         $self.count ?? $self($topic) !! $self()
     }
 

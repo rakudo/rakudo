@@ -162,14 +162,14 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
     nqp::if(
       nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
       nqp::stmts(                                 # both ordinary Str hashes
-        (my $elems := nqp::hash),
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
         nqp::if(
           (my $raw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
             && (my $iter := nqp::iterator($raw)),
           nqp::while(
             $iter,
             nqp::if(
-              nqp::istrue(nqp::iterval(my $tmp := nqp::shift($iter))),
+              nqp::iterval(my $tmp := nqp::shift($iter)),
               nqp::bindkey(
                 $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
             )
@@ -181,7 +181,7 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
           nqp::while(
             $iter,
             nqp::if(
-              nqp::istrue(nqp::iterval($tmp := nqp::shift($iter))),
+              nqp::iterval($tmp := nqp::shift($iter)),
               nqp::bindkey(
                 $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
             )

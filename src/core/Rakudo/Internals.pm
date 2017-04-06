@@ -345,6 +345,33 @@ my class Rakudo::Internals {
         )
     }
 
+    method RANGE-AS-ints ($range, $exception) {
+        # Convert a Range to min/max values that can fit into an `int`
+        # Treats values smaller than int.Range.min as int.Range.min
+        # Treats values larger than int.Range.max as int.Range.max
+        # Throws $exception for non-Numeric ranges or ranges with any NaN endpoints
+        # If $exception is a Str, calls `die $exception`
+        my ($min, $max) = $range.minmax;
+        nqp::unless(
+          nqp::if(
+            nqp::if( nqp::istype($min, Numeric), nqp::istype($max, Numeric) ),
+            nqp::if( nqp::isfalse($min.isNaN),   nqp::isfalse($max.isNaN)   ),
+          ),
+          nqp::if(nqp::istype($exception, Str), die($exception), $exception.throw)
+        );
+
+        # Get rid of Infs
+        $min = Int($min + $range.excludes-min) // -2**63;
+        $max = Int($max - $range.excludes-max) //  2**63-1;
+
+        # we have isbig_I, but it tells whether the value is above max int32 value
+        nqp::if( nqp::islt_I(nqp::decont($min), -2**63),
+                                         $min = -2**63);
+        nqp::if( nqp::isgt_I(nqp::decont($max),  2**63-1),
+                                         $max =  2**63-1);
+        ($min, $max);
+    }
+
     method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 

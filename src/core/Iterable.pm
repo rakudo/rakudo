@@ -148,6 +148,17 @@ my role Iterable {
             method configuration() { $!configuration }
         }.new(self.iterator, $configuration));
     }
+
+
+    method !SETIFY(\type) {
+        nqp::create(type).SET-SELF(
+          type.fill_IterationSet(
+            nqp::create(Rakudo::Internals::IterationSet),self.flat.iterator
+          )
+        )
+    }
+    method Set() is nodal     { self!SETIFY(Set)     }
+    method SetHash() is nodal { self!SETIFY(SetHash) }
 }
 
 #?if jvm

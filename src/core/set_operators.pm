@@ -117,45 +117,43 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
     )
 }
 
+multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { infix:<(|)>($a, $b.Mix) }
+multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { infix:<(|)>($a.Mix, $b) }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      nqp::istype($b,Mixy),    # $b can be a Mixy, as Mixy does Baggy
-      infix:<(|)>($a.Mix,$b),  # handle it in the Mixy/Mixy candidate
-      nqp::if(
-        (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
-        nqp::if(                                  # first is initialized
-          (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
-          nqp::stmts(                             # second is initialized
-            (my $elems := nqp::clone($araw)),
-            (my $iter := nqp::iterator($braw)),
-            nqp::while(                           # loop over keys of second
-              $iter,
+      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      nqp::if(                                    # first is initialized
+        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        nqp::stmts(                               # second is initialized
+          (my $elems := nqp::clone($araw)),
+          (my $iter := nqp::iterator($braw)),
+          nqp::while(                             # loop over keys of second
+            $iter,
+            nqp::if(
+              nqp::existskey(
+                $araw,
+                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+              ),
               nqp::if(
-                nqp::existskey(
-                  $araw,
-                  (my $key := nqp::iterkey_s(nqp::shift($iter)))
-                ),
-                nqp::if(
-                  nqp::islt_i(
-                    nqp::getattr(
-                      nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value'),
-                    nqp::getattr(
-                      nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value')
-                  ),
-                  nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+                nqp::islt_i(
+                  nqp::getattr(
+                    nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value'),
+                  nqp::getattr(
+                    nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value')
                 ),
                 nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
-              )
-            ),
-            nqp::create(Bag).SET-SELF($elems)     # make it a Bag
+              ),
+              nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+            )
           ),
-          $a.Bag                                  # no second, so first
+          nqp::create(Bag).SET-SELF($elems)       # make it a Bag
         ),
-        nqp::if(                                  # no first
-          nqp::getattr($b.raw_hash,Map,'$!storage'),
-          $b.Bag,                                 # but second
-          bag()                                   # both empty
-        )
+        $a.Bag                                    # no second, so first
+      ),
+      nqp::if(                                    # no first
+        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.Bag,                                   # but second
+        bag()                                     # both empty
       )
     )
 }

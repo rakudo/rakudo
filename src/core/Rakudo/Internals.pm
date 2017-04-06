@@ -1299,14 +1299,6 @@ my class Rakudo::Internals {
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-    method MAKE-EXT(Str:D \basename) {
-        my str $basename = nqp::unbox_s(basename);
-        my int $offset   = nqp::rindex($basename,'.');
-        nqp::iseq_i($offset,-1)
-          ?? ''
-          !! nqp::p6box_s(nqp::substr($basename,$offset + 1));
-    }
-
     my $clean-parts-nul := nqp::hash( '..', 1, '.', 1, '', 1);
     method MAKE-CLEAN-PARTS(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);

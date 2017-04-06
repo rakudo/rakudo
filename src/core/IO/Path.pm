@@ -68,7 +68,100 @@ my class IO::Path is Cool {
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
     method basename(IO::Path:D:) { %.parts<basename> }
-    method extension(IO::Path:D:) { Rakudo::Internals.MAKE-EXT(self.basename) }
+
+
+    my sub EXTENSION-MK-EXTENSION (
+        str $name, $no-ext, int $part-min, int $part-max = $part-min
+    ) is pure {
+      my int $offset = nqp::chars($name);
+      my int $next-offset;
+      my int $parts;
+      nqp::while(
+        nqp::if(
+          nqp::isne_i( -1,
+            ($next-offset = nqp::rindex($name, '.', nqp::sub_i($offset, 1)))),
+          nqp::if($offset, nqp::islt_i($parts, $part-max))
+        ),
+        nqp::stmts(
+          ($offset = $next-offset),
+          ($parts = nqp::add_i($parts, 1))
+        ),
+      );
+      nqp::if(
+        nqp::if(nqp::isle_i($part-min, $parts), nqp::isle_i($parts, $part-max)),
+        nqp::substr($name, nqp::add_i($offset, 1)),
+        $no-ext,
+      )
+    }
+    my sub EXTENSION-SUBST ($ext, $base, $subst, $joiner) is pure {
+      nqp::if(
+        nqp::defined($ext),
+        nqp::unless(
+          nqp::concat(
+            nqp::if(
+              nqp::chars($ext),
+              nqp::substr($base, 0,
+                nqp::sub_i(nqp::chars($base), nqp::add_i(nqp::chars($ext), 1))
+              ),
+              $base,
+            ),
+            nqp::concat($joiner, $subst)
+          ), '.' # use `.` as basename if we ended up with it being empty
+        ),
+        $base,
+      )
+    }
+    proto method extension(|) {*}
+    multi method extension(IO::Path:D:) {
+      nqp::if(
+        nqp::iseq_i(-1, (my int $offset = nqp::rindex(
+          (my str $basename = nqp::unbox_s(self.basename)),'.'))),
+        '', nqp::substr($basename, nqp::add_i($offset, 1))
+      )
+    }
+    multi method extension(IO::Path:D: Int :$parts!) {
+      EXTENSION-MK-EXTENSION self.basename, '',
+        nqp::if(
+          nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+          nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+            nqp::unbox_i($parts),
+          ),
+        )
+    }
+    multi method extension(IO::Path:D: Range :$parts!) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      EXTENSION-MK-EXTENSION self.basename, '', $min, $max
+    }
+    multi method extension(IO::Path:D:
+      Str $subst,
+      Int :$parts = 1, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+    ) {
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+            EXTENSION-MK-EXTENSION(
+              (my str $base = nqp::unbox_s(self.basename)),
+              Any, nqp::if(
+                nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+                nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+                  nqp::unbox_i($parts),
+                ),
+              )
+            ), $base, $subst, $joiner;
+    }
+    multi method extension(
+      Str $subst,
+      Range :$parts, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+    ) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+        EXTENSION-MK-EXTENSION(
+            (my str $base = nqp::unbox_s(self.basename)), Any, $min, $max
+        ), $base, $subst, $joiner
+    }
+
 
     # core can't do 'basename handles <Numeric Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }

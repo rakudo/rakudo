@@ -985,6 +985,7 @@ S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
+S32-io/io-path-extension.t
 S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/native-descriptor.t  # moar

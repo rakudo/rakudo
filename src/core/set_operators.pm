@@ -346,6 +346,64 @@ multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
     )
 }
 
+multi sub infix:<(&)>(Mixy:D $a, Baggy:D $b) { infix:<(&)>($a, $b.Mix) }
+multi sub infix:<(&)>(Baggy:D $a, Mixy:D $b) { infix:<(&)>($a.Mix, $b) }
+multi sub infix:<(&)>(Baggy:D $a, Baggy:D $b) {
+    nqp::if(
+      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage'))
+        && (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+      nqp::stmts(                            # both are initialized
+        nqp::if(
+          nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+          nqp::stmts(                        # $a smallest, iterate over it
+            (my $iter := nqp::iterator($araw)),
+            (my $base := $braw)
+          ),
+          nqp::stmts(                        # $b smallest, iterate over that
+            ($iter := nqp::iterator($braw)),
+            ($base := $araw)
+          )
+        ),
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        nqp::while(
+          $iter,
+          nqp::if(                           # bind if in both
+          nqp::existskey(
+              $base,
+              nqp::iterkey_s(my $tmp := nqp::shift($iter))
+            ),
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s($tmp),
+              nqp::if(
+                nqp::isle_i(
+                  nqp::getattr(
+                    nqp::decont(nqp::iterval($tmp)),
+                    Pair,
+                    '$!value'
+                  ),
+                  nqp::getattr(
+                    nqp::atkey($base,nqp::iterkey_s($tmp)),
+                    Pair,
+                    '$!value'
+                  )
+                ),
+                nqp::iterval($tmp),
+                nqp::atkey($base,nqp::iterkey_s($tmp))
+              )
+            )
+          )
+        ),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Bag).SET-SELF($elems), # overlap, so make it a Bag
+          bag()                              # nothing to see here
+        )
+      ),
+      bag()                                  # one/neither initialized
+    )
+}
+
 multi sub infix:<(&)>(**@p) {
     return set() unless @p;
 

@@ -352,6 +352,66 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Create iterator that produces all values *except* the last N values
+    # of a given iterator.  Needs to specify the :action part of
+    # X::Cannot::Lazy in case the given iterator is lazy.  Returns an
+    # empty iterator if the given iterator produced fewer than N values.
+    method AllButLastNValues(\iterator, \n, \action) {
+        class :: does Iterator {
+            has $!iterator;
+            has $!buffered;
+            has int $!size;
+            has int $!index;
+            method !SET-SELF(\iterator, int $size) {
+                nqp::stmts(
+                  (my int $i = -1),
+                  (my $buffered := nqp::setelems(nqp::list,$size)),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$size)
+                      && nqp::not_i(nqp::eqaddr(
+                           (my $pulled := iterator.pull-one),
+                           IterationEnd
+                         )),
+                    nqp::bindpos($buffered,$i,$pulled)
+                  ),
+                  nqp::if(
+                    nqp::islt_i($i,$size),
+                    Rakudo::Iterator.Empty,
+                    nqp::stmts(
+                      ($!iterator := iterator),
+                      ($!buffered := $buffered),
+                      ($!size = $size),
+                      self
+                    )
+                  )
+                )
+            }
+            method new(\iterator,\n,\action) {
+                nqp::if(
+                  iterator.is-lazy,
+                  X::Cannot::Lazy.new(:action(action)).throw,
+                  nqp::if(
+                    nqp::isle_i(n,0),
+                    iterator,
+                    nqp::create(self)!SET-SELF(iterator,n)
+                  )
+                )
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+                  $pulled,
+                  nqp::stmts(
+                    (my $value := nqp::atpos($!buffered,$!index)),
+                    nqp::bindpos($!buffered,$!index,$pulled),
+                    ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
+                    $value
+                  )
+                )
+            }
+        }.new(iterator, n, action)
+    }
+
     # Return an iterator that will generate a pair with the value as the
     # key and as value the key of the given iterator, basically the
     # .antipairs functionality on 1 dimensional lists.

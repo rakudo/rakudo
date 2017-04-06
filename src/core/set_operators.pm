@@ -262,6 +262,40 @@ multi sub infix:<(&)>(Mix:D $a)     { $a }
 multi sub infix:<(&)>(MixHash:D $a) { $a.Mix }
 multi sub infix:<(&)>(Any $a)       { $a.Set } # also for SetHash/Iterable/Map
 
+multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
+    nqp::if(
+      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage'))
+        && (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+      nqp::stmts(                              # both are initialized
+        nqp::if(
+          nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+          nqp::stmts(                          # $a smallest, iterate over it
+            (my $iter := nqp::iterator($araw)),
+            (my $base := $braw)
+          ),
+          nqp::stmts(                          # $b smallest, iterate over that
+            ($iter := nqp::iterator($braw)),
+            ($base := $araw)
+          )
+        ),
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        nqp::while(
+          $iter,
+          nqp::if(                             # bind if in both
+            nqp::existskey($base,nqp::iterkey_s(my $tmp := nqp::shift($iter))),
+            nqp::bindkey($elems,nqp::iterkey_s($tmp),nqp::iterval($tmp))
+          )
+        ),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Set).SET-SELF($elems),   # overlap, so make it a Set
+          set()                                # nothing to see here
+        )
+      ),
+      set()                                    # one/neither initialized
+    )
+}
+
 multi sub infix:<(&)>(**@p) {
     return set() unless @p;
 

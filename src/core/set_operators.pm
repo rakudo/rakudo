@@ -444,6 +444,35 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
     )
 }
 
+multi sub infix:<(&)>(Iterable:D $a, Iterable:D $b) {
+    nqp::if(
+      (my $aiterator := $a.flat.iterator).is-lazy
+        || (my $biterator := $b.flat.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action<intersect>,:what<set>)),
+      nqp::if(                                # won't hang
+        nqp::elems(my $base := Set.fill_IterationSet(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $aiterator
+        )),
+        nqp::stmts(                           # have something to look up in
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          nqp::until(
+            nqp::eqaddr((my $pulled := $biterator.pull-one),IterationEnd),
+            nqp::if(
+              nqp::existskey($base,(my $which := $pulled.WHICH)),
+              nqp::bindkey($elems,$which,$pulled)
+            )
+          ),
+          nqp::if(
+            nqp::elems($elems),
+            nqp::create(Set).SET-SELF($elems),# found something
+            set()                             # no matches
+          )
+        ),
+        set()                                 # nothing to look up in, bye!
+      )
+    )
+}
 multi sub infix:<(&)>(**@p) {
     return set() unless @p;
 

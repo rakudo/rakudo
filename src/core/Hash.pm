@@ -778,8 +778,8 @@ my class Hash { # declared in BOOTSTRAP
               )
             )
         }
-        method Set()     { self!SETIFY(Set    ) }
-        method SetHash() { self!SETIFY(SetHash) }
+        method Set() is nodal     { self!SETIFY(Set    ) }
+        method SetHash() is nodal { self!SETIFY(SetHash) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

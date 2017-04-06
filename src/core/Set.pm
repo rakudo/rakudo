@@ -74,8 +74,8 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method Set { self }
-    method SetHash { SetHash.new(self.keys) }
+    method Set() is nodal     { self                   }
+    method SetHash() is nodal { SetHash.new(self.keys) }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         %!elems.EXISTS-KEY(k.WHICH);

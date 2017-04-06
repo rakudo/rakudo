@@ -96,7 +96,7 @@ my class SetHash does Setty {
 
     method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }
 
-    method Set(SetHash:D: :$view) {
+    method Set(SetHash:D: :$view) is nodal {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),
           nqp::p6bindattrinvres(
@@ -106,7 +106,7 @@ my class SetHash does Setty {
           nqp::create(Set)
         )
     }
-    method SetHash(SetHash:D:) { self }
+    method SetHash(SetHash:D:) is nodal { self }
 
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(

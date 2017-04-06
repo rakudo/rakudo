@@ -676,8 +676,8 @@ my role Baggy does QuantHash {
           )
         )
     }
-    method Set()     { self!SETIFY(Set)     }
-    method SetHash() { self!SETIFY(SetHash) }
+    method Set() is nodal     { self!SETIFY(Set)     }
+    method SetHash() is nodal { self!SETIFY(SetHash) }
 
     method raw_hash() is raw { %!elems }
 }

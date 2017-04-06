@@ -334,6 +334,40 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method hash() { self }
     method clone(Map:D:) is raw { self }
+    
+    method !SETIFY(\type) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          nqp::if(
+            $!storage,
+            nqp::stmts(
+              (my $iter := nqp::iterator($!storage)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(my $tmp := nqp::shift($iter)),
+                  nqp::bindkey(
+                    $elems,
+                    nqp::iterkey_s($tmp).WHICH,
+                    nqp::iterkey_s($tmp),
+                  )
+                )
+              )
+            )
+          ),
+          nqp::if(
+            nqp::elems($elems),
+            nqp::create(type).SET-SELF($elems),
+            nqp::if(
+              nqp::eqaddr(type,Set),
+              set(),
+              nqp::create(type)
+            )
+          )
+        )
+    }
+    method Set()     { self!SETIFY(Set)     }
+    method SetHash() { self!SETIFY(SetHash) }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

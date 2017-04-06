@@ -50,7 +50,7 @@ multi sub infix:<(|)>(Bag:D $a)     { $a }
 multi sub infix:<(|)>(BagHash:D $a) { $a.Bag }
 multi sub infix:<(|)>(Mix:D $a)     { $a }
 multi sub infix:<(|)>(MixHash:D $a) { $a.Mix }
-multi sub infix:<(|)>(Any $a)       { $a.Set } # also for SetHash:D/Map:D
+multi sub infix:<(|)>(Any $a)       { $a.Set } # also for SetHash/Iterable/Map
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(
@@ -196,6 +196,27 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
         )
       ),
       $a.Set (|) $b.Set                           # object hash(es), coerce!
+    )
+}
+
+multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
+    nqp::if(
+      (my $aiterator := $a.flat.iterator).is-lazy
+        || (my $biterator := $b.flat.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
+      nqp::if(
+        nqp::elems(
+          (my $elems := Set.fill_IterationSet(
+            Set.fill_IterationSet(
+              nqp::create(Rakudo::Internals::IterationSet),
+              $aiterator
+            ),
+            $biterator
+          ))
+        ),
+        nqp::create(Set).SET-SELF($elems),
+        set()
+      )
     )
 }
 multi sub infix:<(|)>(**@p) {

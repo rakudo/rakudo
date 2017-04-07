@@ -1857,7 +1857,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
     multi method head(Any:D: Callable:D $w) {
-        Seq.new(Rakudo::Iterator.AllButLastNValues(self.iterator,-($w(0))))
+        Seq.new(
+           Rakudo::Iterator.AllButLastNValues(self.iterator,-($w(0).Int))
+        )
     }
     multi method head(Any:D: $n) {
         Seq.new(Rakudo::Iterator.NextNValues(self.iterator,$n))

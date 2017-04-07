@@ -513,45 +513,7 @@ only sub infix:<∩>(|p) is pure {
     infix:<(&)>(|p);
 }
 
-proto sub infix:<(-)>(|) is pure { * }
-multi sub infix:<(-)>()               { set()  }
-multi sub infix:<(-)>(QuantHash:D $a) { $a     } # Set/Map/Mix
-multi sub infix:<(-)>(SetHash:D $a)   { $a.Set }
-multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
-multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
-multi sub infix:<(-)>(Any $a)         { $a.Set } # also for Iterable/Map
-
-multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
-    nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
-      nqp::if(                                    # first is initialized
-        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
-        nqp::stmts(                               # second is initialized
-          (my $elems := nqp::clone($araw)),
-          (my $iter := nqp::iterator($braw)),
-          nqp::while(                             # loop over keys of second
-            $iter,
-            nqp::if(
-              nqp::existskey(
-                $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter))
-              ),
-              nqp::deletekey($elems,nqp::iterkey_s($tmp))
-            )
-          ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Set).SET-SELF($elems),    # make it a Set
-            set()                                 # identical, so empty
-          )
-        ),
-        $a.Set                                    # no second, so first
-      ),
-      set()                                       # no first
-    )
-}
-
-multi sub infix:<(-)>(**@p) {
+only sub infix:<(-)>(**@p) is pure {
     return set() unless @p;
 
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
@@ -559,9 +521,11 @@ multi sub infix:<(-)>(**@p) {
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
-            $mixhash{$_} -= $mix{$_} for $mixhash.keys;
+            $mix{$_} < $mixhash{$_}
+              ?? ($mixhash{$_} -= $mix{$_})
+              !! $mixhash.DELETE-KEY($_)
+              for $mixhash.keys;
         }
-        Mix.SANITY(nqp::getattr($mixhash.raw_hash,Map,'$!storage'));
         $mixhash.Mix(:view);
     }
     elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {

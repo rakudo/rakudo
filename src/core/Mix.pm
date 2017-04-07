@@ -60,7 +60,49 @@ my class Mix does Mixy {
         )
     }
     method Bag     {     Bag.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
-    method BagHash { BagHash.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
+    method BagHash {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(                             # something to coerce
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::isgt_i(
+                  (my int $value = nqp::getattr(
+                  nqp::iterval(my $tmp := nqp::shift($iter)),
+                  Pair,
+                  '$!value'
+                  ).Int),
+                  0
+                ),
+                nqp::bindkey(                     # ok to keep value.Int
+                  $elems,
+                  nqp::iterkey_s($tmp),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($tmp)),
+                    Pair,
+                    '$!value',
+                    (nqp::p6scalarfromdesc(nqp::null) = $value)
+                  )
+                ),
+                nqp::deletekey(                   # we don't do <= 0 in bags
+                  $elems,
+                  nqp::iterkey_s($tmp)
+                )
+              )
+            ),
+            nqp::if(
+              nqp::elems($elems),
+              nqp::create(BagHash).SET-SELF($elems),
+              nqp::create(BagHash)                # nothing left
+            )
+          ),
+          nqp::create(BagHash)                    # nothing to coerce
+        )
+    }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

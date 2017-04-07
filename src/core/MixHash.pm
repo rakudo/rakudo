@@ -46,12 +46,17 @@ my class MixHash does Mixy {
                   ),
                   nqp::unless(                  # no hash allocated yet
                     $value == 0,
-                    %!elems.BIND-KEY(k.WHICH,self!PAIR(k,$value))  # use HLL way
+                    nqp::bindkey(
+                      nqp::bindattr(%!elems,Map,'$!storage',
+                        nqp::create(Rakudo::Internals::IterationSet)),
+                      k.WHICH,
+                      self!PAIR(k,$value)
+                    )
                   )
                 )
               )
           }
-        );
+        )
     }
 
 #--- coercion methods

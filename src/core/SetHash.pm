@@ -114,11 +114,27 @@ my class SetHash does Setty {
               %!elems.EXISTS-KEY(k.WHICH);
           },
           STORE => -> $, $value {
-              $value
-                ?? %!elems.ASSIGN-KEY(k.WHICH,k)
-                !! %!elems.DELETE-KEY(k.WHICH);
-              so $value;
-          });
+              nqp::stmts(
+                nqp::if(
+                  $value,
+                  nqp::bindkey(
+                    nqp::unless(
+                      nqp::getattr(%!elems,Map,'$!storage'),
+                      nqp::bindattr(%!elems,Map,'$!storage',
+                        nqp::create(Rakudo::Internals::IterationSet))
+                    ),
+                    k.WHICH,
+                    k
+                  ),
+                  nqp::if(
+                    (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+                    nqp::deletekey($elems,k.WHICH)
+                  )
+                ),
+                $value.Bool
+              )
+          }
+        )
     }
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
         nqp::if(

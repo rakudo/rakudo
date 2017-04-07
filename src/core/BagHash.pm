@@ -46,7 +46,12 @@ my class BagHash does Baggy {
                   ),
                   nqp::if(                      # no hash allocated yet
                     nqp::isgt_i($value,0),
-                    %!elems.BIND-KEY(k.WHICH,self!PAIR(k,$value))  # use HLL way
+                    nqp::bindkey(
+                      nqp::bindattr(%!elems,Map,'$!storage',
+                        nqp::create(Rakudo::Internals::IterationSet)),
+                      k.WHICH,
+                      self!PAIR(k,$value)
+                    )
                   )
                 )
               )

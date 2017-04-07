@@ -99,7 +99,10 @@ my class IO::Path is Cool {
         nqp::unless(
           nqp::concat(
             nqp::if(
-              nqp::chars($ext),
+              nqp::unless( # if extension is empty, check $base to find out if...
+                nqp::chars($ext), #... it's a missing ext. or empty string ext.
+                nqp::eqat($base, '.', nqp::sub_i(nqp::chars($base), 1))
+              ),
               nqp::substr($base, 0,
                 nqp::sub_i(nqp::chars($base), nqp::add_i(nqp::chars($ext), 1))
               ),

@@ -353,20 +353,20 @@ class Rakudo::Iterator {
 # Methods that generate an Iterator (in alphabetical order)
 
     # Create iterator that produces all values *except* the last N values
-    # of a given iterator.  Needs to specify the :action part of
-    # X::Cannot::Lazy in case the given iterator is lazy.  Returns an
-    # empty iterator if the given iterator produced fewer than N values.
-    method AllButLastNValues(\iterator, \n, \action) {
+    # of a given iterator.  Returns an empty iterator if the given iterator
+    # produced fewer than N values.
+    method AllButLastNValues(\iterator, \n) {
         class :: does Iterator {
             has $!iterator;
             has $!buffered;
             has int $!size;
             has int $!index;
+
             method !SET-SELF(\iterator, int $size) {
                 nqp::stmts(
                   (my int $i = -1),
                   (my $buffered := nqp::setelems(nqp::list,$size)),
-                  nqp::while(
+                  nqp::while(                      # fill buffer to produce from
                     nqp::islt_i(($i = nqp::add_i($i,1)),$size)
                       && nqp::not_i(nqp::eqaddr(
                            (my $pulled := iterator.pull-one),
@@ -376,8 +376,8 @@ class Rakudo::Iterator {
                   ),
                   nqp::if(
                     nqp::islt_i($i,$size),
-                    Rakudo::Iterator.Empty,
-                    nqp::stmts(
+                    Rakudo::Iterator.Empty,        # didn't produce enough
+                    nqp::stmts(                    # we're in business
                       ($!iterator := iterator),
                       ($!buffered := $buffered),
                       ($!size = $size),
@@ -386,22 +386,18 @@ class Rakudo::Iterator {
                   )
                 )
             }
-            method new(\iterator,\n,\action) {
+            method new(\iterator,\n) {
                 nqp::if(
-                  iterator.is-lazy,
-                  X::Cannot::Lazy.new(:action(action)).throw,
-                  nqp::if(
-                    nqp::isle_i(n,0),
-                    iterator,
-                    nqp::create(self)!SET-SELF(iterator,n)
-                  )
+                  nqp::isle_i(n,0),
+                  iterator,                        # we wants it all
+                  nqp::create(self)!SET-SELF(iterator,n)
                 )
             }
             method pull-one() is raw {
                 nqp::if(
                   nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
-                  $pulled,
-                  nqp::stmts(
+                  $pulled,                         # we're done
+                  nqp::stmts(                      # produce/update buffer
                     (my $value := nqp::atpos($!buffered,$!index)),
                     nqp::bindpos($!buffered,$!index,$pulled),
                     ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
@@ -409,7 +405,7 @@ class Rakudo::Iterator {
                   )
                 )
             }
-        }.new(iterator, n, action)
+        }.new(iterator, n)
     }
 
     # Return an iterator that will generate a pair with the value as the

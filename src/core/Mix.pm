@@ -59,8 +59,8 @@ my class Mix does Mixy {
           nqp::create(MixHash)                    # nothing to coerce
         )
     }
-    method Bag     {     Bag.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
-    method BagHash {
+
+    method !BAGGIFY(\type, int $bind) {
         nqp::if(
           (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
             && nqp::elems($raw),
@@ -71,7 +71,7 @@ my class Mix does Mixy {
               $iter,
               nqp::if(
                 nqp::isgt_i(
-                  (my int $value = nqp::getattr(
+                  (my $value := nqp::getattr(
                   nqp::iterval(my $tmp := nqp::shift($iter)),
                   Pair,
                   '$!value'
@@ -85,7 +85,11 @@ my class Mix does Mixy {
                     nqp::clone(nqp::iterval($tmp)),
                     Pair,
                     '$!value',
-                    (nqp::p6scalarfromdesc(nqp::null) = $value)
+                    nqp::if(
+                      $bind,
+                      $value,
+                      (nqp::p6scalarfromdesc(nqp::null) = $value)
+                    )
                   )
                 ),
                 nqp::deletekey(                   # we don't do <= 0 in bags
@@ -96,13 +100,24 @@ my class Mix does Mixy {
             ),
             nqp::if(
               nqp::elems($elems),
-              nqp::create(BagHash).SET-SELF($elems),
-              nqp::create(BagHash)                # nothing left
+              nqp::create(type).SET-SELF($elems),
+              nqp::if(
+                nqp::istype(type,Bag),
+                bag(),
+                nqp::create(type)                 # nothing left
+              )
             )
           ),
-          nqp::create(BagHash)                    # nothing to coerce
+          nqp::if(
+            nqp::istype(type,Bag),
+            bag(),
+            nqp::create(type)                     # nothing to coerce
+          )
         )
     }
+
+    method Bag()     { self!BAGGIFY(Bag,     1) }
+    method BagHash() { self!BAGGIFY(BagHash, 0) }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

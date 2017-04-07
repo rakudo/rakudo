@@ -559,11 +559,9 @@ multi sub infix:<(-)>(**@p) {
             ?? MixHash.new-from-pairs(@p.shift.pairs)
             !! @p.shift.MixHash;
         for @p.map(*.Mix(:view)) -> $mix {
-            $mix{$_} < $mixhash{$_}
-              ?? ($mixhash{$_} -= $mix{$_})
-              !! $mixhash.DELETE-KEY($_)
-              for $mixhash.keys;
+            $mixhash{$_} -= $mix{$_} for $mixhash.keys;
         }
+        Mix.SANITY(nqp::getattr($mixhash.raw_hash,Map,'$!storage'));
         $mixhash.Mix(:view);
     }
     elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {

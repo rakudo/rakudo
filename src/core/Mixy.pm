@@ -1,7 +1,7 @@
 my role Mixy does Baggy  {
 
     method !PAIR(\key,\value) { Pair.new(key, my Real $ = value ) }
-    method !SANITY(\elems --> Nil) {
+    method SANITY(\elems --> Nil) {
        nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::while(

@@ -34,7 +34,7 @@ my role Baggy does QuantHash {
           0
         )
     }
-    method !SANITY(\elems --> Nil) {
+    method SANITY(\elems --> Nil) {
         nqp::stmts(
           (my $low := nqp::create(IterationBuffer)),
           (my $iter := nqp::iterator(elems)),
@@ -262,7 +262,7 @@ my role Baggy does QuantHash {
               )
             )
           ),
-          nqp::if($seen-pair && nqp::elems($elems),self!SANITY($elems)),
+          nqp::if($seen-pair && nqp::elems($elems),self.SANITY($elems)),
           nqp::create(self).SET-SELF($elems)
         )
     }

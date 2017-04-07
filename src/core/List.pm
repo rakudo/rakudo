@@ -1284,9 +1284,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::if(
               $!reified.DEFINITE && nqp::elems($!reified),
               nqp::stmts(
-                (my $iterator :=
-                  Rakudo::Iterator.ReifiedList(self))
-                  .skip-at-least(nqp::elems($!reified) - $n),
+                (my $iterator := Rakudo::Iterator.ReifiedList(self)),
+                nqp::unless(
+                  nqp::istype($n,Whatever) || $n == Inf,
+                  $iterator.skip-at-least(nqp::elems($!reified) - $n)
+                ),
                 $iterator
               ),
               Rakudo::Iterator.Empty

@@ -1049,9 +1049,11 @@ my class Array { # declared in BOOTSTRAP
               (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
                 && nqp::elems($reified),
               nqp::stmts(
-                (my $iterator :=
-                  Rakudo::Iterator.ReifiedArray(self))
-                  .skip-at-least(nqp::elems($reified) - $n),
+                (my $iterator := Rakudo::Iterator.ReifiedArray(self)),
+                nqp::unless(
+                  nqp::istype($n,Whatever) || $n == Inf,
+                  $iterator.skip-at-least(nqp::elems($reified) - $n)
+                ),
                 $iterator
               ),
               Rakudo::Iterator.Empty

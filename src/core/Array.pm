@@ -1050,9 +1050,14 @@ my class Array { # declared in BOOTSTRAP
                 && nqp::elems($reified),
               nqp::stmts(
                 (my $iterator := Rakudo::Iterator.ReifiedArray(self)),
-                nqp::unless(
-                  nqp::istype($n,Whatever) || $n == Inf,
-                  $iterator.skip-at-least(nqp::elems($reified) - $n)
+                nqp::if(
+                  nqp::istype($n,Callable)
+                    && nqp::isgt_i((my $skip := -($n(0).Int)),0),
+                  $iterator.skip-at-least($skip),
+                  nqp::unless(
+                    nqp::istype($n,Whatever) || $n == Inf,
+                    $iterator.skip-at-least(nqp::elems($reified) - $n)
+                  )
                 ),
                 $iterator
               ),

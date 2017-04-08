@@ -94,7 +94,24 @@ my class SetHash does Setty {
         }.new(%!elems))
     }
 
-    method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }
+    method clone() {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::p6bindattrinvres(                  # something to clone
+            nqp::create(self),
+            ::?CLASS,
+            '%!elems',
+            nqp::p6bindattrinvres(
+              nqp::create(Hash),
+              Map,
+              '$!storage',
+              nqp::clone($raw)
+            )
+          ),
+          nqp::create(self)                       # nothing to clone
+        )
+    }
 
     method Set(SetHash:D: :$view) is nodal {
         nqp::if(

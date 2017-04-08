@@ -77,6 +77,8 @@ my class Set does Setty {
     method Set() is nodal     { self                   }
     method SetHash() is nodal { SetHash.new(self.keys) }
 
+    method clone() { nqp::clone(self) }
+
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         %!elems.EXISTS-KEY(k.WHICH);
     }

@@ -71,8 +71,6 @@ my class MixHash does Mixy {
         )
     }
     method MixHash() is nodal { self }
-
-    method clone(MixHash:D:) { self.new-from-pairs(self.pairs) }
 }
 
 # vim: ft=perl6 expandtab sw=4

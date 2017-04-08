@@ -34,6 +34,8 @@ my class Mix does Mixy {
 #--- coercion methods
     method Mix() is nodal { self }
 
+    method clone() { nqp::clone(self) }
+
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }

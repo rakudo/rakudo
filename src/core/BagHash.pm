@@ -78,8 +78,6 @@ my class BagHash does Baggy {
           nqp::create(Mix)
         )
     }
-
-    method clone(BagHash:D:) { self.new-from-pairs(self.pairs) }
 }
 
 # vim: ft=perl6 expandtab sw=4

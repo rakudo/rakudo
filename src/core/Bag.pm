@@ -37,6 +37,8 @@ my class Bag does Baggy {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
     }
 
+    method clone() { nqp::clone(self) }
+
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }

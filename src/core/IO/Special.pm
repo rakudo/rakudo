@@ -17,8 +17,8 @@ class IO::Special {
     method r(IO::Special:D:) { $!what eq '<STDIN>' }
     method w(IO::Special:D:) { $!what eq '<STDOUT>' or $!what eq '<STDERR>' }
     method x(IO::Special:D: --> False) { }
-    method modified(IO::Special:D: --> Instant) { }
-    method accessed(IO::Special:D: --> Instant) { }
-    method changed(IO::Special:D: --> Instant)  { }
+    method modified(IO::Special:D: --> Instant) { Instant }
+    method accessed(IO::Special:D: --> Instant) { Instant }
+    method changed( IO::Special:D: --> Instant) { Instant }
     method mode(IO::Special:D: --> Nil) { }
 }

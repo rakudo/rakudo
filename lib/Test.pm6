@@ -435,7 +435,9 @@ multi sub flunk($reason) is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub isa-ok(Mu $var, Mu $type, $desc = ("The object is-a '" ~ $type.perl ~ "'")) is export {
+multi sub isa-ok(
+    Mu $var, Mu $type, $desc = "The object is-a '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.isa($type), $desc)
         or _diag('Actual type: ' ~ $var.^name);
@@ -443,7 +445,9 @@ multi sub isa-ok(Mu $var, Mu $type, $desc = ("The object is-a '" ~ $type.perl ~ 
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub does-ok(Mu $var, Mu $type, $desc = ("The object does role '" ~ $type.perl ~ "'")) is export {
+multi sub does-ok(
+    Mu $var, Mu $type, $desc = "The object does role '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.does($type), $desc)
         or _diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
@@ -451,14 +455,21 @@ multi sub does-ok(Mu $var, Mu $type, $desc = ("The object does role '" ~ $type.p
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub can-ok(Mu $var, Str $meth, $desc = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
+multi sub can-ok(
+    Mu $var, Str $meth,
+    $desc = ($var.defined ?? "An object of type '" !! "The type '")
+        ~ "$var.WHAT.perl()' can do the method '$meth'"
+) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.^can($meth), $desc);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub like(Str $got, Regex $expected, $desc = ("'$got' matches '$expected.perl()'")) is export {
+multi sub like(
+    Str $got, Regex $expected,
+    $desc = "'$got.perl()' matches '$expected.perl()'"
+) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $test = $got ~~ $expected;
@@ -471,7 +482,10 @@ multi sub like(Str $got, Regex $expected, $desc = ("'$got' matches '$expected.pe
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub unlike(Str $got, Regex $expected, $desc = ($got ~ ' does not matches \'' ~ $expected.perl ~ "'")) is export {
+multi sub unlike(
+    Str $got, Regex $expected,
+    $desc = "$got.perl() does not match '$expected.perl()'"
+) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $test = !($got ~~ $expected);
@@ -484,7 +498,7 @@ multi sub unlike(Str $got, Regex $expected, $desc = ($got ~ ' does not matches \
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub use-ok(Str $code, $desc = ($code ~ ' module can be use-d ok')) is export {
+multi sub use-ok(Str $code, $desc = "$code module can be use-d ok") is export {
     $time_after = nqp::time_n;
     try {
         EVAL ( "use $code" );

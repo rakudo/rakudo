@@ -5,7 +5,7 @@ my class IO::Path is Cool {
     has Str      $.CWD;
     has Str      $.path;
     has Bool $!is-absolute;
-    has Str  $!abspath;  # should be native for faster file tests, but segfaults
+    has Str  $!abspath;
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {

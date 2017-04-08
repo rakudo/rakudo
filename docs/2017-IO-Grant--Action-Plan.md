@@ -942,6 +942,8 @@ implementation should be removed.
 With the `.umask` method gone, the `role IO` becomes empty, serving no purpose,
 and so it should be removed as well.
 
+The object that `does IO` are vastly different objects, with different interfaces,
+so there's no inherent benefit in unifying them with a role.
 
 ------------------------------
 

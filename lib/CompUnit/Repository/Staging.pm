@@ -9,7 +9,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         $!name
     }
     method path-spec(CompUnit::Repository::Staging:D:) {
-        self.^name ~ '#name(' ~ $!name ~ ')#' ~ $.prefix.abspath;
+        self.^name ~ '#name(' ~ $!name ~ ')#' ~ $.prefix.absolute;
     }
     method source-file(Str $name --> IO::Path) {
         my $file = self.prefix.child($name);

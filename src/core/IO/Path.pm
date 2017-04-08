@@ -51,10 +51,6 @@ my class IO::Path is Cool {
         die "Must specify something as a path: did you mean '.' for the current directory?";
     }
 
-
-    method abspath() {
-        $!abspath //= $!SPEC.rel2abs($!path,$!CWD);
-    }
     method is-absolute() {
         $!is-absolute //= $!SPEC.is-absolute($!path);
     }

@@ -5,8 +5,7 @@ multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
 }
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
     nqp::p6bool(
-      (my $elems := nqp::getattr($b.raw_hash,Map,'$!storage'))
-        && nqp::existskey($elems,$a.WHICH)
+      (my $elems := $b.raw_hash) && nqp::existskey($elems,$a.WHICH)
     )
 }
 multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
@@ -27,8 +26,7 @@ multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
 }
 multi sub infix:<(cont)>(QuantHash:D $a, Any $b --> Bool:D) {
     nqp::p6bool(
-      (my $elems := nqp::getattr($a.raw_hash,Map,'$!storage'))
-        && nqp::existskey($elems,$b.WHICH)
+      (my $elems := $a.raw_hash) && nqp::existskey($elems,$b.WHICH)
     )
 }
 multi sub infix:<(cont)>(Any $a, Any $b --> Bool:D) {
@@ -53,9 +51,9 @@ multi sub infix:<(|)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash),
       nqp::if(                                    # first is initialized
-        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        (my $braw := $b.raw_hash),
         nqp::stmts(                               # second is initialized
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -72,7 +70,7 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
         $a.Set                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.raw_hash,
         $b.Set,                                   # but second
         set()                                     # both empty
       )
@@ -81,9 +79,9 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
 
 multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash),
       nqp::if(                                    # first is initialized
-        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        (my $braw := $b.raw_hash),
         nqp::stmts(                               # second is initialized
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -109,7 +107,7 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
         $a.Mix                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.raw_hash,
         $b.Mix,                                   # but second
         mix()                                     # both empty
       )
@@ -120,9 +118,9 @@ multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { infix:<(|)>($a, $b.Mix) }
 multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { infix:<(|)>($a.Mix, $b) }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash),
       nqp::if(                                    # first is initialized
-        (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+        (my $braw := $b.raw_hash),
         nqp::stmts(                               # second is initialized
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -150,7 +148,7 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
         $a.Bag                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        nqp::getattr($b.raw_hash,Map,'$!storage'),
+        $b.raw_hash,
         $b.Bag,                                   # but second
         bag()                                     # both empty
       )
@@ -260,8 +258,7 @@ multi sub infix:<(&)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage'))
-        && (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash) && (my $braw := $b.raw_hash),
       nqp::stmts(                              # both are initialized
         nqp::if(
           nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -294,8 +291,7 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
 
 multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage'))
-        && (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash) && (my $braw := $b.raw_hash),
       nqp::stmts(                              # both are initialized
         nqp::if(
           nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -346,8 +342,7 @@ multi sub infix:<(&)>(Mixy:D $a, Baggy:D $b) { infix:<(&)>($a, $b.Mix) }
 multi sub infix:<(&)>(Baggy:D $a, Mixy:D $b) { infix:<(&)>($a.Mix, $b) }
 multi sub infix:<(&)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr($a.raw_hash,Map,'$!storage'))
-        && (my $braw := nqp::getattr($b.raw_hash,Map,'$!storage')),
+      (my $araw := $a.raw_hash) && (my $braw := $b.raw_hash),
       nqp::stmts(                            # both are initialized
         nqp::if(
           nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -743,10 +738,9 @@ only sub infix:<⊎>(|p) is pure {
 proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(
-      (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
+      (my $a := a.raw_hash),
       nqp::if(
-        (my $b := nqp::getattr(b.raw_hash,Map,'$!storage'))
-          && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
@@ -762,10 +756,9 @@ multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
+      (my $a := a.raw_hash),
       nqp::if(
-        (my $b := nqp::getattr(b.raw_hash,Map,'$!storage'))
-          && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
@@ -789,10 +782,9 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := nqp::getattr(a.raw_hash,Map,'$!storage')),
+      (my $a := a.raw_hash),
       nqp::if(
-        (my $b := nqp::getattr(b.raw_hash,Map,'$!storage'))
-          && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(

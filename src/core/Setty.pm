@@ -180,7 +180,7 @@ my role Setty does QuantHash {
     method Mix()     { self!BAGGIFY(Mix,     1) }
     method MixHash() { self!BAGGIFY(MixHash, 0) }
 
-    method raw_hash() is raw { %!elems }
+    method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

@@ -793,7 +793,7 @@ my role Baggy does QuantHash {
         )
     }
 
-    method raw_hash() is raw { %!elems }
+    method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {

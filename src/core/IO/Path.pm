@@ -329,6 +329,10 @@ my class IO::Path is Cool {
         );
     }
 
+    method concat-with (IO::Path:D: Str() \what) {
+        self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
+    }
+
     proto method chdir(|) { * }
     multi method chdir(IO::Path:D: Str() $path, :$test!) {
         DEPRECATED(

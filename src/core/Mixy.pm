@@ -37,9 +37,6 @@ my role Mixy does Baggy  {
         my $roller = Rakudo::Internals::WeightedRoll.new(self);
         map { $roller.roll }, 1 .. $count;
     }
-
-    method Bag()     { self!BAGGIFY(1) }
-    method BagHash() { self!BAGGIFY(0) }
 }
 
 # vim: ft=perl6 expandtab sw=4

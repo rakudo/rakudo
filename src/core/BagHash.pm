@@ -60,7 +60,7 @@ my class BagHash does Baggy {
     }
 
 #--- introspection methods
-    method Bag(:$view) {
+    method Bag(:$view) is nodal {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),
           nqp::p6bindattrinvres(
@@ -70,7 +70,7 @@ my class BagHash does Baggy {
           nqp::create(Bag)
         )
     }
-    method BagHash { self }
+    method BagHash() is nodal { self }
     method Mix {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),

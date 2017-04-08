@@ -727,6 +727,9 @@ my role Baggy does QuantHash {
         )
     }
 
+    method Bag() is nodal     { self!BAGGIFY(1) }
+    method BagHash() is nodal { self!BAGGIFY(0) }
+
     method raw_hash() is raw { %!elems }
 }
 

@@ -978,6 +978,7 @@ S32-io/indir.t
 S32-io/io-handle.t
 S32-io/socket-host-port-split.t
 S32-io/socket-fail-invalid-values.t
+S32-io/io-special.t
 S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t

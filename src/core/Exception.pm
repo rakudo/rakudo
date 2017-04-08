@@ -63,7 +63,10 @@ my class Exception {
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
-        $!ex := nqp::newexception() unless nqp::isconcrete($!ex);
+        unless nqp::isconcrete($!ex) {
+            $!ex := nqp::newexception();
+            try nqp::setmessage($!ex, self.message);
+        }
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }

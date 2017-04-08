@@ -9,7 +9,7 @@ class CompUnit::Repository::Java does CompUnit::Repository does CompUnit::Reposi
     {
         if $spec.from eq 'Java' {
             $!interop = nqp::jvmrakudointerop() unless nqp::isconcrete($!interop);
-            $!interop.addToClassPath($.prefix.abspath);
+            $!interop.addToClassPath($.prefix.absolute);
             my $jtype = $!interop.typeForName($spec.short-name.subst(/'::'/, '.', :g));
 
             # register the class by its name (cf. Inline::Perl5, nine++)

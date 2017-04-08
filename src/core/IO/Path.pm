@@ -9,7 +9,7 @@ my class IO::Path is Cool {
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
-        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.IO.abspath)));
+        nqp::p6bool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
@@ -173,12 +173,12 @@ my class IO::Path is Cool {
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
         $!is-absolute
-          ?? qq|"$.abspath".IO|
+          ?? qq|"$.absolute".IO|
           !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
         $!is-absolute  # attribute now set
-          ?? "{$.abspath.perl}.IO({:$!SPEC.perl})"
+          ?? "{$.absolute.perl}.IO({:$!SPEC.perl})"
           !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
     }
 
@@ -202,20 +202,22 @@ my class IO::Path is Cool {
 
 #?if moar
     method watch(IO::Path:D:) {
-        IO::Notification.watch-path($.abspath);
+        IO::Notification.watch-path($.absolute);
     }
 #?endif
 
     proto method absolute(|) { * }
-    multi method absolute (IO::Path:D:) { $.abspath }
+    multi method absolute (IO::Path:D:) {
+        $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
+    }
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute
-          ?? $.abspath
+          ?? self.absolute
           !! $!SPEC.rel2abs($!path, $CWD);
     }
 
     method relative (IO::Path:D: $CWD = $*CWD) {
-        $!SPEC.abs2rel($.abspath, $CWD);
+        $!SPEC.abs2rel($.absolute, $CWD);
     }
 
     method cleanup (IO::Path:D:) {
@@ -346,7 +348,7 @@ my class IO::Path is Cool {
         IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
     ) {
         unless $!SPEC.is-absolute($path) {
-            my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);
+            my ($volume,$dirs) = $!SPEC.splitpath(self.absolute, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);
             @dirs.shift; # the first is always empty for absolute dirs
             for $!SPEC.splitdir($path) -> $dir {
@@ -389,15 +391,15 @@ my class IO::Path is Cool {
     multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {
             fail X::IO::Rename.new(
-              :from($.abspath),
+              :from($.absolute),
               :$to,
               :os-error(':createonly specified and destination exists'),
             );
         }
-        nqp::rename($.abspath, nqp::unbox_s($to.abspath));
+        nqp::rename($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
             fail X::IO::Rename.new(
-              :from($!abspath), :to($to.abspath), :os-error(.Str) );
+              :from($!abspath), :to($to.absolute), :os-error(.Str) );
         } }
         True;
     }
@@ -409,12 +411,12 @@ my class IO::Path is Cool {
     multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
         if $createonly and $to.e {
             fail X::IO::Copy.new(
-              :from($.abspath),
+              :from($.absolute),
               :$to,
               :os-error(':createonly specified and destination exists'),
             );
         }
-        nqp::copy($.abspath, nqp::unbox_s($to.abspath));
+        nqp::copy($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
             fail X::IO::Copy.new(
               :from($!abspath), :$to, :os-error(.Str) );
@@ -446,7 +448,7 @@ my class IO::Path is Cool {
     }
 
     method chmod(IO::Path:D: Int() $mode) {
-        nqp::chmod($.abspath, nqp::unbox_i($mode));
+        nqp::chmod($.absolute, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
               :path($!abspath), :$mode, :os-error(.Str) );
@@ -454,7 +456,7 @@ my class IO::Path is Cool {
         True;
     }
     method unlink(IO::Path:D:) {
-        nqp::unlink($.abspath);
+        nqp::unlink($.absolute);
         CATCH { default {
             fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
         } }
@@ -463,7 +465,7 @@ my class IO::Path is Cool {
 
     method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
         $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::symlink(nqp::unbox_s($name), $.abspath);
+        nqp::symlink(nqp::unbox_s($name), $.absolute);
         CATCH { default {
             fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
         } }
@@ -472,7 +474,7 @@ my class IO::Path is Cool {
 
     method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
         $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::link(nqp::unbox_s($name), $.abspath);
+        nqp::link(nqp::unbox_s($name), $.absolute);
         CATCH { default {
             fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
         } }
@@ -480,7 +482,7 @@ my class IO::Path is Cool {
     }
 
     method mkdir(IO::Path:D: $mode = 0o777) {
-        nqp::mkdir($.abspath, $mode);
+        nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
@@ -488,7 +490,7 @@ my class IO::Path is Cool {
     }
 
     method rmdir(IO::Path:D:) {
-        nqp::rmdir($.abspath);
+        nqp::rmdir($.absolute);
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
         } }
@@ -505,15 +507,15 @@ my class IO::Path is Cool {
 
         CATCH { default {
             fail X::IO::Dir.new(
-              :path($.abspath), :os-error(.Str) );
+              :path($.absolute), :os-error(.Str) );
         } }
 
         my str $dir-sep  = $!SPEC.dir-sep;
         my int $relative = !$absolute && !$.is-absolute;
 
-        my str $abspath = $.abspath.ends-with($dir-sep)
-          ?? $.abspath
-          !! $.abspath ~ $dir-sep;
+        my str $abspath = $.absolute.ends-with($dir-sep)
+          ?? $.absolute
+          !! $.absolute ~ $dir-sep;
 
         my str $path = $!path eq '.' || $!path eq $dir-sep
           ?? ''
@@ -521,7 +523,7 @@ my class IO::Path is Cool {
             ?? $!path
             !! $!path ~ $dir-sep;
 
-        my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
+        my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
 #?if jvm
             for <. ..> -> $elem {
@@ -564,7 +566,7 @@ my class IO::Path is Cool {
 
         # clean call, try the fast way
         if nqp::iseq_i(nqp::elems(nqp::getattr(%_,Map,'$!storage')),0)
-            && nqp::open(self.abspath,"r") -> $PIO {
+            && nqp::open(self.absolute,"r") -> $PIO {
             LEAVE nqp::closefh(nqp::decont($PIO));
             nqp::p6box_s(nqp::readallfh(nqp::decont($PIO)))
         }
@@ -579,7 +581,7 @@ my class IO::Path is Cool {
             if %_<bin> {
                 my $res;
                 # normal file
-                if Rakudo::Internals.FILETEST-S(self.abspath) -> int $size {
+                if Rakudo::Internals.FILETEST-S(self.absolute) -> int $size {
                     $res := nqp::readfh($PIO,buf8.new,$size)
                 }
                 # spooky file with zero size?
@@ -645,7 +647,7 @@ my class IO::Path is Cool {
     }
 
     method e(--> Bool:D) {
-        ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath
+        ?Rakudo::Internals.FILETEST-E($.absolute) # must be $.absolute
     }
     method d(--> Bool:D) {
         $.e
@@ -666,7 +668,7 @@ my class IO::Path is Cool {
     }
 
     method l(--> Bool:D) {
-        ?Rakudo::Internals.FILETEST-LE($.abspath)
+        ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<l>))
     }

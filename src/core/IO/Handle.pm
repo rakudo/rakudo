@@ -108,7 +108,7 @@ my class IO::Handle {
         {
             CATCH { .fail }
             $!PIO := nqp::open(
-                $!path.abspath,
+                $!path.absolute,
                 nqp::concat(
                     nqp::if(
                         nqp::iseq_s($mode, 'ro'), 'r',

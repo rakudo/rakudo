@@ -1456,7 +1456,7 @@ my class Rakudo::Internals {
                           nqp::if(
                             nqp::fileislink($path),
                             $path = IO::Path.new(
-                              $path,:CWD($!abspath)).resolve.abspath
+                              $path,:CWD($!abspath)).resolve.absolute
                           ),
                           nqp::unless(
                             nqp::existskey($!seen,$path),

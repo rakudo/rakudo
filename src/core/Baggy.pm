@@ -730,6 +730,42 @@ my role Baggy does QuantHash {
     method Bag() is nodal     { self!BAGGIFY(1) }
     method BagHash() is nodal { self!BAGGIFY(0) }
 
+    method !MIXIFY(int $bind) {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(                             # something to coerce
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($tmp)),
+                  Pair,
+                  '$!value',
+                  nqp::if(
+                    $bind,
+                    nqp::decont(
+                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value')
+                    ),
+                    (nqp::p6scalarfromdesc(nqp::null) =
+                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
+                  )
+                )
+              )
+            ),
+            nqp::create(nqp::if($bind,Mix,MixHash)).SET-SELF($elems)
+          ),
+          nqp::create(nqp::if($bind,Mix,MixHash))  # nothing to coerce
+        )
+    }
+
+    method Mix() is nodal     { self!MIXIFY(1) }
+    method MixHash() is nodal { self!MIXIFY(0) }
+
     method raw_hash() is raw { %!elems }
 }
 

@@ -71,14 +71,14 @@ my class BagHash does Baggy {
         )
     }
     method BagHash() is nodal { self }
-    method Mix {
+    method Mix() is nodal {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),
           nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),
           nqp::create(Mix)
         )
     }
-    method MixHash { MixHash.new-from-pairs(%!elems.values) }
+
     method clone(BagHash:D:) { self.new-from-pairs(self.pairs) }
 }
 

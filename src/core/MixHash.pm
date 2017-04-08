@@ -60,7 +60,7 @@ my class MixHash does Mixy {
     }
 
 #--- coercion methods
-    method Mix(:$view) {
+    method Mix(:$view) is nodal {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),
           nqp::p6bindattrinvres(
@@ -70,7 +70,8 @@ my class MixHash does Mixy {
           nqp::create(Mix)
         )
     }
-    method MixHash { self }
+    method MixHash() is nodal { self }
+
     method clone(MixHash:D:) { self.new-from-pairs(self.pairs) }
 }
 

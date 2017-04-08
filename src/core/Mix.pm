@@ -32,33 +32,7 @@ my class Mix does Mixy {
     }
 
 #--- coercion methods
-    method Mix() { self }
-    method MixHash() {
-        nqp::if(
-          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($raw),
-          nqp::stmts(                             # something to coerce
-            (my $elems := nqp::clone($raw)),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::bindkey(
-                $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
-                nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval($tmp)),
-                  Pair,
-                  '$!value',
-                  (nqp::p6scalarfromdesc(nqp::null) =
-                    nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
-                )
-              )
-            ),
-            nqp::create(MixHash).SET-SELF($elems)
-          ),
-          nqp::create(MixHash)                    # nothing to coerce
-        )
-    }
+    method Mix() is nodal { self }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

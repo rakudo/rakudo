@@ -217,9 +217,7 @@ my class IO::Spec::Unix is IO::Spec {
     method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 
-    method abs2rel( $path is copy, $base is copy = Str ) {
-        $base = $*CWD unless $base;
-
+    method abs2rel( $path is copy, $base is copy = $*CWD ) {
         if self.is-absolute($path) || self.is-absolute($base) {
             $path = self.rel2abs( $path );
             $base = self.rel2abs( $base );

@@ -1,6 +1,6 @@
 my class IO::Spec::Cygwin is IO::Spec::Unix {
 
-    method canonpath (Cool:D $patharg, :$parent) {
+    method canonpath ($patharg, :$parent) {
         my $path = $patharg.Str;
         $path.=subst(:g, '\\', '/');
 

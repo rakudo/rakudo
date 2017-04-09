@@ -736,16 +736,16 @@ my class IO::Path is Cool {
 }
 
 my class IO::Path::Cygwin is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
 }
 my class IO::Path::QNX is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::QNX) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
 }
 my class IO::Path::Unix is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Unix) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
 }
 my class IO::Path::Win32 is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Win32) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
 }
 
 # vim: ft=perl6 expandtab sw=4

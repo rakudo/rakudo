@@ -120,8 +120,13 @@ my role Setty does QuantHash {
         nqp::if(
           $!elems,
           nqp::stmts(
-            (my $value :=
-              nqp::atkey($!elems,(my $key := self.hll_hash.keys.pick))),
+            (my $value := nqp::atkey(
+              $!elems,
+              (my $key := nqp::atpos_s(
+                self.raw_keys,
+                nqp::elems($!elems).rand.floor
+              ))
+            )),
             nqp::deletekey($!elems,$key),
             $value
           ),
@@ -137,7 +142,7 @@ my role Setty does QuantHash {
 
     proto method grabpairs(|) { * }
     multi method grabpairs(Setty:D:) {
-        Pair.new(self.hll_hash.DELETE-KEY(self.hll_hash.keys.pick),True)
+        Pair.new(self.grab,True)
     }
     multi method grabpairs(Setty:D: Callable:D $calculate) {
         self.grabpairs($calculate(self.elems))
@@ -147,7 +152,16 @@ my role Setty does QuantHash {
     }
 
     proto method pick(|) { * }
-    multi method pick(Setty:D:)       { self.hll_hash.values.pick()       }
+    multi method pick(Setty:D:) {
+        nqp::if(
+          $!elems,
+          nqp::atkey(
+            $!elems,
+            nqp::atpos_s(self.raw_keys,nqp::elems($!elems).rand.floor)
+          ),
+          Nil
+        )
+    }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.hll_hash.values.pick($calculate(self.elems))
     }

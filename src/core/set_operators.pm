@@ -604,9 +604,7 @@ multi sub infix:<eqv>(Setty:D \a, Setty:D \b) {
     nqp::p6bool(
       nqp::unless(
         nqp::eqaddr(a,b),
-        nqp::eqaddr(a.WHAT,b.WHAT)
-          && nqp::getattr(nqp::decont(a),a.WHAT,'%!elems')
-               eqv nqp::getattr(nqp::decont(b),b.WHAT,'%!elems')
+        nqp::eqaddr(a.WHAT,b.WHAT) && a.hll_hash eqv b.hll_hash
       )
     )
 }

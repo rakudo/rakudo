@@ -1,11 +1,11 @@
 my role Setty does QuantHash {
-    has %!elems; # key.WHICH => key
+    has $!elems; # key.WHICH => key
 
     method SET-SELF(\elems) {
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
-            nqp::bindattr(%!elems,Map,'$!storage',elems)
+            ($!elems := elems)
           ),
           self
         )
@@ -57,11 +57,15 @@ my role Setty does QuantHash {
     method default(--> False) { }
 
     multi method keys(Setty:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-values(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-values(self.hll_hash))
     }
 
-    method elems(Setty:D: --> Int:D) { %!elems.elems }
-    method total(Setty:D: --> Int:D) { %!elems.elems }
+    method elems(Setty:D: --> Int:D) {
+        nqp::istrue($!elems) && nqp::elems($!elems)
+    }
+    method total(Setty:D: --> Int:D) {
+        nqp::istrue($!elems) && nqp::elems($!elems)
+    }
     multi method antipairs(Setty:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
@@ -71,15 +75,17 @@ my role Setty does QuantHash {
                 IterationEnd
               )
             }
-        }.new(%!elems))
+        }.new(self.hll_hash))
     }
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }
-    multi method Bool(Setty:D:) { %!elems.Bool }
+    multi method Bool(Setty:D:) {
+        nqp::p6bool(nqp::istrue($!elems) && nqp::elems($!elems))
+    }
 
     multi method hash(Setty:D: --> Hash:D) {
         my \e = Hash.^parameterize(Bool, Any).new;
-        e{$_} = True for %!elems.values;
+        e{$_} = True for self.hll_hash.values;
         e;
     }
 
@@ -93,67 +99,73 @@ my role Setty does QuantHash {
         $other (<=) self && self (<=) $other
     }
 
-    multi method Str(Setty:D $ : --> Str:D) { ~ %!elems.values }
+    multi method Str(Setty:D $ : --> Str:D) { ~ self.hll_hash.values }
     multi method gist(Setty:D $ : --> Str:D) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
-        ~ %!elems.values.map( {.gist} ).join(', ')
+        ~ self.hll_hash.values.map( {.gist} ).join(', ')
         ~ ')';
     }
     multi method perl(Setty:D $ : --> Str:D) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )
         ~ '('
-        ~ %!elems.values.map( {.perl} ).join(',')
+        ~ self.hll_hash.values.map( {.perl} ).join(',')
         ~ ')';
     }
 
     proto method grab(|) { * }
     multi method grab(Setty:D:) {
-        %!elems.DELETE-KEY(%!elems.keys.pick)
+        nqp::if(
+          $!elems,
+          nqp::stmts(
+            (my $value :=
+              nqp::atkey($!elems,(my $key := self.hll_hash.keys.pick))),
+            nqp::deletekey($!elems,$key),
+            $value
+          ),
+          Nil
+        )
     }
     multi method grab(Setty:D: Callable:D $calculate) {
-        self.grab($calculate(%!elems.elems))
+        self.grab($calculate(self.elems))
     }
     multi method grab(Setty:D: $count) {
-        (%!elems{ %!elems.keys.pick($count) }:delete).cache;
+        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).cache;
     }
 
     proto method grabpairs(|) { * }
     multi method grabpairs(Setty:D:) {
-        Pair.new(%!elems.DELETE-KEY(%!elems.keys.pick),True)
+        Pair.new(self.hll_hash.DELETE-KEY(self.hll_hash.keys.pick),True)
     }
     multi method grabpairs(Setty:D: Callable:D $calculate) {
-        self.grabpairs($calculate(%!elems.elems))
+        self.grabpairs($calculate(self.elems))
     }
     multi method grabpairs(Setty:D: $count) {
-        (%!elems{ %!elems.keys.pick($count) }:delete).map( { ($_=>True) } );
+        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).map( { ($_=>True) } );
     }
 
     proto method pick(|) { * }
-    multi method pick(Setty:D:)       { %!elems.values.pick()       }
+    multi method pick(Setty:D:)       { self.hll_hash.values.pick()       }
     multi method pick(Setty:D: Callable:D $calculate) {
-        %!elems.values.pick($calculate(%!elems.elems))
+        self.hll_hash.values.pick($calculate(self.elems))
     }
-    multi method pick(Setty:D: $count) { %!elems.values.pick($count) }
+    multi method pick(Setty:D: $count) { self.hll_hash.values.pick($count) }
 
     proto method roll(|) { * }
-    multi method roll(Setty:D:)       { %!elems.values.roll()       }
-    multi method roll(Setty:D: $count) { %!elems.values.roll($count) }
+    multi method roll(Setty:D:)       { self.hll_hash.values.roll()       }
+    multi method roll(Setty:D: $count) { self.hll_hash.values.roll($count) }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
-        nqp::p6bool(
-          nqp::getattr(%!elems,Map,'$!storage')
-            && nqp::existskey(nqp::getattr(%!elems,Map,'$!storage'),k.WHICH)
-        )
+        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
 
     method !BAGGIFY(\type, int $bind) {
         nqp::if(
-          nqp::getattr(%!elems,Map,'$!storage'),
+          $!elems,
           nqp::stmts(
-            (my $elems := nqp::clone(nqp::getattr(%!elems,Map,'$!storage'))),
+            (my $elems := nqp::clone($!elems)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
@@ -180,7 +192,10 @@ my role Setty does QuantHash {
     method Mix()     { self!BAGGIFY(Mix,     1) }
     method MixHash() { self!BAGGIFY(MixHash, 0) }
 
-    method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
+    method raw_hash() is raw { $!elems }
+    method hll_hash() is raw {
+        nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$!elems)
+    }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

@@ -9,7 +9,7 @@ my class Set does Setty {
             nqp::istype(self.WHAT,Set),
             'Set|',
             nqp::concat(self.^name,'|')
-          ) ~ %!elems.keys.sort
+          ) ~ self.hll_hash.keys.sort
         )
     }
 
@@ -22,7 +22,7 @@ my class Set does Setty {
                 IterationEnd
               )
             }
-        }.new(%!elems)
+        }.new(self.hll_hash)
     }
 
     multi method kv(Set:D:) {
@@ -63,7 +63,7 @@ my class Set does Setty {
                   nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
                 )
             }
-        }.new(%!elems))
+        }.new(self.hll_hash))
     }
     multi method values(Set:D:) { True xx self.total }
 
@@ -80,7 +80,7 @@ my class Set does Setty {
     method clone() { nqp::clone(self) }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
-        %!elems.EXISTS-KEY(k.WHICH);
+        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(typename => self.^name).throw;

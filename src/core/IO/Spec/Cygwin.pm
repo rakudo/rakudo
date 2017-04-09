@@ -1,6 +1,6 @@
 my class IO::Spec::Cygwin is IO::Spec::Unix {
 
-    method canonpath (Cool:D $patharg) {
+    method canonpath (Cool:D $patharg, :$parent) {
         my $path = $patharg.Str;
         $path.=subst(:g, '\\', '/');
 
@@ -9,7 +9,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         if $path ~~ s/^ ('//' <-[/]>+) [ '/' | $ ] /\// { #/
             $node = ~$0;
         }
-        $node ~ IO::Spec::Unix.canonpath($path);
+        $node ~ IO::Spec::Unix.canonpath($path, :$parent);
     }
 
     method catdir ( *@paths ) {

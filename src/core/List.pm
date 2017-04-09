@@ -1207,7 +1207,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::if(
               $!reified.DEFINITE,
               Rakudo::Iterator.ReifiedList(
-                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
                     nqp::create(List),List,'$!reified',
                     nqp::clone(nqp::getattr(self,List,'$!reified'))
@@ -1238,18 +1238,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               Rakudo::Iterator.ReifiedList(
                 nqp::if(
                   nqp::eqaddr(&by,&infix:<cmp>),
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                     nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                       nqp::clone(nqp::getattr(self,List,'$!reified')))
                   ),
                   nqp::if(
                     &by.count < 2,
-                    Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
                       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                         nqp::getattr(self,List,'$!reified')),
                       &by
                     ),
-                    Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
                       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                         nqp::clone(nqp::getattr(self,List,'$!reified'))),
                       &by

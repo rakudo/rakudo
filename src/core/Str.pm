@@ -1783,7 +1783,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # sort by position if more than one needle fired
         $positions := nqp::getattr(
-          Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+          Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
             nqp::p6bindattrinvres(
               nqp::create(List),List,'$!reified',$positions
             ),

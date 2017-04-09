@@ -1419,7 +1419,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           ),
           Seq.new(
             Rakudo::Iterator.ReifiedList(
-              Rakudo::Internals.MERGESORT-REIFIED-LIST(
+              Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                 nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
               )
             )
@@ -1440,18 +1440,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Rakudo::Iterator.ReifiedList(
               nqp::if(
                 nqp::eqaddr(&by,&infix:<cmp>),
-                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
                     nqp::create(List),List,'$!reified',$list)
                 ),
                 nqp::if(
                   &by.count < 2,
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
                     nqp::p6bindattrinvres(
                       nqp::create(List),List,'$!reified',$list),
                     &by
                   ),
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
                     nqp::p6bindattrinvres(
                       nqp::create(List),List,'$!reified',$list),
                     &by

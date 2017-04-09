@@ -249,14 +249,13 @@ my class IO::Path is Cool {
             # Normal part, set as next path to test
             my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
 
-            # Path part doesn't exist; handle rest in non-resolving mode
+            # Path part doesn't exist, so bail out
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
-                $resolved = $next;
-                while $parts {
-                    $part = nqp::shift($parts);
-                    next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
-                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
-                }
+                fail X::IO::DoesNotExist.new(
+                    :path($next),
+                    :trying('resolve'),
+                    :os-error("path part doesn't exist"),
+                );
             }
             # Symlink; read it and act on absolute or relative link
             elsif nqp::fileislink($next) {

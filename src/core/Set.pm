@@ -9,7 +9,9 @@ my class Set does Setty {
             nqp::istype(self.WHAT,Set),
             'Set|',
             nqp::concat(self.^name,'|')
-          ) ~ self.hll_hash.keys.sort
+          ) ~ nqp::sha1(
+               nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys))
+            )
         )
     }
 

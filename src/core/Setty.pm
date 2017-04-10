@@ -84,9 +84,30 @@ my role Setty does QuantHash {
     }
 
     multi method hash(Setty:D: --> Hash:D) {
-        my \e = Hash.^parameterize(Bool, Any).new;
-        e{$_} = True for self.hll_hash.values;
-        e;
+        nqp::stmts(
+          (my $hash := Hash.^parameterize(Bool,Any).new),
+          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          nqp::if(
+            $!elems,
+            nqp::stmts(
+              (my $storage := nqp::clone($!elems)),
+              (my $iter := nqp::iterator($storage)),
+              nqp::while(
+                $iter,
+                nqp::bindkey(
+                  $storage,
+                  nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                  Pair.new(
+                    nqp::iterval($tmp),
+                    (nqp::p6scalarfromdesc($descriptor) = True)
+                  )
+                )
+              ),
+              nqp::bindattr($hash,Map,'$!storage',$storage)
+            )
+          ),
+          $hash
+        )
     }
 
     multi method ACCEPTS(Setty:U: $other) {

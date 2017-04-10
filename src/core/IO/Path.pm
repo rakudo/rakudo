@@ -710,9 +710,7 @@ my class IO::Path is Cool {
 
     method z(--> Bool:D) {
         $.e
-          ?? $.f
-            ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
-            !! Failure.new( X::IO::NotAFile.new(:path(~self),:trying<z>))
+          ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<z>))
     }
 

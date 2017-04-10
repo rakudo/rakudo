@@ -993,6 +993,7 @@ S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
+S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t

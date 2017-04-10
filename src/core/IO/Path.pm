@@ -15,7 +15,12 @@ my class IO::Path is Cool {
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
         nqp::unless($!path,
             die "Must specify something as a path: did you mean '.' for the current directory?"
-        )
+        );
+        nqp::if(
+               nqp::isne_i(nqp::index($!path, "\0"), -1)
+            || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
+            X::IO::Null.new.throw
+        );
     }
 
     method new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {

@@ -490,6 +490,12 @@ my class X::IO::NotAFile does X::IO {
     }
 }
 
+my class X::IO::Null does X::IO {
+    method message() {
+        "Cannot use null character (U+0000) as part of the path"
+    }
+}
+
 my class X::IO::Directory does X::IO {
     has $.path;
     has $.trying;

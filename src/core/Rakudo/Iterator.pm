@@ -71,8 +71,8 @@ class Rakudo::Iterator {
         }
         method new(\hash) {
             nqp::if(
-              (nqp::getattr(hash,Map,'$!storage').DEFINITE
-                && nqp::elems(nqp::getattr(hash,Map,'$!storage'))),
+              nqp::getattr(hash,Map,'$!storage')
+                && nqp::elems(nqp::getattr(hash,Map,'$!storage')),
               nqp::create(self).SET-SELF(hash),
               Rakudo::Iterator.Empty   # nothing to iterate
             )

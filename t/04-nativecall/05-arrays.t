@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 38;
+plan 39;
 
 compile_test_lib('05-arrays');
 
@@ -150,6 +150,13 @@ compile_test_lib('05-arrays');
     my @arg = 1..3;
     is-deeply CArray[uint8].new(@arg)[^3], (1, 2, 3),
         'creating CArray with one Positional positional works';
+}
+
+# RT #130267
+{
+    my CArray[uint8] $a .= new(200 xx 16);
+    todo "RT #130267";
+    is $a[0], 200, 'unsigned uint8 value';
 }
 
 # vim:ft=perl6

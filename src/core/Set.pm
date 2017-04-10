@@ -76,8 +76,16 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method Set() is nodal     { self                   }
-    method SetHash() is nodal { SetHash.new(self.keys) }
+    method Set() is nodal { self }
+    method SetHash() is nodal {
+        nqp::if(
+          $!elems,
+          nqp::p6bindattrinvres(
+            nqp::create(SetHash),SetHash,'$!elems',$!elems.clone
+          ),
+          nqp::create(SetHash)
+        )
+    }
 
     method clone() { nqp::clone(self) }
 

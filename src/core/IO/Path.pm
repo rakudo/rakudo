@@ -224,7 +224,7 @@ my class IO::Path is Cool {
     method cleanup (IO::Path:D:) {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
-    method resolve (IO::Path:D:) {
+    method resolve (IO::Path:D: :$completely) {
         # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
@@ -254,8 +254,12 @@ my class IO::Path is Cool {
             # Normal part, set as next path to test
             my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
 
-            # Path part doesn't exist; handle rest in non-resolving mode
+            # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+                # fail() if we were asked for complete resolution...
+                $completely and X::IO::Resolve.new(:path(self)).fail;
+
+                # ...or handle rest in non-resolving mode if not
                 $resolved = $next;
                 while $parts {
                     $part = nqp::shift($parts);

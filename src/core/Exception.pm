@@ -551,6 +551,11 @@ my class X::IO::Cwd does X::IO {
     }
 }
 
+my class X::IO::Resolve does X::IO {
+    has $.path;
+    method message() { "Failed to completely resolve {$.path.perl}" }
+}
+
 my class X::IO::Rmdir does X::IO {
     has $.path;
     method message() {

@@ -41,14 +41,14 @@ my role Baggy does QuantHash {
           nqp::while(
             $iter,
             nqp::if(
-              nqp::isle_i(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+              nqp::isle_I(
+                nqp::decont(nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
                 0
               ),
               nqp::stmts(
                 nqp::if(
-                  nqp::islt_i(
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                  nqp::islt_I(
+                    nqp::decont(nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
                     0
                   ),
                   nqp::push($low,nqp::getattr(nqp::iterval($iter),Pair,'$!key'))
@@ -793,7 +793,7 @@ my role Baggy does QuantHash {
         )
     }
 
-    method raw_hash() is raw { %!elems }
+    method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {

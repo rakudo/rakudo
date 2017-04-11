@@ -15,7 +15,12 @@ my class IO::Path is Cool {
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
         nqp::unless($!path,
             die "Must specify something as a path: did you mean '.' for the current directory?"
-        )
+        );
+        nqp::if(
+               nqp::isne_i(nqp::index($!path, "\0"), -1)
+            || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
+            X::IO::Null.new.throw
+        );
     }
 
     method new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
@@ -219,7 +224,7 @@ my class IO::Path is Cool {
     method cleanup (IO::Path:D:) {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
-    method resolve (IO::Path:D:) {
+    method resolve (IO::Path:D: :$completely) {
         # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
@@ -249,8 +254,12 @@ my class IO::Path is Cool {
             # Normal part, set as next path to test
             my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
 
-            # Path part doesn't exist; handle rest in non-resolving mode
+            # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+                # fail() if we were asked for complete resolution...
+                $completely and X::IO::Resolve.new(:path(self)).fail;
+
+                # ...or handle rest in non-resolving mode if not
                 $resolved = $next;
                 while $parts {
                     $part = nqp::shift($parts);
@@ -701,9 +710,7 @@ my class IO::Path is Cool {
 
     method z(--> Bool:D) {
         $.e
-          ?? $.f
-            ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
-            !! Failure.new( X::IO::NotAFile.new(:path(~self),:trying<z>))
+          ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<z>))
     }
 
@@ -736,16 +743,16 @@ my class IO::Path is Cool {
 }
 
 my class IO::Path::Cygwin is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
 }
 my class IO::Path::QNX is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::QNX) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
 }
 my class IO::Path::Unix is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Unix) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
 }
 my class IO::Path::Win32 is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Win32) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
 }
 
 # vim: ft=perl6 expandtab sw=4

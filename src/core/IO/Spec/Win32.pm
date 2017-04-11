@@ -20,7 +20,6 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method dir-sep        { '\\' }
     method splitdir($dir) { $dir.split($slash)  }
-    method catfile(|c)    { self.catdir(|c)     }
     method devnull        { 'nul'               }
     method rootdir        { '\\'                }
 

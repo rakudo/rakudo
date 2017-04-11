@@ -692,8 +692,8 @@ my class IO::Handle {
 #?endif
     }
 
-    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS, :$bin --> Supply:D) {
-        if $bin {
+    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+        if nqp::iseq_s($!encoding, 'bin') { # handle is in binary mode
             supply {
                 my $buf := self.read($size);
                 nqp::while(

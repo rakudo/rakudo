@@ -226,8 +226,10 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
-    private static final CallSiteDescriptor bindThrower = new CallSiteDescriptor(
-        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
+    private static final CallSiteDescriptor bindParamThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
+            CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ
+        }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
@@ -417,7 +419,7 @@ public final class Binder {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
-                            error[1] = bindThrower;
+                            error[1] = bindParamThrower;
                             error[2] = new Object[] { decontValue, nomType.st.WHAT,
                                 (varName != null ? varName : "<anon>"), param };
                         }

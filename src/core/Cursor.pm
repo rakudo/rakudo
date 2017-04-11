@@ -1,20 +1,13 @@
-my class Cursor does NQPCursorRole {
-    has $!made; # Need it to survive re-creations of the match object.
+my class OldMatch { }
+
+my class Match is Capture does NQPMatchRole {
+#    has $!made; # Need it to survive re-creations of the match object.
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
 
-    multi method Bool(Cursor:D:) {
-        nqp::p6bool(
-          nqp::isge_i(
-            nqp::getattr_i(self, Cursor, '$!pos'),
-            nqp::getattr_i(self, Cursor, '$!from')
-          )
-        )
-    }
-
     method STR() {
         nqp::if(
-          nqp::istype((my $match := nqp::getattr(self,Cursor,'$!match')),Match)
+          nqp::istype((my $match := nqp::getattr(self,Match,'$!match')),Match)
             && nqp::isconcrete($match),
           $match.Str,
           self!MATCH.Str
@@ -23,7 +16,7 @@ my class Cursor does NQPCursorRole {
 
     method MATCH() {
         nqp::if(
-          nqp::istype((my $match := nqp::getattr(self,Cursor,'$!match')),Match)
+          nqp::istype((my $match := nqp::getattr(self,Match,'$!match')), OldMatch)
             && nqp::isconcrete($match),
           $match,
           self!MATCH
@@ -31,20 +24,15 @@ my class Cursor does NQPCursorRole {
     }
 
     method !MATCH() {
-        my $match := nqp::create(Match);
-        nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
-        my int $from = nqp::getattr_i(self, Cursor, '$!from');
-        my int $to   = nqp::getattr_i(self, Cursor, '$!pos');
-        nqp::bindattr_i($match, Match, '$!from', $from);
-        nqp::bindattr_i($match, Match, '$!to', $to);
-        nqp::bindattr($match, Match, '$!made', nqp::getattr(self, Cursor, '$!made'));
-        nqp::bindattr($match, Match, '$!CURSOR', self);
+        my $match := nqp::create(OldMatch);
+        my int $from = nqp::getattr_i(self, Match, '$!from');
+        my int $to   = nqp::getattr_i(self, Match, '$!pos');
         my Mu $list;
         my Mu $hash := nqp::hash();
         if nqp::isge_i($to, $from) {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
-            my $rxsub   := nqp::getattr(self, Cursor, '$!regexsub');
+            my $rxsub   := nqp::getattr(self, Match, '$!regexsub');
             my str $onlyname  = '';
             my int $namecount = 0;
 
@@ -70,8 +58,8 @@ my class Cursor does NQPCursorRole {
                 }
             }
 
-            # Walk the Cursor stack and populate the Cursor.
-            my Mu $cs := nqp::getattr(self, Cursor, '$!cstack');
+            # Walk the capture stack and populate the Match.
+            my Mu $cs := nqp::getattr(self, Match, '$!cstack');
             if nqp::isnull($cs) || nqp::not_i(nqp::istrue($cs)) {}
 #?if !jvm
             elsif nqp::not_i(nqp::istrue($caplist)) {}
@@ -150,18 +138,18 @@ my class Cursor does NQPCursorRole {
                 }
             }
         }
-        nqp::bindattr($match, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
-        nqp::bindattr($match, Capture, '%!hash', $hash);
-        nqp::bindattr(self, Cursor, '$!match', $match);
+        nqp::bindattr(self, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
+        nqp::bindattr(self, Capture, '%!hash', $hash);
+        nqp::bindattr(self, Match, '$!match', $match);
 
         # Once we've produced the captures, and if we know we're finished and
         # will never be backtracked into, we can release cstack and regexsub.
-        unless nqp::defined(nqp::getattr(self, Cursor, '$!bstack')) {
-            nqp::bindattr(self, Cursor, '$!cstack', nqp::null());
-            nqp::bindattr(self, Cursor, '$!regexsub', nqp::null());
+        unless nqp::defined(nqp::getattr(self, Match, '$!bstack')) {
+            nqp::bindattr(self, Match, '$!cstack', nqp::null());
+            nqp::bindattr(self, Match, '$!regexsub', nqp::null());
         }
 
-        $match;
+        self;
     }
 
     method CURSOR_NEXT() {   # from !cursor_next in nqp
@@ -386,7 +374,7 @@ my class Cursor does NQPCursorRole {
                 }
             }
 
-            nqp::istype($maxmatch,Cursor)
+            nqp::istype($maxmatch, Match)
               ?? $maxmatch
               !! nqp::isge_i($maxlen,0)
                 ?? $cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
@@ -458,6 +446,109 @@ my class Cursor does NQPCursorRole {
             $rx
         }
     }
+
+    method new(:$orig,:$from,:$pos,:$made) {
+        self!cursor_init($orig, :p($pos));
+        nqp::bindattr(self, Match, '$!from', $from // 0);  # cannot assign to int in sig
+    }
+
+    multi method WHICH (Match:D:) {
+        self.Mu::WHICH # skip Capture's as Match is not a value type
+    }
+
+    method ast(Match:D:) { $!made }
+
+    multi method Numeric(Match:D:) {
+        self.Str.Numeric
+    }
+    multi method ACCEPTS(Match:D: Any $) { self }
+
+    method prematch(Match:D:) {
+        nqp::substr(self.orig,0,$!from)
+    }
+    method postmatch(Match:D:) {
+        nqp::substr(self.orig,$!pos)
+    }
+
+    method caps(Match:D:) {
+        my @caps;
+        for self.pairs -> $p {
+            if nqp::istype($p.value,Array) {
+                @caps.push: $p.key => $_ for $p.value.list
+            } elsif $p.value.DEFINITE {
+                @caps.push: $p
+            }
+        }
+        @caps.sort: -> $a { $a.value.from +< 32 + $a.value.pos }
+    }
+
+    method chunks(Match:D:) {
+        my $prev = $!from;
+        my $orig := self.orig;
+        gather {
+            for self.caps {
+                if .value.from > $prev {
+                    take '~' => substr($orig,$prev, .value.from - $prev)
+                }
+                take $_;
+                $prev = .value.pos;
+            }
+            take '~' => substr($orig,$prev, $!pos - $prev) if $prev < $!pos;
+        }
+    }
+
+    multi method perl(Match:D:) {
+        my %attrs;
+        %attrs.ASSIGN-KEY("orig", self.orig.perl);
+        %attrs.ASSIGN-KEY("from", self.from.perl);
+        %attrs.ASSIGN-KEY("pos",  self.pos.perl );
+        %attrs.ASSIGN-KEY("made", self.made.perl );
+        %attrs.ASSIGN-KEY("list", self.list.perl);
+        %attrs.ASSIGN-KEY("hash", self.hash.perl);
+
+        'Match.new('
+            ~ %attrs.fmt('%s => %s', ', ')
+            ~ ')'
+    }
+    multi method gist (Match:D: $d = 0) {
+        return "#<failed match>" unless self;
+        my $s = ' ' x ($d + 1);
+        my $r = ("=> " if $d) ~ "\x[FF62]{self}\x[FF63]\n";
+        for @.caps {
+            $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
+        }
+        $d == 0 ?? $r.chomp !! $r;
+    }
+
+    method make(Match:D: Mu \made) {
+        $!made := made;
+        nqp::bindattr(
+            nqp::decont(self),
+            Match,
+            '$!made',
+            made
+        );
+    }
 }
+
+multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+    $a =:= $b
+    ||
+    [&&] (
+        $a.pos  eqv $b.pos,
+        $a.from eqv $b.from,
+        $a.orig eqv $b.orig,
+        $a.made eqv $b.made,
+        $a.list eqv $b.list,
+        $a.hash eqv $b.hash
+    );
+}
+
+
+sub make(Mu \made) {
+    my $slash := nqp::getlexcaller('$/');
+    nqp::bindattr( nqp::decont($slash),        Match,  '$!made', made );
+}
+
 
 # vim: ft=perl6 expandtab sw=4

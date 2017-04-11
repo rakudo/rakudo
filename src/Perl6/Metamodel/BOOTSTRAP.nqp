@@ -3090,7 +3090,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
-EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
+EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);

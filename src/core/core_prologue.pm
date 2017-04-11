@@ -3,7 +3,7 @@ my class Pair { ... }
 my class Whatever { ... }
 my class HyperWhatever { ... }
 my class WhateverCode { ... }
-my class Cursor { ... }
+my class Match { ... }
 my class Failure { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }

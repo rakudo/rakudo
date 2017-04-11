@@ -2397,7 +2397,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $<num> {
                 make make_pair($/,$*key, $*W.add_numeric_constant($/, 'Int', $*value));
             }
-            elsif $*value ~~ NQPMatch {
+            elsif $*value ~~ NQPCapture {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];

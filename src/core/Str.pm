@@ -1,6 +1,5 @@
-my class Cursor {... }
-my class Range  {... }
-my class Match  {... }
+my class Range  { ... }
+my class Match  { ... }
 my class X::Str::InvalidCharName { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
@@ -494,14 +493,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^lookup("!cursor_init");
+    my $cursor-init := Match.^lookup("!cursor_init");
 
-    my \CURSOR-GLOBAL     := Cursor.^lookup("CURSOR_MORE"   );  # :g
-    my \CURSOR-OVERLAP    := Cursor.^lookup("CURSOR_OVERLAP");  # :ov
-    my \CURSOR-EXHAUSTIVE := Cursor.^lookup("CURSOR_NEXT"   );  # :ex
+    my \CURSOR-GLOBAL     := Match.^lookup("CURSOR_MORE"   );  # :g
+    my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
+    my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
-    my \POST-MATCH  := Cursor.^lookup("MATCH" );  # Match object
-    my \POST-STR    := Cursor.^lookup("STR"   );  # Str object
+    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
+    my \POST-STR    := Match.^lookup("STR"   );  # Str object
 
     # iterate with post-processing
     class POST-ITERATOR does Iterator {
@@ -517,7 +516,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method new(\c,\t,\p) { nqp::create(self)!SET-SELF(c,t,p) }
         method pull-one() is raw {
             nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
                 (my $pulled := $!cursor),
                 ($!cursor := $!move($!cursor)),
@@ -528,13 +527,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method skip-one() is raw {
             nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               ($!cursor := $!move($!cursor)),
             )
         }
         method push-all($target --> IterationEnd) {
             nqp::while(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
                 $target.push($!post($!cursor)),
                 ($!cursor := $!move($!cursor))
@@ -543,7 +542,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    # iterate returning Cursors
+    # iterate returning Matches
     class CURSOR-ITERATOR does Iterator {
         has Mu $!cursor;
         has Mu $!move;
@@ -555,7 +554,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method new(\c,\t) { nqp::create(self)!SET-SELF(c,t) }
         method pull-one() is raw {
             nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
                 (my $pulled := $!cursor),
                 ($!cursor := $!move($!cursor)),
@@ -566,13 +565,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method skip-one() is raw {
             nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               ($!cursor := $!move($!cursor)),
             )
         }
         method push-all($target --> IterationEnd) {
             nqp::while(
-              nqp::isge_i(nqp::getattr_i($!cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
                 $target.push($!cursor),
                 ($!cursor := $!move($!cursor))
@@ -623,7 +622,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # All of these !match methods take a nqp::getlexcaller value for the $/
     # to be set as the first parameter.  The second parameter is usually
-    # the Cursor object to be used (or something from which a Cursor can
+    # the Match object to be used (or something from which a Match can
     # be made).
 
     # Generic fallback for matching with a pattern
@@ -639,16 +638,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if(
               nqp::defined($p),
               self!match-cursor(slash,
-                $pattern($cursor-init(Cursor,self,:$p)), '', 0, $opts),
+                $pattern($cursor-init(Match,self,:$p)), '', 0, $opts),
               self!match-cursor(slash,
-                $pattern($cursor-init(Cursor,self,:$c)), '', 0, $opts)
+                $pattern($cursor-init(Match,self,:$c)), '', 0, $opts)
             ),
             nqp::if(
               nqp::defined($p),
               self!match-one(slash,
-                $pattern($cursor-init(Cursor,self,:$p))),
+                $pattern($cursor-init(Match,self,:$p))),
               self!match-one(slash,
-                $pattern($cursor-init(Cursor,self,:$c)))
+                $pattern($cursor-init(Match,self,:$c)))
             )
           )
         )
@@ -712,19 +711,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # Match object at given Cursor
+    # Match object at given position
     method !match-one(\slash, \cursor) {
         nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           cursor.MATCH,
           Nil
         ))
     }
 
-    # Some object at given Cursor
+    # Some object at given position
     method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           nqp::if(nqp::istype(as,Str), POST-STR, POST-MATCH)(cursor),
           Nil
         ))
@@ -733,7 +732,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Create list from the appropriate Sequence given the move
     method !match-list(\slash, \cursor, \move, \post) {
         nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           Seq.new(POST-ITERATOR.new(cursor, move, post)).list,
           List.new,
         ))
@@ -786,7 +785,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Give back the nth match found
     method !match-nth-int(\slash, \cursor, \move, \post, int $nth) {
         nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           nqp::if(
             nqp::eqaddr(
               (my $pulled := POST-ITERATOR.new(cursor, move, post)
@@ -963,7 +962,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-pattern(nqp::getlexcaller('$/'), $pattern, 'c', $c, %_),
           self!match-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:$c)))
+            $pattern($cursor-init(Match,self,:$c)))
         )
     }
     multi method match(Regex:D $pattern, :pos(:$p)!, *%_) {
@@ -973,9 +972,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             nqp::defined($p),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:$p))),
+              $pattern($cursor-init(Match,self,:$p))),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)))
+              $pattern($cursor-init(Match,self,:0c)))
           )
         )
     }
@@ -983,14 +982,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'g', $g, %_),
+            $pattern($cursor-init(Match,self,:0c)), 'g', $g, %_),
           nqp::if(
             $g,
             self!match-list(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)),
+              $pattern($cursor-init(Match,self,:0c)),
               CURSOR-GLOBAL, POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)))
+              $pattern($cursor-init(Match,self,:0c)))
           )
         )
     }
@@ -998,14 +997,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'ov', $ov, %_),
+            $pattern($cursor-init(Match,self,:0c)), 'ov', $ov, %_),
           nqp::if(
             $ov,
             self!match-list(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)),
+              $pattern($cursor-init(Match,self,:0c)),
               CURSOR-OVERLAP, POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)))
+              $pattern($cursor-init(Match,self,:0c)))
           )
         )
     }
@@ -1013,14 +1012,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'ex', $ex, %_),
+            $pattern($cursor-init(Match,self,:0c)), 'ex', $ex, %_),
           nqp::if(
             $ex,
             self!match-list(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)),
+              $pattern($cursor-init(Match,self,:0c)),
               CURSOR-EXHAUSTIVE, POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)))
+              $pattern($cursor-init(Match,self,:0c)))
           )
         )
     }
@@ -1028,59 +1027,59 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'x', $x, %_),
+            $pattern($cursor-init(Match,self,:0c)), 'x', $x, %_),
           nqp::if(
             nqp::defined($x),
             self!match-x(nqp::getlexcaller('$/'),
-              POST-ITERATOR.new($pattern($cursor-init(Cursor,self,:0c)),
+              POST-ITERATOR.new($pattern($cursor-init(Match,self,:0c)),
                 CURSOR-GLOBAL, POST-MATCH
               ), $x),
             self!match-one(nqp::getlexcaller('$/'),
-              $pattern($cursor-init(Cursor,self,:0c)), $x)
+              $pattern($cursor-init(Match,self,:0c)), $x)
           )
         )
     }
     multi method match(Regex:D $pattern, :$st!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)),
+          $pattern($cursor-init(Match,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $st, %_)
     }
     multi method match(Regex:D $pattern, :$nd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)),
+          $pattern($cursor-init(Match,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $nd, %_)
     }
     multi method match(Regex:D $pattern, :$rd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)),
+          $pattern($cursor-init(Match,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $rd, %_)
     }
     multi method match(Regex:D $pattern, :$th!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)),
+          $pattern($cursor-init(Match,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $th, %_)
     }
     multi method match(Regex:D $pattern, :$nth!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
-          $pattern($cursor-init(Cursor,self,:0c)),
+          $pattern($cursor-init(Match,self,:0c)),
           CURSOR-GLOBAL, POST-MATCH, $nth, %_)
     }
     multi method match(Regex:D $pattern, :$as!, *%_) {
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), 'as', $as, %_),
+            $pattern($cursor-init(Match,self,:0c)), 'as', $as, %_),
           self!match-as-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), $as)
+            $pattern($cursor-init(Match,self,:0c)), $as)
         )
     }
     multi method match(Regex:D $pattern, *%_) {
         nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)), '', 0, %_),
+            $pattern($cursor-init(Match,self,:0c)), '', 0, %_),
           self!match-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Cursor,self,:0c)))
+            $pattern($cursor-init(Match,self,:0c)))
         )
     }
 

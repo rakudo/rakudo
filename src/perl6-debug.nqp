@@ -59,7 +59,7 @@ class Perl6::HookRegexActions is Perl6::RegexActions {
         Perl6::RegexActions.quantified_atom($/);
         my $qa := $/.ast;
         if $qa && !(~$/ ~~ /^\s*$/) && $*DEBUG_HOOKS.has_hook('regex_atom') {
-            $/.'!make'(QAST::Regex.new(
+            $/.make(QAST::Regex.new(
                 :rxtype('concat'),
                 QAST::Regex.new(
                     :rxtype('qastnode'),
@@ -114,7 +114,7 @@ class QRegex::P5Regex::HookActions is Perl6::P5RegexActions {
         QRegex::P5Regex::Actions.quantified_atom($/);
         my $qa := $/.ast;
         if $qa && !(~$/ ~~ /^\s*$/) && $*DEBUG_HOOKS.has_hook('regex_atom') {
-            $/.'!make'(QAST::Regex.new(
+            $/.make(QAST::Regex.new(
                 :rxtype('concat'),
                 QAST::Regex.new(
                     :rxtype('qastnode'),
@@ -181,7 +181,7 @@ class Perl6::HookActions is Perl6::Actions {
                 ($stmt.name eq '&infix:<,>' || $stmt.name eq '&infix:«=>»');
             my $nil := nqp::istype($stmt, QAST::Var) && $stmt.name eq 'Nil';
             if !$pot_hash && !$nil && $*DEBUG_HOOKS.has_hook('statement_simple') {
-                $/.'!make'(QAST::Stmts.new(
+                $/.make(QAST::Stmts.new(
                     QAST::Op.new(
                         :op('call'),
                         QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_simple')) ),
@@ -272,7 +272,7 @@ class Perl6::HookActions is Perl6::Actions {
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
             for <e1 e2 e3> -> $expr {
                 if $/{$expr} -> $m {
-                    $m[0].'!make'(QAST::Stmts.new(
+                    $m[0].make(QAST::Stmts.new(
                         QAST::Op.new(
                             :op('call'),
                             QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_cond')) ),
@@ -328,7 +328,7 @@ class Perl6::HookActions is Perl6::Actions {
     method statement_control:sym<require>($/) {
         Perl6::Actions.statement_control:sym<require>($/);
         if $*DEBUG_HOOKS.has_hook('statement_simple') {
-            $/.'!make'(QAST::Stmts.new(
+            $/.make(QAST::Stmts.new(
                 QAST::Op.new(
                     :op('call'),
                     QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_simple')) ),

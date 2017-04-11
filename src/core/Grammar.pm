@@ -1,7 +1,7 @@
-my class Grammar is Cursor {
+my class Grammar is Match {
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^lookup("!cursor_init");
+    my $cursor-init := Match.^lookup("!cursor_init");
 
     method parse(\target, :$rule, :$args, Mu :$actions) {
         nqp::decont(nqp::getlexcaller('$/') =

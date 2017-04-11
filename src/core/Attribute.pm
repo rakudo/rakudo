@@ -27,6 +27,7 @@ my class Attribute { # declared in BOOTSTRAP
 
                 # Get the compiler to generate us an accessor when possible.
                 if $compiler_services.DEFINITE {
+                    my $tmp := $compiler_services.HOW;
                     $meth := $compiler_services.generate_accessor($meth_name,
                         $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
                 }

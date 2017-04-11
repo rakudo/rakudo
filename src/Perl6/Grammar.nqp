@@ -142,7 +142,7 @@ role STD {
 
             # Get the language.
             my $lang := self.quote_lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
-            $<B>.'!make'([$lang, $start, $stop]);
+            $<B>.make([$lang, $start, $stop]);
         }
     }
 
@@ -1653,7 +1653,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
     method FOREIGN_LANG($langname, $regex, *@args) {
         my $grammar := self.slang_grammar($langname);
-        if nqp::istype($grammar, NQPCursor) {
+        if nqp::istype($grammar, NQPMatch) {
             self.LANG($langname, $regex, @args);
         }
         else {
@@ -1668,17 +1668,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $ret := $lang_cursor."$regex"(|@args);
 
             # Build up something NQP-levelish we can return.
-            my $new := NQPCursor.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-            my $p6cursor := $*W.find_symbol(['Cursor']);
-            nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
-            nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
+            my $new := NQPMatch.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            my $p6cursor := $*W.find_symbol(['Match']);
+            nqp::bindattr_i($new, NQPMatch, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
+            nqp::bindattr_i($new, NQPMatch, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
             my $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
             if !nqp::isnull_s($p6c_name) {
-                nqp::bindattr($new,   NQPCursor, '$!name',  $p6c_name);
+                nqp::bindattr($new,   NQPMatch, '$!name',  $p6c_name);
             }
-            my $match := nqp::create(NQPMatch);
-            nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
-            nqp::bindattr($new, NQPCursor, '$!match', $match);
+            nqp::bindattr($new, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
+            $new.MATCH;
             $new.set_braid_from(self)
         }
     }
@@ -4119,10 +4118,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method AS_MATCH($v) {
-        my $cur  := self.'!cursor_start_cur'();
-        $cur.'!cursor_pass'(self.pos());
-        nqp::bindattr($cur, NQPCursor, '$!match', $v);
-        $cur
+        self.'!clone_match_at'($v,self.pos());
     }
 
     token revO($from) {
@@ -4503,6 +4499,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? <sym> <?before \s | <.terminator> | $ >
         <O(|%comma, :fiddly(0))>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
+        { note("HERE:\n" ~ $/.dump) }
         { $*INVOCANT_OK := 0; }
     }
 
@@ -5269,10 +5266,10 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 }
 
-my role CursorPackageNibbler {
+my role MatchPackageNibbler {
     method nibble-in-cursor($parent) {
         my $*LEAF := self;
-        my $*PACKAGE := $*W.find_symbol(['Cursor']); self.set_package($*PACKAGE);
+        my $*PACKAGE := $*W.find_symbol(['Match']); self.set_package($*PACKAGE);
         my %*ATTR_USAGES;
         my $cur := nqp::findmethod($parent, 'nibbler')(self);
         for %*ATTR_USAGES {
@@ -5284,7 +5281,7 @@ my role CursorPackageNibbler {
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPackageNibbler {
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPackageNibbler {
     method nibbler() {
         self.nibble-in-cursor(QRegex::P6Regex::Grammar)
     }
@@ -5405,7 +5402,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 }
 
-grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does CursorPackageNibbler {
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does MatchPackageNibbler {
     method nibbler() {
         self.nibble-in-cursor(QRegex::P5Regex::Grammar)
     }

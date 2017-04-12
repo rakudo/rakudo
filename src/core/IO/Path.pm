@@ -567,44 +567,47 @@ my class IO::Path is Cool {
     }
 
     proto method slurp() { * }
-    multi method slurp(IO::Path:D:) {
-
-        # clean call, try the fast way
-        if nqp::iseq_i(nqp::elems(nqp::getattr(%_,Map,'$!storage')),0)
-            && nqp::open(self.absolute,"r") -> $PIO {
-            LEAVE nqp::closefh(nqp::decont($PIO));
-            nqp::p6box_s(nqp::readallfh(nqp::decont($PIO)))
-        }
-
-        # need to do the slow way
-        else {
-            my $handle = self.open;
-            $handle // $handle.throw;
-            LEAVE $handle.close;
-
-            my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
-            if %_<bin> {
-                my $res;
-                # normal file
-                if Rakudo::Internals.FILETEST-S(self.absolute) -> int $size {
-                    $res := nqp::readfh($PIO,buf8.new,$size)
-                }
-                # spooky file with zero size?
-                else {
-                    $res := buf8.new();
-                    loop {
-                        my $buf := nqp::readfh($PIO,buf8.new,0x100000);
-                        last unless nqp::elems($buf);
-                        $res.append($buf);
-                    }
-                }
-                $res
-            }
-            else {
-                $handle.encoding($_) with %_<enc>;
-                nqp::p6box_s(nqp::readallfh($PIO))
-            }
-        }
+    multi method slurp(IO::Path:D:) { # we use :$enc, :$bin args in body via %_
+        # We have two paths:
+        # 1) No args given: we open and slurp with just nqp ops. We also
+        #   use a `try` on nqp::open to fail in the fast path if open fails.
+        #   In that specific case we'll read the slow path and obtain proper
+        #   Failure that we'll return
+        # 2) In slow path, just pop open IO::Handle and steal its $!PIO:
+        #   If in non-bin, just slurp from $PIO; the open call already set the
+        #   encoding right. If in bin, then check if we got a file size;
+        #   If yes, read that many bytes from $PIO, if not, loop over chunked
+        #   reads with nqp::readfh, until we don't get any more elems
+        my $PIO;
+        nqp::if(
+          nqp::iseq_i(nqp::elems(nqp::getattr(%_,Map,'$!storage')),0)
+            && ($PIO := try nqp::open(self.absolute,"r")),
+          nqp::stmts(
+            ($_ := nqp::p6box_s(nqp::readallfh($PIO))),
+            nqp::closefh($PIO),
+            $_), # <-- we've succeeed in fast-path; that's the data
+          nqp::if(
+            nqp::istype(
+              (my $handle := IO::Handle.new(:path(self)).open(
+                :enc(%_<enc> || 'utf8'), :bin(%_<bin>), :mode<ro>)),
+              Failure,),
+            $handle, # our open failed; return the Failure object here,
+            nqp::stmts(
+              ($PIO := nqp::getattr($handle, IO::Handle, '$!PIO')),
+              nqp::if( %_<bin>,
+                nqp::if(
+                  (my int $size = Rakudo::Internals.FILETEST-S(self.absolute)),
+                  ($_ := nqp::readfh($PIO, buf8.new, $size)),
+                  nqp::stmts(
+                    ($_ := buf8.new),
+                    nqp::while(
+                      nqp::elems(
+                        my $buf := nqp::readfh($PIO, buf8.new, 0x100000)),
+                      .append($buf),
+                    ))),
+                ($_ := nqp::p6box_s(nqp::readallfh($PIO)))),
+              $handle.close,
+              $_))) # <-- we've succeeded in slow-path; that's the data
     }
 
     method spurt(IO::Path:D: $data, :$enc = 'utf8', :$append, :$createonly) {

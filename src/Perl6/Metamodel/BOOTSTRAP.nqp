@@ -2780,7 +2780,7 @@ BEGIN {
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('@!alt_nfas', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
             nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
@@ -2789,10 +2789,10 @@ BEGIN {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
         }));
     Regex.HOW.add_method(Regex, 'SET_ALT_NFA', nqp::getstaticcode(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas');
+            my %alts := nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas');
             unless %alts {
                 %alts := nqp::hash();
-                nqp::bindattr(nqp::decont($self), Regex, '@!alt_nfas', %alts);
+                nqp::bindattr(nqp::decont($self), Regex, '%!alt_nfas', %alts);
             }
             nqp::bindkey(%alts, $name, $nfa);
         }));
@@ -2804,8 +2804,16 @@ BEGIN {
         }));
     Regex.HOW.add_method(Regex, 'ALT_NFA', nqp::getstaticcode(sub ($self, str $name) {
             nqp::atkey(
-                nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas'),
+                nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'),
                 $name)
+        }));
+    Regex.HOW.add_method(Regex, 'ALT_NFAS', nqp::getstaticcode(sub ($self) {
+            my $store := nqp::decont(nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'));
+            if nqp::istype($store, Hash) {
+                nqp::hash();
+            } else {
+                $store
+            }
         }));
     Regex.HOW.compose_repr(Regex);
     Regex.HOW.compose_invocation(Regex);

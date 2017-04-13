@@ -1,7 +1,6 @@
 my class DidMatch { method Bool { 1 } }
 
 my class Match is Capture is Cool does NQPMatchRole {
-#    has $!made; # Need it to survive re-creations of the match object.
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
 
@@ -471,8 +470,6 @@ my class Match is Capture is Cool does NQPMatchRole {
         self.Mu::WHICH # skip Capture's as Match is not a value type
     }
 
-    method ast(Match:D:) { $!made }
-
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
@@ -535,15 +532,6 @@ my class Match is Capture is Cool does NQPMatchRole {
         $d == 0 ?? $r.chomp !! $r;
     }
 
-    method make(Match:D: Mu \made) {
-        $!made := made;
-        nqp::bindattr(
-            nqp::decont(self),
-            Match,
-            '$!made',
-            made
-        );
-    }
 }
 
 multi sub infix:<eqv>(Match:D $a, Match:D $b) {

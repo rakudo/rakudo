@@ -444,9 +444,15 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
     }
 
-    method new(:$orig,:$from,:$pos,:$made) {
-        self.'!cursor_init'($orig, :p($pos));
-        nqp::bindattr(self, Match, '$!from', $from // 0);  # cannot assign to int in sig
+    submethod new(:$orig,:$from = 0,:$pos,:$made) {
+        my $new := self.'!cursor_init'($orig, :p($pos));
+        nqp::bindattr_i($new, Match, '$!from', $from);  # cannot assign to int in sig
+	$new
+    }
+
+    method clone() {
+	my $new := nqp::clone(self);
+	$new;
     }
 
     multi method WHICH (Match:D:) {

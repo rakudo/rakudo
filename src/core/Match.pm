@@ -456,9 +456,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 	# :build tells !cursor_init that it's too late to do a CREATE
         self.'!cursor_init'($orig, :build, :p($pos), :$shared, :$braid);
         nqp::bindattr_i(self, Match,   '$!from', $from);
-        nqp::bindattr(  self, Match,   '$!made', $made) if $made.defined;
-        nqp::bindattr(  self, Capture, '@!list', $list) if $list.defined;
-        nqp::bindattr(  self, Capture, '%!hash', $hash) if $hash.defined;
+        nqp::bindattr(  self, Match,   '$!made', nqp::decont($made)) if $made.defined;
     }
 
     method clone() {
@@ -511,12 +509,12 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     multi method perl(Match:D:) {
         my %attrs;
-        %attrs.ASSIGN-KEY("orig", self.orig.perl);
-        %attrs.ASSIGN-KEY("from", self.from.perl);
-        %attrs.ASSIGN-KEY("pos",  self.pos.perl );
-        %attrs.ASSIGN-KEY("made", self.made.perl );
-        %attrs.ASSIGN-KEY("list", self.list.perl);
-        %attrs.ASSIGN-KEY("hash", self.hash.perl);
+        %attrs.ASSIGN-KEY("orig", (self.orig // '' ).perl);
+        %attrs.ASSIGN-KEY("from", (self.from // 0  ).perl);
+        %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).perl);
+        %attrs.ASSIGN-KEY("made", (self.made // Any).perl);
+        %attrs.ASSIGN-KEY("list", (self.list // [] ).perl);
+        %attrs.ASSIGN-KEY("hash", (self.hash // {} ).perl);
 
         'Match.new('
             ~ %attrs.fmt('%s => %s', ', ')
@@ -534,16 +532,16 @@ my class Match is Capture is Cool does NQPMatchRole {
 
 }
 
-multi sub infix:<eqv>(Match:D $a, Match:D $b) {
-    $a =:= $b
+multi sub infix:<eqv>(Match:D \a, Match:D \b) {
+    a =:= b
     ||
     [&&] (
-        $a.pos  eqv $b.pos,
-        $a.from eqv $b.from,
-        $a.orig eqv $b.orig,
-        $a.made eqv $b.made,
-        $a.list eqv $b.list,
-        $a.hash eqv $b.hash
+        a.pos  eqv b.pos,
+        a.from eqv b.from,
+        a.orig eqv b.orig,
+        (a.made // Any) eqv (b.made // Any),
+        (a.list // nqp::list ) eqv (b.list // nqp::list ),
+        (a.hash // nqp::hash ) eqv (b.hash // nqp::hash )
     );
 }
 

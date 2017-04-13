@@ -23,7 +23,7 @@ my class Grammar is Match {
               (my $match := $cursor.MATCH),
               nqp::while(
                 $match && nqp::isne_i(
-                  nqp::getattr_i(($match := $cursor.MATCH),Match,'$!to'),
+                  nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
                   target.chars
                 ),
                 $match := ($cursor := $cursor.'!cursor_next'()).MATCH

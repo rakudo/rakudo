@@ -3996,6 +3996,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]?
         ]
         <OPER=.AS_MATCH($*OPER)>
+        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+
     }
 
     token fake_infix {

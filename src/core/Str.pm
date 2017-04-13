@@ -1441,7 +1441,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             while nqp::islt_i(++$i,$elems) {
                 my $match := nqp::decont(nqp::atpos($matches,$i));
                 $found  = nqp::getattr_i($match,Match,'$!from');
-                $next   = nqp::getattr_i($match,Match,'$!to');
+                $next   = nqp::getattr_i($match,Match,'$!pos');
                 if $notskip {
                     nqp::push($result,
                       nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
@@ -1482,7 +1482,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $found  = nqp::getattr_i($match,Match,'$!from');
                 nqp::bindpos($result,$i,
                   nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-                $pos = nqp::getattr_i($match,Match,'$!to');
+                $pos = nqp::getattr_i($match,Match,'$!pos');
             }
             nqp::bindpos($result,$i,nqp::substr($str,$pos));
         }

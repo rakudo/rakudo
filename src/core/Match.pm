@@ -1,11 +1,13 @@
-my class Match is Capture does NQPMatchRole {
+my class DidMatch { method Bool { 1 } }
+
+my class Match is Capture is Cool does NQPMatchRole {
 #    has $!made; # Need it to survive re-creations of the match object.
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
 
     method STR() {
         nqp::if(
-          nqp::defined(nqp::getattr(self,Match,'$!match')),
+          nqp::istype(nqp::getattr(self,Match,'$!match'), DidMatch),
           self.Str,
           self!MATCH.Str
         )
@@ -13,7 +15,7 @@ my class Match is Capture does NQPMatchRole {
 
     method MATCH() {
         nqp::if(
-          nqp::defined(nqp::getattr(self,Match,'$!match')),
+          nqp::istype(nqp::getattr(self,Match,'$!match'), DidMatch),
           self,
           self!MATCH
         )
@@ -135,7 +137,7 @@ my class Match is Capture does NQPMatchRole {
         }
         nqp::bindattr(self, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
         nqp::bindattr(self, Capture, '%!hash', $hash);
-        nqp::bindattr(self, Match, '$!match', self);
+        nqp::bindattr(self, Match, '$!match', DidMatch);
 
         # Once we've produced the captures, and if we know we're finished and
         # will never be backtracked into, we can release cstack and regexsub.

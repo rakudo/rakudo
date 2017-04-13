@@ -1273,7 +1273,7 @@ class Rakudo::Iterator {
             has &!cond;
             has &!afterwards;
             has int $!seen-first;
-   
+
             method !SET-SELF(\body,\cond,\afterwards) {
                 nqp::stmts(
                   (&!body := body),
@@ -1565,7 +1565,7 @@ class Rakudo::Iterator {
             has $!iterator;   # source iterator
             has $!value;      # original key to repeat for Iterable
             has $!slipper;    # iterator if Iterable value in source
-            
+
             method new(\iterator) {
                 nqp::p6bindattrinvres(
                   nqp::create(self),self,'$!iterator',iterator)
@@ -2556,7 +2556,7 @@ class Rakudo::Iterator {
             has $!body;
             has $!cond;
             has int $!skip;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
@@ -3053,7 +3053,7 @@ class Rakudo::Iterator {
         class :: does SlippyIterator {
             has $!body;
             has $!cond;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),

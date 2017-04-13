@@ -571,7 +571,7 @@ my class IO::Path is Cool {
         # We have two paths:
         # 1) No args given: we open and slurp with just nqp ops. We also
         #   use a `try` on nqp::open to fail in the fast path if open fails.
-        #   In that specific case we'll read the slow path and obtain proper
+        #   In that specific case we'll reach the slow path and obtain proper
         #   Failure that we'll return
         # 2) In slow path, just pop open IO::Handle and steal its $!PIO:
         #   If in non-bin, just slurp from $PIO; the open call already set the

@@ -620,38 +620,27 @@ my class IO::Path is Cool {
         nqp::if( nqp::istype($fh, Failure), $fh, $fh.spurt($data, :close) )
     }
 
-    proto method lines(|) { * }
-    multi method lines(IO::Path:D: $limit = Whatever, |c) {
-        my $handle = self.open(|c);
-        LEAVE $handle.close;
-        my $buf := nqp::create(IterationBuffer);
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? $handle.iterator.push-all($buf)
-          !! $handle.iterator.push-exactly($buf,$limit.Int);
-        Seq.new(Rakudo::Iterator.ReifiedList($buf))
+    # XXX TODO: when we get definedness-based defaults in core, use them in
+    # IO::Handle.open and get rid of duplication of default values here
+    method lines(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).lines: |c, :close
     }
-
-    proto method comb(|) { * }
-    multi method comb(IO::Path:D: Cool:D $comber = "", |c) {
-        self.open(|c).comb($comber, :close);
+    method comb(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).comb:  |c, :close
     }
-    multi method comb(IO::Path:D: Int:D $size, |c) {
-        self.open(|c).comb($size, :close);
+    method split(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).split: |c, :close
     }
-    multi method comb(IO::Path:D: Regex:D $comber, |c) {
-        self.open(|c).comb($comber, :close);
-    }
-
-    multi method split(IO::Path:D: Str:D $splitter = "", |c) {
-        self.open(|c).split($splitter, :close);
-    }
-    multi method split(IO::Path:D: Regex:D $splitter, |c) {
-        self.open(|c).split($splitter, :close);
-    }
-
-    proto method words(|) { * }
-    multi method words(IO::Path:D: |c) {
-        self.open(|c).words(:close);
+    method words(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
     }
 
     method e(--> Bool:D) {

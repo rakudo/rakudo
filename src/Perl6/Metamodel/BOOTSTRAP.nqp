@@ -1529,19 +1529,19 @@ BEGIN {
             my $SIG_ELEM_IS_RW       := 256;
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                nqp::die("Cannot use 'is rw' on an optional parameter");
-            }
             my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
             unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
                 my $error;
                 if nqp::eqat($varname, '%', 0) || nqp::eqat($varname, '@', 0)  {
                     my $sig := nqp::substr($varname, 0, 1);
-                    $error := "'$sig' sigil containers don't need 'is rw' to be writable\n";
+                    $error := "For parameter '$varname', '$sig' sigil containers don't need 'is rw' to be writable\n";
                 }
-                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter";
+                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter, not '$varname'";
                 nqp::die($error);
+            }
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
+            if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }
@@ -1813,7 +1813,8 @@ BEGIN {
                 $dc_self
             }
             else {
-                nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
+                nqp::die("Cannot add dispatchee '" ~ $dispatchee.name() ~
+                         "' to non-dispatcher code object '" ~ $self.name() ~ "'");
             }
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {

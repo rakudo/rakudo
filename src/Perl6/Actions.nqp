@@ -2881,6 +2881,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Compose.
             $*W.pkg_compose($/, $package);
 
+            # If we have a grammar on our hands, precompute some NFAs
+            if $*PKGDECL eq 'grammar' {
+                if nqp::can($package, '!precompute_nfas') {
+                    $package.'!precompute_nfas'();
+                }
+            }
+
             # Finish code object for the block.
             my $code := $*CODE_OBJECT;
             $*W.attach_signature($code, $*W.create_signature(nqp::hash('parameter_objects', [])));

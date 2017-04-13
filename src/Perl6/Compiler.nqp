@@ -101,14 +101,14 @@ compiled code.
   --ll-exception       display a low level backtrace on errors
   --profile[=kind]     write profile information to an HTML file (MoarVM)
                          instrumented - performance measurements (default)
-                         heap - record heap snapshots after every
-                                garbage collector run
+                         heap - record heap snapshots after every garbage
+                         collector run
   --profile-filename=name
-                       provide a different filename for profile. Extension
-                       controls format:
-                            .json outputs in JSON
-                            .sql  outputs in SQL
-                            any other extension outputs in HTML
+                       provide a different filename for profile.
+                       Extension controls format:
+                         .json outputs in JSON
+                         .sql  outputs in SQL
+                         any other extension outputs in HTML
   --doc=module         use Pod::To::[module] to render inline documentation
 
 

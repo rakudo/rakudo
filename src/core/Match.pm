@@ -444,10 +444,22 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
     }
 
-    submethod new(:$orig,:$from = 0,:$pos,:$made) {
-        my $new := self.'!cursor_init'($orig, :p($pos));
-        nqp::bindattr_i($new, Match, '$!from', $from);  # cannot assign to int in sig
-	$new
+    submethod BUILD(
+	:$orig = '',
+	:$from = 0,
+	:to(:$pos),
+	:ast(:$made),
+	:$shared,
+	:$braid,
+	:$list,
+	:$hash)
+    {
+	# :build tells !cursor_init that it's too late to do a CREATE
+        self.'!cursor_init'($orig, :build, :p($pos), :$shared, :$braid);
+        nqp::bindattr_i(self, Match,   '$!from', $from);
+        nqp::bindattr(  self, Match,   '$!made', $made) if $made.defined;
+        nqp::bindattr(  self, Capture, '@!list', $list) if $list.defined;
+        nqp::bindattr(  self, Capture, '%!hash', $hash) if $hash.defined;
     }
 
     method clone() {

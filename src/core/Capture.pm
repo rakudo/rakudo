@@ -3,8 +3,6 @@ my class Capture { # declared in BOOTSTRAP
     #     has @!list;   # positional parameters
     #     has %!hash;   # named parameters
 
-    method new(:@list,:%hash) { self.bless(:@list,:%hash) }
-
     method from-args(|c) { c }
 
     submethod BUILD(:@list, :%hash --> Nil) {

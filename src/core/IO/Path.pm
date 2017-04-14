@@ -468,20 +468,20 @@ my class IO::Path is Cool {
         True;
     }
 
-    method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::symlink(nqp::unbox_s($name), $.absolute);
+    method symlink(IO::Path:D: IO() $name) {
+        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
         CATCH { default {
-            fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
-        } }
+            fail X::IO::Symlink.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
+        }}
         True;
     }
 
-    method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::link(nqp::unbox_s($name), $.absolute);
+    method link(IO::Path:D: IO() $name) {
+        nqp::link($.absolute, $name.absolute);
         CATCH { default {
-            fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
+            fail X::IO::Link.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
         } }
         True;
     }

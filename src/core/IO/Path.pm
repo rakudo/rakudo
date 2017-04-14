@@ -57,10 +57,10 @@ my class IO::Path is Cool {
     }
 
     method is-absolute() {
-        $!is-absolute //= $!SPEC.is-absolute($!path);
+        $!is-absolute //= so $!SPEC.is-absolute($!path);
     }
     method is-relative() {
-        !( $!is-absolute //= $!SPEC.is-absolute($!path) );
+        !( $!is-absolute //= so $!SPEC.is-absolute($!path) );
     }
 
     method parts                  {

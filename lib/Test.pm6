@@ -468,7 +468,7 @@ multi sub can-ok(
 
 multi sub like(
     Str $got, Regex $expected,
-    $desc = "'$got.perl()' matches '$expected.perl()'"
+    $desc = "text matches '$expected.perl()'"
 ) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
@@ -484,7 +484,7 @@ multi sub like(
 
 multi sub unlike(
     Str $got, Regex $expected,
-    $desc = "$got.perl() does not match '$expected.perl()'"
+    $desc = "text does not match '$expected.perl()'"
 ) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures

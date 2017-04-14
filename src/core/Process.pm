@@ -16,7 +16,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PID', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
-    PROCESS::<$EXECUTABLE> := IO::Path.new-from-absolute-path(
+    PROCESS::<$EXECUTABLE> := (
 #?if jvm
       $*VM.properties<perl6.execname>
       // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
@@ -26,7 +26,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
       // ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
-    );
+    ).IO;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {

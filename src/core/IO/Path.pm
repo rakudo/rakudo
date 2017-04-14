@@ -23,7 +23,7 @@ my class IO::Path is Cool {
         );
     }
 
-    method new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
+    method !new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
         method !set-absolute() {
             $!is-absolute = True;
             $!abspath := $path;
@@ -289,7 +289,7 @@ my class IO::Path is Cool {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        IO::Path.new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -367,7 +367,7 @@ my class IO::Path is Cool {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path!new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
         nqp::stmts(
             nqp::unless(
@@ -539,7 +539,7 @@ my class IO::Path is Cool {
                         !! take $abspath ~ $elem
                       !! !$absolute
                         ?? take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
+                        !! take IO::Path!new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
                 }
             }
 #?endif
@@ -556,7 +556,7 @@ my class IO::Path is Cool {
                     $relative,
                     (take IO::Path.new(
                       nqp::concat($path,$str_elem),:$!SPEC,:$CWD)),
-                    (take IO::Path.new-from-absolute-path(
+                    (take IO::Path!new-from-absolute-path(
                       nqp::concat($abspath,$str_elem),:$!SPEC,:$CWD))
                   )
                 )

@@ -262,13 +262,7 @@ sub move($from, $to, :$createonly) {
         }
     }
 }
-sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
-sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
+sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
+sub    link(IO() $target, IO() $name) { $target   .link($name) }
 
 # vim: ft=perl6 expandtab sw=4

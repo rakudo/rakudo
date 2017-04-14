@@ -153,7 +153,7 @@ New in 2017.04
     + [IO] Made IO::Path.slurp 12%-35% faster (for small files) [c13480c]
     + [IO] Made IO::Path.new 7% faster when creating from Str [ae5e510]
     + Assorted internal improvements to CPU/memory use [1132b1a][a123eb3][1bacc61] [c3c849e]
-        [fa9aa47][666ce35][e7e97c7][213a72c][fab9f87][9671ffe][08a9735][8a4df16][b64f210][1277fb5]
+        [fa9aa47][666ce35][e7e97c7][213a72c][fab9f87][9671ffe][08a9735][8a4df162][b64f210][1277fb5]
         [463898a][3f36508][65037c3][e408e47][6ef7b59][a4b30dc][7875eaf][d793e21][bf63719]
 
 New in 2017.03

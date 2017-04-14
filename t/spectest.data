@@ -1025,6 +1025,7 @@ S32-list/first-k.t
 S32-list/first-kv.t
 S32-list/first-p.t
 S32-list/first-v.t
+S32-list/flat.t
 S32-list/grep.t
 S32-list/grep-k.t
 S32-list/grep-kv.t

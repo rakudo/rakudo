@@ -462,7 +462,7 @@ my class IO::Path is Cool {
         True;
     }
 
-    method mkdir(IO::Path:D: $mode = 0o777) {
+    method mkdir(IO::Path:D: Int() $mode = 0o777) {
         nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);

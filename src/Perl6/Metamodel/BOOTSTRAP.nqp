@@ -3099,6 +3099,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
+EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);

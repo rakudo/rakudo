@@ -668,11 +668,21 @@ my class IO::Handle {
     }
 
     proto method lines (|) { * }
-    multi method lines(IO::Handle:D: $limit) {
-        # we should probably deprecate this feature
+    multi method lines(IO::Handle:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines
-          !! self.lines.head($limit.Int)
+          ?? self.lines(:$close)
+          !! $close
+            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                self.iterator, $limit.Int, {SELF.close}))
+            !! self.lines.head($limit.Int)
+    }
+    multi method lines(IO::Handle:D \SELF: :$close) {
+      Seq.new(
+        $close # use -1 as N in FirstNThenSinkAllSeq to get all items
+          ?? Rakudo::Iterator.FirstNThenSinkAll(
+              self.iterator, -1, {SELF.close})
+          !! self.iterator
+      )
     }
     multi method lines(IO::Handle:D:) { Seq.new(self.iterator) }
 

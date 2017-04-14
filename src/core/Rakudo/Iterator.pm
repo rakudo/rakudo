@@ -1273,7 +1273,7 @@ class Rakudo::Iterator {
             has &!cond;
             has &!afterwards;
             has int $!seen-first;
-   
+
             method !SET-SELF(\body,\cond,\afterwards) {
                 nqp::stmts(
                   (&!body := body),
@@ -1441,6 +1441,64 @@ class Rakudo::Iterator {
         }.new
     }
 
+    # Returns at most N items, then calls .sink-all on source. Optionally,
+    # executes a Callable when either N items were returned or original iterator
+    # got exhausted. N can be negative to ask for "all values".
+    # This is used in several places in IO::Handle, e.g. in
+    # .lines to read N lines and then close the filehandle via .sink-all
+    method FirstNThenSinkAll(\source,\n,&callable?) {
+        # XXX TODO: Make this code DRYer by moving common bits to a role,
+        # but currently (2017-04) assigning to `int $!n` attribute from SET-SELF
+        # signature complains about immutable ints if done in a role, and
+        # private methods **in roles** are slow, so we duplicated stuff here
+        nqp::if(
+          nqp::isge_i(n, 0),
+          class :: does Iterator {
+              has $!source;
+              has int $!n;
+              has int $!i = -1;
+              has &!callable;
+              method pull-one {
+                  nqp::if(
+                    nqp::iseq_i($!n, ($!i = nqp::add_i($!i, 1)))
+                      && self!FINISH-UP(1)
+                    || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
+                      && self!FINISH-UP(0),
+                    IterationEnd,
+                    $got
+                  )
+              }
+              method sink-all { self!FINISH-UP; Nil }
+              method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
+              method !SET-SELF($!source,$!n,&!callable) { self }
+              method !FINISH-UP(\do-sink) {
+                  do-sink    && $!source.sink-all;
+                  &!callable && &!callable();
+                  1
+              }
+          }.new(source,n,&callable),
+          nqp::if(
+            &callable,
+            class :: does Iterator {
+                has $!source;
+                has int $!n;
+                has int $!i = -1;
+                has &!callable;
+                method pull-one {
+                    nqp::if(
+                      nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
+                        && (&!callable()||1),
+                      IterationEnd,
+                      $got
+                    )
+                }
+                method sink-all { $!source.sink-all; &!callable(); Nil }
+                method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
+                method !SET-SELF($!source,&!callable) { self }
+            }.new(source,&callable),
+            source))
+    }
+
     # Return an iterator that will cache a source iterator for the index
     # values that the index iterator provides, from a given offest in the
     # cached source iterator.  Values from the index iterator below the
@@ -1565,7 +1623,7 @@ class Rakudo::Iterator {
             has $!iterator;   # source iterator
             has $!value;      # original key to repeat for Iterable
             has $!slipper;    # iterator if Iterable value in source
-            
+
             method new(\iterator) {
                 nqp::p6bindattrinvres(
                   nqp::create(self),self,'$!iterator',iterator)
@@ -2556,7 +2614,7 @@ class Rakudo::Iterator {
             has $!body;
             has $!cond;
             has int $!skip;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
@@ -3053,7 +3111,7 @@ class Rakudo::Iterator {
         class :: does SlippyIterator {
             has $!body;
             has $!cond;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),

@@ -984,6 +984,7 @@ S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t
 S32-io/io-path-subclasses.t
+S32-io/io-path-symlink.t
 S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t

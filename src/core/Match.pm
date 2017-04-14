@@ -474,10 +474,10 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method ACCEPTS(Match:D: Any $) { self }
 
     method prematch(Match:D:) {
-        nqp::substr(self.orig,0,$!from)
+        nqp::substr(self.target,0,$!from)
     }
     method postmatch(Match:D:) {
-        nqp::substr(self.orig,$!pos)
+        nqp::substr(self.target,$!pos)
     }
 
     method caps(Match:D:) {
@@ -494,16 +494,16 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method chunks(Match:D:) {
         my $prev = $!from;
-        my $orig := self.orig;
+        my $target := self.target;
         gather {
             for self.caps {
                 if .value.from > $prev {
-                    take '~' => substr($orig,$prev, .value.from - $prev)
+                    take '~' => substr($target,$prev, .value.from - $prev)
                 }
                 take $_;
                 $prev = .value.pos;
             }
-            take '~' => substr($orig,$prev, $!pos - $prev) if $prev < $!pos;
+            take '~' => substr($target,$prev, $!pos - $prev) if $prev < $!pos;
         }
     }
 

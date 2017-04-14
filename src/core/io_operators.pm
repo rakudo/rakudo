@@ -228,14 +228,7 @@ sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     @ok;
 #    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
-
-proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
-}
-multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
-}
+sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 
 sub rename(IO() $from, IO() $to, :$createonly) {
     $from.rename($to, :$createonly)

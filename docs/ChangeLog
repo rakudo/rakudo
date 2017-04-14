@@ -28,6 +28,7 @@ New in 2017.04
     + Fixed handling of Baggy (|) Mixy, Mixy (|) Baggy in dispatch [48619f8]
     + Made `is equiv` to not propagate operator's `assoc` value [f9f0883]
     + Made Code.ACCEPTS pass take its parameter `is raw` [c0eb9bd]
+    + Fixed SEGV in IO::Pipe.t [3e275dd]
     + [IO] Fixed a crash when using Whatever limit in in IO::Pipe.lines [0c62815]
     + [IO] Fixed crash in smartmatch of Cool ~~ IO::Path for some Cools [c360ac2]
     + [IO] Made IO::Path:: subclasses instantiate a subclass, not IO::Path [a0b82ed]

@@ -1541,7 +1541,13 @@ BEGIN {
             }
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Trait::Invalid') {
+                    nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
+                }
+                else {
+                    nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
+                }
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }

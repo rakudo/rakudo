@@ -781,6 +781,16 @@ my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     }
 }
 
+my class X::Trait::Invalid is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.declaring;  # variable, sub, parameter, etc.
+    has $.name;       # '$foo', '@bar', etc.
+    method message () {
+        "Cannot use '$.type $.subtype' on $.declaring '$.name'."
+    }
+}
+
 my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.
     has $.subtype;    # wrong subtype being tried
@@ -2496,6 +2506,10 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   sub (@exceptions) {
       X::PhaserExceptions.new(exceptions =>
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
+  },
+  'X::Trait::Invalid',
+  sub ($type, $subtype, $declaring, $name) {
+      X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
 ));
 

@@ -392,63 +392,39 @@ my class IO::Path is Cool {
         )
     }
 
-    proto method rename(|) { * }
-    multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Rename.new(
-              :from($.absolute),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
+    method rename(IO::Path:D: IO() $to, :$createonly) {
+        $createonly and $to.e and fail X::IO::Rename.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
-            fail X::IO::Rename.new(
-              :from($!abspath), :to($to.absolute), :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method rename(IO::Path:D: $to, :$CWD = $*CWD, |c) {
-        self.rename($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Rename.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str);
+        }}
+        True
     }
 
-    proto method copy(|) { * }
-    multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Copy.new(
-              :from($.absolute),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
+    method copy(IO::Path:D: IO() $to, :$createonly) {
+        $createonly and $to.e and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
         nqp::copy($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
-            fail X::IO::Copy.new(
-              :from($!abspath), :$to, :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method copy(IO::Path:D: $to, :$CWD  = $*CWD, |c) {
-        self.copy($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Copy.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str)
+        }}
+        True
     }
 
     method move(IO::Path:D: |c) {
-        my $result = self.copy(|c);
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
-        $result = self.unlink();
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
+        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
         True
     }
 

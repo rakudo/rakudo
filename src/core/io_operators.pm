@@ -237,31 +237,12 @@ multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
 }
 
-sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD,:$createonly);
-    $result // $result.throw;
+sub rename(IO() $from, IO() $to, :$createonly) {
+    $from.rename($to, :$createonly)
 }
-sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD, :$createonly);
-    $result // $result.throw;
-}
-sub move($from, $to, :$createonly) {
-    try {
-        copy($from, $to, :$createonly);
-        unlink($from);
-        return True;
+sub copy(IO() $from, IO() $to, :$createonly) { $from.copy($to, :$createonly) }
+sub move(IO() $from, IO() $to, :$createonly) { $from.move($to, :$createonly) }
 
-        CATCH {
-            when X::IO::Copy|X::IO::Unlink {
-                fail X::IO::Move.new(
-                    :from(.from),
-                    :to(.to),
-                    :os-error(.os-error),
-                );
-            }
-        }
-    }
-}
 sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
 sub    link(IO() $target, IO() $name) { $target   .link($name) }
 

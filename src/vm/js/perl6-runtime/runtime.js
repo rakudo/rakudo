@@ -195,14 +195,11 @@ op.p6argvmarray = function(ctx, args) {
 };
 
 op.p6recont_ro = function(cont) {
-  /* TODO - repack RW scalars
-  if (isRWScalar(tc, gcx, cont)) {
-      SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-      roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-          RakudoContainerSpec.HINT_value,
-          cont.st.ContainerSpec.fetch(tc, cont));
-      return roCont;
-  }*/
+  if (isRWScalar(cont)) {
+    let roCont = Scalar._STable.REPR.allocate(Scalar._STable);
+    roCont.$$bindattr(Scalar, '$!value', cont.$$decont(null));
+    return roCont;
+  }
   return cont;
 };
 

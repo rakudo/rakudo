@@ -5,7 +5,9 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
-        with a.Numeric { self.isNaN && .isNaN or $_ == self } else { False }
+        (my \numeric = a.Numeric).DEFINITE
+                ?? (self.isNaN && numeric.isNaN or numeric == self)
+                !! False
     }
 
     proto method log(|) {*}

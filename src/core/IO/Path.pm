@@ -1,6 +1,6 @@
 my class Instant { ... }
 
-my class IO::Path is Cool {
+my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;
     has Str      $.CWD;
     has Str      $.path;

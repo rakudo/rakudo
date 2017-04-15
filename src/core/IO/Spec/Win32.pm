@@ -175,42 +175,69 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
 
     method !canon-cat ( $first, *@rest, :$parent --> Str:D) {
-
         $first ~~ /^ ([   <$driveletter> <$slash>?
                         | <$UNCpath>
                         | [<$slash> ** 2] <$notslash>+
                         | <$slash> ]?)
                        (.*)
                    /;
-        my Str ($volume, $path) = ~$0, ~$1;
+        my str $volume = ~$0;
+        my str $path   = ~$1;
+        my int $temp;
 
-        $volume.=subst(:g, '/', '\\');
-        if $volume ~~ /^<$driveletter>/ {
-            $volume.=uc;
-        }
-        elsif $volume.chars && $volume !~~ / '\\' $/ {
-            $volume ~= '\\';
-        }
 
-        $path = join "\\", $path, @rest.flat;
-        $path ~~ s:g/ <$slash>+ /\\/;                              # /xx\\yy   --> \xx\yy
-        $path ~~ s:g/[ ^ | '\\']   '.'  '\\.'*  [ '\\' | $ ]/\\/;  # xx/././yy --> xx/yy
-        if $parent {
-            while $path ~~ s:g { [^ | <?after '\\'>] <!before '..\\'> <-[\\]>+ '\\..' ['\\' | $ ] } = '' { };
-        }
-        $path ~~ s/^ '\\'+ //;        # \xx --> xx  NOTE: this is *not* root
-        $path ~~ s/ '\\'+ $//;        # xx\ --> xx
-        if $volume ~~ / '\\' $ / {    # <vol>\.. --> <vol>\
-            $path ~~ s/ ^  '..'  '\\..'*  [ '\\' | $ ] //;
-        }
+        $volume = nqp::join(｢\｣, nqp::split('/', $volume));
+        $temp   = nqp::ord($volume);
 
-        if $path eq '' {        # \\HOST\SHARE\ --> \\HOST\SHARE
-            $volume ~~ s/<?after '\\\\' .*> '\\' $ //;
-            $volume || '.';
-        }
-        else {
-            $volume ~ $path;
-        }
+        nqp::if(
+          nqp::eqat($volume, ':', 1) # this chunk == ~~ /^<[A..Z a..z]>':'/
+            && ( (nqp::isge_i($temp, 65) && nqp::isle_i($temp, 90))
+              || (nqp::isge_i($temp, 97) && nqp::isle_i($temp, 122))),
+          ($volume = nqp::uc($volume)),
+          nqp::if(
+            ($temp = nqp::chars($volume))
+              && nqp::isfalse(nqp::eqat($volume, ｢\｣, nqp::sub_i($temp, 1))),
+            ($volume = nqp::concat($volume, ｢\｣))));
+
+        $path = join ｢\｣, $path, @rest.flat;
+
+        # /xx\\\yy\/zz  --> \xx\yy\zz
+        $path = nqp::join(｢\｣, nqp::split('/', $path));
+        nqp::while(
+          nqp::isne_i(-1, $temp = nqp::index($path, ｢\\｣)),
+          ($path = nqp::replace($path, $temp, 2, ｢\｣)));
+
+        # xx/././yy --> xx/yy
+        $path ~~ s:g/[ ^ | ｢\｣]   '.'  ｢\.｣*  [ ｢\｣ | $ ]/\\/;
+
+        nqp::if($parent,
+          nqp::while(
+            ($path ~~ s:g {
+                [^ | <?after ｢\｣>] <!before ｢..\｣> <-[\\]>+ ｢\..｣ [ ｢\｣ | $ ]
+              } = ''),
+            nqp::null));
+
+        nqp::while( # \xx --> xx  NOTE: this is *not* root
+          nqp::iseq_i(0, nqp::index($path, ｢\｣)),
+          ($path = nqp::substr($path, 1)));
+
+        nqp::while( # xx\ --> xx
+          nqp::eqat($path, ｢\｣, ($temp = nqp::sub_i(nqp::chars($path), 1))),
+          ($path = nqp::substr($path, 0, $temp)));
+
+        nqp::if( # <vol>\.. --> <vol>\
+          nqp::eqat($volume, ｢\｣, nqp::sub_i(nqp::chars($volume), 1)),
+          $path ~~ s/ ^  '..'  ｢\..｣*  [ ｢\｣ | $ ] //);
+
+        nqp::if(
+          $path,
+          nqp::concat($volume, $path),
+          nqp::stmts( # \\HOST\SHARE\ --> \\HOST\SHARE
+            nqp::iseq_i(0, nqp::index($volume, ｢\\｣))
+                && nqp::iseq_i(nqp::rindex($volume, ｢\｣),
+                  ($temp = nqp::sub_i(nqp::chars($volume), 1)))
+                && ($volume = nqp::substr($volume, 0, $temp)),
+            $volume || '.'))
     }
 }
 

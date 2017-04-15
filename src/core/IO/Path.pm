@@ -1,6 +1,6 @@
 my class Instant { ... }
 
-my class IO::Path is Cool {
+my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;
     has Str      $.CWD;
     has Str      $.path;
@@ -625,79 +625,79 @@ my class IO::Path is Cool {
     method d(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-D($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<d>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<d>))
     }
 
     method f(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-F($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<f>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<f>))
     }
 
     method s(--> Int:D) {
         $.e
           ?? Rakudo::Internals.FILETEST-S($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<s>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<s>))
     }
 
     method l(--> Bool:D) {
         ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<l>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<l>))
     }
 
     method r(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-R($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<r>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<r>))
     }
 
     method w(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-W($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<w>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<w>))
     }
 
     method rw(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RW($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<rw>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rw>))
     }
 
     method x(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-X($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<x>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<x>))
     }
 
     method rwx(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<rwx>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rwx>))
     }
 
     method z(--> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<z>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<z>))
     }
 
     method modified(--> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<modified>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<modified>))
     }
 
     method accessed(--> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<accessed>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<accessed>))
     }
 
     method changed(--> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<changed>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<changed>))
     }
 
     method mode(--> IntStr:D) {
@@ -706,7 +706,7 @@ my class IO::Path is Cool {
               (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
               IntStr.new($mode, sprintf('%04o', $mode))
             )
-          !! Failure.new(X::IO::DoesNotExist.new(:path(~self),:trying<mode>))
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<mode>))
     }
 }
 

@@ -103,8 +103,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     {
         $!update-lock.protect: {
             %!dir-cache{$compiler-id ~ $precomp-id} //=
-                (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
-                    .child($precomp-id.substr(0, 2).IO)
+                (%!compiler-cache{$compiler-id} //= self.prefix.concat-with($compiler-id.IO))
+                    .concat-with($precomp-id.substr(0, 2).IO)
         }
     }
 
@@ -112,13 +112,13 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  Str :$extension = '')
     {
-        self!dir($compiler-id, $precomp-id).child(($precomp-id ~ $extension).IO)
+        self!dir($compiler-id, $precomp-id).concat-with(($precomp-id ~ $extension).IO)
     }
 
     method !lock(--> Nil) {
         return if $*W && $*W.is_precompilation_mode();
         my int $acquire-file-lock = $!update-lock.protect: {
-            $!lock //= $.prefix.child('.lock').open(:create, :rw);
+            $!lock //= $.prefix.concat-with('.lock').open(:create, :rw);
             $!lock-count++
         }
         $!lock.lock(2) if $acquire-file-lock == 0;
@@ -176,11 +176,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  Str :$extension = ''
                  --> IO::Path:D)
     {
-        my $compiler-dir = self.prefix.child($compiler-id.IO);
+        my $compiler-dir = self.prefix.concat-with($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
-        $dest.child(($precomp-id ~ $extension).IO)
+        $dest.concat-with(($precomp-id ~ $extension).IO)
     }
 
     method store-file(CompUnit::PrecompilationId $compiler-id,
@@ -218,7 +218,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
     {
-         my $compiler-dir = self.prefix.child($compiler-id.IO);
+         my $compiler-dir = self.prefix.concat-with($compiler-id.IO);
          for $compiler-dir.dir -> $subdir {
              $subdir.dir>>.unlink;
              $subdir.rmdir;

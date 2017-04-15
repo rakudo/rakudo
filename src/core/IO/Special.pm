@@ -1,4 +1,4 @@
-class IO::Special {
+class IO::Special does IO {
     has Str $.what;
 
     method new(\what) {

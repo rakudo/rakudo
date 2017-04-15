@@ -72,7 +72,7 @@ class VM does Systemic {
             if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
         $full-path
-          ?? $dirname.IO.child($platform-name).absolute
+          ?? $dirname.IO.concat-with($platform-name).absolute
           !! $platform-name.IO
     }
 }

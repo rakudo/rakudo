@@ -853,7 +853,9 @@ my class IO::Handle {
 
     method path(IO::Handle:D:)      { $!path.IO }
     method IO(IO::Handle:D:)        { $!path.IO }
-    multi method Str(IO::Handle:D:) { $!path }
+
+    # use $.path, so IO::Pipe picks it up
+    multi method Str(IO::Handle:D:) { $.path.Str }
 
     multi method gist(IO::Handle:D:) {
         self.opened

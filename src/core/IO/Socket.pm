@@ -1,4 +1,4 @@
-my role IO::Socket {
+my role IO::Socket does IO {
     has $!PIO;
     # JVM has a buffer here; Moar does enough buffering of its own
     # and gets it much more correct when bytes cross boundaries, so we use its.

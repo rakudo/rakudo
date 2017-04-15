@@ -2,7 +2,7 @@ my class IO::Path { ... }
 my class IO::Special { ... }
 my class Proc { ... }
 
-my class IO::Handle {
+my class IO::Handle does IO {
     has $.path;
     has $!PIO;
     has $.chomp is rw = Bool::True;

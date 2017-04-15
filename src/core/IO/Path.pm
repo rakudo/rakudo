@@ -467,7 +467,7 @@ my class IO::Path is Cool {
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
         } }
-        True;
+        self
     }
 
     method rmdir(IO::Path:D:) {

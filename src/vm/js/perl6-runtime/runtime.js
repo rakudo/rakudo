@@ -127,7 +127,7 @@ op.p6capturelex = function(ctx, codeObj) {
     closure.capture(closure.staticCode.freshBlock());
   } else {
     /* HACK - workaround for rakudo bugs */
-    console.log("HORRIBLE hack - p6capturelex will do nothing");
+    //console.log("HORRIBLE hack - p6capturelex will do nothing");
   }
 
   return codeObj;

@@ -49,4 +49,17 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 
+# https://irclog.perlgeek.de/perl6-dev/2017-04-13#i_14425133
+# RT #79288
+{
+    my $param = '$bar';
+    throws-like { EVAL q[ sub foo(\qq{$param}? is rw) {} ] }, Exception,
+        message => "Cannot use 'is rw' on optional parameter '$param'",
+        'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
+
+    throws-like { EVAL q[ sub foo(\qq{$param} is rw = 42) {} ] }, Exception,
+        message => "Cannot use 'is rw' on optional parameter '$param'",
+        'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
+}
+
 done-testing;

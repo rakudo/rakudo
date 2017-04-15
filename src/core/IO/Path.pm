@@ -23,7 +23,7 @@ my class IO::Path is Cool {
         );
     }
 
-    method new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
+    method !new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
         method !set-absolute() {
             $!is-absolute = True;
             $!abspath := $path;
@@ -289,7 +289,7 @@ my class IO::Path is Cool {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        IO::Path.new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -367,7 +367,7 @@ my class IO::Path is Cool {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path!new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
         nqp::stmts(
             nqp::unless(
@@ -392,63 +392,39 @@ my class IO::Path is Cool {
         )
     }
 
-    proto method rename(|) { * }
-    multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Rename.new(
-              :from($.absolute),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
+    method rename(IO::Path:D: IO() $to, :$createonly) {
+        $createonly and $to.e and fail X::IO::Rename.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
-            fail X::IO::Rename.new(
-              :from($!abspath), :to($to.absolute), :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method rename(IO::Path:D: $to, :$CWD = $*CWD, |c) {
-        self.rename($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Rename.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str);
+        }}
+        True
     }
 
-    proto method copy(|) { * }
-    multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Copy.new(
-              :from($.absolute),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
+    method copy(IO::Path:D: IO() $to, :$createonly) {
+        $createonly and $to.e and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
         nqp::copy($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
-            fail X::IO::Copy.new(
-              :from($!abspath), :$to, :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method copy(IO::Path:D: $to, :$CWD  = $*CWD, |c) {
-        self.copy($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Copy.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str)
+        }}
+        True
     }
 
     method move(IO::Path:D: |c) {
-        my $result = self.copy(|c);
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
-        $result = self.unlink();
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
+        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
         True
     }
 
@@ -468,25 +444,25 @@ my class IO::Path is Cool {
         True;
     }
 
-    method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::symlink(nqp::unbox_s($name), $.absolute);
+    method symlink(IO::Path:D: IO() $name) {
+        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
         CATCH { default {
-            fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
+            fail X::IO::Symlink.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
+        }}
+        True;
+    }
+
+    method link(IO::Path:D: IO() $name) {
+        nqp::link($.absolute, $name.absolute);
+        CATCH { default {
+            fail X::IO::Link.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
         } }
         True;
     }
 
-    method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::link(nqp::unbox_s($name), $.absolute);
-        CATCH { default {
-            fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
-        } }
-        True;
-    }
-
-    method mkdir(IO::Path:D: $mode = 0o777) {
+    method mkdir(IO::Path:D: Int() $mode = 0o777) {
         nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
@@ -539,7 +515,7 @@ my class IO::Path is Cool {
                         !! take $abspath ~ $elem
                       !! !$absolute
                         ?? take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
+                        !! take IO::Path!new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
                 }
             }
 #?endif
@@ -556,7 +532,7 @@ my class IO::Path is Cool {
                     $relative,
                     (take IO::Path.new(
                       nqp::concat($path,$str_elem),:$!SPEC,:$CWD)),
-                    (take IO::Path.new-from-absolute-path(
+                    (take IO::Path!new-from-absolute-path(
                       nqp::concat($abspath,$str_elem),:$!SPEC,:$CWD))
                   )
                 )

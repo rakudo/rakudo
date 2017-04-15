@@ -228,47 +228,15 @@ sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
     @ok;
 #    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
+sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 
-proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
+sub rename(IO() $from, IO() $to, :$createonly) {
+    $from.rename($to, :$createonly)
 }
-multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
-}
+sub copy(IO() $from, IO() $to, :$createonly) { $from.copy($to, :$createonly) }
+sub move(IO() $from, IO() $to, :$createonly) { $from.move($to, :$createonly) }
 
-sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD,:$createonly);
-    $result // $result.throw;
-}
-sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD, :$createonly);
-    $result // $result.throw;
-}
-sub move($from, $to, :$createonly) {
-    try {
-        copy($from, $to, :$createonly);
-        unlink($from);
-        return True;
-
-        CATCH {
-            when X::IO::Copy|X::IO::Unlink {
-                fail X::IO::Move.new(
-                    :from(.from),
-                    :to(.to),
-                    :os-error(.os-error),
-                );
-            }
-        }
-    }
-}
-sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
-sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
+sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
+sub    link(IO() $target, IO() $name) { $target   .link($name) }
 
 # vim: ft=perl6 expandtab sw=4

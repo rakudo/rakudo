@@ -43,8 +43,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             unless ?$found {
                 # deduce path to compilation unit from package name
                 for @extensions -> $extension {
-                    my $path = $base ~ $extension;
-                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
+                    my $path = ($base ~ $extension).IO;
+                    $found = $path if $path.f;
                 }
             }
 

@@ -26,6 +26,7 @@ New in 2017.04
     + Fixed unwanted overflow when too-large values were *assigned* to native attributes [666ce35]
     + Fixed failure to set $/ by matching routines when used in loops [a62b221]
     + Fixed handling of Baggy (|) Mixy, Mixy (|) Baggy in dispatch [48619f8]
+    + Fixed Allocations tab in --profile output [c16cdb2c]
     + Made `is equiv` to not propagate operator's `assoc` value [f9f0883]
     + Made Code.ACCEPTS pass take its parameter `is raw` [c0eb9bd]
     + Fixed SEGV in IO::Pipe.t [3e275dd]

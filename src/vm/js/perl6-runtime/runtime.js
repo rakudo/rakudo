@@ -3,7 +3,7 @@ var Null = nqp.Null;
 var CodeRef = require('nqp-runtime/code-ref');
 var op = {};
 
-var Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor;
+var Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
 
 var defaultContainerDescriptor;
 
@@ -17,6 +17,7 @@ op.p6settypes = function(types) {
   Code = types.content.get('Code');
   Mu = types.content.get('Mu');
   Any = types.content.get('Any');
+  Routine = types.content.get('Routine');
   ContainerDescriptor = types.content.get('ContainerDescriptor');
 
   defaultContainerDescriptor = ContainerDescriptor._STable.REPR.allocate(ContainerDescriptor._STable);
@@ -43,8 +44,31 @@ op.p6typecheckrv = function(rv, routine, bypassType) {
   return rv;
 };
 
-op.p6decontrv = function(rountine, cont) {
-  // STUB
+function isRWScalar(check) {
+  if (check._STable === Scalar._STable && !check.typeObject_) {
+    let desc = check.$$getattr(Scalar, '$!descriptor');
+    if (desc === Null) {
+      return false;
+    }
+    return desc.$$getattr_i(ContainerDescriptor, '$!rw') !== 0;
+  }
+  return false;
+}
+
+op.p6decontrv = function(routine, cont) {
+  if (isRWScalar(cont)) {
+    let isRW = routine.$$getattr_i(Routine, '$!rw');
+    if (isRW === 0) {
+      let roCont = Scalar._STable.REPR.allocate(Scalar._STable);
+      roCont.$$bindattr(Scalar, '$!value', cont.$$decont(null));
+      return roCont;
+    }
+  } else if (cont._STable && cont._STable.REPR instanceof nqp.NativeRef) {
+    let isRW = routine.$$getattr_i(Routine, '$!rw');
+    if (isRW === 0) {
+      return cont.$$decont();
+    }
+  }
   return cont;
 };
 

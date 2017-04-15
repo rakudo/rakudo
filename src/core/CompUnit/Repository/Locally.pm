@@ -28,7 +28,7 @@ role CompUnit::Repository::Locally {
     }
 
     method source-file(Str $name --> IO::Path:D) {
-        self.prefix.child($name)
+        self.prefix.concat-with($name)
     }
 
     method prefix { "{$!prefix}".IO }

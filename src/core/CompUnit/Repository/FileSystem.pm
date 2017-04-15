@@ -17,13 +17,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $name = $spec.short-name;
             return %!loaded{$name} if %!loaded{$name}:exists;
 
-            my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
+            my $base := $!prefix.concat-with($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
             return $base if %seen{$base}:exists;
             my $found;
 
             # find source file
             # pick a META6.json if it is there
-            if not %!meta and (my $meta = $!prefix.child('META6.json')) and $meta.f {
+            if not %!meta and (my $meta = $!prefix.concat-with('META6.json')) and $meta.f {
                 try {
                     %!meta = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     CATCH {
@@ -35,7 +35,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             }
             if %!meta {
                 if %!meta<provides>{$name} -> $file {
-                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
+                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.concat-with($file);
                     $found = $path if $path.f;
                 }
             }
@@ -159,7 +159,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
             my $precompiled =
               $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
-            my $path = $!prefix.child($file);
+            my $path = $!prefix.concat-with($file);
 
             if $path.f {
                 return %!loaded{$file.Str} //= %seen{$path.Str} = CompUnit.new(
@@ -197,12 +197,12 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         # We now save the 'resources/' part of a resource's path in files, i.e:
         # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
         # but we also want to root any path request to the CUR's resources directory
-        $.prefix.parent.child('resources').child($key.subst(/^resources\//, ""));
+        $.prefix.parent.concat-with('resources').concat-with($key.subst(/^resources\//, ""));
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
         $!precomp-store //= CompUnit::PrecompilationStore::File.new(
-            :prefix(self.prefix.child('.precomp')),
+            :prefix(self.prefix.concat-with('.precomp')),
         )
     }
 

@@ -985,6 +985,10 @@ my class Rakudo::Internals {
     method PRECOMP-EXT()    { "jar" }
     method PRECOMP-TARGET() { "jar" }
 #?endif
+#?if js
+    method PRECOMP-EXT()    { "js" }
+    method PRECOMP-TARGET() { "js" }
+#?endif
 
     method get-local-timezone-offset() {
         my $utc     = time;

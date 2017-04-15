@@ -113,7 +113,7 @@ $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side_effects, sub () {
     "nqp.op.p6argvmarray($*CTX, Array.prototype.slice.call(arguments))"
 });
 
-$ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_marker });
+$ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_marker ~ 'Init' });
 
 $ops.add_simple_op('p6scalarfromdesc', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 

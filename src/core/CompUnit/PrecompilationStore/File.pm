@@ -121,7 +121,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!lock //= $.prefix.concat-with('.lock').open(:create, :rw);
             $!lock-count++
         }
-        $!lock.lock(2) if $acquire-file-lock == 0;
+        $!lock.lock if $acquire-file-lock == 0;
     }
 
     method unlock() {

@@ -466,6 +466,11 @@ my class X::IO::Copy does X::IO {
     }
 }
 
+my class X::IO::Lock does X::IO {
+    has $.lock-type;
+    method message() { "Could not obtain $.lock-type lock: $.os-error" }
+}
+
 my class X::IO::Move does X::IO {
     has $.from;
     has $.to;

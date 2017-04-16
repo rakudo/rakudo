@@ -753,8 +753,15 @@ my class IO::Handle {
         self.opened && nqp::p6bool(nqp::isttyfh($!PIO))
     }
 
-    method lock(IO::Handle:D: Int:D $flag) {
-        nqp::lockfh($!PIO, $flag)
+    method lock(IO::Handle:D:
+        Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
+    ) {
+        nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
+        CATCH { default {
+            fail X::IO::Lock.new: :os-error(.Str),
+                :lock-type( 'non-' x $non-blocking ~ 'blocking, '
+                    ~ ($shared ?? 'shared' !! 'exclusive') );
+        }}
     }
 
     method unlock(IO::Handle:D: --> True) {

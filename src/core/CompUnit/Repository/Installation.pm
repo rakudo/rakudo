@@ -227,7 +227,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
         my $lock = $.prefix.concat-with('repo.lock').open(:create, :w);
-        $lock.lock(2);
+        $lock.lock;
 
         my $version = self!repository-version;
         self.upgrade-repository unless $version == 2;

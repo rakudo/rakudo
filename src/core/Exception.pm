@@ -556,6 +556,14 @@ my class X::IO::Cwd does X::IO {
     }
 }
 
+my class X::IO::NotAChild does X::IO {
+    has $.path;
+    has $.child;
+    method message() {
+      "Path {$.child.perl} is not a child of path {$.path.perl}"
+    }
+}
+
 my class X::IO::Resolve does X::IO {
     has $.path;
     method message() { "Failed to completely resolve {$.path.perl}" }

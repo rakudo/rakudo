@@ -331,13 +331,8 @@ my class IO::Path is Cool does IO {
         }
     }
 
-    method child (IO::Path:D: \child) {
-        self.bless(
-            :path( $!SPEC.join('', $!path,
-                nqp::if(nqp::istype(child, Str), child, child.Str)
-            )),
-            :$!SPEC, :$!CWD
-        );
+    method child (IO::Path:D: Str() \child) {
+        self.bless: :path($!SPEC.join: '', $!path, child), :$!SPEC, :$!CWD
     }
 
     method concat-with (IO::Path:D: Str() \what) {

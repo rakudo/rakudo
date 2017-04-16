@@ -8999,7 +8999,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::Op.new(
-                :op('p6invokehandler'),
+                :op('call'),
                 QAST::Var.new( :name($handler_lex_name), :scope('lexical') ),
                 $ex
             ),

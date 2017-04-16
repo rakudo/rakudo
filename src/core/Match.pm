@@ -468,6 +468,10 @@ my class Match is Capture is Cool does NQPMatchRole {
         self.Mu::WHICH # skip Capture's as Match is not a value type
     }
 
+    proto method Bool(|) { * }
+    multi method Bool(Match:U:) { False }
+    multi method Bool(Match:D:) { nqp::p6bool($!pos >= $!from) }
+
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }

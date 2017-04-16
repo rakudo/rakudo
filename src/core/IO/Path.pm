@@ -234,7 +234,24 @@ my class IO::Path is Cool does IO {
         my str $resolved  = $empty;
         my Mu  $res-list := nqp::list_s();
 
-        my Mu $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+        # In this bit, we work with bytes, converting $sep (and assuming it's
+        # 1-char long) in the path to nul bytes and then splitting the path
+        # on nul bytes. This way, even if we get some weird paths like
+        # "/\x[308]", we still split on the /, leaving the lone combiner as
+        # part of the path part.
+        nqp::stmts(
+          (my $p := nqp::encode(
+            nqp::unbox_s(self.absolute), 'utf8-c8', buf8.new)),
+          (my int $ord-sep = nqp::ord($sep)),
+          (my int $els = nqp::elems($p)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::isne_i($els, $i = nqp::add_i($i, 1)),
+            nqp::if(
+              nqp::iseq_i(nqp::atpos_i($p, $i), $ord-sep),
+              nqp::atposref_i($p, $i) = 0)),
+          my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
+
         while $parts {
             fail "Resolved path too deep!"
                 if $max-depth < nqp::elems($res-list) + nqp::elems($parts);

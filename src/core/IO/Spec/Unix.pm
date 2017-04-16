@@ -57,7 +57,7 @@ my class IO::Spec::Unix is IO::Spec {
         )
     }
 
-    method dir-sep  {  '/' }
+    method dir-sep  {  '/' } # NOTE: IO::Path.resolve assumes dir sep is 1 char
     method curdir   {  '.' }
     method updir    { '..' }
     method curupdir { none('.','..') }

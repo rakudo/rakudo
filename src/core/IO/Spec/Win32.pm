@@ -18,6 +18,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         self!canon-cat(|@dirs);
     }
 
+    # NOTE: IO::Path.resolve assumes dir sep is 1 char
     method dir-sep        { '\\' }
     method splitdir($dir) { $dir.split($slash)  }
     method devnull        { 'nul'               }

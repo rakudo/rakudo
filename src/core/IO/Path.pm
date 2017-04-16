@@ -256,8 +256,12 @@ my class IO::Path is Cool does IO {
 
             # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
-                # fail() if we were asked for complete resolution...
-                $completely and X::IO::Resolve.new(:path(self)).fail;
+                # fail() if we were asked for complete resolution and we still
+                # have further parts to resolve. If it's the last part,
+                # don't fail; it can be a yet-to-be-created file or dir
+                $completely
+                  && nqp::elems($parts)
+                  && X::IO::Resolve.new(:path(self)).fail;
 
                 # ...or handle rest in non-resolving mode if not
                 $resolved = $next;

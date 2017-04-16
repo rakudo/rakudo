@@ -12,7 +12,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         self.^name ~ '#name(' ~ $!name ~ ')#' ~ $.prefix.absolute;
     }
     method source-file(Str $name --> IO::Path) {
-        my $file = self.prefix.concat-with($name);
+        my $file = self.prefix.add($name);
         $file.e ?? $file !! self.next-repo.source-file($name)
     }
 }

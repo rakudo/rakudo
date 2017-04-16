@@ -376,7 +376,7 @@ my class IO::Path is Cool does IO {
                 :path($res-self.absolute), :child($kid.absolute))))
     }
 
-    method concat-with (IO::Path:D: Str() \what) {
+    method add (IO::Path:D: Str() \what) {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 

@@ -415,7 +415,7 @@ do {
                 if $*ENV<RAKUDO_HIST> {
                     IO::Path.new($*ENV<RAKUDO_HIST>)
                 } else {
-                    IO::Path.new($*HOME).concat-with('.perl6').concat-with('rakudo-history')
+                    IO::Path.new($*HOME).add('.perl6').add('rakudo-history')
                 }
             try {
                 mkpath($!history-file);

@@ -120,23 +120,23 @@ class Distribution::Path does Distribution::Locally {
     has $!meta;
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new(IO::Path $prefix, IO::Path :$meta-file is copy) {
-        $meta-file //= $prefix.concat-with('META6.json');
+        $meta-file //= $prefix.add('META6.json');
         die "No meta file located at {$meta-file.path}" unless $meta-file.e;
         my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
 
         # generate `files` (special directories) directly from the file system
-        my %bins = Rakudo::Internals.DIR-RECURSE($prefix.concat-with('bin').absolute).map(*.IO).map: -> $real-path {
+        my %bins = Rakudo::Internals.DIR-RECURSE($prefix.add('bin').absolute).map(*.IO).map: -> $real-path {
             my $name-path = $real-path.is-relative
                 ?? $real-path
                 !! $real-path.relative($prefix);
             $name-path => $real-path.absolute
         }
 
-        my $resources-dir = $prefix.concat-with('resources');
+        my $resources-dir = $prefix.add('resources');
         my %resources = $meta<resources>.grep(*.?chars).map(*.IO).map: -> $path {
             my $real-path = $path ~~ m/^libraries\/(.*)/
-                ?? $resources-dir.concat-with('libraries').concat-with( $*VM.platform-library-name($0.Str.IO) )
-                !! $resources-dir.concat-with($path);
+                ?? $resources-dir.add('libraries').add( $*VM.platform-library-name($0.Str.IO) )
+                !! $resources-dir.add($path);
             my $name-path = $path.is-relative
                 ?? "resources/{$path}"
                 !! "resources/{$path.relative($prefix)}";

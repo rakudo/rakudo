@@ -392,7 +392,7 @@ my class IO::Path is Cool does IO {
         )
     }
 
-    method rename(IO::Path:D: IO() $to, :$createonly) {
+    method rename(IO::Path:D: IO() $to, :$createonly --> True) {
         $createonly and $to.e and fail X::IO::Rename.new:
             :from($.absolute),
             :to($to.absolute),
@@ -403,10 +403,9 @@ my class IO::Path is Cool does IO {
             fail X::IO::Rename.new:
                 :from($!abspath), :to($to.absolute), :os-error(.Str);
         }}
-        True
     }
 
-    method copy(IO::Path:D: IO() $to, :$createonly) {
+    method copy(IO::Path:D: IO() $to, :$createonly --> True) {
         $createonly and $to.e and fail X::IO::Copy.new:
             :from($.absolute),
             :to($to.absolute),
@@ -417,65 +416,58 @@ my class IO::Path is Cool does IO {
             fail X::IO::Copy.new:
                 :from($!abspath), :to($to.absolute), :os-error(.Str)
         }}
-        True
     }
 
-    method move(IO::Path:D: |c) {
+    method move(IO::Path:D: |c --> True) {
         self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
             :to(.exception.to), :os-error(.exception.os-error);
         self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
             :to(.exception.to), :os-error(.exception.os-error);
-        True
     }
 
-    method chmod(IO::Path:D: Int() $mode) {
+    method chmod(IO::Path:D: Int() $mode --> True) {
         nqp::chmod($.absolute, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
               :path($!abspath), :$mode, :os-error(.Str) );
-        } }
-        True;
+        }}
     }
-    method unlink(IO::Path:D:) {
+    method unlink(IO::Path:D: --> True) {
         nqp::unlink($.absolute);
         CATCH { default {
             fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
-        } }
-        True;
+        }}
     }
 
-    method symlink(IO::Path:D: IO() $name) {
+    method symlink(IO::Path:D: IO() $name --> True) {
         nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
         CATCH { default {
             fail X::IO::Symlink.new:
                 :target($!abspath), :name($name.absolute), :os-error(.Str);
         }}
-        True;
     }
 
-    method link(IO::Path:D: IO() $name) {
+    method link(IO::Path:D: IO() $name --> True) {
         nqp::link($.absolute, $name.absolute);
         CATCH { default {
             fail X::IO::Link.new:
                 :target($!abspath), :name($name.absolute), :os-error(.Str);
-        } }
-        True;
+        }}
     }
 
     method mkdir(IO::Path:D: Int() $mode = 0o777) {
         nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
-        } }
+        }}
         self
     }
 
-    method rmdir(IO::Path:D:) {
+    method rmdir(IO::Path:D: --> True) {
         nqp::rmdir($.absolute);
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
-        } }
-        True;
+        }}
     }
 
     proto method dir(|) {*} # make it possible to augment with multies from modulespace

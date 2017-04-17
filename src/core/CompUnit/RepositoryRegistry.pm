@@ -189,6 +189,10 @@ class CompUnit::RepositoryRegistry {
           !! Nil
     }
 
+    method register-name($name, CompUnit::Repository $repo) {
+        nqp::bindkey($custom-lib, $name, $repo);
+    }
+
     method name-for-repository(CompUnit::Repository $repo) {
         $*REPO; # initialize if not yet done
         my $iter := nqp::iterator($custom-lib);

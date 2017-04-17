@@ -207,6 +207,9 @@ sub guess_library_name($lib) is export(:TEST) {
     my $apiversion = '';
     my Str $ext = '';
     given $lib {
+        when IO::Path {
+            $libname = $lib.absolute;
+        }
         when Callable {
            return $lib();
         }
@@ -284,7 +287,7 @@ my Lock $setup-lock .= new;
 
 # This role is mixed in to any routine that is marked as being a
 # native call.
-my role Native[Routine $r, $libname where Str|Callable|List] {
+my role Native[Routine $r, $libname where Str|Callable|List|IO::Path] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;

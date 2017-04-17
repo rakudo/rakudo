@@ -115,6 +115,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("Repo chain changed: $repo-id ne {$first-repo-id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
         }
+        $resolve = False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
             $RMD("dependency: $dependency") if $RMD;

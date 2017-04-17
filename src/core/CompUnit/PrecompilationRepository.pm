@@ -299,7 +299,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
             next if %dependencies{$dependency.Str}++; # already got that one
-            $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
+            $RMD($dependency.Str()) if $RMD;
             @dependencies.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;

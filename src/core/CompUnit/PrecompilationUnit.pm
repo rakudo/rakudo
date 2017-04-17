@@ -88,12 +88,12 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
         "$.id\0$.src\0$.checksum\0$specs"
 #?endif
 #?if !jvm
-        "$.id\0$.src\0$.checksum\0{$.spec.perl}"
+        "$.id\0$.src\0$.checksum\0{$!serialized-spec ?? $!serialized-spec !! $!spec.perl}"
 #?endif
     }
 
     method Str() {
-        "$.id $.src $.checksum $.spec"
+        "$.id $.src $.checksum {$!serialized-spec ?? $!serialized-spec !! $!spec.perl}"
     }
 }
 

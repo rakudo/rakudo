@@ -145,7 +145,7 @@ New in 2017.04
     + Made Setty.pick/SetHash.(grab|grabpairs) 4x faster [6c9f31b]
     + Made Iterable.Set(|Hash) about 4x faster [f849df3]
     + Made m:i// regex matching 1.8x-3.3x faster [3e275dd]
-    + Made `Enum ~~ Enum` 2.9x faster [17d34cd]
+    + Made Enum.ACCEPTS(Enum) 2.9x faster [17d34cd]
     + Made Iterable (&) Iterable about 2x faster [0fc3751]
     + Made internal nqp::index 2x faster, affecting many methods that work with strings [f1fc879]
     + Made case-insensitive regex 2x faster [822566f]

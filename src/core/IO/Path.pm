@@ -660,88 +660,88 @@ my class IO::Path is Cool does IO {
         self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
     }
 
-    method e(--> Bool:D) {
+    method e(IO::Path:D: --> Bool:D) {
         ?Rakudo::Internals.FILETEST-E($.absolute) # must be $.absolute
     }
-    method d(--> Bool:D) {
+    method d(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-D($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<d>))
     }
 
-    method f(--> Bool:D) {
+    method f(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-F($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<f>))
     }
 
-    method s(--> Int:D) {
+    method s(IO::Path:D: --> Int:D) {
         $.e
           ?? Rakudo::Internals.FILETEST-S($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<s>))
     }
 
-    method l(--> Bool:D) {
+    method l(IO::Path:D: --> Bool:D) {
         ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<l>))
     }
 
-    method r(--> Bool:D) {
+    method r(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-R($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<r>))
     }
 
-    method w(--> Bool:D) {
+    method w(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-W($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<w>))
     }
 
-    method rw(--> Bool:D) {
+    method rw(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RW($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rw>))
     }
 
-    method x(--> Bool:D) {
+    method x(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-X($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<x>))
     }
 
-    method rwx(--> Bool:D) {
+    method rwx(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rwx>))
     }
 
-    method z(--> Bool:D) {
+    method z(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<z>))
     }
 
-    method modified(--> Instant:D) {
+    method modified(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<modified>))
     }
 
-    method accessed(--> Instant:D) {
+    method accessed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<accessed>))
     }
 
-    method changed(--> Instant:D) {
+    method changed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<changed>))
     }
 
-    method mode(--> IntStr:D) {
+    method mode(IO::Path:D: --> IntStr:D) {
         $.e
           ?? nqp::stmts(
               (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),

@@ -3,6 +3,7 @@ New in 2017.04
     + There are two Upgrade Notifications for this release:
         - Part 1: http://rakudo.org/2017/04/02/upgrade
         - Part 2: http://rakudo.org/2017/04/03/part-2
+        - Part 3: http://rakudo.org/2017/04/17/final-notes
     + Changes for Texas operators listed in this release also apply to their
         fancy Unicode alternatives. https://docs.perl6.org/language/unicode_texas.html
  + Fixes:

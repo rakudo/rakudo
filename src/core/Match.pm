@@ -517,8 +517,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         %attrs.ASSIGN-KEY("from", (self.from // 0  ).perl);
         %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).perl);
         %attrs.ASSIGN-KEY("made", (self.made // Any).perl);
-        %attrs.ASSIGN-KEY("list", (self.list // [] ).perl);
-        %attrs.ASSIGN-KEY("hash", (self.hash // {} ).perl);
+        %attrs.ASSIGN-KEY("list", (self.Capture::list // [] ).perl);
+        %attrs.ASSIGN-KEY("hash", (self.Capture::hash // {} ).perl);
 
         'Match.new('
             ~ %attrs.fmt('%s => %s', ', ')
@@ -544,8 +544,8 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
         a.from eqv b.from,
         a.orig eqv b.orig,
         (a.made // Any) eqv (b.made // Any),
-        (a.list // nqp::list ) eqv (b.list // nqp::list ),
-        (a.hash // nqp::hash ) eqv (b.hash // nqp::hash )
+        (a.Capture::list // nqp::list ) eqv (b.Capture::list // nqp::list ),
+        (a.Capture::hash // nqp::hash ) eqv (b.Capture::hash // nqp::hash )
     );
 }
 

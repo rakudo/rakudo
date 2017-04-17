@@ -94,9 +94,9 @@ my class Capture { # declared in BOOTSTRAP
         }
         nqp::p6box_s(nqp::join(' ', $str))
     }
-    multi method gist(Capture:D:) { self.perl }
+    multi method gist(Capture:D:) { self.Capture::perl }
     multi method perl(Capture:D:) {
-        my %hash := self.hash;
+        my %hash := self.Capture::hash;
         if self.^name eq 'Capture' {
             "\\({
                 join ', ',
@@ -123,26 +123,26 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Capture:D:) {
-        self.elems
+        self.Capture::elems
     }
 
     method FLATTENABLE_LIST() { @!list ?? @!list !! nqp::list() }
     method FLATTENABLE_HASH() { %!hash ?? %!hash !! nqp::hash() }
 
     multi method keys(Capture:D:) {
-        (self.list.keys, self.hash.keys).flat;
+        (self.Capture::list.keys, self.Capture::hash.keys).flat;
     }
     multi method kv(Capture:D:) {
-        (self.list.kv, self.hash.kv).flat;
+        (self.Capture::list.kv, self.Capture::hash.kv).flat;
     }
     multi method values(Capture:D:) {
-        (self.list.values, self.hash.values).flat;
+        (self.Capture::list.values, self.Capture::hash.values).flat;
     }
     multi method pairs(Capture:D:) {
-        (self.list.pairs, self.hash.pairs).flat;
+        (self.Capture::list.pairs, self.Capture::hash.pairs).flat;
     }
     multi method antipairs(Capture:D:) {
-        (self.list.antipairs, self.hash.antipairs).flat;
+        (self.Capture::list.antipairs, self.Capture::hash.antipairs).flat;
     }
 }
 
@@ -150,7 +150,7 @@ multi sub infix:<eqv>(Capture:D \a, Capture:D \b) {
     nqp::p6bool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.list eqv b.list && a.hash eqv b.hash)
+             && a.Capture::list eqv b.Capture::list && a.Capture::hash eqv b.Capture::hash)
     )
 }
 

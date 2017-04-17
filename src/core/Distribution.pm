@@ -154,19 +154,24 @@ role CompUnit::Repository { ... }
 class Distribution::Resources does Associative {
     has Str $.dist-id;
     has Str $.repo;
+    has Str $.repo-name;
 
     proto method BUILD(|) { * }
 
     multi method BUILD(:$!dist-id, CompUnit::Repository :$repo --> Nil) {
-        $!repo = $repo.path-spec;
+        unless $repo.can('name') and $!repo-name = $repo.name and $!repo-name ne '' {
+            $!repo = $repo.path-spec;
+            $!repo-name = Str;
+        }
     }
 
-    multi method BUILD(:$!dist-id, Str :$!repo --> Nil) { }
+    multi method BUILD(:$!dist-id, :$repo, Str :$!repo-name --> Nil) { }
+    multi method BUILD(:$!dist-id, Str :$!repo, :$repo-name --> Nil) { }
 
     method from-precomp() {
         if %*ENV<RAKUDO_PRECOMP_DIST> -> \dist {
             my %data := Rakudo::Internals::JSON.from-json: dist;
-            self.new(:repo(%data<repo>), :dist-id(%data<dist-id>))
+            self.new(:repo(%data<repo>), :repo-name(%data<repo-name>), :dist-id(%data<dist-id>))
         }
         else {
             Nil
@@ -174,11 +179,33 @@ class Distribution::Resources does Associative {
     }
 
     method AT-KEY($key) {
-        CompUnit::RepositoryRegistry.repository-for-spec($.repo).resource($.dist-id, "resources/$key")
+        my class :: does Callable {
+            has $.repo;
+            has $.repo-name;
+            has $.dist-id;
+            has $.key;
+            method IO() {
+                my $repo := $!repo-name
+                    ?? CompUnit::RepositoryRegistry.repository-for-name($!repo-name)
+                    !! CompUnit::RepositoryRegistry.repository-for-spec($!repo);
+                $repo.resource($!dist-id, "resources/$!key")
+            }
+            method CALL-ME() {
+                self.IO.Str
+            }
+            method Str() {
+                return self.IO.Str
+            }
+        }.new(
+            :$.repo,
+            :$.repo-name,
+            :$.dist-id,
+            :$key,
+        )
     }
 
     method Str() {
-        Rakudo::Internals::JSON.to-json: {repo => $.repo.Str, dist-id => $.dist-id};
+        Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
     }
 }
 

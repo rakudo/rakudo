@@ -4918,7 +4918,7 @@ if $*COMPILING_CORE_SETTING {
         # Set up the rest of this statement to have new actions too.
         self.set_actions($actions);
 
-        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG, :dynamic));
 
         $*LANG := self;
         $*LEAF := self;

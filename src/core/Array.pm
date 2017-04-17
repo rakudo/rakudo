@@ -1078,7 +1078,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        nqp::isnull($!descriptor) ?? Nil !! so $!descriptor.dynamic
+        nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
     multi method perl(Array:D \SELF:) {
         SELF.perlseen('Array', {

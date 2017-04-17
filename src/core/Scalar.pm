@@ -23,7 +23,7 @@ my class Scalar { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! so $d.dynamic;
+        nqp::isnull($d) ?? False !! so $d.dynamic;
     }
 }
 

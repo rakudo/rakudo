@@ -836,7 +836,7 @@ class Perl6::World is HLL::World {
         }
         $cursor.define_slang("MAIN", $cursor.WHAT, $actions);
         $cursor.set_actions($actions);
-        self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG));
+        self.install_lexical_symbol(self.cur_lexpad(), '%?LANG', self.p6ize_recursive(%*LANG, :dynamic));
 
         $*LANG := $cursor;
         $*LEAF := $cursor;
@@ -2725,8 +2725,19 @@ class Perl6::World is HLL::World {
 
     # Takes a data structure of non-Perl 6 objects and wraps them up
     # recursively.
-    method p6ize_recursive($data) {
-        p6ize_recursive($data)
+    # If :$dynamic is passed wraps hashes with dynamic Scalars
+    method p6ize_recursive($data, :$dynamic) {
+        # $data that's a NQP hash is wrapped in a Scalar
+        if nqp::ishash($data) && $dynamic {
+            my $scalar := p6ize_recursive($data);
+            my $descriptor_type := self.find_symbol(['ContainerDescriptor']);
+            my $descriptor := $descriptor_type.new( :$dynamic );
+            nqp::bindattr($scalar, self.find_symbol(['Scalar']), '$!descriptor', $descriptor);
+            $scalar;
+        }
+        else {
+            p6ize_recursive($data)
+        }
     }
 
     method nibble_to_str($/, $ast, $mkerr) {

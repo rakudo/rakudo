@@ -255,7 +255,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        nqp::isnull($!descriptor) ?? Nil !! nqp::p6bool($!descriptor.dynamic)
+        nqp::isnull($!descriptor) ?? False !! nqp::p6bool($!descriptor.dynamic)
     }
 
     method push(+values) {

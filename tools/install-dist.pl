@@ -8,7 +8,7 @@ sub find-meta-file($dir) {
 }
 
 multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name)!) {
-    my $meta-file = find-meta-file($dist-prefix);
+    my $meta-file = find-meta-file($dist-prefix.IO);
     my $dist      = Distribution::Path.new($dist-prefix.IO, :$meta-file);
 
     CompUnit::Repository::Staging.new(
@@ -21,7 +21,7 @@ multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name
 }
 
 multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-id) = 'site', Bool :$force) {
-    my $meta-file = find-meta-file($dist-prefix);
+    my $meta-file = find-meta-file($dist-prefix.IO);
     my $dist      = Distribution::Path.new($dist-prefix.IO, :$meta-file);
 
     my $repo = first * ~~ CompUnit::Repository::Installable,

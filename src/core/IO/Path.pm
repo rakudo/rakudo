@@ -183,6 +183,12 @@ my class IO::Path is Cool does IO {
           !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
     }
 
+    method sibling(IO::Path:D: Str() \sibling) {
+        $_ := self.parts;
+        self.bless: :path($!SPEC.join: .<volume>, .<dirname>, sibling),
+            :$!SPEC, :$!CWD;
+    }
+
     method succ(IO::Path:D:) {
         self.bless(
           :path($!SPEC.join($.volume,$.dirname,$.basename.succ)),

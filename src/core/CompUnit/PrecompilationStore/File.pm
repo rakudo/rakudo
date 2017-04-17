@@ -205,7 +205,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  :$repo-id!)
     {
-        self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
+        try self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
     }
 
     method delete(

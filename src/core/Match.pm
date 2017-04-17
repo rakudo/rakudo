@@ -2,7 +2,7 @@
 my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
-    my $DID_MATCH = nqp::create(NQPdidMATCH);
+    my Mu $DID_MATCH  := nqp::create(NQPdidMATCH);
 
     method STR() {
         nqp::if(

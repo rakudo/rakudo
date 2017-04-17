@@ -138,7 +138,7 @@ my class Backtrace {
             next unless $file;
 
             if CompUnit::RepositoryRegistry.file-for-spec($file) -> $path {
-                $file := $path.abspath;
+                $file := $path.absolute;
             }
 
             # now *that's* an evil hack

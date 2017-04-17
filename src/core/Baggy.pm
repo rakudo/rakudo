@@ -34,47 +34,89 @@ my role Baggy does QuantHash {
           0
         )
     }
-    method !SANITY(%hash --> Nil) {
-        my @toolow;
-        my $elems := nqp::getattr(%hash,Map,'$!storage');
-        my $iter  := nqp::iterator($elems);
-        while $iter {
-            my \tmp   := nqp::shift($iter);
-            my \pair  := nqp::iterval(tmp);
-            my $value := pair.value;
-            @toolow.push( pair.key )                   if $value <  0;
-            nqp::deletekey($elems,nqp::iterkey_s(tmp)) if $value <= 0;
-        }
-        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
+    method SANITY(\elems --> Nil) {
+        nqp::stmts(
+          (my $low := nqp::create(IterationBuffer)),
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::isle_I(
+                nqp::decont(nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
+                0
+              ),
+              nqp::stmts(
+                nqp::if(
+                  nqp::islt_I(
+                    nqp::decont(nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+                    0
+                  ),
+                  nqp::push($low,nqp::getattr(nqp::iterval($iter),Pair,'$!key'))
+                ),
+                nqp::deletekey(elems,nqp::iterkey_s($iter))
+              )
+            )
+          ),
+          nqp::if(
+            nqp::elems($low),
+            X::AdHoc.new( payload =>
+              "Found negative values for "
+              ~ nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$low)
+              ~ " in "
+              ~ self.^name
+            ).throw,
+            Nil
+          )
+        )
     }
-    method !LISTIFY(&formatter) {
-        my $elems := nqp::getattr(%!elems,Map,'$!storage');
-        my $list  := nqp::list();
-        nqp::setelems($list,nqp::elems($elems));  # presize
-        nqp::setelems($list,0);
-
-        my $iter := nqp::iterator($elems);
-        while $iter {
-            my \pair = nqp::iterval(nqp::shift($iter));
-            nqp::push($list,formatter(pair.key,pair.value));
-        }
-        $list
+    method !LISTIFY(&formatter, str $joiner) {
+        nqp::if(
+          (my int $elems = %!elems.elems),   # also handle unallocated %!elems
+          nqp::stmts(
+            (my $pairs := nqp::getattr(%!elems,Map,'$!storage')),
+            (my $list := nqp::setelems(nqp::list_s,$elems)),
+            (my $iter := nqp::iterator($pairs)),
+            (my int $i = -1),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s($list,($i = nqp::add_i($i,1)),
+                formatter(
+                  (my $pair := nqp::iterval(nqp::shift($iter))).key,
+                  $pair.value
+                )
+              )
+            ),
+            nqp::p6box_s(nqp::join($joiner,$list))
+          ),
+          ""
+        )
     }
 
 #--- interface methods
-    method !SET-SELF(Baggy:D: Mu \elems) {
-        %!elems := elems;
-
-        if nqp::istype(self, Bag) || nqp::istype(self, Mix) {
-            my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-            while $iter {
-                my \pair = nqp::iterval(nqp::shift($iter));
-                nqp::bindattr(pair,Pair,'$!value',
-                  nqp::decont(nqp::getattr(pair,Pair,'$!value'))
-                );
-            }
-        }
-        self
+    method SET-SELF(Baggy:D: \elems) {
+        nqp::if(
+          nqp::elems(elems),
+          nqp::stmts(                        # need to have allocated %!elems
+            nqp::bindattr(%!elems,Map,'$!storage',elems),
+            nqp::if(
+              nqp::istype(self,Bag) || nqp::istype(self,Mix),
+              nqp::stmts(
+                (my $iter := nqp::iterator(elems)),
+                nqp::while(
+                  $iter,
+                  nqp::stmts(
+                    (my $pair := nqp::iterval(nqp::shift($iter))),
+                    nqp::bindattr($pair,Pair,'$!value',
+                      nqp::decont(nqp::getattr($pair,Pair,'$!value'))
+                    )
+                  )
+                )
+              )
+            ),
+            self
+          ),
+          self
+        )
     }
     multi method ACCEPTS(Baggy:U: $other) {
         $other.^does(self)
@@ -82,7 +124,7 @@ my role Baggy does QuantHash {
     multi method ACCEPTS(Baggy:D: Mu $other) {
         $other (<+) self && self (<+) $other
     }
-    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool) {
+    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool:D) {
         nqp::p6bool(
           nqp::unless(
             nqp::eqaddr(self,$other),
@@ -115,80 +157,114 @@ my role Baggy does QuantHash {
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
-        my str $which = nqp::unbox_s(k.WHICH);
-        nqp::existskey($elems,$which)
-          ?? nqp::getattr(nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value')
-          !! 0
+        nqp::if(
+          (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+          nqp::if(
+            nqp::existskey($elems,(my $which := k.WHICH)),
+            nqp::getattr(nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value'),
+            0
+          ),
+          0
+        )
     }
     multi method DELETE-KEY(Baggy:D: \k) {
-        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
-        my str $which = nqp::unbox_s(k.WHICH);
-        if nqp::existskey($elems,$which) {
-            my \v = nqp::getattr(
-              nqp::decont(nqp::atkey($elems,$which)),
-              Pair,'$!value');
-            nqp::deletekey($elems,$which);
-            v
-        }
-        else {
+        nqp::if(
+          (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+          nqp::if(
+            nqp::existskey($elems,(my $which := k.WHICH)),
+            nqp::stmts(
+              (my $value := nqp::getattr(
+                nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value')),
+              nqp::deletekey($elems,$which),
+              $value
+            ),
             0
-        }
+          ),
+          0
+        )
     }
     multi method EXISTS-KEY(Baggy:D: \k) {
         nqp::p6bool(
-          nqp::existskey(
-            nqp::getattr(%!elems,Map,'$!storage'),nqp::unbox_s(k.WHICH)));
+          nqp::if(
+            (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+            nqp::existskey($elems,k.WHICH)
+          )
+        )
     }
 
 #--- object creation methods
+    multi method new(Baggy:_:) { nqp::create(self) }
     multi method new(Baggy:_: +@args) {
-        my $elems := nqp::hash();
-        my str $which;
-        for @args {
-            $which = nqp::unbox_s(.WHICH);
-            if nqp::existskey($elems,$which) {
-                my $value :=
-                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                $value = $value + 1;
-            }
-            else {
-                nqp::bindkey($elems,$which,self!PAIR($_,1));
-            }
-        }
-        nqp::create(self)!SET-SELF($elems)
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iterator := @args.iterator),
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::existskey(
+                $elems,
+                (my $which := $pulled.WHICH)
+              ),
+              nqp::stmts(
+                (my $value :=
+                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                ($value = $value + 1),
+              ),
+              nqp::bindkey($elems,$which,self!PAIR($pulled,1))
+            )
+          ),
+          nqp::create(self).SET-SELF($elems)
+        )
     }
     method new-from-pairs(*@pairs) {
-        my $elems := nqp::hash();
-        my str $which;
-        my int $seen-pair;
-        for @pairs {
-            when Pair {
-                $seen-pair = 1;
-                $which = nqp::unbox_s(.key.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + .value;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR(.key,.value));
-                }
-            }
-            default {
-                $which = nqp::unbox_s(.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + 1;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR($_,1));
-                }
-            }
-        }
-        self!SANITY($elems) if $seen-pair;
-        nqp::create(self)!SET-SELF($elems)
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iterator := @pairs.iterator),
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::stmts(
+                (my int $seen-pair = 1),
+                nqp::if(
+                  nqp::existskey(
+                    $elems,
+                    (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                  ),
+                  nqp::stmts(
+                    (my $value :=
+                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                    ($value = $value + nqp::getattr($pulled,Pair,'$!value'))
+                  ),
+                  nqp::bindkey($elems,$which,self!PAIR(
+                    nqp::getattr($pulled,Pair,'$!key'),
+                    nqp::getattr($pulled,Pair,'$!value'),
+                  ))
+                )
+              ),
+              nqp::if(
+                nqp::existskey(
+                  $elems,
+                  ($which := $pulled.WHICH)
+                ),
+                nqp::stmts(
+                  ($value :=
+                    nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value')),
+                  ($value = $value + 1),
+                ),
+                nqp::bindkey($elems,$which,self!PAIR($pulled,1))
+              )
+            )
+          ),
+          nqp::if($seen-pair && nqp::elems($elems),self.SANITY($elems)),
+          nqp::create(self).SET-SELF($elems)
+        )
     }
 
 #--- iterator methods
@@ -302,36 +378,34 @@ my role Baggy does QuantHash {
         }.new(%!elems))
     }
     multi method invert(Baggy:D:) {
-        %!elems.values.map: { (.value »=>» .key).cache.Slip }
+        Seq.new(Rakudo::Iterator.Invert(%!elems.values.iterator))
     }
 
 #--- introspection methods
     multi method WHICH(Baggy:D:)   { self!WHICH }
     method total(Baggy:D:)         { self!TOTAL }
-    method elems(Baggy:D: --> Int) { %!elems.elems }
-    method Bool(Baggy:D: --> Bool) {
-        nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
-    }
-    method hash(Baggy:D: --> Hash) {
+    multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
+    multi method Bool(Baggy:D: --> Bool:D) { %!elems.Bool }
+    multi method hash(Baggy:D: --> Hash:D) {
         my \h = Hash.^parameterize(Any, Any).new;
         h = %!elems.values;
         h;
     }
-    method default(Baggy:D:)       { 0 }
+    method default(Baggy:D: --> 0) { }
 
-    multi method Str(Baggy:D: --> Str) {
-        join(' ', self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+    multi method Str(Baggy:D: --> Str:D) {
+        self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ' ')
     }
-    multi method gist(Baggy:D: --> Str) {
+    multi method gist(Baggy:D: --> Str:D) {
         my str $name = nqp::unbox_s(self.^name);
         ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
         ~ '('
-        ~ join(', ',self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+        ~ self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ', ')
         ~ ')'
     }
-    multi method perl(Baggy:D: --> Str) {
+    multi method perl(Baggy:D: --> Str:D) {
         '('
-        ~ join(',', self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"} ))
+        ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
         ~ ").{self.^name}"
     }
 
@@ -578,8 +652,148 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-    method Set()     {     Set.new(self.keys) }
-    method SetHash() { SetHash.new(self.keys) }
+    method !SETIFY(\type) {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+              )
+            ),
+            nqp::create(type).SET-SELF($elems)
+          ),
+          nqp::if(
+            nqp::eqaddr(type,Set),
+            set(),
+            nqp::create(type)
+          )
+        )
+    }
+    method Set() is nodal     { self!SETIFY(Set)     }
+    method SetHash() is nodal { self!SETIFY(SetHash) }
+
+    method !BAGGIFY(int $bind) {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(                               # something to coerce
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::isgt_i(
+                  (my $value := nqp::getattr(
+                  nqp::iterval(my $tmp := nqp::shift($iter)),
+                  Pair,
+                  '$!value'
+                  ).Int),                           # .Int also deconts
+                  0
+                ),
+                nqp::bindkey(                       # ok to keep value.Int
+                  $elems,
+                  nqp::iterkey_s($tmp),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($tmp)),
+                    Pair,
+                    '$!value',
+                    nqp::if(
+                      $bind,
+                      $value,
+                      (nqp::p6scalarfromdesc(nqp::null) = $value)
+                    )
+                  )
+                ),
+                nqp::deletekey(                     # we don't do <= 0 in bags
+                  $elems,
+                  nqp::iterkey_s($tmp)
+                )
+              )
+            ),
+            nqp::if(
+              nqp::elems($elems),
+              nqp::create(nqp::if($bind,Bag,BagHash)).SET-SELF($elems),
+              nqp::if($bind,bag(),nqp::create(BagHash))
+            )
+          ),
+          nqp::if($bind,bag(),nqp::create(BagHash)) # nothing to coerce
+        )
+    }
+
+    method Bag() is nodal     { self!BAGGIFY(1) }
+    method BagHash() is nodal { self!BAGGIFY(0) }
+
+    method !MIXIFY(int $bind) {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(                             # something to coerce
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($tmp)),
+                  Pair,
+                  '$!value',
+                  nqp::if(
+                    $bind,
+                    nqp::decont(
+                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value')
+                    ),
+                    (nqp::p6scalarfromdesc(nqp::null) =
+                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
+                  )
+                )
+              )
+            ),
+            nqp::create(nqp::if($bind,Mix,MixHash)).SET-SELF($elems)
+          ),
+          nqp::create(nqp::if($bind,Mix,MixHash))  # nothing to coerce
+        )
+    }
+
+    method Mix() is nodal     { self!MIXIFY(1) }
+    method MixHash() is nodal { self!MIXIFY(0) }
+
+    method clone() {
+        nqp::if(
+          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($raw),
+          nqp::stmts(                             # something to clone
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($tmp)),
+                  Pair,
+                  '$!value',
+                  (nqp::p6scalarfromdesc(nqp::null) =
+                    nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
+                )
+              )
+            ),
+            nqp::create(self).SET-SELF($elems)
+          ),
+          nqp::create(self)                       # nothing to clone
+        )
+    }
+
+    method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {

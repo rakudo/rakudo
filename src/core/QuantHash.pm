@@ -1,8 +1,8 @@
 my role QuantHash does Associative {
-    method Int     ( --> Int)     { self.total.Int }
-    method Num     ( --> Num)     { self.total.Num }
-    method Numeric ( --> Numeric) { self.total.Numeric }
-    method Real    ( --> Real)    { self.total.Real }
+    method Int     ( --> Int:D)     { self.total.Int }
+    method Num     ( --> Num:D)     { self.total.Num }
+    method Numeric ( --> Numeric:D) { self.total.Numeric }
+    method Real    ( --> Real:D)    { self.total.Real }
 
     method list() { self.pairs.cache }
 
@@ -19,6 +19,27 @@ my role QuantHash does Associative {
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
+
+    method raw_keys() {
+        nqp::if(
+          (my $elems := self.raw_hash),
+          nqp::stmts(
+            (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s(
+                $keys,
+                ($i = nqp::add_i($i,1)),
+                nqp::iterkey_s(nqp::shift($iter))
+              )
+            ),
+            $keys
+          ),
+          nqp::list_s
+        )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

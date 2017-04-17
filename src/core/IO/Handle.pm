@@ -2,7 +2,7 @@ my class IO::Path { ... }
 my class IO::Special { ... }
 my class Proc { ... }
 
-my class IO::Handle does IO {
+my class IO::Handle {
     has $.path;
     has $!PIO;
     has $.chomp is rw = Bool::True;
@@ -24,31 +24,56 @@ my class IO::Handle does IO {
       :$nl-in is copy = ["\x0A", "\r\n"],
       Str:D :$nl-out is copy = "\n",
     ) {
+        $mode = nqp::if(
+          $mode,
+          nqp::if(nqp::istype($mode, Str), $mode, $mode.Str),
+          nqp::if(
+            nqp::unless(nqp::if($r, $w), $rw), # $r && $w || $rw
+            nqp::stmts(($create = True), 'rw'),
+            nqp::if(
+              nqp::unless(nqp::if($r, $x), $rx),
+              nqp::stmts(($create = $exclusive = True), 'rw'),
+              nqp::if(
+                nqp::unless(nqp::if($r, $a), $ra),
+                nqp::stmts(($create = $append = True), 'rw'),
+                nqp::if(
+                  $r, 'ro',
+                  nqp::if(
+                    $w,
+                    nqp::stmts(($create = $truncate = True), 'wo'),
+                    nqp::if(
+                      $x,
+                      nqp::stmts(($create = $exclusive = True), 'wo'),
+                      nqp::if(
+                        $a,
+                        nqp::stmts(($create = $append = True), 'wo'),
+                        nqp::if(
+                          $update, 'rw',
+                          'ro'
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
 
-        $mode //= do {
-            when so ($r && $w) || $rw { $create              = True; 'rw' }
-            when so ($r && $x) || $rx { $create = $exclusive = True; 'rw' }
-            when so ($r && $a) || $ra { $create = $append    = True; 'rw' }
-
-            when so $r { 'ro' }
-            when so $w { $create = $truncate  = True; 'wo' }
-            when so $x { $create = $exclusive = True; 'wo' }
-            when so $a { $create = $append    = True; 'wo' }
-
-            when so $update { 'rw' }
-
-            default { 'ro' }
-        }
-
-        if $!path eq '-' {
-            given $mode {
-                when 'ro' { return $*IN;  }
-                when 'wo' { return $*OUT; }
-                default {
-                    die "Cannot open standard stream in mode '$_'";
-                }
-            }
-        }
+        nqp::if(
+            nqp::iseq_s($!path.Str, '-'),
+            nqp::stmts(
+                nqp::if(
+                    nqp::iseq_s($mode, 'ro'),
+                    (return $*IN),
+                    nqp::if(
+                        nqp::iseq_s($mode, 'wo'),
+                        (return $*OUT),
+                        die("Cannot open standard stream in mode '$mode'"),
+                    ),
+                ),
+            ),
+        );
 
         if nqp::istype($!path, IO::Special) {
             my $what := $!path.what;
@@ -69,38 +94,55 @@ my class IO::Handle does IO {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            self.encoding( $bin ?? 'bin' !! $enc );
+            nqp::if( $bin,
+                ($!encoding = 'bin'),
+                nqp::setencoding($!PIO,
+                    $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
+                )
+            );
             return self;
         }
 
-        fail (X::IO::Directory.new(:$!path, :trying<open>))
-          if $!path.e && $!path.d;
-
-        my $llmode = do given $mode {
-            when 'ro' { 'r' }
-            when 'wo' { '-' }
-            when 'rw' { '+' }
-            default { die "Unknown mode '$_'" }
-        }
-
-        $llmode = join '', $llmode,
-            $create    ?? 'c' !! '',
-            $append    ?? 'a' !! '',
-            $truncate  ?? 't' !! '',
-            $exclusive ?? 'x' !! '';
+        fail X::IO::Directory.new(:$!path, :trying<open>) if $!path.d;
 
         {
             CATCH { .fail }
             $!PIO := nqp::open(
-              nqp::unbox_s($!path.abspath),
-              nqp::unbox_s($llmode),
+                $!path.absolute,
+                nqp::concat(
+                    nqp::if(
+                        nqp::iseq_s($mode, 'ro'), 'r',
+                        nqp::if(
+                            nqp::iseq_s($mode, 'wo'), '-',
+                            nqp::if(
+                                nqp::iseq_s($mode, 'rw'), '+',
+                                die("Unknown mode '$mode'")
+                            ),
+                        ),
+                    ),
+                    nqp::concat(
+                        nqp::if($create, 'c', ''),
+                        nqp::concat(
+                            nqp::if($append, 'a', ''),
+                            nqp::concat(
+                                nqp::if($truncate,  't', ''),
+                                nqp::if($exclusive, 'x', ''),
+                            ),
+                        ),
+                    )
+                ),
             );
         }
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        self.encoding( $bin ?? 'bin' !! $enc );
+        nqp::if( $bin,
+            ($!encoding = 'bin'),
+            nqp::setencoding($!PIO,
+                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
+            )
+        );
         self;
     }
 
@@ -116,9 +158,13 @@ my class IO::Handle does IO {
     }
 
     method close(IO::Handle:D: --> True) {
-        # TODO: catch errors
-        nqp::closefh($!PIO) if nqp::defined($!PIO);
-        $!PIO := nqp::null;
+        nqp::if(
+          nqp::defined($!PIO),
+          nqp::stmts(
+            nqp::closefh($!PIO), # TODO: catch errors
+            $!PIO := nqp::null
+          )
+        )
     }
 
     method eof(IO::Handle:D:) {
@@ -126,30 +172,22 @@ my class IO::Handle does IO {
     }
 
     method get(IO::Handle:D:) {
-        my str $str;
-        nqp::if($!chomp,
-            nqp::stmts(
-                ($str = nqp::readlinechompfh($!PIO)),
-                # loses last empty line because EOF is set too early, RT #126598
-                nqp::if(nqp::chars($str) || !nqp::eoffh($!PIO),
-                    $str,
-                    Nil
-                )
-            ),
-            nqp::stmts(
-                ($str = nqp::readlinefh($!PIO)),
-                # no need to check EOF
-                nqp::if(nqp::chars($str),
-                    $str,
-                    Nil
-                )
-            )
+        nqp::if(
+          $!chomp,
+          nqp::if(
+            nqp::chars(my str $str = nqp::readlinechompfh($!PIO))
+              # loses last empty line because EOF is set too early, RT #126598
+              || nqp::not_i(nqp::eoffh($!PIO)),
+            $str,
+            Nil
+          ),
+          # not chomping, no need to check EOF
+          nqp::if(nqp::chars($str = nqp::readlinefh($!PIO)),$str,Nil)
         )
     }
 
     method getc(IO::Handle:D:) {
-        my str $c = nqp::getcfh($!PIO);
-        nqp::chars($c) ?? $c !! Nil
+        nqp::if(nqp::chars(my str $c = nqp::getcfh($!PIO)),$c,Nil)
     }
 
     proto method comb(|) { * }
@@ -545,39 +583,108 @@ my class IO::Handle does IO {
         }.new(self, $close));
     }
 
-    proto method lines (|) { * }
-    multi method lines(IO::Handle:D: $limit, |c) {
-        # we should probably deprecate this feature
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines(|c)
-          !! self.lines(|c)[ lazy 0 .. $limit.Int - 1 ]
+    my role PIOIterator does Iterator {
+        has $!PIO;
+        method new(\handle) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self.WHAT,'$!PIO',
+              nqp::getattr(handle,IO::Handle,'$!PIO')
+            )
+        }
+        method sink-all(--> IterationEnd) {
+            nqp::seekfh($!PIO,0,2)  # seek to end
+        }
     }
-    multi method lines(IO::Handle:D: :$close) {
-        Seq.new(class :: does Iterator {
-            has $!handle;
-            has $!close;
 
-            method !SET-SELF(\handle, $!close) {
-                $!handle := handle;
-                self
+    multi method iterator(IO::Handle:D:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,IO::Handle),
+          nqp::if(
+            $!chomp,
+            class :: does PIOIterator { # shortcircuit .get, chomping
+                method pull-one() {
+                    nqp::if(
+                      nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
+                        # loses last empty line because EOF is set too early
+                        # RT #126598
+                        || nqp::not_i(nqp::eoffh($!PIO)),
+                      $line,
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::while(
+                      nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
+                        # loses last empty line because EOF is set too early
+                        # RT #126598
+                        || nqp::not_i(nqp::eoffh($!PIO)),
+                      $target.push(nqp::p6box_s($line))
+                    )
+                }
+            },
+            class :: does PIOIterator { # shortcircuit .get, *NOT* chomping
+                method pull-one() {
+                    nqp::if(
+                      # not chomping, no need to check EOF
+                      nqp::chars(my str $line = nqp::readlinefh($!PIO)),
+                      $line,
+                      IterationEnd
+                    )
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::while(
+                      # not chomping, no need to check EOF
+                      nqp::chars(my str $line = nqp::readlinefh($!PIO)),
+                      $target.push(nqp::p6box_s($line))
+                    )
+                }
             }
-            method new(\handle, \close) {
-                nqp::create(self)!SET-SELF(handle, close);
-            }
-            method pull-one() is raw {
-                nqp::if(nqp::defined(my \g = $!handle.get),
-                  g,
-                  nqp::stmts(
-                    nqp::if($!close, $!handle.close),
-                    IterationEnd))
-            }
-            method push-all($target --> IterationEnd) {
-                my $line;
-                $target.push($line) while ($line := $!handle.get).DEFINITE;
-                $!handle.close if $close;
-            }
-        }.new(self, $close));
+          ),
+          class :: does Iterator {    # can *NOT* shortcircuit .get
+              has $!handle;
+              method new(\handle) {
+                  nqp::p6bindattrinvres(
+                    nqp::create(self),self.WHAT,'$!handle',handle)
+              }
+              method pull-one() {
+                  nqp::if(
+                    (my $line := $!handle.get).DEFINITE,
+                    $line,
+                    IterationEnd
+                  )
+              }
+              method push-all($target --> IterationEnd) {
+                  nqp::while(
+                    (my $line := $!handle.get).DEFINITE,
+                    $target.push($line)
+                  )
+              }
+              method sink-all(--> IterationEnd) {
+                  # can't seek pipes, so need the `try`
+                  try $!handle.seek(0,SeekFromEnd)  # seek to end
+              }
+          }
+        ).new(self)
     }
+
+    proto method lines (|) { * }
+    multi method lines(IO::Handle:D \SELF: $limit, :$close) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.lines(:$close)
+          !! $close
+            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                self.iterator, $limit.Int, {SELF.close}))
+            !! self.lines.head($limit.Int)
+    }
+    multi method lines(IO::Handle:D \SELF: :$close) {
+      Seq.new(
+        $close # use -1 as N in FirstNThenSinkAllSeq to get all items
+          ?? Rakudo::Iterator.FirstNThenSinkAll(
+              self.iterator, -1, {SELF.close})
+          !! self.iterator
+      )
+    }
+    multi method lines(IO::Handle:D:) { Seq.new(self.iterator) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
@@ -595,8 +702,8 @@ my class IO::Handle does IO {
 #?endif
     }
 
-    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS, :$bin --> Supply:D) {
-        if $bin {
+    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+        if nqp::iseq_s($!encoding, 'bin') { # handle is in binary mode
             supply {
                 my $buf := self.read($size);
                 nqp::while(
@@ -630,7 +737,7 @@ my class IO::Handle does IO {
         nqp::seekfh($!PIO, $offset, +$whence);
     }
 
-    method tell(IO::Handle:D:) returns Int {
+    method tell(IO::Handle:D: --> Int:D) {
         nqp::p6box_i(nqp::tellfh($!PIO));
     }
 
@@ -646,8 +753,15 @@ my class IO::Handle does IO {
         self.opened && nqp::p6bool(nqp::isttyfh($!PIO))
     }
 
-    method lock(IO::Handle:D: Int:D $flag) {
-        nqp::lockfh($!PIO, $flag)
+    method lock(IO::Handle:D:
+        Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
+    ) {
+        nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
+        CATCH { default {
+            fail X::IO::Lock.new: :os-error(.Str),
+                :lock-type( 'non-' x $non-blocking ~ 'blocking, '
+                    ~ ($shared ?? 'shared' !! 'exclusive') );
+        }}
     }
 
     method unlock(IO::Handle:D: --> True) {
@@ -695,7 +809,10 @@ my class IO::Handle does IO {
     }
 
     proto method slurp-rest(|) { * }
-    multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close) returns Buf {
+    multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close --> Buf:D) {
+        # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
+        # Testing of it in roast master has been removed and only kept in 6.c
+        # If you're changing this code for whatever reason, test with 6.c-errata
         LEAVE self.close if $close;
         my $res := buf8.new;
         loop {
@@ -705,16 +822,47 @@ my class IO::Handle does IO {
               !! return $res
         }
     }
-    multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close) returns Str {
+    multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close --> Str:D) {
+        # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
+        # Testing of it in roast master has been removed and only kept in 6.c
+        # If you're changing this code for whatever reason, test with 6.c-errata
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         nqp::p6box_s(nqp::readallfh($!PIO));
     }
 
-    method chmod(IO::Handle:D: Int $mode) { $!path.chmod($mode) }
-    method IO(IO::Handle:D: |c)           { $!path.IO(|c) }
-    method path(IO::Handle:D:)            { $!path.IO }
-    multi method Str(IO::Handle:D:)       { $!path }
+    method slurp(IO::Handle:D: :$close) {
+        my $res;
+        nqp::if(
+          nqp::iseq_s($!encoding, 'bin'),
+          nqp::stmts(
+            ($res := buf8.new),
+            nqp::while(
+              nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)),
+              $res.append($buf)
+            )
+          ),
+          ($res := nqp::p6box_s(nqp::readallfh($!PIO))),
+        );
+        self.close if $close;
+        $res
+    }
+
+    proto method spurt(|) { * }
+    multi method spurt(IO::Handle:D: Blob $data, :$close) {
+        LEAVE self.close if $close;
+        self.write($data);
+    }
+    multi method spurt(IO::Handle:D: Cool $data, :$close) {
+        LEAVE self.close if $close;
+        self.print($data);
+    }
+
+    method path(IO::Handle:D:)      { $!path.IO }
+    method IO(IO::Handle:D:)        { $!path.IO }
+
+    # use $.path, so IO::Pipe picks it up
+    multi method Str(IO::Handle:D:) { $.path.Str }
 
     multi method gist(IO::Handle:D:) {
         self.opened
@@ -743,28 +891,14 @@ my class IO::Handle does IO {
     }
 
     submethod DESTROY(IO::Handle:D:) {
-        self.close;
+        nqp::if(
+          nqp::defined($!PIO),
+          nqp::stmts(
+            nqp::closefh($!PIO),  # don't bother checking for errors
+            $!PIO := nqp::null
+          )
+        )
     }
-
-    # setting cannot do "handles", so it's done by hand here
-    method e(IO::Handle:D:) { $!path.e }
-    method d(IO::Handle:D:) { $!path.d }
-    method f(IO::Handle:D:) { $!path.f }
-    method s(IO::Handle:D:) { $!path.s }
-    method l(IO::Handle:D:) { $!path.l }
-    method r(IO::Handle:D:) { $!path.r }
-    method w(IO::Handle:D:) { $!path.w }
-    method x(IO::Handle:D:) { $!path.x }
-    method modified(IO::Handle:D:) { $!path.modified }
-    method accessed(IO::Handle:D:) { $!path.accessed }
-    method changed(IO::Handle:D:)  { $!path.changed  }
-    method mode(IO::Handle:D:)     { $!path.mode     }
-
-#?if moar
-    method watch(IO::Handle:D:) {
-        IO::Notification.watch-path($!path);
-    }
-#?endif
 
     method native-descriptor(IO::Handle:D:) {
         nqp::filenofh($!PIO)

@@ -2,11 +2,11 @@ my class Regex { # declared in BOOTSTRAP
     # class Regex is Method
     #     has @!caps;
     #     has Mu $!nfa;
-    #     has @!alt_nfas;
+    #     has %!alt_nfas;
     #     has str $!source;
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^lookup("!cursor_init");
+    my $cursor-init := Match.^lookup("!cursor_init");
 
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Regex:D: Mu:U \a) {
@@ -23,9 +23,9 @@ my class Regex { # declared in BOOTSTRAP
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.($cursor-init(Cursor, topic, :c(0)))),
+            (my \cursor := SELF.($cursor-init(Match, topic, :c(0)))),
             nqp::if(
-              nqp::isge_i(nqp::getattr_i(cursor,Cursor,'$!pos'),0),
+              nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
               Nil
             )
@@ -61,8 +61,8 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.($cursor-init(Cursor,$pulled,:0c))),
-                       Cursor,'$!pos'),
+                       (my \cursor := SELF.($cursor-init(Match,$pulled,:0c))),
+                       Match,'$!pos'),
                    0),
               nqp::null
             ),
@@ -104,7 +104,7 @@ my class Regex { # declared in BOOTSTRAP
 }
 
 multi sub infix:<~~>(Mu \topic, Regex:D \matcher) {
-    $/ := nqp::getlexdyn('$/');
+    $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
     matcher.ACCEPTS(topic)
 }
 

@@ -2,8 +2,6 @@ my class DateTime { ... }
 my role  IO { ... }
 my class IO::Path { ... }
 my class Seq { ... }
-my class Lock is repr('ReentrantMutex') { ... }
-my class Rakudo::Iterator { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
@@ -11,9 +9,13 @@ my class X::Assignment::ToShaped { ... };
 my class X::Str::Sprintf::Directives::BadType { ... };
 my class X::Str::Sprintf::Directives::Count { ... };
 my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::TypeCheck { ... }
 my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
+
+    # for use in nqp::splice
+    my $empty := nqp::list;
 
     our class WeightedRoll {
         has @!pairs;
@@ -59,297 +61,31 @@ my class Rakudo::Internals {
         )
     }
 
-    method ReverseListToList(\from,\to) {
-        nqp::stmts(
-          (my $from := nqp::getattr(from,List,'$!reified')),
-          (my int $elems = nqp::elems($from)),
-          (my int $last  = nqp::sub_i($elems,1)),
-          (my int $i     = -1),
-          (my $to := nqp::getattr(to,List,'$!reified')),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos($to,nqp::sub_i($last,$i),nqp::atpos($from,$i))
+    method RANGE-AS-ints ($range, $exception) {
+        # Convert a Range to min/max values that can fit into an `int`
+        # Treats values smaller than int.Range.min as int.Range.min
+        # Treats values larger than int.Range.max as int.Range.max
+        # Throws $exception for non-Numeric ranges or ranges with any NaN endpoints
+        # If $exception is a Str, calls `die $exception`
+        my ($min, $max) = $range.minmax;
+        nqp::unless(
+          nqp::if(
+            nqp::if( nqp::istype($min, Numeric), nqp::istype($max, Numeric) ),
+            nqp::if( nqp::isfalse($min.isNaN),   nqp::isfalse($max.isNaN)   ),
           ),
-          to
-        )
-    }
+          nqp::if(nqp::istype($exception, Str), die($exception), $exception.throw)
+        );
 
-    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
-    # The parameter is the HLL List to be sorted *in place* using simple cmp.
-    method MERGESORT-REIFIED-LIST(\list) {
-        nqp::stmts(
+        # Get rid of Infs
+        $min = Int($min + $range.excludes-min) // -2**63;
+        $max = Int($max - $range.excludes-max) //  2**63-1;
 
-          # $A has the items to sort; $B is a work array
-          (my Mu $A := nqp::getattr(list,List,'$!reified')),
-          nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($A)),2),
-            nqp::stmts(     # we actually need to sort
-              (my Mu $B := nqp::setelems(nqp::list,$n)),
-
-              # Each 1-element run in $A is already "sorted"
-              # Make successively longer sorted runs of length 2, 4, 8, 16...
-              # until $A is wholly sorted
-              (my int $width = 1),
-              nqp::while(
-                nqp::islt_i($width,$n),
-                nqp::stmts(
-                  (my int $l = 0),
-
-                  # $A is full of runs of length $width
-                  nqp::while(
-                    nqp::islt_i($l,$n),
-
-                    nqp::stmts(
-                      (my int $left  = $l),
-                      (my int $right = nqp::add_i($l,$width)),
-                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
-                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                      (my int $i = $left),
-                      (my int $j = $right),
-                      (my int $k = nqp::sub_i($left,1)),
-
-                      # Merge two runs: $A[i       .. i+width-1] and
-                      #                 $A[i+width .. i+2*width-1]
-                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                      nqp::while(
-                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                        nqp::if(
-                          nqp::islt_i($i,$right) && (
-                            nqp::isge_i($j,$end)
-                              || nqp::iseq_i(
-                                   nqp::decont(  # for some reason we need this
-                                     nqp::atpos($A,$i) cmp nqp::atpos($A,$j)
-                                       || nqp::cmp_i($i,$j)
-                                   ), # apparently code gen with || isn't right
-                                   -1
-                                 )
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                            ($i = nqp::add_i($i,1))
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                            ($j = nqp::add_i($j,1))
-                          )
-                        )
-                      ),
-                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                    )
-                  ),
-
-                  # Now work array $B is full of runs of length 2*width.
-                  # Copy array B to array A for next iteration.  A more
-                  # efficient implementation would swap the roles of A and B.
-                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                  # Now array $A is full of runs of length 2*width.
-
-                  ($width = nqp::add_i($width,$width))
-                )
-              ),
-              nqp::p6bindattrinvres(list,List,'$!reified',$A)
-            ),
-            nqp::if(
-              nqp::islt_i($n,2)
-                || nqp::isle_i(nqp::atpos($A,0) cmp nqp::atpos($A,1),0),
-              list,  # nothing to be done, we already have the result
-              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
-                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
-            )
-          )
-        )
-    }
-    # Takes the HLL List to be sorted *in place* using the comparator
-    method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {
-        nqp::stmts(
-
-          # $A has the items to sort; $B is a work array
-          (my Mu $A := nqp::getattr(list,List,'$!reified')),
-          nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($A)),2),
-            nqp::stmts(     # we actually need to sort
-              (my Mu $B := nqp::setelems(nqp::list,$n)),
-
-              # Each 1-element run in $A is already "sorted"
-              # Make successively longer sorted runs of length 2, 4, 8, 16...
-              # until $A is wholly sorted
-              (my int $width = 1),
-              nqp::while(
-                nqp::islt_i($width,$n),
-                nqp::stmts(
-                  (my int $l = 0),
-
-                  # $A is full of runs of length $width
-                  nqp::while(
-                    nqp::islt_i($l,$n),
-
-                    nqp::stmts(
-                      (my int $left  = $l),
-                      (my int $right = nqp::add_i($l,$width)),
-                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
-                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                      (my int $i = $left),
-                      (my int $j = $right),
-                      (my int $k = nqp::sub_i($left,1)),
-
-                      # Merge two runs: $A[i       .. i+width-1] and
-                      #                 $A[i+width .. i+2*width-1]
-                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                      nqp::while(
-                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                        nqp::if(
-                          nqp::islt_i($i,$right) && (
-                            nqp::isge_i($j,$end)
-                              || nqp::iseq_i(
-                                   nqp::decont(  # for some reason we need this
-                                     comparator(
-                                       nqp::atpos($A,$i),nqp::atpos($A,$j))
-                                        || nqp::cmp_i($i,$j)
-                                   ), # apparently code gen with || isn't right
-                                   -1
-                                 )
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                            ($i = nqp::add_i($i,1))
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                            ($j = nqp::add_i($j,1))
-                          )
-                        )
-                      ),
-                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                    )
-                  ),
-
-                  # Now work array $B is full of runs of length 2*width.
-                  # Copy array B to array A for next iteration. A more
-                  # efficient implementation would swap the roles of A and B.
-                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                  # Now array $A is full of runs of length 2*width.
-
-                  ($width = nqp::add_i($width,$width))
-                )
-              ),
-              nqp::p6bindattrinvres(list,List,'$!reified',$A)
-            ),
-            nqp::if(
-              nqp::islt_i($n,2)
-                || nqp::iseq_i(
-                    comparator(nqp::atpos($A,0),nqp::atpos($A,1)),-1),
-              list,  # nothing to be done, we already have the result
-              nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
-                nqp::list(nqp::atpos($A,1),nqp::atpos($A,0)))
-            )
-          )
-        )
-    }
-    # Takes the HLL List to be sorted *in place* using the mapper
-    method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
-        nqp::stmts(
-
-          (my Mu $O := nqp::getattr(list,List,'$!reified')),  # Original
-          nqp::if(
-            nqp::isgt_i((my int $n = nqp::elems($O)),2),
-            nqp::stmts(     # we actually need to sort
-              (my Mu $S := nqp::clone($O)),                   # the Schwartz
-              (my Mu $A := nqp::setelems(nqp::list_i,$n)),    # indexes to sort
-              (my Mu $B := nqp::setelems(nqp::list_i,$n)),    # work array
-              (my int $s = -1),
-              nqp::while(  # set up the Schwartz and the initial indexes
-                nqp::islt_i(($s = nqp::add_i($s,1)),$n),
-                nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),
-                  mapper(nqp::atpos($S,$s)))
-              ),
-
-              # Each 1-element run in $A is already "sorted"
-              # Make successively longer sorted runs of length 2, 4, 8, 16...
-              # until $A is wholly sorted
-              (my int $width = 1),
-              nqp::while(
-                nqp::islt_i($width,$n),
-                nqp::stmts(
-                  (my int $l = 0),
-
-                  # $A is full of runs of length $width
-                  nqp::while(
-                    nqp::islt_i($l,$n),
-
-                    nqp::stmts(
-                      (my int $left  = $l),
-                      (my int $right = nqp::add_i($l,$width)),
-                      nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                      (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
-                      nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                      (my int $i = $left),
-                      (my int $j = $right),
-                      (my int $k = nqp::sub_i($left,1)),
-
-                      # Merge two runs: $A[i       .. i+width-1] and
-                      #                 $A[i+width .. i+2*width-1]
-                      # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                      nqp::while(
-                        nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                        nqp::if(
-                          nqp::islt_i($i,$right) && (
-                            nqp::isge_i($j,$end)
-                              || (nqp::iseq_i(
-                                   nqp::decont(
-                                     nqp::atpos($S,nqp::atpos_i($A,$i))
-                                       cmp nqp::atpos($S,nqp::atpos_i($A,$j))
-                                       || nqp::cmp_i($i,$j)
-                                   ),
-                                   -1
-                                 ))
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
-                            ($i = nqp::add_i($i,1))
-                          ),
-                          nqp::stmts(
-                            (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
-                            ($j = nqp::add_i($j,1))
-                          )
-                        )
-                      ),
-                      ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                    )
-                  ),
-
-                  # Now work array $B is full of runs of length 2*width.
-                  # Copy array B to array A for next iteration. A more
-                  # efficient implementation would swap the roles of A and B.
-                  (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                  # Now array $A is full of runs of length 2*width.
-
-                  ($width = nqp::add_i($width,$width))
-                )
-              ),
-              ($s = -1),
-              nqp::while(   # repurpose the Schwartz for the result
-                nqp::islt_i(($s = nqp::add_i($s,1)),$n),
-                nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
-              ),
-              nqp::p6bindattrinvres(list,List,'$!reified',$S)
-            ),
-
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-              nqp::if(
-                nqp::islt_i($n,2)
-                  || nqp::iseq_i(
-                      mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),-1),
-                nqp::clone($O), # nothing to be done, we already have the result
-                nqp::list(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
-              )
-            )
-          )
-        )
+        # we have isbig_I, but it tells whether the value is above max int32 value
+        nqp::if( nqp::islt_I(nqp::decont($min), -2**63),
+                                         $min = -2**63);
+        nqp::if( nqp::isgt_I(nqp::decont($max),  2**63-1),
+                                         $max =  2**63-1);
+        ($min, $max);
     }
 
     method SET_LEADING_DOCS($obj, $docs) {
@@ -361,7 +97,7 @@ my class Rakudo::Internals {
 
             while $i >= 0 {
                 if $docs === nqp::atpos($*POD_BLOCKS, $i) {
-                    nqp::splice($*POD_BLOCKS, nqp::list(), $i, 1);
+                    nqp::splice($*POD_BLOCKS, $empty, $i, 1);
                     last;
                 }
                 $i := $i - 1;
@@ -512,9 +248,12 @@ my class Rakudo::Internals {
     method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
         if nqp::istype($ending, Iterable) {
             my \endings = nqp::list_s();
-            for @$ending -> $e {
-                nqp::push_s(endings, nqp::unbox_s($e.Str));
-            }
+            my int $i = -1;
+            my int $elems = $ending.elems;
+            nqp::while(
+                nqp::isne_i( ($i = nqp::add_i($i, 1)), $elems ),
+                nqp::push_s(endings, nqp::unbox_s($ending.AT-POS($i).Str))
+            );
 #?if !jvm
             nqp::setinputlineseps(handle, endings);
 #?endif
@@ -528,34 +267,56 @@ my class Rakudo::Internals {
         Nil
     }
 
-    # number of elems of type if all, otherwise 0
+    # 1 if all elements of given type, otherwise 0
     method ALL_TYPE(\values,\type) {
-        nqp::stmts(
+        nqp::if(
           (my int $elems = values.elems),   # reifies
-          (my $values := nqp::getattr(values,List,'$!reified')),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::istype(nqp::atpos($values,$i),type),
-            nqp::null
-          ),
-          nqp::iseq_i($i,$elems) && $elems
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::istype(nqp::atpos($values,$i),type),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
         )
     }
 
-    # number of elems of defined && type if all, otherwise 0
+    # 1 if all elems defined && type, otherwise 0
     method ALL_DEFINED_TYPE(\values,\type) {
-        nqp::stmts(
+        nqp::if(
           (my int $elems = values.elems),   # reifies
-          (my $values := nqp::getattr(values,List,'$!reified')),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::defined(nqp::atpos($values,$i))
-              && nqp::istype(nqp::atpos($values,$i),type),
-            nqp::null
-          ),
-          nqp::iseq_i($i,$elems) && $elems
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::istype(nqp::atpos($values,$i),type)
+                && nqp::defined(nqp::atpos($values,$i)),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
+        )
+    }
+
+    # 1 if any element of defined && type, otherwise 0
+    method ANY_DEFINED_TYPE(\values,\type) {
+        nqp::if(
+          (my int $elems = values.elems),   # reifies
+          nqp::stmts(
+            (my $values := nqp::getattr(values,List,'$!reified')),
+            (my int $i = -1),
+            nqp::until(
+              nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                || (nqp::istype(nqp::atpos($values,$i),type)
+                     && nqp::defined(nqp::atpos($values,$i))),
+              nqp::null
+            ),
+            nqp::isne_i($i,$elems)
+          )
         )
     }
 
@@ -668,7 +429,7 @@ my class Rakudo::Internals {
             Seq.new(Rakudo::Iterator.ShapeIndex(self.shape))
         }
         multi method invert(::?CLASS:D:) {
-            self.keys.map({ nqp::decont(self.AT-POS(|$_)) »=>» $_ }).flat
+            Seq.new(Rakudo::Iterator.Invert(self.pairs.iterator))
         }
 
         # These work on the flat view
@@ -1014,9 +775,8 @@ my class Rakudo::Internals {
     my int $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
-    my $leap-second-dates :=
+    my $dates := nqp::list_s(
         #BEGIN leap-second-dates
-        (
         '1972-06-30',
         '1972-12-31',
         '1973-12-31',
@@ -1044,9 +804,8 @@ my class Rakudo::Internals {
         '2012-06-30',
         '2015-06-30',
         '2016-12-31',
-        )
         #END leap-second-dates
-    ;
+    );
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -1056,9 +815,8 @@ my class Rakudo::Internals {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    my $leap-second-posix :=
+    my $posixes := nqp::list_i(
         #BEGIN leap-second-posix
-        (
           78796800,
           94694400,
          126230400,
@@ -1086,35 +844,59 @@ my class Rakudo::Internals {
         1341100800,
         1435708800,
         1483228800,
-        )
         #END leap-second-posix
-    ;
-
-    my $dates    := nqp::getattr($leap-second-dates,List,'$!reified');
-    my $posixes  := nqp::getattr($leap-second-posix,List,'$!reified');
+    );
     my int $elems = nqp::elems($dates);
 
     method is-leap-second-date(\date) {
-        my str $date = nqp::unbox_s(date);
-        my int $i    = -1;
-        Nil while ($i = $i + 1) < $elems && $date gt nqp::atpos($dates,$i);
-        $i < $elems && $date eq nqp::atpos($dates,$i);
+        nqp::p6bool(
+          nqp::stmts(
+            (my str $date = date),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isgt_s($date,nqp::atpos_s($dates,$i)),
+              nqp::null
+            ),
+            nqp::islt_i($i,$elems) && nqp::iseq_s($date,nqp::atpos_s($dates,$i))
+          )
+        )
     }
 
-    method tai-from-posix(\posix,$prefer-leap-second = False) {
-        my Int $p = posix.floor;
-        my int $i = -1;
-        Nil while ($i = $i + 1) < $elems && $p > nqp::atpos($posixes,$i);
-        posix + $initial-offset + $i +
-          ($i < $elems && !$prefer-leap-second && $p == nqp::atpos($posixes,$i))
+    method tai-from-posix(\posix, int $prefer-leap-second) {
+        nqp::stmts(
+          (my int $p = posix.floor),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::isgt_i($p,nqp::atpos_i($posixes,$i)),
+            nqp::null
+          ),
+          posix + nqp::add_i(
+            nqp::add_i($initial-offset,$i),
+            nqp::islt_i($i,$elems)
+              && nqp::not_i($prefer-leap-second)
+              && nqp::iseq_i($p,nqp::atpos_i($posixes,$i))
+          )
+        )
     }
 
     method posix-from-tai(\tai) {
-        my Int $t = tai.floor - $initial-offset;
-        my int $i = -1;
-        Nil while ($i = $i + 1) < $elems && nqp::atpos($posixes,$i) < ($t - $i);
-        tai - $initial-offset - $i,
-          nqp::p6bool($i < $elems && nqp::atpos($posixes,$i) == $t - $i)
+        nqp::stmts(
+          (my int $t = tai.floor - $initial-offset),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+            nqp::null
+          ),
+          (tai - nqp::add_i($initial-offset,$i),
+            nqp::p6bool(
+              nqp::islt_i($i,$elems)
+                && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
+            )
+          )
+        )
     }
 
     my $initializers;
@@ -1141,7 +923,7 @@ my class Rakudo::Internals {
           )
         )
     }
-    method INITIALIZE-DYNAMIC(str \name) {
+    method INITIALIZE-DYNAMIC(str \name) is raw {
 #nqp::print("Initializing");
 #nqp::print(name);
 #nqp::print("\n");
@@ -1237,14 +1019,6 @@ my class Rakudo::Internals {
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-    method MAKE-EXT(Str:D \basename) {
-        my str $basename = nqp::unbox_s(basename);
-        my int $offset   = nqp::rindex($basename,'.');
-        nqp::iseq_i($offset,-1)
-          ?? ''
-          !! nqp::p6box_s(nqp::substr($basename,$offset + 1));
-    }
-
     my $clean-parts-nul := nqp::hash( '..', 1, '.', 1, '', 1);
     method MAKE-CLEAN-PARTS(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1262,7 +1036,6 @@ my class Rakudo::Internals {
         }
 
         # front part cleanup
-        my $empty := nqp::list();
         nqp::splice($parts,$empty,1,1)
           while nqp::existskey($clean-parts-nul,nqp::atpos($parts,1));
 
@@ -1346,21 +1119,24 @@ my class Rakudo::Internals {
             has $!todo;
             has $!seen;
             method !SET-SELF(\abspath,$!dir,$!file) {
-                $!abspath = abspath;
-                if nqp::stat($!abspath,nqp::const::STAT_EXISTS)
-                  && nqp::stat($!abspath,nqp::const::STAT_ISDIR) {
-                    $!handle := nqp::opendir($!abspath);
-                    $!dir-sep = $*SPEC.dir-sep;
-                    $!todo   := nqp::list_s;
-                    $!seen   := nqp::hash($!abspath,1);
-                    $!abspath = nqp::concat($!abspath,$!dir-sep);
-                    self
-                }
-                else {
-                    Rakudo::Iterator.Empty
-                }
+                nqp::stmts(
+                  ($!abspath = abspath),
+                  ($!handle := nqp::opendir($!abspath)),
+                  ($!dir-sep = $*SPEC.dir-sep),
+                  ($!todo   := nqp::list_s),
+                  ($!seen   := nqp::hash($!abspath,1)),
+                  ($!abspath = nqp::concat($!abspath,$!dir-sep)),
+                  self
+                )
             }
-            method new(\ap,\d,\f) { nqp::create(self)!SET-SELF(ap,d,f) }
+            method new(\abspath,\dir,\file) {
+                nqp::if(
+                  nqp::stat(abspath,nqp::const::STAT_EXISTS)
+                    && nqp::stat(abspath,nqp::const::STAT_ISDIR),
+                  nqp::create(self)!SET-SELF(abspath,dir,file),
+                  Rakudo::Iterator.Empty
+                )
+            }
 
             method !next() {
                 nqp::while(
@@ -1400,7 +1176,7 @@ my class Rakudo::Internals {
                           nqp::if(
                             nqp::fileislink($path),
                             $path = IO::Path.new(
-                              $path,:CWD($!abspath)).resolve.abspath
+                              $path,:CWD($!abspath)).resolve.absolute
                           ),
                           nqp::unless(
                             nqp::existskey($!seen,$path),

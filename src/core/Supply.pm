@@ -102,9 +102,9 @@ my class Supply does Awaitable {
                 Tap.new(&!closing)
             }
             
-            method live() { False }
-            method sane() { True }
-            method serial() { True }
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> True) { }
         }.new(:&producer, :&closing, :$scheduler))
     }
 
@@ -136,9 +136,9 @@ my class Supply does Awaitable {
                 Tap.new({ $cancellation.cancel })
             }
 
-            method live { False }
-            method sane { True }
-            method serial { False }
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> False) { }
         }.new(:$interval, :$delay, :$scheduler));
     }
 
@@ -151,8 +151,8 @@ my class Supply does Awaitable {
     my role SimpleOpTappable does Tappable {
         has $!source;
         method live() { $!source.live }
-        method sane() { True }
-        method serial() { True }
+        method sane(--> True) { }
+        method serial(--> True) { }
         method !cleanup(int $cleaned-up is rw, $source-tap) {
             if $source-tap && !$cleaned-up  {
                 $cleaned-up = 1;
@@ -587,7 +587,7 @@ my class Supply does Awaitable {
     my class ConcQueue is repr('ConcBlockingQueue') { }
     method list(Supply:D:) {
         gather {
-            my Mu \queue = ConcQueue.CREATE;
+            my Mu \queue = nqp::create(ConcQueue);
             my $exception;
             self.tap(
                 -> \val { nqp::push(queue, val) },
@@ -624,7 +624,7 @@ my class Supply does Awaitable {
         has $!supply;
 
         method not-ready(Supply:D \supply) {
-            self.CREATE!not-ready(supply)
+            nqp::create(self)!not-ready(supply)
         }
         method !not-ready(\supply) {
             $!already = False;
@@ -1478,9 +1478,9 @@ my class Supplier {
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False)  { }
     }
 
     has $!taplist;
@@ -1630,9 +1630,9 @@ my class Supplier::Preserving is Supplier {
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False) { }
     }
 
     method new() {
@@ -1808,9 +1808,9 @@ sub SUPPLY(&block) {
             }
         }
 
-        method live { False }
-        method sane { True }
-        method serial { True }
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
     }.new(:&block))
 }
 

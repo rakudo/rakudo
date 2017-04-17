@@ -100,7 +100,19 @@ my class Parameter { # declared in BOOTSTRAP
 
     method type() { $!nominal_type }
     method named_names() {
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!named_names)
+        nqp::if(
+          @!named_names && (my int $elems = nqp::elems(@!named_names)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
     }
     method named() {
         nqp::p6bool(
@@ -155,7 +167,19 @@ my class Parameter { # declared in BOOTSTRAP
             !! { $!default_value }
     }
     method type_captures() {
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!type_captures)
+        nqp::if(
+          @!type_captures && (my int $elems = nqp::elems(@!type_captures)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
     }
 
     method !flags() { $!flags }
@@ -236,14 +260,14 @@ my class Parameter { # declared in BOOTSTRAP
                 # set up lookup hash
                 my $lookup := nqp::hash;
                 my int $i   = -1;
-                nqp::bindkey($lookup,nqp::atpos(@!named_names,$i),1)
+                nqp::bindkey($lookup,nqp::atpos_s(@!named_names,$i),1)
                   while nqp::islt_i(++$i,$elems);
 
                 # make sure the other nameds are all here
                 $elems = nqp::elems($onamed_names);
                 $i     = -1;
                 return False unless
-                  nqp::existskey($lookup,nqp::atpos($onamed_names,$i))
+                  nqp::existskey($lookup,nqp::atpos_s($onamed_names,$i))
                   while nqp::islt_i(++$i,$elems);
             }
         }
@@ -378,8 +402,12 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
+    }
+
+    method set_default(Code:D $default --> Nil) {
+        $!default_value := $default;
     }
 }
 

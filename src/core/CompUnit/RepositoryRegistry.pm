@@ -213,6 +213,8 @@ class CompUnit::RepositoryRegistry {
     }
 
     method resolve-unknown-repos(@repos) {
+        # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
+        my $global := nqp::list("GLOBAL");
         for @repos.pairs {
             if nqp::istype($_.value, CompUnit::Repository::Unknown) {
                 my $i = $_.key;
@@ -225,8 +227,6 @@ class CompUnit::RepositoryRegistry {
                 );
                 PROCESS::<$REPO> := $head;
 
-                my $global := nqp::list(); # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
-                nqp::push($global, "GLOBAL");
                 $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package);
                 my $new-repo = self.repository-for-spec($_.value.path-spec, :$next-repo);
                 if $i > 0 {

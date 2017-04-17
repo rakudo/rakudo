@@ -106,7 +106,17 @@ class Version {
     }
 
     multi method WHICH(Version:D:) {
-        nqp::box_s(nqp::unbox_s(self.^name ~ '|' ~ $!string), ObjAt);
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Version),
+              'Version|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            $!string
+          ),
+          ObjAt
+        )
     }
 
     method parts() { nqp::hllize($!parts) }

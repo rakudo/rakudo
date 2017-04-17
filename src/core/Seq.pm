@@ -155,7 +155,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.cache.perl ~ '.Seq';
     }
 
-    method join(Seq:D: $separator = '' --> Str) {
+    method join(Seq:D: $separator = '' --> Str:D) {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
           '...',
@@ -205,8 +205,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     multi method EXISTS-POS(Seq:D: int $idx) {
         self.cache.EXISTS-POS($idx)
     }
-
-    multi method invert(Seq:D:) { self.list.invert }
 
     proto method from-loop(|) { * }
     multi method from-loop(&body) {

@@ -279,6 +279,11 @@ E: felix@herrmann-koenigsberg.de
 N: Fernando Brito
 E: email@fernandobrito.com
 
+N: Fernando Corrêa de Oliveira
+U: FCO
+E: fco@cpan.org
+S: Rio de Janeiro, RJ, Brazil
+
 N: Filip Sergot
 E: filip@sergot.pl
 
@@ -579,9 +584,6 @@ D: Test infrastructure, tests, general Rakudo hacking
 
 N: Mouq
 E: alexmoquin@gmail.com
-
-N: Nami-Doc
-E: vendethiel@hotmail.fr
 
 N: Nicholas Clark
 U: nicholas

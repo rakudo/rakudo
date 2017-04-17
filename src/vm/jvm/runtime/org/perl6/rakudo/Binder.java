@@ -136,7 +136,8 @@ public final class Binder {
         long elems = typeCaps.elems(tc);
         StaticCodeInfo sci = cf.codeRef.staticInfo;
         for (long i = 0; i < elems; i++) {
-            String name = typeCaps.at_pos_boxed(tc, i).get_str(tc);
+            typeCaps.at_pos_native(tc, i);
+            String name = tc.native_s;
             cf.oLex[sci.oTryGetLexicalIdx(name)] = type;
         }
     }
@@ -225,8 +226,10 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
-    private static final CallSiteDescriptor bindThrower = new CallSiteDescriptor(
-        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
+    private static final CallSiteDescriptor bindParamThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
+            CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ
+        }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
@@ -413,11 +416,12 @@ public final class Binder {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
 
-                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding");
+                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
-                            error[1] = bindThrower;
-                            error[2] = new Object[] { decontValue, nomType.st.WHAT, (varName != null ? varName : "<anon>") };
+                            error[1] = bindParamThrower;
+                            error[2] = new Object[] { decontValue, nomType.st.WHAT,
+                                (varName != null ? varName : "<anon>"), param };
                         }
                         else {
                             error[0] = String.format(
@@ -943,7 +947,8 @@ public final class Binder {
                 if (namedArgsCopy != null) {
                     long numNames = namedNames.elems(tc);
                     for (long j = 0; j < numNames; j++) {
-                        String name = namedNames.at_pos_boxed(tc, j).get_str(tc);
+                        namedNames.at_pos_native(tc, j);
+                        String name = tc.native_s;
                         lookup = namedArgsCopy.remove(name);
                         if (lookup != null)
                             break;
@@ -959,10 +964,12 @@ public final class Binder {
                             CallSiteDescriptor.ARG_OBJ, false, error);
                     }
                     else if (!suppressArityFail) {
-                        if (error != null)
+                        if (error != null) {
+                            namedNames.at_pos_native(tc, 0);
                             error[0] = "Required named argument '" +
-                                namedNames.at_pos_boxed(tc, 0).get_str(tc) +
+                                tc.native_s +
                                 "' not passed";
+                        }
                         return BIND_RESULT_FAIL;
                     }
                 }

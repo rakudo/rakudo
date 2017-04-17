@@ -7,19 +7,8 @@ my class IO::Pipe is IO::Handle {
         $!proc;
     }
 
-    method lines($limit = Inf) {
-        if $limit == Inf {
-            gather while nqp::p6definite(my $line = self.get) {
-                take $line;
-            }
-        }
-        else {
-            my $count = 0;
-            gather while ++$count <= $limit && nqp::p6definite(my $line = self.get) {
-                take $line;
-            }
-        }
-    }
+    method IO   { IO::Path }
+    method path { IO::Path }
 }
 
 # vim: ft=perl6 expandtab sw=4

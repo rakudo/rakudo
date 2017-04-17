@@ -36,7 +36,8 @@ my class IO::ArgFiles is IO::Handle {
         }
     }
 
-    method !next-io() {
+    method !next-io($close) {
+        $!io.close if $close;
         unless $!has-args.defined {
             $!has-args = ?$!args;
         }
@@ -60,7 +61,7 @@ my class IO::ArgFiles is IO::Handle {
 
     method get() {
         unless $!io.defined and $!io.opened {
-            (return $_ unless .defined) given self!next-io;
+            (return $_ unless .defined) given self!next-io(False);
         }
 
         my $line;
@@ -69,7 +70,7 @@ my class IO::ArgFiles is IO::Handle {
             unless $line.defined {
                 $!io.close;
                 $!io = IO::Handle;
-                (return $_ unless .defined) given self!next-io;
+                (return $_ unless .defined) given self!next-io(True);
             }
         } until $line.defined;
         $!ins++;
@@ -89,9 +90,9 @@ my class IO::ArgFiles is IO::Handle {
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);
-                my $io = next-io.();
+                my $io = next-io.(False);
                 if $io.defined {
-                    nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
+                    nqp::bindattr(iter, self, '$!iter', $io.iterator);
                 }
                 else {
                     return $io if nqp::istype($io, Failure);
@@ -105,16 +106,16 @@ my class IO::ArgFiles is IO::Handle {
                   (my \value = $!iter.pull-one),
                   nqp::if(nqp::eqaddr(value, IterationEnd),
                     nqp::stmts(
-                      (my $io = $!next-io.()),
+                      (my $io = $!next-io.(True)),
                       nqp::if(nqp::istype($io, Failure), return $io),
                       nqp::unless(nqp::defined($io), return IterationEnd),
-                      ($!iter := $io.lines(:close).iterator),
+                      ($!iter := $io.iterator),
                       self.pull-one),
                     nqp::stmts(
                       ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
                       value)))
             }
-        }.new(self, $!ins, -> { self!next-io }));
+        }.new(self, $!ins, -> $close { self!next-io($close) }));
     }
     multi method lines($limit) {
         nqp::istype($limit,Whatever) || $limit == Inf

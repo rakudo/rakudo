@@ -15,23 +15,23 @@ my class Any { # declared in BOOTSTRAP
     # my class Any is Mu
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U \a) { False }
+    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
     multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
         nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
     proto method EXISTS-KEY(|) is nodal { * }
-    multi method EXISTS-KEY(Any:U: $) { False }
-    multi method EXISTS-KEY(Any:D: $) { False }
+    multi method EXISTS-KEY(Any:U: $ --> False) { }
+    multi method EXISTS-KEY(Any:D: $ --> False) { }
 
     proto method DELETE-KEY(|) is nodal { * }
-    multi method DELETE-KEY(Any:U: $) { Nil }
+    multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
         Failure.new("Can not remove values from a {self.^name}")
     }
 
     proto method DELETE-POS(|) is nodal { * }
-    multi method DELETE-POS(Any:U: $pos) { Nil }
+    multi method DELETE-POS(Any:U: $pos --> Nil) { }
     multi method DELETE-POS(Any:D: $pos) {
         Failure.new("Can not remove elements from a {self.^name}")
     }
@@ -78,11 +78,11 @@ my class Any { # declared in BOOTSTRAP
     multi method Map() { self.hash.Map }
 
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) { 1 }
+    multi method elems(Any:U: --> 1) { }
     multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) { 0 }
+    multi method end(Any:U: --> 0) { }
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
@@ -106,6 +106,8 @@ my class Any { # declared in BOOTSTRAP
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
+    multi method invert(Any:U:) { () }
+    multi method invert(Any:D:) { self.list.invert }
 
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }
@@ -115,7 +117,6 @@ my class Any { # declared in BOOTSTRAP
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
-    proto method iterator(|) { * }
     multi method iterator(Any:) { self.list.iterator }
 
     proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
@@ -207,7 +208,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method EXISTS-POS(|) is nodal { * }
-    multi method EXISTS-POS(Any:U: Any:D $) { False }
+    multi method EXISTS-POS(Any:U: Any:D $ --> False) { }
     multi method EXISTS-POS(Any:U: Any:U $pos) {
         die "Cannot use '{$pos.^name}' as an index";
     }
@@ -432,13 +433,13 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
-    # XXX GLR do these really need to force a list?
     method Set()     is nodal {     Set.new-from-pairs(self.list) }
     method SetHash() is nodal { SetHash.new-from-pairs(self.list) }
     method Bag()     is nodal {     Bag.new-from-pairs(self.list) }
     method BagHash() is nodal { BagHash.new-from-pairs(self.list) }
     method Mix()     is nodal {     Mix.new-from-pairs(self.list) }
     method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
+    # XXX GLR does this really need to force a list?
     method Supply() is nodal { self.list.Supply }
 
     method nl-out() { "\n" }

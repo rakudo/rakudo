@@ -2,8 +2,7 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
         if $spec.from eq 'NQP' {
             my $nqp := nqp::gethllsym('perl6', 'ModuleLoader');

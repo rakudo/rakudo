@@ -3,8 +3,6 @@ my class Capture { # declared in BOOTSTRAP
     #     has @!list;   # positional parameters
     #     has %!hash;   # named parameters
 
-    method new(:@list,:%hash) { self.bless(:@list,:%hash) }
-
     method from-args(|c) { c }
 
     submethod BUILD(:@list, :%hash --> Nil) {
@@ -18,11 +16,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method WHICH (Capture:D:) {
-        my $WHICH = self.^name;
+        my $WHICH = nqp::istype(self.WHAT,Capture) ?? 'Capture' !! self.^name;
         if !nqp::isnull(@!list) && @!list {
             $WHICH ~= '|';
-            $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
-              for nqp::hllize(@!list);
+            for nqp::hllize(@!list) -> \elem {
+                $WHICH ~= ( '(' ~ elem.VAR.WHICH ~ ')' )
+            }
         }
         if !nqp::isnull(%!hash) && %!hash {
             $WHICH ~= '|';

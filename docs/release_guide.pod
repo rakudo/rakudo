@@ -22,8 +22,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2017-03-18   Rakudo #109 (Zoffix)
-  2017-04-15   Rakudo #110
+  2017-04-15   Rakudo #110 (Zoffix)
   2017-05-20   Rakudo #111
   2017-06-17   Rakudo #112
   2017-07-15   Rakudo #113
@@ -199,12 +198,12 @@ Make sure everything compiles and runs from a known clean state:
 
 Install Inline::Perl5 so stresstest can use it.
 
-  git clone https://github.com/tadzik/panda
+  git clone https://github.com/ugexe/zef
   export PATH=`pwd`/install/bin:$PATH
-  cd panda; perl6 bootstrap.pl
+  cd zef; perl6 -Ilib bin/zef install .
   cd ..
   export PATH=`pwd`/install/share/perl6/site/bin:$PATH
-  panda install Inline::Perl5
+  zef install Inline::Perl5
 
 =item 13.
 
@@ -427,6 +426,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2016-12-17   Rakudo #106 "2016.12"           (Zoffix + NeuralAnomaly)
   2017-01-20   Rakudo #107 "2017.01"           (Zoffix + NeuralAnomaly)
   2017-02-18   Rakudo #108 "2017.02"           (Zoffix + NeuralAnomaly)
+  2017-03-18   Rakudo #109 "2017.03"           (Zoffix + NeuralAnomaly)
 
 =head1 COPYRIGHT
 

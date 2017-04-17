@@ -192,4 +192,33 @@ my @input-lines;
         'Warnings print their message';
 }
 
+# RT#130876
+{
+    like feed_repl_with(['say "hi"; die "meows";']), /meows/,
+        'previous output does not silence exceptions';
+
+    my $out = feed_repl_with
+        ['say "hi"; my $f = Failure.new: "meows"; $f.Bool; $f'];
+    ok $out.contains('meows').not,
+        'previous output prevents output of handled failures';
+
+    $out = feed_repl_with ['say "hi"; X::AdHoc.new(:payload<meows>)'];
+    ok $out.contains('meows').not,
+        'previous output prevents output of unthrown exceptions';
+
+    $out = feed_repl_with ['say "hi"; try +"a"; $!'];
+    ok $out.contains('meows').not,
+        'previous output does not prevent output of unthrown exceptions';
+
+    $out = feed_repl_with([
+          ｢say "hi"; use nqp; my $x = REPL.new(nqp::getcomp("perl6"), %)｣
+        ~ ｢.repl-eval(q|die "meows"|, $);｣
+    ]);
+    ok $out.contains('meows').not,
+        ｢can't trick REPL into thinking an exception was thrown (RT#130876)｣;
+}
+
+# RT#130874
+like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
+
 done-testing;

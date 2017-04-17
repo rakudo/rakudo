@@ -4,15 +4,11 @@ method render($pod) {
     pod2text($pod)
 }
 
-my &colored;
+my &colored = sub ($text, $) {$text }
 if %*ENV<POD_TO_TEXT_ANSI> {
-    &colored = try {
-        use MONKEY-SEE-NO-EVAL;  # safe, not using EVAL for interpolation
-        EVAL q{ use Terminal::ANSIColor; &colored }
-    } // sub ($text, $color) { $text }
-} else {
-    &colored = sub ($text, $color) { $text }
-}
+    (try require Terminal::ANSIColor <&colored>) !=== Nil
+        and &OUTER::colored = &colored
+};
 
 sub pod2text($pod) is export {
     given $pod {

@@ -39,7 +39,7 @@ my class SetHash does Setty {
                 IterationEnd
               )
             }
-        }.new(%!elems)
+        }.new(self.hll_hash)
     }
 
     multi method kv(SetHash:D:) {
@@ -80,7 +80,7 @@ my class SetHash does Setty {
                   nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
                 )
             }
-        }.new(%!elems))
+        }.new(self.hll_hash))
     }
     multi method values(SetHash:D:) {
         Seq.new(class :: does SetHashMappy {
@@ -91,37 +91,68 @@ my class SetHash does Setty {
                 IterationEnd
               )
             }
-        }.new(%!elems))
+        }.new(self.hll_hash))
     }
 
-    method clone(SetHash:D:) { self.new-from-pairs(self.pairs) }
-
-    method Set(SetHash:D: :$view) {
-        nqp::p6bindattrinvres(
-          nqp::create(Set),Set,'%!elems',
-          $view ?? %!elems !! %!elems.clone
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::p6bindattrinvres(                  # something to clone
+            nqp::create(self),
+            ::?CLASS,
+            '$!elems',
+            nqp::clone($!elems)
+          ),
+          nqp::create(self)                       # nothing to clone
         )
     }
-    method SetHash(SetHash:D:) { self }
 
-    multi method AT-KEY(SetHash:D: \k --> Bool) is raw {
+    method Set(SetHash:D: :$view) is nodal {
+        nqp::if(
+          $!elems,
+          nqp::p6bindattrinvres(
+            nqp::create(Set),Set,'$!elems',
+            nqp::if($view,$!elems,$!elems.clone)
+          ),
+          nqp::create(Set)
+        )
+    }
+    method SetHash(SetHash:D:) is nodal { self }
+
+    multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {
-              %!elems.EXISTS-KEY(k.WHICH);
+              nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
           },
           STORE => -> $, $value {
-              $value
-                ?? %!elems.ASSIGN-KEY(k.WHICH,k)
-                !! %!elems.DELETE-KEY(k.WHICH);
-              so $value;
-          });
+              nqp::stmts(
+                nqp::if(
+                  $value,
+                  nqp::stmts(
+                    nqp::unless(
+                      $!elems,
+# XXX for some reason, $!elems := nqp::create(...) doesn't work
+# Type check failed in binding; expected NQPMu but got Rakudo::Internals::IterationSet
+                      nqp::bindattr(self,::?CLASS,'$!elems',
+                        nqp::create(Rakudo::Internals::IterationSet))
+                    ),
+                    nqp::bindkey($!elems,k.WHICH,k)
+                  ),
+                  $!elems && nqp::deletekey($!elems,k.WHICH)
+                ),
+                $value.Bool
+              )
+          }
+        )
     }
-    multi method DELETE-KEY(SetHash:D: \k --> Bool) {
-        nqp::if(
-          %!elems.EXISTS-KEY(my $key := k.WHICH),
-          nqp::stmts(
-            %!elems.DELETE-KEY($key),
-            True
+    multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
+        nqp::p6bool(
+          nqp::if(
+            $!elems && nqp::existskey($!elems,(my $key := k.WHICH)),
+            nqp::stmts(
+              nqp::deletekey($!elems,$key),
+              1
+            )
           )
         )
     }

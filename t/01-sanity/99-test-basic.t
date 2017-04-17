@@ -49,19 +49,6 @@ todo( 'testing isnt 1,1' );
 my $isnt3 = isnt 1, 1, 'isnt 1,1, with description';
 nok $isnt3, 'isnt 1, 1; returns False';
 
-
-my $approx1 = is_approx 1, 1, 'is_approx with description';
-ok $approx1, 'is_approx 1,1, returns True';
-my $approx2 = is_approx 1, 1;
-my $approx3 = is_approx 1, 1.000001, 'is_approx with small difference';
-ok $approx3, 'is_approx 1,1.000001, returns True';
-
-# NOT_TODO
-todo( 'failing is_approx 1,2;');
-my $approx4 = is_approx 1, 2, 'is_approx with small difference';
-nok $approx4, 'is_approx 1, 2; fails and returns False';
-
-
 todo( 'testing todo twice', 2 );
 ok 0, 'this should fail, to test todo()';
 ok 0, 'this should also fail, to test todo()';

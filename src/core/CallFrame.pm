@@ -1,50 +1,59 @@
 my class CallFrame {
-    has Int $.level;
-    has %.annotations;
-    has %.my;
-    method new(Int :$level = 0) {
-        my $l = $level + 1;
-        my $self := nqp::create(CallFrame);
-        my $i = $l;
-        my Mu $ctx := nqp::ctx();
-        while $i-- {
-            $ctx := nqp::ctxcaller($ctx);
-        }
-        my $h := nqp::create(Stash);  # should probably be PseudoStash?
-        nqp::bindattr($h, Map, '$!storage', $ctx);
-        nqp::bindattr($self, CallFrame, '%!my', $h);
-        nqp::bindattr($self, CallFrame, '$!level', $l);
+    has $.annotations;
+    has $.my;
 
-        my $e  := nqp::handle(nqp::die(''), 'CATCH', nqp::exception());
-        my $bt := nqp::backtrace($e);
-        nqp::bindattr($self, CallFrame, '%!annotations',
-            nqp::hllize(nqp::atkey(nqp::atpos($bt, $l), 'annotations')));
-
-        $self;
+    method SET-SELF(\level, Mu \ctx is raw, Mu \bt is raw) {
+        nqp::stmts(
+          (my int $i = nqp::add_i(level,1)),
+          ($!annotations := nqp::atkey(
+            nqp::atpos(nqp::getattr(bt,List,'$!reified'),$i),
+            'annotations'
+          )),
+          (my $ctx := ctx),
+          nqp::while(
+            nqp::isgt_i(($i = nqp::sub_i($i,1)),0),
+            $ctx := nqp::ctxcaller($ctx)
+          ),
+          ($!my :=
+            nqp::p6bindattrinvres(nqp::create(Stash),Map,'$!storage',$ctx)),
+          self
+        )
+    }
+              
+    only method new(CallFrame: Int $level = 0) {  # MUST BE AN only
+        nqp::create(CallFrame).SET-SELF(          # wrt to backtrace levels
+          $level,
+          nqp::ctxcaller(nqp::ctx),
+          nqp::backtrace(nqp::handle(nqp::die(''),'CATCH',nqp::exception))
+        )
     }
 
-    method line() {
-        %.annotations<line>;
-    }
-    method file() {
-        %.annotations<file>;
-    }
-    multi method gist(CallFrame:D:) {
-        my %annotations := %.annotations;
-        "%annotations<file> at line %annotations<line>";
-    }
+    method line() { nqp::atkey($!annotations,'line') }
+    method file() { nqp::atkey($!annotations,'file') }
     method code() {
-        my $ctx := nqp::getattr(%!my, Map, '$!storage');
-        nqp::getcodeobj(nqp::ctxcode($ctx));
+        nqp::getcodeobj(nqp::ctxcode(nqp::getattr($!my,Map,'$!storage')))
+    }
+    method callframe(Int $?) {
+        X::NYI.new(feature => 'Callframe.callframe').throw;
     }
 
-    method callframe(Int $level = 0) {
-        X::NYI.new(feature => 'Callframe.callframe').throw;
+    multi method gist(CallFrame:D:) {
+        nqp::atkey($!annotations,'file')
+          ~ ' at line '
+          ~ nqp::atkey($!annotations,'line')
+    }
+
+    method annotations() {
+        nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$!annotations)
     }
 }
 
-sub callframe(Int $level = 0) {
-    CallFrame.new(level => ($level + 1));
+only sub callframe(Int $level = 0) {  # MUST BE an only wrt to backtrace levels
+    nqp::create(CallFrame).SET-SELF(
+      $level,
+      nqp::ctxcaller(nqp::ctx),
+      nqp::backtrace(nqp::handle(nqp::die(''),'CATCH',nqp::exception))
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

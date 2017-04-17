@@ -39,7 +39,7 @@ do {
         splice(@values, $insert_pos, 0, $value);
     }
 
-    my sub mkpath(IO::Path $full-path) {
+    my sub mkpath(IO::Path $full-path --> Nil) {
         my ( :$directory, *% ) := $full-path.parts;
         my @parts = $*SPEC.splitdir($directory);
 
@@ -85,7 +85,7 @@ do {
 
         method completions-for-line(Str $line, int $cursor-index) { ... }
 
-        method history-file() returns Str { ... }
+        method history-file(--> Str:D) { ... }
 
         method init-line-editor {
             linenoiseSetCompletionCallback(sub ($line, $c) {
@@ -127,7 +127,7 @@ do {
                     /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
                 }).sort;
 
-        method update-completions {
+        method update-completions(--> Nil) {
             my $context := self.compiler.context;
 
             return unless $context;
@@ -266,7 +266,7 @@ do {
             $self
         }
 
-        method init(Mu \compiler, $multi-line-enabled) {
+        method init(Mu \compiler, $multi-line-enabled --> Nil) {
             $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
         }
@@ -275,7 +275,7 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, *%adverbs) {
+        method repl-eval($code, \exception, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
@@ -295,8 +295,8 @@ do {
                 }
 
                 default {
-                    # Use the exception as the result of the eval, to be printed
-                    return $_;
+                    exception = $_;
+                    return;
                 }
             }
 
@@ -342,8 +342,9 @@ do {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
 
-                my $output = self.repl-eval(
+                my $output is default(Nil) = self.repl-eval(
                     $code,
+                    my $exception,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -364,8 +365,15 @@ do {
 
                 reset;
 
-                # Only print the result if there wasn't some other output
-                if $initial_out_position == $*OUT.tell {
+                # Print the result if:
+                # - there wasn't some other output
+                # - the result is an *unhandled* Failure
+                # - print an exception if one had occured
+                if $exception.DEFINITE {
+                    self.repl-print($exception);
+                }
+                elsif $initial_out_position == $*OUT.tell
+                    or $output ~~ Failure and not $output.handled {
                     self.repl-print($output);
                 }
 
@@ -380,7 +388,7 @@ do {
         }
 
         # Inside of the EVAL it does like caller.ctxsave
-        method ctxsave() {
+        method ctxsave(--> Nil) {
             $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
             $*CTXSAVE := 0;
         }
@@ -393,21 +401,21 @@ do {
             $value.WHERE == $!control-not-allowed.WHERE
         }
 
-        method repl-print(Mu $value) {
+        method repl-print(Mu $value --> Nil) {
             say $value;
             CATCH {
                 default { say $_ }
             }
         }
 
-        method history-file returns Str {
+        method history-file(--> Str:D) {
             return ~$!history-file if $!history-file.defined;
 
             $!history-file = do
                 if $*ENV<RAKUDO_HIST> {
                     IO::Path.new($*ENV<RAKUDO_HIST>)
                 } else {
-                    IO::Path.new($*HOME).child('.perl6').child('rakudo-history')
+                    IO::Path.new($*HOME).add('.perl6').add('rakudo-history')
                 }
             try {
                 mkpath($!history-file);

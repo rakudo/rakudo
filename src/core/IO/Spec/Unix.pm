@@ -1,6 +1,6 @@
 my class IO::Spec::Unix is IO::Spec {
 
-    method canonpath( $patharg, :$parent --> Str) {
+    method canonpath( $patharg, :$parent --> Str:D) {
         nqp::if(
           (my str $path = $patharg.Str),
           nqp::stmts(
@@ -52,12 +52,12 @@ my class IO::Spec::Unix is IO::Spec {
               nqp::substr($path,0,nqp::sub_i(nqp::chars($path),1)),
               $path
             )
-          ), 
+          ),
           ''
         )
     }
 
-    method dir-sep  {  '/' }
+    method dir-sep  {  '/' } # NOTE: IO::Path.resolve assumes dir sep is 1 char
     method curdir   {  '.' }
     method updir    { '..' }
     method curupdir { none('.','..') }
@@ -93,8 +93,8 @@ my class IO::Spec::Unix is IO::Spec {
         ) ?? $io !! IO::Path.new(".");
     }
 
-    method is-absolute( $file ) {
-        substr( $file, 0, 1 ) eq '/';
+    method is-absolute( Str() \path ) {
+        nqp::p6bool(nqp::eqat(path, '/', 0));
     }
 
     method path {
@@ -116,20 +116,57 @@ my class IO::Spec::Unix is IO::Spec {
         }
     }
 
-    multi method split(IO::Spec::Unix: Cool:D $path is copy ) {
-        $path  ~~ s/<?after .> '/'+ $ //;
+    multi method split(IO::Spec::Unix: Cool:D $path) {
+        my str $p = $path.Str;
+        my int $chars = nqp::chars($p);
 
-        $path  ~~ m/^ ( [ .* \/ ]? ) (<-[\/]>*) /;
-        my ($dirname, $basename) = ~$0, ~$1;
+        nqp::while(
+            nqp::if(
+                ($chars = nqp::sub_i(nqp::chars($p), 1)),
+                nqp::eqat($p, '/', $chars),
+            ),
+            $p = nqp::substr($p, 0, $chars),
+        );
 
-        $dirname ~~ s/<?after .> '/'+ $ //; #/
+        my str $dirname;
+        my str $basename;
+        my int $slash-at = nqp::rindex($p, '/');
+        nqp::if(
+            $slash-at,
+            nqp::if(
+                nqp::iseq_i($slash-at, -1),
+                nqp::stmts(
+                    ($dirname = ''),
+                    $basename = $p,
+                ),
+                nqp::stmts(
+                    ($dirname = nqp::substr($p, 0, $slash-at)),
+                    $basename = nqp::substr($p, nqp::add_i($slash-at, 1)),
+                ),
+            ),
+            nqp::stmts(
+                ($dirname = '/'),
+                $basename = nqp::substr($p, 1),
+            ),
+        );
 
-        if $basename eq '' {
-            $basename = '/'  if $dirname eq '/';
-        }
-        else {
-            $dirname = '.'  if $dirname eq '';
-        }
+        nqp::while(
+            nqp::if(
+                ($chars = nqp::sub_i(nqp::chars($dirname), 1)),
+                nqp::eqat($dirname, '/', $chars),
+            ),
+            $dirname = nqp::substr($dirname, 0, $chars),
+        );
+
+        nqp::if(
+            $basename,
+            nqp::unless($dirname, $dirname = '.'),
+            nqp::if(
+                nqp::iseq_s($dirname, '/'),
+                $basename = '/',
+            ),
+        );
+
         # shell dirname '' produces '.', but we don't because it's probably user error
 
         # temporary, for the transition period
@@ -137,32 +174,50 @@ my class IO::Spec::Unix is IO::Spec {
 #        (:volume(''), :$dirname, :$basename);
     }
 
-
-    method join ($, $dirname, $file) {
+    method join ($, \dir, \file) {
         self.catpath(
-          '',
-          ($dirname eq '/' && $file eq '/' or $dirname eq '.' && $file.chars)
-            ?? '' !! $dirname,
-          $file,
+            '',
+            nqp::if(
+                nqp::unless(
+                    nqp::if( nqp::iseq_s(dir, '/'), nqp::iseq_s(file, '/'), ),
+                    nqp::if( nqp::iseq_s(dir, '.'), file ),
+                ),
+                '',
+                dir,
+            ),
+            file,
         );
     }
 
-    method catpath( $, $dirname, $file ) {
-        $dirname ne ''
-          && $file ne ''
-          && substr($dirname, *-1 ) ne '/'
-          && substr($file, 0, 1 )   ne '/'
-          ?? $dirname ~ '/' ~ $file
-          !! $dirname ~ $file
+    method catpath( $, \dirname, \file ) {
+        nqp::if(
+            nqp::if(
+                nqp::isne_s(dirname, ''),
+                nqp::if(
+                    nqp::isne_s(file, ''),
+                    nqp::if(
+                        nqp::isfalse(nqp::eqat(
+                            dirname, '/', nqp::sub_i(nqp::chars(dirname), 1)
+                        )),
+                        nqp::isfalse(nqp::eqat(file, '/', 0)),
+                    ),
+                ),
+            ),
+            nqp::concat(dirname, nqp::concat('/', file)),
+            nqp::concat(dirname, file),
+        )
     }
 
-    method catdir( *@parts ) { self.canonpath( (flat @parts, '').join('/') ) }
+    method catdir (*@parts) {
+        self.canonpath: nqp::concat(
+            @parts.join('/'),
+            nqp::if(@parts, '/', ''),
+        )
+    }
     method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 
-    method abs2rel( $path is copy, $base is copy = Str ) {
-        $base = $*CWD unless $base.defined && $base.chars;
-
+    method abs2rel( $path is copy, $base is copy = $*CWD ) {
         if self.is-absolute($path) || self.is-absolute($base) {
             $path = self.rel2abs( $path );
             $base = self.rel2abs( $base );
@@ -182,7 +237,7 @@ my class IO::Spec::Unix is IO::Spec {
         # For UNC paths, the user might give a volume like //foo/bar that
         # strictly speaking has no directory portion.  Treat it as if it
         # had the root directory for that volume.
-        if !$base_directories.chars && self.is-absolute( $base ) {
+        if !$base_directories && self.is-absolute( $base ) {
             $base_directories = self.rootdir;
         }
 
@@ -207,14 +262,28 @@ my class IO::Spec::Unix is IO::Spec {
         return self.canonpath( self.catpath('', $result_dirs, '') );
     }
 
-    method rel2abs( $path, $base? is copy) {
-        return self.canonpath($path) if self.is-absolute($path);
-
-        my $cwd := $*CWD;
-        if !self.is-absolute( $base //= $cwd ) {
-            $base = self.rel2abs( $base, $cwd ) unless $base eq $cwd;
-        }
-        self.catdir( self.canonpath($base), $path );
+    method rel2abs(Str() \path, $base? is copy) {
+        nqp::if(
+          nqp::eqat(path, '/', 0),
+          self.canonpath(path),
+          self.catdir(
+            self.canonpath(
+                nqp::if(
+                    $base.defined,
+                    nqp::if(
+                        nqp::eqat(($base = $base.Str), '/', 0),
+                        $base,
+                        nqp::if(
+                            nqp::iseq_s($base, (my $cwd = $*CWD.Str)),
+                            $base, self.rel2abs($base, $cwd),
+                        ),
+                    ),
+                    $*CWD.Str,
+                ),
+            ),
+            path,
+          ),
+        )
     }
 }
 

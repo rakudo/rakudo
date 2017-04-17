@@ -6,7 +6,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool
     #   The reified elements in the list so far (that is, those that we already
     #   have produced the values for).
-    #   has List $!reified;
+    #   has $!reified;
     #
     #   Object that reifies the rest of the list. We don't just inline it into
     #   the List class itself, because a STORE on Array can clear things and
@@ -374,8 +374,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
           nqp::if(
-            nqp::attrinited(self,List,'$!reified')
-              && (my int $elems = self.elems),      # reifies
+            $!reified.DEFINITE && (my int $elems = self.elems),      # reifies
             nqp::stmts(
               (my $list := $!reified),
               (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
@@ -581,12 +580,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 method !SET-SELF(\list) {
                     $!i        = -1;
                     $!list    := list;
-                    $!reified := nqp::attrinited(list, List,'$!reified')
+                    $!reified := nqp::getattr(list,List,'$!reified').DEFINITE
                       # we already have a place to put values in
                       ?? nqp::getattr(list,List,'$!reified')
                       # create a place here and there to put values in
-                      !! nqp::bindattr(list,List,'$!reified',nqp::list);
-                    $!todo    := nqp::getattr(list, List, '$!todo');
+                      !! nqp::bindattr(list,List,'$!reified',
+                           nqp::create(IterationBuffer));
+                    $!todo := nqp::getattr(list, List, '$!todo');
                     self
                 }
                 method new(\list) { nqp::create(self)!SET-SELF(list) }
@@ -717,11 +717,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
     }
     multi method invert(List:D:) {
-        my $laze = self.is-lazy;
-        self.map(-> Pair \listelem {
-            my \result = nqp::decont(listelem.value) »=>» listelem.key;
-            result ~~ Pair ?? result !! |result  # Don't make slip where we don't need it.
-        }).lazy-if($laze)
+        Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
     # Store in List targets containers with in the list. This handles list
@@ -880,7 +876,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         # we have something to work with
         if $!reified.DEFINITE && nqp::elems($!reified) -> int $elems {
             my $capture := nqp::create(Capture);
-            my $list := nqp::list;
+            my $list := nqp::create(IterationBuffer);
             my $hash := nqp::hash;
             my int $i = -1;
             my $v;
@@ -1050,18 +1046,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           self.is-lazy,    # reifies
           Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
-          nqp::if(
+          Seq.new(nqp::if(
             $!reified,
-            Rakudo::Internals.ReverseListToList(
-              self,
-              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
-                nqp::setelems(
-                  nqp::create(IterationBuffer),nqp::elems($!reified)
-                )
-              )
-            ),
-            nqp::create(self)
-          )
+            Rakudo::Iterator.ReifiedListReverse($!reified),
+            Rakudo::Iterator.Empty
+          ))
         )
     }
 
@@ -1216,9 +1205,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ),
           Seq.new(
             nqp::if(
-              nqp::attrinited(self,List,'$!reified'),
+              $!reified.DEFINITE,
               Rakudo::Iterator.ReifiedList(
-                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
                     nqp::create(List),List,'$!reified',
                     nqp::clone(nqp::getattr(self,List,'$!reified'))
@@ -1245,22 +1234,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ),
           Seq.new(
             nqp::if(
-              nqp::attrinited(self,List,'$!reified'),
+              $!reified.DEFINITE,
               Rakudo::Iterator.ReifiedList(
                 nqp::if(
                   nqp::eqaddr(&by,&infix:<cmp>),
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                     nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                       nqp::clone(nqp::getattr(self,List,'$!reified')))
                   ),
                   nqp::if(
                     &by.count < 2,
-                    Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
                       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                         nqp::getattr(self,List,'$!reified')),
                       &by
                     ),
-                    Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
                       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                         nqp::clone(nqp::getattr(self,List,'$!reified'))),
                       &by
@@ -1295,9 +1284,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::if(
               $!reified.DEFINITE && nqp::elems($!reified),
               nqp::stmts(
-                (my $iterator :=
-                  Rakudo::Iterator.ReifiedList(self))
-                  .skip-at-least(nqp::elems($!reified) - $n),
+                (my $iterator := Rakudo::Iterator.ReifiedList(self)),
+                nqp::if(
+                  nqp::istype($n,Callable)
+                    && nqp::isgt_i((my $skip := -($n(0).Int)),0),
+                  $iterator.skip-at-least($skip),
+                  nqp::unless(
+                    nqp::istype($n,Whatever) || $n == Inf,
+                    $iterator.skip-at-least(nqp::elems($!reified) - $n)
+                  )
+                ),
                 $iterator
               ),
               Rakudo::Iterator.Empty
@@ -1385,12 +1381,6 @@ multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 
-role XX-Whatever does Iterator {
-    has Mu $!x;
-    method new(\x) { nqp::p6bindattrinvres(nqp::create(self),self,'$!x',x) }
-    method is-lazy() { True }
-}
-
 proto sub infix:<xx>(|) { * }
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
@@ -1398,29 +1388,12 @@ multi sub infix:<xx>(&x, Num() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
-    Seq.new(class :: does XX-Whatever {
-        has @!slipped;
-        method pull-one() {
-            nqp::if(
-              @!slipped,
-              @!slipped.shift,
-              nqp::if(
-                nqp::istype((my $pulled := $!x.()),Slip),
-                ( (@!slipped = $pulled) ?? @!slipped.shift !! IterationEnd ),
-                nqp::if(
-                  nqp::istype($pulled,Seq),
-                  $pulled.cache,
-                  $pulled
-                )
-              )
-            )
-        }
-    }.new(&x))
+    Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
 multi sub infix:<xx>(&x, Int $n) {
     my int $todo = $n + 1;
     my Mu $pulled;
-    my Mu $list := nqp::list();
+    my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
       nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
       nqp::if(
@@ -1429,31 +1402,24 @@ multi sub infix:<xx>(&x, Int $n) {
         nqp::if(
           nqp::istype($pulled,Seq),
           nqp::push($list,$pulled.cache),
-          nqp::push($list,$pulled)
+          nqp::push($list,nqp::decont($pulled))
         )
       )
     );
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $list)
+    Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
 multi sub infix:<xx>(Mu \x, Num() $n) {
-    infix:<xx>(x, $n == Inf ?? Whatever !! $n.Int);
+    Seq.new(nqp::if(
+      $n == Inf,
+      Rakudo::Iterator.UnendingValue(x),
+      Rakudo::Iterator.OneValueTimes(x,$n.Int)
+    ))
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
-multi sub infix:<xx>(Mu \x, Int $n) is pure {
-    if nqp::isgt_i((my int $elems = $n),0) {
-        my $list := nqp::setelems(nqp::list,$elems);
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-          nqp::bindpos($list, $i, x),
-        );
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
-    }
-    else {
-        nqp::create(List)
-    }
+multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
+    Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))
 }
 
 proto sub reverse(|)   { * }
@@ -1475,7 +1441,7 @@ multi sub infix:<X>(+lol, :&with!) {
 multi sub infix:<X>(+lol) {
     Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))
 }
-my &cross := &infix:<X>;
+my constant &cross := &infix:<X>;
 
 proto sub infix:<Z>(|) is pure {*}
 multi sub infix:<Z>(+lol, :&with!) {
@@ -1484,7 +1450,7 @@ multi sub infix:<Z>(+lol, :&with!) {
 multi sub infix:<Z>(+lol) {
     Seq.new(Rakudo::Iterator.ZipIterables(lol))
 }
-my &zip := &infix:<Z>;
+my constant &zip := &infix:<Z>;
 
 sub roundrobin(+lol) {
     Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))

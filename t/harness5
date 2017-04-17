@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 
 # note: Due to a limitation in Getopt::Long options that should be passed
 # through to fudgeall have to come after all other options
@@ -125,7 +125,7 @@ if (eval "require $tap_harness_class;") {
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );
     my $results = $tap_harness_class->new( \%harness_options )->runtests(@tfiles);
-    exit 1 unless $results->all_passed;
+    exit 1 if $results->has_errors;
 }
 elsif ($archive) {
     die "Can't load $tap_harness_class, which is needed for smolder submissions: $@";

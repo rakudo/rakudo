@@ -54,6 +54,10 @@ my class Thread {
         self.finish
     }
 
+    multi method Numeric(Thread:D:) {
+        self.id
+    }
+
     multi method Str(Thread:D:) {
         "Thread<$.id>($.name)"
     }
@@ -61,9 +65,8 @@ my class Thread {
         "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
     }
 
-    method yield(Thread:U:) {
+    method yield(Thread:U: --> Nil) {
         nqp::threadyield();
-        Nil
     }
 }
 

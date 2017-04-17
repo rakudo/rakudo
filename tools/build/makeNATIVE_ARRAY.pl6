@@ -125,13 +125,13 @@ for $*IN.lines -> $line {
             self
         }
 
-        method pop(#type#array:D:) returns #type# {
+        method pop(#type#array:D: --> #type#) {
             nqp::elems(self) > 0
               ?? nqp::pop_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(#type#array:D:) returns #type# {
+        method shift(#type#array:D: --> #type#) {
             nqp::elems(self) > 0
               ?? nqp::shift_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -319,91 +319,8 @@ for $*IN.lines -> $line {
               $to
             )
         }
-        # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
         multi method sort(#type#array:D:) {
-            nqp::if(
-              nqp::isgt_i((my int $n = nqp::elems(self)),2),
-
-              # $A has the items to sort; $B is a work array
-              nqp::stmts(
-                (my Mu $A := nqp::clone(self)),
-                (my Mu $B := nqp::setelems(nqp::create(self),$n)),
-
-                # Each 1-element run in $A is already "sorted"
-                # Make successively longer sorted runs of length 2, 4, 8, 16...
-                # until $A is wholly sorted
-                (my int $width = 1),
-                nqp::while(
-                  nqp::islt_i($width,$n),
-                  nqp::stmts(
-                    (my int $l = 0),
-
-                    # $A is full of runs of length $width
-                    nqp::while(
-                      nqp::islt_i($l,$n),
-
-                      nqp::stmts(
-                        (my int $left  = $l),
-                        (my int $right = nqp::add_i($l,$width)),
-                        nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                        (my int $end =
-                          nqp::add_i($l,nqp::add_i($width,$width))),
-                        nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                        (my int $i = $left),
-                        (my int $j = $right),
-                        (my int $k = nqp::sub_i($left,1)),
-
-                        # Merge two runs: $A[i       .. i+width-1] and
-                        #                 $A[i+width .. i+2*width-1]
-                        # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                        nqp::while(
-                          nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                          nqp::if(
-                            nqp::islt_i($i,$right) && (
-                              nqp::isge_i($j,$end)
-                                || nqp::islt_#postfix#(
-                                     nqp::atpos_#postfix#($A,$i),
-                                     nqp::atpos_#postfix#($A,$j)
-                                   )
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_#postfix#($B,$k,nqp::atpos_#postfix#($A,$i))),
-                              ($i = nqp::add_i($i,1))
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_#postfix#($B,$k,nqp::atpos_#postfix#($A,$j))),
-                              ($j = nqp::add_i($j,1))
-                            )
-                          )
-                        ),
-                        ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                      )
-                    ),
-
-                    # Now work array $B is full of runs of length 2*width.
-                    # Copy array B to array A for next iteration.  A more
-                    # efficient implementation would swap the roles of A and B.
-                    (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                    # Now array $A is full of runs of length 2*width.
-
-                    ($width = nqp::add_i($width,$width))
-                  )
-                ),
-                $A
-              ),
-              nqp::if(
-                nqp::islt_i($n,2)
-                  || nqp::isle_#postfix#(nqp::atpos_#postfix#(self,0),nqp::atpos_#postfix#(self,1)),
-                nqp::clone(self),  # we already have the result
-                nqp::stmts(
-                  (my $R := nqp::setelems(nqp::create(self),2)),
-                  nqp::bindpos_#postfix#($R,0,nqp::atpos_#postfix#(self,1)),
-                  nqp::bindpos_#postfix#($R,1,nqp::atpos_#postfix#(self,0)),
-                  $R
-                )
-              )
-            )
+            Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
 SOURCE
 

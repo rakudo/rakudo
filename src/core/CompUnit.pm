@@ -48,8 +48,8 @@ class CompUnit {
     }
 
     multi method WHICH(CompUnit:D:) { $!WHICH //= self.^name }
-    multi method Str(CompUnit:D: --> Str)  { $!short-name }
-    multi method gist(CompUnit:D: --> Str) { self.short-name }
+    multi method Str(CompUnit:D: --> Str:D)  { $!short-name }
+    multi method gist(CompUnit:D: --> Str:D) { self.short-name }
 
     method unit() {
         $.handle.unit

@@ -4,7 +4,6 @@ my class X::Buf::Pack::NonASCII { ... }
 my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
-my class X::TypeCheck           { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     X::NYI.new(
@@ -21,7 +20,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     } // 1;
 
     multi method WHICH(Blob:D:) {
-        self.^name ~ '|' ~ nqp::sha1(self.decode("latin-1"))
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Blob),
+              'Blob|',
+            nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            nqp::sha1(self.decode("latin-1"))
+          ),
+          ObjAt
+        )
     }
 
     multi method new(Blob:) { nqp::create(self) }
@@ -95,7 +104,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
-    multi method elems(Blob:U:)   { 1 }
+    multi method elems(Blob:U: --> 1)   { }
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 
@@ -698,8 +707,8 @@ multi sub prefix:<~^>(Blob:D \a) {
     my $r := nqp::create($a);
     nqp::setelems($a,$elems);
 
-    my int $i    = -1;
-    my int $mask = 0xFFFFFFFFFFFFFFFF;
+    my int    $i    = -1;
+    my uint64 $mask = 0xFFFFFFFFFFFFFFFF;
     nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
       while nqp::islt_i(++$i,$elems);
 

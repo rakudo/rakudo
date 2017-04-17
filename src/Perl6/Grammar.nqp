@@ -135,14 +135,14 @@ role STD {
         $<B>=[<?before .>]
         {
             # Work out the delimiters.
-            my $c := $/.CURSOR;
+            my $c := $/;
             my @delims := $c.peek_delimiters($c.target, $c.pos);
             my $start := @delims[0];
             my $stop  := @delims[1];
 
             # Get the language.
             my $lang := self.quote_lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
-            $<B>.'!make'([$lang, $start, $stop]);
+            $<B>.make([$lang, $start, $stop]);
         }
     }
 
@@ -221,7 +221,7 @@ role STD {
         <babble($l, @base_tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <nibble($lang)> [ $stop || { $/.CURSOR.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from())})", expected => [$stop] ) } ]
+        $start <nibble($lang)> [ $stop || { $/.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from())})", expected => [$stop] ) } ]
 
         {
             nqp::can($lang, 'herelang') && self.queue_heredoc(
@@ -289,7 +289,7 @@ role STD {
 
         if $borg<block> {
             self.'!clear_highwater'();
-            self.'!cursor_pos'($borg<block>.CURSOR.pos);
+            self.'!cursor_pos'($borg<block>.pos);
             self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
@@ -400,7 +400,7 @@ role STD {
                     }
                 }
                 else {
-                    $var.CURSOR.add_mystery($name, $var.to, 'var');
+                    $var.add_mystery($name, $var.to, 'var');
                 }
             }
             else {
@@ -458,10 +458,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # issue is that we may have no setting to provide them, e.g. when we
         # compile the setting, but it still wants some kinda package. We just
         # fudge in knowhow for that.
-        my %*HOW;
-        my %*HOWUSE;
-        %*HOW<knowhow> := nqp::knowhow();
-        %*HOW<package> := nqp::knowhow();
+        self.set_how('knowhow', nqp::knowhow());
+        self.set_how('package', nqp::knowhow());
 
         # Will we use the result of this? (Yes for EVAL and REPL).
         my $*NEED_RESULT := nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
@@ -560,7 +558,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         !! '';
                     my $canname  := $category ~ $*W.canonicalize_pair('sym', $opname);
                     my $termname := $category ~ $*W.canonicalize_pair('', $opname);
-                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname, :defterm);
+                    $/.add_categorical($category, $opname, $canname, $termname, :defterm);
                 }
             }
         | <?>
@@ -893,7 +891,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
             'comment' [ <pod_newline> | $ ]
-            || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
          ]
         ]
     }
@@ -921,7 +919,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
              $<type> [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
          ]
         ]
     }
@@ -938,7 +936,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ \h* '=end' \h+
          [
             'table' [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
          ]
         ]
     }
@@ -954,7 +952,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
             [ 'code' [ <pod_newline> | $ ]
-              || $<instead>=<identifier>? {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+              || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
             ]
         ]
     }
@@ -1214,22 +1212,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*LANG;
         :my $*LEAF;
         :my %*LANG   := self.shallow_copy(self.slangs);   # XXX deprecated
-        :my %*HOW    := self.shallow_copy(nqp::getlexdyn('%*HOW'));
-        :my %*HOWUSE := nqp::hash();
         :my $*STRICT := nqp::getlexdyn('$*STRICT');
 
         :dba('statement list')
 #        <.check_LANG_oopsies('statementlist')>
         ''
         # Define this scope to be a new language.
-        <!!{ $*LANG := $*LEAF := $/.CURSOR.clone_braid_from(self); 1 }>
+        <!!{ $*LANG := $*LEAF := $/.clone_braid_from(self); 1 }>
         [
         | $
         | <?before <.[\)\]\}]>>
         | [ <statement> <.eat_terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
-        <!!{ nqp::rebless($/.CURSOR, self.WHAT); 1 }>
+        <!!{ nqp::rebless($/, self.WHAT); 1 }>
     }
 
     method shallow_copy(%hash) {
@@ -1285,10 +1281,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_STMT_MOD := 0;
         :my $*ESCAPEBLOCK := 0;
         :my $actions := self.slang_actions('MAIN');
-        <!!{ $/.CURSOR.set_actions($actions); 1 }>
+        <!!{ $/.set_actions($actions); 1 }>
         <!before <.[\])}]> | $ >
         <!stopper>
-        <!!{ nqp::rebless($/.CURSOR, self.slang_grammar('MAIN')); 1 }>
+        <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
@@ -1301,7 +1297,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement_mod_loop><sym>;
-                        $/.CURSOR.obs("do..." ~ $s, "repeat...while or repeat...until");
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until");
                     }
                 }
             ]?
@@ -1318,7 +1314,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || $
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
-        || { $/.CURSOR.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
+        || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -1455,7 +1451,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
-            | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
+            | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
             | $<sym>='elsif' <xblock>
             | $<sym>='orwith' <xblock(1)>
             ]
@@ -1503,7 +1499,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<for> {
         <sym><.kok> {}
-        [ <?before 'my'? '$'\w+ '(' >
+        [ <?before 'my'? '$'\w+\s+'(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
@@ -1565,7 +1561,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*W.do_import($/, $*W.find_symbol(<CompUnit Handle>).from-unit($module.WHO), $longname.name, $*W.arglist($/));
             }
             else {
-                $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
+                $/.panic("Could not find module " ~ ~$<module_name> ~
                     " to import symbols from");
             }
         }
@@ -1610,28 +1606,40 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 $*W.load_setting($/, 'CORE.d');
                             }
                             elsif !$sm($vhave,$vwant) {
-                                $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
+                                $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
                             }
                             $*MAIN   := 'MAIN';
                             $*STRICT := 1 if $*begin_compunit;
                         }
                     ||  {
-                            $/.CURSOR.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
+                            $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
                         }
                     ]
         | <module_name>
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
+                    my $oldmain := %*LANG<MAIN>;
                     $*W.do_pragma_or_load_module($/,1);
                     $¢ := $*LANG;
-                    $/.CURSOR.check_LANG_oopsies('use');
+                    if nqp::istype($oldmain, %*LANG<MAIN>.WHAT) {
+                        %*LANG := self.shallow_copy($*LANG.slangs);
+                    }
+                    else {
+                        $/.check_LANG_oopsies('use');
+                    }
                 }
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
+                        my $oldmain := %*LANG<MAIN>;
                         $*W.do_pragma_or_load_module($/,1);
                         $¢ := $*LANG;
-                        $/.CURSOR.check_LANG_oopsies('use');
+                        if nqp::istype($oldmain, %*LANG<MAIN>.WHAT) {
+                            %*LANG := self.shallow_copy($*LANG.slangs);
+                        }
+                        else {
+                            $/.check_LANG_oopsies('use');
+                        }
                     }
                 }
             ]
@@ -1646,7 +1654,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
     method FOREIGN_LANG($langname, $regex, *@args) {
         my $grammar := self.slang_grammar($langname);
-        if nqp::istype($grammar, NQPCursor) {
+        if nqp::istype($grammar, NQPMatch) {
             self.LANG($langname, $regex, @args);
         }
         else {
@@ -1661,15 +1669,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $ret := $lang_cursor."$regex"(|@args);
 
             # Build up something NQP-levelish we can return.
-            my $new := NQPCursor.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-            my $p6cursor := $*W.find_symbol(['Cursor']);
-            nqp::bindattr_i($new, NQPCursor, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
-            nqp::bindattr_i($new, NQPCursor, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
-            nqp::bindattr($new,   NQPCursor, '$!name',  nqp::getattr($ret,   $p6cursor, '$!name'));
-
-            my $match := nqp::create(NQPMatch);
-            nqp::bindattr($match, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
-            nqp::bindattr($new, NQPCursor, '$!match', $match);
+            my $new := NQPMatch.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            my $p6cursor := $*W.find_symbol(['Match']);
+            nqp::bindattr_i($new, NQPMatch, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
+            nqp::bindattr_i($new, NQPMatch, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
+            my $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
+            if !nqp::isnull_s($p6c_name) {
+                nqp::bindattr($new,   NQPMatch, '$!name',  $p6c_name);
+            }
+            nqp::bindattr($new, NQPMatch, '$!made', nqp::getattr($ret, $p6cursor, '$!made'));
+            $new.MATCH;
             $new.set_braid_from(self)
         }
     }
@@ -1724,7 +1733,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<sink>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<try>     {
         :my $*FATAL := 1;
-        <!!{ $/.CURSOR.clone_braid_from(self).set_pragma('fatal',1); }>
+        <!!{ $/.clone_braid_from(self).set_pragma('fatal',1); }>
         <sym><.kok> <blorst>
         <.set_braid_from(self)>
 
@@ -1801,7 +1810,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym<lambda> {
-        <?before '{' | '->' > <!{ $*IN_META }> {
+        <?before '{' | <.lambda> > <!{ $*IN_META }> {
             my $needparens := 0;
             my $pos := $/.from;
             my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
@@ -1814,28 +1823,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $m_line := HLL::Compiler.lineof($/.orig, $m_pos, :cache(1));
                 if $line - $m_line < 5 {
                     if $m<ctx> eq '(' {
-                        $/.CURSOR.'!clear_highwater'();
-                        $/.CURSOR.'!cursor_pos'($m_pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::KeywordAsFunction',
+                        $/.'!clear_highwater'();
+                        $/.'!cursor_pos'($m_pos);
+                        $/.typed_sorry('X::Syntax::KeywordAsFunction',
                                 word => $_,
                                 :$needparens,
                         );
-                        $/.CURSOR.'!cursor_pos'($pos);
-                        $/.CURSOR.panic("Unexpected block in infix position (two terms in a row)");
+                        $/.'!cursor_pos'($pos);
+                        $/.panic("Unexpected block in infix position (two terms in a row)");
                     }
                     else {
-                        $/.CURSOR.'!clear_highwater'();
-                        $/.CURSOR.'!cursor_pos'($m_pos);
-                        $/.CURSOR.sorry("Word '$_' interpreted as a listop; please use 'do $_' to introduce the statement control word");
-                        $/.CURSOR.'!cursor_pos'($pos);
-                        $/.CURSOR.panic("Unexpected block in infix position (two terms in a row)");
+                        $/.'!clear_highwater'();
+                        $/.'!cursor_pos'($m_pos);
+                        $/.sorry("Word '$_' interpreted as a listop; please use 'do $_' to introduce the statement control word");
+                        $/.'!cursor_pos'($pos);
+                        $/.panic("Unexpected block in infix position (two terms in a row)");
                     }
                 }
             }
         }
         [
         || <!{ $*IN_REDUCE }> {
-            $/.CURSOR.panic("Unexpected block in infix position (missing statement control word before the expression?)");
+            $/.panic("Unexpected block in infix position (missing statement control word before the expression?)");
         }
         || <!>
         ]
@@ -1877,7 +1886,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
             [ <[ \[ \( \< \{ ]> {
-            $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
+            $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
             <?{
@@ -2101,13 +2110,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 False;  # not likely a P5ism
             }
             elsif !($text ~~ /^(\w|\:)+$/) {
-                $/.CURSOR.obs($bad, "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref");
+                $/.obs($bad, "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref");
             }
             elsif $*QSIGIL {
-                $/.CURSOR.obs($bad, '{' ~ $sigil ~ $text ~ '}');
+                $/.obs($bad, '{' ~ $sigil ~ $text ~ '}');
             }
             else {
-                $/.CURSOR.obs($bad, $sigil ~ $text);
+                $/.obs($bad, $sigil ~ $text);
             }
         }>
     }
@@ -2257,7 +2266,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # Default to our scoped.
         { unless $*SCOPE { $*SCOPE := 'our'; } }
 
-        <!!{ $/.CURSOR.clone_braid_from(self) }>
+        <!!{ $/.clone_braid_from(self) }>
         [
             [ <longname> { $longname := $*W.dissect_longname($<longname>); } ]?
             <.newpad>
@@ -2289,7 +2298,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 $*AUTH := $adverb.value;
                             }
                             else {
-                                $/.CURSOR.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
+                                $/.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
                             }
                         }
                     }
@@ -2303,7 +2312,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if @name && $*SCOPE ne 'anon' {
                         if @name && $*W.already_declared($*SCOPE, $target_package, $outer, @name) {
                             $*PACKAGE := $package := $*W.find_symbol(@name, cur-package => $target_package);
-                            $/.CURSOR.set_package($package);
+                            $/.set_package($package);
                             $exists := 1;
                         }
                     }
@@ -2340,7 +2349,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             %args<repr> := $*REPR;
                         }
                         $*PACKAGE := $package := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL), |%args);
-                        $/.CURSOR.set_package($package);
+                        $/.set_package($package);
 
                         # Install it in the symbol table if needed.
                         if @name {
@@ -2373,20 +2382,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*PACKAGE := $package := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL),
                             :name($fullname), :ver($*VER), :auth($*AUTH), :repr($*REPR),
                             :group($group), :signatured(needs_args($<signature>)));
-                        $/.CURSOR.set_package($package);
+                        $/.set_package($package);
                     }
                 }
                 else {
                     # Augment. Ensure we can.
-                    if !$/.CURSOR.pragma('MONKEY-TYPING') && $longname.text ne 'Cool' {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
+                    if !$/.pragma('MONKEY-TYPING') && $longname.text ne 'Cool' {
+                        $/.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     elsif !$longname {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
                     }
 
                     if $longname.colonpairs_hash('class') {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::Adverb');
+                        $/.typed_panic('X::Syntax::Augment::Adverb');
                     }
 
                     # Locate type.
@@ -2395,7 +2404,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my int $found;
                     try {
                         $*PACKAGE := $package := $*W.find_symbol(@name, cur-package => $target_package);
-                        $/.CURSOR.set_package($package);
+                        $/.set_package($package);
                         $found := 1
                     }
                     unless $found {
@@ -2405,7 +2414,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         );
                     }
                     unless $package.HOW.archetypes.augmentable {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::Illegal',
+                        $/.typed_panic('X::Syntax::Augment::Illegal',
                             package      => $longname.text);
                     }
                 }
@@ -2454,7 +2463,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*IN_DECL := '';
                     $*begin_compunit := 0;
                     if $*SCOPE eq 'unit' {
-                        $/.CURSOR.typed_panic("X::Declaration::Scope", scope => 'unit', declaration => "block form of $*PKGDECL");
+                        $/.typed_panic("X::Declaration::Scope", scope => 'unit', declaration => "block form of $*PKGDECL");
                     }
                 }
                 <blockoid>
@@ -2465,16 +2474,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 || <?{ $*begin_compunit }>
                     {
                         unless $longname {
-                            $/.CURSOR.panic("Compilation unit cannot be anonymous");
+                            $/.panic("Compilation unit cannot be anonymous");
                         }
                         unless $*SCOPE eq 'unit' {
                             if $*PKGDECL eq 'package' {
-                                $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
+                                $/.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
                             }
-                            $/.CURSOR.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal.  You probably want to use 'unit $*PKGDECL'");
+                            $/.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal.  You probably want to use 'unit $*PKGDECL'");
                         }
                         unless $outer =:= $*UNIT {
-                            $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");
+                            $/.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");
                         }
                         $*begin_compunit := 0;
                     }
@@ -2482,12 +2491,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist(1)>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || { $/.CURSOR.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
+                || { $/.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
                 ]
             || <.panic("Unable to parse $*PKGDECL definition")>
             ]
             { nqp::pop(@*PACKAGES); }
-        ]:!s || { $/.CURSOR.malformed($*PKGDECL) }
+        ]:!s || { $/.malformed($*PKGDECL) }
     }
 
     token declarator {
@@ -2582,7 +2591,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
-                $/.CURSOR.NYI('Multiple prefix constraints');
+                $/.NYI('Multiple prefix constraints');
             }
             $*OFTYPE := $<typename>[0];
           }
@@ -2602,7 +2611,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <variable>
         {
             $*VARIABLE := $<variable>.ast.name;
-            $/.CURSOR.add_variable($*VARIABLE);
+            $/.add_variable($*VARIABLE);
             $sigil := nqp::substr($*VARIABLE, 0, 1);
             $*IN_DECL := '';
         }
@@ -2694,7 +2703,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble> // $cf<circumfix><semilist>)
                     !! '';
                 my $canname := $category ~ $*W.canonicalize_pair('sym', $opname);
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
+                $/.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -2711,16 +2720,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
                 }
                 unless $*begin_compunit {
-                    $/.CURSOR.typed_panic("X::UnitScope::TooLate", what => "sub");
+                    $/.typed_panic("X::UnitScope::TooLate", what => "sub");
                 }
                 unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
-                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
                 }
                 unless $outer =:= $*UNIT {
-                    $/.CURSOR.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
                 }
                 $*begin_compunit := 0;
             }
@@ -2728,7 +2737,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <statementlist(1)>
             { $*CURPAD := $*W.pop_lexpad() }
         || <onlystar>
-        || <!before '{'> <possibly_subname=.deflongname> { if self.parse($<deflongname>.Str, :rule('typename')) { $/.CURSOR.panic("Did you mean to write \"my $<deflongname> sub $<possibly_subname>\" or put \"returns $<deflongname>\" before the block?"); } } <!>
+        || <!before '{'> <possibly_subname=.deflongname> { if self.parse($<deflongname>.Str, :rule('typename')) { $/.panic("Did you mean to write \"my $<deflongname> sub $<possibly_subname>\" or put \"returns $<deflongname>\" before the block?"); } } <!>
         || <blockoid>
         ]
     }
@@ -2824,7 +2833,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
                 my $canname := $category ~ $*W.canonicalize_pair('sym', $opname);
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
+                $/.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -2864,7 +2873,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule param_sep {
         '' $<sep>=[','|':'|';;'|';'] {
             if $<sep> eq ';;' {
-                $/.CURSOR.panic("Can only specify ';;' once in a signature")
+                $/.panic("Can only specify ';;' once in a signature")
                   if $*multi_invocant == 0;
                 $*multi_invocant := 0;
             }
@@ -2914,7 +2923,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             | $<quant>=['**'|'*'|'+'] <param_var>
             | $<quant>=['\\'|'|'] <param_var> {
-                $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+                $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
             }
             | $<quant>=['\\'|'|'|'+'] <param_term>
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
@@ -2922,7 +2931,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
         | $<quant>=['**'|'*'|'+'] <param_var>
         | $<quant>=['\\'|'|'] <param_var> {
-            $/.CURSOR.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+            $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
         }
         | $<quant>=['\\'|'|'|'+'] <param_term>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
@@ -2960,10 +2969,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $name := %*PARAM_INFO<variable_name> // '';
             if $kind eq '!' {
                 if $*zone eq 'posopt' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $name);
+                    $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $name);
                 }
                 elsif $*zone eq 'var' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $name);
+                    $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $name);
                 }
             }
             elsif $kind eq '?' {
@@ -2971,7 +2980,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $*zone := 'posopt';
                 }
                 elsif $*zone eq  'var' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $name);
+                    $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $name);
                 }
             }
             elsif $kind eq '*' {
@@ -3321,7 +3330,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<identifier> {
         :my $pos;
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <![:]>
-        { $pos := $/.CURSOR.pos }
+        { $pos := $/.pos }
         <args(1)>
         {
             if !$<args><invocant> {
@@ -3360,7 +3369,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $is_type := 0;
         {
             $*longname := $*W.dissect_longname($<longname>);
-            $pos := $/.CURSOR.pos;
+            $pos := $/.pos;
             $*IN_RETURN := $<longname>.Str eq 'return';
             $is_type := !$*longname.get_who && $*W.is_type($*longname.components());
         }
@@ -3407,7 +3416,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $*BORG<name> := $*BORG<name> // $name;
                         }
                     }
-                    my $nextch := nqp::substr($/.CURSOR.orig, $/.CURSOR.pos, 1) || ' ';
+                    my $nextch := nqp::substr($/.orig, $/.pos, 1) || ' ';
                     if %deftrap{$name} {
                         my $al := $<args><arglist>;
                         my int $ok := 0;
@@ -3416,22 +3425,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         unless $ok {
                             my $trap := %deftrap{$name};
                             if nqp::index('<[{', $nextch) >= 0 {
-                                $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
+                                $/.typed_panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
                             }
                             elsif nqp::index('$@%&+-/*', $nextch) >= 0 {
-                                $/.CURSOR.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
+                                $/.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
                             else {
-                                my $missing := $/.CURSOR.terminator() || $/.CURSOR.infixish();
-                                $/.CURSOR.'!clear_highwater'();  # don't have suppose
+                                my $missing := $/.terminator() || $/.infixish();
+                                $/.'!clear_highwater'();  # don't have suppose
                                 my $orry := $missing ?? "sorry" !! "worry";
                                 if $trap == 1 {        # probably misused P5ism
-                                    $<longname>.CURSOR."{$orry}obs"("bare \"$name\"", ".$name if you meant \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
+                                    $<longname>."{$orry}obs"("bare \"$name\"", ".$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
                                 }
                                 elsif $trap == 2 {        # probably misused P6ism
-                                    $<longname>.CURSOR."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant \$_)");
+                                    $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
                                 }
-                                $<longname>.CURSOR.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
                             }
                         }
                     }
@@ -3522,7 +3531,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | x '_'? <VALUE=hexint>
             | d '_'? <VALUE=decint>
             | <VALUE=decint>
-                <!!{ $/.CURSOR.typed_worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
+                <!!{ $/.typed_worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
             ]
         | <VALUE=decint>
         ]
@@ -3616,7 +3625,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           my $longname := $*W.dissect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
           my $method := $panic ?? 'typed_panic' !! 'typed_sorry';
-          $/.CURSOR."$method"('X::Undeclared',
+          $/."$method"('X::Undeclared',
                     what => "Type",
                     symbol => $longname.name(),
                     suggestions => @suggestions);
@@ -3795,7 +3804,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
         { $*CCSTATE := ''; }
         [ <?{ $start ne $stop }>
-            $start <right=.nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
+            $start <right=.nibble($lang)> [ $stop || { $/.panic("Couldn't find terminator $stop") } ]
         ||
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
             <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
@@ -3823,14 +3832,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         (<[ i g s m x c e ]>)
         {
             my $m := $/[0].Str;
-            if    $m eq 'i' { $/.CURSOR.obs('/i',':i');                                   }
-            elsif $m eq 'g' { $/.CURSOR.obs('/g',':g');                                   }
-            elsif $m eq 'm' { $/.CURSOR.obs('/m','^^ and $$ anchors');                    }
-            elsif $m eq 's' { $/.CURSOR.obs('/s','. or \N');                              }
-            elsif $m eq 'x' { $/.CURSOR.obs('/x','normal default whitespace');            }
-            elsif $m eq 'c' { $/.CURSOR.obs('/c',':c or :p');                             }
-            elsif $m eq 'e' { $/.CURSOR.obs('/e','interpolated {...} or s{} = ... form'); }
-            else            { $/.CURSOR.obs('suffix regex modifiers','prefix adverbs');   }
+            if    $m eq 'i' { $/.obs('/i',':i');                                   }
+            elsif $m eq 'g' { $/.obs('/g',':g');                                   }
+            elsif $m eq 'm' { $/.obs('/m','^^ and $$ anchors');                    }
+            elsif $m eq 's' { $/.obs('/s','. or \N');                              }
+            elsif $m eq 'x' { $/.obs('/x','normal default whitespace');            }
+            elsif $m eq 'c' { $/.obs('/c',':c or :p');                             }
+            elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
+            else            { $/.obs('suffix regex modifiers','prefix adverbs');   }
         }
     }
 
@@ -3916,7 +3925,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <.arg_flat_nok> <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
-            $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
+            $/.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
         ]
         :dba('postfix')
@@ -3992,6 +4001,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]?
         ]
         <OPER=.AS_MATCH($*OPER)>
+        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+
     }
 
     token fake_infix {
@@ -4012,7 +4023,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         # last whitespace didn't end here
         <?{
-            my $c := $/.CURSOR;
+            my $c := $/;
             my $marked := $c.MARKED('ws');
             !$marked || $marked.from == $c.pos;
         }>
@@ -4085,6 +4096,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
         ]
 
+        { $*IN_REDUCE := 0 }
         <args>
     }
 
@@ -4113,10 +4125,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method AS_MATCH($v) {
-        my $cur  := self.'!cursor_start_cur'();
-        $cur.'!cursor_pass'(self.pos());
-        nqp::bindattr($cur, NQPCursor, '$!match', $v);
-        $cur
+        self.'!clone_match_at'($v,self.pos());
     }
 
     token revO($from) {
@@ -4193,8 +4202,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
         || <?before \h* [ \d | <.sigil> | ':' ] >
-           { $/.CURSOR.panic("Whitespace required before < operator") }
-        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
+           { $/.panic("Whitespace required before < operator") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
         ]
         <O(|%methodcall)>
     }
@@ -4204,7 +4213,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '<<'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
-        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O(|%methodcall)>
     }
@@ -4214,7 +4223,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '«'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
-        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
         ]
         <O(|%methodcall)>
     }
@@ -4347,8 +4356,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«≅»    { <sym>  <O(|%chaining)> }
     token infix:sym«==»   { <sym>  <O(|%chaining)> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O(|%chaining)> }
+    token infix:sym«≠»    { <sym>  <O(|%chaining)> }
     token infix:sym«<=»   { <sym>  <O(|%chaining)> }
+    token infix:sym«≤»    { <sym>  <O(|%chaining)> }
     token infix:sym«>=»   { <sym>  <O(|%chaining)> }
+    token infix:sym«≥»    { <sym>  <O(|%chaining)> }
     token infix:sym«<»    { <sym>  <O(|%chaining)> }
     token infix:sym«>»    { <sym>  <O(|%chaining)> }
     token infix:sym«eq»   { <sym> >> <O(|%chaining)> }
@@ -4494,6 +4506,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? <sym> <?before \s | <.terminator> | $ >
         <O(|%comma, :fiddly(0))>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
+        { note("HERE:\n" ~ $/.dump) }
         { $*INVOCANT_OK := 0; }
     }
 
@@ -4910,7 +4923,7 @@ if $*COMPILING_CORE_SETTING {
         # Set up the rest of this statement to have new actions too.
         self.set_actions($actions);
 
-        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG, :dynamic));
 
         $*LANG := self;
         $*LEAF := self;
@@ -5079,7 +5092,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             [
             || <starter> <nibbler> <stopper>
                 {
-                    my $c := $/.CURSOR;
+                    my $c := $/;
                     $to   := $<starter>[-1].from;
                     if $from != $to {
                         nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
@@ -5093,7 +5106,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
                 }
             || <escape>
                 {
-                    my $c := $/.CURSOR;
+                    my $c := $/;
                     $to   := $<escape>[-1].from;
                     if $from != $to {
                         nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
@@ -5107,7 +5120,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             ]
         ]*
         {
-            my $c := $/.CURSOR;
+            my $c := $/;
             $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
             if $from != $to || !@*nibbles {
@@ -5260,22 +5273,22 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 }
 
-my role CursorPackageNibbler {
+my role MatchPackageNibbler {
     method nibble-in-cursor($parent) {
         my $*LEAF := self;
-        my $*PACKAGE := $*W.find_symbol(['Cursor']); self.set_package($*PACKAGE);
+        my $*PACKAGE := $*W.find_symbol(['Match']); self.set_package($*PACKAGE);
         my %*ATTR_USAGES;
         my $cur := nqp::findmethod($parent, 'nibbler')(self);
         for %*ATTR_USAGES {
             my $name := $_.key;
             my $node := $_.value[0].node;
-            $node.CURSOR.typed_sorry('X::Attribute::Regex', symbol => $name);
+            $node.typed_sorry('X::Attribute::Regex', symbol => $name);
         }
         $cur
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPackageNibbler {
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPackageNibbler {
     method nibbler() {
         self.nibble-in-cursor(QRegex::P6Regex::Grammar)
     }
@@ -5396,7 +5409,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does CursorPack
     }
 }
 
-grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does CursorPackageNibbler {
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does MatchPackageNibbler {
     method nibbler() {
         self.nibble-in-cursor(QRegex::P5Regex::Grammar)
     }

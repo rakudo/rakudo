@@ -5,39 +5,72 @@ my class MixHash does Mixy {
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
-              my $hash := nqp::getattr(%!elems,Map,'$!storage');
-              my str $which = nqp::unbox_s(k.WHICH);
-              nqp::existskey($hash,$which)
-                ?? nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value')
-                !! 0
+              nqp::if(
+                (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+                nqp::if(
+                  nqp::existskey($elems,(my $which := k.WHICH)),
+                  nqp::getattr(
+                    nqp::decont(nqp::atkey($elems,$which)),
+                    Pair,
+                    '$!value'
+                  ),
+                  0
+                ),
+                0
+              )
           },
-          STORE => -> $, $value is copy {
-              my $hash := nqp::getattr(%!elems,Map,'$!storage');
-              my str $which = nqp::unbox_s(k.WHICH);
-              if nqp::existskey($hash,$which) {
-                  $value == 0
-                    ?? nqp::deletekey($hash,$which)
-                    !! (nqp::getattr(nqp::decont(nqp::atkey($hash,$which)),Pair,'$!value') = $value);
-              }
-              elsif $value {
-                  nqp::bindkey($hash,$which,self!PAIR(k,$value));
-              }
-              $value;
+          STORE => -> $, Real() $value {
+              nqp::if(
+                nqp::istype($value,Failure),   # RT 128927
+                $value.throw,
+                nqp::if(
+                  (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+                  nqp::if(                      # allocated hash
+                    nqp::existskey($elems,(my $which := k.WHICH)),
+                    nqp::if(                    # existing element
+                      $value == 0,
+                      nqp::stmts(
+                        nqp::deletekey($elems,$which),
+                        0
+                      ),
+                      (nqp::getattr(
+                        nqp::decont(nqp::atkey($elems,$which)),
+                        Pair,
+                        '$!value'
+                      ) = $value),
+                    ),
+                    nqp::unless(
+                      $value == 0,
+                      nqp::bindkey($elems,$which,self!PAIR(k,$value))  # new
+                    )
+                  ),
+                  nqp::unless(                  # no hash allocated yet
+                    $value == 0,
+                    nqp::bindkey(
+                      nqp::bindattr(%!elems,Map,'$!storage',
+                        nqp::create(Rakudo::Internals::IterationSet)),
+                      k.WHICH,
+                      self!PAIR(k,$value)
+                    )
+                  )
+                )
+              )
           }
-        );
+        )
     }
 
 #--- coercion methods
-    method Mix(:$view) {
-        nqp::p6bindattrinvres(
-          nqp::create(Mix),Mix,'%!elems',
-          $view ?? %!elems !! %!elems.clone
+    method Mix(:$view) is nodal {
+        nqp::if(
+          nqp::getattr(%!elems,Map,'$!storage'),
+          nqp::p6bindattrinvres(
+            nqp::create(Mix),Mix,'%!elems',
+            nqp::if($view,%!elems,%!elems.clone)
+          ),
+          nqp::create(Mix)
         )
     }
-    method MixHash { self }
-    method Bag     {     Bag.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
-    method BagHash { BagHash.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
-    method clone(MixHash:D:) { self.new-from-pairs(self.pairs) }
+    method MixHash() is nodal { self }
 }
 
 # vim: ft=perl6 expandtab sw=4

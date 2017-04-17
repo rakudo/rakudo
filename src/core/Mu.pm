@@ -44,7 +44,18 @@ my class Mu { # declared in BOOTSTRAP
         )
     }
 
+    proto method iterator(|) { * }
+    multi method iterator(Mu:) {
+        my $buf := nqp::create(IterationBuffer);
+        $buf.push(Mu);
+        # note: cannot use R:I.OneValue, as that doesn't (and shouldn't)
+        # take Mu for the value to produce, as Mu is used to indicate
+        # exhaustion.
+        Rakudo::Iterator.ReifiedList($buf)
+    }
+
     proto method split(|) { * }
+    proto method splice(|) is nodal { * }
 
     method emit {
         emit self;
@@ -101,7 +112,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method is-lazy (|) { * }
-    multi method is-lazy(Mu:) { False }
+    multi method is-lazy(Mu: --> False) { }
 
     method CREATE() {
         nqp::create(self)
@@ -735,7 +746,7 @@ my class Mu { # declared in BOOTSTRAP
     method dispatch:<.*>(Mu \SELF: \name, |c) {
         my @mro = SELF.^mro;
         my int $mro_count = @mro.elems;
-        my $results := nqp::list;
+        my $results := nqp::create(IterationBuffer);
         my int $i = -1;
         while nqp::islt_i(++$i,$mro_count) {
             my $obj = @mro[$i];
@@ -868,19 +879,19 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     )
 }
 
-multi sub infix:<eqv>(@a, @b) {
+multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
     nqp::p6bool(
       nqp::unless(
-        nqp::eqaddr(@a,@b),                                    # identity
+        nqp::eqaddr(a,b),                                    # identity
         nqp::if(
-          nqp::eqaddr(@a.WHAT,@b.WHAT),                        # same type
+          nqp::eqaddr(a.WHAT,b.WHAT),                        # same type
           nqp::if(
-            nqp::iseq_i((my int $elems = @a.elems),@b.elems),  # same # elems
+            nqp::iseq_i((my int $elems = a.elems),b.elems),  # same # elems
             nqp::stmts(
               (my int $i = -1),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems)    # not exhausted
-                  && @a.AT-POS($i) eqv @b.AT-POS($i),          # still same
+                  && a.AT-POS($i) eqv b.AT-POS($i),          # still same
                 nqp::null
               ),
               nqp::iseq_i($i,$elems)                      # exhausted = success!

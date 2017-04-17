@@ -4,9 +4,9 @@ my class Duration is Cool does Real {
 
     method new($tai) { self.bless: tai => $tai.Rat }
 
-    method Bridge(Duration:D:) { $!tai.Num }
-    method Rat(Duration:D:)    { $!tai     }
-    method Num(Duration:D:)    { $!tai.Num }
+    method Bridge(Duration:D:) { $!tai.Num    }
+    method Num   (Duration:D:) { $!tai.Num    }
+    method Rat   (Duration:D:) { $!tai        }
     method narrow(Duration:D:) { $!tai.narrow }
 
     multi method Str(Duration:D:) { ~$.tai }

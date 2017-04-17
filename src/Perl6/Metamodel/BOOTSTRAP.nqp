@@ -303,12 +303,13 @@ my class Binder {
                     # Type check failed; produce error if needed.
                     if nqp::defined($error) {
                         my %ex := nqp::gethllsym('perl6', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
                                 "'; expected " ~ $nom_type.HOW.name($nom_type) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval, $nom_type.WHAT, $varname) };
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
+                                $nom_type.WHAT, $varname, $param) };
                         }
                     }
 
@@ -354,7 +355,7 @@ my class Binder {
             my int $num_type_caps := nqp::elems($type_caps);
             my int $i := 0;
             while $i < $num_type_caps {
-                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $oval.WHAT);
+                nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
                 $i++;
             }
         }
@@ -504,21 +505,32 @@ my class Binder {
                     $cons_type := nqp::p6capturelexwhere($cons_type.clone());
                 }
                 my $result;
+                my $bad_value;
                 if $got_native == 0 {
                     $result := $cons_type.ACCEPTS($oval);
+                    $bad_value := $oval unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
+                    $bad_value := $ival unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $result := $cons_type.ACCEPTS($nval);
+                    $bad_value := $nval unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
                     $result := $cons_type.ACCEPTS($sval);
+                    $bad_value := $sval unless $result;
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        $error[0] := "Constraint type check failed for parameter '$varname'";
+                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
+                            $error[0] := "Constraint type check failed for parameter '$varname'";
+                        } else {
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')(
+                                $bad_value, $cons_type, $varname, $param, 1) };
+                        }
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -836,7 +848,7 @@ my class Binder {
                     my int $j := 0;
                     my str $cur_name;
                     while $j < $num_names {
-                        $cur_name := nqp::atpos($named_names, $j);
+                        $cur_name := nqp::atpos_s($named_names, $j);
                         $value := nqp::atkey($named_args, $cur_name);
                         unless nqp::isnull($value) {
                             nqp::deletekey($named_args, $cur_name);
@@ -1486,8 +1498,8 @@ BEGIN {
     #     has Mu $!why;
     Parameter.HOW.add_parent(Parameter, Any);
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', List, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', List, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', Mu, Parameter, :!auto_viv_container));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, scalar_attr('@!post_constraints', List, Parameter, :!auto_viv_container));
@@ -1537,19 +1549,25 @@ BEGIN {
             my $SIG_ELEM_IS_RW       := 256;
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                nqp::die("Cannot use 'is rw' on an optional parameter");
-            }
             my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
             unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
                 my $error;
                 if nqp::eqat($varname, '%', 0) || nqp::eqat($varname, '@', 0)  {
                     my $sig := nqp::substr($varname, 0, 1);
-                    $error := "'$sig' sigil containers don't need 'is rw' to be writable\n";
+                    $error := "For parameter '$varname', '$sig' sigil containers don't need 'is rw' to be writable\n";
                 }
-                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter";
+                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter, not '$varname'";
                 nqp::die($error);
+            }
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
+            if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Trait::Invalid') {
+                    nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
+                }
+                else {
+                    nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
+                }
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }
@@ -1821,7 +1839,8 @@ BEGIN {
                 $dc_self
             }
             else {
-                nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
+                nqp::die("Cannot add dispatchee '" ~ $dispatchee.name() ~
+                         "' to non-dispatcher code object '" ~ $self.name() ~ "'");
             }
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {
@@ -2008,7 +2027,7 @@ BEGIN {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
                                 if nqp::elems($named_names) == 1 {
-                                    %info<req_named> := nqp::atpos($named_names, 0);
+                                    %info<req_named> := nqp::atpos_s($named_names, 0);
                                 }
                             }
                             %info<bind_check> := 1;
@@ -2791,7 +2810,7 @@ BEGIN {
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('@!alt_nfas', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
             nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
@@ -2800,10 +2819,10 @@ BEGIN {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
         }));
     Regex.HOW.add_method(Regex, 'SET_ALT_NFA', nqp::getstaticcode(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas');
+            my %alts := nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas');
             unless %alts {
                 %alts := nqp::hash();
-                nqp::bindattr(nqp::decont($self), Regex, '@!alt_nfas', %alts);
+                nqp::bindattr(nqp::decont($self), Regex, '%!alt_nfas', %alts);
             }
             nqp::bindkey(%alts, $name, $nfa);
         }));
@@ -2815,8 +2834,16 @@ BEGIN {
         }));
     Regex.HOW.add_method(Regex, 'ALT_NFA', nqp::getstaticcode(sub ($self, str $name) {
             nqp::atkey(
-                nqp::getattr(nqp::decont($self), Regex, '@!alt_nfas'),
+                nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'),
                 $name)
+        }));
+    Regex.HOW.add_method(Regex, 'ALT_NFAS', nqp::getstaticcode(sub ($self) {
+            my $store := nqp::decont(nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'));
+            if nqp::istype($store, Hash) {
+                nqp::hash();
+            } else {
+                $store
+            }
         }));
     Regex.HOW.compose_repr(Regex);
     Regex.HOW.compose_invocation(Regex);
@@ -2849,10 +2876,10 @@ BEGIN {
     Nil.HOW.compose_repr(Nil);
 
     # class List is Cool {
-    #     has List $!reified;
+    #     has Mu $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', List, List));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
     List.HOW.compose_repr(List);
 
@@ -3101,7 +3128,8 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
-EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
+EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
+EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);

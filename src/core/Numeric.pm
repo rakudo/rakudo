@@ -5,7 +5,9 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
-        with a.Numeric { self.isNaN && .isNaN or $_ == self } else { False }
+        (my \numeric = a.Numeric).defined
+                ?? (self.isNaN && numeric.isNaN or numeric == self)
+                !! False
     }
 
     proto method log(|) {*}
@@ -20,6 +22,7 @@ my role Numeric {
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
 
+    method FatRat(Numeric:D:) { self.Rat.FatRat }
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
@@ -286,6 +289,7 @@ sub infix:<=~=>(|c) { infix:<≅>(|c) }
 proto sub infix:<!=>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<!=>($?)        { Bool::True }
 multi sub infix:<!=>(Mu \a, Mu \b)   { not a == b }
+sub infix:<≠>(|c) is pure { infix:<!=>(|c) }
 
 proto sub infix:«<»(Mu $?, Mu $?) is pure   { * }
 multi sub infix:«<»($?)         { Bool::True }
@@ -294,6 +298,7 @@ multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
 proto sub infix:«<=»(Mu $?, Mu $?) is pure  { * }
 multi sub infix:«<=»($?)        { Bool::True }
 multi sub infix:«<=»(\a, \b)   { a.Real <= b.Real }
+sub infix:«≤»(|c) is pure { infix:«<=»(|c) }
 
 proto sub infix:«>»(Mu $?, Mu $?) is pure   { * }
 multi sub infix:«>»($?)         { Bool::True }
@@ -302,6 +307,7 @@ multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
 proto sub infix:«>=»(Mu $?, Mu $?) is pure  { * }
 multi sub infix:«>=»($?)        { Bool::True }
 multi sub infix:«>=»(\a, \b)   { a.Real >= b.Real }
+sub infix:«≥»(|c) is pure { infix:«>=»(|c) }
 
 ## bitwise operators
 

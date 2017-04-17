@@ -163,7 +163,7 @@ my class Channel does Awaitable {
         has $!async-notify;
 
         method not-ready(Channel:D $channel, Promise:D $closed_promise, Supplier:D $async-notify) {
-            self.CREATE!not-ready($channel, $closed_promise, $async-notify)
+            nqp::create(self)!not-ready($channel, $closed_promise, $async-notify)
         }
         method !not-ready($channel, $closed_promise, $async-notify) {
             $!already = False;
@@ -209,7 +209,7 @@ my class Channel does Awaitable {
         }
     }
 
-    method get-await-handle(--> Awaitable::Handle) {
+    method get-await-handle(--> Awaitable::Handle:D) {
         my \maybe = self.poll;
         if maybe === Nil {
             if $!closed_promise {

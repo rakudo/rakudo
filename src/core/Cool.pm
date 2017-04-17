@@ -57,7 +57,7 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars() returns Int:D {
+    method chars(--> Int:D) {
         self.Str.chars
     }
     method codes() {
@@ -113,7 +113,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
-    method ord(--> Int) {
+    method ord(--> Int:D) {
         self.Str.ord
     }
     method chr() {
@@ -128,48 +128,32 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(|c) { self.Str.trans(|c) }
 
-    proto method starts-with(|) {*}
-    multi method starts-with(Cool:D: Str(Cool) $needle) {
-        self.Str.starts-with($needle)
+    method starts-with(Cool:D: |c) {
+        self.Str.starts-with(|c)
     }
 
-    proto method ends-with(|) {*}
-    multi method ends-with(Cool:D: Str(Cool) $suffix) {
-        self.Str.ends-with($suffix)
+    method ends-with(Cool:D: |c) {
+        self.Str.ends-with(|c)
     }
 
-    proto method substr-eq(|) {*}
-    multi method substr-eq(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
-        self.Str.substr-eq($needle,$pos)
+    method substr-eq(Cool:D: |c) {
+        self.Str.substr-eq(|c)
     }
 
-    proto method contains(|) {*}
-    multi method contains(Cool:D: Str(Cool) $needle, Cool $pos = 0) {
-        self.Str.contains($needle,$pos.Int)
+    method contains(Cool:D: |c) {
+        self.Str.contains(|c)
     }
 
-    proto method indices(|) {*}
-    multi method indices(Cool:D: Str(Cool) $needle, :$overlap) {
-        self.Str.indices($needle,:$overlap)
-    }
-    multi method indices(Cool:D: Str(Cool) $needle,Int(Cool) $start,:$overlap) {
-        self.Str.indices($needle,$start,:$overlap)
+    method indices(Cool:D: |c) {
+        self.Str.indices(|c)
     }
 
-    proto method index(|) {*}
-    multi method index(Cool:D: Str(Cool) $needle) {
-        self.Str.index($needle)
-    }
-    multi method index(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        self.Str.index($needle,$pos)
+    method index(Cool:D: |c) {
+        self.Str.index(|c)
     }
 
-    proto method rindex(|) {*}
-    multi method rindex(Cool:D: Str(Cool) $needle) {
-        self.Str.rindex($needle)
-    }
-    multi method rindex(Cool:D: Str(Cool) $needle, Int(Cool) $pos) {
-        self.Str.rindex($needle,$pos)
+    method rindex(Cool:D: |c) {
+        self.Str.rindex(|c)
     }
 
     method split(Cool: |c) {
@@ -186,16 +170,12 @@ my class Cool { # declared in BOOTSTRAP
     method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {
-        $/ := nqp::getlexdyn('$/');
+        $/ := nqp::getlexcaller('$/');
         self.Stringy.subst(|c);
     }
 
-    proto method subst-mutate(|) {
-        $/ := nqp::getlexdyn('$/');
-        {*}
-    }
-    multi method subst-mutate(Cool:D $self is rw: |c) {
-        $/ := nqp::getlexdyn('$/');
+    method subst-mutate(Cool:D $self is rw: |c) {
+        $/ := nqp::getlexcaller('$/');
         my $str   = $self.Str;
         my $match = $str.subst-mutate(|c);
         $self     = $str;
@@ -262,16 +242,24 @@ my class Cool { # declared in BOOTSTRAP
             $numeric.Rat
         )
     }
+
+    method FatRat()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.FatRat
+        )
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
 proto sub chop(|) { * }
-multi sub chop(Cool:D $s)           returns Str { $s.chop }
-multi sub chop(Cool:D $s, Int() $n) returns Str { $s.chop($n) }
+multi sub chop(Cool:D $s --> Str:D) { $s.chop }
+multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
 
-sub chomp(Cool:D $s) returns Str { $s.chomp }
+sub chomp(Cool:D $s --> Str:D) { $s.chomp }
 
-sub flip(Cool $s) returns Str      { $s.flip }
+sub flip(Cool $s --> Str:D)      { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
@@ -280,8 +268,8 @@ sub tc(Cool $s)                    { $s.tc }
 sub fc(Cool $s)                    { $s.fc }
 sub tclc(Cool $s)                  { $s.tclc }
 
-sub indices(Cool $s,$needle,$pos=0,:$overlap) {
-    $s.indices($needle,$pos,:$overlap);
+sub indices(Cool $s, |c) {
+    $s.indices(|c);
 }
 
 proto sub rindex($, $, $?) is pure { * };
@@ -325,7 +313,7 @@ sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
-multi sub chars(str $x) returns int { nqp::chars($x) }
+multi sub chars(str $x --> int) { nqp::chars($x) }
 
 # These probably belong in a separate unicodey file
 
@@ -367,97 +355,98 @@ multi sub uniprop(Int:D $code) {
 multi sub uniprop(Int:D $code, Stringy:D $propname) {
     # prop-mappings can be removed when MoarVM bug #448 is fixed...
     ## The code below was generated by tools/build/makeUNIPROP.pl6
-    state %prop-mappings = nqp::hash(
-      'OGr_Ext','Other_Grapheme_Extend','cjkIRG_MSource','kIRG_MSource','Dash','Dash',
-      'CI','Case_Ignorable','uc','Uppercase_Mapping','Radical','Radical',
-      'Dia','Diacritic','CWCF','Changes_When_Casefolded','lc','Lowercase_Mapping',
-      'IDS','ID_Start','cf','Case_Folding','cjkIRG_TSource','kIRG_TSource',
-      'sc','Script','jt','Joining_Type','NFD_QC','NFD_Quick_Check',
-      'XO_NFD','Expands_On_NFD','cjkOtherNumeric','kOtherNumeric',
-      'scf','Simple_Case_Folding','sfc','Simple_Case_Folding','Lower','Lowercase',
-      'Join_C','Join_Control','JSN','Jamo_Short_Name','bc','Bidi_Class',
-      'SD','Soft_Dotted','dm','Decomposition_Mapping','cjkIRG_USource','kIRG_USource',
-      'jg','Joining_Group','NFKC_CF','NFKC_Casefold','slc','Simple_Lowercase_Mapping',
-      'STerm','Sentence_Terminal','UIdeo','Unified_Ideograph',
-      'cjkAccountingNumeric','kAccountingNumeric','Upper','Uppercase','Math','Math',
-      'IDST','IDS_Trinary_Operator','cjkIRG_VSource','kIRG_VSource',
-      'NFKD_QC','NFKD_Quick_Check','Ext','Extender','NFKC_QC','NFKC_Quick_Check',
-      'CE','Composition_Exclusion','Alpha','Alphabetic',
-      'stc','Simple_Titlecase_Mapping','OAlpha','Other_Alphabetic',
-      'XIDC','XID_Continue','age','Age','tc','Titlecase_Mapping',
+    my constant $prop-mappings = nqp::hash(
+      'OGr_Ext','Other_Grapheme_Extend','tc','Titlecase_Mapping',
+      'cjkIRG_MSource','kIRG_MSource','Dash','Dash','Pat_Syn','Pattern_Syntax',
+      'IDST','IDS_Trinary_Operator','IDC','ID_Continue','Dia','Diacritic',
+      'Cased','Cased','hst','Hangul_Syllable_Type','QMark','Quotation_Mark',
+      'Radical','Radical','NFD_QC','NFD_Quick_Check','jt','Joining_Type',
+      'cf','Case_Folding','cjkIRG_TSource','kIRG_TSource','sc','Script',
+      'SD','Soft_Dotted','CWCM','Changes_When_Casemapped',
+      'cjkOtherNumeric','kOtherNumeric','scf','Simple_Case_Folding',
+      'sfc','Simple_Case_Folding','isc','ISO_Comment','na1','Unicode_1_Name',
+      'Lower','Lowercase','Join_C','Join_Control','JSN','Jamo_Short_Name',
+      'bc','Bidi_Class','jg','Joining_Group','dm','Decomposition_Mapping',
+      'lc','Lowercase_Mapping','cjkIRG_USource','kIRG_USource',
+      'NFKC_CF','NFKC_Casefold','slc','Simple_Lowercase_Mapping',
+      'InSC','Indic_Syllabic_Category','XO_NFC','Expands_On_NFC',
+      'XO_NFD','Expands_On_NFD','cjkAccountingNumeric','kAccountingNumeric',
+      'Upper','Uppercase','WSpace','White_Space','space','White_Space',
+      'cjkIRG_VSource','kIRG_VSource','STerm','Sentence_Terminal',
+      'NFKD_QC','NFKD_Quick_Check','CWT','Changes_When_Titlecased','Math','Math',
+      'uc','Uppercase_Mapping','NFKC_QC','NFKC_Quick_Check','SB','Sentence_Break',
+      'stc','Simple_Titlecase_Mapping','Alpha','Alphabetic',
+      'CE','Composition_Exclusion','NChar','Noncharacter_Code_Point',
+      'OAlpha','Other_Alphabetic','XIDC','XID_Continue','age','Age',
       'cjkPrimaryNumeric','kPrimaryNumeric','OIDS','Other_ID_Start',
-      'FC_NFKC','FC_NFKC_Closure','Cased','Cased','Hyphen','Hyphen',
-      'XO_NFC','Expands_On_NFC','nv','Numeric_Value',
-      'CWKCF','Changes_When_NFKC_Casefolded','OIDC','Other_ID_Continue',
+      'UIdeo','Unified_Ideograph','FC_NFKC','FC_NFKC_Closure','CI','Case_Ignorable',
+      'Hyphen','Hyphen','nv','Numeric_Value','CWKCF','Changes_When_NFKC_Casefolded',
       'XO_NFKD','Expands_On_NFKD','InPC','Indic_Positional_Category',
       'dt','Decomposition_Type','cjkIICore','kIICore','Bidi_M','Bidi_Mirrored',
-      'XO_NFKC','Expands_On_NFKC','XIDS','XID_Start','isc','ISO_Comment',
-      'Gr_Ext','Grapheme_Extend','NChar','Noncharacter_Code_Point',
-      'scx','Script_Extensions','SB','Sentence_Break','Bidi_C','Bidi_Control',
-      'CWT','Changes_When_Titlecased','Gr_Link','Grapheme_Link','OMath','Other_Math',
-      'OUpper','Other_Uppercase','DI','Default_Ignorable_Code_Point',
-      'CWCM','Changes_When_Casemapped','cjkIRG_GSource','kIRG_GSource',
-      'LOE','Logical_Order_Exception','WB','Word_Break',
-      'cjkIRG_JSource','kIRG_JSource','NFC_QC','NFC_Quick_Check',
-      'WSpace','White_Space','space','White_Space',
-      'PCM','Prepended_Concatenation_Mark','ODI','Other_Default_Ignorable_Code_Point',
-      'bpb','Bidi_Paired_Bracket','blk','Block','OLower','Other_Lowercase',
-      'CWU','Changes_When_Uppercased','InSC','Indic_Syllabic_Category',
-      'VS','Variation_Selector','QMark','Quotation_Mark','Pat_Syn','Pattern_Syntax',
-      'IDC','ID_Continue','IDSB','IDS_Binary_Operator','Ideo','Ideographic',
-      'cjkCompatibilityVariant','kCompatibilityVariant',
-      'suc','Simple_Uppercase_Mapping','hst','Hangul_Syllable_Type',
-      'nt','Numeric_Type','bmg','Bidi_Mirroring_Glyph',
-      'cjkIRG_HSource','kIRG_HSource','ea','East_Asian_Width','lb','Line_Break',
-      'Term','Terminal_Punctuation','Pat_WS','Pattern_White_Space',
-      'AHex','ASCII_Hex_Digit','cjkIRG_KSource','kIRG_KSource','Hex','Hex_Digit',
-      'cjkIRG_KPSource','kIRG_KPSource','na1','Unicode_1_Name',
-      'bpt','Bidi_Paired_Bracket_Type','gc','General_Category',
-      'GCB','Grapheme_Cluster_Break','Gr_Base','Grapheme_Base',
-      'CWL','Changes_When_Lowercased','na','Name','Name_Alias','Name_Alias',
-      'Dep','Deprecated','Comp_Ex','Full_Composition_Exclusion',
+      'CWU','Changes_When_Uppercased','IDS','ID_Start','Gr_Ext','Grapheme_Extend',
+      'XIDS','XID_Start','XO_NFKC','Expands_On_NFKC','OUpper','Other_Uppercase',
+      'OMath','Other_Math','Gr_Link','Grapheme_Link','Bidi_C','Bidi_Control',
+      'DI','Default_Ignorable_Code_Point','CWCF','Changes_When_Casefolded',
+      'cjkIRG_GSource','kIRG_GSource','WB','Word_Break','NFC_QC','NFC_Quick_Check',
+      'cjkIRG_JSource','kIRG_JSource','ODI','Other_Default_Ignorable_Code_Point',
+      'LOE','Logical_Order_Exception','bpb','Bidi_Paired_Bracket',
+      'PCM','Prepended_Concatenation_Mark','OLower','Other_Lowercase',
+      'OIDC','Other_ID_Continue','VS','Variation_Selector','Ext','Extender',
+      'Comp_Ex','Full_Composition_Exclusion','IDSB','IDS_Binary_Operator',
+      'nt','Numeric_Type','cjkCompatibilityVariant','kCompatibilityVariant',
+      'suc','Simple_Uppercase_Mapping','Term','Terminal_Punctuation',
+      'lb','Line_Break','cjkIRG_HSource','kIRG_HSource','ea','East_Asian_Width',
+      'AHex','ASCII_Hex_Digit','cjkIRG_KSource','kIRG_KSource',
+      'Pat_WS','Pattern_White_Space','Hex','Hex_Digit',
+      'cjkIRG_KPSource','kIRG_KPSource','bpt','Bidi_Paired_Bracket_Type',
+      'gc','General_Category','GCB','Grapheme_Cluster_Break',
+      'Gr_Base','Grapheme_Base','na','Name','scx','Script_Extensions',
+      'Ideo','Ideographic','Name_Alias','Name_Alias','blk','Block','Dep','Deprecated',
+      'CWL','Changes_When_Lowercased','bmg','Bidi_Mirroring_Glyph',
       'cjkRSUnicode','kRSUnicode','Unicode_Radical_Stroke','kRSUnicode',
       'URS','kRSUnicode','ccc','Canonical_Combining_Class',
     );
-    state %prefs = nqp::hash(
-      'Other_Grapheme_Extend','B','Emoji_Modifier','B','Dash','B',
-      'Case_Ignorable','B','Uppercase_Mapping','uc','Radical','B','Diacritic','B',
-      'Changes_When_Casefolded','B','Lowercase_Mapping','lc','ID_Start','B',
-      'Case_Folding','S','Script','S','Joining_Type','S','NFD_Quick_Check','S',
-      'Expands_On_NFD','B','Simple_Case_Folding','S','Lowercase','B',
-      'Join_Control','B','Bidi_Class','S','Soft_Dotted','B',
-      'Decomposition_Mapping','S','Joining_Group','S','NFKC_Casefold','S',
-      'Simple_Lowercase_Mapping','S','Sentence_Terminal','B','Unified_Ideograph','B',
-      'Uppercase','B','Math','B','IDS_Trinary_Operator','B','NFKD_Quick_Check','S',
-      'Extender','B','NFKC_Quick_Check','S','Composition_Exclusion','B',
-      'Alphabetic','B','Simple_Titlecase_Mapping','S','Other_Alphabetic','B',
-      'XID_Continue','B','Age','S','Titlecase_Mapping','tc','Other_ID_Start','B',
-      'FC_NFKC_Closure','S','Cased','B','Hyphen','B','Expands_On_NFC','B',
-      'Numeric_Value','nv','Changes_When_NFKC_Casefolded','B','Other_ID_Continue','B',
-      'Expands_On_NFKD','B','Indic_Positional_Category','S','Decomposition_Type','S',
-      'Bidi_Mirrored','B','Expands_On_NFKC','B','XID_Start','B','ISO_Comment','S',
-      'Grapheme_Extend','B','Noncharacter_Code_Point','B','Sentence_Break','S',
-      'Bidi_Control','B','Changes_When_Titlecased','B','Grapheme_Link','B',
-      'Other_Math','B','Other_Uppercase','B','Default_Ignorable_Code_Point','B',
-      'Changes_When_Casemapped','B','Logical_Order_Exception','B','Word_Break','S',
-      'NFC_Quick_Check','S','White_Space','B','Prepended_Concatenation_Mark','B',
-      'Other_Default_Ignorable_Code_Point','B','Block','S','Other_Lowercase','B',
-      'Changes_When_Uppercased','B','Indic_Syllabic_Category','S',
-      'Variation_Selector','B','Quotation_Mark','B','Pattern_Syntax','B',
-      'ID_Continue','B','IDS_Binary_Operator','B','Ideographic','B',
+    my constant $prefs = nqp::hash(
+      'Other_Grapheme_Extend','B','Titlecase_Mapping','tc','Dash','B',
+      'Emoji_Modifier_Base','B','Emoji_Modifier','B','Pattern_Syntax','B',
+      'IDS_Trinary_Operator','B','ID_Continue','B','Diacritic','B','Cased','B',
+      'Hangul_Syllable_Type','S','Quotation_Mark','B','Radical','B',
+      'NFD_Quick_Check','S','Joining_Type','S','Case_Folding','S','Script','S',
+      'Soft_Dotted','B','Changes_When_Casemapped','B','Simple_Case_Folding','S',
+      'ISO_Comment','S','Lowercase','B','Join_Control','B','Bidi_Class','S',
+      'Joining_Group','S','Decomposition_Mapping','S','Lowercase_Mapping','lc',
+      'NFKC_Casefold','S','Simple_Lowercase_Mapping','S',
+      'Indic_Syllabic_Category','S','Expands_On_NFC','B','Expands_On_NFD','B',
+      'Uppercase','B','White_Space','B','Sentence_Terminal','B',
+      'NFKD_Quick_Check','S','Changes_When_Titlecased','B','Math','B',
+      'Uppercase_Mapping','uc','NFKC_Quick_Check','S','Sentence_Break','S',
+      'Simple_Titlecase_Mapping','S','Alphabetic','B','Composition_Exclusion','B',
+      'Noncharacter_Code_Point','B','Other_Alphabetic','B','XID_Continue','B',
+      'Age','S','Other_ID_Start','B','Unified_Ideograph','B','FC_NFKC_Closure','S',
+      'Case_Ignorable','B','Hyphen','B','Numeric_Value','nv',
+      'Changes_When_NFKC_Casefolded','B','Expands_On_NFKD','B',
+      'Indic_Positional_Category','S','Decomposition_Type','S','Bidi_Mirrored','B',
+      'Changes_When_Uppercased','B','ID_Start','B','Grapheme_Extend','B',
+      'XID_Start','B','Expands_On_NFKC','B','Other_Uppercase','B','Other_Math','B',
+      'Grapheme_Link','B','Bidi_Control','B','Default_Ignorable_Code_Point','B',
+      'Changes_When_Casefolded','B','Word_Break','S','NFC_Quick_Check','S',
+      'Other_Default_Ignorable_Code_Point','B','Logical_Order_Exception','B',
+      'Prepended_Concatenation_Mark','B','Other_Lowercase','B',
+      'Other_ID_Continue','B','Variation_Selector','B','Extender','B',
+      'Full_Composition_Exclusion','B','IDS_Binary_Operator','B','Numeric_Type','S',
       'kCompatibilityVariant','S','Simple_Uppercase_Mapping','S',
-      'Hangul_Syllable_Type','S','Numeric_Type','S','Bidi_Mirroring_Glyph','bmg',
-      'East_Asian_Width','S','Line_Break','S','Terminal_Punctuation','B',
-      'Pattern_White_Space','B','ASCII_Hex_Digit','B','Hex_Digit','B',
+      'Terminal_Punctuation','B','Line_Break','S','East_Asian_Width','S',
+      'ASCII_Hex_Digit','B','Pattern_White_Space','B','Hex_Digit','B',
       'Bidi_Paired_Bracket_Type','S','General_Category','S',
-      'Grapheme_Cluster_Break','S','Grapheme_Base','B','Changes_When_Lowercased','B',
-      'Name','na','Emoji','B','Emoji_Presentation','B','Deprecated','B',
-      'Full_Composition_Exclusion','B','Canonical_Combining_Class','S',
+      'Grapheme_Cluster_Break','S','Grapheme_Base','B','Name','na','Ideographic','B',
+      'Block','S','Emoji_Presentation','B','Emoji','B','Deprecated','B',
+      'Changes_When_Lowercased','B','Bidi_Mirroring_Glyph','bmg',
+      'Canonical_Combining_Class','S',
     );
     ## End generated code
-    $propname := nqp::atkey(%prop-mappings, $propname) if nqp::existskey(%prop-mappings,$propname);
+    $propname := nqp::atkey($prop-mappings, $propname) if nqp::existskey($prop-mappings,$propname);
     my $prop := nqp::unipropcode($propname);
-    given nqp::atkey(%prefs, $propname) {
+    given nqp::atkey($prefs, $propname) {
         when 'S'   { nqp::getuniprop_str($code,$prop) }
         when 'I'   { nqp::getuniprop_int($code,$prop) }
         when 'B'   { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
@@ -472,8 +461,8 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
         }
         default {
             my $result = nqp::getuniprop_str($code,$prop);
-            if $result ne '' { nqp::bindkey(%prefs, $propname, 'S'); $result }
-            else             { nqp::bindkey(%prefs, $propname, 'I'); nqp::getuniprop_int($code,$prop) }
+            if $result ne '' { nqp::bindkey($prefs, $propname, 'S'); $result }
+            else             { nqp::bindkey($prefs, $propname, 'I'); nqp::getuniprop_int($code,$prop) }
         }
     }
 }

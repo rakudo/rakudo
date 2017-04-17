@@ -63,7 +63,10 @@ my class Exception {
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
-        $!ex := nqp::newexception() unless nqp::isconcrete($!ex);
+        unless nqp::isconcrete($!ex) {
+            $!ex := nqp::newexception();
+            try nqp::setmessage($!ex, self.message);
+        }
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
@@ -84,7 +87,7 @@ my class Exception {
         CATCH { $fail.exception.throw }
     }
 
-    method is-compile-time { False }
+    method is-compile-time(--> False) { }
 }
 
 my class X::SecurityPolicy is Exception {}
@@ -463,6 +466,11 @@ my class X::IO::Copy does X::IO {
     }
 }
 
+my class X::IO::Lock does X::IO {
+    has $.lock-type;
+    method message() { "Could not obtain $.lock-type lock: $.os-error" }
+}
+
 my class X::IO::Move does X::IO {
     has $.from;
     has $.to;
@@ -484,6 +492,12 @@ my class X::IO::NotAFile does X::IO {
     has $.trying;
     method message() {
         "'$.path' is not a regular file while trying to do '.$.trying'"
+    }
+}
+
+my class X::IO::Null does X::IO {
+    method message() {
+        "Cannot use null character (U+0000) as part of the path"
     }
 }
 
@@ -540,6 +554,19 @@ my class X::IO::Cwd does X::IO {
     method message() {
         "Failed to get the working directory: $.os-error"
     }
+}
+
+my class X::IO::NotAChild does X::IO {
+    has $.path;
+    has $.child;
+    method message() {
+      "Path {$.child.perl} is not a child of path {$.path.perl}"
+    }
+}
+
+my class X::IO::Resolve does X::IO {
+    has $.path;
+    method message() { "Failed to completely resolve {$.path.perl}" }
 }
 
 my class X::IO::Rmdir does X::IO {
@@ -623,7 +650,7 @@ my class X::Comp::Group is Exception {
     has @.sorrows;
     has @.worries;
 
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 
     multi method gist(::?CLASS:D:) {
         my $r = "";
@@ -693,14 +720,14 @@ my class X::Comp::BeginTime does X::Comp {
 
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 }
 
 my class X::Comp::FailGoal does X::Comp {
     has $.dba;
     has $.goal;
 
-    method is-compile-time() { True }
+    method is-compile-time(--> True) { }
 
     method message { "Unable to parse expression in $.dba; couldn't find final $.goal" }
 }
@@ -764,6 +791,16 @@ my class X::Worry::P5::LeadingZero is X::Worry::P5 {
             'Leading 0 does not indicate octal in Perl 6.'
                 ~ " Please use 0o$!value if you mean that.";
         }
+    }
+}
+
+my class X::Trait::Invalid is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.declaring;  # variable, sub, parameter, etc.
+    has $.name;       # '$foo', '@bar', etc.
+    method message () {
+        "Cannot use '$.type $.subtype' on $.declaring '$.name'."
     }
 }
 
@@ -1810,6 +1847,14 @@ my class X::Phaser::PrePost is Exception {
     }
 }
 
+my class X::Str::InvalidCharName is Exception {
+    has $.name;
+    method message() {
+        $!name.chars ?? "Unrecognized character name [{$!name}]"
+                     !! "Cannot use empty name as character name"
+    }
+}
+
 my class X::Str::Numeric is Exception {
     has $.source;
     has $.pos;
@@ -1984,16 +2029,13 @@ my class X::TypeCheck is Exception {
         ) // "?"
     }
     method priors() {
-        my $prior = do if nqp::isconcrete($!got) && $!got ~~ Failure {
-            "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n ";
-        }
-        else { '' }
-        $prior;
+        (try nqp::isconcrete($!got) && $!got ~~ Failure)
+          ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
+          !! ''
     }
     method message() {
         self.priors() ~
         "Type check failed in $.operation; expected $.expectedn but got $.gotn";
-
     }
 }
 
@@ -2002,11 +2044,31 @@ my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
     method message() {
         my $to = $.symbol.defined && $.symbol ne '$'
-            ?? " to $.symbol" !! "";
-        my $expected = $.expected =:= $.got
+            ?? " to '$.symbol'"
+            !! "";
+        my $expected = (try nqp::eqaddr($.expected,$.got))
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         self.priors() ~ "Type check failed in $.operation$to; $expected";
+    }
+}
+my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
+    has Parameter $.parameter;
+    has Bool $.constraint;
+    method expectedn() {
+        $.constraint && $.expected ~~ Code
+            ?? 'anonymous constraint to be met'
+            !! callsame()
+    }
+    method message() {
+        my $to = $.symbol.defined && $.symbol ne '$'
+            ?? " to parameter '$.symbol'"
+            !! " to anonymous parameter";
+        my $expected = (try nqp::eqaddr($.expected,$.got))
+            ?? "expected type $.expectedn cannot be itself"
+            !! "expected $.expectedn but got $.gotn";
+        my $what-check = $.constraint ?? 'Constraint type' !! 'Type';
+        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
@@ -2400,6 +2462,11 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   sub (Mu $got, Mu $expected, $symbol?) {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
+  'X::TypeCheck::Binding::Parameter',
+  sub (Mu $got, Mu $expected, $symbol, $parameter, $is-constraint?) {
+      my $constraint = $is-constraint ?? True !! False;
+      X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
+  },
   'X::TypeCheck::Assignment',
   sub (Mu $symbol, Mu $got, Mu $expected) {
       X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
@@ -2452,6 +2519,10 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   sub (@exceptions) {
       X::PhaserExceptions.new(exceptions =>
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
+  },
+  'X::Trait::Invalid',
+  sub ($type, $subtype, $declaring, $name) {
+      X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
 ));
 

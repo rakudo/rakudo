@@ -560,7 +560,7 @@ S09-typed-arrays/native-num.t
 S09-typed-arrays/native-str.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
-S10-packages/precompilation.t
+S10-packages/precompilation.t # slow
 S10-packages/use-with-class.t
 S11-compunit/compunit-dependencyspecification.t
 S11-compunit/compunit-repository.t
@@ -802,6 +802,7 @@ S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
 S17-procasync/encoding.t # moar
+S17-procasync/nonexistent.t # moar
 S17-procasync/print.t    # moar
 S17-procasync/kill.t     # moar stress slow
 S17-procasync/no-runaway-file-limit.t # moar slow
@@ -883,6 +884,8 @@ S24-testing/3-output.t
 S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
 S24-testing/9-is_deeply.t
+S24-testing/11-plan-skip-all.t
+S24-testing/11-plan-skip-all-subtests.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -909,6 +912,7 @@ S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
 S29-any/deg-trans.t
 S29-any/isa.t
+S29-any/minpairs-maxpairs.t
 S29-context/die.t
 S29-context/eval.t
 S29-context/evalfile.t
@@ -966,24 +970,32 @@ S32-hash/slice.t
 S32-io/IO-Socket-Async.t
 S32-io/IO-Socket-Async-UDP.t    # moar
 S32-io/chdir.t
+S32-io/chdir-process.t    # moar
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/indir.t
 S32-io/io-handle.t
+S32-io/lock.t                   # slow
 S32-io/socket-host-port-split.t
 S32-io/socket-fail-invalid-values.t
+S32-io/io-special.t
+S32-io/io-spec-qnx.t
 S32-io/io-spec-unix.t
 S32-io/io-spec-win.t
 S32-io/io-spec-cygwin.t
+S32-io/io-path-subclasses.t
+S32-io/io-path-symlink.t
 S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
+S32-io/io-path-extension.t
 S32-io/IO-Socket-INET.t
 S32-io/move.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
+S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
 S32-io/pipe.t
@@ -1014,6 +1026,7 @@ S32-list/first-k.t
 S32-list/first-kv.t
 S32-list/first-p.t
 S32-list/first-v.t
+S32-list/flat.t
 S32-list/grep.t
 S32-list/grep-k.t
 S32-list/grep-kv.t
@@ -1089,6 +1102,7 @@ S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
 S32-str/parse-base.t
+S32-str/parse-names.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samemark.t
@@ -1226,6 +1240,7 @@ integration/advent2014-day16.t
 integration/code-blocks-as-sub-args.t
 integration/deep-recursion-initing-native-array.t # moar
 integration/error-reporting.t  # slow
+integration/eval-and-threads.t  # slow
 integration/failure-and-callsame.t
 integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t

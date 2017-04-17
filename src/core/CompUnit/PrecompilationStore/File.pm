@@ -20,7 +20,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!file = $!path.open(:r);
         }
 
-        method modified(--> Instant) {
+        method modified(--> Instant:D) {
             $!path.modified
         }
 
@@ -44,14 +44,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             @!dependencies
         }
 
-        method bytecode(--> Buf) {
+        method bytecode(--> Buf:D) {
             $!update-lock.protect: {
                 self!read-dependencies;
                 $!bytecode //= $!file.slurp-rest(:bin,:close)
             }
         }
 
-        method bytecode-handle(--> IO::Handle) {
+        method bytecode-handle(--> IO::Handle:D) {
             self!read-dependencies;
             $!file
         }
@@ -61,7 +61,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!checksum
         }
 
-        method Str(--> Str) {
+        method Str(--> Str:D) {
             self.path.Str
         }
 
@@ -103,8 +103,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     {
         $!update-lock.protect: {
             %!dir-cache{$compiler-id ~ $precomp-id} //=
-                (%!compiler-cache{$compiler-id} //= self.prefix.child($compiler-id.IO))
-                    .child($precomp-id.substr(0, 2).IO)
+                (%!compiler-cache{$compiler-id} //= self.prefix.add($compiler-id.IO))
+                    .add($precomp-id.substr(0, 2).IO)
         }
     }
 
@@ -112,16 +112,16 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  Str :$extension = '')
     {
-        self!dir($compiler-id, $precomp-id).child(($precomp-id ~ $extension).IO)
+        self!dir($compiler-id, $precomp-id).add(($precomp-id ~ $extension).IO)
     }
 
     method !lock(--> Nil) {
         return if $*W && $*W.is_precompilation_mode();
         my int $acquire-file-lock = $!update-lock.protect: {
-            $!lock //= $.prefix.child('.lock').open(:create, :rw);
+            $!lock //= $.prefix.add('.lock').open(:create, :rw);
             $!lock-count++
         }
-        $!lock.lock(2) if $acquire-file-lock == 0;
+        $!lock.lock if $acquire-file-lock == 0;
     }
 
     method unlock() {
@@ -160,8 +160,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method destination(CompUnit::PrecompilationId $compiler-id,
                        CompUnit::PrecompilationId $precomp-id,
-                       Str :$extension = '')
-        returns IO::Path
+                       Str :$extension = ''
+                       --> IO::Path:D)
     {
         unless $!prefix.e {
             $!prefix.mkdir or return;
@@ -173,14 +173,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method !file(CompUnit::PrecompilationId $compiler-id,
                  CompUnit::PrecompilationId $precomp-id,
-                 Str :$extension = '')
-        returns IO::Path
+                 Str :$extension = ''
+                 --> IO::Path:D)
     {
-        my $compiler-dir = self.prefix.child($compiler-id.IO);
+        my $compiler-dir = self.prefix.add($compiler-id.IO);
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
-        $dest.child(($precomp-id ~ $extension).IO)
+        $dest.add(($precomp-id ~ $extension).IO)
     }
 
     method store-file(CompUnit::PrecompilationId $compiler-id,
@@ -205,7 +205,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  :$repo-id!)
     {
-        self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
+        try self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
     }
 
     method delete(
@@ -218,7 +218,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
     {
-         my $compiler-dir = self.prefix.child($compiler-id.IO);
+         my $compiler-dir = self.prefix.add($compiler-id.IO);
          for $compiler-dir.dir -> $subdir {
              $subdir.dir>>.unlink;
              $subdir.rmdir;

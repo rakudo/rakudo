@@ -552,7 +552,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
         nqp::split('::',my str $name = @chunks.join('::'))),
       nqp::stmts(
         (my str $first = nqp::shift($parts)),
-        nqp::if(
+        nqp::if( # move the sigil to the last part of the name if available
           nqp::elems($parts),
           nqp::stmts(
             (my str $sigil = nqp::substr($first,0,1)),
@@ -577,14 +577,19 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
           )
         ),
         (my Mu $thing := nqp::if(
-          $root.EXISTS-KEY($first),
-          $root.AT-KEY($first),
+          $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
+            && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+            && ($REQUIRE_SYMBOLS{$first}:exists),
+          $REQUIRE_SYMBOLS{$first},
           nqp::if(
-            GLOBAL::.EXISTS-KEY($first),
-            GLOBAL::.AT-KEY($first),
-            X::NoSuchSymbol.new(symbol => $name).fail
-          )
-        )),
+            $root.EXISTS-KEY($first),
+            $root.AT-KEY($first),
+            nqp::if(
+              GLOBAL::.EXISTS-KEY($first),
+              GLOBAL::.AT-KEY($first),
+              X::NoSuchSymbol.new(symbol => $name).fail
+            )
+          ))),
         nqp::while(
           nqp::elems($parts),
           nqp::if(
@@ -599,25 +604,58 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms) {
+sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
     my @missing;
+    my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
+        ?? CALLER::MY::
+        !! CALLER::OUTER::;
+
+    my $targetWHO;
+    my $sourceWHO;
+    if $existing-path {
+        my @existing-path = @$existing-path;
+        my $topname := @existing-path.shift;
+        $targetWHO := $top-existing-pkg.WHO;
+        $sourceWHO := $GLOBALish.AT-KEY($topname).WHO;
+        # Yes! the target CAN be the source if it's something like Cool::Utils
+        # because Cool is common to both compunits..so no need to do anything
+        unless $targetWHO === $sourceWHO {
+            # We want to skip over the parts of the Package::That::Already::Existed
+            for @existing-path {
+                $targetWHO := $targetWHO.AT-KEY($_).WHO;
+                $sourceWHO := $sourceWHO.AT-KEY($_).WHO;
+            }
+            # Now we are just above our target stub. If it exists
+            # delete it so it can be replaced by the real one we're importing.
+            if $stubname {
+                $targetWHO.DELETE-KEY($stubname);
+            }
+            $targetWHO.merge-symbols($sourceWHO);
+        }
+    } elsif $stubname {
+        $targetWHO := $block.AT-KEY($stubname).WHO;
+        $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
+        $targetWHO.merge-symbols($sourceWHO);
+    }
     # Set the runtime values for compile time stub symbols
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
             @missing.push: $_;
             next;
         }
-        OUTER::CALLER::{$_} := $DEFAULT{$_};
+        $block{$_} := $DEFAULT{$_};
     }
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
     # Merge GLOBAL from compunit.
-    GLOBAL::.merge-symbols($GLOBALish);
-    Nil;
+    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+        $block<%REQUIRE_SYMBOLS>,
+        $GLOBALish,
+    );
 }
 
 sub infix:<andthen>(+a) {
@@ -715,7 +753,19 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
 proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
-multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
+multi sub infix:<∘> (&f, &g --> Block:D) {
+    my \ret = &f.count > 1
+        ?? -> |args { f |g |args }
+        !! -> |args { f  g |args }
+
+    my role FakeSignature[$arity, $count, $of] {
+        method arity { $arity }
+        method count { $count }
+        method of    { $of    }
+    }
+    ret.^mixin(FakeSignature[&g.arity, &g.count, &f.of]);
+    ret
+}
 my &infix:<o> := &infix:<∘>;
 
 # vim: ft=perl6 expandtab sw=4

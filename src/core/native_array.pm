@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -138,13 +138,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(strarray:D:) returns str {
+        method pop(strarray:D: --> str) {
             nqp::elems(self) > 0
               ?? nqp::pop_s(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(strarray:D:) returns str {
+        method shift(strarray:D: --> str) {
             nqp::elems(self) > 0
               ?? nqp::shift_s(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -332,91 +332,8 @@ my class array does Iterable {
               $to
             )
         }
-        # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
         multi method sort(strarray:D:) {
-            nqp::if(
-              nqp::isgt_i((my int $n = nqp::elems(self)),2),
-
-              # $A has the items to sort; $B is a work array
-              nqp::stmts(
-                (my Mu $A := nqp::clone(self)),
-                (my Mu $B := nqp::setelems(nqp::create(self),$n)),
-
-                # Each 1-element run in $A is already "sorted"
-                # Make successively longer sorted runs of length 2, 4, 8, 16...
-                # until $A is wholly sorted
-                (my int $width = 1),
-                nqp::while(
-                  nqp::islt_i($width,$n),
-                  nqp::stmts(
-                    (my int $l = 0),
-
-                    # $A is full of runs of length $width
-                    nqp::while(
-                      nqp::islt_i($l,$n),
-
-                      nqp::stmts(
-                        (my int $left  = $l),
-                        (my int $right = nqp::add_i($l,$width)),
-                        nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                        (my int $end =
-                          nqp::add_i($l,nqp::add_i($width,$width))),
-                        nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                        (my int $i = $left),
-                        (my int $j = $right),
-                        (my int $k = nqp::sub_i($left,1)),
-
-                        # Merge two runs: $A[i       .. i+width-1] and
-                        #                 $A[i+width .. i+2*width-1]
-                        # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                        nqp::while(
-                          nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                          nqp::if(
-                            nqp::islt_i($i,$right) && (
-                              nqp::isge_i($j,$end)
-                                || nqp::islt_s(
-                                     nqp::atpos_s($A,$i),
-                                     nqp::atpos_s($A,$j)
-                                   )
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$i))),
-                              ($i = nqp::add_i($i,1))
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$j))),
-                              ($j = nqp::add_i($j,1))
-                            )
-                          )
-                        ),
-                        ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                      )
-                    ),
-
-                    # Now work array $B is full of runs of length 2*width.
-                    # Copy array B to array A for next iteration.  A more
-                    # efficient implementation would swap the roles of A and B.
-                    (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                    # Now array $A is full of runs of length 2*width.
-
-                    ($width = nqp::add_i($width,$width))
-                  )
-                ),
-                $A
-              ),
-              nqp::if(
-                nqp::islt_i($n,2)
-                  || nqp::isle_s(nqp::atpos_s(self,0),nqp::atpos_s(self,1)),
-                nqp::clone(self),  # we already have the result
-                nqp::stmts(
-                  (my $R := nqp::setelems(nqp::create(self),2)),
-                  nqp::bindpos_s($R,0,nqp::atpos_s(self,1)),
-                  nqp::bindpos_s($R,1,nqp::atpos_s(self,0)),
-                  $R
-                )
-              )
-            )
+            Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
@@ -436,7 +353,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -517,13 +434,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(intarray:D:) returns int {
+        method pop(intarray:D: --> int) {
             nqp::elems(self) > 0
               ?? nqp::pop_i(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(intarray:D:) returns int {
+        method shift(intarray:D: --> int) {
             nqp::elems(self) > 0
               ?? nqp::shift_i(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -711,91 +628,8 @@ my class array does Iterable {
               $to
             )
         }
-        # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
         multi method sort(intarray:D:) {
-            nqp::if(
-              nqp::isgt_i((my int $n = nqp::elems(self)),2),
-
-              # $A has the items to sort; $B is a work array
-              nqp::stmts(
-                (my Mu $A := nqp::clone(self)),
-                (my Mu $B := nqp::setelems(nqp::create(self),$n)),
-
-                # Each 1-element run in $A is already "sorted"
-                # Make successively longer sorted runs of length 2, 4, 8, 16...
-                # until $A is wholly sorted
-                (my int $width = 1),
-                nqp::while(
-                  nqp::islt_i($width,$n),
-                  nqp::stmts(
-                    (my int $l = 0),
-
-                    # $A is full of runs of length $width
-                    nqp::while(
-                      nqp::islt_i($l,$n),
-
-                      nqp::stmts(
-                        (my int $left  = $l),
-                        (my int $right = nqp::add_i($l,$width)),
-                        nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                        (my int $end =
-                          nqp::add_i($l,nqp::add_i($width,$width))),
-                        nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                        (my int $i = $left),
-                        (my int $j = $right),
-                        (my int $k = nqp::sub_i($left,1)),
-
-                        # Merge two runs: $A[i       .. i+width-1] and
-                        #                 $A[i+width .. i+2*width-1]
-                        # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                        nqp::while(
-                          nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                          nqp::if(
-                            nqp::islt_i($i,$right) && (
-                              nqp::isge_i($j,$end)
-                                || nqp::islt_i(
-                                     nqp::atpos_i($A,$i),
-                                     nqp::atpos_i($A,$j)
-                                   )
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
-                              ($i = nqp::add_i($i,1))
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
-                              ($j = nqp::add_i($j,1))
-                            )
-                          )
-                        ),
-                        ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                      )
-                    ),
-
-                    # Now work array $B is full of runs of length 2*width.
-                    # Copy array B to array A for next iteration.  A more
-                    # efficient implementation would swap the roles of A and B.
-                    (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                    # Now array $A is full of runs of length 2*width.
-
-                    ($width = nqp::add_i($width,$width))
-                  )
-                ),
-                $A
-              ),
-              nqp::if(
-                nqp::islt_i($n,2)
-                  || nqp::isle_i(nqp::atpos_i(self,0),nqp::atpos_i(self,1)),
-                nqp::clone(self),  # we already have the result
-                nqp::stmts(
-                  (my $R := nqp::setelems(nqp::create(self),2)),
-                  nqp::bindpos_i($R,0,nqp::atpos_i(self,1)),
-                  nqp::bindpos_i($R,1,nqp::atpos_i(self,0)),
-                  $R
-                )
-              )
-            )
+            Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
@@ -834,7 +668,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-01-05T22:47:04+01:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -915,13 +749,13 @@ my class array does Iterable {
             self
         }
 
-        method pop(numarray:D:) returns num {
+        method pop(numarray:D: --> num) {
             nqp::elems(self) > 0
               ?? nqp::pop_n(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
-        method shift(numarray:D:) returns num {
+        method shift(numarray:D: --> num) {
             nqp::elems(self) > 0
               ?? nqp::shift_n(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
@@ -1109,91 +943,8 @@ my class array does Iterable {
               $to
             )
         }
-        # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
         multi method sort(numarray:D:) {
-            nqp::if(
-              nqp::isgt_i((my int $n = nqp::elems(self)),2),
-
-              # $A has the items to sort; $B is a work array
-              nqp::stmts(
-                (my Mu $A := nqp::clone(self)),
-                (my Mu $B := nqp::setelems(nqp::create(self),$n)),
-
-                # Each 1-element run in $A is already "sorted"
-                # Make successively longer sorted runs of length 2, 4, 8, 16...
-                # until $A is wholly sorted
-                (my int $width = 1),
-                nqp::while(
-                  nqp::islt_i($width,$n),
-                  nqp::stmts(
-                    (my int $l = 0),
-
-                    # $A is full of runs of length $width
-                    nqp::while(
-                      nqp::islt_i($l,$n),
-
-                      nqp::stmts(
-                        (my int $left  = $l),
-                        (my int $right = nqp::add_i($l,$width)),
-                        nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                        (my int $end =
-                          nqp::add_i($l,nqp::add_i($width,$width))),
-                        nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                        (my int $i = $left),
-                        (my int $j = $right),
-                        (my int $k = nqp::sub_i($left,1)),
-
-                        # Merge two runs: $A[i       .. i+width-1] and
-                        #                 $A[i+width .. i+2*width-1]
-                        # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                        nqp::while(
-                          nqp::islt_i(($k = nqp::add_i($k,1)),$end),
-                          nqp::if(
-                            nqp::islt_i($i,$right) && (
-                              nqp::isge_i($j,$end)
-                                || nqp::islt_n(
-                                     nqp::atpos_n($A,$i),
-                                     nqp::atpos_n($A,$j)
-                                   )
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$i))),
-                              ($i = nqp::add_i($i,1))
-                            ),
-                            nqp::stmts(
-                              (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$j))),
-                              ($j = nqp::add_i($j,1))
-                            )
-                          )
-                        ),
-                        ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                      )
-                    ),
-
-                    # Now work array $B is full of runs of length 2*width.
-                    # Copy array B to array A for next iteration.  A more
-                    # efficient implementation would swap the roles of A and B.
-                    (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
-                    # Now array $A is full of runs of length 2*width.
-
-                    ($width = nqp::add_i($width,$width))
-                  )
-                ),
-                $A
-              ),
-              nqp::if(
-                nqp::islt_i($n,2)
-                  || nqp::isle_n(nqp::atpos_n(self,0),nqp::atpos_n(self,1)),
-                nqp::clone(self),  # we already have the result
-                nqp::stmts(
-                  (my $R := nqp::setelems(nqp::create(self),2)),
-                  nqp::bindpos_n($R,0,nqp::atpos_n(self,1)),
-                  nqp::bindpos_n($R,1,nqp::atpos_n(self,0)),
-                  $R
-                )
-              )
-            )
+            Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
@@ -1222,7 +973,7 @@ my class array does Iterable {
             nqp::stmts(
               (my $idims := nqp::dimensions(self)),
               (my int $dims = nqp::elems($idims)),
-              (my $odims  := nqp::setelems(nqp::list,$dims)),
+              (my $odims  := nqp::setelems(nqp::create(IterationBuffer),$dims)),
               (my int $i = -1),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
@@ -1298,7 +1049,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )
@@ -1828,7 +1579,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )
@@ -2358,7 +2109,7 @@ my class array does Iterable {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )

@@ -18,24 +18,24 @@ class CompUnit::PrecompilationId {
 }
 
 role CompUnit::PrecompilationDependency {
-    method id(--> CompUnit::PrecompilationId) { ... }
-    method src(--> Str) { ... }
-    method spec(--> CompUnit::DependencySpecification) { ... }
+    method id(--> CompUnit::PrecompilationId:D) { ... }
+    method src(--> Str:D) { ... }
+    method spec(--> CompUnit::DependencySpecification:D) { ... }
     method Str() {
         "$.id $.src $.spec"
     }
-    method serialize(--> Str) { ... }
-    method deserialize(Str, --> CompUnit::PrecompilationDependency) { ... }
+    method serialize(--> Str:D) { ... }
+    method deserialize(Str, --> CompUnit::PrecompilationDependency:D) { ... }
 }
 
 role CompUnit::PrecompilationUnit {
-    method id(--> CompUnit::PrecompilationId) { ... }
-    method path(--> IO::Path) { ... }
-    method modified(--> Instant) { ... }
+    method id(--> CompUnit::PrecompilationId:D) { ... }
+    method path(--> IO::Path:D) { ... }
+    method modified(--> Instant:D) { ... }
     method dependencies(--> Array[CompUnit::PrecompilationDependency]) { ... }
-    method bytecode(--> Buf) { ... }
-    method checksum(--> Str) { ... }
-    method bytecode-handle(--> IO::Handle) { ... }
+    method bytecode(--> Buf:D) { ... }
+    method checksum(--> Str:D) { ... }
+    method bytecode-handle(--> IO::Handle:D) { ... }
     method close(--> Nil) { ... }
 }
 
@@ -60,7 +60,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
         );
     }
 
-    method spec(--> CompUnit::DependencySpecification) {
+    method spec(--> CompUnit::DependencySpecification:D) {
         $!spec //= $!serialized-spec
             ?? do {
 #?if jvm
@@ -79,7 +79,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
             !! Nil;
     }
 
-    method serialize(--> Str) {
+    method serialize(--> Str:D) {
 #?if jvm
         my $specs;
         for $.spec.^attributes {
@@ -88,12 +88,12 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
         "$.id\0$.src\0$.checksum\0$specs"
 #?endif
 #?if !jvm
-        "$.id\0$.src\0$.checksum\0{$.spec.perl}"
+        "$.id\0$.src\0$.checksum\0{$!serialized-spec ?? $!serialized-spec !! $!spec.perl}"
 #?endif
     }
 
     method Str() {
-        "$.id $.src $.checksum $.spec"
+        "$.id $.src $.checksum {$!serialized-spec ?? $!serialized-spec !! $!spec.perl}"
     }
 }
 

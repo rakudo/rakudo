@@ -15,7 +15,7 @@ my class Mix does Mixy {
           $!WHICH := self!WHICH
         )
     }
-    method total(Mix:D: --> Real) {
+    method total(Mix:D: --> Real:D) {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
@@ -24,18 +24,17 @@ my class Mix does Mixy {
     }
 
 #--- selection methods
-    multi method grab($count? --> Real) {
+    multi method grab($count? --> Real:D) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    multi method grabpairs($count? --> Real) {
+    multi method grabpairs($count? --> Real:D) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
 #--- coercion methods
-    method Mix { self }
-    method MixHash { MixHash.new-from-pairs(%!elems.values) }
-    method Bag     {     Bag.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
-    method BagHash { BagHash.new-from-pairs(%!elems.values.grep(*.value > 0).map({.key => .value.Int})) }
+    method Mix() is nodal { self }
+
+    method clone() { nqp::clone(self) }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

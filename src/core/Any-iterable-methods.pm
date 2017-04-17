@@ -271,9 +271,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             else {
                 my $result;
+                my int $stopped;
                 nqp::stmts(
                   nqp::until(
-                    (my int $stopped),
+                    $stopped,
                     nqp::stmts(
                       ($stopped = 1),
                       nqp::handle(
@@ -300,40 +301,48 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
         method push-all($target --> IterationEnd) {
             my $pulled;
+            my int $stopped;
             nqp::until(
               nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::until(
-                (my int $stopped),
-                nqp::stmts(
-                  ($stopped = 1),
-                  nqp::handle(
-                    $target.push(&!block($pulled)),
-                    'LABELED', $!label,
-                    'REDO', ($stopped = 0),
-                    'LAST', return
-                  )
-                ),
-                :nohandler
+               nqp::stmts(
+                ($stopped = 0),
+                nqp::until(
+                  $stopped,
+                  nqp::stmts(
+                    ($stopped = 1),
+                    nqp::handle(
+                      $target.push(&!block($pulled)),
+                      'LABELED', $!label,
+                      'REDO', ($stopped = 0),
+                      'LAST', return
+                    )
+                  ),
+                  :nohandler
+                )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
             my $pulled;
+            my int $stopped;
             nqp::until(
               nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::until(
-                (my int $stopped),
-                nqp::stmts(
-                  ($stopped = 1),
-                  nqp::handle(
-                    &!block($pulled),
-                    'LABELED', $!label,
-                    'REDO', ($stopped = 0),
-                    'LAST', return
-                  )
-                ),
-                :nohandler
+              nqp::stmts(
+                ($stopped = 0),
+                nqp::until(
+                  $stopped,
+                  nqp::stmts(
+                    ($stopped = 1),
+                    nqp::handle(
+                      &!block($pulled),
+                      'LABELED', $!label,
+                      'REDO', ($stopped = 0),
+                      'LAST', return
+                    )
+                  ),
+                  :nohandler
+                )
               )
             )
         }
@@ -909,7 +918,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 has $!arity;
                 has $!count;
 
-                method set-cheat($new-arity, $new-count) {
+                method set-cheat($new-arity, $new-count --> Nil) {
                     $!arity = $new-arity;
                     $!count = $new-count;
                 }
@@ -1410,7 +1419,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           ),
           Seq.new(
             Rakudo::Iterator.ReifiedList(
-              Rakudo::Internals.MERGESORT-REIFIED-LIST(
+              Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                 nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
               )
             )
@@ -1431,18 +1440,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Rakudo::Iterator.ReifiedList(
               nqp::if(
                 nqp::eqaddr(&by,&infix:<cmp>),
-                Rakudo::Internals.MERGESORT-REIFIED-LIST(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
                   nqp::p6bindattrinvres(
                     nqp::create(List),List,'$!reified',$list)
                 ),
                 nqp::if(
                   &by.count < 2,
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST-AS(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
                     nqp::p6bindattrinvres(
                       nqp::create(List),List,'$!reified',$list),
                     &by
                   ),
-                  Rakudo::Internals.MERGESORT-REIFIED-LIST-WITH(
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
                     nqp::p6bindattrinvres(
                       nqp::create(List),List,'$!reified',$list),
                     &by
@@ -1486,45 +1495,43 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method unique(|) is nodal {*}
     multi method unique() {
         Seq.new(class :: does Iterator {
-            has Mu $!iter;
+            has $!iter;
             has $!seen;
             method !SET-SELF(\list) {
-                $!iter = list.iterator;
-                $!seen := nqp::hash();
-                self
+                nqp::stmts(
+                  ($!iter := list.iterator),
+                  ($!seen := nqp::hash),
+                  self
+                )
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
-                    nqp::stmts(
-                      nqp::bindkey($!seen, $needle, 1),
-                      return $value
-                    )
-                  )
-                );
-                IterationEnd
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+                      || (nqp::not_i(nqp::existskey(
+                        $!seen,
+                        (my $needle := $pulled.WHICH)
+                      )) && nqp::bindkey($!seen,$needle,1)),
+                    nqp::null
+                  ),
+                  $pulled
+                )
             }
-            method push-all($target) {
-                my Mu $value;
-                my str $needle;
+            method push-all($target --> IterationEnd) {
                 nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
                   nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH)),
-                    nqp::stmts(  # doesn't sink
-                      nqp::bindkey($!seen, $needle, 1),
-                      $target.push($value)
+                    nqp::existskey($!seen,(my $needle := $pulled.WHICH)),
+                    nqp::stmts(
+                      nqp::bindkey($!seen,$needle,1),
+                      $target.push($pulled)
                     )
                   )
-                );
-                IterationEnd
+                )
             }
             method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
         }.new(self))
     }
     multi method unique( :&as!, :&with! ) {
@@ -1849,10 +1856,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method head(Any:D: $n) {
+    multi method head(Any:D: Callable:D $w) {
         Seq.new(
-          Rakudo::Iterator.NextNValues(self.iterator,$n)
+           Rakudo::Iterator.AllButLastNValues(self.iterator,-($w(0).Int))
         )
+    }
+    multi method head(Any:D: $n) {
+        Seq.new(Rakudo::Iterator.NextNValues(self.iterator,$n))
     }
 
     proto method tail(|) { * }
@@ -1868,42 +1878,52 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
     multi method tail(Any:D: $n) {
         Seq.new(
-          Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
+          nqp::if(
+            nqp::istype($n,Callable)
+              && nqp::isgt_i((my $skip := -($n(0).Int)),0),
+            nqp::stmts(
+              (my $iterator := self.iterator).skip-at-least($skip),
+              $iterator
+            ),
+            Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
+          )
         )
     }
 
     proto method minpairs(|) { * }
     multi method minpairs(Any:D:) {
         my @found;
-        my $min = Inf;
-        my $value;
         for self.pairs {
-            if ($value := .value) < $min {
-                @found = $_;
-                $min   = $value;
-            }
-            elsif $value == $min {
-                @found.push: $_;
-            }
+            my $value := .value;
+            state $min = $value;
+            nqp::if(
+                nqp::iseq_i( (my $cmp := $value cmp $min), -1 ),
+                nqp::stmts((@found = $_), ($min = $value)),
+                nqp::if(
+                    nqp::iseq_i($cmp, 0),
+                    @found.push($_)
+                )
+            )
         }
-        @found
+        Seq.new(@found.iterator)
     }
 
     proto method maxpairs(|) { * }
     multi method maxpairs(Any:D:) {
         my @found;
-        my $max = -Inf;
-        my $value;
         for self.pairs {
-            if ($value := .value) > $max {
-                @found = $_;
-                $max   = $value;
-            }
-            elsif $value == $max {
-                @found.push: $_;
-            }
+            my $value := .value;
+            state $max = $value;
+            nqp::if(
+                nqp::iseq_i( (my $cmp := $value cmp $max), 1 ),
+                nqp::stmts((@found = $_), ($max = $value)),
+                nqp::if(
+                    nqp::iseq_i($cmp, 0),
+                    @found.push($_)
+                )
+            )
         }
-        @found
+        Seq.new(@found.iterator)
     }
 
     proto method batch(|) is nodal { * }
@@ -1933,6 +1953,10 @@ proto sub infix:<min>(|) is pure { * }
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
+multi sub infix:<min>(Int:D \a, Int:D \b) { nqp::if(nqp::islt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
+multi sub infix:<min>(int   \a, int   \b) { nqp::if(nqp::islt_i(nqp::cmp_i(a, b), 0), a, b) }
+multi sub infix:<min>(Num:D \a, Num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<min>(+args is raw) { args.min }
 sub min(+args, :&by = &infix:<cmp>) { args.min(&by) }
 
@@ -1940,6 +1964,10 @@ proto sub infix:<max>(|) is pure { * }
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
+multi sub infix:<max>(Int:D \a, Int:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
+multi sub infix:<max>(int   \a, int   \b) { nqp::if(nqp::isgt_i(nqp::cmp_i(a, b), 0), a, b) }
+multi sub infix:<max>(Num:D \a, Num:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<max>(num   \a, num   \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<max>(+args) { args.max }
 sub max(+args, :&by = &infix:<cmp>) { args.max(&by) }
 

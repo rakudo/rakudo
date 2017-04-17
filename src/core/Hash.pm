@@ -171,7 +171,7 @@ my class Hash { # declared in BOOTSTRAP
           nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
     }
 
-    multi method DELETE-KEY(Hash:U:) { Nil }
+    multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
         nqp::if(
           (nqp::getattr(self,Map,'$!storage').DEFINITE
@@ -224,15 +224,21 @@ my class Hash { # declared in BOOTSTRAP
         })
     }
 
-    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
-        return DUMP(self, :$indent-step) unless %ctx;
-
-        my Mu $attrs := nqp::list();
-        nqp::push($attrs, '$!descriptor');
-        nqp::push($attrs,  $!descriptor );
-        nqp::push($attrs, '$!storage'   );
-        nqp::push($attrs,  nqp::getattr(nqp::decont(self), Map, '$!storage'));
-        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
+    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {
+        nqp::if(
+          %ctx,
+          self.DUMP-OBJECT-ATTRS(
+            nqp::list(
+              '$!descriptor',
+              $!descriptor,
+              '$!storage',
+              nqp::getattr(nqp::decont(self),Map,'$!storage')
+            ),
+            :$indent-step,
+            :%ctx
+          ),
+          DUMP(self, :$indent-step)
+        )
     }
 
     # introspection
@@ -249,7 +255,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        nqp::isnull($!descriptor) ?? Nil !! nqp::p6bool($!descriptor.dynamic)
+        nqp::isnull($!descriptor) ?? False !! nqp::p6bool($!descriptor.dynamic)
     }
 
     method push(+values) {
@@ -734,6 +740,46 @@ my class Hash { # declared in BOOTSTRAP
               !! nqp::create(Capture)
         }
         method Map() { self.pairs.Map }
+
+        method !SETIFY(\type) {
+            nqp::stmts(
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::if(
+                (my $raw := nqp::getattr(self,Map,'$!storage'))
+                  && nqp::elems($raw),
+                nqp::stmts(
+                  (my $iter := nqp::iterator($raw)),
+                  nqp::while(
+                    $iter,
+                    nqp::istrue(
+                      nqp::getattr(
+                        nqp::decont(nqp::iterval(my $tmp := nqp::shift($iter))),
+                        Pair,
+                        '$!value'
+                      )
+                    ),
+                    nqp::bindkey(
+                      $elems,
+                      nqp::iterkey_s($tmp),
+                      nqp::getattr(
+                        nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+                    )
+                  )
+                )
+              ),
+              nqp::if(
+                nqp::elems($elems),
+                nqp::create(type).SET-SELF($elems),
+                nqp::if(
+                  nqp::eqaddr(type,Set),
+                  set(),
+                  nqp::create(type)
+                )
+              )
+            )
+        }
+        method Set() is nodal     { self!SETIFY(Set    ) }
+        method SetHash() is nodal { self!SETIFY(SetHash) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

@@ -2,7 +2,6 @@
 BEGIN {
     Bool.^add_method('Bool',    my proto method Bool(|)    { * });
     Bool.^add_method('gist',    my proto method gist(|)    { * });
-    Bool.^add_method('Str',     my proto method Str(|)     { * });
     Bool.^add_method('Numeric', my proto method Numeric(|) { * });
     Bool.^add_method('Int',     my proto method Int(|)     { * });
     Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) { * });
@@ -41,7 +40,7 @@ BEGIN {
 
 multi sub prefix:<++>(Bool $a is rw)  { $a = True; }
 multi sub prefix:<-->(Bool $a is rw)  { $a = False; }
-multi sub postfix:<++>(Bool:U $a is rw) { $a = True; False; }
+multi sub postfix:<++>(Bool:U $a is rw --> False) { $a = True }
 multi sub postfix:<-->(Bool:U $a is rw) { $a = False; }
 
 multi sub postfix:<++>(Bool:D $a is rw) {

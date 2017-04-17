@@ -4,15 +4,13 @@
             CompUnit::PrecompilationDependency::File $dependency,
             IO::Path :$source,
             CompUnit::PrecompilationStore :@precomp-stores,
-        ) returns CompUnit::Handle {
+            --> CompUnit::Handle:D) {
             Nil
         }
 
-        method load(CompUnit::PrecompilationId $id) {
-            Nil
-        }
+        method load(CompUnit::PrecompilationId $id --> Nil) { }
 
-        method may-precomp() {
+        method may-precomp(--> Bool:D) {
             True # would be a good place to check an environment variable
         }
     }
@@ -35,7 +33,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationDependency::File $dependency,
         IO::Path :$source = $dependency.src.IO,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
-    ) returns CompUnit::Handle {
+     --> CompUnit::Handle:D) {
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $id = $dependency.id;
         $RMD("try-load $id: $source") if $RMD;
@@ -301,7 +299,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
             next if %dependencies{$dependency.Str}++; # already got that one
-            $RMD("id: $dependency.id(), src: $dependency.src(), spec: $dependency.spec()") if $RMD;
+            $RMD($dependency.Str()) if $RMD;
             @dependencies.push: $dependency;
         }
         $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;

@@ -25,7 +25,7 @@ my role Awaitable::Handle {
     has Exception $.cause;
 
     method already-success(\result) {
-        self.CREATE!already-success(result)
+        nqp::create(self)!already-success(result)
     }
     method !already-success(\result) {
         $!already := True;

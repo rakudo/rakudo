@@ -129,7 +129,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$raw!) {
     $r.set_rw(); # for now, until we have real raw handling
 }
 multi sub trait_mod:<is>(Routine:D $r, :$default!) {
-    $r does role { method default() { True } }
+    $r does role { method default(--> True) { } }
 }
 multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
@@ -171,6 +171,7 @@ multi sub trait_mod:<is>(Routine $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))
         !! die "Routine given to equiv does not appear to be an operator";
+    $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
@@ -325,24 +326,24 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
-    $r.^mixin( role { method is-hidden-from-backtrace { True } } );
+    $r.^mixin( role { method is-hidden-from-backtrace(--> True) { } } );
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
     $r.^mixin( role {
-        method is-hidden-from-USAGE { True }
+        method is-hidden-from-USAGE(--> True) { }
     });
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.^mixin( role {
-        method IS_PURE { True }
+        method IS_PURE(--> True) { }
     });
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
     $r.^mixin( role {
-        method nodal { True }
+        method nodal(--> True) { }
     });
 }
 

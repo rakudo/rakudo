@@ -6,7 +6,7 @@ role Distribution {
     #   -   A Distribution may be represented internally by some other
     #       spec (such as using the file system itself for prereqs), as
     #       long as it can also be represented as the META6 hash format
-    method meta(--> Hash) {
+    method meta(--> Hash:D) {
         # Cannot just use ... here as that would break legacy code
         my $class-name = ::?CLASS.^name;
 
@@ -22,7 +22,7 @@ role Distribution {
     #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
-    method content($content-id --> IO::Handle) {
+    method content($content-id --> IO::Handle:D) {
         # Cannot just use ... here as that would break legacy code
         my $class-name = ::?CLASS.^name;
 
@@ -49,7 +49,7 @@ role Distribution {
                 has $.source-url;
                 method auth { $!auth // $!author // $!authority }
                 method ver  { $!ver // $!version }
-                method meta(--> Hash) {
+                method meta(--> Hash:D) {
                     {
                         :$!name,
                         :$.auth,
@@ -68,7 +68,7 @@ role Distribution {
                     ~ ":api<{$.meta<api>   // ''}>";
 
                 }
-                method content($content-id --> IO::Handle) { }
+                method content($content-id --> IO::Handle:D) { }
             }.new(|%_)
             !! self.bless(|%_)
     }
@@ -120,23 +120,23 @@ class Distribution::Path does Distribution::Locally {
     has $!meta;
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new(IO::Path $prefix, IO::Path :$meta-file is copy) {
-        $meta-file //= $prefix.child('META6.json');
+        $meta-file //= $prefix.add('META6.json');
         die "No meta file located at {$meta-file.path}" unless $meta-file.e;
         my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
 
         # generate `files` (special directories) directly from the file system
-        my %bins = Rakudo::Internals.DIR-RECURSE($prefix.child('bin').absolute).map(*.IO).map: -> $real-path {
+        my %bins = Rakudo::Internals.DIR-RECURSE($prefix.add('bin').absolute).map(*.IO).map: -> $real-path {
             my $name-path = $real-path.is-relative
                 ?? $real-path
                 !! $real-path.relative($prefix);
             $name-path => $real-path.absolute
         }
 
-        my $resources-dir = $prefix.child('resources');
+        my $resources-dir = $prefix.add('resources');
         my %resources = $meta<resources>.grep(*.?chars).map(*.IO).map: -> $path {
             my $real-path = $path ~~ m/^libraries\/(.*)/
-                ?? $resources-dir.child('libraries').child( $*VM.platform-library-name($0.Str.IO) )
-                !! $resources-dir.child($path);
+                ?? $resources-dir.add('libraries').add( $*VM.platform-library-name($0.Str.IO) )
+                !! $resources-dir.add($path);
             my $name-path = $path.is-relative
                 ?? "resources/{$path}"
                 !! "resources/{$path.relative($prefix)}";

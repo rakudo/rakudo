@@ -46,6 +46,7 @@ my class Proc::Async {
     has @.args;
     has $.w;
     has $.enc = 'utf8';
+    has $.translate-nl = True;
     has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
@@ -76,10 +77,10 @@ my class Proc::Async {
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
             !! self.stdout(|%_)
     }
-    multi method stdout(Proc::Async:D: :$enc) {
+    multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
         self!wrap-decoder:
             self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
-            $enc
+            $enc, :$translate-nl
     }
 
     proto method stderr(|) { * }
@@ -88,14 +89,15 @@ my class Proc::Async {
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
             !! self.stderr(|%_)
     }
-    multi method stderr(Proc::Async:D: :$enc) {
+    multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
         self!wrap-decoder:
             self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
-            $enc
+            $enc, :$translate-nl
     }
 
-    method !wrap-decoder(Supply:D $bin-supply, $enc) {
-        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc)
+    method !wrap-decoder(Supply:D $bin-supply, $enc, :$translate-nl) {
+        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
+            :translate-nl($translate-nl // $!translate-nl))
     }
 
     method !capture(\callbacks,\std,\the-supply) {
@@ -147,22 +149,18 @@ my class Proc::Async {
             $callbacks,
         );
 
-        Promise.allof( $!exit_promise, @!promises ).then( {
-            for @!promises -> $promise {
-                given $promise.result {
-                    when Supply { .done }
-                    when List   { $_[0].quit( $_[1] ) }
-                }
-            }
-            $!exit_promise.result;
-        } );
+        Promise.allof( $!exit_promise, @!promises ).then({
+            $!exit_promise.status == Broken
+                ?? $!exit_promise.cause.throw
+                !! $!exit_promise.result
+        })
     }
 
     method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
         X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
-        self.write($str.encode($!enc))
+        self.write($str.encode($!enc, :$!translate-nl))
     }
 
     method put(Proc::Async:D: \x, |c) {

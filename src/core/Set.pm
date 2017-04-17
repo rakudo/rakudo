@@ -5,7 +5,13 @@ my class Set does Setty {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
           $!WHICH,
-          $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort
+          $!WHICH := nqp::if(
+            nqp::istype(self.WHAT,Set),
+            'Set|',
+            nqp::concat(self.^name,'|')
+          ) ~ nqp::sha1(
+               nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys))
+            )
         )
     }
 
@@ -18,7 +24,7 @@ my class Set does Setty {
                 IterationEnd
               )
             }
-        }.new(%!elems)
+        }.new(self.hll_hash)
     }
 
     multi method kv(Set:D:) {
@@ -59,7 +65,7 @@ my class Set does Setty {
                   nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
                 )
             }
-        }.new(%!elems))
+        }.new(self.hll_hash))
     }
     multi method values(Set:D:) { True xx self.total }
 
@@ -70,11 +76,21 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method Set { self }
-    method SetHash { SetHash.new(self.keys) }
+    method Set() is nodal { self }
+    method SetHash() is nodal {
+        nqp::if(
+          $!elems,
+          nqp::p6bindattrinvres(
+            nqp::create(SetHash),SetHash,'$!elems',$!elems.clone
+          ),
+          nqp::create(SetHash)
+        )
+    }
 
-    multi method AT-KEY(Set:D: \k --> Bool) {
-        %!elems.EXISTS-KEY(k.WHICH);
+    method clone() { nqp::clone(self) }
+
+    multi method AT-KEY(Set:D: \k --> Bool:D) {
+        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(typename => self.^name).throw;

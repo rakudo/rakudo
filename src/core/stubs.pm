@@ -25,6 +25,8 @@ my role Mixy { ... }
 my class Mix { ... }
 my class MixHash { ... }
 
+my class Lock is repr('ReentrantMutex') { ... }
+
 sub DYNAMIC(\name) is raw {
     nqp::ifnull(
       nqp::getlexdyn(nqp::unbox_s(name)),

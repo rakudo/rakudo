@@ -1,10 +1,10 @@
-my class Grammar is Cursor {
+my class Grammar is Match {
 
     # cache cursor initialization lookup
-    my $cursor-init := Cursor.^lookup("!cursor_init");
+    my $cursor-init := Match.^lookup("!cursor_init");
 
     method parse(\target, :$rule, :$args, Mu :$actions) {
-        nqp::decont(nqp::getlexdyn('$/') =
+        nqp::decont(nqp::getlexcaller('$/') =
           nqp::if(
             (my $cursor := nqp::if(
               $rule,
@@ -23,7 +23,7 @@ my class Grammar is Cursor {
               (my $match := $cursor.MATCH),
               nqp::while(
                 $match && nqp::isne_i(
-                  nqp::getattr_i(($match := $cursor.MATCH),Match,'$!to'),
+                  nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
                   target.chars
                 ),
                 $match := ($cursor := $cursor.'!cursor_next'()).MATCH
@@ -36,7 +36,7 @@ my class Grammar is Cursor {
     }
 
     method subparse(\target, :$rule, :$args, Mu :$actions) {
-        nqp::decont(nqp::getlexdyn('$/') =
+        nqp::decont(nqp::getlexcaller('$/') =
           nqp::if(
             $rule,
             nqp::if(
@@ -54,7 +54,7 @@ my class Grammar is Cursor {
     }
 
     method parsefile(Str(Cool) $filename, :$enc) {
-        nqp::decont(nqp::getlexdyn('$/') = nqp::if(
+        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
           self.parse($filename.IO.slurp(:$enc), |%_),
           self.parse($filename.IO.slurp(:$enc))

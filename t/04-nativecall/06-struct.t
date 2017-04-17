@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 27;
+plan 28;
 
 compile_test_lib('06-struct');
 
@@ -25,6 +25,10 @@ class MyStruct is repr('CStruct') {
         $arr[0] = 1;
         $arr[1] = 2;
         $!arr := $arr;
+    }
+
+    method clear-array() {
+        $!arr := CArray[long];
     }
 }
 
@@ -97,6 +101,7 @@ class StructIntStruct is repr('CStruct') {
 
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
 sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
+sub TakeAStructWithNullCArray(MyStruct $arg) returns int32 is native('./06-struct') { * }
 
 sub ReturnAStructStruct()                returns StructStruct is native('./06-struct') { * }
 sub TakeAStructStruct(StructStruct $arg) returns int32        is native('./06-struct') { * }
@@ -143,6 +148,10 @@ is $strstr.first,  'OMG!',     'first string in struct';
 is $strstr.second, 'Strings!', 'second string in struct';
 
 is TakeAStruct($obj), 11, 'C-side values in struct';
+
+$obj.clear-array();
+is TakeAStructWithNullCArray($obj), 1,
+    'Setting a CArray struct element to type object passes a NULL to C';
 
 my StructStruct $ss2 .= new();
 

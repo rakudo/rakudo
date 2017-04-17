@@ -16,7 +16,6 @@ my role Iterable {
     }
 
     method flat(Iterable:D:) {
-        my $laze := self.is-lazy;
         Seq.new(class :: does Iterator {
             has Iterator $!source;
             has Iterator $!nested;
@@ -25,51 +24,57 @@ my role Iterable {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
             }
 
-            my constant NO_RESULT_YET = nqp::create(Mu);
             method pull-one() is raw {
-                my $result := NO_RESULT_YET;
-                my $got;
-                nqp::while(
-                  nqp::eqaddr($result, NO_RESULT_YET),
+                nqp::if(
+                  $!nested,
                   nqp::if(
-                    $!nested,
-                    nqp::if(
-                      nqp::eqaddr(($got := $!nested.pull-one),IterationEnd),
+                    nqp::eqaddr((my $got := $!nested.pull-one),IterationEnd),
+                    nqp::stmts(
                       ($!nested := Iterator),
-                      ($result := $got)
+                      self.pull-one
                     ),
+                    $got
+                  ),
+                  nqp::if(
+                    nqp::iscont($got := $!source.pull-one),
+                    $got,
                     nqp::if(
-                      nqp::istype(($got := $!source.pull-one),Iterable)
-                        && nqp::not_i(nqp::iscont($got)),
-                      ($!nested := $got.flat.iterator),
-                      ($result := $got)
+                      nqp::istype($got,Iterable),
+                      nqp::stmts(
+                        ($!nested := $got.flat.iterator),
+                        self.pull-one
+                      ),
+                      $got
                     )
                   )
-                );
-                $result
+                )
             }
 
             method push-all($target --> IterationEnd) {
-                my $iter := $!nested || $!source;
-                nqp::until(
-                       nqp::eqaddr((my $got := $iter.pull-one), IterationEnd)
-                    && nqp::eqaddr($iter, $!source),
-                    nqp::if(
-                        nqp::eqaddr($got, IterationEnd),
-                        nqp::stmts(
-                            ($!nested := Iterator),
-                            ($iter    := $!source),
-                        ),
-                        nqp::if(
-                               nqp::istype($got,Iterable)
-                            && nqp::not_i(nqp::iscont($got)),
-                            ($iter := $got.flat.iterator),
-                            $target.push($got),
-                        ),
+                nqp::stmts(
+                  nqp::if(
+                    $!nested,
+                    nqp::stmts(
+                      $!nested.push-all($target),
+                      ($!nested := Iterator)
                     )
-                );
+                  ),
+                  nqp::until(
+                    nqp::eqaddr((my $got := $!source.pull-one), IterationEnd),
+                    nqp::if(
+                      nqp::iscont($got),
+                      $target.push($got),
+                      nqp::if(
+                        nqp::istype($got,Iterable),
+                        $got.flat.iterator.push-all($target),
+                        $target.push($got)
+                      )
+                    )
+                  )
+                )
             }
-        }.new(self.iterator)).lazy-if($laze)
+            method is-lazy() { $!source.is-lazy }
+        }.new(self.iterator))
     }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
@@ -143,6 +148,17 @@ my role Iterable {
             method configuration() { $!configuration }
         }.new(self.iterator, $configuration));
     }
+
+
+    method !SETIFY(\type) {
+        nqp::create(type).SET-SELF(
+          type.fill_IterationSet(
+            nqp::create(Rakudo::Internals::IterationSet),self.flat.iterator
+          )
+        )
+    }
+    method Set() is nodal     { self!SETIFY(Set)     }
+    method SetHash() is nodal { self!SETIFY(SetHash) }
 }
 
 #if !moar

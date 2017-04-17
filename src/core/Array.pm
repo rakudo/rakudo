@@ -712,8 +712,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    my $nqplist := nqp::list;  # for splicing in without values
-    proto method splice(|) is nodal { * }
+    my $empty := nqp::create(IterationBuffer); # splicing in without values
     #------ splice() candidates
     multi method splice(Array:D \SELF:) {
         nqp::if(
@@ -787,7 +786,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
           ),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$size),
+            nqp::getattr(self,List,'$!reified'),$empty,$offset,$size),
           $result
         )
     }
@@ -871,7 +870,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           (my $result := self!splice-save($offset,$size,my int $removed)),
           nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$nqplist,$offset,$removed),
+            nqp::getattr(self,List,'$!reified'),$empty,$offset,$removed),
           $result
         )
     }
@@ -987,7 +986,8 @@ my class Array { # declared in BOOTSTRAP
                   nqp::elems(nqp::if(
                     nqp::getattr(self,List,'$!reified').DEFINITE,
                     nqp::getattr(self,List,'$!reified'),
-                    nqp::bindattr(self,List,'$!reified',nqp::list)
+                    nqp::bindattr(self,List,'$!reified',
+                      nqp::create(IterationBuffer))
                   )),
                   nqp::unbox_i($offset),
                 ),
@@ -1049,9 +1049,16 @@ my class Array { # declared in BOOTSTRAP
               (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
                 && nqp::elems($reified),
               nqp::stmts(
-                (my $iterator :=
-                  Rakudo::Iterator.ReifiedArray(self))
-                  .skip-at-least(nqp::elems($reified) - $n),
+                (my $iterator := Rakudo::Iterator.ReifiedArray(self)),
+                nqp::if(
+                  nqp::istype($n,Callable)
+                    && nqp::isgt_i((my $skip := -($n(0).Int)),0),
+                  $iterator.skip-at-least($skip),
+                  nqp::unless(
+                    nqp::istype($n,Whatever) || $n == Inf,
+                    $iterator.skip-at-least(nqp::elems($reified) - $n)
+                  )
+                ),
                 $iterator
               ),
               Rakudo::Iterator.Empty
@@ -1071,7 +1078,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        nqp::isnull($!descriptor) ?? Nil !! so $!descriptor.dynamic
+        nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
     multi method perl(Array:D \SELF:) {
         SELF.perlseen('Array', {

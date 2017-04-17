@@ -78,8 +78,8 @@ my class Range is Cool does Iterable does Positional {
     method is-int()       { nqp::p6bool($!is-int)       }
 
     multi method WHICH (Range:D:) {
-        self.^name
-          ~ "|$!min"
+        (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
+          ~ $!min
           ~ ("^" if $!excludes-min)
           ~ '..'
           ~ ("^" if $!excludes-max)
@@ -252,8 +252,8 @@ my class Range is Cool does Iterable does Positional {
         elsif $!max === -Inf {
             class :: does Iterator {
                 method new()      { nqp::create(self) }
-                method pull-one() { Inf }
-                method is-lazy()  { True  }
+                method pull-one(--> Inf) { }
+                method is-lazy(--> True) { }
             }.new
         }
 
@@ -381,7 +381,9 @@ my class Range is Cool does Iterable does Positional {
           nqp::if(
             nqp::istype($!min,Real)
               && $!min.floor == $!min
-              && nqp::istype($!max,Real),
+              && nqp::istype($!max,Real)
+              && nqp::istype($!min.Int, Int)  # exclude NaN and Infs, who will fail() here
+              && nqp::istype($!max.Int, Int),
             nqp::stmts(
               ($from = $!min.floor + $!excludes-min),
               ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
@@ -394,6 +396,8 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
           !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
+                && nqp::istype($!min.Int, Int) # exclude NaN and Infs, who will fail() here
+                && nqp::istype($!max.Int, Int)
             ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
             !! Failure.new("Cannot determine integer bounds")
     }
@@ -488,7 +492,7 @@ my class Range is Cool does Iterable does Positional {
                     }
                     method new(\b,\e) { nqp::create(self)!SET-SELF(b,e) }
                     method pull-one() { $!min + nqp::rand_I($!elems, Int) }
-                    method is-lazy()  { True }
+                    method is-lazy(--> True) { }
                 }.new($!min + $!excludes-min, $elems))
               !! self.list.roll(*)
         }
@@ -729,13 +733,13 @@ multi sub infix:<*>(Range:D \a, Real:D \b) { a.clone-with-op(&[*], b) }
 multi sub infix:<*>(Real:D \a, Range:D \b) { b.clone-with-op(&[*], a) }
 multi sub infix:</>(Range:D \a, Real:D \b) { a.clone-with-op(&[/], b) }
 
-multi sub infix:<cmp>(Range:D \a, Range:D \b) returns Order:D {
+multi sub infix:<cmp>(Range:D \a, Range:D \b --> Order:D) {
     a.min cmp b.min || a.excludes-min cmp b.excludes-min || a.max cmp b.max || b.excludes-max cmp a.excludes-max
 }
-multi sub infix:<cmp>(Num(Real) \a, Range:D \b) returns Order:D { (a..a) cmp b }
-multi sub infix:<cmp>(Range:D \a, Num(Real) \b) returns Order:D { a cmp (b..b) }
+multi sub infix:<cmp>(Num(Real) \a, Range:D \b --> Order:D) { (a..a) cmp b }
+multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D) { a cmp (b..b) }
 
-multi sub infix:<cmp>(Positional \a, Range:D \b) returns Order:D { a cmp b.list }
-multi sub infix:<cmp>(Range:D \a, Positional \b) returns Order:D { a.list cmp b }
+multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D) { a cmp b.list }
+multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D) { a.list cmp b }
 
 # vim: ft=perl6 expandtab sw=4

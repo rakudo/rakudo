@@ -12,6 +12,7 @@ my @vars;
 my $indents = "";
 
 # variables to keep track of our tests
+my $subtest_callable_type;
 my int $num_of_tests_run;
 my int $num_of_tests_failed;
 my int $todo_upto_test_num;
@@ -55,6 +56,26 @@ our sub failure_output is rw {
 
 our sub todo_output is rw {
     $todo_output
+}
+
+multi sub plan (Cool:D :skip-all($reason)!) {
+    _init_io() unless $output;
+    $output.say: $indents ~ "1..0 # Skipped: $reason";
+
+    exit unless $subtest_level; # just exit if we're not in a subtest
+
+    # but if we are, adjust the vars, so the output matches up with zero
+    # planned tests, all passsing. Also, check the subtest's Callable is
+    # something we can actually return from.
+
+    $subtest_callable_type === Sub|Method
+        or die "Must give `subtest` a (Sub) or a (Method) to be able to use "
+            ~ "`skip-all` plan inside, but you gave a "
+            ~ $subtest_callable_type.gist;
+
+    $done_testing_has_been_run = 1;
+    $num_of_tests_failed = $num_of_tests_planned = $num_of_tests_run = 0;
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, True);
 }
 
 # "plan 'no_plan';" is now "plan *;"
@@ -370,6 +391,7 @@ multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)   
 multi sub subtest(&subtests, $desc = '') is export {
     _push_vars();
     _init_vars();
+    $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
     $subtest_level += 1;
@@ -413,30 +435,41 @@ multi sub flunk($reason) is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
+multi sub isa-ok(
+    Mu $var, Mu $type, $desc = "The object is-a '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.isa($type), $msg)
+    my $ok = proclaim($var.isa($type), $desc)
         or _diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.perl ~ "'")) is export {
+multi sub does-ok(
+    Mu $var, Mu $type, $desc = "The object does role '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.does($type), $msg)
+    my $ok = proclaim($var.does($type), $desc)
         or _diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub can-ok(Mu $var, Str $meth, $msg = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
+multi sub can-ok(
+    Mu $var, Str $meth,
+    $desc = ($var.defined ?? "An object of type '" !! "The type '")
+        ~ "$var.WHAT.perl()' can do the method '$meth'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.^can($meth), $msg);
+    my $ok = proclaim($var.^can($meth), $desc);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub like(Str $got, Regex $expected, $desc = '') is export {
+multi sub like(
+    Str $got, Regex $expected,
+    $desc = "text matches '$expected.perl()'"
+) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $test = $got ~~ $expected;
@@ -449,7 +482,10 @@ multi sub like(Str $got, Regex $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
+multi sub unlike(
+    Str $got, Regex $expected,
+    $desc = "text does not match '$expected.perl()'"
+) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $test = !($got ~~ $expected);
@@ -462,12 +498,12 @@ multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
+multi sub use-ok(Str $code, $desc = "$code module can be use-d ok") is export {
     $time_after = nqp::time_n;
     try {
         EVAL ( "use $code" );
     }
-    my $ok = proclaim((not defined $!), $msg) or _diag($!);
+    my $ok = proclaim((not defined $!), $desc) or _diag($!);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -678,6 +714,7 @@ sub done-testing() is export {
 }
 
 sub _init_vars {
+    $subtest_callable_type = Mu;
     $num_of_tests_run     = 0;
     $num_of_tests_failed  = 0;
     $todo_upto_test_num   = 0;
@@ -691,6 +728,7 @@ sub _init_vars {
 
 sub _push_vars {
     @vars.push: item [
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,
@@ -705,6 +743,7 @@ sub _push_vars {
 
 sub _pop_vars {
     (
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,

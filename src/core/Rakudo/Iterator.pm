@@ -23,17 +23,19 @@ class Rakudo::Iterator {
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
         method SET-SELF(\blob) {
+            nqp::stmts(               # something to iterator over
+              ($!blob := blob),
+              ($!i     = -1),
+              self
+            )
+        }
+        method new(\blob) {
             nqp::if(
               nqp::isgt_i(nqp::elems(blob),0),
-              nqp::stmts(               # something to iterator over
-                ($!blob := blob),
-                ($!i     = -1),
-                self
-              ),
+              nqp::create(self).SET-SELF(blob),
               Rakudo::Iterator.Empty    # nothing to iterate
             )
         }
-        method new(\blob) { nqp::create(self).SET-SELF(blob) }
 
         # We can provide a generic push-all to the iterator as the
         # result of a push-all is always immutable, so we can use
@@ -61,17 +63,20 @@ class Rakudo::Iterator {
         has $!iter;
 
         method SET-SELF(\hash) {
-            $!storage := nqp::getattr(hash,Map,'$!storage');
+            nqp::stmts(
+              ($!storage := nqp::getattr(hash,Map,'$!storage')),
+              ($!iter := nqp::iterator($!storage)),
+              self
+            )
+        }
+        method new(\hash) {
             nqp::if(
-              ($!storage.DEFINITE && nqp::elems($!storage)),
-              nqp::stmts(              # we have something to iterate over
-                ($!iter := nqp::iterator($!storage)),
-                self
-              ),
+              nqp::getattr(hash,Map,'$!storage')
+                && nqp::elems(nqp::getattr(hash,Map,'$!storage')),
+              nqp::create(self).SET-SELF(hash),
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
@@ -105,13 +110,14 @@ class Rakudo::Iterator {
 
         method dims() {                  # HLL version of $!dims
             nqp::stmts(
-              (my $result := nqp::setelems(nqp::list,nqp::elems($!dims))),
+              (my $buffer :=
+                nqp::setelems(nqp::create(IterationBuffer),nqp::elems($!dims))),
               (my int $i = -1),
               nqp::while(                # convert list_i to list
                 nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                nqp::bindpos($result,$i,nqp::atpos_i($!dims,$i))
+                nqp::bindpos($buffer,$i,nqp::atpos_i($!dims,$i))
               ),
-              $result
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buffer)
             )
         }
 
@@ -346,6 +352,62 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Create iterator that produces all values *except* the last N values
+    # of a given iterator.  Returns an empty iterator if the given iterator
+    # produced fewer than N values.
+    method AllButLastNValues(\iterator, \n) {
+        class :: does Iterator {
+            has $!iterator;
+            has $!buffered;
+            has int $!size;
+            has int $!index;
+
+            method !SET-SELF(\iterator, int $size) {
+                nqp::stmts(
+                  (my int $i = -1),
+                  (my $buffered := nqp::setelems(nqp::list,$size)),
+                  nqp::while(                      # fill buffer to produce from
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$size)
+                      && nqp::not_i(nqp::eqaddr(
+                           (my $pulled := iterator.pull-one),
+                           IterationEnd
+                         )),
+                    nqp::bindpos($buffered,$i,$pulled)
+                  ),
+                  nqp::if(
+                    nqp::islt_i($i,$size),
+                    Rakudo::Iterator.Empty,        # didn't produce enough
+                    nqp::stmts(                    # we're in business
+                      ($!iterator := iterator),
+                      ($!buffered := $buffered),
+                      ($!size = $size),
+                      self
+                    )
+                  )
+                )
+            }
+            method new(\iterator,\n) {
+                nqp::if(
+                  nqp::isle_i(n,0),
+                  iterator,                        # we wants it all
+                  nqp::create(self)!SET-SELF(iterator,n)
+                )
+            }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+                  $pulled,                         # we're done
+                  nqp::stmts(                      # produce/update buffer
+                    (my $value := nqp::atpos($!buffered,$!index)),
+                    nqp::bindpos($!buffered,$!index,$pulled),
+                    ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
+                    $value
+                  )
+                )
+            }
+        }.new(iterator, n)
+    }
+
     # Return an iterator that will generate a pair with the value as the
     # key and as value the key of the given iterator, basically the
     # .antipairs functionality on 1 dimensional lists.
@@ -379,7 +441,7 @@ class Rakudo::Iterator {
     # batches of the given size.  The third parameter indicates whether
     # a partial batch should be returned when the source iterator has
     # exhausted.  The returned iterator is as lazy as the source iterator.
-    method Batch(\iterable,\size,\partial) {
+    method Batch(\iterator,\size,\partial) {
         class :: does Iterator {
             has $!iterator;
             has int $!size;
@@ -440,7 +502,7 @@ class Rakudo::Iterator {
               )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,size,partial)
+        }.new(iterator,size,partial)
     }
 
     # Return an iterator for a given Callable.  The Callable is supposed
@@ -473,6 +535,86 @@ class Rakudo::Iterator {
           }.new(&callable),
           Rakudo::Iterator.Callable(&callable)
         )
+    }
+
+    # Return an iterator for the "thunk xx 42" functionality.
+    method Callable-xx-Times(&code, Int:D \times) {
+        class :: does Iterator {
+            has @!slipped;
+            has $!code;
+            has $!times;
+            method !SET-SELF(\code,\times) {
+                nqp::stmts(
+                  ($!code := code),
+                  ($!times = times),
+                  self
+                )
+            }
+            method new(\code,\times) {
+                nqp::if(
+                  times > 0,
+                  nqp::create(self)!SET-SELF(code,times),
+                  Rakudo::Iterator.Empty
+                )
+            }
+            method pull-one() {
+                nqp::if(
+                  @!slipped,
+                  @!slipped.shift,
+                  nqp::if(
+                    $!times > 0,
+                    nqp::stmts(
+                      --$!times,             # consumed a value
+                      nqp::if(
+                        nqp::istype((my $pulled := $!code()),Slip),
+                        nqp::if(
+                          (@!slipped = $pulled),
+                          @!slipped.shift,
+                          IterationEnd
+                        ),
+                        nqp::if(
+                          nqp::istype($pulled,Seq),
+                          $pulled.cache,
+                          $pulled
+                        )
+                      )
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+        }.new(&code,times)
+    }
+
+    # Return an iterator for the "thunk xx *" functionality.
+    method Callable-xx-Whatever(&code) {
+        class :: does Iterator {
+            has @!slipped;
+            has $!code;
+            method new(\code) {
+                nqp::p6bindattrinvres(nqp::create(self),self,'$!code',code)
+            }
+            method pull-one() {
+                nqp::if(
+                  @!slipped,
+                  @!slipped.shift,
+                  nqp::if(
+                    nqp::istype((my $pulled := $!code()),Slip),
+                    nqp::if(
+                      (@!slipped = $pulled),
+                      @!slipped.shift,
+                      IterationEnd
+                    ),
+                    nqp::if(
+                      nqp::istype($pulled,Seq),
+                      $pulled.cache,
+                      $pulled
+                    )
+                  )
+                )
+            }
+            method is-lazy(--> True) { }
+        }.new(&code)
     }
 
     # Return an iterator for a range of 0..^N with a number of elements.
@@ -1131,7 +1273,7 @@ class Rakudo::Iterator {
             has &!cond;
             has &!afterwards;
             has int $!seen-first;
-   
+
             method !SET-SELF(\body,\cond,\afterwards) {
                 nqp::stmts(
                   (&!body := body),
@@ -1299,6 +1441,64 @@ class Rakudo::Iterator {
         }.new
     }
 
+    # Returns at most N items, then calls .sink-all on source. Optionally,
+    # executes a Callable when either N items were returned or original iterator
+    # got exhausted. N can be negative to ask for "all values".
+    # This is used in several places in IO::Handle, e.g. in
+    # .lines to read N lines and then close the filehandle via .sink-all
+    method FirstNThenSinkAll(\source,\n,&callable?) {
+        # XXX TODO: Make this code DRYer by moving common bits to a role,
+        # but currently (2017-04) assigning to `int $!n` attribute from SET-SELF
+        # signature complains about immutable ints if done in a role, and
+        # private methods **in roles** are slow, so we duplicated stuff here
+        nqp::if(
+          nqp::isge_i(n, 0),
+          class :: does Iterator {
+              has $!source;
+              has int $!n;
+              has int $!i = -1;
+              has &!callable;
+              method pull-one {
+                  nqp::if(
+                    nqp::iseq_i($!n, ($!i = nqp::add_i($!i, 1)))
+                      && self!FINISH-UP(1)
+                    || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
+                      && self!FINISH-UP(0),
+                    IterationEnd,
+                    $got
+                  )
+              }
+              method sink-all { self!FINISH-UP; Nil }
+              method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
+              method !SET-SELF($!source,$!n,&!callable) { self }
+              method !FINISH-UP(\do-sink) {
+                  do-sink    && $!source.sink-all;
+                  &!callable && &!callable();
+                  1
+              }
+          }.new(source,n,&callable),
+          nqp::if(
+            &callable,
+            class :: does Iterator {
+                has $!source;
+                has int $!n;
+                has int $!i = -1;
+                has &!callable;
+                method pull-one {
+                    nqp::if(
+                      nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
+                        && (&!callable()||1),
+                      IterationEnd,
+                      $got
+                    )
+                }
+                method sink-all { $!source.sink-all; &!callable(); Nil }
+                method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
+                method !SET-SELF($!source,&!callable) { self }
+            }.new(source,&callable),
+            source))
+    }
+
     # Return an iterator that will cache a source iterator for the index
     # values that the index iterator provides, from a given offest in the
     # cached source iterator.  Values from the index iterator below the
@@ -1412,6 +1612,83 @@ class Rakudo::Iterator {
             method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
             method sink-all(--> IterationEnd) { $!i = $!last }
         }.new(from,to)
+    }
+
+    # Return an iterator from a given iterator producing Pairs, in which
+    # each .value is checked for iterability: if Iterable, produce Pairs
+    # with the original key as its value, and key with the values produced
+    # by the Iterable.  Otherwise, just produce an antipair.
+    method Invert(\iterator) {
+        class :: does Iterator {
+            has $!iterator;   # source iterator
+            has $!value;      # original key to repeat for Iterable
+            has $!slipper;    # iterator if Iterable value in source
+
+            method new(\iterator) {
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!iterator',iterator)
+            }
+            method pull-one() {
+                nqp::if(
+                  $!slipper,                            # we have a slipper
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled := $!slipper.pull-one),
+                      IterationEnd
+                    ),
+                    nqp::stmts(                         # slipper exhausted
+                      ($!slipper := nqp::null),         # deny all knowledge
+                      self.pull-one                     # rinse and repeat
+                    ),
+                    Pair.new($pulled,$!value)           # not the end, slip it
+                  ),
+                  nqp::if(                              # no slipper
+                    nqp::eqaddr(
+                      ($pulled := nqp::decont($!iterator.pull-one)),
+                      IterationEnd
+                    ),
+                    IterationEnd,                       # source exhausted
+                    nqp::if(                            # still in business
+                      nqp::istype($pulled,Pair),
+                      nqp::if(                          # it's a Pair, whee!
+                        nqp::istype(
+                          (my $key := nqp::getattr($pulled,Pair,'$!value')),
+                          Iterable
+                        ),
+                        nqp::stmts(                     # need to slip it!
+                          ($!slipper := $key.iterator), # set up the slipper
+                          ($!value := nqp::getattr($pulled,Pair,'$!key')),
+                          self.pull-one                 # rinse and repeat
+                        ),
+                        Pair.new(                       # just needs swapping
+                          $key,
+                          nqp::getattr($pulled,Pair,'$!key')
+                        )
+                      ),
+                      X::TypeCheck.new(                 # naughty, slap it!
+                        operation => 'invert',
+                        got       => $pulled,
+                        expected  => Pair
+                      ).throw
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!iterator.is-lazy }
+            method sink-all(--> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+                  nqp::unless(
+                    nqp::istype($pulled,Pair),
+                    X::TypeCheck.new(                   # naughty, slap it!
+                      operation => 'invert',
+                      got       => $pulled,
+                      expected  => Pair
+                    ).throw
+                  )
+                )
+            }
+        }.new(iterator)
     }
 
     # Return an iterator that will alternately generate an index value,
@@ -1647,7 +1924,7 @@ class Rakudo::Iterator {
                 )
             }
 
-            method is-lazy() { True }
+            method is-lazy(--> True) { }
         }.new(&body)
     }
 
@@ -1909,18 +2186,20 @@ class Rakudo::Iterator {
             has int $!is-lazy;
 
             method !SET-SELF(Mu \value,\times) {
+                nqp::stmts(
+                  ($!value := value),
+                  ($!times  = times),
+                  ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
+                  self
+                )
+            }
+            method new(Mu \value,\times) {
                 nqp::if(
                   times > 0,
-                  nqp::stmts(
-                    ($!value := value),
-                    ($!times  = times),
-                    ($!is-lazy = nqp::isbig_I(nqp::decont(times))),
-                    self
-                  ),
+                  nqp::create(self)!SET-SELF(value,times),
                   Rakudo::Iterator.Empty
                 )
             }
-            method new(Mu \val,\tim) { nqp::create(self)!SET-SELF(val,tim) }
             method pull-one() is raw {
                 nqp::if(
                   $!times,
@@ -1933,8 +2212,11 @@ class Rakudo::Iterator {
             }
             method push-all($target --> IterationEnd) {
                 nqp::while(
-                  $!times--,
-                  $target.push($!value)
+                  $!times,
+                  nqp::stmts(
+                    --$!times,
+                    $target.push($!value)
+                  )
                 )
             }
             method skip-one() { nqp::if($!times,$!times--) }
@@ -2156,7 +2438,10 @@ class Rakudo::Iterator {
 
             method !SET-SELF(\list) {
                 nqp::stmts(
-                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
                   ($!i = -1),
                   self
                 )
@@ -2200,6 +2485,61 @@ class Rakudo::Iterator {
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
+        }.new(list)
+    }
+
+    # Return an iterator that produces values in reverse order for a
+    # List that has been completely reified already.  Returns an nqp::null
+    # for elements don't exist before the end of the reified list.
+    method ReifiedListReverse(\list) {
+        class :: does Iterator {
+            has $!reified;
+            has int $!i;
+
+            method !SET-SELF(\list) {
+                nqp::stmts(
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
+                  ($!i = nqp::elems($!reified)),
+                  self
+                )
+            }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!i,
+                  nqp::atpos($!reified,$!i = nqp::sub_i($!i,1)),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $i = nqp::elems($!reified)),
+                  nqp::while(  # doesn't sink
+                    $i,
+                    $target.push(nqp::atpos($!reified,($i = nqp::sub_i($i,1))))
+                  ),
+                  ($!i = 0)
+                )
+            }
+            method skip-one() {
+                nqp::if(
+                  $!i,
+                  nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
+                )
+            }
+            method skip-at-least(int $toskip) {
+                nqp::unless(
+                  nqp::isge_i(($!i = nqp::sub_i($!i,$toskip)),0),
+                  ($!i = 0)
+                )
+            }
+            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { $!i = 0 }
         }.new(list)
     }
 
@@ -2274,7 +2614,7 @@ class Rakudo::Iterator {
             has $!body;
             has $!cond;
             has int $!skip;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
@@ -2340,7 +2680,7 @@ class Rakudo::Iterator {
     # until the source iterator is exhausted.  The third parameter
     # indicates whether a partial result is acceptable when the
     # source iterator is exhausted.
-    method Rotor(\iterable,\cycle,\partial) {
+    method Rotor(\iterator,\cycle,\partial) {
         class :: does Iterator {
             has $!iterator;
             has $!cycle;
@@ -2437,7 +2777,7 @@ class Rakudo::Iterator {
                     )
                   ),
                   nqp::until(                          # fill the buffer
-                    nqp::iseq_i(nqp::elems($!buffer),$elems)
+                    nqp::isge_i(nqp::elems($!buffer),$elems)
                       || nqp::eqaddr(
                            (my $pulled := $!iterator.pull-one),
                            IterationEnd
@@ -2445,8 +2785,11 @@ class Rakudo::Iterator {
                     nqp::push($!buffer,$pulled)
                   ),
                   nqp::if(
-                    nqp::eqaddr($pulled,IterationEnd)
-                      && ($!complete || nqp::not_i(nqp::elems($!buffer))),
+                    nqp::not_i(nqp::elems($!buffer))
+                      || (nqp::eqaddr($pulled,IterationEnd)
+                           && $!complete
+                           && nqp::islt_i(nqp::elems($!buffer),$elems)
+                         ),
                     IterationEnd,                      # done
                     nqp::if(
                       nqp::islt_i($gap,0),
@@ -2455,7 +2798,11 @@ class Rakudo::Iterator {
                           nqp::create(List),List,'$!reified',
                           nqp::clone($!buffer)
                         )),
-                        nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap)),
+                        nqp::if(
+                          nqp::islt_i(nqp::elems($!buffer),$elems),
+                          nqp::setelems($!buffer,0),   # was :partial, now done
+                          nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap))
+                        ),
                         $result
                       ),
                       nqp::stmts(
@@ -2463,9 +2810,28 @@ class Rakudo::Iterator {
                           nqp::isgt_i($gap,0),
                           $!iterator.skip-at-least($gap) # need to skip a few
                         ),
-                        ($result := nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',$!buffer)),
-                        ($!buffer := nqp::create(IterationBuffer)),
+                        nqp::if(
+                          nqp::isle_i(nqp::elems($!buffer),$elems),
+                          nqp::stmts(                    # whole buffer ok
+                            ($result := nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              $!buffer
+                            )),
+                            ($!buffer := nqp::create(IterationBuffer))
+                          ),
+                          nqp::stmts(                    # partial buffer ok
+                            ($result := nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              nqp::splice(
+                                nqp::clone($!buffer),
+                                $empty,
+                                $elems,
+                                nqp::sub_i(nqp::elems($!buffer),$elems)
+                              )
+                            )),
+                            nqp::splice($!buffer,$empty,0,$elems)
+                          )
+                        ),
                         $result
                       )
                     )
@@ -2473,7 +2839,7 @@ class Rakudo::Iterator {
                 )
             }
             method is-lazy() { $!iterator.is-lazy }
-        }.new(iterable,cycle,partial)
+        }.new(iterator,cycle,partial)
     }
 
     # Return an iterator that will roundrobin the given iterables
@@ -2519,7 +2885,7 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
-                      (my $list := nqp::list),
+                      (my $buf := nqp::create(IterationBuffer)),
                       nqp::until(
                         nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
                         nqp::if(
@@ -2532,13 +2898,13 @@ class Rakudo::Iterator {
                             ($i = nqp::sub_i($i,1)),
                             ($elems = nqp::sub_i($elems,1))
                           ),
-                          nqp::push($list,$pulled)
+                          nqp::push($buf,$pulled)
                         )
                       ),
                       nqp::if(
-                        nqp::elems($list),
+                        nqp::elems($buf),
                         nqp::p6bindattrinvres( # at least one not exhausted
-                          nqp::create(List),List,'$!reified',$list),
+                          nqp::create(List),List,'$!reified',$buf),
                         nqp::stmts(            # we're done
 #?if jvm
                           ($!iters := Mu),
@@ -2612,7 +2978,8 @@ class Rakudo::Iterator {
                 nqp::stmts(
                   ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
                   (my int $dims = nqp::elems($!dims)),
-                  ($!indices := nqp::setelems(nqp::list,$dims)),
+                  ($!indices :=
+                    nqp::setelems(nqp::create(IterationBuffer),$dims)),
                   (my int $i = -1),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
@@ -2629,7 +2996,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   $!indices,
                   nqp::stmts(                      # still iterating
-                    (my $result := nqp::clone($!indices)),
+                    (my $buf := nqp::clone($!indices)),
                     nqp::if(
                       nqp::islt_i(                        (my int $i =
                           nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
@@ -2657,7 +3024,8 @@ class Rakudo::Iterator {
                         )
                       )
                     ),
-                    $result                        # what we found
+                    nqp::p6bindattrinvres(         # what we found
+                      nqp::create(List),List,'$!reified',$buf)
                   ),
                   IterationEnd                     # done iterating
                 )
@@ -2674,7 +3042,7 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }
-            method is-lazy() { True }
+            method is-lazy(--> True) { }
         }.new(value)
     }
 
@@ -2743,7 +3111,7 @@ class Rakudo::Iterator {
         class :: does SlippyIterator {
             has $!body;
             has $!cond;
-   
+
             method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
@@ -2840,14 +3208,15 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
-                      (my $list := nqp::setelems(nqp::list,$elems)),
+                      (my $buf :=
+                        nqp::setelems(nqp::create(IterationBuffer),$elems)),
                       nqp::until(
                         nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
                          || nqp::eqaddr(
                               (my $pulled := nqp::atpos($!iters,$i).pull-one),
                               IterationEnd
                             ),
-                        nqp::bindpos($list,$i,$pulled)
+                        nqp::bindpos($buf,$i,$pulled)
                       ),
                       nqp::if(
                         nqp::islt_i($i,$elems),  # at least one exhausted
@@ -2861,7 +3230,7 @@ class Rakudo::Iterator {
                           IterationEnd
                         ),
                         nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',$list)
+                          nqp::create(List),List,'$!reified',$buf)
                       )
                     )
                   )

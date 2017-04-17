@@ -31,8 +31,12 @@ my class Failure is Nil {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
-    # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.
-    submethod DESTROY () { if not $!handled { note "WARNING: unhandled Failure detected in DESTROY:\n" ~ self.mess } }
+    submethod DESTROY () {
+        note "WARNING: unhandled Failure detected in DESTROY. If you meant "
+            ~ "to ignore it, you can mark it as handled by calling .Bool, "
+            ~ ".so, .not, or .defined methods. The Failure was:\n" ~ self.mess
+        unless $!handled;
+    }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {

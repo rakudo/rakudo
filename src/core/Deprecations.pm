@@ -56,14 +56,21 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
     my Version $vremoved;
     if $from {
         $vfrom = Version.new($from);
-        return if ($version cmp $vfrom) ~~ Less | Same; # can be better?
+        return unless $version cmp $vfrom === More;
     }
     $vremoved = Version.new($removed) if $removed;
 
     my $bt = Backtrace.new;
     my $deprecated =
       $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
-    $index = $bt.next-interesting-index($index, :noproto, :setting) for ^$up;
+
+    if $up ~~ Whatever {
+        $index = $bt.next-interesting-index($index, :noproto);
+    }
+    else {
+        $index = $bt.next-interesting-index($index, :noproto, :setting)
+            for ^$up;
+    }
     my $callsite = $bt[$index];
 
     # get object, existing or new

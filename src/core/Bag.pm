@@ -10,7 +10,7 @@ my class Bag does Baggy {
           $!WHICH := self!WHICH
         )
     }
-    method total(Bag:D: --> Int) {
+    method total(Bag:D: --> Int:D) {
         nqp::if(
           nqp::attrinited(self,Bag,'$!total'),
           $!total,
@@ -32,12 +32,12 @@ my class Bag does Baggy {
     }
 
 #--- coercion methods
-    method Bag     { self }
-    method BagHash { BagHash.new-from-pairs(%!elems.values) }
-    method Mix {
+    method Bag() is nodal { self }
+    method Mix() is nodal {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
     }
-    method MixHash { MixHash.new-from-pairs(%!elems.values) }
+
+    method clone() { nqp::clone(self) }
 
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;

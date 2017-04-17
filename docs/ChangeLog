@@ -38,6 +38,8 @@ New in 2017.04
     + [IO] Made IO::Path:: subclasses instantiate a subclass, not IO::Path [a0b82ed]
     + [IO] Fixed crash when very large files were read with IO::Path.slurp [d0924f1]
     + [IO] Ensured IO::Handle.Str coerced .path to Str [1f689a9]
+    + [IO] Fixed crash when binary slurping large files with &slurp/IO::Path.slurp [756877e]
+    + [IO] Fixed occasional zero byte read when binary slurping files [756877e]
     + [IO] IO::Handle.symlink/.link now take name of the link as argument;
         the invocant is the target [8c09c84]
     + Various improvements to warnings and error reporting [6a77cda][d90c6bf][f9968b3]

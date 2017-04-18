@@ -151,6 +151,40 @@ class Distribution::Path does Distribution::Locally {
 }
 
 role CompUnit::Repository { ... }
+
+class Distribution::Resource {
+    has $.repo;
+    has $.repo-name;
+    has $.dist-id;
+    has $.key;
+    has $.IO handles <
+        Str gist perl
+        absolute is-absolute relative is-relative
+        parts volume dirname basename extension
+        open resolve slurp lines comb split words copy
+    >;
+
+    method BUILD(:$!repo, :$!repo-name, :$!dist-id, :$!key) {
+        my $self = self;
+        $!IO = Proxy.new(
+            FETCH => method () {
+                my $repo := $self.repo-name
+                    ?? CompUnit::RepositoryRegistry.repository-for-name($self.repo-name)
+                    !! CompUnit::RepositoryRegistry.repository-for-spec($self.repo);
+                $repo.resource($self.dist-id, "resources/$self.key()")
+            },
+            STORE => method ($new) { die "Attribute IO is read-only" },
+        );
+    }
+
+    method platform-library-name() {
+        my $library = self.IO;
+        ($library ~~ /\.<.alpha>+$/ or $library ~~ /\.so(\.<.digit>+)+$/) #Already a full name?
+            ??  $library
+            !!  $*VM.platform-library-name($library)
+    }
+}
+
 class Distribution::Resources does Associative {
     has Str $.dist-id;
     has Str $.repo;
@@ -179,38 +213,7 @@ class Distribution::Resources does Associative {
     }
 
     method AT-KEY($key) {
-        my class :: does Callable {
-            has $.repo;
-            has $.repo-name;
-            has $.dist-id;
-            has $.key;
-            has $.IO handles <
-                Str gist perl
-                absolute is-absolute relative is-relative
-                parts volume dirname basename extension
-                open resolve slurp lines comb split words copy
-            >;
-            method BUILD(:$!repo, :$!repo-name, :$!dist-id, :$!key) {
-                my $self = self;
-                $!IO = Proxy.new(
-                    FETCH => method () {
-                        my $repo := $self.repo-name
-                            ?? CompUnit::RepositoryRegistry.repository-for-name($self.repo-name)
-                            !! CompUnit::RepositoryRegistry.repository-for-spec($self.repo);
-                        $repo.resource($self.dist-id, "resources/$self.key()")
-                    },
-                    STORE => method ($new) { die "Attribute IO is read-only" },
-                );
-            }
-            method CALL-ME() {
-                self.IO.Str
-            }
-        }.new(
-            :$.repo,
-            :$.repo-name,
-            :$.dist-id,
-            :$key,
-        )
+        Distribution::Resource.new(:$.repo, :$.repo-name, :$.dist-id, :$key)
     }
 
     method Str() {

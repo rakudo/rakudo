@@ -184,17 +184,26 @@ class Distribution::Resources does Associative {
             has $.repo-name;
             has $.dist-id;
             has $.key;
-            method IO() {
-                my $repo := $!repo-name
-                    ?? CompUnit::RepositoryRegistry.repository-for-name($!repo-name)
-                    !! CompUnit::RepositoryRegistry.repository-for-spec($!repo);
-                $repo.resource($!dist-id, "resources/$!key")
+            has $.IO handles <
+                Str gist perl
+                absolute is-absolute relative is-relative
+                parts volume dirname basename extension
+                open resolve slurp lines comb split words copy
+            >;
+            method BUILD(:$!repo, :$!repo-name, :$!dist-id, :$!key) {
+                my $self = self;
+                $!IO = Proxy.new(
+                    FETCH => method () {
+                        my $repo := $self.repo-name
+                            ?? CompUnit::RepositoryRegistry.repository-for-name($self.repo-name)
+                            !! CompUnit::RepositoryRegistry.repository-for-spec($self.repo);
+                        $repo.resource($self.dist-id, "resources/$self.key()")
+                    },
+                    STORE => method ($new) { die "Attribute IO is read-only" },
+                );
             }
             method CALL-ME() {
                 self.IO.Str
-            }
-            method Str() {
-                return self.IO.Str
             }
         }.new(
             :$.repo,

@@ -1,3 +1,9 @@
+New in 2017.04.2:
+ + Fixes:
+    + Fix "Cannot invoke this object (REPR: Null; VMNull)" [4a560aa]
+    + Improve relations between %?RESOURCES and Native trait [647abfe]
+    + Support all appropriate IO::Path methods on Distribution::Resources [f4f1c42]
+
 New in 2017.04.1:
  + Fixes:
     + Removed unwanted debugging output [c9ebfc20]

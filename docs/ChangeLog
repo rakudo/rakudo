@@ -1,3 +1,9 @@
+New in 2017.04.1:
+ + Fixes:
+    + Removed unwanted debugging output [c9ebfc20]
+    + Reverted 9d8e391 IO::Path.resolve fix for JVM, as it does not yet know
+        how to do utf8-c8 decode [88a6facc]
+
 New in 2017.04
  + SPECIAL NOTES:
     + There are two Upgrade Notifications for this release:

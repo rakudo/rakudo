@@ -4501,7 +4501,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? <sym> <?before \s | <.terminator> | $ >
         <O(|%comma, :fiddly(0))>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
-        { note("HERE:\n" ~ $/.dump) }
         { $*INVOCANT_OK := 0; }
     }
 

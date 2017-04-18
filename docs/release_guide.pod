@@ -426,7 +426,8 @@ Previous releases were bundled as part of monthly Parrot releases.
   2017-01-20   Rakudo #107 "2017.01"           (Zoffix + NeuralAnomaly)
   2017-02-18   Rakudo #108 "2017.02"           (Zoffix + NeuralAnomaly)
   2017-03-18   Rakudo #109 "2017.03"           (Zoffix + NeuralAnomaly)
-  2017-03-18   Rakudo #110 "2017.04"           (Zoffix + NeuralAnomaly)
+  2017-04-17   Rakudo #110 "2017.04"           (Zoffix + NeuralAnomaly)
+  2017-04-18   2017.04.1                       (Zoffix)
 
 =head1 COPYRIGHT
 

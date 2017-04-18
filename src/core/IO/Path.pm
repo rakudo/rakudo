@@ -239,7 +239,13 @@ my class IO::Path is Cool does IO {
         my str $empty     = '';
         my str $resolved  = $empty;
         my Mu  $res-list := nqp::list_s();
-
+#?if jvm
+        # Apparently JVM doesn't know how to decode to utf8-c8 yet
+        # so it's still afflicted by the bug that, say, "/\[x308]" in the path
+        # doesn't get recognized as a path separator
+        my $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+#?endif
+#?if !jvm
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
         # on nul bytes. This way, even if we get some weird paths like
@@ -257,6 +263,7 @@ my class IO::Path is Cool does IO {
               nqp::iseq_i(nqp::atpos_i($p, $i), $ord-sep),
               nqp::atposref_i($p, $i) = 0)),
           my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
+#?endif
 
         while $parts {
             fail "Resolved path too deep!"

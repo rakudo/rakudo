@@ -62,7 +62,14 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
    }
 
     method is-absolute ($path) {
-        so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
+        nqp::p6bool(
+          nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
+          || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /
+          || (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /
+              && ( (nqp::isge_i($_, 65) && nqp::isle_i($_, 90)) # drive letter
+                || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122)))
+              && ( nqp::iseq_i(($_ := nqp::ordat($path, 2)), 92) # slash
+                || nqp::iseq_i($_, 47))))
     }
 
     multi method split(IO::Spec::Win32: Cool:D $path is copy) {

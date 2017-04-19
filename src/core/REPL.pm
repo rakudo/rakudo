@@ -39,18 +39,6 @@ do {
         splice(@values, $insert_pos, 0, $value);
     }
 
-    my sub mkpath(IO::Path $full-path --> Nil) {
-        my ( :$directory, *% ) := $full-path.parts;
-        my @parts = $*SPEC.splitdir($directory);
-
-        for [\~] @parts.map(* ~ '/') -> $path {
-            mkdir $path;
-            unless $path.IO ~~ :d {
-                fail "Unable to mkpath '$full-path': $path is not a directory";
-            }
-        }
-    }
-
     my role ReadlineBehavior[$WHO] {
         my &readline    = $WHO<&readline>;
         my &add_history = $WHO<&add_history>;
@@ -409,25 +397,18 @@ do {
         }
 
         method history-file(--> Str:D) {
-            return ~$!history-file if $!history-file.defined;
+            return $!history-file.absolute if $!history-file.defined;
 
-            $!history-file = do
-                if $*ENV<RAKUDO_HIST> {
-                    IO::Path.new($*ENV<RAKUDO_HIST>)
-                } else {
-                    IO::Path.new($*HOME).add('.perl6').add('rakudo-history')
-                }
-            try {
-                mkpath($!history-file);
+            $!history-file = $*ENV<RAKUDO_HIST>
+                ?? $*ENV<RAKUDO_HIST>.IO
+                !! $*HOME.add('.perl6/rakudo-history');
 
-                CATCH {
-                    when X::AdHoc & ({ .Str ~~ m:s/Unable to mkpath/ }) {
-                        note "I ran into a problem trying to set up history: $_";
-                        note 'Sorry, but history will not be saved at the end of your session';
-                    }
-                }
+            without mkdir $!history-file.parent {
+                note "I ran into a problem trying to set up history: {.exception.message}";
+                note 'Sorry, but history will not be saved at the end of your session';
             }
-            ~$!history-file
+
+            $!history-file.absolute
         }
     }
 }

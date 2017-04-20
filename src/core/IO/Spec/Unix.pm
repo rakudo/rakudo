@@ -175,12 +175,18 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method join ($, \dir, \file) {
-        self.catpath: '',
-          nqp::if(
-               (nqp::iseq_s(dir, '/') && nqp::iseq_s(file, '/'))
-            || (nqp::iseq_s(dir, '.') && file),
-            '', dir,
-          ), file
+        nqp::if(
+             (nqp::iseq_s(dir, '/') && nqp::iseq_s(file, '/'))
+          || (nqp::iseq_s(dir, '.') && file),
+          file,
+          nqp::concat(dir,
+            nqp::if(
+              dir && file
+                && nqp::isfalse(
+                    nqp::eqat(dir, '/', nqp::sub_i(nqp::chars(dir), 1)))
+                && nqp::isne_i(nqp::ord(file), 47), # '/'
+              nqp::concat('/', file),
+              file)))
     }
 
     method catpath( $, \dirname, \file ) {

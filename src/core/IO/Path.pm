@@ -57,7 +57,10 @@ my class IO::Path is Cool does IO {
     }
 
     method is-absolute() {
-        $!is-absolute //= so $!SPEC.is-absolute($!path);
+        nqp::if(
+          nqp::isconcrete($!is-absolute),
+          $!is-absolute,
+          $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))
     }
     method is-relative() {
         !( $!is-absolute //= so $!SPEC.is-absolute($!path) );

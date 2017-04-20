@@ -175,37 +175,24 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method join ($, \dir, \file) {
-        self.catpath(
-            '',
-            nqp::if(
-                nqp::unless(
-                    nqp::if( nqp::iseq_s(dir, '/'), nqp::iseq_s(file, '/'), ),
-                    nqp::if( nqp::iseq_s(dir, '.'), file ),
-                ),
-                '',
-                dir,
-            ),
-            file,
-        );
+        self.catpath: '',
+          nqp::if(
+               (nqp::iseq_s(dir, '/') && nqp::iseq_s(file, '/'))
+            || (nqp::iseq_s(dir, '.') && file),
+            '', dir,
+          ), file
     }
 
     method catpath( $, \dirname, \file ) {
-        nqp::if(
-            nqp::if(
-                nqp::isne_s(dirname, ''),
-                nqp::if(
-                    nqp::isne_s(file, ''),
-                    nqp::if(
-                        nqp::isfalse(nqp::eqat(
-                            dirname, '/', nqp::sub_i(nqp::chars(dirname), 1)
-                        )),
-                        nqp::isfalse(nqp::eqat(file, '/', 0)),
-                    ),
-                ),
-            ),
-            nqp::concat(dirname, nqp::concat('/', file)),
-            nqp::concat(dirname, file),
-        )
+        nqp::concat(dirname,
+          nqp::if(
+            dirname && file
+              && nqp::isfalse(
+                  nqp::eqat(dirname, '/',
+                    nqp::sub_i(nqp::chars(dirname), 1)))
+              && nqp::isne_i(nqp::ord(file), 47), # '/'
+            nqp::concat('/', file),
+            file))
     }
 
     method catdir (*@parts) {

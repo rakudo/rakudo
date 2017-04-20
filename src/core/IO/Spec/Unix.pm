@@ -263,27 +263,21 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method rel2abs(Str() \path, $base? is copy) {
-        nqp::if(
-          nqp::eqat(path, '/', 0),
-          self.canonpath(path),
-          self.catdir(
-            self.canonpath(
-                nqp::if(
-                    $base.defined,
-                    nqp::if(
-                        nqp::eqat(($base = $base.Str), '/', 0),
-                        $base,
-                        nqp::if(
-                            nqp::iseq_s($base, (my $cwd = $*CWD.Str)),
-                            $base, self.rel2abs($base, $cwd),
-                        ),
-                    ),
-                    $*CWD.Str,
-                ),
-            ),
+        self.canonpath:
+          nqp::if(
+            nqp::iseq_i(nqp::ord(path), 47), # .starts-with: '/'
             path,
-          ),
-        )
+            nqp::concat(
+              nqp::if(
+                nqp::defined($base),
+                nqp::if(
+                  nqp::iseq_i(nqp::ord(($base = $base.Str)), 47), # /^ '/'/
+                  $base,
+                  nqp::if(
+                    nqp::iseq_s($base, (my $cwd := $*CWD.Str)),
+                    $base, self.rel2abs($base, $cwd))),
+                $*CWD.Str),
+                nqp::concat('/', path)))
     }
 }
 

@@ -126,12 +126,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
             }
 
-            my $file;
-            my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $dependency.id); $file.e });
-            $RMD("Could not find $dependency.spec()") if $RMD and not $store;
-            return False unless $store;
-
-            my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
+            my $dependency-precomp = @precomp-stores
+                .map({ $_.load-unit($compiler-id, $dependency.id) })
+                .first(*.defined)
+                or do {
+                    $RMD("Could not find $dependency.spec()") if $RMD;
+                    return False;
+                }
             return False unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve));
 
             @dependencies.push: $dependency-precomp;

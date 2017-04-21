@@ -474,15 +474,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method AT-POS(List:D: Int:D $Ipos) is raw {
+    multi method AT-POS(List:D: Int:D $pos) is raw {
         nqp::if(
-          nqp::islt_i((my int $pos = nqp::unbox_i($Ipos)),0),
+          nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
             :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
           nqp::if(
             $!reified.DEFINITE,
-            nqp::if(
-              nqp::islt_i($pos,nqp::elems($!reified)),
+            nqp::ifnull(
               nqp::atpos($!reified,$pos),
               nqp::if(
                 ($!todo.DEFINITE && $!todo.reify-at-least(nqp::add_i($pos,1))),

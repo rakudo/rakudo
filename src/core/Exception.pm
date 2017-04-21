@@ -2521,7 +2521,7 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
   },
   'X::Trait::Invalid',
-  sub ($type, $subtype, $declaring, $name) {
+  -> $type, $subtype, $declaring, $name {
       X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
 ));

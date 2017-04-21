@@ -562,6 +562,14 @@ my class IO::Path is Cool does IO {
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
+           # set $*CWD inside gather for $test.ACCEPTS to use correct
+           # $*CWD the user gave us, instead of whatever $*CWD is
+           # when the gather is actually evaluated. We use a temp var
+           # so that .IO coercer doesn't use the nulled `$*CWD` for
+           # $!CWD attribute and we don't use `temp` for this, because
+           # it's about 2x slower than using a temp var.
+           my $cwd = $CWD.IO;
+          { my $*CWD = $cwd;
 #?if jvm
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
@@ -595,6 +603,7 @@ my class IO::Path is Cool does IO {
               )
             );
             nqp::closedir($dirh);
+          }
         }
     }
 

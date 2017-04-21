@@ -62,7 +62,14 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
    }
 
     method is-absolute ($path) {
-        so $path ~~ /^ [ <$driveletter> <$slash> | <$slash> | <$UNCpath> ]/
+        nqp::p6bool(
+          nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
+          || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /
+          || (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /
+              && ( (nqp::isge_i($_, 65) && nqp::isle_i($_, 90)) # drive letter
+                || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122)))
+              && ( nqp::iseq_i(($_ := nqp::ordat($path, 2)), 92) # slash
+                || nqp::iseq_i($_, 47))))
     }
 
     multi method split(IO::Spec::Win32: Cool:D $path is copy) {
@@ -74,20 +81,34 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             ( [ .* <$slash> ]? )
             (.*)
              /;
-        my ($volume, $dirname, $basename) = (~$0, ~$1, ~$2);
-        $dirname ~~ s/ <?after .> <$slash>+ $//;
 
+        my str $volume   = $0.Str;
+        my str $dirname  = $1.Str;
+        my str $basename = $2.Str;
 
-        if all($dirname, $basename) eq '' && $volume ne '' {
-            $dirname = $volume ~~ /^<$driveletter>/
-                     ?? '.' !! '\\';
-        }
-        $basename = '\\' if $dirname eq any('/', '\\') && $basename eq '';
-        $dirname  = '.'  if $dirname eq ''             && $basename ne '';
+        nqp::stmts(
+          nqp::while( # s/ <?after .> <$slash>+ $//
+            nqp::isgt_i(($_ := nqp::sub_i(nqp::chars($dirname), 1)), 0)
+            && (nqp::eqat($dirname, ｢\｣, $_) || nqp::eqat($dirname, '/', $_)),
+            $dirname = nqp::substr($dirname, 0, $_)),
+          nqp::if(
+            $volume && nqp::isfalse($dirname) && nqp::isfalse($basename),
+            nqp::if(
+              nqp::eqat($volume, ':', 1) # /^ <[A..Z a..z]> ':'/
+                && ( (nqp::isge_i(($_ := nqp::ord($volume)), 65) # drive letter
+                    && nqp::isle_i($_, 90))
+                  || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122))),
+              ($dirname = '.'),
+              ($dirname = ｢\｣))),
+          nqp::if(
+            (nqp::iseq_s($dirname, ｢\｣) || nqp::iseq_s($dirname, '/'))
+            && nqp::isfalse($basename),
+            $basename = ｢\｣),
+          nqp::if(
+            $basename && nqp::isfalse($dirname),
+            $dirname = '.'));
 
-        # temporary, for the transition period
-        (:$volume, :$dirname, :$basename, :directory($dirname));
-#        (:$volume, :$dirname, :$basename);
+        (:$volume, :$dirname, :$basename, :directory($dirname))
     }
 
     method join ($volume, $dirname is copy, $file is copy) {

@@ -2457,66 +2457,66 @@ my class X::PhaserExceptions is Exception {
     }
 }
 
-nqp::bindcurhllsym('P6EX', nqp::hash(
+nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::TypeCheck::Binding',
-  sub (Mu $got, Mu $expected, $symbol?) {
+  -> Mu $got, Mu $expected, $symbol? {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
   'X::TypeCheck::Binding::Parameter',
-  sub (Mu $got, Mu $expected, $symbol, $parameter, $is-constraint?) {
+  -> Mu $got, Mu $expected, $symbol, $parameter, $is-constraint? {
       my $constraint = $is-constraint ?? True !! False;
       X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
-  sub (Mu $symbol, Mu $got, Mu $expected) {
+  -> Mu $symbol, Mu $got, Mu $expected {
       X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
   },
   'X::TypeCheck::Return',
-  sub (Mu $got, Mu $expected) {
+  -> Mu $got, Mu $expected {
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Assignment::RO',
-  sub ($typename = "value") {
+  -> $typename = "value" {
       X::Assignment::RO.new(:$typename).throw;
   },
   'X::ControlFlow::Return',
-  sub () {
+  {
       X::ControlFlow::Return.new().throw;
   },
   'X::NoDispatcher',
-  sub ($redispatcher) {
+  -> $redispatcher {
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  sub (Mu $invocant, $method, $typename, $private = False) {
+  -> Mu $invocant, $method, $typename, $private = False {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
   },
   'X::Multi::Ambiguous',
-  sub ($dispatcher, @ambiguous, $capture) {
+  -> $dispatcher, @ambiguous, $capture {
       X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
   },
   'X::Multi::NoMatch',
-  sub ($dispatcher, $capture) {
+  -> $dispatcher, $capture {
       X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
   },
   'X::Role::Initialization',
-  sub ($role) {
+  -> $role {
       X::Role::Initialization.new(:$role).throw
   },
   'X::Role::Parametric::NoSuchCandidate',
-  sub (Mu $role) {
+  -> Mu $role {
       X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
   },
   'X::Inheritance::NotComposed',
-  sub ($child-name, $parent-name) {
+  -> $child-name, $parent-name {
       X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
   },
   'X::Parameter::RW',
-  sub (Mu $got, $symbol) {
+  -> Mu $got, $symbol {
       X::Parameter::RW.new(:$got, :$symbol).throw;
   },
   'X::PhaserExceptions',
-  sub (@exceptions) {
+  -> @exceptions {
       X::PhaserExceptions.new(exceptions =>
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
   },

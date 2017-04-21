@@ -1,8 +1,21 @@
+New in 2017.04.2:
+ + Fixes:
+    + Fix "Cannot invoke this object (REPR: Null; VMNull)" [4a560aa]
+    + Improve relations between %?RESOURCES and Native trait [647abfe]
+    + Support all appropriate IO::Path methods on Distribution::Resources [f4f1c42]
+
+New in 2017.04.1:
+ + Fixes:
+    + Removed unwanted debugging output [c9ebfc20]
+    + Reverted 9d8e391 IO::Path.resolve fix for JVM, as it does not yet know
+        how to do utf8-c8 decode [88a6facc]
+
 New in 2017.04
  + SPECIAL NOTES:
     + There are two Upgrade Notifications for this release:
         - Part 1: http://rakudo.org/2017/04/02/upgrade
         - Part 2: http://rakudo.org/2017/04/03/part-2
+        - Part 3: http://rakudo.org/2017/04/17/final-notes
     + Changes for Texas operators listed in this release also apply to their
         fancy Unicode alternatives. https://docs.perl6.org/language/unicode_texas.html
  + Fixes:
@@ -30,12 +43,19 @@ New in 2017.04
     + Made `is equiv` to not propagate operator's `assoc` value [f9f0883]
     + Made Code.ACCEPTS pass take its parameter `is raw` [c0eb9bd]
     + Fixed SEGV in IO::Pipe.t [3e275dd]
+    + Made `dynamic` default to False instead of Nil on Scalar/Hash/Array [28a6e80]
+    + [IO] Fixed wrong results in IO::Path.resolve for paths with combiners on `/` [9d8e391]
     + [IO] Fixed a crash when using Whatever limit in in IO::Pipe.lines [0c62815]
     + [IO] Fixed crash in smartmatch of Cool ~~ IO::Path for some Cools [c360ac2]
     + [IO] Made IO::Path:: subclasses instantiate a subclass, not IO::Path [a0b82ed]
     + [IO] Fixed crash when very large files were read with IO::Path.slurp [d0924f1]
-    + Various improvements to warnings and error reporting [6a77cda][d90c6bf]
-        [27f5469][41ac4b4][75c3f29][87fe800][7ba2fc5][093bb89][d3c93ad]
+    + [IO] Ensured IO::Handle.Str coerced .path to Str [1f689a9]
+    + [IO] Fixed crash when binary slurping large files with &slurp/IO::Path.slurp [756877e]
+    + [IO] Fixed occasional zero byte read when binary slurping files [756877e]
+    + [IO] IO::Handle.symlink/.link now take name of the link as argument;
+        the invocant is the target [8c09c84]
+    + Various improvements to warnings and error reporting [6a77cda][d90c6bf][f9968b3]
+        [27f5469][41ac4b4][75c3f29][87fe800][7ba2fc5][093bb89][d3c93ad][6ee71c2][490ffd1][7112a08]
  + Additions:
     + Gave `Thread` a numeric representation [e5528dd]
     + Made Any.maxpairs/.minpairs use `cmp` and return Seq [5927186]
@@ -56,9 +76,17 @@ New in 2017.04
     + Made `infix:<(&)>` a multi and added basic candidates [e8cb9a2]
     + Made `(-)` a multi [495f970]
     + Added default descriptions for Test.pm's `like`, `unlike`, and `use-ok` [4b915f7]
+    + Made `is rw` on optional params throw a typed exception instead of generic one [8370675]
+    + Made it possible to pass IO::Path to `is native` trait [9984080]
+    + Implemented bypass of dependency resolution in the Staging repo
+        via RAKUDO_RERESOLVE_DEPENDENCIES env var [5b862a3][d4d6a99][2a0a2d3]
+    + Merged Cursor into Match; in preparation of for future removal of Cursor [b7c036c][cdd625b]
     + [IO] Added more powerful features to IO::Path.extension [b1e7a01][15a25da]
+    + [IO] Added IO::Path.add [40217ed][0b5a41b]
+    + [IO] Implemented IO::Path.sibling [8bacad8]
+    + [IO] Implemented IO::Handle.lock [214198b]
     + [IO] Made IO::Path throw when path contains NUL byte [e681498]
-    + [IO] Implemented `:completely` param in IO::Path.resolve [6a8d63d]
+    + [IO] Implemented `:completely` param in IO::Path.resolve [6a8d63d][51e4629]
     + [IO] Implemented IO::Handle.slurp [f1b4af7]
     + [IO] Made IO::Path.dir a `multi` method [fbe7ace]
     + [IO] `$*TMPDIR` now has a container, so it's possible to `temp` it [b62d1a7]
@@ -72,24 +100,29 @@ New in 2017.04
     + [IO] Made IO::Path.lines lazy again (reversal from last release) [90da80f]
     + [IO] Re-added :close param to IO::Handle.lines (reversal from last release) [90da80f]
     + [IO] IO::Handle.lines($limit, :close) now closes the handle when $limit is reached [90da80f]
-    + [IO] IO::Path now `does` role `IO`. This exists solely as a future compatibility
-        feature with `IO()` coercer type check and provides no new methods [87987c2]
+    + [IO] Added IO::Pipe.path and .IO methods to return an IO::Path type object [d46e8df]
+    + [IO] Made IO::Path.mkdir return invocant on success [c01ebea]
+    + [IO] IO::Path now `does` role `IO`. This exists solely as a future compatibility feature with
+        `IO()` coercer type check and provides no new methods [87987c2][c95c4a7][fd503f8]
     + [IO] &chdir and IO::Path.chdir now support :r, :w, :d, :x args for
         file tests and default to :d test only [a0ef2ed]
-    + [IO] Changed coercers from Str() to IO() in `&*chdir`, &chdir, IO::Path.chdir,
-        to avoid limitations of IO::Path.Str and race conditions with `$*CWD` [2483d68][a0ef2ed]
+    + [IO] Changed coercers from Str() to IO() in `&*chdir`, &chdir, IO::Path.chdir, &rename, &move,
+        &copy to avoid limitations of IO::Path.Str and race conditions with `$*CWD`
+        [2483d68][a0ef2ed][ff97083]
     + [IO] Changed a Capture of remaining args to be passed to the delegate IO::Handle
         methods, instead of the internal .open call in IO::Path .lines, .words, .comb,
         .spurt, and .split [099512b][90da80f]
-    + [IO] The following now return Failures instead of throwing: &chdir,
-        `&*chdir`, &spurt, IO::Path.spurt, IO::Handle.spurt, IO::Path.slurp
-        [a0ef2ed][2483d68][5464b82][c13480c]
+    + [IO] The following now return Failures instead of throwing: &chdir, `&*chdir`, &spurt,
+        IO::Path.spurt, IO::Handle.spurt, IO::Path.slurp, &symlink, &link, &rename, &move, &copy
+        [a0ef2ed][2483d68][5464b82][c13480c][da1dea2][ff97083]
  + Removals:
     + Removed unused $.pid from Proc [5b8d4c2]
+    + [IO] Removed &mkdir candidate that creates multiple dirs [0d9ecae]
     + [IO] Removed IO::Path.abspath [cb323d5][a432b3d]
+    + [IO] Made IO::Path.new-from-absolute-path a private method [7f73f92]
     + [IO] Removed vestigial IO::Path.pipe [a01d679]
     + [IO] Removed unused Capture in signatures of some .IO coercers [0c7e4a0]
-    + [IO] Removed IO.umask method [87987c2]
+    + [IO] Removed IO.umask method [87987c2][fd503f8][c95c4a7]
     + [IO] Removed :bin argument in IO::Handle.Supply; now uses handle's mode instead [184d499]
     + [IO] IO::Handle and IO::Socket no longer `does` role `IO` [87987c2]
     + [IO] Removed .chmod, .e, .d, .f, .s, .l, .r, .w, .x, .modifies, .accessed,
@@ -127,12 +160,15 @@ New in 2017.04
     + Made Setty.pick/SetHash.(grab|grabpairs) 4x faster [6c9f31b]
     + Made Iterable.Set(|Hash) about 4x faster [f849df3]
     + Made m:i// regex matching 1.8x-3.3x faster [3e275dd]
+    + Made Enum.ACCEPTS(Enum) 2.9x faster [17d34cd]
     + Made Iterable (&) Iterable about 2x faster [0fc3751]
     + Made internal nqp::index 2x faster, affecting many methods that work with strings [f1fc879]
+    + Made case-insensitive regex 2x faster [822566f]
     + Made Baggy.new-from-pairs 1.5x faster and use less memory [ff52b74]
     + Made concatenation with control chars at end 30% faster [027aa54]
     + Made Baggy.new, bag(), and mix() about 25% faster [ae3ff5c]
-    + Make Iterable.flat about 20% faster (also affects `*@foo` slurpy params) [f532f81]
+    + Made Iterable.flat about 20% faster (also affects `*@foo` slurpy params) [f532f81]
+    + Made Numeric.ACCEPTS(Any) about 15% faster [89457f8][e0e0800]
     + Made Hash.Bag about 15% faster [e7e97c7]
     + Made generic handling of `(<+)` and `(>+)` about 15% faster [5ae4549]
     + Made Set.new(42) about 8% faster and use less memory [fb60621][1471527]
@@ -142,21 +178,24 @@ New in 2017.04
     + Added fastpath for `infix:<(|)>` with empty list of args [e24980f]
     + Made multiple memory use reductions in internals in MoarVM [d0924f1]
     + Made Grammars pre-compute their NFAs during precompilation [064b585]
+    + Improved FSA which gives better multithreading performance [20af51f]
     + [IO] Made IO::Spec::Unix.split 36x faster [4fdebc9]
     + [IO] Made IO::Spec::Unix.catpath 9x faster [55abc6d]
     + [IO] Made IO::Spec::Unix.join 8.5x faster [55abc6d]
     + [IO] Made IO::Spec::Unix.is-absolute about 4.4x faster [4eef6db]
     + [IO] Made IO::Spec::Unix.catdir 3.9x Faster [0111f10]
     + [IO] Made IO::Pipe.lines 3.2x faster [0c62815]
+    + [IO] Made IO::Spec::Win32!canon-cat 2.3x faster [0e36bb2]
     + [IO] Made IO::Path.child 2.1x faster on `*nix` [55abc6d]
     + [IO] Made .IO.slurp about 2x as fast [b4d80c0]
     + [IO] Made IO::Handle.open 75% faster [4032953]
     + [IO] Made IO::Spec::Unix.rel2abs 35% faster [dcf1bb2]
     + [IO] Made IO::Path.slurp 12%-35% faster (for small files) [c13480c]
     + [IO] Made IO::Path.new 7% faster when creating from Str [ae5e510]
-    + Assorted internal improvements to CPU/memory use [1132b1a][a123eb3][1bacc61] [c3c849e]
+    + Assorted internal improvements to CPU/memory use [1132b1a][a123eb3][1bacc61][c3c849e]
         [fa9aa47][666ce35][e7e97c7][213a72c][fab9f87][9671ffe][08a9735][8a4df162][b64f210][1277fb5]
-        [463898a][3f36508][65037c3][e408e47][6ef7b59][a4b30dc][7875eaf][d793e21][bf63719]
+        [463898a][3f36508][65037c3][e408e47][6ef7b59][a4b30dc][7875eaf][d793e21][bf63719][9a2446c]
+        [0dbe451][1867099][2694f5d]
 
 New in 2017.03
  + Fixes:

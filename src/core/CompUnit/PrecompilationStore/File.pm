@@ -6,10 +6,20 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has CompUnit::PrecompilationDependency @!dependencies;
         has $!initialized = False;
         has $.checksum;
+        has $.source-checksum;
         has $!bytecode;
+        has $!store;
         has Lock $!update-lock = Lock.new;
 
-        submethod BUILD(CompUnit::PrecompilationId :$!id, IO::Path :$!path, :@!dependencies, :$!bytecode --> Nil) {
+        submethod BUILD(
+            CompUnit::PrecompilationId :$!id,
+            IO::Path :$!path,
+            :$!source-checksum,
+            :@!dependencies,
+            :$!bytecode,
+            :$!store,
+            --> Nil
+        ) {
             if $!bytecode {
                 $!initialized = True;
                 $!checksum = nqp::sha1($!bytecode.decode("latin-1"));
@@ -29,8 +39,9 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                 return if $!initialized;
                 self!open(:r) unless $!file;
 
-                $!checksum     = $!file.get;
-                my $dependency = $!file.get;
+                $!checksum        = $!file.get;
+                $!source-checksum = $!file.get;
+                my $dependency    = $!file.get;
                 while $dependency {
                     @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
                     $dependency = $!file.get;
@@ -56,6 +67,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!file
         }
 
+        method source-checksum() is rw {
+            self!read-dependencies;
+            $!source-checksum
+        }
+
         method checksum() is rw {
             self!read-dependencies;
             $!checksum
@@ -75,11 +91,18 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         method save-to(IO::Path $precomp-file) {
             my $handle = $precomp-file.open(:w);
             $handle.print($!checksum ~ "\n");
+            $handle.print($!source-checksum ~ "\n");
             $handle.print($_.serialize ~ "\n") for @!dependencies;
             $handle.print("\n");
             $handle.write($!bytecode);
             $handle.close;
             $!path = $precomp-file;
+        }
+
+        method is-up-to-date(CompUnit::PrecompilationDependency $dependency, Bool :$check-source --> Bool) {
+            my $result = self.CompUnit::PrecompilationUnit::is-up-to-date($dependency, :$check-source);
+            $!store.remove-from-cache($.id) unless $result;
+            $result
         }
     }
 
@@ -95,7 +118,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     }
 
     method new-unit(|c) {
-        CompUnit::PrecompilationUnit::File.new(|c)
+        CompUnit::PrecompilationUnit::File.new(|c, :store(self))
     }
 
     method !dir(CompUnit::PrecompilationId $compiler-id,
@@ -140,7 +163,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             %!loaded{$precomp-id} //= do {
                 my $path = self.path($compiler-id, $precomp-id);
                 $path ~~ :e
-                    ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path)
+                    ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path, :store(self))
                     !! Nil
             }
         }
@@ -156,6 +179,10 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         else {
             Nil
         }
+    }
+
+    method remove-from-cache(CompUnit::PrecompilationId $precomp-id) {
+        $!update-lock.protect: { %!loaded{$precomp-id}:delete };
     }
 
     method destination(CompUnit::PrecompilationId $compiler-id,
@@ -198,7 +225,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         my $precomp-file = self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
-        $!update-lock.protect: { %!loaded{$precomp-id}:delete };
+        self.remove-from-cache($precomp-id);
     }
 
     method store-repo-id(CompUnit::PrecompilationId $compiler-id,

@@ -908,7 +908,7 @@ my class Rakudo::Internals {
 #nqp::print(name);
 #nqp::print("\n");
         nqp::stmts(
-          (my str $with = $version ~ "\0" ~ name),
+          (my str $with = nqp::concat($version, nqp::concat("\0", name))),
           nqp::if(
             nqp::existskey(
               nqp::unless($initializers,$initializers := nqp::hash),
@@ -928,7 +928,8 @@ my class Rakudo::Internals {
 #nqp::print(name);
 #nqp::print("\n");
         nqp::stmts(
-          (my str $with = nqp::getcomp('perl6').language_version ~ "\0" ~ name),
+          (my str $with = nqp::concat(
+            nqp::getcomp('perl6').language_version, nqp::concat("\0", name))),
           nqp::if(
             nqp::existskey(
               nqp::unless($initializers,$initializers := nqp::hash),

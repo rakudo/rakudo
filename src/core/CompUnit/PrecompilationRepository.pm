@@ -115,6 +115,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("Repo chain changed: $repo-id ne {$first-repo-id}. Need to re-check dependencies.") if $RMD;
             $resolve = True;
         }
+        $resolve = False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
             $RMD("dependency: $dependency") if $RMD;
@@ -125,24 +126,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
             }
 
-            my $file;
-            my $store = @precomp-stores.first({ $file = $_.path($compiler-id, $dependency.id); $file.e });
-            $RMD("Could not find $dependency.spec()") if $RMD and not $store;
-            return False unless $store;
-
-            if $resolve { # a repo changed, so maybe it's a change in our source file
-                my $modified = $file.modified;
-                $RMD("$file\nspec: $dependency.spec()\nmtime: $modified\nsince: $since")
-                  if $RMD;
-
-                my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
-                $RMD("source: $srcIO mtime: " ~ $srcIO.modified) if $RMD and $srcIO.e;
-                return False if not $srcIO.e or $modified < $srcIO.modified;
-            }
-
-            my $dependency-precomp = $store.load-unit($compiler-id, $dependency.id);
-            $RMD("dependency checksum $dependency.checksum() unit: $dependency-precomp.checksum()") if $RMD;
-            return False if $dependency-precomp.checksum ne $dependency.checksum;
+            my $dependency-precomp = @precomp-stores
+                .map({ $_.load-unit($compiler-id, $dependency.id) })
+                .first(*.defined)
+                or do {
+                    $RMD("Could not find $dependency.spec()") if $RMD;
+                    return False;
+                }
+            return False unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve));
 
             @dependencies.push: $dependency-precomp;
         }
@@ -200,7 +191,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Outdated precompiled $unit\nmtime: $modified\nsince: $since")
+                    $RMD("Outdated precompiled $unit\nmtime: {$modified}{$since ?? "\nsince: $since" !! ''}")
                 }
                 $unit.close;
                 fail "Outdated precompiled $unit";
@@ -235,6 +226,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             return True;
         }
+        my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
@@ -306,7 +298,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         self.store.store-unit(
             $compiler-id,
             $id,
-            self.store.new-unit(:$id, :@dependencies, :bytecode($bc.slurp(:bin))),
+            self.store.new-unit(:$id, :@dependencies, :$source-checksum, :bytecode($bc.slurp(:bin))),
         );
         $bc.unlink;
         self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));

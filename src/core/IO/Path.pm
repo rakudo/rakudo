@@ -57,10 +57,18 @@ my class IO::Path is Cool does IO {
     }
 
     method is-absolute() {
-        $!is-absolute //= so $!SPEC.is-absolute($!path);
+        nqp::if(
+          nqp::isconcrete($!is-absolute),
+          $!is-absolute,
+          $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))
     }
     method is-relative() {
-        !( $!is-absolute //= so $!SPEC.is-absolute($!path) );
+        nqp::p6bool(
+          nqp::not_i(
+            nqp::if(
+              nqp::isconcrete($!is-absolute),
+              $!is-absolute,
+              $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
     }
 
     method parts                  {
@@ -239,7 +247,13 @@ my class IO::Path is Cool does IO {
         my str $empty     = '';
         my str $resolved  = $empty;
         my Mu  $res-list := nqp::list_s();
-
+#?if jvm
+        # Apparently JVM doesn't know how to decode to utf8-c8 yet
+        # so it's still afflicted by the bug that, say, "/\[x308]" in the path
+        # doesn't get recognized as a path separator
+        my $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+#?endif
+#?if !jvm
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
         # on nul bytes. This way, even if we get some weird paths like
@@ -257,6 +271,7 @@ my class IO::Path is Cool does IO {
               nqp::iseq_i(nqp::atpos_i($p, $i), $ord-sep),
               nqp::atposref_i($p, $i) = 0)),
           my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
+#?endif
 
         while $parts {
             fail "Resolved path too deep!"
@@ -547,6 +562,14 @@ my class IO::Path is Cool does IO {
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
+           # set $*CWD inside gather for $test.ACCEPTS to use correct
+           # $*CWD the user gave us, instead of whatever $*CWD is
+           # when the gather is actually evaluated. We use a temp var
+           # so that .IO coercer doesn't use the nulled `$*CWD` for
+           # $!CWD attribute and we don't use `temp` for this, because
+           # it's about 2x slower than using a temp var.
+           my $cwd = $CWD.IO;
+          { my $*CWD = $cwd;
 #?if jvm
             for <. ..> -> $elem {
                 if $test.ACCEPTS($elem) {
@@ -580,6 +603,7 @@ my class IO::Path is Cool does IO {
               )
             );
             nqp::closedir($dirh);
+          }
         }
     }
 
@@ -660,88 +684,88 @@ my class IO::Path is Cool does IO {
         self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
     }
 
-    method e(--> Bool:D) {
+    method e(IO::Path:D: --> Bool:D) {
         ?Rakudo::Internals.FILETEST-E($.absolute) # must be $.absolute
     }
-    method d(--> Bool:D) {
+    method d(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-D($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<d>))
     }
 
-    method f(--> Bool:D) {
+    method f(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-F($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<f>))
     }
 
-    method s(--> Int:D) {
+    method s(IO::Path:D: --> Int:D) {
         $.e
           ?? Rakudo::Internals.FILETEST-S($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<s>))
     }
 
-    method l(--> Bool:D) {
+    method l(IO::Path:D: --> Bool:D) {
         ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<l>))
     }
 
-    method r(--> Bool:D) {
+    method r(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-R($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<r>))
     }
 
-    method w(--> Bool:D) {
+    method w(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-W($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<w>))
     }
 
-    method rw(--> Bool:D) {
+    method rw(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RW($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rw>))
     }
 
-    method x(--> Bool:D) {
+    method x(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-X($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<x>))
     }
 
-    method rwx(--> Bool:D) {
+    method rwx(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rwx>))
     }
 
-    method z(--> Bool:D) {
+    method z(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<z>))
     }
 
-    method modified(--> Instant:D) {
+    method modified(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<modified>))
     }
 
-    method accessed(--> Instant:D) {
+    method accessed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<accessed>))
     }
 
-    method changed(--> Instant:D) {
+    method changed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
           !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<changed>))
     }
 
-    method mode(--> IntStr:D) {
+    method mode(IO::Path:D: --> IntStr:D) {
         $.e
           ?? nqp::stmts(
               (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),

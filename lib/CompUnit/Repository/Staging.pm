@@ -1,7 +1,9 @@
 class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
     has Str $.name;
 
-    submethod BUILD(Str :$!name --> Nil) { }
+    submethod BUILD(Str :$!name --> Nil) {
+        CompUnit::RepositoryRegistry.register-name($!name, self);
+    }
 
     method short-id() { 'staging' }
 

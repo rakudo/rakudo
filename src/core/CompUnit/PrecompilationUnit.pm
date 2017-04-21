@@ -21,6 +21,7 @@ role CompUnit::PrecompilationDependency {
     method id(--> CompUnit::PrecompilationId:D) { ... }
     method src(--> Str:D) { ... }
     method spec(--> CompUnit::DependencySpecification:D) { ... }
+    method checksum(--> Str:D) { ... }
     method Str() {
         "$.id $.src $.spec"
     }
@@ -35,8 +36,30 @@ role CompUnit::PrecompilationUnit {
     method dependencies(--> Array[CompUnit::PrecompilationDependency]) { ... }
     method bytecode(--> Buf:D) { ... }
     method checksum(--> Str:D) { ... }
+    method source-checksum(--> Str:D) { ... }
     method bytecode-handle(--> IO::Handle:D) { ... }
     method close(--> Nil) { ... }
+    method is-up-to-date(CompUnit::PrecompilationDependency $dependency, Bool :$check-source --> Bool) {
+        my $RMD = $*RAKUDO_MODULE_DEBUG;
+        if $check-source { # a repo changed, so maybe it's a change in our source file
+            my $source-checksum = $.source-checksum;
+
+            my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
+            unless $srcIO {
+                return False unless $srcIO.e;
+            }
+            my $current-source-checksum := nqp::sha1($srcIO.slurp(:enc<iso-8859-1>));
+            $RMD(
+                "$.path\nspec: $dependency.spec()\nsource: $srcIO\n"
+                ~ "source-checksum: $source-checksum\ncurrent-source-checksum: $current-source-checksum"
+            ) if $RMD;
+            return False if $source-checksum ne $current-source-checksum;
+        }
+
+        $RMD("dependency checksum $dependency.checksum() unit: $.checksum()") if $RMD;
+
+        $.checksum eq $dependency.checksum
+    }
 }
 
 class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {

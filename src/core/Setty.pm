@@ -12,20 +12,28 @@ my role Setty does QuantHash {
     }
     multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
-        nqp::stmts(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          (my $iter  := @args.iterator),
-          nqp::until(
-            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
-            nqp::bindkey($elems,$pulled.WHICH,$pulled)
-          ),
-          nqp::create(self).SET-SELF($elems)
+        nqp::if(
+          (my $iterator := @args.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          nqp::stmts(
+            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+            (my $iter  := @args.iterator),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::bindkey($elems,$pulled.WHICH,$pulled)
+            ),
+            nqp::create(self).SET-SELF($elems)
+          )
         )
     }
     method new-from-pairs(*@pairs --> Setty:D) {
-        nqp::create(self).SET-SELF(
-          self.fill_IterationSet(
-            nqp::create(Rakudo::Internals::IterationSet),@pairs.iterator
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          nqp::create(self).SET-SELF(
+            self.fill_IterationSet(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
           )
         )
     }

@@ -2457,7 +2457,12 @@ my class X::PhaserExceptions is Exception {
     }
 }
 
+#?if jvm
+nqp::bindcurhllsym('P6EX', nqp::hash(
+#?endif
+#?if !jvm
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
+#?endif
   'X::TypeCheck::Binding',
   -> Mu $got, Mu $expected, $symbol? {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;

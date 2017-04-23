@@ -141,8 +141,10 @@ my sub MAIN_HELPER($retval = 0) {
                                 $simple-const ??       $constraints                !!
                                                  '<' ~ $param.type.^name     ~ '>' ;
 
-                    $argument = "[$argument ...]" if $param.slurpy;
-                    $argument = "[$argument]"     if $param.optional;
+                    $argument  = "[$argument ...]"          if $param.slurpy;
+                    $argument  = "[$argument]"              if $param.optional;
+                    $argument .= trans(["'"] => [q|'"'"'|]) if $argument.contains("'");
+                    $argument  = "'$argument'"              if $argument.contains(' ' | '"');
                     @positional.push($argument);
                 }
                 @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined

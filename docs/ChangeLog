@@ -1,3 +1,10 @@
+New in 2017.04.3:
+ + Fixes:
+    + Fix REPL history file failure with Linoise on [6c66c1b88c]
+    + Fix `)>` to work whenever .MATCH is called [2f143f476d][0150c7b8c5]
+    + Fixed issues with false positive case-insensitive regex matches
+        when only start of string and end of string match [f756b4b54f][25048824c8]
+
 New in 2017.04.2:
  + Fixes:
     + Fix "Cannot invoke this object (REPR: Null; VMNull)" [4a560aa]

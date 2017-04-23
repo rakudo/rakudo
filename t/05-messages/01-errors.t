@@ -54,11 +54,11 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     my $param = '$bar';
     throws-like { EVAL q[ sub foo(\qq{$param}? is rw) {} ] }, Exception,
-        message => "Cannot use 'is rw' on optional parameter '$param'",
+        message => "Cannot use 'is rw' on optional parameter '$param'.",
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
 
     throws-like { EVAL q[ sub foo(\qq{$param} is rw = 42) {} ] }, Exception,
-        message => "Cannot use 'is rw' on optional parameter '$param'",
+        message => "Cannot use 'is rw' on optional parameter '$param'.",
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
 }
 

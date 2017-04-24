@@ -77,4 +77,12 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 
+# RT #118263
+{
+    throws-like { EVAL q|role R { method a {...}; method b { say "b" }; method c {...} }; class C is R {}| },
+        Exception,
+        message => q{Class C can't pun role R because it has required methods: a, c. Did you mean to use "does" instead?},
+        'The message when trying to pun a role with required methods should have the names of the child, parent, required methods, and suggest "does"';
+}
+
 done-testing;

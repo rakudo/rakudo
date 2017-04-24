@@ -109,33 +109,22 @@ multi sub words($what, $limit = Inf, *%named) {
       !! $what.words($limit, |%named);
 }
 
-proto sub get(|) { * }
-multi sub get($fh = $*ARGFILES) {
-    $fh.get()
-}
+proto sub get  (|) { * }
+multi sub get  (IO::Handle $fh = $*ARGFILES) { $fh.get  }
 
-proto sub getc(|) { * }
-multi sub getc($fh = $*ARGFILES) {
-    $fh.getc()
-}
+proto sub getc (|) { * }
+multi sub getc (IO::Handle $fh = $*ARGFILES) { $fh.getc }
 
 proto sub close(|) { * }
-multi sub close($fh) {
-    $fh.close()
-}
+multi sub close(IO::Handle $fh) { $fh.close }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
-    my $result := $io.slurp(:$bin, :$enc, |c);
-    $result // $result.throw;
-}
-multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
-    my $result := $path.IO.slurp(:$bin, :$enc, |c);
-    $result // $result.throw;
-}
+multi sub slurp(IO::Handle $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
+multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO() $path, |c) { $path.spurt(|c) }
+multi sub spurt(IO::Handle $fh,   |c) { $fh  .spurt(|c) }
+multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 
 {
     sub chdir(IO() $path) {

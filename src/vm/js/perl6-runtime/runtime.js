@@ -244,11 +244,15 @@ RakudoScalar.prototype.configure = function(conf) {
 
 RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
+    let whence = this.$$getattr(Scalar, '$!whence');
+    if (whence !== Null) whence.$$call(ctx, null);
     this.$$bindattr(Scalar, '$!value', value);
   });
 
   this.STable.addInternalMethod('$$assign', function(ctx, value) {
-    /* TODO - checking and WHENCE */
+    /* TODO - checking */
+    let whence = this.$$getattr(Scalar, '$!whence');
+    if (whence !== Null) whence.$$call(ctx, null);
     this.$$bindattr(Scalar, '$!value', value);
   });
 

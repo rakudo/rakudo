@@ -16,7 +16,18 @@ multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
-        $child.^add_parent($parent.^inheritalize)
+        if my @required-methods = $parent.^methods.grep({$_.yada}) {
+            my $type = $child.HOW.archetypes.inheritable()
+                ?? 'Class '
+                !! $child.HOW.archetypes.inheritalizable()
+                    ?? 'Role '
+                    !! '';
+            die $type ~ "{$child.^name} can't pun role {$parent.^name} because it has required methods: "
+                ~ @required-methods.map({$_.name}).join(', ') ~ '. Did you mean to use "does" instead?';
+        }
+        else {
+            $child.^add_parent($parent.^inheritalize)
+        }
     }
     else {
         X::Inheritance::Unsupported.new(

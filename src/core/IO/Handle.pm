@@ -844,7 +844,9 @@ my class IO::Handle {
           ),
           ($res := nqp::p6box_s(nqp::readallfh($!PIO))),
         );
-        self.close if $close;
+
+        # don't sink result of .close; it might be a failed Proc
+        $ = self.close if $close;
         $res
     }
 

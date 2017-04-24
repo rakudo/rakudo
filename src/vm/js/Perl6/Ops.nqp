@@ -35,6 +35,13 @@ register_op_desugar('p6sink', -> $qast {
     );
 });
 
+# Stub
+register_op_desugar('p6invokeflat', -> $qast {
+    $qast[1].flat(1);
+    QAST::Op.new( :op('call'), $qast[0], $qast[1]);
+    QAST::Op.new(:op('null'));
+});
+
 # Signature binding related bits.
 
 $ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :side_effects, sub ($binder) {"nqp.p6binder = $binder"});

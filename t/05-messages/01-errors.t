@@ -62,4 +62,19 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
 }
 
+# RT #113954
+{
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo bar' \n|,
+       'a space in a literal param to a MAIN() multi makes the suggestion quoted';
+
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo"bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo"bar' \n|,
+       'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo'bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|,
+       'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+}
+
 done-testing;

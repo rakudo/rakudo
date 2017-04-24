@@ -147,6 +147,26 @@ my class IO::ArgFiles is IO::Handle {
         [~] @chunks;
     }
 
+    method words(IO::ArgFiles:D: |c) {
+        $!has-args = ?$!args unless $!has-args.defined;
+
+        return $*IN.words(|c) unless $!has-args;
+
+        my @chunks;
+        if $!io.defined && $!io.opened {
+            @chunks.append: $!io.words(:close, |c);
+        }
+
+        while $!args {
+            @chunks.append: words $!args.shift, |c;
+        }
+
+        # TODO Should this be a failure?
+        return Nil unless @chunks;
+
+        @chunks.Seq;
+    }
+
     method nl-in is rw {
         Proxy.new(
           FETCH => {

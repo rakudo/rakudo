@@ -96,18 +96,10 @@ proto sub open(|) { * }
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
 proto sub lines(|) { * }
-multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
-    nqp::istype($limit,Whatever) || $limit == Inf
-      ?? $what.lines(|%named)
-      !! $what.lines($limit, |%named);
-}
+multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
 
 proto sub words(|) { * }
-multi sub words($what, $limit = Inf, *%named) {
-    nqp::istype($limit,Whatever) || $limit == Inf
-      ?? $what.words(|%named)
-      !! $what.words($limit, |%named);
-}
+multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
 proto sub get  (|) { * }
 multi sub get  (IO::Handle $fh = $*ARGFILES) { $fh.get  }

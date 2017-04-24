@@ -160,9 +160,9 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.split(|c);
     }
 
-    multi method match(Cool:D: $target, *%adverbs) {
+    method match(Cool:D: |c) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.match($target, |%adverbs)
+        self.Stringy.match(|c)
     }
 
     method comb(|c) { self.Str.comb(|c) }

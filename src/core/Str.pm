@@ -948,6 +948,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
     multi method match(Cool:D $pattern, |c) {
         $/ := nqp::getlexcaller('$/');
         self.match(/ "$pattern": /,|c)

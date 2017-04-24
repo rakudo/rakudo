@@ -81,7 +81,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     throws-like { EVAL q|role R { method a {...}; method b { say "b" }; method c {...} }; class C is R {}| },
         Exception,
-        message => q{Class C can't pun role R because it has required methods: a, c. Did you mean to use "does" instead?},
+        message => all(/<<'C'>>/, /<<'R'>>/, /<<'a,' \s* 'c'>>/, /<<'does'>>/),
         'The message when trying to pun a role with required methods should have the names of the child, parent, required methods, and suggest "does"';
 }
 

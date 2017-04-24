@@ -82,15 +82,9 @@ sub prompt($msg) {
 }
 
 proto sub dir(|) { * }
-multi sub dir(*%_) {
-    $*SPEC.curdir.IO.dir(:!absolute, |%_)
-}
-multi sub dir(IO::Path:D $path, |c) {
-    $path.dir(|c)
-}
-multi sub dir(Cool $path, |c) {
-    $path.IO.dir(|c)
-}
+multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
+multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
+multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 
 proto sub open(|) { * }
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }

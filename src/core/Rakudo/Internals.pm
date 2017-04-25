@@ -1548,10 +1548,7 @@ my class Rakudo::Internals {
 }
 
 # expose the number of bits a native int has
-my constant $?BITS = do {
-    my int $a = 0x1ffffffff;
-    nqp::iseq_i($a,8589934591) ?? 64 !! 32
-}
+my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 # we need this to run *after* the mainline of Rakudo::Internals has run
 Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {

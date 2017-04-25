@@ -7374,7 +7374,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     method hexint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 14 !! 8)
+        make $chars > ($?BITS == 64 ?? 14 !! 7)
           ?? string_to_bigint($/, 16, $chars)
           !! string_to_int($/, 16, $chars);
     }

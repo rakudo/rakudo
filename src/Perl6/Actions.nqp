@@ -7,7 +7,7 @@ use QAST;
 
 my $wantwant := Mu;
 
-my int $?BITS := nqp::iseq_i(0x1ffffffff,8589934591) ?? 64 !! 32;
+my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 sub block_closure($code) {
     my $closure := QAST::Op.new(

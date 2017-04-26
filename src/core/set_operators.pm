@@ -551,7 +551,15 @@ only sub infix:<∖>(|p) is pure {
     infix:<(-)>(|p);
 }
 
-only sub infix:<(^)>(**@p) is pure {
+proto sub infix:<(^)>(|) is pure { * }
+multi sub infix:<(^)>()               { set()  }
+multi sub infix:<(^)>(QuantHash:D $a) { $a     } # Set/Map/Mix
+multi sub infix:<(^)>(SetHash:D $a)   { $a.Set }
+multi sub infix:<(^)>(BagHash:D $a)   { $a.Bag }
+multi sub infix:<(^)>(MixHash:D $a)   { $a.Mix }
+multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
+
+multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 
     if $chain == 1 {

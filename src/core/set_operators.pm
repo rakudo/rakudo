@@ -596,6 +596,59 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     )
 }
 
+multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::stmts(                            # both are initialized
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::stmts(                        # $a smallest, iterate over it
+              (my $iter  := nqp::iterator(my $base := $araw)),
+              (my $elems := nqp::clone($braw))
+            ),
+            nqp::stmts(                        # $b smallest, iterate over that
+              ($iter  := nqp::iterator($base := $braw)),
+              ($elems := nqp::clone($araw))
+            )
+          ),
+          nqp::while(
+            $iter,
+            nqp::if(                           # remove if in both
+              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+              nqp::if(
+                (my $diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  - nqp::getattr(
+                      nqp::atkey($base,nqp::iterkey_s($iter)),
+                      Pair,
+                      '$!value'
+                    )
+                ),
+                nqp::bindkey(
+                  $elems,
+                  nqp::iterkey_s($iter),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($iter)),Pair,'$!value',abs($diff)
+                  )
+                ),
+                nqp::deletekey($elems,nqp::iterkey_s($iter))
+              ),
+              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
+            )
+          ),
+          nqp::if(
+            nqp::elems($elems),
+            nqp::create(Mix).SET-SELF($elems), # difference, so make it a Mix
+            mix()                              # nothing to see here
+          )
+        ),
+        nqp::if(nqp::istype($a,Mix),$a,$a.Mix) # $b empty, so $a
+      ),
+      nqp::if(nqp::istype($b,Mix),$b,$b.Mix)   # $a empty, so $b
+    )
+}
+
 multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 

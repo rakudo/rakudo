@@ -712,6 +712,51 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     )
 }
 
+multi sub infix:<(^)>(Map:D $a, Map:D $b) {
+    nqp::if(
+      nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+      nqp::if(                                    # both ordinary Str hashes
+        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+          && nqp::elems($araw),
+        nqp::if(                                  # $a has elems
+          (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+            && nqp::elems($braw),
+          nqp::stmts(                             # $b also, need to check both
+            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+            (my $iter := nqp::iterator($araw)),
+            nqp::while(                           # check $a's keys in $b
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::bindkey(
+                  $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter)
+                )
+              )
+            ),
+            ($iter := nqp::iterator($braw)),
+            nqp::while(                           # check $b's keys in $a
+              $iter,
+              nqp::unless(
+                nqp::existskey($araw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::bindkey(
+                  $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter)
+                )
+              )
+            ),
+            nqp::if(
+              nqp::elems($elems),
+              nqp::create(Set).SET-SELF($elems),  # an actual result
+              set()                               # nothing to see here
+            )
+          ),
+          $a.Set                                  # no $b, so $a
+        ),
+        $b.Set                                    # no $a, so $b
+      ),
+      $a.Set (^) $b.Set                           # object hash(es), coerce!
+    )
+}
+
 multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 

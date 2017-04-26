@@ -653,6 +653,65 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     )
 }
 
+multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { infix:<(^)>($a, $b.Mix) }
+multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { infix:<(^)>($a.Mix, $b) }
+multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::stmts(                            # both are initialized
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::stmts(                        # $a smallest, iterate over it
+              (my $iter  := nqp::iterator(my $base := $araw)),
+              (my $elems := nqp::clone($braw))
+            ),
+            nqp::stmts(                        # $b smallest, iterate over that
+              ($iter  := nqp::iterator($base := $braw)),
+              ($elems := nqp::clone($araw))
+            )
+          ),
+          nqp::while(
+            $iter,
+            nqp::if(                           # remove if in both
+              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+              nqp::if(
+                (my int $diff = nqp::sub_i(
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                  nqp::getattr(
+                    nqp::atkey($base,nqp::iterkey_s($iter)),
+                    Pair,
+                    '$!value'
+                  )
+                )),
+                nqp::bindkey(
+                  $elems,
+                  nqp::iterkey_s($iter),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($iter)),
+                    Pair,
+                    '$!value',
+                    nqp::abs_i($diff)
+                  )
+                ),
+                nqp::deletekey($elems,nqp::iterkey_s($iter))
+              ),
+              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
+            )
+          ),
+          nqp::if(
+            nqp::elems($elems),
+            nqp::create(Bag).SET-SELF($elems), # difference, so make it a Bag
+            bag()                              # nothing to see here
+          )
+        ),
+        nqp::if(nqp::istype($a,Bag),$a,$a.Bag) # $b empty, so $a
+      ),
+      nqp::if(nqp::istype($b,Bag),$b,$b.Bag)   # $a empty, so $b
+    )
+}
+
 multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 

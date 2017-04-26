@@ -561,9 +561,9 @@ multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash),
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
       nqp::if(
-        (my $braw := $b.raw_hash),
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -590,9 +590,9 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
             set()                              # nothing to see here
           )
         ),
-        $a,                                    # $b not initialized, so $a
+        nqp::if(nqp::istype($a,Set),$a,$a.Set) # $b empty, so $a
       ),
-      $b                                       # $a not initialized, so $b
+      nqp::if(nqp::istype($b,Set),$b,$b.Set)   # $a empty, so $b
     )
 }
 

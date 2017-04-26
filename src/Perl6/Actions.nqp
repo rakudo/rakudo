@@ -8433,15 +8433,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     if %info<sigil> eq '@' {
+                        my $type;
+                        if nqp::istype($nomtype, $*W.find_symbol(['Positional'])) && nqp::can($nomtype.HOW, 'role_arguments') {
+                            my @role_args := $nomtype.HOW.role_arguments($nomtype);
+                            $type := $*W.parameterize_type_with_args($/, $*W.find_symbol(['Array']), @role_args, nqp::hash);
+                        }
+                        else {
+                            $type := $*W.find_symbol(['Array']);
+                        }
                         $var.default(
                                 QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
+                                              QAST::WVal.new( :value($type) )
                             ));
                     }
                     elsif %info<sigil> eq '%' {
+                        my $type;
+                        if nqp::istype($nomtype, $*W.find_symbol(['Associative'])) && nqp::can($nomtype.HOW, 'role_arguments') {
+                            my @role_args := $nomtype.HOW.role_arguments($nomtype);
+                            $type := $*W.parameterize_type_with_args($/, $*W.find_symbol(['Hash']), @role_args, nqp::hash);
+                        }
+                        else {
+                            $type := $*W.find_symbol(['Hash']);
+                        }
                         $var.default(
                                 QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                                              QAST::WVal.new( :value($type) )
                             ));
                     }
                     else {

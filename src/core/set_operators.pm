@@ -559,6 +559,43 @@ multi sub infix:<(^)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(^)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
 
+multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash),
+      nqp::if(
+        (my $braw := $b.raw_hash),
+        nqp::stmts(                            # both are initialized
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::stmts(                        # $a smallest, iterate over it
+              (my $iter  := nqp::iterator($araw)),
+              (my $elems := nqp::clone($braw))
+            ),
+            nqp::stmts(                        # $b smallest, iterate over that
+              ($iter  := nqp::iterator($braw)),
+              ($elems := nqp::clone($araw))
+            )
+          ),
+          nqp::while(
+            $iter,
+            nqp::if(                           # remove if in both
+              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+              nqp::deletekey($elems,nqp::iterkey_s($iter)),
+              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
+            )
+          ),
+          nqp::if(
+            nqp::elems($elems),
+            nqp::create(Set).SET-SELF($elems), # difference, so make it a Set
+            set()                              # nothing to see here
+          )
+        ),
+        $a,                                    # $b not initialized, so $a
+      ),
+      $b                                       # $a not initialized, so $b
+    )
+}
+
 multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 

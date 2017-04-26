@@ -620,7 +620,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
               nqp::if(
                 (my $diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                   - nqp::getattr(
-                      nqp::atkey($base,nqp::iterkey_s($iter)),
+                      nqp::atkey($elems,nqp::iterkey_s($iter)),
                       Pair,
                       '$!value'
                     )
@@ -634,7 +634,11 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
                 ),
                 nqp::deletekey($elems,nqp::iterkey_s($iter))
               ),
-              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::clone(nqp::iterval($iter))
+              )
             )
           ),
           nqp::if(

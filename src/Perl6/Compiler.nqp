@@ -77,8 +77,9 @@ class Perl6::Compiler is HLL::Compiler {
         $p6repl.repl-loop(:interactive(1), |%adverbs)
     }
 
-    method usage($name?) {
-        say(($name ?? $name !! "") ~ " [switches] [--] [programfile] [arguments]
+    method usage($name?, :$use-stderr = False) {
+	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
+        $print-func(($name ?? $name !! "") ~ " [switches] [--] [programfile] [arguments]
 
 With no arguments, enters a REPL. With a \"[programfile]\" or the \"-e\"
 option, compiles the given program and, by default, also executes the

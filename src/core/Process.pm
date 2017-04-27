@@ -59,7 +59,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
-    my $HOME;
+    my $HOME is default(Nil);
 
     if %*ENV<HOME> -> $home {
         $HOME = $home;
@@ -67,7 +67,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     elsif Rakudo::Internals.IS-WIN {
         $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
     }
-    PROCESS::<$HOME> = $HOME ?? IO::Path.new($HOME) !! Nil;
+
+    $HOME = IO::Path.new($HOME) if $HOME;
+    PROCESS::<$HOME> := $HOME # bind container so Nil default is kept
 }
 
 {

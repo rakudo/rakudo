@@ -757,6 +757,33 @@ multi sub infix:<(^)>(Map:D $a, Map:D $b) {
     )
 }
 
+multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
+    nqp::if(
+      (my $aiterator := $a.flat.iterator).is-lazy
+        || (my $biterator := $b.flat.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'),:what<set>)),
+      nqp::stmts(
+        (my $elems := Set.fill_IterationSet(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $aiterator
+        )),
+        nqp::until(
+          nqp::eqaddr((my $pulled := $biterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::existskey($elems,(my $WHICH := $pulled.WHICH)),
+            nqp::deletekey($elems,$WHICH),
+            nqp::bindkey($elems,$WHICH,$pulled)
+          )
+        ),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Set).SET-SELF($elems),
+          set()
+        )
+      )
+    )
+}
+
 multi sub infix:<(^)>(**@p) is pure {
     return set() unless my $chain = @p.elems;
 

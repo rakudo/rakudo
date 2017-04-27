@@ -37,6 +37,7 @@ my class Pair does Associative {
         $other."$!key"().Bool === $!value.Bool
     }
 
+    method Pair() { self }
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 

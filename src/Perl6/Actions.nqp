@@ -8432,17 +8432,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    if %info<sigil> eq '@' {
+                    if (my $is-array := %info<sigil> eq '@') || %info<sigil> eq '%' {
+
+                        my $role      := $is-array ?? 'Positional' !! 'Associative';
+                        my $base-type := $is-array ?? 'Array'      !! 'Hash';
+
                         $var.default(
-                                QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
-                            ));
-                    }
-                    elsif %info<sigil> eq '%' {
-                        $var.default(
-                                QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
-                            ));
+                            QAST::Op.new(
+                                :op<create>,
+                                QAST::WVal.new(
+                                    value => nqp::istype($nomtype, $*W.find_symbol([$role])) && nqp::can($nomtype.HOW, 'role_arguments')
+                                               ?? $*W.parameterize_type_with_args($/, $*W.find_symbol([$base-type]), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
+                                               !! $*W.find_symbol([$base-type])
+                            )));
                     }
                     else {
                         if $spec == 1 {

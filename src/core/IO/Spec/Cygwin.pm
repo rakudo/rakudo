@@ -29,7 +29,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         first( {
             if .defined {
                 $io = .IO;
-                $io.d && $io.r && $io.w && $io.x;
+                $io.d && $io.rwx;
             }
           },
           %ENV<TMPDIR>,

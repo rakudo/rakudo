@@ -941,6 +941,22 @@ multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
     )
 }
 
+multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
+    nqp::if(
+      (my $elems := Rakudo::Internals.BAGGY-CLONE-RAW($a))
+        && nqp::elems($elems),
+      nqp::stmts(
+        Rakudo::Internals.MULTIPLY-MIX-TO-MIX($elems,$b),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Mix).SET-SELF($elems),
+          mix()
+        )
+      ),
+      mix()
+    )
+}
+
 multi sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 

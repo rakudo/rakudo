@@ -974,6 +974,21 @@ multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
     )
 }
 
+multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
+    nqp::stmts(
+      Rakudo::Internals.ADD-MIX-TO-MIX(
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        $a
+      ),
+      Rakudo::Internals.ADD-MIX-TO-MIX($elems,$b),
+      nqp::if(
+        nqp::elems($elems),
+        nqp::create(Mix).SET-SELF($elems),
+        mix()
+      )
+    )
+}
+
 multi sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 

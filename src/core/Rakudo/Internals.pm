@@ -1095,6 +1095,26 @@ my class Rakudo::Internals {
         )
     }
 
+    method MULTIPLY-SET-TO-BAG(\elems,\set --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::if(
+            (my $raw := set.raw_hash) && nqp::elems($raw),
+            nqp::while(
+              $iter,
+              nqp::unless(
+                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::deletekey(elems,nqp::iterkey_s($iter))
+              )
+            ),
+            nqp::while(   # nothing to match against, so reset
+              $iter,
+              nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
+            )
+          )
+        )
+    }
+
     my int $VERBATIM-EXCEPTION = 0;
     method VERBATIM-EXCEPTION($set?) {
         my int $value = $VERBATIM-EXCEPTION;

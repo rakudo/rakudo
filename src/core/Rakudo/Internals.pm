@@ -1008,6 +1008,22 @@ my class Rakudo::Internals {
         )
     }
 
+    method ADD-ITERATOR-TO-BAG(\elems,\iterator --> Nil) {
+        nqp::until(
+          nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
+            nqp::stmts(
+              (my $pair := nqp::atkey(elems,$WHICH)),
+              nqp::bindattr($pair,Pair,'$!value',
+                nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+              )
+            ),
+            nqp::bindkey(elems,$WHICH,Pair.new($pulled,1))
+          )
+        )
+    }
+
     method ADD-SET-TO-BAG(\elems,\set --> Nil) {
         nqp::if(
           (my $raw := set.raw_hash) && nqp::elems($raw),

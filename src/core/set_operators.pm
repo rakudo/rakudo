@@ -61,8 +61,8 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
             $iter,
             nqp::bindkey(                         # bind into clone of first
               $elems,
-              nqp::iterkey_s(my $tmp := nqp::shift($iter)),
-              nqp::iterval($tmp)
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::iterval($iter)
             )
           ),
           nqp::create(Set).SET-SELF($elems)       # make it a Set
@@ -166,9 +166,9 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
           nqp::while(
             $iter,
             nqp::if(
-              nqp::iterval(my $tmp := nqp::shift($iter)),
+              nqp::iterval(nqp::shift($iter)),
               nqp::bindkey(
-                $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
+                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
             )
           )
         ),
@@ -178,9 +178,9 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
           nqp::while(
             $iter,
             nqp::if(
-              nqp::iterval($tmp := nqp::shift($iter)),
+              nqp::iterval(nqp::shift($iter)),
               nqp::bindkey(
-                $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
+                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
             )
           )
         ),
@@ -276,8 +276,8 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
         nqp::while(
           $iter,
           nqp::if(                             # bind if in both
-            nqp::existskey($base,nqp::iterkey_s(my $tmp := nqp::shift($iter))),
-            nqp::bindkey($elems,nqp::iterkey_s($tmp),nqp::iterval($tmp))
+            nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
+            nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
           )
         ),
         nqp::if(
@@ -310,22 +310,22 @@ multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
         nqp::while(
           $iter,
           nqp::if(                             # bind if in both
-            nqp::existskey($base,nqp::iterkey_s(my $tmp := nqp::shift($iter))),
+            nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
             nqp::bindkey(
               $elems,
-              nqp::iterkey_s($tmp),
+              nqp::iterkey_s($iter),
               nqp::if(
                 nqp::getattr(
-                  nqp::decont(nqp::iterval($tmp)),
+                  nqp::decont(nqp::iterval($iter)),
                   Pair,
                   '$!value'
                 ) < nqp::getattr(              # must be HLL comparison
-                      nqp::atkey($base,nqp::iterkey_s($tmp)),
+                      nqp::atkey($base,nqp::iterkey_s($iter)),
                       Pair,
                       '$!value'
                     ),
-                nqp::iterval($tmp),
-                nqp::atkey($base,nqp::iterkey_s($tmp))
+                nqp::iterval($iter),
+                nqp::atkey($base,nqp::iterkey_s($iter))
               )
             )
           )
@@ -364,26 +364,26 @@ multi sub infix:<(&)>(Baggy:D $a, Baggy:D $b) {
           nqp::if(                           # bind if in both
           nqp::existskey(
               $base,
-              nqp::iterkey_s(my $tmp := nqp::shift($iter))
+              nqp::iterkey_s(nqp::shift($iter))
             ),
             nqp::bindkey(
               $elems,
-              nqp::iterkey_s($tmp),
+              nqp::iterkey_s($iter),
               nqp::if(
                 nqp::isle_i(
                   nqp::getattr(
-                    nqp::decont(nqp::iterval($tmp)),
+                    nqp::decont(nqp::iterval($iter)),
                     Pair,
                     '$!value'
                   ),
                   nqp::getattr(
-                    nqp::atkey($base,nqp::iterkey_s($tmp)),
+                    nqp::atkey($base,nqp::iterkey_s($iter)),
                     Pair,
                     '$!value'
                   )
                 ),
-                nqp::iterval($tmp),
-                nqp::atkey($base,nqp::iterkey_s($tmp))
+                nqp::iterval($iter),
+                nqp::atkey($base,nqp::iterkey_s($iter))
               )
             )
           )
@@ -424,10 +424,10 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
             nqp::if(                         # create if in both
               nqp::existskey(
                 $base,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter))
+                nqp::iterkey_s(nqp::shift($iter))
               ),
               nqp::bindkey(
-                $elems,nqp::iterkey_s($tmp).WHICH,nqp::iterkey_s($tmp))
+                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
             )
           ),
           nqp::if(

@@ -753,16 +753,16 @@ my class Hash { # declared in BOOTSTRAP
                     $iter,
                     nqp::istrue(
                       nqp::getattr(
-                        nqp::decont(nqp::iterval(my $tmp := nqp::shift($iter))),
+                        nqp::decont(nqp::iterval(nqp::shift($iter))),
                         Pair,
                         '$!value'
                       )
                     ),
                     nqp::bindkey(
                       $elems,
-                      nqp::iterkey_s($tmp),
+                      nqp::iterkey_s($iter),
                       nqp::getattr(
-                        nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+                        nqp::decont(nqp::iterval($iter)),Pair,'$!key'),
                     )
                   )
                 )

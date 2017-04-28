@@ -104,9 +104,9 @@ my role Setty does QuantHash {
                 $iter,
                 nqp::bindkey(
                   $storage,
-                  nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                  nqp::iterkey_s(nqp::shift($iter)),
                   Pair.new(
-                    nqp::iterval($tmp),
+                    nqp::iterval($iter),
                     (nqp::p6scalarfromdesc($descriptor) = True)
                   )
                 )
@@ -214,9 +214,9 @@ my role Setty does QuantHash {
               $iter,
               nqp::bindkey(
                 $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::iterkey_s(nqp::shift($iter)),
                 Pair.new(
-                  nqp::decont(nqp::iterval($tmp)),
+                  nqp::decont(nqp::iterval($iter)),
                   nqp::if(
                     $bind,
                     1,

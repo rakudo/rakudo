@@ -1,4 +1,3 @@
-
 my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
@@ -36,13 +35,11 @@ my class Match is Capture is Cool does NQPMatchRole {
                 $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
                 if nqp::not_i(nqp::isnull($caplist)) && nqp::istrue($caplist) {
                     my $iter := nqp::iterator($caplist);
-                    my $curcap;
                     my str $name;
                     while $iter {
-                        $curcap := nqp::shift($iter);
                         $namecount = nqp::add_i($namecount, 1);
-                        if nqp::iterval($curcap) >= 2 {
-                            $name = nqp::iterkey_s($curcap);
+                        if nqp::iterval(nqp::shift($iter)) >= 2 {
+                            $name = nqp::iterkey_s($iter);
                             $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(

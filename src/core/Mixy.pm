@@ -8,11 +8,11 @@ my role Mixy does Baggy  {
             $iter,
             nqp::if(
               nqp::getattr(
-                nqp::iterval(my $tmp := nqp::shift($iter)),
+                nqp::iterval(nqp::shift($iter)),
                 Pair,
                 '$!value'
               ) == 0,
-              nqp::deletekey(elems,nqp::iterkey_s($tmp))
+              nqp::deletekey(elems,nqp::iterkey_s($iter))
             )
           )
         )

@@ -87,12 +87,10 @@ sub INITIALIZE-A-VM-NOW() {
         my %CONFIG;
         my $jenv := nqp::backendconfig();
         my Mu $enviter := nqp::iterator($jenv);
-        my $envelem;
         my $key;
         while $enviter {
-            $envelem := nqp::shift($enviter);
-            $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($enviter));
         }
         %CONFIG;
     }
@@ -100,12 +98,10 @@ sub INITIALIZE-A-VM-NOW() {
         my %PROPS;
         my $jenv := nqp::jvmgetproperties();
         my Mu $enviter := nqp::iterator($jenv);
-        my $envelem;
         my $key;
         while $enviter {
-            $envelem := nqp::shift($enviter);
-            $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-            %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %PROPS{$key} = nqp::p6box_s(nqp::iterval($enviter));
         }
         %PROPS;
     }

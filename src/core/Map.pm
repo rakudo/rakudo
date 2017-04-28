@@ -25,11 +25,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
             nqp::while(
               $iter,
-              nqp::stmts(
-                nqp::shift($iter),
-                nqp::bindkey($storage,nqp::iterkey_s($iter),
-                  nqp::p6scalarfromdesc($descriptor) =
-                    nqp::decont(nqp::iterval($iter)))
+              nqp::bindkey($storage,nqp::iterkey_s(nqp::shift($iter)),
+                nqp::p6scalarfromdesc($descriptor) =
+                  nqp::decont(nqp::iterval($iter))
               )
             );
             $hash
@@ -252,11 +250,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             (my $iter := nqp::iterator($other)),
             nqp::while(
               $iter,
-              nqp::stmts(
-                nqp::shift($iter),
-                self.STORE_AT_KEY(
-                  nqp::iterkey_s($iter),nqp::iterval($iter)
-                )
+              self.STORE_AT_KEY(
+                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
               )
             )
           )
@@ -345,11 +340,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::while(
                 $iter,
                 nqp::if(
-                  nqp::iterval(my $tmp := nqp::shift($iter)),
+                  nqp::iterval(nqp::shift($iter)),
                   nqp::bindkey(
                     $elems,
-                    nqp::iterkey_s($tmp).WHICH,
-                    nqp::iterkey_s($tmp),
+                    nqp::iterkey_s($iter).WHICH,
+                    nqp::iterkey_s($iter),
                   )
                 )
               )

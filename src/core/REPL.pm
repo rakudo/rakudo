@@ -124,8 +124,7 @@ do {
             my $it := nqp::iterator($pad);
 
             while $it {
-                my $e := nqp::shift($it);
-                my $k := nqp::iterkey_s($e);
+                my $k := nqp::iterkey_s(nqp::shift($it));
                 my $m = $k ~~ /^ "&"? $<word>=[\w* <.lower> \w*] $/;
                 next if !$m;
                 my $word = ~$m<word>;

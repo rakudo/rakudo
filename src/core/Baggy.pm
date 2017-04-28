@@ -138,15 +138,12 @@ my role Baggy does QuantHash {
                   nqp::getattr($other,$other.WHAT,'%!elems'),Map,'$!storage')),
                 nqp::while(
                   $iter,
-                  nqp::stmts(
-                    nqp::shift($iter),
-                    nqp::unless(
-                      (nqp::existskey($oelems,nqp::iterkey_s($iter))
-                        && nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                        == nqp::getattr(nqp::atkey(
-                             $oelems,nqp::iterkey_s($iter)),Pair,'$!value')),
-                      return False
-                    )
+                  nqp::unless(
+                    (nqp::existskey($oelems,nqp::iterkey_s(nqp::shift($iter)))
+                      && nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                      == nqp::getattr(nqp::atkey(
+                           $oelems,nqp::iterkey_s($iter)),Pair,'$!value')),
+                    return False
                   )
                 ),
                 1
@@ -691,17 +688,18 @@ my role Baggy does QuantHash {
               nqp::if(
                 nqp::isgt_i(
                   (my $value := nqp::getattr(
-                  nqp::iterval(my $tmp := nqp::shift($iter)),
-                  Pair,
-                  '$!value'
-                  ).Int),                           # .Int also deconts
+                    nqp::iterval(nqp::shift($iter)),
+                    Pair,
+                    '$!value'
+                    ).Int
+                  ),                                # .Int also deconts
                   0
                 ),
                 nqp::bindkey(                       # ok to keep value.Int
                   $elems,
-                  nqp::iterkey_s($tmp),
+                  nqp::iterkey_s($iter),
                   nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($tmp)),
+                    nqp::clone(nqp::iterval($iter)),
                     Pair,
                     '$!value',
                     nqp::if(
@@ -713,7 +711,7 @@ my role Baggy does QuantHash {
                 ),
                 nqp::deletekey(                     # we don't do <= 0 in bags
                   $elems,
-                  nqp::iterkey_s($tmp)
+                  nqp::iterkey_s($iter)
                 )
               )
             ),
@@ -741,18 +739,18 @@ my role Baggy does QuantHash {
               $iter,
               nqp::bindkey(
                 $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::iterkey_s(nqp::shift($iter)),
                 nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval($tmp)),
+                  nqp::clone(nqp::iterval($iter)),
                   Pair,
                   '$!value',
                   nqp::if(
                     $bind,
                     nqp::decont(
-                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value')
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                     ),
                     (nqp::p6scalarfromdesc(nqp::null) =
-                      nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
                   )
                 )
               )
@@ -777,13 +775,13 @@ my role Baggy does QuantHash {
               $iter,
               nqp::bindkey(
                 $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::iterkey_s(nqp::shift($iter)),
                 nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval($tmp)),
+                  nqp::clone(nqp::iterval($iter)),
                   Pair,
                   '$!value',
                   (nqp::p6scalarfromdesc(nqp::null) =
-                    nqp::getattr(nqp::iterval($tmp),Pair,'$!value'))
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
                 )
               )
             ),

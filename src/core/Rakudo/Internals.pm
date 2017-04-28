@@ -1115,6 +1115,33 @@ my class Rakudo::Internals {
         )
     }
 
+    method MULTIPLY-MIX-TO-MIX(\elems,\mix --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::if(
+            (my $raw := mix.raw_hash) && nqp::elems($raw),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::stmts(
+                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                  nqp::bindattr($pair,Pair,'$!value',
+                    nqp::getattr($pair,Pair,'$!value')
+                    * nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  )
+                ),
+                nqp::deletekey(elems,nqp::iterkey_s($iter))
+              )
+            ),
+            nqp::while(   # nothing to match against, so reset
+              $iter,
+              nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
+            )
+          )
+        )
+    }
+
     my int $VERBATIM-EXCEPTION = 0;
     method VERBATIM-EXCEPTION($set?) {
         my int $value = $VERBATIM-EXCEPTION;

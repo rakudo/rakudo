@@ -981,6 +981,30 @@ my class Rakudo::Internals {
         $list ?? $result !! nqp::join("",$result)
     }
 
+    method ADD-SET-TO-BAG(\elems,\set --> Nil) {
+        nqp::if(
+          (my $raw := set.raw_hash) && nqp::elems($raw),
+          nqp::stmts(
+            (my $iter := nqp::iterator($raw)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::stmts(
+                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                  nqp::bindattr($pair,Pair,'$!value',
+                    nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                  )
+                ),
+                nqp::bindkey(elems,nqp::iterkey_s($iter),
+                  Pair.new(nqp::iterval($iter),1)
+                )
+              )
+            )
+          )
+        )
+    }
+
     my int $VERBATIM-EXCEPTION = 0;
     method VERBATIM-EXCEPTION($set?) {
         my int $value = $VERBATIM-EXCEPTION;

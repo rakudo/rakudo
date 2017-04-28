@@ -324,7 +324,7 @@ my class Binder {
                             my $got    := $oval.HOW.name($oval);
                             $error[0]  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Method '$method' must be called on a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
-                              !! "Parameter '$varname' of method '$method' must be a type object of type '$class', but an object instance of type '$got' was passed.  Did you forget a 'multi'?";
+                              !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', but an object instance of type '$got' was passed.  Did you forget a 'multi'?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION
@@ -338,7 +338,7 @@ my class Binder {
                             my $got    := $oval.HOW.name($oval);
                             $error[0]  := $flags +& $SIG_ELEM_INVOCANT
                               ?? "Method '$method' must be called on an object instance of type '$class', not a '$got' type object.  Did you forget a '.new'?"
-                              !! "Parameter '$varname' of method '$method' must be an object instance of type '$class', but a '$got' type object was passed.  Did you forget a '.new'?";
+                              !! "Parameter '$varname' of routine '$method' must be an object instance of type '$class', but a '$got' type object was passed.  Did you forget a '.new'?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION

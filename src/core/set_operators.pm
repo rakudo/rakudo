@@ -43,7 +43,7 @@ only sub infix:<∌>($a, $b --> Bool:D) is pure {
 
 proto sub infix:<(|)>(|) is pure { * }
 multi sub infix:<(|)>()               { set()  }
-multi sub infix:<(|)>(QuantHash:D $a) { $a     } # Set/Map/Mix
+multi sub infix:<(|)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
 multi sub infix:<(|)>(SetHash:D $a)   { $a.Set }
 multi sub infix:<(|)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(|)>(MixHash:D $a)   { $a.Mix }
@@ -250,7 +250,7 @@ only sub infix:<∪>(|p) is pure {
 
 proto sub infix:<(&)>(|) is pure { * }
 multi sub infix:<(&)>()               { set()  }
-multi sub infix:<(&)>(QuantHash:D $a) { $a     } # Set/Map/Mix
+multi sub infix:<(&)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
 multi sub infix:<(&)>(SetHash:D $a)   { $a.Set }
 multi sub infix:<(&)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(&)>(MixHash:D $a)   { $a.Mix }
@@ -515,7 +515,7 @@ only sub infix:<∩>(|p) is pure {
 
 proto sub infix:<(-)>(|) is pure { * }
 multi sub infix:<(-)>()               { set()  }
-multi sub infix:<(-)>(QuantHash:D $a) { $a     } # Set/Map/Mix
+multi sub infix:<(-)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
 multi sub infix:<(-)>(SetHash:D $a)   { $a.Set }
 multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
@@ -566,7 +566,7 @@ only sub infix:<∖>(|p) is pure {
 
 proto sub infix:<(^)>(|) is pure { * }
 multi sub infix:<(^)>()               { set()  }
-multi sub infix:<(^)>(QuantHash:D $a) { $a     } # Set/Map/Mix
+multi sub infix:<(^)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
 multi sub infix:<(^)>(SetHash:D $a)   { $a.Set }
 multi sub infix:<(^)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(^)>(MixHash:D $a)   { $a.Mix }

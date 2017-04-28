@@ -1006,6 +1006,8 @@ multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
     )
 }
 
+multi sub infix:<(+)>(Map:D $a, Map:D $b) { $a.Bag (+) $b.Bag }
+
 multi sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 

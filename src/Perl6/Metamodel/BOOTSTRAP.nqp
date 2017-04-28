@@ -319,6 +319,7 @@ my class Binder {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+                            $method    := '<anon>' if nqp::isnull_s($method);
                             my $class  := $nom_type.HOW.name($nom_type);
                             my $got    := $oval.HOW.name($oval);
                             $error[0]  := $flags +& $SIG_ELEM_INVOCANT
@@ -332,6 +333,7 @@ my class Binder {
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+                            $method    := '<anon>' if nqp::isnull_s($method);
                             my $class  := $nom_type.HOW.name($nom_type);
                             my $got    := $oval.HOW.name($oval);
                             $error[0]  := $flags +& $SIG_ELEM_INVOCANT

@@ -401,7 +401,7 @@ do {
 
             $!history-file = $*ENV<RAKUDO_HIST>
                 ?? $*ENV<RAKUDO_HIST>.IO
-                !! $*HOME.add('.perl6/rakudo-history');
+                !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
 
             without mkdir $!history-file.parent {
                 note "I ran into a problem trying to set up history: {.exception.message}";

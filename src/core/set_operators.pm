@@ -919,7 +919,14 @@ only sub infix:<⊅>($a, $b --> Bool:D) is pure {
     $a !(>) $b;
 }
 
-only sub infix:<(.)>(**@p) is pure {
+proto sub infix:<(.)>(|) is pure { * }
+multi sub infix:<(.)>()               { bag()  }
+multi sub infix:<(.)>(Bag:D $a)       { $a     }
+multi sub infix:<(.)>(Mix:D $a)       { $a     }
+multi sub infix:<(.)>(MixHash:D $a)   { $a.Mix }
+multi sub infix:<(.)>(Any $a)         { $a.Bag }
+
+multi sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {

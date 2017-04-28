@@ -157,6 +157,28 @@ my class Rakudo::Internals {
         for @END -> $end { $end() };
     }
 
+    method createENV(int $bind) {
+        nqp::stmts(
+          (my $hash := nqp::hash),
+          (my $iter := nqp::iterator(nqp::getenvhash)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $hash,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::if(
+                $bind,
+                val(nqp::iterval($iter)),
+                nqp::p6scalarfromdesc(nqp::null) = val(nqp::iterval($iter))
+              )
+            )
+          ),
+          nqp::p6bindattrinvres(
+            nqp::create(nqp::if($bind,Map,Hash)),Map,'$!storage',$hash
+          )
+        )
+    }
+
     # fast whitespace trim: str to trim, str to store trimmed str
     method TRIM(\string, \trimmed --> Nil) {
         my int $pos  = nqp::chars(string) - 1;

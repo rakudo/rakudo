@@ -145,7 +145,9 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     multi method perl(Seq:D \SELF:) {
-        unless $!iter.DEFINITE && ! $!list.DEFINITE {
+        # If we don't have an iterator, someone grabbed it already;
+        # Check for cached $!list; if that's missing too, we're consumed
+        if not $!iter.DEFINITE and not $!list.DEFINITE {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.

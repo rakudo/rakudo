@@ -1125,10 +1125,14 @@ my class Rakudo::Internals {
               nqp::if(
                 nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
                 nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                  (my $pair := nqp::iterval($iter)),
                   nqp::bindattr($pair,Pair,'$!value',
                     nqp::getattr($pair,Pair,'$!value')
-                    * nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                    * nqp::getattr(
+                        nqp::atkey($raw,nqp::iterkey_s($iter)),
+                        Pair,
+                        '$!value'
+                      )
                   )
                 ),
                 nqp::deletekey(elems,nqp::iterkey_s($iter))

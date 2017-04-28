@@ -221,4 +221,14 @@ my @input-lines;
 # RT#130874
 like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
 
+
+# Since there might be some differences in REPL sessions in whitespace
+# or what not, strip all \W and then check what we have left over is what
+# a normal session should have. This lets us catch any unexpected error
+# messages and stuff.
+is feed_repl_with(['say "hi"']).subst(:g, /\W+/, ''),
+    'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+    ~ 'oruserlwrapforalineeditorhi',
+'REPL session does not have unexpected stuff';
+
 done-testing;

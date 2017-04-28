@@ -318,11 +318,12 @@ my class Binder {
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
                     if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            my $class := $nom_type.HOW.name($nom_type);
-                            my $what  := $flags +& $SIG_ELEM_INVOCANT
-                              ?? "Invocant"
-                              !! "Parameter '$varname'";
-                            $error[0] := "$what requires a type object of type $class, but an object instance was passed.  Did you forget a 'multi'?";
+                            my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+                            my $class  := $nom_type.HOW.name($nom_type);
+                            my $got    := $oval.HOW.name($oval);
+                            $error[0]  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Method '$method' must be called on a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
+                              !! "Parameter '$varname' of method '$method' must be a type object of type '$class', but an object instance of type '$got' was passed.  Did you forget a 'multi'?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION
@@ -330,11 +331,12 @@ my class Binder {
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
-                            my $class := $nom_type.HOW.name($nom_type);
-                            my $what  := $flags +& $SIG_ELEM_INVOCANT
-                              ?? "Invocant"
-                              !! "Parameter '$varname'";
-                            $error[0] := "$what requires an instance of type $class, but a type object was passed.  Did you forget a .new?";
+                            my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+                            my $class  := $nom_type.HOW.name($nom_type);
+                            my $got    := $oval.HOW.name($oval);
+                            $error[0]  := $flags +& $SIG_ELEM_INVOCANT
+                              ?? "Method '$method' must be called on an object instance of type '$class', not a '$got' type object.  Did you forget a '.new'?"
+                              !! "Parameter '$varname' of method '$method' must be an object instance of type '$class', but a '$got' type object was passed.  Did you forget a '.new'?";
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION

@@ -37,7 +37,7 @@ my class IO::ArgFiles is IO::Handle {
     }
 
     method !next-io($close) {
-        $!io.close if $close;
+        $!io.close if $close and $!io;
         unless $!has-args.defined {
             $!has-args = ?$!args;
         }

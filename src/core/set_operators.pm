@@ -926,6 +926,21 @@ multi sub infix:<(.)>(Mix:D $a)       { $a     }
 multi sub infix:<(.)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(.)>(Any $a)         { $a.Bag }
 
+multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
+    nqp::if(
+      (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
+      nqp::stmts(
+        Rakudo::Internals.MULTIPLY-SET-TO-BAG($elems,$b),
+        nqp::if(
+          nqp::elems($elems),
+          nqp::create(Bag).SET-SELF($elems),
+          bag()
+        )
+      ),
+      bag()
+    )
+}
+
 multi sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
 

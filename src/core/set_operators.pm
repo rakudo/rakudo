@@ -989,6 +989,23 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
     )
 }
 
+multi sub infix:<(+)>(Mixy:D $a, Baggy:D $b) { infix:<(+)>($a, $b.Mix) }
+multi sub infix:<(+)>(Baggy:D $a, Mixy:D $b) { infix:<(+)>($a.Mix, $b) }
+multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
+    nqp::stmts(
+      Rakudo::Internals.ADD-BAG-TO-BAG(
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        $a
+      ),
+      Rakudo::Internals.ADD-BAG-TO-BAG($elems,$b),
+      nqp::if(
+        nqp::elems($elems),
+        nqp::create(Bag).SET-SELF($elems),
+        bag()
+      )
+    )
+}
+
 multi sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;
 

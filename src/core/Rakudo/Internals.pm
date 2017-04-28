@@ -1095,6 +1095,33 @@ my class Rakudo::Internals {
         )
     }
 
+    method BAGGY-CLONE-RAW(\baggy) {
+        nqp::if(
+          (my $raw := baggy.raw_hash) && nqp::elems($raw),
+          nqp::stmts(                             # something to coerce
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  nqp::decont(
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  )
+                )
+              )
+            ),
+            $elems
+          ),
+          $raw
+        )
+    }
+
     method MULTIPLY-SET-TO-BAG(\elems,\set --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),

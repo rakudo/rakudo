@@ -430,7 +430,10 @@ my class Mu { # declared in BOOTSTRAP
 
                           nqp::if( # 13
                             nqp::iseq_i($code,13),
-                            nqp::getattr(self,  # not sure why this is needed
+                            # Force vivification, for the sake of meta-object
+                            # mix-ins at compile time ending up with correctly
+                            # shared containers.
+                            nqp::getattr(self,
                               nqp::atpos($task,1),
                               nqp::atpos($task,2)
                             ),

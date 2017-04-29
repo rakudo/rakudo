@@ -693,32 +693,30 @@ sub infix:<notandthen>(+a) {
     $current;
 }
 
-sub infix:<orelse>(+a) {
-    my $ai := a.iterator;
-    my Mu $current := $ai.pull-one;
-    return Nil if $current =:= IterationEnd;
-
-    # Flag for heuristic when we were passed an Empty as LHS
-    my int $handle-empty = 1;
-    nqp::until(
-        (($_ := $ai.pull-one) =:= IterationEnd),
-        nqp::stmts(
-            (return $current if $current.defined),
-            ($handle-empty = 0),
-            ($current := $_ ~~ Callable
-                ?? (.count ?? $_($current) !! $_())
-                !! $_
-            ),
-        ),
-        :nohandler, # do not handle control stuff in thunks
-    );
-
-    if $handle-empty and $current ~~ Callable {
-        $_ := Empty; # set $_ in the Callable
-        $current := $current.count ?? $current($_) !! $current();
-    }
-
-    $current;
+sub infix:<orelse>(+$) {
+    # We need to be able to process `Empty` in our args, which we can get
+    # when we're chained with, say, `andthen`. Since Empty disappears in normal
+    # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
+    # emulate the `+@foo` slurpy by inspecting the list the op gave us.
+    nqp::if(
+      (my int $els = nqp::elems(my $args := nqp::p6argvmarray)),
+      nqp::stmts(
+        (my $current := nqp::atpos($args, 0)),
+        nqp::if( # emulate the +@foo slurpy
+          nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
+          nqp::stmts(
+            ($args := $current),
+            $current := $args[0])),
+        (my int $i),
+        nqp::until(
+          $current.defined || nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
+          ($current := nqp::if(
+            nqp::istype(($_ := $args[$i]), Callable),
+            nqp::if(.count, $_($current), $_()),
+            $_)),
+          :nohandler), # do not handle control stuff in thunks
+        $current),
+      Nil) # We were given no args, return Nil
 }
 
 # next three sub would belong to traits.pm if PseudoStash were available

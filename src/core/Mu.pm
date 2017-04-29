@@ -322,6 +322,9 @@ my class Mu { # declared in BOOTSTRAP
         my $task;
         my $build;
         my int $code;
+        my int $int;
+        my num $num;
+        my str $str;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
@@ -428,18 +431,60 @@ my class Mu { # declared in BOOTSTRAP
                             )
                           ),
 
-                          nqp::if( # 13
-                            nqp::iseq_i($code,13),
-                            # Force vivification, for the sake of meta-object
-                            # mix-ins at compile time ending up with correctly
-                            # shared containers.
-                            nqp::getattr(self,
-                              nqp::atpos($task,1),
-                              nqp::atpos($task,2)
+                          nqp::if( # 8
+                            nqp::iseq_i($code,8),
+                            nqp::if(
+                              nqp::iseq_i($int = nqp::getattr_i(self,
+                                nqp::atpos($task,1),
+                                nqp::atpos($task,2)
+                              ), 0),
+                              nqp::bindattr_i(self,
+                                nqp::atpos($task,1),
+                                nqp::atpos($task,2),
+                                (nqp::atpos($task,3)(self,$int))
+                              )
                             ),
-                            die("Invalid BUILD_LEAST_DERIVED plan")
-                          )
-        )))))))));
+
+                            nqp::if( # 9
+                              nqp::iseq_i($code,9),
+                              nqp::if(
+                                nqp::iseq_n($num = nqp::getattr_n(self,
+                                  nqp::atpos($task,1),
+                                  nqp::atpos($task,2)
+                                ), 0e0),
+                                nqp::bindattr_n(self,
+                                  nqp::atpos($task,1),
+                                  nqp::atpos($task,2),
+                                  (nqp::atpos($task,3)(self,$num))
+                                )
+                              ),
+
+                              nqp::if( # 10
+                                nqp::iseq_i($code,10),
+                                nqp::if(
+                                  nqp::isnull_s($str = nqp::getattr_s(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2)
+                                  )),
+                                  nqp::bindattr_s(self,
+                                    nqp::atpos($task,1),
+                                    nqp::atpos($task,2),
+                                    (nqp::atpos($task,3)(self,$str))
+                                  )
+                                ),
+
+                                  nqp::if( # 13
+                                    nqp::iseq_i($code,13),
+                                    # Force vivification, for the sake of meta-object
+                                    # mix-ins at compile time ending up with correctly
+                                    # shared containers.
+                                    nqp::getattr(self,
+                                      nqp::atpos($task,1),
+                                      nqp::atpos($task,2)
+                                    ),
+                                    die("Invalid BUILD_LEAST_DERIVED plan")
+                                  )
+        ))))))))))));
         self
     }
 

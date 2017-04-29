@@ -671,7 +671,8 @@ sub infix:<andthen>(+a) {
           nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
           nqp::stmts(
             ($args := $current.List),
-            $current := $args[0])),
+            ($current := $args[0]),
+            $els = $args.elems)),
         (my int $i),
         nqp::until(
           nqp::iseq_i($els, $i = nqp::add_i($i, 1))
@@ -701,7 +702,8 @@ sub infix:<notandthen>(+a) {
           nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
           nqp::stmts(
             ($args := $current.List),
-            $current := $args[0])),
+            ($current := $args[0]),
+            $els = $args.elems)),
         (my int $i),
         nqp::until(
           nqp::iseq_i($els, $i = nqp::add_i($i, 1))
@@ -731,7 +733,8 @@ sub infix:<orelse>(+$) {
           nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
           nqp::stmts(
             ($args := $current.List),
-            $current := $args[0])),
+            ($current := $args[0]),
+            $els = $args.elems)),
         (my int $i),
         nqp::until(
           $current.defined || nqp::iseq_i($els, $i = nqp::add_i($i, 1)),

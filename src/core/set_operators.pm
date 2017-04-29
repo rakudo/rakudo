@@ -930,7 +930,7 @@ multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
     nqp::if(
       (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
       nqp::stmts(
-        Rakudo::Internals.MULTIPLY-SET-TO-BAG($elems,$b),
+        Rakudo::Internals.MULTIPLY-SET-TO-BAG($elems,$b.raw_hash),
         nqp::if(
           nqp::elems($elems),
           nqp::create(Bag).SET-SELF($elems),
@@ -943,10 +943,10 @@ multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
 
 multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $elems := Rakudo::Internals.BAGGY-CLONE-RAW($a))
+      (my $elems := Rakudo::Internals.BAGGY-CLONE-RAW($a.raw_hash))
         && nqp::elems($elems),
       nqp::stmts(
-        Rakudo::Internals.MULTIPLY-MIX-TO-MIX($elems,$b),
+        Rakudo::Internals.MULTIPLY-MIX-TO-MIX($elems,$b.raw_hash),
         nqp::if(
           nqp::elems($elems),
           nqp::create(Mix).SET-SELF($elems),
@@ -961,10 +961,10 @@ multi sub infix:<(.)>(Mixy:D $a, Baggy:D $b) { infix:<(.)>($a, $b.Mix) }
 multi sub infix:<(.)>(Baggy:D $a, Mixy:D $b) { infix:<(.)>($a.Mix, $b) }
 multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $elems := Rakudo::Internals.BAGGY-CLONE-RAW($a))
+      (my $elems := Rakudo::Internals.BAGGY-CLONE-RAW($a.raw_hash))
         && nqp::elems($elems),
       nqp::stmts(
-        Rakudo::Internals.MULTIPLY-BAG-TO-BAG($elems,$b),
+        Rakudo::Internals.MULTIPLY-BAG-TO-BAG($elems,$b.raw_hash),
         nqp::if(
           nqp::elems($elems),
           nqp::create(Bag).SET-SELF($elems),
@@ -1021,9 +1021,9 @@ multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
     nqp::stmts(
       Rakudo::Internals.ADD-SET-TO-BAG(
         (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a
+        $a.raw_hash
       ),
-      Rakudo::Internals.ADD-SET-TO-BAG($elems,$b),
+      Rakudo::Internals.ADD-SET-TO-BAG($elems,$b.raw_hash),
       nqp::if(
         nqp::elems($elems),
         nqp::create(Bag).SET-SELF($elems),
@@ -1036,9 +1036,9 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
     nqp::stmts(
       Rakudo::Internals.ADD-MIX-TO-MIX(
         (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a
+        $a.raw_hash
       ),
-      Rakudo::Internals.ADD-MIX-TO-MIX($elems,$b),
+      Rakudo::Internals.ADD-MIX-TO-MIX($elems,$b.raw_hash),
       nqp::if(
         nqp::elems($elems),
         nqp::create(Mix).SET-SELF($elems),
@@ -1053,9 +1053,9 @@ multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
     nqp::stmts(
       Rakudo::Internals.ADD-BAG-TO-BAG(
         (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a
+        $a.raw_hash
       ),
-      Rakudo::Internals.ADD-BAG-TO-BAG($elems,$b),
+      Rakudo::Internals.ADD-BAG-TO-BAG($elems,$b.raw_hash),
       nqp::if(
         nqp::elems($elems),
         nqp::create(Bag).SET-SELF($elems),

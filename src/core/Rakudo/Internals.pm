@@ -1003,11 +1003,11 @@ my class Rakudo::Internals {
         $list ?? $result !! nqp::join("",$result)
     }
 
-    method ADD-BAG-TO-BAG(\elems,\bag --> Nil) {
+    method ADD-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
         nqp::if(
-          (my $raw := bag.raw_hash) && nqp::elems($raw),
+          bag && nqp::elems(bag),
           nqp::stmts(
-            (my $iter := nqp::iterator($raw)),
+            (my $iter := nqp::iterator(bag)),
             nqp::while(
               $iter,
               nqp::if(
@@ -1030,7 +1030,7 @@ my class Rakudo::Internals {
         )
     }
 
-    method ADD-ITERATOR-TO-BAG(\elems,\iterator --> Nil) {
+    method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator --> Nil) {
         nqp::until(
           nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
           nqp::if(
@@ -1046,11 +1046,11 @@ my class Rakudo::Internals {
         )
     }
 
-    method ADD-SET-TO-BAG(\elems,\set --> Nil) {
+    method ADD-SET-TO-BAG(\elems,Mu \set --> Nil) {
         nqp::if(
-          (my $raw := set.raw_hash) && nqp::elems($raw),
+          set && nqp::elems(set),
           nqp::stmts(
-            (my $iter := nqp::iterator($raw)),
+            (my $iter := nqp::iterator(set)),
             nqp::while(
               $iter,
               nqp::if(
@@ -1070,11 +1070,11 @@ my class Rakudo::Internals {
         )
     }
 
-    method ADD-MIX-TO-MIX(\elems,\mix --> Nil) {
+    method ADD-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
         nqp::if(
-          (my $raw := mix.raw_hash) && nqp::elems($raw),
+          mix && nqp::elems(mix),
           nqp::stmts(
-            (my $iter := nqp::iterator($raw)),
+            (my $iter := nqp::iterator(mix)),
             nqp::while(
               $iter,
               nqp::if(
@@ -1095,11 +1095,11 @@ my class Rakudo::Internals {
         )
     }
 
-    method BAGGY-CLONE-RAW(\baggy) {
+    method BAGGY-CLONE-RAW(Mu \baggy) {
         nqp::if(
-          (my $raw := baggy.raw_hash) && nqp::elems($raw),
+          baggy && nqp::elems(baggy),
           nqp::stmts(                             # something to coerce
-            (my $elems := nqp::clone($raw)),
+            (my $elems := nqp::clone(baggy)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
@@ -1118,26 +1118,26 @@ my class Rakudo::Internals {
             ),
             $elems
           ),
-          $raw
+          baggy
         )
     }
 
-    method MULTIPLY-BAG-TO-BAG(\elems,\bag --> Nil) {
+    method MULTIPLY-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
-            (my $raw := bag.raw_hash) && nqp::elems($raw),
+            bag && nqp::elems(bag),
             nqp::while(
               $iter,
               nqp::if(
-                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::existskey(bag,nqp::iterkey_s(nqp::shift($iter))),
                 nqp::stmts(
                   (my $pair := nqp::iterval($iter)),
                   nqp::bindattr($pair,Pair,'$!value',
                     nqp::mul_i(
                       nqp::getattr($pair,Pair,'$!value'),
                       nqp::getattr(
-                        nqp::atkey($raw,nqp::iterkey_s($iter)),
+                        nqp::atkey(bag,nqp::iterkey_s($iter)),
                         Pair,
                         '$!value'
                       )
@@ -1155,15 +1155,15 @@ my class Rakudo::Internals {
         )
     }
 
-    method MULTIPLY-SET-TO-BAG(\elems,\set --> Nil) {
+    method MULTIPLY-SET-TO-BAG(\elems,Mu \set --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
-            (my $raw := set.raw_hash) && nqp::elems($raw),
+            set && nqp::elems(set),
             nqp::while(
               $iter,
               nqp::unless(
-                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::existskey(set,nqp::iterkey_s(nqp::shift($iter))),
                 nqp::deletekey(elems,nqp::iterkey_s($iter))
               )
             ),
@@ -1175,21 +1175,21 @@ my class Rakudo::Internals {
         )
     }
 
-    method MULTIPLY-MIX-TO-MIX(\elems,\mix --> Nil) {
+    method MULTIPLY-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
-            (my $raw := mix.raw_hash) && nqp::elems($raw),
+            mix && nqp::elems(mix),
             nqp::while(
               $iter,
               nqp::if(
-                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::existskey(mix,nqp::iterkey_s(nqp::shift($iter))),
                 nqp::stmts(
                   (my $pair := nqp::iterval($iter)),
                   nqp::bindattr($pair,Pair,'$!value',
                     nqp::getattr($pair,Pair,'$!value')
                     * nqp::getattr(
-                        nqp::atkey($raw,nqp::iterkey_s($iter)),
+                        nqp::atkey(mix,nqp::iterkey_s($iter)),
                         Pair,
                         '$!value'
                       )

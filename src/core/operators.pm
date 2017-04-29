@@ -670,7 +670,7 @@ sub infix:<andthen>(+a) {
         nqp::if( # emulate the +@foo slurpy
           nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
           nqp::stmts(
-            ($args := $current),
+            ($args := $current.List),
             $current := $args[0])),
         (my int $i),
         nqp::until(
@@ -717,7 +717,7 @@ sub infix:<orelse>(+$) {
         nqp::if( # emulate the +@foo slurpy
           nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
           nqp::stmts(
-            ($args := $current),
+            ($args := $current.List),
             $current := $args[0])),
         (my int $i),
         nqp::until(

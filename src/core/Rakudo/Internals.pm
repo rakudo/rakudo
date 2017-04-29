@@ -1122,6 +1122,39 @@ my class Rakudo::Internals {
         )
     }
 
+    method MULTIPLY-BAG-TO-BAG(\elems,\bag --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::if(
+            (my $raw := bag.raw_hash) && nqp::elems($raw),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::existskey($raw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::stmts(
+                  (my $pair := nqp::iterval($iter)),
+                  nqp::bindattr($pair,Pair,'$!value',
+                    nqp::mul_i(
+                      nqp::getattr($pair,Pair,'$!value'),
+                      nqp::getattr(
+                        nqp::atkey($raw,nqp::iterkey_s($iter)),
+                        Pair,
+                        '$!value'
+                      )
+                    )
+                  )
+                ),
+                nqp::deletekey(elems,nqp::iterkey_s($iter))
+              )
+            ),
+            nqp::while(   # nothing to match against, so reset
+              $iter,
+              nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
+            )
+          )
+        )
+    }
+
     method MULTIPLY-SET-TO-BAG(\elems,\set --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),

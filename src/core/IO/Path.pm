@@ -182,8 +182,8 @@ my class IO::Path is Cool does IO {
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
         $!is-absolute
-          ?? "{$.absolute.perl}.IO"
-          !! "{$.path.perl}.IO"
+          ?? qq|"$.absolute".IO|
+          !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
         $!is-absolute  # attribute now set

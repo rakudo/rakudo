@@ -198,8 +198,8 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
 
 #--- Mix/MixHash related methods
 
-    # Calculate total of value of a Bag(Hash).  Takes a (possibly
-    # uninitialized) IterationSet in Bag format.
+    # Calculate total of values of a Mix(Hash).  Takes a (possibly
+    # uninitialized) IterationSet in Mix format.
     method MIX-TOTAL(Mu \elems) {
         nqp::if(
           elems && nqp::elems(elems),
@@ -210,6 +210,28 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
               $iter,
               $total := $total
                 + nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+            ),
+            $total
+          ),
+          0
+        )
+    }
+
+    # Calculate total of positive value of a Mix(Hash).  Takes a
+    # (possibly uninitialized) IterationSet in Mix format.
+    method MIX-TOTAL-POSITIVE(Mu \elems) {
+        nqp::if(
+          elems && nqp::elems(elems),
+          nqp::stmts(
+            (my $total := 0),
+            (my $iter := nqp::iterator(elems)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                0 < (my $value := 
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
+                ($total := $total + $value)
+              )
             ),
             $total
           ),

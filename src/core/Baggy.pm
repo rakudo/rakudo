@@ -18,22 +18,6 @@ my role Baggy does QuantHash {
           ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
     }
     method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
-    method !TOTAL() {
-        nqp::if(
-          (my $storage := nqp::getattr(%!elems,Map,'$!storage')),
-          nqp::stmts(
-            (my $total = 0),
-            (my $iter := nqp::iterator($storage)),
-            nqp::while(
-              $iter,
-              $total = $total
-                + nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-            ),
-            $total
-          ),
-          0
-        )
-    }
     method SANITY(\elems --> Nil) {
         nqp::stmts(
           (my $low := nqp::create(IterationBuffer)),
@@ -380,7 +364,6 @@ my role Baggy does QuantHash {
 
 #--- introspection methods
     multi method WHICH(Baggy:D:)   { self!WHICH }
-    method total(Baggy:D:)         { self!TOTAL }
     multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
     multi method Bool(Baggy:D: --> Bool:D) { %!elems.Bool }
     multi method hash(Baggy:D: --> Hash:D) {

@@ -31,7 +31,13 @@ my role Mixy does Baggy  {
     }
 
     multi method roll(Mixy:D:) {
-        Rakudo::QuantHash::WeightedRoll.new(self).roll
+        nqp::if(
+          (my $raw := self.raw_hash)
+            && nqp::elems($raw)
+            && (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($raw)),
+          nqp::getattr(Rakudo::QuantHash.MIX-ROLL($raw,$total),Pair,'$!key'),
+          Nil
+        )
     }
     multi method roll(Mixy:D: $count) {
         my $roller = Rakudo::QuantHash::WeightedRoll.new(self);

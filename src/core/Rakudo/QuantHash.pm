@@ -267,6 +267,26 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
         )
     }
 
+    # Return random Pair from a given Bag(Hash).  Takes a initialized
+    # IterationSet with at least 1 element in Bag format, and the total
+    # value of values in the Bag.
+    method MIX-ROLL(\elems, \total) {
+        nqp::stmts(
+          (my Int $rand := total.rand.Int),
+          (my Int $seen := 0),
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter && (
+              0 > (my $value :=                      # negative values ignored
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'))
+              || $rand > ($seen := $seen + $value)   # positive values add up
+            ),
+            nqp::null
+          ),
+          nqp::iterval($iter)
+        )
+    }
+
     method ADD-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
         nqp::if(
           mix && nqp::elems(mix),

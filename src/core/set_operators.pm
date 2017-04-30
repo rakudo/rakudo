@@ -184,11 +184,7 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
             )
           )
         ),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Set).SET-SELF($elems),
-          set()
-        )
+        nqp::create(Set).SET-SELF($elems),
       ),
       $a.Set (|) $b.Set                           # object hash(es), coerce!
     )
@@ -199,18 +195,14 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
       (my $aiterator := $a.flat.iterator).is-lazy
         || (my $biterator := $b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
-      nqp::if(
-        nqp::elems(
-          (my $elems := Set.fill_IterationSet(
-            Set.fill_IterationSet(
-              nqp::create(Rakudo::Internals::IterationSet),
-              $aiterator
-            ),
-            $biterator
-          ))
-        ),
-        nqp::create(Set).SET-SELF($elems),
-        set()
+      nqp::create(Set).SET-SELF(
+        Set.fill_IterationSet(
+          Set.fill_IterationSet(
+            nqp::create(Rakudo::Internals::IterationSet),
+            $aiterator
+          ),
+          $biterator
+        )
       )
     )
 }
@@ -280,11 +272,7 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
             nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
           )
         ),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Set).SET-SELF($elems),   # overlap, so make it a Set
-          set()                                # nothing to see here
-        )
+        nqp::create(Set).SET-SELF($elems)
       ),
       set()                                    # one/neither has elems
     )
@@ -430,11 +418,7 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
                 $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Set).SET-SELF($elems),
-            set()
-          )
+          nqp::create(Set).SET-SELF($elems)
         ),
         set()                                # one/neither has elems
       ),
@@ -461,11 +445,7 @@ multi sub infix:<(&)>(Iterable:D $a, Iterable:D $b) {
               nqp::bindkey($elems,$which,$pulled)
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Set).SET-SELF($elems),# found something
-            set()                             # no matches
-          )
+          nqp::create(Set).SET-SELF($elems)
         ),
         set()                                 # nothing to look up in, bye!
       )
@@ -597,11 +577,7 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Set).SET-SELF($elems), # difference, so make it a Set
-            set()                              # nothing to see here
-          )
+          nqp::create(Set).SET-SELF($elems)
         ),
         nqp::if(nqp::istype($a,Set),$a,$a.Set) # $b empty, so $a
       ),
@@ -756,11 +732,7 @@ multi sub infix:<(^)>(Map:D $a, Map:D $b) {
                 )
               )
             ),
-            nqp::if(
-              nqp::elems($elems),
-              nqp::create(Set).SET-SELF($elems),  # an actual result
-              set()                               # nothing to see here
-            )
+            nqp::create(Set).SET-SELF($elems)
           ),
           $a.Set                                  # no $b, so $a
         ),
@@ -788,11 +760,7 @@ multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
             nqp::bindkey($elems,$WHICH,$pulled)
           )
         ),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Set).SET-SELF($elems),
-          set()
-        )
+        nqp::create(Set).SET-SELF($elems)
       )
     )
 }

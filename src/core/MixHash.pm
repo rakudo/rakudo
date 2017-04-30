@@ -8,15 +8,12 @@ my class MixHash does Mixy {
         Proxy.new(
           FETCH => {
               nqp::if(
-                (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
-                nqp::if(
-                  nqp::existskey($elems,(my $which := k.WHICH)),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey($elems,$which)),
-                    Pair,
-                    '$!value'
-                  ),
-                  0
+                (my $raw := self.raw_hash)
+                  && nqp::existskey($raw,(my $which := k.WHICH)),
+                nqp::getattr(
+                  nqp::decont(nqp::atkey($raw,$which)),
+                  Pair,
+                  '$!value'
                 ),
                 0
               )
@@ -26,24 +23,24 @@ my class MixHash does Mixy {
                 nqp::istype($value,Failure),   # RT 128927
                 $value.throw,
                 nqp::if(
-                  (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+                  (my $raw := self.raw_hash),
                   nqp::if(                      # allocated hash
-                    nqp::existskey($elems,(my $which := k.WHICH)),
+                    nqp::existskey($raw,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       $value == 0,
                       nqp::stmts(
-                        nqp::deletekey($elems,$which),
+                        nqp::deletekey($raw,$which),
                         0
                       ),
                       (nqp::getattr(
-                        nqp::decont(nqp::atkey($elems,$which)),
+                        nqp::decont(nqp::atkey($raw,$which)),
                         Pair,
                         '$!value'
                       ) = $value),
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($elems,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
@@ -64,12 +61,12 @@ my class MixHash does Mixy {
 #--- coercion methods
     method Mix(:$view) is nodal {
         nqp::if(
-          nqp::getattr(%!elems,Map,'$!storage'),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
             nqp::create(Mix),Mix,'%!elems',
             nqp::if($view,%!elems,%!elems.clone)
           ),
-          nqp::create(Mix)
+          mix()
         )
     }
     method MixHash() is nodal { self }

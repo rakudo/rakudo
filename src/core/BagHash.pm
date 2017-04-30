@@ -6,15 +6,12 @@ my class BagHash does Baggy {
         Proxy.new(
           FETCH => {
               nqp::if(
-                (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
-                nqp::if(
-                  nqp::existskey($elems,(my $which := k.WHICH)),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey($elems,$which)),
-                    Pair,
-                    '$!value'
-                  ),
-                  0
+                (my $raw := self.raw_hash)
+                  && nqp::existskey($raw,(my $which := k.WHICH)),
+                nqp::getattr(
+                  nqp::decont(nqp::atkey($raw,$which)),
+                  Pair,
+                  '$!value'
                 ),
                 0
               )
@@ -24,24 +21,24 @@ my class BagHash does Baggy {
                 nqp::istype($value,Failure),   # RT 128927
                 $value.throw,
                 nqp::if(
-                  (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+                  (my $raw := self.raw_hash),
                   nqp::if(                      # allocated hash
-                    nqp::existskey($elems,(my $which := k.WHICH)),
+                    nqp::existskey($raw,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
                       (nqp::getattr(
-                        nqp::decont(nqp::atkey($elems,$which)),
+                        nqp::decont(nqp::atkey($raw,$which)),
                         Pair,
                         '$!value'
                       ) = $value),
                       nqp::stmts(
-                        nqp::deletekey($elems,$which),
+                        nqp::deletekey($raw,$which),
                         0
                       )
                     ),
                     nqp::if(
                       nqp::isgt_i($value,0),
-                      nqp::bindkey($elems,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
@@ -64,20 +61,20 @@ my class BagHash does Baggy {
 
     method Bag(:$view) is nodal {
         nqp::if(
-          nqp::getattr(%!elems,Map,'$!storage'),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
             nqp::create(Bag),Bag,'%!elems',
             nqp::if($view,%!elems,%!elems.clone)
           ),
-          nqp::create(Bag)
+          bag()
         )
     }
     method BagHash() is nodal { self }
     method Mix() is nodal {
         nqp::if(
-          nqp::getattr(%!elems,Map,'$!storage'),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),
-          nqp::create(Mix)
+          mix()
         )
     }
 }

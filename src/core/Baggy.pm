@@ -55,11 +55,10 @@ my role Baggy does QuantHash {
     }
     method !LISTIFY(&formatter, str $joiner) {
         nqp::if(
-          (my int $elems = %!elems.elems),   # also handle unallocated %!elems
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::stmts(
-            (my $pairs := nqp::getattr(%!elems,Map,'$!storage')),
-            (my $list := nqp::setelems(nqp::list_s,$elems)),
-            (my $iter := nqp::iterator($pairs)),
+            (my $list := nqp::setelems(nqp::list_s,nqp::elems($raw))),
+            (my $iter := nqp::iterator($raw)),
             (my int $i = -1),
             nqp::while(
               $iter,
@@ -139,10 +138,10 @@ my role Baggy does QuantHash {
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         nqp::if(
-          (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::if(
-            nqp::existskey($elems,(my $which := k.WHICH)),
-            nqp::getattr(nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value'),
+            nqp::existskey($raw,(my $which := k.WHICH)),
+            nqp::getattr(nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value'),
             0
           ),
           0
@@ -150,13 +149,13 @@ my role Baggy does QuantHash {
     }
     multi method DELETE-KEY(Baggy:D: \k) {
         nqp::if(
-          (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::if(
-            nqp::existskey($elems,(my $which := k.WHICH)),
+            nqp::existskey($raw,(my $which := k.WHICH)),
             nqp::stmts(
               (my $value := nqp::getattr(
-                nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value')),
-              nqp::deletekey($elems,$which),
+                nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value')),
+              nqp::deletekey($raw,$which),
               $value
             ),
             0
@@ -167,8 +166,8 @@ my role Baggy does QuantHash {
     multi method EXISTS-KEY(Baggy:D: \k) {
         nqp::p6bool(
           nqp::if(
-            (my $elems := nqp::getattr(%!elems,Map,'$!storage')),
-            nqp::existskey($elems,k.WHICH)
+            (my $raw := self.raw_hash) && nqp::elems($raw),
+            nqp::existskey($raw,k.WHICH)
           )
         )
     }
@@ -645,8 +644,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
 #--- coercion methods
     method !SETIFY(\type) {
         nqp::if(
-          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($raw),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::stmts(
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -672,8 +670,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
 
     method !BAGGIFY(int $bind) {
         nqp::if(
-          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($raw),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::stmts(                               # something to coerce
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -724,8 +721,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
 
     method !MIXIFY(int $bind) {
         nqp::if(
-          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($raw),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::stmts(                             # something to coerce
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -760,8 +756,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
 
     method clone() {
         nqp::if(
-          (my $raw := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($raw),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::stmts(                             # something to clone
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),

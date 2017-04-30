@@ -497,8 +497,7 @@ my role Baggy does QuantHash {
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
         nqp::if(
-          (my $elems := nqp::getattr(%!elems,Map,'$!storage'))
-            && nqp::elems($elems),
+          (my $elems := self.raw_hash) && nqp::elems($elems),
           nqp::stmts(
             (my Int $rand := self.total.rand.Int),
             (my Int $seen := 0),

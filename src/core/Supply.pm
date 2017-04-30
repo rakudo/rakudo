@@ -101,7 +101,7 @@ my class Supply does Awaitable {
                     catch => -> \ex { $p.quit(ex) });
                 Tap.new(&!closing)
             }
-            
+
             method live(--> False) { }
             method sane(--> True) { }
             method serial(--> True) { }
@@ -188,7 +188,7 @@ my class Supply does Awaitable {
                 Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self))
-    }    
+    }
 
     method sanitize() {
         $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
@@ -899,22 +899,22 @@ my class Supply does Awaitable {
             my int $pos;
             my int $nextpos;
             my int $found;
-            
+
             whenever self -> \val {
                 $str   = $str ~ nqp::unbox_s(val);
                 $chars = nqp::chars($str);
                 $pos   = 0;
-            
+
                 while ($left = $chars - $pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_NEWLINE, $str, $pos, $left
                     );
-            
+
                     last
                       if $nextpos >= $chars     # no line delimiter
                       or $nextpos == $chars - 1 # broken CRLF ?
                         && nqp::eqat($str, "\r", $nextpos); # yes!
-            
+
                     if $chomp {
                         emit( ($found = $nextpos - $pos)
                           ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
@@ -963,18 +963,18 @@ my class Supply does Awaitable {
                 $chars = nqp::chars($str);
                 $pos   = nqp::findnotcclass(
                   nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
- 
+
                 while ($left = $chars - $pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
                     );
- 
+
                     last unless $left = $chars - $nextpos; # broken word
- 
+
                     emit( nqp::box_s(
                       nqp::substr( $str, $pos, $nextpos - $pos ), Str)
                     );
- 
+
                     $pos = nqp::findnotcclass(
                       nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
                 }
@@ -1067,7 +1067,7 @@ my class Supply does Awaitable {
             my int $size = $number + 1;
             my int $skipping = $size > 1;
             whenever self {
-                .emit unless $skipping && ($skipping = --$size) 
+                .emit unless $skipping && ($skipping = --$size)
             }
         }
     }
@@ -1177,10 +1177,10 @@ my class Supply does Awaitable {
 
         supply {
             my @values;
-    
+
             my $uninitialised = +@s; # how many supplies have yet to emit until we
                                      # can start emitting, too?
-    
+
             if $initial {
                 @values = @$initial;
                 $uninitialised = 0 max $uninitialised - @$initial;
@@ -1363,7 +1363,7 @@ my class Supply does Awaitable {
                     my str $type;
                     my str $value;
                     Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
- 
+
                     if $type eq 'limit' {
                         $allowed = $allowed + $value - $limit;
                         $limit   = $value;

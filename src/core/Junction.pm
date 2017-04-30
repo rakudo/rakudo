@@ -8,8 +8,8 @@ my class Junction { # declared in BOOTSTRAP
           ($!type = type),
           nqp::if(
             nqp::iseq_s($!type,"any")
-              || nqp::iseq_s($!type,"all") 
-              || nqp::iseq_s($!type,"none") 
+              || nqp::iseq_s($!type,"all")
+              || nqp::iseq_s($!type,"none")
               || nqp::iseq_s($!type,"one"),
             nqp::stmts(
               ($!storage := nqp::if(
@@ -284,7 +284,7 @@ my class Junction { # declared in BOOTSTRAP
                 my int $elems = nqp::elems($storage);
                 my $result   := nqp::setelems(nqp::list,$elems);
                 my int $i     = -1;
-                
+
                 while nqp::islt_i(++$i,$elems) {
                     # also naughty, like above
                     nqp::bindkey($nameds,nqp::iterkey_s($iter),nqp::atpos($storage,$i));

@@ -295,7 +295,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
           )
         );
-        
+
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
@@ -329,7 +329,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method hash() { self }
     method clone(Map:D:) is raw { self }
-    
+
     method !SETIFY(\type) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),

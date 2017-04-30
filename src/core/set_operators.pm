@@ -838,7 +838,7 @@ multi sub infix:<(^)>(**@p) is pure {
             return $head;
         } else {
             return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
-        } 
+        }
     }
 }
 # U+2296 CIRCLED MINUS

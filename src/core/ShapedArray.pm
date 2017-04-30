@@ -409,7 +409,7 @@
                         (my $pulled := $!iterator.pull-one),IterationEnd),
                       nqp::ifnull(
                         nqp::atposnd($!list,$!indices),
-                        nqp::bindposnd($!list,$!indices, 
+                        nqp::bindposnd($!list,$!indices,
                           nqp::p6scalarfromdesc($!desc))
                       ) = $pulled
                     )
@@ -431,7 +431,7 @@
                         (my $result := self.indices),
                         (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
                           nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
-                        $result  
+                        $result
                       ),
                       nqp::atposnd($!list,$!indices)
                     )

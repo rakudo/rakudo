@@ -19,7 +19,7 @@ my class CallFrame {
           self
         )
     }
-              
+
     only method new(CallFrame: Int $level = 0) {  # MUST BE AN only
         nqp::create(CallFrame).SET-SELF(          # wrt to backtrace levels
           $level,

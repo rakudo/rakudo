@@ -122,7 +122,7 @@
             nqp::bindpos2d(
               nqp::getattr(self,List,'$!reified'),
               one, two, value
-            ) 
+            )
         }
     }
 

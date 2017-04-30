@@ -974,8 +974,7 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
       bag()
     )
 }
-
-multi sub infix:<(.)>(Map:D $a, Map:D $b) { $a.Bag (.) $b.Bag }
+multi sub infix:<(.)>(Any:D $a, Any:D $b) { $a.Bag (.) $b.Bag }
 
 multi sub infix:<(.)>(**@p) is pure {
     return bag() unless @p;
@@ -1063,28 +1062,7 @@ multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
       )
     )
 }
-
-multi sub infix:<(+)>(Map:D $a, Map:D $b) { $a.Bag (+) $b.Bag }
-
-multi sub infix:<(+)>(Iterable:D $a, Iterable:D $b) {
-    nqp::if(
-      (my $aiterator := $a.flat.iterator).is-lazy
-        || (my $biterator := $b.flat.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action<addition>,:what<bag>)),
-      nqp::stmts(
-        Rakudo::Internals.ADD-ITERATOR-TO-BAG(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          $aiterator
-        ),
-        Rakudo::Internals.ADD-ITERATOR-TO-BAG($elems,$biterator),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems),
-          bag()
-        )
-      )
-    )
-}
+multi sub infix:<(+)>(Any:D $a, Any:D $b) { $a.Bag (+) $b.Bag }
 
 multi sub infix:<(+)>(**@p) is pure {
     return bag() unless @p;

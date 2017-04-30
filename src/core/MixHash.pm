@@ -58,6 +58,9 @@ my class MixHash does Mixy {
         )
     }
 
+#--- object creation methods
+    multi method new(MixHash:_:) { nqp::create(self) }
+
 #--- coercion methods
     method Mix(:$view) is nodal {
         nqp::if(

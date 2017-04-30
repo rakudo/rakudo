@@ -23,6 +23,9 @@ my class Mix does Mixy {
         )
     }
 
+#--- object creation methods
+    multi method new(Mix:_:) { mix() }
+
 #--- selection methods
     multi method grab($count? --> Real:D) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;

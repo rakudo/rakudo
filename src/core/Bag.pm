@@ -18,6 +18,9 @@ my class Bag does Baggy {
         )
     }
 
+#--- object creation methods
+    multi method new(Bag:_:) { bag() }
+
 #--- interface methods
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;

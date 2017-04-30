@@ -1,15 +1,6 @@
 my role Setty does QuantHash {
     has $!elems; # key.WHICH => key
 
-    method SET-SELF(\elems) {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(elems),
-            ($!elems := elems)
-          ),
-          self
-        )
-    }
     multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
         nqp::if(

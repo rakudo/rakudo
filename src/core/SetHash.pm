@@ -1,5 +1,15 @@
 my class SetHash does Setty {
 
+    method SET-SELF(\elems) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(elems),
+            nqp::bindattr(self,::?CLASS,'$!elems',elems)
+          ),
+          self
+        )
+    }
+
     role SetHashMappy does Rakudo::Iterator::Mappy {
         method ISINSET(\key) {
             Proxy.new(

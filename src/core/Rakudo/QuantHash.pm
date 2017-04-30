@@ -25,6 +25,30 @@ my class Rakudo::QuantHash {
 
 #--- Bag/BagHash related methods
 
+    # Calculate total of value of a Bag(Hash).  Takes a (possibly
+    # uninitialized) IterationSet in Bag format.
+    method BAG-TOTAL(Mu \elems) {
+        nqp::if(
+          elems && nqp::elems(elems),
+          nqp::stmts(
+            (my Int $total := 0),
+            (my $iter := nqp::iterator(elems)),
+            nqp::while(
+              $iter,
+              $total := nqp::add_I(
+                $total,
+nqp::decont(   # can go when we got rid of containers in BagHashes
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+),
+                Int
+              )
+            ),
+            $total
+          ),
+          0
+        )
+    }
+
     method BAGGY-CLONE-RAW(Mu \baggy) {
         nqp::if(
           baggy && nqp::elems(baggy),

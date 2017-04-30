@@ -60,6 +60,8 @@ my class BagHash does Baggy {
     }
 
 #--- introspection methods
+    method total() { Rakudo::QuantHash.BAG-TOTAL(self.raw_hash) }
+
     method Bag(:$view) is nodal {
         nqp::if(
           nqp::getattr(%!elems,Map,'$!storage'),

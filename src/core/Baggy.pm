@@ -496,20 +496,32 @@ my role Baggy does QuantHash {
 
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
-        nqp::stmts(
-          (my Int $rand = self.total.rand.Int),
-          (my Int $seen = 0),
-          (my \iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'))),
-          nqp::while(
-            iter && ($seen = $seen + nqp::getattr(
-              nqp::iterval(nqp::shift(iter)),Pair,'$!value')) <= $rand,
-            nqp::null
+        nqp::if(
+          (my $elems := nqp::getattr(%!elems,Map,'$!storage'))
+            && nqp::elems($elems),
+          nqp::stmts(
+            (my Int $rand := self.total.rand.Int),
+            (my Int $seen := 0),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter &&
+                nqp::isle_I(
+                  ($seen := nqp::add_I(
+                    $seen,
+nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
+                    nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+)
+                    ),
+                    Int
+                  )),
+                  $rand
+                ),
+              nqp::null
+            ),
+            nqp::getattr(nqp::iterval($iter),Pair,'$!key'),
           ),
-          nqp::if(
-            $seen > $rand,
-            nqp::getattr(nqp::iterval(iter),Pair,'$!key'),
-            Nil
-          )
+          Nil
         )
     }
     multi method roll(Baggy:D: $count) {

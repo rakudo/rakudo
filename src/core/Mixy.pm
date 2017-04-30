@@ -31,10 +31,10 @@ my role Mixy does Baggy  {
     }
 
     multi method roll(Mixy:D:) {
-        Rakudo::Internals::WeightedRoll.new(self).roll
+        Rakudo::QuantHash::WeightedRoll.new(self).roll
     }
     multi method roll(Mixy:D: $count) {
-        my $roller = Rakudo::Internals::WeightedRoll.new(self);
+        my $roller = Rakudo::QuantHash::WeightedRoll.new(self);
         map { $roller.roll }, 1 .. $count;
     }
 }

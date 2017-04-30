@@ -1,5 +1,28 @@
 my class Rakudo::QuantHash {
 
+    our class WeightedRoll {
+        has @!pairs;
+        has $!total;
+
+        method !SET-SELF(\list-of-pairs) {
+            $!total = 0;
+            for list-of-pairs.pairs {
+                my $value := .value;
+                if $value > 0 {
+                    @!pairs.push($_);
+                    $!total = $!total + $value;
+                }
+            }
+            self
+        }
+        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
+        method roll() {
+            my $rand = $!total.rand;
+            my $seen = 0;
+            return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
+        }
+    }
+
     method ADD-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
         nqp::if(
           bag && nqp::elems(bag),

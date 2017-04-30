@@ -17,29 +17,6 @@ my class Rakudo::Internals {
     # for use in nqp::splice
     my $empty := nqp::list;
 
-    our class WeightedRoll {
-        has @!pairs;
-        has $!total;
-
-        method !SET-SELF(\list-of-pairs) {
-            $!total = 0;
-            for list-of-pairs.pairs {
-                my $value := .value;
-                if $value > 0 {
-                    @!pairs.push($_);
-                    $!total = $!total + $value;
-                }
-            }
-            self
-        }
-        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
-        method roll() {
-            my $rand = $!total.rand;
-            my $seen = 0;
-            return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
-        }
-    }
-
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
         nqp::stmts(

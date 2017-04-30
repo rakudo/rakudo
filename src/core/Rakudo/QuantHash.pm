@@ -49,6 +49,34 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
         )
     }
 
+    # Return random Pair from a given Bag(Hash).  Takes a initialized
+    # IterationSet with at least 1 element in Bag format, and the total
+    # value of values in the Bag.
+    method BAG-ROLL(\elems, \total) {
+        nqp::stmts(
+          (my Int $rand := total.rand.Int),
+          (my Int $seen := 0),
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter &&
+              nqp::isle_I(
+                ($seen := nqp::add_I(
+                  $seen,
+nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
+                  nqp::getattr(
+                    nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+)
+                  ),
+                  Int
+                )),
+                $rand
+              ),
+            nqp::null
+          ),
+          nqp::iterval($iter)
+        )
+    }
+
     method BAGGY-CLONE-RAW(Mu \baggy) {
         nqp::if(
           baggy && nqp::elems(baggy),

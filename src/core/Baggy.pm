@@ -478,28 +478,11 @@ my role Baggy does QuantHash {
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
         nqp::if(
-          (my $elems := self.raw_hash) && nqp::elems($elems),
-          nqp::stmts(
-            (my Int $rand := self.total.rand.Int),
-            (my Int $seen := 0),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter &&
-                nqp::isle_I(
-                  ($seen := nqp::add_I(
-                    $seen,
-nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
-                    nqp::getattr(
-                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-)
-                    ),
-                    Int
-                  )),
-                  $rand
-                ),
-              nqp::null
-            ),
-            nqp::getattr(nqp::iterval($iter),Pair,'$!key'),
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::getattr(
+            Rakudo::QuantHash.BAG-ROLL($raw,self.total),
+            Pair,
+            '$!key'
           ),
           Nil
         )

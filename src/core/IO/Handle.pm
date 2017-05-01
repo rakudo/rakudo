@@ -797,6 +797,10 @@ my class IO::Handle {
         nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
     }
 
+    multi method say(IO::Handle:D: \x --> True) {
+        nqp::printfh($!PIO,
+          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)))
+    }
     multi method say(IO::Handle:D: |) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);

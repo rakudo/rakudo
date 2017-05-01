@@ -343,3 +343,5 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
         )
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

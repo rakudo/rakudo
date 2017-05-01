@@ -165,10 +165,7 @@ my role Baggy does QuantHash {
     }
     multi method EXISTS-KEY(Baggy:D: \k) {
         nqp::p6bool(
-          nqp::if(
-            (my $raw := self.raw_hash) && nqp::elems($raw),
-            nqp::existskey($raw,k.WHICH)
-          )
+          (my $raw := self.raw_hash) && nqp::existskey($raw,k.WHICH)
         )
     }
 

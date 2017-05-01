@@ -785,12 +785,12 @@ my class IO::Handle {
 
     proto method put(|) { * }
     multi method put(IO::Handle:D: str:D \x --> True) {
-        nqp::printfh($!PIO,x);
-        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        nqp::printfh($!PIO,
+          nqp::concat(x, nqp::unbox_s($!nl-out)))
     }
     multi method put(IO::Handle:D: Str:D \x --> True) {
-        nqp::printfh($!PIO, nqp::unbox_s(x));
-        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        nqp::printfh($!PIO,
+          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)))
     }
     multi method put(IO::Handle:D: *@list is raw --> True) { # is raw gives List, which is cheaper
         nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;

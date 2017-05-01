@@ -596,7 +596,7 @@ my class IO::Handle {
         }
     }
 
-    multi method iterator(IO::Handle:D:) {
+    method !LINES-ITERATOR (IO::Handle:D:) {
         nqp::if(
           nqp::eqaddr(self.WHAT,IO::Handle),
           nqp::if(
@@ -673,18 +673,18 @@ my class IO::Handle {
           ?? self.lines(:$close)
           !! $close
             ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self.iterator, $limit.Int, {SELF.close}))
+                self!LINES-ITERATOR, $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
     multi method lines(IO::Handle:D \SELF: :$close) {
       Seq.new(
         $close # use -1 as N in FirstNThenSinkAllSeq to get all items
           ?? Rakudo::Iterator.FirstNThenSinkAll(
-              self.iterator, -1, {SELF.close})
-          !! self.iterator
+              self!LINES-ITERATOR, -1, {SELF.close})
+          !! self!LINES-ITERATOR
       )
     }
-    multi method lines(IO::Handle:D:) { Seq.new(self.iterator) }
+    multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))

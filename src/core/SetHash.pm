@@ -146,7 +146,7 @@ my class SetHash does Setty {
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet))
                     ),
-                    nqp::bindkey($!elems,k.WHICH,k)
+                    nqp::bindkey($!elems,k.WHICH,nqp::decont(k))
                   ),
                   $!elems && nqp::deletekey($!elems,k.WHICH)
                 ),

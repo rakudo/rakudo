@@ -138,27 +138,21 @@ my role Baggy does QuantHash {
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::if(
-            nqp::existskey($raw,(my $which := k.WHICH)),
-            nqp::getattr(nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value'),
-            0
-          ),
+          (my $raw := self.raw_hash)
+            && nqp::existskey($raw,(my $which := k.WHICH)),
+          nqp::getattr(nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value'),
           0
         )
     }
     multi method DELETE-KEY(Baggy:D: \k) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::if(
-            nqp::existskey($raw,(my $which := k.WHICH)),
-            nqp::stmts(
-              (my $value := nqp::getattr(
-                nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value')),
-              nqp::deletekey($raw,$which),
-              $value
-            ),
-            0
+          (my $raw := self.raw_hash)
+            && nqp::existskey($raw,(my $which := k.WHICH)),
+          nqp::stmts(
+            (my $value :=
+              nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value')),
+            nqp::deletekey($raw,$which),
+            $value
           ),
           0
         )

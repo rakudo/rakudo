@@ -123,8 +123,8 @@ my class MixHash does Mixy {
                                   '$!value'
                                 ) = $value)
                               ),
-                              nqp::if(                    # where did it go?
-                                nqp::isgt_i($value,0),
+                              nqp::unless(                # where did it go?
+                                $value == 0,
                                 nqp::stmts(               # ok to add (again)
                                   (nqp::getattr($pair,Pair,'$!value') = $value),
                                   nqp::bindkey($!storage,$which,$pair)

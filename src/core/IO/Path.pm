@@ -186,9 +186,7 @@ my class IO::Path is Cool does IO {
           !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
-        $!is-absolute  # attribute now set
-          ?? "{$.absolute.perl}.IO({:$!SPEC.perl})"
-          !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
+        self.^name ~ ".new({$.path.perl}, {:$!SPEC.perl}, {:$!CWD.perl})"
     }
 
     method sibling(IO::Path:D: Str() \sibling) {
@@ -777,15 +775,27 @@ my class IO::Path is Cool does IO {
 
 my class IO::Path::Cygwin is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::QNX is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Unix is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Win32 is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

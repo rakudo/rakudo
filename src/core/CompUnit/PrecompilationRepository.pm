@@ -45,7 +45,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         my ($handle, $checksum) = (
             self.may-precomp and (
-                my $loaded = self.load($id, :source($source), :@precomp-stores) # already precompiled?
+                my $loaded = self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
                 or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
                     and self.load($id, :@precomp-stores) # if not do it now
             )
@@ -173,6 +173,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     multi method load(
         CompUnit::PrecompilationId $id,
         IO::Path :$source,
+        Str :$checksum,
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) {
@@ -184,7 +185,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or nqp::sha1($source.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum)
+                and (not $source or ($checksum // nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my \loaded = self!load-handle-for-path($unit);

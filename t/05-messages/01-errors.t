@@ -85,4 +85,24 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
         'The message when trying to pun a role with required methods should have the names of the child, parent, required methods, and suggest "does"';
 }
 
+# RT #126124
+# adapted from S06-signature/types.t
+{
+    throws-like { sub f(Mu:D $a) {}; f(Int) },
+        Exception,
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
+        'types and names shown in the exception message are correct';
+    throws-like { sub f(Mu:U $a) {}; f(123) },
+        Exception,
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'not an object instance'>>/, /<<'must be a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
+        'types shown in the exception message are correct';
+}
+
+# adapted from S32-exceptions/misc.t
+for <fail die throw rethrow resumable resume> -> $meth {
+    throws-like 'X::NYI.' ~ $meth,
+        Exception,
+        message => all(/'Invocant'/, /<<$meth>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Exception'>>/,  /<<'X::NYI'>>/, /\W '.new'>>/),
+}
+
 done-testing;

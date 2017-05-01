@@ -107,14 +107,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method EXISTS-KEY(Map:D: Str:D \key) {
         nqp::p6bool(
-            nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key))
+          nqp::defined($!storage) && nqp::existskey($!storage,key)
         )
     }
     multi method EXISTS-KEY(Map:D: \key) {
         nqp::p6bool(
-            nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key.Str))
+          nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
         )
     }
 

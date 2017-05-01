@@ -619,10 +619,9 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method EXISTS-KEY(TKey \key) {
-            nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
-              nqp::p6bool(nqp::existskey(
-                nqp::getattr(self,Map,'$!storage'),nqp::unbox_s(key.WHICH)))
+            nqp::p6bool(
+              nqp::defined(nqp::getattr(self,Map,'$!storage'))
+                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
             )
         }
 

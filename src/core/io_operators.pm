@@ -28,9 +28,12 @@ multi sub say(\x) {
     $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
 }
 multi sub say(**@args is raw) {
-    my $out := $*OUT;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
+    my $iter := @args.iterator;
+    nqp::until(
+      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
+      $str = nqp::concat($str, nqp::unbox_s(.gist)));
+    my $out := $*OUT;
     $out.print(nqp::concat($str,$out.nl-out));
 }
 

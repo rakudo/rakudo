@@ -48,9 +48,12 @@ multi sub put(\x) {
     $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
 }
 multi sub put(**@args is raw) {
-    my $out := $*OUT;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
+    my $iter := @args.iterator;
+    nqp::until(
+      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
+      $str = nqp::concat($str, nqp::unbox_s(.Str)));
+    my $out := $*OUT;
     $out.print(nqp::concat($str,$out.nl-out));
 }
 

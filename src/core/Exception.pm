@@ -1148,8 +1148,8 @@ my class X::Parameter::InvalidConcreteness is Exception {
     has $.got;
     has $.routine;
     has $.param;
-    has $.should-be-concrete;
-    has $.param-is-invocant;
+    has Bool $.should-be-concrete;
+    has Bool $.param-is-invocant;
 
     method message() {
         $!routine = '<anon>' if not $!routine.defined or $!routine eq '';
@@ -2551,7 +2551,7 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
   'X::Parameter::InvalidConcreteness',
-  -> $expected, $got, $routine, $param, $should-be-concrete, $param-is-invocant {
+  -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
       X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
   },
 ));

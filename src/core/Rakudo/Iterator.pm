@@ -112,13 +112,13 @@ class Rakudo::Iterator {
             nqp::if(
               $!on,
               nqp::stmts(
-                ($!on := 0),
+                ($!on = 0),
                 nqp::getattr(nqp::iterval($!iter),Pair,'$!value')
               ),
               nqp::if(
                 $!iter,
                 nqp::stmts(
-                  ($!on := 1),
+                  ($!on = 1),
                   nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
                 ),
                 IterationEnd
@@ -138,12 +138,12 @@ class Rakudo::Iterator {
         method skip-one() {               # must define our own skip-one
             nqp::if(
               $!on,
-              nqp::not_i($!on := 0),
+              nqp::not_i($!on = 0),
               nqp::if(
                 $!iter,
                 nqp::stmts(
                   nqp::shift($!iter),
-                  ($!on := 1)
+                  ($!on = 1)
                 )
               )
             )

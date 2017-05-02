@@ -90,7 +90,7 @@ class Rakudo::Iterator {
     our role Mappy-kv-from-pairs does Iterator {
         has $!storage;
         has $!iter;
-        has Mu $!value;
+        has $!on;
 
         method SET-SELF(\hash) {
             nqp::stmts(
@@ -110,18 +110,16 @@ class Rakudo::Iterator {
 
         method pull-one() is raw {
             nqp::if(
-              $!value.DEFINITE,
+              $!on,
               nqp::stmts(
-                (my $tmp := $!value),
-                ($!value := nqp::null),
-                $tmp
+                ($!on := 0),
+                nqp::getattr(nqp::iterval($!iter),Pair,'$!value')
               ),
               nqp::if(
                 $!iter,
                 nqp::stmts(
-                  ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                  ($!value := nqp::getattr($tmp,Pair,'$!value')),
-                  (nqp::getattr($tmp,Pair,'$!key'))
+                  ($!on := 1),
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
                 ),
                 IterationEnd
               )
@@ -139,20 +137,13 @@ class Rakudo::Iterator {
         }
         method skip-one() {               # must define our own skip-one
             nqp::if(
-              $!value.DEFINITE,
-              nqp::stmts(
-                ($!value := nqp::null),
-                1
-              ),
+              $!on,
+              nqp::not_i($!on := 0),
               nqp::if(
                 $!iter,
                 nqp::stmts(
-                  ($!value := nqp::getattr(
-                    nqp::decont(nqp::iterval(nqp::shift($!iter))),
-                    Pair,
-                    '$!value'
-                  )),
-                  1
+                  nqp::shift($!iter),
+                  ($!on := 1)
                 )
               )
             )

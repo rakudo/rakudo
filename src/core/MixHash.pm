@@ -99,7 +99,7 @@ my class MixHash does Mixy {
                   0
                 )
             },
-            STORE => -> $, Int() $value {
+            STORE => -> $, Real() $value {
                 nqp::if(
                   nqp::istype($value,Failure),  # RT 128927
                   $value.throw,

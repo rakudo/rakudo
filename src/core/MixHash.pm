@@ -171,6 +171,29 @@ my class MixHash does Mixy {
             }
         }.new(%!elems))
     }
+
+    multi method kv(MixHash:D:) {
+        Seq.new(class :: does Rakudo::Iterator::Mappy-kv-from-pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  $!on,
+                  nqp::stmts(
+                    ($!on = 0),
+                    proxy($!iter,$!storage)
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($!on = 1),
+                      nqp::getattr(
+                        nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+                    ),
+                    IterationEnd
+                  )
+                )
+            }
+        }.new(%!elems))
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

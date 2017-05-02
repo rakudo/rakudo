@@ -473,7 +473,15 @@ my class IO::Path is Cool does IO {
             :to($to.absolute),
             :os-error(':createonly specified and destination exists');
 
-        nqp::copy($.absolute, nqp::unbox_s($to.absolute));
+        # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::if(
+            nqp::iseq_s(
+                (my $from-abs :=   $.absolute),
+                (my $to-abs   := $to.absolute)),
+            X::IO::Copy.new(:from($from-abs), :to($to-abs),
+                :os-error('source and target are the same')).fail,
+            nqp::copy($from-abs, $to-abs));
+
         CATCH { default {
             fail X::IO::Copy.new:
                 :from($!abspath), :to($to.absolute), :os-error(.Str)

@@ -47,8 +47,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.bless;
     }
 
-    method is-ready(Seq:D:) { $!iter.DEFINITE }
-
     method iterator(Seq:D:) {
         nqp::if(
           (my \iter = $!iter).DEFINITE,

@@ -471,7 +471,7 @@ my role Baggy does QuantHash {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::getattr(
-            Rakudo::QuantHash.BAG-ROLL($raw,self.total),
+            nqp::iterval(Rakudo::QuantHash.BAG-ROLL($raw,self.total)),
             Pair,
             '$!key'
           ),

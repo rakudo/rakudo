@@ -49,9 +49,9 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
         )
     }
 
-    # Return random Pair from a given Bag(Hash).  Takes a initialized
-    # IterationSet with at least 1 element in Bag format, and the total
-    # value of values in the Bag.
+    # Return random iterator item from a given Bag(Hash).  Takes an
+    # initialized IterationSet with at least 1 element in Bag format,
+    # and the total value of values in the Bag.
     method BAG-ROLL(\elems, \total) {
         nqp::stmts(
           (my Int $rand := total.rand.Int),
@@ -73,7 +73,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
               ),
             nqp::null
           ),
-          nqp::iterval($iter)
+          $iter
         )
     }
 
@@ -270,6 +270,9 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
     # Return random Pair from a given Bag(Hash).  Takes a initialized
     # IterationSet with at least 1 element in Bag format, and the total
     # value of values in the Bag.
+    # Return random iterator item from a given Mix(Hash).  Takes an
+    # initialized IterationSet with at least 1 element in Mix format,
+    # and the total value of values in the Mix.
     method MIX-ROLL(\elems, \total) {
         nqp::stmts(
           (my Int $rand := total.rand.Int),
@@ -283,7 +286,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
             ),
             nqp::null
           ),
-          nqp::iterval($iter)
+          $iter
         )
     }
 

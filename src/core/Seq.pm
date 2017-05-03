@@ -201,7 +201,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
           ),
           nqp::if(
             $!list.DEFINITE,
-            $!list.iterator.sink-all
+            $!list.sink
           )
         )
     }

@@ -56,7 +56,11 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
             ($!iter := Iterator),
             iter
           ),
-          X::Seq::Consumed.new.throw
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.iterator,
+            X::Seq::Consumed.new.throw
+          )
         )
     }
 
@@ -64,7 +68,11 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         nqp::if(
           $!iter.DEFINITE,
           $!iter.is-lazy,
-          X::Seq::Consumed.new.throw
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.is-lazy,
+            X::Seq::Consumed.new.throw
+          )
         )
     }
 
@@ -192,6 +200,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
           nqp::stmts(
             $!iter.sink-all,
             ($!iter := Iterator)
+          ),
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.iterator.sink-all
           )
         )
     }

@@ -17,6 +17,7 @@ op.p6settypes = function(types) {
   Code = types.content.get('Code');
   Mu = types.content.get('Mu');
   Any = types.content.get('Any');
+  Nil = types.content.get('Nil');
   Routine = types.content.get('Routine');
   ContainerDescriptor = types.content.get('ContainerDescriptor');
 
@@ -242,6 +243,11 @@ RakudoScalar.prototype.configure = function(conf) {
   this.setupSTable();
 };
 
+function getThrower(type) {
+  let exHash = nqp.op.gethllsym("perl6", "P6EX");
+  return (exHash === Null ? Null : exHash.$$atkey(type));
+}
+
 RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
     let whence = this.$$getattr(Scalar, '$!whence');
@@ -249,10 +255,41 @@ RakudoScalar.prototype.setupSTable = function() {
     this.$$bindattr(Scalar, '$!value', value);
   });
 
-  this.STable.addInternalMethod('$$assign', function(ctx, value) {
+  this.STable.addInternalMethod('$$assign', function(ctx, maybeValue) {
     /* TODO - checking */
+    let desc = this.$$getattr(Scalar, '$!descriptor');
+    let rw = desc === Null ? 0 : desc.$$getattr_i(ContainerDescriptor, '$!rw');
+
+    if (!rw) {
+      if (desc === Null) {
+        let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
+        ctx.die("Cannot assign to a readonly variable (" + name + ") or a value");
+      } else {
+        ctx.die("Cannot assign to a readonly variable or a value");
+      }
+    }
+
+    let value;
+    if (maybeValue._STable && maybeValue._STable.WHAT === Nil) {
+      value = desc.$$getattr(ContainerDescriptor, '$!default');
+    } else {
+      value = maybeValue;
+      let of = desc.$$getattr(ContainerDescriptor, '$!of');
+      let ok = value.$$istype(ctx, of);
+      if (ok === 0) {
+        let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
+        let thrower = getThrower("X::TypeCheck::Assignment");
+        if (thrower === null) {
+            ctx.die("Type check failed in assignment to '" + name + "'");
+        } else {
+            thrower.$$call(ctx, null, name, value, of);
+        }
+      }
+    }
+
     let whence = this.$$getattr(Scalar, '$!whence');
     if (whence !== Null) whence.$$call(ctx, null);
+
     this.$$bindattr(Scalar, '$!value', value);
   });
 

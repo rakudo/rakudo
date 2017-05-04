@@ -328,6 +328,23 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method hash() { self }
     method clone(Map:D:) is raw { self }
 
+    multi method roll(Map:D:) {
+        nqp::if(
+          $!storage && nqp::elems($!storage),
+          nqp::stmts(
+            (my int $i = nqp::add_i(nqp::elems($!storage).rand.floor,1)),
+            (my $iter := nqp::iterator($!storage)),
+            nqp::while(
+              nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+              nqp::null
+            ),
+            Pair.new(nqp::iterkey_s($iter),nqp::iterval($iter))
+          ),
+          Nil
+        )
+    }
+    multi method pick(Map:D:) { self.roll }
+
     method !SETIFY(\type) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),

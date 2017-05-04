@@ -8,11 +8,11 @@ my role Mixy does Baggy  {
             $iter,
             nqp::if(
               nqp::getattr(
-                nqp::iterval(my $tmp := nqp::shift($iter)),
+                nqp::iterval(nqp::shift($iter)),
                 Pair,
                 '$!value'
               ) == 0,
-              nqp::deletekey(elems,nqp::iterkey_s($tmp))
+              nqp::deletekey(elems,nqp::iterkey_s($iter))
             )
           )
         )
@@ -31,10 +31,20 @@ my role Mixy does Baggy  {
     }
 
     multi method roll(Mixy:D:) {
-        Rakudo::Internals::WeightedRoll.new(self).roll
+        nqp::if(
+          (my $raw := self.raw_hash)
+            && nqp::elems($raw)
+            && (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($raw)),
+          nqp::getattr(
+            nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
+            Pair,
+            '$!key'
+          ),
+          Nil
+        )
     }
     multi method roll(Mixy:D: $count) {
-        my $roller = Rakudo::Internals::WeightedRoll.new(self);
+        my $roller = Rakudo::QuantHash::WeightedRoll.new(self);
         map { $roller.roll }, 1 .. $count;
     }
 }

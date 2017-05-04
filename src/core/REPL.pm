@@ -124,8 +124,7 @@ do {
             my $it := nqp::iterator($pad);
 
             while $it {
-                my $e := nqp::shift($it);
-                my $k := nqp::iterkey_s($e);
+                my $k := nqp::iterkey_s(nqp::shift($it));
                 my $m = $k ~~ /^ "&"? $<word>=[\w* <.lower> \w*] $/;
                 next if !$m;
                 my $word = ~$m<word>;
@@ -401,7 +400,7 @@ do {
 
             $!history-file = $*ENV<RAKUDO_HIST>
                 ?? $*ENV<RAKUDO_HIST>.IO
-                !! $*HOME.add('.perl6/rakudo-history');
+                !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
 
             without mkdir $!history-file.parent {
                 note "I ran into a problem trying to set up history: {.exception.message}";

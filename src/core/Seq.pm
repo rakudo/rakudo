@@ -47,8 +47,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         self.bless;
     }
 
-    method is-ready(Seq:D:) { $!iter.DEFINITE }
-
     method iterator(Seq:D:) {
         nqp::if(
           (my \iter = $!iter).DEFINITE,
@@ -56,7 +54,11 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
             ($!iter := Iterator),
             iter
           ),
-          X::Seq::Consumed.new.throw
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.iterator,
+            X::Seq::Consumed.new.throw
+          )
         )
     }
 
@@ -64,12 +66,20 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         nqp::if(
           $!iter.DEFINITE,
           $!iter.is-lazy,
-          X::Seq::Consumed.new.throw
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.is-lazy,
+            X::Seq::Consumed.new.throw
+          )
         )
     }
 
     method eager {
         List.from-iterator(self.iterator).eager;
+    }
+
+    method Capture() {
+        self.List.Capture
     }
 
     method List() {
@@ -145,7 +155,9 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     }
 
     multi method perl(Seq:D \SELF:) {
-        unless $!iter.DEFINITE && ! $!list.DEFINITE {
+        # If we don't have an iterator, someone grabbed it already;
+        # Check for cached $!list; if that's missing too, we're consumed
+        if not $!iter.DEFINITE and not $!list.DEFINITE {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
@@ -186,6 +198,10 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
           nqp::stmts(
             $!iter.sink-all,
             ($!iter := Iterator)
+          ),
+          nqp::if(
+            $!list.DEFINITE,
+            $!list.sink
           )
         )
     }

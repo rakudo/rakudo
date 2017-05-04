@@ -19,9 +19,12 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
-          $!total := self!TOTAL
+          $!total := Rakudo::QuantHash.MIX-TOTAL(self.raw_hash)
         )
     }
+
+#--- object creation methods
+    multi method new(Mix:_:) { mix() }
 
 #--- selection methods
     multi method grab($count? --> Real:D) {

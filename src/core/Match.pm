@@ -1,4 +1,3 @@
-
 my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $NO_CAPS    := nqp::hash();
@@ -22,10 +21,10 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method !MATCH() {
         my int $from = nqp::getattr_i(self, Match, '$!from');
-        my int $to   = nqp::getattr_i(self, Match, '$!pos');
+        my int $pos  = nqp::getattr_i(self, Match, '$!pos');
         my Mu $list;
         my Mu $hash := nqp::hash();
-        if nqp::isge_i($to, $from) {
+        if nqp::isge_i($pos, $from) {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Match, '$!regexsub');
@@ -36,13 +35,11 @@ my class Match is Capture is Cool does NQPMatchRole {
                 $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
                 if nqp::not_i(nqp::isnull($caplist)) && nqp::istrue($caplist) {
                     my $iter := nqp::iterator($caplist);
-                    my $curcap;
                     my str $name;
                     while $iter {
-                        $curcap := nqp::shift($iter);
                         $namecount = nqp::add_i($namecount, 1);
-                        if nqp::iterval($curcap) >= 2 {
-                            $name = nqp::iterkey_s($curcap);
+                        if nqp::iterval(nqp::shift($iter)) >= 2 {
+                            $name = nqp::iterkey_s($iter);
                             $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
@@ -90,7 +87,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                     $name    = nqp::getattr_s($subcur, $?CLASS, '$!name');
                     if nqp::not_i(nqp::isnull_s($name)) && nqp::isgt_i(nqp::chars($name), 0) {
                         my Mu $submatch := $subcur.MATCH;
-                        if nqp::eqat($name, '$', 0) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!pos')) {
+                        if nqp::eqat($name, '$', 0) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!to')) {
                             nqp::bindattr_i(self, Match, $name, $submatch.from);
                         }
                         elsif nqp::islt_i(nqp::index($name, '='), 0) {
@@ -167,6 +164,7 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid),
           nqp::bindattr_i($new,$?CLASS,'$!from',-1),
           nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1)),
+          nqp::bindattr_i($new,$?CLASS,'$!to',-1),
           $!regexsub($new)
         )
     }
@@ -184,6 +182,7 @@ my class Match is Capture is Cool does NQPMatchRole {
               $!pos
             )
           ),
+          nqp::bindattr_i($new,$?CLASS,'$!to',-1),
           $!regexsub($new)
         )
     }
@@ -481,7 +480,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::substr(self.target,0,$!from)
     }
     method postmatch(Match:D:) {
-        nqp::substr(self.target,$!pos)
+        nqp::substr(self.target,self.to)
     }
 
     method caps(Match:D:) {

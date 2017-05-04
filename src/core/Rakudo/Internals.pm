@@ -17,44 +17,24 @@ my class Rakudo::Internals {
     # for use in nqp::splice
     my $empty := nqp::list;
 
-    our class WeightedRoll {
-        has @!pairs;
-        has $!total;
-
-        method !SET-SELF(\list-of-pairs) {
-            $!total = 0;
-            for list-of-pairs.pairs {
-                my $value := .value;
-                if $value > 0 {
-                    @!pairs.push($_);
-                    $!total = $!total + $value;
-                }
-            }
-            self
-        }
-        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
-        method roll() {
-            my $rand = $!total.rand;
-            my $seen = 0;
-            return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
-        }
-    }
-
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
         nqp::stmts(
           (my $from := nqp::getattr(from,List,'$!reified')),
-          (my int $elems = nqp::elems($from)),
-          (my $to := nqp::getattr(to,List,'$!reified')),
-          (my int $i = -1),
-          (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
-          nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos(
-              $to,
-              ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-              nqp::atpos($from,$i)
+          nqp::if((my int $elems = nqp::elems($from)),
+            nqp::stmts(
+              (my $to := nqp::getattr(to,List,'$!reified')),
+              (my int $i = -1),
+              (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos($from,$i)
+                ),
+              ),
             ),
           ),
           to
@@ -155,6 +135,28 @@ my class Rakudo::Internals {
         my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
             nqp::getcurhllsym("@END_PHASERS"));
         for @END -> $end { $end() };
+    }
+
+    method createENV(int $bind) {
+        nqp::stmts(
+          (my $hash := nqp::hash),
+          (my $iter := nqp::iterator(nqp::getenvhash)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $hash,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::if(
+                $bind,
+                val(nqp::iterval($iter)),
+                nqp::p6scalarfromdesc(nqp::null) = val(nqp::iterval($iter))
+              )
+            )
+          ),
+          nqp::p6bindattrinvres(
+            nqp::create(nqp::if($bind,Map,Hash)),Map,'$!storage',$hash
+          )
+        )
     }
 
     # fast whitespace trim: str to trim, str to store trimmed str
@@ -1552,10 +1554,7 @@ my class Rakudo::Internals {
 }
 
 # expose the number of bits a native int has
-my constant $?BITS = do {
-    my int $a = 0x1ffffffff;
-    nqp::iseq_i($a,8589934591) ?? 64 !! 32
-}
+my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 # we need this to run *after* the mainline of Rakudo::Internals has run
 Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {

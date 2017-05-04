@@ -83,6 +83,80 @@ class Rakudo::Iterator {
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
+    # Generic role for iterating over a Map / Hash that has pairs
+    # for values providing the "real" key and value.  A default
+    # .pull-one and .push-all is provided.  Takes a Map / Hash as
+    # the only parameter to .new.
+    our role Mappy-kv-from-pairs does Iterator {
+        has $!storage;
+        has $!iter;
+        has $!on;
+
+        method SET-SELF(\hash) {
+            nqp::stmts(
+              ($!storage := nqp::getattr(hash,Map,'$!storage')),
+              ($!iter := nqp::iterator($!storage)),
+              self
+            )
+        }
+        method new(\hash) {
+            nqp::if(
+              nqp::getattr(hash,Map,'$!storage')
+                && nqp::elems(nqp::getattr(hash,Map,'$!storage')),
+              nqp::create(self).SET-SELF(hash),
+              Rakudo::Iterator.Empty   # nothing to iterate
+            )
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                nqp::getattr(nqp::iterval($!iter),Pair,'$!value')
+              ),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                (my $pair := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                $target.push(nqp::getattr($pair,Pair,'$!key')),
+                $target.push(nqp::getattr($pair,Pair,'$!value'))
+              )
+            )
+        }
+        method skip-one() {               # must define our own skip-one
+            nqp::if(
+              $!on,
+              nqp::not_i($!on = 0),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  nqp::shift($!iter),
+                  ($!on = 1)
+                )
+              )
+            )
+        }
+        method count-only() {
+            nqp::p6box_i(
+              nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+            )
+        }
+        method bool-only(--> True) { }
+        method sink-all(--> IterationEnd) { $!iter := nqp::null }
+    }
+
     # Generic role for iterating over a >1 dimensional shaped list
     # for its lowest branches.  The default .new method takes a List
     # to iterate over.  A consuming class needs to provide a .process
@@ -1953,64 +2027,9 @@ class Rakudo::Iterator {
     # be interpreted as the actual key/value.  Takes a Map / Hash as
     # the only parameter.
     method Mappy-kv-from-pairs(\map) {
-        class :: does Mappy {
-            has Mu $!value;
-
-            method pull-one() is raw {
-                nqp::if(
-                  $!value.DEFINITE,
-                  nqp::stmts(
-                    (my $tmp := $!value),
-                    ($!value := nqp::null),
-                    $tmp
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                      ($!value := nqp::getattr($tmp,Pair,'$!value')),
-                      (nqp::getattr($tmp,Pair,'$!key'))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method skip-one() {               # must define our own skip-one
-                nqp::if(
-                  $!value.DEFINITE,
-                  nqp::stmts(
-                    ($!value := nqp::null),
-                    1
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!value := nqp::getattr(
-                        nqp::decont(nqp::iterval(nqp::shift($!iter))),
-                        Pair,
-                        '$!value'
-                      )),
-                      1
-                    )
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    (my $tmp := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!key'))),
-                    ($target.push(nqp::getattr($tmp,Pair,'$!value')))
-                  )
-                )
-            }
-            method count-only() {
-                nqp::p6box_i(
-                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
-                )
-            }
-        }.new(map)
+        # make sure class gets created at compile time, to avoid global
+        # de-opt at run-time
+        class :: does Mappy-kv-from-pairs { }.new(map)
     }
 
     # An often occurring use of the Mappy role to generate all of the

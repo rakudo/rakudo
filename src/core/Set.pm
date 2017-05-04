@@ -1,6 +1,17 @@
 my class Set does Setty {
     has $!WHICH;
 
+    method SET-SELF(\elems) {
+        nqp::if(
+          nqp::elems(elems),
+          nqp::stmts(
+            nqp::bindattr(self,::?CLASS,'$!elems',elems),
+            self
+          ),
+          set()
+        )
+    }
+
     multi method WHICH (Set:D:) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),

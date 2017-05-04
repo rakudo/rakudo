@@ -8,8 +8,8 @@ my class Junction { # declared in BOOTSTRAP
           ($!type = type),
           nqp::if(
             nqp::iseq_s($!type,"any")
-              || nqp::iseq_s($!type,"all") 
-              || nqp::iseq_s($!type,"none") 
+              || nqp::iseq_s($!type,"all")
+              || nqp::iseq_s($!type,"none")
               || nqp::iseq_s($!type,"one"),
             nqp::stmts(
               ($!storage := nqp::if(
@@ -278,17 +278,16 @@ my class Junction { # declared in BOOTSTRAP
         my Mu $nameds := nqp::getattr(nqp::decont(args), Capture, '%!hash');
         my $iter := nqp::iterator($nameds);
         while $iter {
-            my \tmp = nqp::shift($iter);
-            if nqp::istype(nqp::iterval(tmp),Junction) {
-                my $junction := nqp::decont(nqp::iterval(tmp));
+            if nqp::istype(nqp::iterval(nqp::shift($iter)),Junction) {
+                my $junction := nqp::decont(nqp::iterval($iter));
                 my $storage  := nqp::getattr($junction,Junction,'$!storage');
                 my int $elems = nqp::elems($storage);
                 my $result   := nqp::setelems(nqp::list,$elems);
                 my int $i     = -1;
-                
+
                 while nqp::islt_i(++$i,$elems) {
                     # also naughty, like above
-                    nqp::bindkey($nameds,nqp::iterkey_s(tmp),nqp::atpos($storage,$i));
+                    nqp::bindkey($nameds,nqp::iterkey_s($iter),nqp::atpos($storage,$i));
                     nqp::bindpos($result,$i,call(|args));
                 }
 

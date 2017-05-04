@@ -1,31 +1,30 @@
 my role Setty does QuantHash {
     has $!elems; # key.WHICH => key
 
-    method SET-SELF(\elems) {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(elems),
-            ($!elems := elems)
-          ),
-          self
-        )
-    }
     multi method new(Setty: --> Setty:D) { nqp::create(self) }
     multi method new(Setty: +@args --> Setty:D) {
-        nqp::stmts(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          (my $iter  := @args.iterator),
-          nqp::until(
-            nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
-            nqp::bindkey($elems,$pulled.WHICH,$pulled)
-          ),
-          nqp::create(self).SET-SELF($elems)
+        nqp::if(
+          (my $iterator := @args.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          nqp::stmts(
+            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+            (my $iter  := @args.iterator),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::bindkey($elems,$pulled.WHICH,$pulled)
+            ),
+            nqp::create(self).SET-SELF($elems)
+          )
         )
     }
     method new-from-pairs(*@pairs --> Setty:D) {
-        nqp::create(self).SET-SELF(
-          self.fill_IterationSet(
-            nqp::create(Rakudo::Internals::IterationSet),@pairs.iterator
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          nqp::create(self).SET-SELF(
+            self.fill_IterationSet(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
           )
         )
     }
@@ -96,9 +95,9 @@ my role Setty does QuantHash {
                 $iter,
                 nqp::bindkey(
                   $storage,
-                  nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                  nqp::iterkey_s(nqp::shift($iter)),
                   Pair.new(
-                    nqp::iterval($tmp),
+                    nqp::iterval($iter),
                     (nqp::p6scalarfromdesc($descriptor) = True)
                   )
                 )
@@ -206,9 +205,9 @@ my role Setty does QuantHash {
               $iter,
               nqp::bindkey(
                 $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
+                nqp::iterkey_s(nqp::shift($iter)),
                 Pair.new(
-                  nqp::decont(nqp::iterval($tmp)),
+                  nqp::decont(nqp::iterval($iter)),
                   nqp::if(
                     $bind,
                     1,

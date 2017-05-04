@@ -14,9 +14,12 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!total'),
           $!total,
-          $!total := self!TOTAL
+          $!total := Rakudo::QuantHash.BAG-TOTAL(self.raw_hash)
         )
     }
+
+#--- object creation methods
+    multi method new(Bag:_:) { bag() }
 
 #--- interface methods
     multi method DELETE-KEY(Bag:D: \k) {

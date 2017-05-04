@@ -1,16 +1,5 @@
-{
-    my %ENV;
-    my Mu $env := nqp::getenvhash();
-    my Mu $enviter := nqp::iterator($env);
-    my $envelem;
-    my $key;
-    while $enviter {
-        $envelem := nqp::shift($enviter);
-        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-        %ENV{$key} = val(nqp::p6box_s(nqp::iterval($envelem)));
-    }
-    PROCESS::<%ENV> := %ENV;
-}
+PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
+my constant %?ENV = Rakudo::Internals.createENV(1);
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*CWD', {
 #    PROCESS::<$CWD> = nqp::p6box_s(nqp::cwd());

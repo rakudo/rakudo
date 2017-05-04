@@ -54,12 +54,55 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     my $param = '$bar';
     throws-like { EVAL q[ sub foo(\qq{$param}? is rw) {} ] }, Exception,
-        message => "Cannot use 'is rw' on optional parameter '$param'",
+        message => "Cannot use 'is rw' on optional parameter '$param'.",
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
 
     throws-like { EVAL q[ sub foo(\qq{$param} is rw = 42) {} ] }, Exception,
-        message => "Cannot use 'is rw' on optional parameter '$param'",
+        message => "Cannot use 'is rw' on optional parameter '$param'.",
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
+}
+
+# RT #113954
+{
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo bar' \n|,
+       'a space in a literal param to a MAIN() multi makes the suggestion quoted';
+
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo"bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo"bar' \n|,
+       'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+
+    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo'bar|) {}]]).err.slurp(:close),
+       qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|,
+       'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+}
+
+# RT #118263
+{
+    throws-like { EVAL q|role R { method a {...}; method b { say "b" }; method c {...} }; class C is R {}| },
+        Exception,
+        message => all(/<<'C'>>/, /<<'R'>>/, /<<'a,' \s* 'c'>>/, /<<'does'>>/),
+        'The message when trying to pun a role with required methods should have the names of the child, parent, required methods, and suggest "does"';
+}
+
+# RT #126124
+# adapted from S06-signature/types.t
+{
+    throws-like { sub f(Mu:D $a) {}; f(Int) },
+        Exception,
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
+        'types and names shown in the exception message are correct';
+    throws-like { sub f(Mu:U $a) {}; f(123) },
+        Exception,
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'not an object instance'>>/, /<<'must be a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
+        'types shown in the exception message are correct';
+}
+
+# adapted from S32-exceptions/misc.t
+for <fail die throw rethrow resumable resume> -> $meth {
+    throws-like 'X::NYI.' ~ $meth,
+        Exception,
+        message => all(/'Invocant'/, /<<$meth>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Exception'>>/,  /<<'X::NYI'>>/, /\W '.new'>>/),
 }
 
 done-testing;

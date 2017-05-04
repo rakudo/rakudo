@@ -14,6 +14,7 @@ src/core/Iterator.pm
 src/core/SlippyIterator.pm
 src/core/Rakudo/Internals.pm
 src/core/Rakudo/Iterator.pm
+src/core/Rakudo/QuantHash.pm
 src/core/Rakudo/Sorting.pm
 src/core/HyperIterator.pm
 src/core/Iterable.pm

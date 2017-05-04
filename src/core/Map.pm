@@ -25,11 +25,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
             nqp::while(
               $iter,
-              nqp::stmts(
-                nqp::shift($iter),
-                nqp::bindkey($storage,nqp::iterkey_s($iter),
-                  nqp::p6scalarfromdesc($descriptor) =
-                    nqp::decont(nqp::iterval($iter)))
+              nqp::bindkey($storage,nqp::iterkey_s(nqp::shift($iter)),
+                nqp::p6scalarfromdesc($descriptor) =
+                  nqp::decont(nqp::iterval($iter))
               )
             );
             $hash
@@ -109,14 +107,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method EXISTS-KEY(Map:D: Str:D \key) {
         nqp::p6bool(
-            nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key))
+          nqp::defined($!storage) && nqp::existskey($!storage,key)
         )
     }
     multi method EXISTS-KEY(Map:D: \key) {
         nqp::p6bool(
-            nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s(key.Str))
+          nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
         )
     }
 
@@ -252,11 +248,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             (my $iter := nqp::iterator($other)),
             nqp::while(
               $iter,
-              nqp::stmts(
-                nqp::shift($iter),
-                self.STORE_AT_KEY(
-                  nqp::iterkey_s($iter),nqp::iterval($iter)
-                )
+              self.STORE_AT_KEY(
+                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
               )
             )
           )
@@ -300,7 +293,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
           )
         );
-        
+
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
@@ -334,7 +327,24 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method hash() { self }
     method clone(Map:D:) is raw { self }
-    
+
+    multi method roll(Map:D:) {
+        nqp::if(
+          $!storage && nqp::elems($!storage),
+          nqp::stmts(
+            (my int $i = nqp::add_i(nqp::elems($!storage).rand.floor,1)),
+            (my $iter := nqp::iterator($!storage)),
+            nqp::while(
+              nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+              nqp::null
+            ),
+            Pair.new(nqp::iterkey_s($iter),nqp::iterval($iter))
+          ),
+          Nil
+        )
+    }
+    multi method pick(Map:D:) { self.roll }
+
     method !SETIFY(\type) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
@@ -345,11 +355,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::while(
                 $iter,
                 nqp::if(
-                  nqp::iterval(my $tmp := nqp::shift($iter)),
+                  nqp::iterval(nqp::shift($iter)),
                   nqp::bindkey(
                     $elems,
-                    nqp::iterkey_s($tmp).WHICH,
-                    nqp::iterkey_s($tmp),
+                    nqp::iterkey_s($iter).WHICH,
+                    nqp::iterkey_s($iter),
                   )
                 )
               )

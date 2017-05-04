@@ -882,7 +882,7 @@ package Runner {
                         }
                     }
                     my $parser = TAP::Parser.new(:@handlers);
-                    for $proc.out.lines -> $line {
+                    for $proc.out.lines(:close) -> $line {
                         $parser.add-data($line);
                     }
                     $parser.close-data();

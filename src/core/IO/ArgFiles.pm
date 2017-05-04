@@ -36,8 +36,7 @@ my class IO::ArgFiles is IO::Handle {
         }
     }
 
-    method !next-io($close) {
-        $!io.close if $close;
+    method !next-io() {
         unless $!has-args.defined {
             $!has-args = ?$!args;
         }
@@ -61,7 +60,7 @@ my class IO::ArgFiles is IO::Handle {
 
     method get() {
         unless $!io.defined and $!io.opened {
-            (return $_ unless .defined) given self!next-io(False);
+            (return $_ unless .defined) given self!next-io;
         }
 
         my $line;
@@ -70,7 +69,7 @@ my class IO::ArgFiles is IO::Handle {
             unless $line.defined {
                 $!io.close;
                 $!io = IO::Handle;
-                (return $_ unless .defined) given self!next-io(True);
+                (return $_ unless .defined) given self!next-io;
             }
         } until $line.defined;
         $!ins++;
@@ -90,9 +89,9 @@ my class IO::ArgFiles is IO::Handle {
                 nqp::bindattr(iter, self, '$!args', args);
                 nqp::bindattr(iter, self, '$!ins', ins);
                 nqp::bindattr(iter, self, '$!next-io', next-io);
-                my $io = next-io.(False);
+                my $io = next-io.();
                 if $io.defined {
-                    nqp::bindattr(iter, self, '$!iter', $io.iterator);
+                    nqp::bindattr(iter, self, '$!iter', $io.lines(:close).iterator);
                 }
                 else {
                     return $io if nqp::istype($io, Failure);
@@ -106,16 +105,16 @@ my class IO::ArgFiles is IO::Handle {
                   (my \value = $!iter.pull-one),
                   nqp::if(nqp::eqaddr(value, IterationEnd),
                     nqp::stmts(
-                      (my $io = $!next-io.(True)),
+                      (my $io = $!next-io.()),
                       nqp::if(nqp::istype($io, Failure), return $io),
                       nqp::unless(nqp::defined($io), return IterationEnd),
-                      ($!iter := $io.iterator),
+                      ($!iter := $io.lines(:close).iterator),
                       self.pull-one),
                     nqp::stmts(
                       ($!ins = nqp::add_I(nqp::decont($!ins), 1, Int)),
                       value)))
             }
-        }.new(self, $!ins, -> $close { self!next-io($close) }));
+        }.new(self, $!ins, -> { self!next-io }));
     }
     multi method lines($limit) {
         nqp::istype($limit,Whatever) || $limit == Inf
@@ -145,6 +144,26 @@ my class IO::ArgFiles is IO::Handle {
         return Nil unless @chunks;
 
         [~] @chunks;
+    }
+
+    method words(IO::ArgFiles:D: |c) {
+        $!has-args = ?$!args unless $!has-args.defined;
+
+        return $*IN.words(|c) unless $!has-args;
+
+        my @chunks;
+        if $!io.defined && $!io.opened {
+            @chunks.append: $!io.words(:close, |c);
+        }
+
+        while $!args {
+            @chunks.append: words $!args.shift, |c;
+        }
+
+        # TODO Should this be a failure?
+        return Nil unless @chunks;
+
+        @chunks.Seq;
     }
 
     method nl-in is rw {

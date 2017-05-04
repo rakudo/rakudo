@@ -186,9 +186,7 @@ my class IO::Path is Cool does IO {
           !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
-        $!is-absolute  # attribute now set
-          ?? "{$.absolute.perl}.IO({:$!SPEC.perl})"
-          !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
+        self.^name ~ ".new({$.path.perl}, {:$!SPEC.perl}, {:$!CWD.perl})"
     }
 
     method sibling(IO::Path:D: Str() \sibling) {
@@ -212,7 +210,7 @@ my class IO::Path is Cool does IO {
         );
     }
 
-    multi method IO(IO::Path:D:) { self }
+    multi method IO { self }
     method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
 
 #?if moar
@@ -475,7 +473,15 @@ my class IO::Path is Cool does IO {
             :to($to.absolute),
             :os-error(':createonly specified and destination exists');
 
-        nqp::copy($.absolute, nqp::unbox_s($to.absolute));
+        # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::if(
+            nqp::iseq_s(
+                (my $from-abs :=   $.absolute),
+                (my $to-abs   := $to.absolute)),
+            X::IO::Copy.new(:from($from-abs), :to($to-abs),
+                :os-error('source and target are the same')).fail,
+            nqp::copy($from-abs, $to-abs));
+
         CATCH { default {
             fail X::IO::Copy.new:
                 :from($!abspath), :to($to.absolute), :os-error(.Str)
@@ -777,15 +783,27 @@ my class IO::Path is Cool does IO {
 
 my class IO::Path::Cygwin is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::QNX is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Unix is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Win32 is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

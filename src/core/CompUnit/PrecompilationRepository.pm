@@ -45,7 +45,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         my ($handle, $checksum) = (
             self.may-precomp and (
-                my $loaded = self.load($id, :since($source.modified), :@precomp-stores) # already precompiled?
+                my $loaded = self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
                 or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
                     and self.load($id, :@precomp-stores) # if not do it now
             )
@@ -100,7 +100,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Nil
     }
 
-    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, Instant $since, @precomp-stores) {
+    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, @precomp-stores) {
         my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
@@ -164,6 +164,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     multi method load(
         Str $id,
         Instant :$since,
+        IO::Path :$source,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) {
         self.load(CompUnit::PrecompilationId.new($id), :$since, :@precomp-stores)
@@ -171,6 +172,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     multi method load(
         CompUnit::PrecompilationId $id,
+        IO::Path :$source,
+        Str :$checksum,
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) {
@@ -181,9 +184,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
-            my $modified = $unit.modified;
-            if (not $since or $modified > $since)
-                and self!load-dependencies($unit, $modified, @precomp-stores)
+            if (not $since or $unit.modified > $since)
+                and (not $source or ($checksum // nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
+                and self!load-dependencies($unit, @precomp-stores)
             {
                 my \loaded = self!load-handle-for-path($unit);
                 $loaded-lock.protect: { %loaded{$id} = loaded };
@@ -191,7 +194,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             else {
                 if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Outdated precompiled $unit\nmtime: {$modified}{$since ?? "\nsince: $since" !! ''}")
+                    $RMD("Outdated precompiled $unit\nmtime: {$unit.modified}{$since ?? "\nsince: $since" !! ''}")
                 }
                 $unit.close;
                 fail "Outdated precompiled $unit";

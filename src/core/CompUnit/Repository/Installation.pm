@@ -111,7 +111,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $bin
     }
 
-    method !add-short-name($name, $dist, $source?) {
+    method !add-short-name($name, $dist, $source?, $checksum?) {
         my $short-dir = $.prefix.add('short');
         my $id = nqp::sha1($name);
         my $lookup = $short-dir.add($id);
@@ -121,6 +121,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             ~   "{$dist.meta<auth> // ''}\n"
             ~   "{$dist.meta<api>  // ''}\n"
             ~   "{$source // ''}\n"
+            ~   "{$checksum // ''}\n"
         );
     }
 
@@ -258,14 +259,14 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
             my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.add($id);
-            self!add-short-name($name, $dist, $id);
+            my $handle      = $dist.content($file);
+            self!add-short-name($name, $dist, $id, nqp::sha1($handle.open(:enc<iso-8859-1>).slurp(:close)));
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
                 :$!cver
             };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
-            my $handle  = $dist.content($file);
             my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
             $handle.close;
@@ -379,8 +380,11 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         for %files.kv -> $name-path, $file {
             given $name-path {
                 when /^bin\/(.*)/ {
-                    # wrappers are located in $bin-dir
-                    unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j';
+                    # wrappers are located in $bin-dir (only delete if no other versions use wrapper)
+                    unless self.files($name-path, :name($dist.meta<name>)).elems {
+                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j';
+                    }
+
                     # original bin scripts are in $resources-dir
                     unlink-if-exists( $resources-dir.add($file) )
                 }
@@ -434,12 +438,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                                 $_ => self!read-dist($_)
                             })
                         !! $lookup.dir.map({
-                                my ($ver, $auth, $api, $source) = $_.slurp.split("\n");
+                                my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
                                 $_.basename => {
-                                    ver    => Version.new( $ver || 0 ),
-                                    auth   => $auth,
-                                    api    => $api,
-                                    source => $source || Any,
+                                    ver      => Version.new( $ver || 0 ),
+                                    auth     => $auth,
+                                    api      => $api,
+                                    source   => $source || Any,
+                                    checksum => $checksum || Str,
                                 }
                             })
                     ).grep({
@@ -523,6 +528,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 CompUnit::PrecompilationDependency::File.new(
                     :id(CompUnit::PrecompilationId.new($id)),
                     :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.absolute),
+                    :checksum($dist<checksum>:exists ?? $dist<checksum> !! Str),
                     :$spec,
                 ),
                 :source($loader),

@@ -321,25 +321,26 @@ my class Binder {
 
                 # Also enforce definedness constraints.
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
-                    if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
+                    if (my $should_be_concrete := $flags +& $SIG_ELEM_DEFINED_ONLY   && !nqp::isconcrete($oval)) ||
+                                                  $flags +& $SIG_ELEM_UNDEFINED_ONLY &&  nqp::isconcrete($oval)
+                    {
                         if nqp::defined($error) {
-                            my $class := $nom_type.HOW.name($nom_type);
-                            my $what  := $flags +& $SIG_ELEM_INVOCANT
-                              ?? "Invocant"
-                              !! "Parameter '$varname'";
-                            $error[0] := "$what requires a type object of type $class, but an object instance was passed.  Did you forget a 'multi'?";
-                        }
-                        return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
-                            ?? $BIND_RESULT_JUNCTION
-                            !! $BIND_RESULT_FAIL;
-                    }
-                    if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
-                        if nqp::defined($error) {
-                            my $class := $nom_type.HOW.name($nom_type);
-                            my $what  := $flags +& $SIG_ELEM_INVOCANT
-                              ?? "Invocant"
-                              !! "Parameter '$varname'";
-                            $error[0] := "$what requires an instance of type $class, but a type object was passed.  Did you forget a .new?";
+                            my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+                            my $class  := $nom_type.HOW.name($nom_type);
+                            my $got    := $oval.HOW.name($oval);
+                            my %ex     := nqp::gethllsym('perl6', 'P6EX');
+                            if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
+                                $method   := '<anon>' if nqp::isnull_s($method) || $method eq '';
+                                $error[0] := $flags +& $SIG_ELEM_INVOCANT
+                                  ?? $should_be_concrete
+                                       ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
+                                       !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
+                                  !! $should_be_concrete
+                                       ?? "Parameter '$varname' of routine '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
+                                       !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
+                            } else {
+                                $error[0] := { nqp::atkey(%ex, 'X::Parameter::InvalidConcreteness')($class, $got, $method, $varname, $should_be_concrete, $flags +& $SIG_ELEM_INVOCANT) };
+                            }
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION

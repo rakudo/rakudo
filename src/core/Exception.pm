@@ -1143,6 +1143,26 @@ my class X::Parameter::WrongOrder does X::Comp {
     }
 }
 
+my class X::Parameter::InvalidConcreteness is Exception {
+    has $.expected;
+    has $.got;
+    has $.routine;
+    has $.param;
+    has Bool $.should-be-concrete;
+    has Bool $.param-is-invocant;
+
+    method message() {
+        $!routine = '<anon>' if not $!routine.defined or $!routine eq '';
+        $!param   = '<anon>' if not $!param.defined   or $!param   eq '';
+        my $beginning  = $!param-is-invocant  ?? 'Invocant of method' !! "Parameter '$!param' of routine";
+        my $must-be    = $!should-be-concrete ?? 'an object instance' !! 'a type object';
+        my $not-a      = $!should-be-concrete ?? 'a type object'      !! 'an object instance';
+        my $suggestion = $!should-be-concrete ?? '.new'               !! 'multi';
+
+        "$beginning '$!routine' must be $must-be of type '$!expected', not $not-a of type '$!got'.  Did you forget a '$suggestion'?"
+    }
+}
+
 my class X::Parameter::InvalidType does X::Comp {
     has $.typename;
     has @.suggestions;
@@ -2457,7 +2477,13 @@ my class X::PhaserExceptions is Exception {
     }
 }
 
+
+#?if jvm
+nqp::bindcurhllsym('P6EX', nqp::hash(
+#?endif
+#?if !jvm
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
+#?endif
   'X::TypeCheck::Binding',
   -> Mu $got, Mu $expected, $symbol? {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
@@ -2521,8 +2547,12 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
   },
   'X::Trait::Invalid',
-  sub ($type, $subtype, $declaring, $name) {
+  -> $type, $subtype, $declaring, $name {
       X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
+  },
+  'X::Parameter::InvalidConcreteness',
+  -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
+      X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
   },
 ));
 

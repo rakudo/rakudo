@@ -85,7 +85,7 @@ my class IO::Spec::Unix is IO::Spec {
         first( {
             if .defined {
                 $io = .IO;
-                $io.d && $io.r && $io.w && $io.x;
+                $io.d && $io.rwx;
             }
           },
           %*ENV<TMPDIR>,

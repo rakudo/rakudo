@@ -10,11 +10,11 @@ my class KeyReducer {
     has Mu $!lock;
     has $!exception;
     has $!obtained;
-    
+
     method new($initializer, $reducer) {
         self.bless(:$initializer, :$reducer)
     }
-    
+
     my Mu $interop;
     my Mu $ReentrantLock;
     submethod BUILD(:$!initializer, :$!reducer --> Nil) {
@@ -25,7 +25,7 @@ my class KeyReducer {
         $!lock := $ReentrantLock.'constructor/new/()V'();
         $!obtained = False;
     }
-    
+
     proto method contribute(|) { * }
     multi method contribute(KeyReducer:D: %h) {
         $!lock.lock();
@@ -67,7 +67,7 @@ my class KeyReducer {
         $!lock.unlock();
         True
     }
-    
+
     method snapshot(KeyReducer:D:) {
         $!lock.lock();
         if $!exception {
@@ -78,7 +78,7 @@ my class KeyReducer {
         $!lock.unlock();
         %snapshot
     }
-    
+
     method result(KeyReducer:D:) {
         $!lock.lock();
         $!obtained = True;

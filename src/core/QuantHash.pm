@@ -4,6 +4,7 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric:D) { self.total.Numeric }
     method Real    ( --> Real:D)    { self.total.Real }
 
+    method Capture() { self.Hash.Capture }
     method list() { self.pairs.cache }
 
     method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {

@@ -221,4 +221,21 @@ my @input-lines;
 # RT#130874
 like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
 
+
+# Since there might be some differences in REPL sessions in whitespace
+# or what not, strip all \W and then check what we have left over is what
+# a normal session should have. This lets us catch any unexpected error
+# messages and stuff.
+is feed_repl_with(['say "hi"']).subst(:g, /\W+/, ''),
+    'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+    ~ 'oruserlwrapforalineeditorhi',
+'REPL session does not have unexpected stuff';
+
+## XXX TODO: need to write tests that exercise the REPL with Linenoise
+# and Readline installed. Particular things to check:
+# 1. History file can be made on all OSes:
+#    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
+# 2. Test REPL does not show errors when $*HOME is not set:
+#    https://rt.perl.org/Ticket/Display.html?id=130456
+
 done-testing;

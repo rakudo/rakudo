@@ -5,7 +5,7 @@ my class IO::Async::File {
     has $!PIO;
     has $.chomp = Bool::True;
     has $.path;
-    
+
     proto method open(|) { * }
     multi method open($path? is copy, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
@@ -25,11 +25,11 @@ my class IO::Async::File {
         nqp::closefh($!PIO);
         Bool::True;
     }
-    
+
     method opened() {
         nqp::p6bool(nqp::istrue($!PIO));
     }
-    
+
     method slurp(IO::Async::File:D: :$bin, :enc($encoding)) {
         self.open(:r, :$bin) unless self.opened;
         self.encoding($encoding) if $encoding.defined;
@@ -45,7 +45,7 @@ my class IO::Async::File {
             $p
         }
     }
-    
+
     method spurt(IO::Async::File:D: $data, :$bin, :enc($encoding)) {
         self.open(:w, :$bin) unless self.opened;
         self.encoding($encoding) if $encoding.defined;

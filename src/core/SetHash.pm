@@ -1,5 +1,15 @@
 my class SetHash does Setty {
 
+    method SET-SELF(\elems) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(elems),
+            nqp::bindattr(self,::?CLASS,'$!elems',elems)
+          ),
+          self
+        )
+    }
+
     role SetHashMappy does Rakudo::Iterator::Mappy {
         method ISINSET(\key) {
             Proxy.new(
@@ -136,7 +146,7 @@ my class SetHash does Setty {
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet))
                     ),
-                    nqp::bindkey($!elems,k.WHICH,k)
+                    nqp::bindkey($!elems,k.WHICH,nqp::decont(k))
                   ),
                   $!elems && nqp::deletekey($!elems,k.WHICH)
                 ),

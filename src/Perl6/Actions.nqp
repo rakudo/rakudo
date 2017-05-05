@@ -6582,7 +6582,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $_ := QAST::Op.new( :op('locallifetime'), $_, $tmp );
             }
             else {
-                $/.panic('Sorry, do not know how to handle this case of a feed operator yet.');
+                my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
+                if $_.isa(QAST::Op) && $_.op eq 'ifnull' && $_[0].isa(QAST::Var) && nqp::eqat($_[0].name, '&', 0) {
+                    $error := "A feed may not sink values into a code object. Did you mean a call like '"
+                            ~ nqp::substr($_[0].name, 1) ~ "()' instead?";
+                }
+                $/.panic($error);
             }
             $result := $_;
         }

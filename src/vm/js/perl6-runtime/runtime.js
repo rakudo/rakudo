@@ -304,7 +304,7 @@ RakudoScalar.prototype.setupSTable = function() {
   this.STable.addInternalMethod('$$isrwcont', function() {
     if (this.typeObject_) return 0;
     let desc = this.$$getattr(Scalar, '$!descriptor');
-    return desc.$$getattr_i(ContainerDescriptor, '$!rw');
+    return desc === Null ? 0 : desc.$$getattr_i(ContainerDescriptor, '$!rw');
   });
 };
 

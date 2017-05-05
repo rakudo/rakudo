@@ -314,9 +314,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     (my $buffer := nqp::create(IterationBuffer))
                   )
                 ),
-                nqp::bindattr($result,List,'$!todo',
-                  (my $todo := nqp::create(List::Reifier))
-                ),
+                (my $todo := nqp::create(List::Reifier)),
                 nqp::bindattr($todo,List::Reifier,'$!reified',
                   $buffer
                 ),
@@ -325,6 +323,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ),
                 nqp::bindattr($todo,List::Reifier,'$!future',
                   $future
+                ),
+                $todo.reify-until-lazy,
+                nqp::unless(
+                  $todo.fully-reified,
+                  nqp::bindattr($result,List,'$!todo', $todo),
                 ),
                 $result
               )

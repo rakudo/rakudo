@@ -99,10 +99,20 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 }
 
 # adapted from S32-exceptions/misc.t
-for <fail die throw rethrow resumable resume> -> $meth {
+for <fail die throw rethrow resume> -> $meth {
     throws-like 'X::NYI.' ~ $meth,
         Exception,
         message => all(/'Invocant'/, /<<$meth>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Exception'>>/,  /<<'X::NYI'>>/, /\W '.new'>>/),
 }
 
+# RT #112396
+{
+    throws-like q|3 ==> &sin ==> &say|,
+        Exception,
+        message => /<<'sin()'\W/,
+        'sinking to a code object in a feed suggests calling the routine';
+}
+
 done-testing;
+
+# vim: ft=perl6 expandtab sw=4

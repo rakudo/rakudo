@@ -561,6 +561,15 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+######################################################################
+# The fact that is-deeply converts Seq args to Lists is actually a bug
+# that ended up being too-much-pain-for-little-gain to fix. Using Seqs
+# breaks ~65 tests in 6.c-errata and likely breaks a lot of module
+# tests as well. So... for the foreseeable future we decided to leave it
+# as is. If a user really wants to ensure Seq comparison, there's always
+# `cmp-ok` with `eqv` op.
+# https://irclog.perlgeek.de/perl6-dev/2017-05-04#i_14532363
+######################################################################
 multi sub is-deeply(Seq $got, Seq $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;
 }

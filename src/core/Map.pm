@@ -343,6 +343,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           Nil
         )
     }
+    multi method roll(Map:D: Callable:D $calculate) {
+        self.roll( $calculate(self.elems) )
+    }
     multi method roll(Map:D: Whatever $) { self.roll(Inf) }
     multi method roll(Map:D: $count) {
         Seq.new(nqp::if(

@@ -4225,7 +4225,7 @@ class Perl6::World is HLL::World {
                     my $quotes :=
                         nqp::substr($c.orig, $qs - 1 , 1) ~
                         nqp::substr($c.orig, $qe, 1);
-                    $quotes := "<<>>" if $quotes eq '<>' && nqp::substr($c.orig, $qe + 1, 1) eq '>';
+                    $quotes := "<<>>" if $quotes eq '<>' && nqp::eqat($c.orig, '>', $qe + 1);
                     %opts<reason> := %opts<reason> ~ " (runaway multi-line " ~ $quotes ~
                         " quote starting at line " ~ HLL::Compiler.lineof($c.orig, $qs, :cache(1)) ~ " maybe?)";
                 }

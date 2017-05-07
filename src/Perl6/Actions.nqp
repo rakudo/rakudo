@@ -6233,7 +6233,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $elem ~~ QAST::Op && $elem.name eq '&DYNAMIC' &&
                     $elem[0] ~~ QAST::Want && $elem[0][1] eq 'Ss' &&
-                    $elem[0][2] ~~ QAST::SVal && nqp::substr($elem[0][2].value, 0, 1) eq '%' {
+                    $elem[0][2] ~~ QAST::SVal && nqp::eqat($elem[0][2].value, '%', 0) {
                 # first item is a hash (%*foo)
                 $is_hash := 1;
             }
@@ -6252,7 +6252,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('call'),
                 :name(
-                    $/.from && nqp::substr($/.orig, $/.from - 1, 1) eq ':' ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
+                    $/.from && nqp::eqat($/.orig, ':', $/.from - 1) ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
                 ),
                 :node($/)
             );
@@ -6503,7 +6503,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         elsif $thunky {
-            for $/.list { if $_.ast { WANTED($_.ast, "EXPR/thunky") if nqp::substr($thunky,$arity,1) eq '.'; $past.push($_.ast); ++$arity; } }
+            for $/.list { if $_.ast { WANTED($_.ast, "EXPR/thunky") if nqp::eqat($thunky,'.',$arity); $past.push($_.ast); ++$arity; } }
         }
         else {
             for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
@@ -9683,7 +9683,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         if nqp::istype($varast, QAST::Var) {
             # See if it's a constant Scalar, in which case we can turn it to
             # a Str and use the value as a literal, so we get LTM.
-            if nqp::substr($varast.name, 0, 1) eq '$' {
+            if nqp::eqat($varast.name, '$', 0) {
                 my $constant;
                 try {
                     my $found := $*W.find_symbol([$varast.name]);

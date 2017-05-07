@@ -23,6 +23,19 @@ my class Rakudo::QuantHash {
         }
     }
 
+    # Return the iterator state of a randomly selected entry in a
+    # given IterationSet
+    method ROLL(Mu \elems) {
+        nqp::stmts(
+          (my int $i = nqp::add_i(nqp::elems(elems).rand.floor,1)),
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+            nqp::null
+          ),
+          $iter
+        )
+    }
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly

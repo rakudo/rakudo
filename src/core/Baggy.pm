@@ -399,45 +399,22 @@ my role Baggy does QuantHash {
         self.grabpairs(Inf)
     }
     multi method grabpairs(Baggy:D: $count) {
-        Seq.new(nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          class :: does Iterator {
-              has $!elems;
-              has $!picked;
-
-              method !SET-SELF(\elems,\count) {
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
                   nqp::stmts(
-                    ($!elems := elems),
-                    ($!picked := Rakudo::QuantHash.PICK-N(
-                      elems,
-                      nqp::if(
-                        count >= nqp::elems(elems),
-                        nqp::elems(elems),
-                        count.Int
-                      )
+                    (my $pair := nqp::atkey(
+                      $!elems,
+                      (my $key := nqp::pop_s($!picked))
                     )),
-                    self
-                  )
-              }
-              method new(\e,\c) { nqp::create(self)!SET-SELF(e,c) }
-
-              method pull-one() is raw {
-                  nqp::if(
-                    nqp::elems($!picked),
-                    nqp::stmts(
-                      (my $pair := nqp::atkey(
-                        $!elems,
-                        (my $key := nqp::pop_s($!picked))
-                      )),
-                      nqp::deletekey($!elems,$key),
-                      $pair
-                    ),
-                    IterationEnd
-                  )
-              }
-          }.new($raw, $count),
-          Rakudo::Iterator.Empty
-        ))
+                    nqp::deletekey($!elems,$key),
+                    $pair
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new(self.raw_hash, $count))
     }
 
     proto method pickpairs(|) { * }

@@ -36,6 +36,34 @@ my class Rakudo::QuantHash {
           $iter
         )
     }
+
+    # Return a list_s of all keys of the given IterationSet in random order.
+    method PICK-N(Mu \elems, \count) {
+        nqp::stmts(
+          (my int $elems = nqp::elems(elems)),
+          (my $keys := nqp::setelems(nqp::list_s,$elems)),
+          (my $iter := nqp::iterator(elems)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos_s($keys,$i,nqp::iterkey_s(nqp::shift($iter)))
+          ),
+          (my $picked := nqp::setelems(nqp::list_s,count)),
+          ($i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),count),
+            nqp::stmts(
+              nqp::bindpos_s($picked,$i,
+                nqp::atpos_s($keys,(my int $pick = $elems.rand.floor))
+              ),
+              nqp::bindpos_s($keys,$pick,
+                nqp::atpos_s($keys,($elems = nqp::sub_i($elems,1)))
+              )
+            )
+          ),
+          $picked
+        )
+    }
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly

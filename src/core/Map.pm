@@ -350,54 +350,52 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method roll(Map:D: $count) {
         Seq.new(nqp::if(
           $!storage && nqp::elems($!storage) && $count > 0,
-          nqp::stmts(
-            class :: does Iterator {
-                has $!storage;
-                has $!keys;
-                has $!pairs;
-                has $!count;
+          class :: does Iterator {
+              has $!storage;
+              has $!keys;
+              has $!pairs;
+              has $!count;
 
-                method !SET-SELF(\hash,\count) {
+              method !SET-SELF(\hash,\count) {
+                  nqp::stmts(
+                    ($!storage := nqp::getattr(hash,Map,'$!storage')),
+                    ($!count = $count),
+                    (my int $i = nqp::elems($!storage)),
+                    (my $iter := nqp::iterator($!storage)),
+                    ($!keys := nqp::setelems(nqp::list_s,$i)),
+                    ($!pairs := nqp::setelems(nqp::list,$i)),
+                    nqp::while(
+                      nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                      nqp::bindpos_s($!keys,$i,
+                        nqp::iterkey_s(nqp::shift($iter)))
+                    ),
+                    self
+                  )
+              }
+              method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+              method pull-one() {
+                  nqp::if(
+                    $!count,
                     nqp::stmts(
-                      ($!storage := nqp::getattr(hash,Map,'$!storage')),
-                      ($!count = $count),
-                      (my int $i = nqp::elems($!storage)),
-                      (my $iter := nqp::iterator($!storage)),
-                      ($!keys := nqp::setelems(nqp::list_s,$i)),
-                      ($!pairs := nqp::setelems(nqp::list,$i)),
-                      nqp::while(
-                        nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                        nqp::bindpos_s($!keys,$i,
-                          nqp::iterkey_s(nqp::shift($iter)))
-                      ),
-                      self
-                    )
-                }
-                method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
-                method pull-one() {
-                    nqp::if(
-                      $!count,
-                      nqp::stmts(
-                        --$!count,  # must be HLL to handle Inf
-                        nqp::ifnull(
-                          nqp::atpos(
-                            $!pairs,
-                            (my int $i = nqp::elems($!keys).rand.floor)
-                          ),
-                          nqp::bindpos($!pairs,$i,
-                            Pair.new(
-                              nqp::atpos_s($!keys,$i),
-                              nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
-                            )
+                      --$!count,  # must be HLL to handle Inf
+                      nqp::ifnull(
+                        nqp::atpos(
+                          $!pairs,
+                          (my int $i = nqp::elems($!keys).rand.floor)
+                        ),
+                        nqp::bindpos($!pairs,$i,
+                          Pair.new(
+                            nqp::atpos_s($!keys,$i),
+                            nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
                           )
                         )
-                      ),
-                      IterationEnd
-                    )
-                }
-                method is-lazy() { $!count == Inf }
-            }.new(self,$count)
-          ),
+                      )
+                    ),
+                    IterationEnd
+                  )
+              }
+              method is-lazy() { $!count == Inf }
+          }.new(self,$count),
           Rakudo::Iterator.Empty
         ))
     }

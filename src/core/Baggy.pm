@@ -392,6 +392,9 @@ my role Baggy does QuantHash {
           Nil
         )
     }
+    multi method grabpairs(Baggy:D: Callable:D $calculate) {
+        self.grabpairs( $calculate(self.elems) )
+    }
     multi method grabpairs(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {
             my @grabbed = %!elems{%!elems.keys.pick(%!elems.elems)};

@@ -293,7 +293,7 @@ role STD {
             self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
-        } elsif $pos > 0 && nqp::substr(self.orig(), $pos - 1, 1) eq '}' {
+        } elsif $pos > 0 && nqp::eqat(self.orig(), '}', $pos - 1) {
             self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
         } elsif $has_mystery {
             self.missing("block (taken by some undeclared routine?)");
@@ -3266,7 +3266,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> [ [<longname><circumfix>**0..1] || <.panic: 'Invalid name'> ]
         <.explain_mystery> <.cry_sorrows>
         {
-            if $<circumfix> && nqp::substr(self.orig, $<longname>.to, 1) eq '{' {
+            if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>[0];
                 $*BORG<name> := 'is ' ~ $<longname>;
             }

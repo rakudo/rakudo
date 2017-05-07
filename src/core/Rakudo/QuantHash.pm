@@ -23,6 +23,33 @@ my class Rakudo::QuantHash {
         }
     }
 
+    our role Pairs does Iterator {
+        has $!elems;
+        has $!picked;
+
+        method !SET-SELF(\elems,\count) {
+            nqp::stmts(
+              ($!elems := elems),
+              ($!picked := Rakudo::QuantHash.PICK-N(
+                elems,
+                nqp::if(
+                  count >= nqp::elems(elems),
+                  nqp::elems(elems),
+                  count.Int
+              )
+              )),
+              self
+            )
+        }
+        method new(\elems, \count) {
+            nqp::if(
+              elems && nqp::elems(elems),
+              nqp::create(self)!SET-SELF(elems, count),
+              Rakudo::Iterator.Empty
+            )
+        }
+    }
+
     # Return the iterator state of a randomly selected entry in a
     # given IterationSet
     method ROLL(Mu \elems) {

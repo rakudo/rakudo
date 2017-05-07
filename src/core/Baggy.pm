@@ -383,7 +383,7 @@ my role Baggy does QuantHash {
     multi method grabpairs(Baggy:D:) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::stmts( 
+          nqp::stmts(
             (my $iter := Rakudo::QuantHash.ROLL($raw)),
             (my $pair := nqp::iterval($iter)),
             nqp::deletekey($raw,nqp::iterkey_s($iter)),
@@ -395,15 +395,49 @@ my role Baggy does QuantHash {
     multi method grabpairs(Baggy:D: Callable:D $calculate) {
         self.grabpairs( $calculate(self.elems) )
     }
+    multi method grabpairs(Baggy:D: Whatever $) {
+        self.grabpairs(Inf)
+    }
     multi method grabpairs(Baggy:D: $count) {
-        if nqp::istype($count,Whatever) || $count == Inf {
-            my @grabbed = %!elems{%!elems.keys.pick(%!elems.elems)};
-            %!elems = ();
-            @grabbed;
-        }
-        else {
-            %!elems{ %!elems.keys.pick($count) }:delete;
-        }
+        Seq.new(nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          class :: does Iterator {
+              has $!elems;
+              has $!picked;
+
+              method !SET-SELF(\elems,\count) {
+                  nqp::stmts(
+                    ($!elems := elems),
+                    ($!picked := Rakudo::QuantHash.PICK-N(
+                      elems,
+                      nqp::if(
+                        count >= nqp::elems(elems),
+                        nqp::elems(elems),
+                        count.Int
+                      )
+                    )),
+                    self
+                  )
+              }
+              method new(\e,\c) { nqp::create(self)!SET-SELF(e,c) }
+
+              method pull-one() is raw {
+                  nqp::if(
+                    nqp::elems($!picked),
+                    nqp::stmts(
+                      (my $pair := nqp::atkey(
+                        $!elems,
+                        (my $key := nqp::pop_s($!picked))
+                      )),
+                      nqp::deletekey($!elems,$key),
+                      $pair
+                    ),
+                    IterationEnd
+                  )
+              }
+          }.new($raw, $count),
+          Rakudo::Iterator.Empty
+        ))
     }
 
     proto method pickpairs(|) { * }

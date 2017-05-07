@@ -381,7 +381,16 @@ my role Baggy does QuantHash {
 #--- selection methods
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
-        %!elems.DELETE-KEY(%!elems.keys.pick);
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::stmts( 
+            (my $iter := Rakudo::QuantHash.ROLL($raw)),
+            (my $pair := nqp::iterval($iter)),
+            nqp::deletekey($raw,nqp::iterkey_s($iter)),
+            $pair
+          ),
+          Nil
+        )
     }
     multi method grabpairs(Baggy:D: $count) {
         if nqp::istype($count,Whatever) || $count == Inf {

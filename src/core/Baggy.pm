@@ -451,12 +451,19 @@ my role Baggy does QuantHash {
     multi method pickpairs(Baggy:D: Callable:D $calculate) {
         self.pickpairs( $calculate(self.total) )
     }
+    multi method pickpairs(Baggy:D: Whatever $) {
+        self.pickpairs(Inf)
+    }
     multi method pickpairs(Baggy:D: $count) {
-        %!elems{ %!elems.keys.pick(
-          nqp::istype($count,Whatever) || $count == Inf
-            ?? %!elems.elems
-            !! $count
-        ) };
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::atkey($!elems,nqp::pop_s($!picked)),
+                  IterationEnd
+                )
+            }
+        }.new(self.raw_hash, $count))
     }
 
     proto method grab(|) { * }

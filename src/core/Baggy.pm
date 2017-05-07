@@ -442,7 +442,11 @@ my role Baggy does QuantHash {
 
     proto method pickpairs(|) { * }
     multi method pickpairs(Baggy:D:) {
-        %!elems.AT-KEY(%!elems.keys.pick);
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::iterval(Rakudo::QuantHash.ROLL($raw)),
+          Nil
+        )
     }
     multi method pickpairs(Baggy:D: Callable:D $calculate) {
         self.pickpairs( $calculate(self.total) )

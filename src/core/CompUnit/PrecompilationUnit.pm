@@ -94,7 +94,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
                 }
                 CompUnit::DependencySpecification.new: |%(|@spec-pairs);
 #?endif
-#?if moar
+#?if !jvm
                 use MONKEY-SEE-NO-EVAL;
                 EVAL $!serialized-spec;
 #?endif

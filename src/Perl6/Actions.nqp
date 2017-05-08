@@ -6529,10 +6529,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Assemble into list of AST of each step in the pipeline.
         my @stages;
         if $/<infix><sym> eq '==>' {
-            for @($/) { @stages.push(WANTED($_.ast,'==>')); }
+            for @($/) { @stages.push($_); }
         }
         elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift(WANTED($_.ast,'<==')); }
+            for @($/) { @stages.unshift($_); }
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
@@ -6545,7 +6545,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # will be passed in as var-arg parts to other things. The
         # first thing is just considered the result.
         my $result := @stages.shift;
+        $result    := WANTED($result.ast, $/<infix><sym>);
         for @stages {
+            my $stage := WANTED($_.ast, $/<infix><sym>);
             # Wrap current result in a block, so it's thunked and can be
             # called at the right point.
             $result := QAST::Block.new( $result );
@@ -6553,17 +6555,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if $_.isa(QAST::Op) && $_.op eq 'call' {
+            if $stage.isa(QAST::Op) && $stage.op eq 'call' {
                 # It's a call. Stick a call to the current supplier in
                 # as its last argument.
-                $_.push(QAST::Op.new( :op('call'), $result ));
+                $stage.push(QAST::Op.new( :op('call'), $result ));
             }
-            elsif $_ ~~ QAST::Var {
+            elsif $stage ~~ QAST::Var {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
                 my $tmp := QAST::Node.unique('feed_tmp');
-                $_ := QAST::Stmts.new(
+                $stage := QAST::Stmts.new(
                     QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
@@ -6574,17 +6576,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('append'),
-                        $_,
+                        $stage,
                         QAST::Var.new( :scope('local'), :name($tmp) )
                     ),
                     QAST::Var.new( :scope('local'), :name($tmp) )
                 );
-                $_ := QAST::Op.new( :op('locallifetime'), $_, $tmp );
+                $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                $/.panic('Sorry, do not know how to handle this case of a feed operator yet.');
+                my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
+                if $stage.isa(QAST::Op) && $stage.op eq 'ifnull' && $stage[0].isa(QAST::Var) && nqp::eqat($stage[0].name, '&', 0) {
+                    $error := "A feed may not sink values into a code object. Did you mean a call like '"
+                            ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
+                }
+                $_.PRECURSOR.panic($error);
             }
-            $result := $_;
+            $result := $stage;
         }
 
         # WANTED($result,'make_feed');

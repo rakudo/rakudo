@@ -519,6 +519,8 @@ my role Baggy does QuantHash {
     }
 
     method !ROLLPICKGRABN(\count, @pairs, :$keep) { # N times
+        nqp::istype(count, Int)
+        || X::Invalid::ComputedValue.new(:name<count>, :value(count)).throw;
         Seq.new(class :: does Iterator {
             has Int $!total;
             has int $!elems;

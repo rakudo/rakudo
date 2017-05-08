@@ -267,17 +267,17 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           :%env
         );
 
-        my $err    = $proc.err.slurp-rest(:close);
         my @result = $proc.out.lines.unique;
         if not $proc.out.close or $proc.status {  # something wrong
             self.store.unlock;
             $RMD("Precomping $path failed: $proc.status()") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $err;
+            die $proc.err.slurp-rest(:close);
         }
 
-        $*ERR.print($err) if $err;
-
+        if $proc.err.slurp-rest(:close) -> $warnings {
+            $*ERR.print($warnings);
+        }
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;
             self.store.unlock;

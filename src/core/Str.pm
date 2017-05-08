@@ -372,9 +372,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             method bool-only(--> True) { }
         }.new(self));
     }
-    multi method comb(Str:D: Int:D $size, $limit = *) {
+    multi method comb(Str:D: Int:D $size is copy, $limit = *) {
         my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
         return self.comb if $size <= 1 && $inf;
+        $size = 1 if $size < 1;
 
         Seq.new(class :: does Iterator {
             has str $!str;

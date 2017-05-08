@@ -518,9 +518,7 @@ my role Baggy does QuantHash {
           !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
     }
 
-    method !ROLLPICKGRABN(\count, @pairs, :$keep) { # N times
-        nqp::istype(count, Int)
-        || X::Invalid::ComputedValue.new(:name<count>, :value(count)).throw;
+    method !ROLLPICKGRABN(Int() $count, @pairs, :$keep) { # N times
         Seq.new(class :: does Iterator {
             has Int $!total;
             has int $!elems;
@@ -566,7 +564,7 @@ my role Baggy does QuantHash {
                 }
                 IterationEnd
             }
-        }.new(self.total,@pairs,$keep,count))
+        }.new(self.total,@pairs,$keep,$count))
     }
 
 #--- classification method

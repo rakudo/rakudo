@@ -43,7 +43,7 @@ my class Rakudo::QuantHash {
         }
         method new(\elems, \count) {
             nqp::if(
-              elems && nqp::elems(elems),
+              elems && nqp::elems(elems) && count >= 1,
               nqp::create(self)!SET-SELF(elems, count),
               Rakudo::Iterator.Empty
             )

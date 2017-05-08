@@ -30,14 +30,7 @@ my class Rakudo::QuantHash {
         method !SET-SELF(\elems,\count) {
             nqp::stmts(
               ($!elems := elems),
-              ($!picked := Rakudo::QuantHash.PICK-N(
-                elems,
-                nqp::if(
-                  count >= nqp::elems(elems),
-                  nqp::elems(elems),
-                  count.Int
-              )
-              )),
+              ($!picked := Rakudo::QuantHash.PICK-N(elems, count)),
               self
             )
         }
@@ -68,6 +61,11 @@ my class Rakudo::QuantHash {
     method PICK-N(Mu \elems, \count) {
         nqp::stmts(
           (my int $elems = nqp::elems(elems)),
+          (my int $count = nqp::if(
+            count >= nqp::elems(elems),
+            nqp::elems(elems),
+            count.Int
+          )),
           (my $keys := nqp::setelems(nqp::list_s,$elems)),
           (my $iter := nqp::iterator(elems)),
           (my int $i = -1),
@@ -75,10 +73,10 @@ my class Rakudo::QuantHash {
             nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
             nqp::bindpos_s($keys,$i,nqp::iterkey_s(nqp::shift($iter)))
           ),
-          (my $picked := nqp::setelems(nqp::list_s,count)),
+          (my $picked := nqp::setelems(nqp::list_s,$count)),
           ($i = -1),
           nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),count),
+            nqp::islt_i(($i = nqp::add_i($i,1)),$count),
             nqp::stmts(
               nqp::bindpos_s($picked,$i,
                 nqp::atpos_s($keys,(my int $pick = $elems.rand.floor))

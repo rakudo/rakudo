@@ -421,6 +421,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self,$size,$limit,$inf))
     }
     multi method comb(Str:D: Str $pat) {
+        return self.comb(1) unless $pat;
         Seq.new(class :: does Iterator {
             has str $!str;
             has str $!pat;
@@ -446,6 +447,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method comb(Str:D: Str $pat, $limit) {
         return self.comb($pat)
           if nqp::istype($limit,Whatever) || $limit == Inf;
+        return self.comb(1, $limit) unless $pat;
 
         Seq.new(class :: does Iterator {
             has str $!str;

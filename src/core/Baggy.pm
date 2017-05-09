@@ -444,30 +444,8 @@ my role Baggy does QuantHash {
     }
 
     proto method grab(|) { * }
-    multi method grab(Baggy:D:) {
-        my \grabbed := self.roll;
-        %!elems.DELETE-KEY(grabbed.WHICH)
-          if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
-        grabbed;
-    }
-    multi method grab(Baggy:D: Callable:D $calculate) {
-        self.grab( $calculate(self.total) )
-    }
-    multi method grab(Baggy:D: $count) {
-        if nqp::istype($count,Whatever) || $count == Inf {
-            my @grabbed = self!ROLLPICKGRABN(self.total,%!elems.values);
-            %!elems = ();
-            @grabbed;
-        }
-        else {
-            my @grabbed = self!ROLLPICKGRABN($count,%!elems.values);
-            for @grabbed {
-                if %!elems.AT-KEY(.WHICH) -> $pair {
-                    %!elems.DELETE-KEY(.WHICH) unless $pair.value;
-                }
-            }
-            @grabbed;
-        }
+    multi method grab(Baggy:D: |c) {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
     proto method pick(|) { * }

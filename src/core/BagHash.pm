@@ -202,6 +202,57 @@ my class BagHash does Baggy {
             }
         }.new(%!elems))
     }
+
+#---- selection methods
+    multi method grab(BagHash:D:) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::stmts(
+            (my $iter := Rakudo::QuantHash.BAG-ROLL($raw,self.total)),
+            nqp::if(
+              nqp::iseq_i(
+                (my $value := nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+                1
+              ),
+              nqp::stmts(              # going to 0, so remove
+                (my $object := nqp::getattr(nqp::iterval($iter),Pair,'$!key')),
+                nqp::deletekey($raw,nqp::iterkey_s($iter)),
+                $object
+              ),
+              nqp::stmts(
+                --nqp::iterval($iter).value,   # for now
+#                nqp::bindattr(
+#                  nqp::iterval($iter),
+#                  Pair,
+#                  '$!value',
+#                  nqp::sub_i($value,1)
+#                ),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+              )
+            )
+          ),
+          Nil
+        )
+    }
+    multi method grab(BagHash:D: Callable:D $calculate) {
+        self.grab( $calculate(self.total) )
+    }
+    multi method grab(BagHash:D: $count) {
+        if nqp::istype($count,Whatever) || $count == Inf {
+            my @grabbed = self!ROLLPICKGRABN(self.total,%!elems.values);
+            %!elems = ();
+            @grabbed;
+        }
+        else {
+            my @grabbed = self!ROLLPICKGRABN($count,%!elems.values);
+            for @grabbed {
+                if %!elems.AT-KEY(.WHICH) -> $pair {
+                    %!elems.DELETE-KEY(.WHICH) unless $pair.value;
+                }
+            }
+            @grabbed;
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

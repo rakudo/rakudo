@@ -27,9 +27,6 @@ my class Bag does Baggy {
     }
 
 #--- selection methods
-    multi method grab(Bag:D: $count?) {
-        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
-    }
     multi method grabpairs(Bag:D: $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }

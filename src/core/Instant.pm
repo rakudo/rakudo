@@ -46,8 +46,8 @@ my class Instant is Cool does Real {
     method Int   (Instant:D:) { $!tai.Int    }
     method narrow(Instant:D:) { $!tai.narrow }
 
-    method Date(Instant:D:)        { Date.new(self)         }
-    method DateTime(Instant:D: |c) { DateTime.new(self, |c) }
+    method Date(Instant:D:)     { Date.new(self)     }
+    method DateTime(Instant:D:) { DateTime.new(self) }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {

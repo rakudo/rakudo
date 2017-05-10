@@ -18,6 +18,7 @@ our class void                                  is repr('Uninstantiable') { };
 our class Pointer                               is repr('CPointer') {
     method of() { void }
 
+    proto method new() {*}
     multi method new() {
         self.CREATE()
     }
@@ -40,6 +41,7 @@ our class Pointer                               is repr('CPointer') {
 
     method deref(::?CLASS:D \ptr:) { self ?? nativecast(void, ptr) !! fail("Can't dereference a Null Pointer") }
 
+    proto method gist() {*}
     multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
     multi method gist(::?CLASS:D:) {
         if self.Int -> $addr {
@@ -50,6 +52,7 @@ our class Pointer                               is repr('CPointer') {
         }
     }
 
+    proto method perl() {*}
     multi method perl(::?CLASS:U:) { self.^name }
     multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
@@ -74,12 +77,14 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
 
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
+        proto method AT-POS() {*}
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
         multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
+        proto method ASSIGN-POS() {*}
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
@@ -95,6 +100,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
+        proto method AT-POS() {*}
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
         }
@@ -116,6 +122,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     my role TypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
+        proto method AT-POS() {*}
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
@@ -136,6 +143,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                     self
                 }
         }
+        proto method ASSIGN-POS() {*}
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
@@ -170,6 +178,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         do for ^self.elems { self.AT-POS($_) }
     }
 
+    proto method new() {*}
     multi method new() { nqp::create(self) }
     multi method new(*@values) { self.new(@values) }
     multi method new(@values) {
@@ -191,6 +200,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
 }
 
 # duplicated code from NativeCall.pm to support Pointer.deref
+proto sub map_return_type() {*}
 multi sub map_return_type(Mu $type) { Mu }
 multi sub map_return_type($type) {
     nqp::istype($type, Int) ?? Int

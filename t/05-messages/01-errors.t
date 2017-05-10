@@ -115,13 +115,13 @@ for <fail die throw rethrow resume> -> $meth {
 
 # RT #122232
 {
-    throws-like { class A::B {}; A.new },
+    throws-like { my class RT122232::B {}; RT122232.new },
         Exception,
-        message => /<<'A'>>/,
+        message => /'cannot create' .+ «RT122232»/,
         'trying to instantiate a non-class gives the name in the error';
-    throws-like { subset Foo of Int where * > 42; Foo.new },
+    throws-like { my subset RT122232 of Int where * > 42; RT122232.new },
         Exception,
-        message => /<<'Foo'>>/,
+        message => /'cannot create' .+ «RT122232»/,
         'trying to instantiate a non-class gives the name in the error';
 }
 

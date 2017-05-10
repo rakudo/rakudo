@@ -842,6 +842,8 @@ implementation detail and has no serviceable parts inside"
                 last if $stage eq Rakudo::Internals.PRECOMP-TARGET;
             }
             $dependencies = %*COMPILING<dependencies>;
+            $dependencies = $dependencies.clone
+                if $dependencies;
         }
 
         nqp::bindhllsym('perl6', '@END_PHASERS', $end_phasers);

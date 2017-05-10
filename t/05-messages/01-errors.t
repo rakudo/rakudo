@@ -113,6 +113,18 @@ for <fail die throw rethrow resume> -> $meth {
         'sinking to a code object in a feed suggests calling the routine';
 }
 
+# RT #122232
+{
+    throws-like { class A::B {}; A.new },
+        Exception,
+        message => /<<'A'>>/,
+        'trying to instantiate a non-class gives the name in the error';
+    throws-like { subset Foo of Int where * > 42; Foo.new },
+        Exception,
+        message => /<<'Foo'>>/,
+        'trying to instantiate a non-class gives the name in the error';
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

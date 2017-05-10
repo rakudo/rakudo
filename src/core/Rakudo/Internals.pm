@@ -771,6 +771,8 @@ my class Rakudo::Internals {
                 last if $stage eq Rakudo::Internals.PRECOMP-TARGET;
             }
             note $dependencies = %*COMPILING<dependencies>;
+            $dependencies = $dependencies.clone
+                if $dependencies;
         }
 
         nqp::bindhllsym('perl6', '@END_PHASERS', $end_phasers);

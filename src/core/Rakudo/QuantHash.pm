@@ -317,7 +317,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
     # and the total value of values in the Mix.
     method MIX-ROLL(\elems, \total) {
         nqp::stmts(
-          (my Int $rand := total.rand.Int),
+          (my     $rand := total.rand),
           (my Int $seen := 0),
           (my $iter := nqp::iterator(elems)),
           nqp::while(

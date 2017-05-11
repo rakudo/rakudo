@@ -129,7 +129,8 @@ my class Date does Dateish {
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
-          :&!formatter,
+          formatter => nqp::existskey($h,'formatter')
+            ?? nqp::atkey($h,'formatter') !! &!formatter,
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.

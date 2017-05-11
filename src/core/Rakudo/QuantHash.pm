@@ -120,6 +120,37 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
         )
     }
 
+    # Return random object from a given BagHash.  Takes an initialized
+    # IterationSet with at least 1 element in Bag format, and the total
+    # value of values in the Bag.  Decrements the count of the iterator
+    # found, completely removes it when going to 0.
+    method BAG-GRAB(\elems, \total) {
+        nqp::stmts(
+          (my $iter := Rakudo::QuantHash.BAG-ROLL(elems,total)),
+          nqp::if(
+            nqp::iseq_i(
+              (my $value := nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+              1
+            ),
+            nqp::stmts(              # going to 0, so remove
+              (my $object := nqp::getattr(nqp::iterval($iter),Pair,'$!key')),
+              nqp::deletekey(elems,nqp::iterkey_s($iter)),
+              $object
+            ),
+            nqp::stmts(
+              --nqp::iterval($iter).value,   # for now
+#              nqp::bindattr(
+#                nqp::iterval($iter),
+#                Pair,
+#                '$!value',
+#                nqp::sub_i($value,1)
+#              ),
+              nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+            )
+          )
+        )
+    }
+
     method BAGGY-CLONE-RAW(Mu \baggy) {
         nqp::if(
           baggy && nqp::elems(baggy),

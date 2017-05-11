@@ -32,15 +32,16 @@ my class MixHash does Mixy {
                         nqp::deletekey($raw,$which),
                         0
                       ),
-                      (nqp::getattr(
+                      nqp::bindattr(
                         nqp::decont(nqp::atkey($raw,$which)),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
@@ -49,7 +50,7 @@ my class MixHash does Mixy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      self!PAIR(k,$value)
+                      Pair.new(k,$value)
                     )
                   )
                 )
@@ -111,11 +112,12 @@ my class MixHash does Mixy {
                         nqp::deletekey(storage,$which),
                         0
                       ),
-                      (nqp::getattr(            # value ok
+                      nqp::bindattr(            # value ok
                         nqp::decont(nqp::atkey(storage,$which)),
                         Pair,
-                        '$!value'
-                      ) = $value)
+                        '$!value',
+                        $value
+                      )
                     ),
                     nqp::unless(                # where did it go?
                       $value == 0,

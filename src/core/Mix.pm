@@ -3,6 +3,16 @@ my class Mix does Mixy {
     has Real $!total;
 
 #--- interface methods
+    method SET-SELF(Mix:D: \elems) {
+        nqp::if(
+          nqp::elems(elems),          
+          nqp::stmts(                 # need to have allocated %!elems
+            nqp::bindattr(%!elems,Map,'$!storage',elems),
+            self
+          ),
+          mix()
+        )
+    }
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

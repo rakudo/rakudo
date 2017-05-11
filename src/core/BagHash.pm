@@ -18,7 +18,7 @@ my class BagHash does Baggy {
           },
           STORE => -> $, Int() $value {
               nqp::if(
-                nqp::istype($value,Failure),   # RT 128927
+                nqp::istype($value,Failure),    # RT 128927
                 $value.throw,
                 nqp::if(
                   (my $raw := self.raw_hash),
@@ -26,11 +26,12 @@ my class BagHash does Baggy {
                     nqp::existskey($raw,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
-                      (nqp::getattr(
+                      nqp::bindattr(
                         nqp::decont(nqp::atkey($raw,$which)),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                       nqp::stmts(
                         nqp::deletekey($raw,$which),
                         0
@@ -38,7 +39,7 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(
                       nqp::isgt_i($value,0),
-                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
@@ -47,7 +48,7 @@ my class BagHash does Baggy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      self!PAIR(k,$value)
+                      Pair.new(k,$value)
                     )
                   )
                 )
@@ -115,11 +116,12 @@ my class BagHash does Baggy {
                     nqp::existskey(storage,$which),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
-                      (nqp::getattr(            # value ok
+                      nqp::bindattr(            # value ok
                         nqp::decont(nqp::atkey(storage,$which)),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                       nqp::stmts(               # goodbye!
                         nqp::deletekey(storage,$which),
                         0

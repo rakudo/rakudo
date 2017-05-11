@@ -80,9 +80,7 @@ my class Rakudo::QuantHash {
               $iter,
               $total := nqp::add_I(
                 $total,
-nqp::decont(   # can go when we got rid of containers in BagHashes
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-),
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
                 Int
               )
             ),
@@ -105,11 +103,7 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
               nqp::isle_I(
                 ($seen := nqp::add_I(
                   $seen,
-nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
-                  nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-)
-                  ),
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
                   Int
                 )),
                 $rand
@@ -138,13 +132,12 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
               $object
             ),
             nqp::stmts(
-              --nqp::iterval($iter).value,   # for now
-#              nqp::bindattr(
-#                nqp::iterval($iter),
-#                Pair,
-#                '$!value',
-#                nqp::sub_i($value,1)
-#              ),
+              nqp::bindattr(
+                nqp::iterval($iter),
+                Pair,
+                '$!value',
+                nqp::sub_i($value,1)
+              ),
               nqp::getattr(nqp::iterval($iter),Pair,'$!key')
             )
           )
@@ -166,9 +159,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
                   nqp::clone(nqp::iterval($iter)),
                   Pair,
                   '$!value',
-                  nqp::decont(
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                  )
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                 )
               )
             ),

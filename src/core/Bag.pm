@@ -22,6 +22,16 @@ my class Bag does Baggy {
     multi method new(Bag:_:) { bag() }
 
 #--- interface methods
+    method SET-SELF(Bag:D: \elems) {
+        nqp::if(
+          nqp::elems(elems),
+          nqp::stmts(                 # need to have allocated %!elems
+            nqp::bindattr(%!elems,Map,'$!storage',elems),
+            self
+          ),
+          bag()
+        )
+    }
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

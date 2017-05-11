@@ -32,34 +32,44 @@ my role Mixy does Baggy  {
 
     multi method roll(Mixy:D:) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::stmts(
-            (my $total := 0),
-            (my $iter := nqp::iterator($raw)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                0 < (my $value :=
-                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
-                ($total := $total + $value)
-              )
-            ),
-            nqp::if(
-              $total,
-              nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
-                Pair,
-                '$!key'
-              ),
-              Nil
-            )
+          (my $total :=
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
+          nqp::getattr(
+            nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
+            Pair,
+            '$!key'
           ),
           Nil
         )
     }
+    multi method roll(Mixy:D: Whatever) { self.roll(Inf) }
+    multi method roll(Mixy:D: Callable:D $calculate) {
+      nqp::if(
+        (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.raw_hash)),
+        self.roll($calculate($total)),
+        Seq.new(Rakudo::Iterator.Empty)
+      )
+    }
     multi method roll(Mixy:D: $count) {
-        my $roller = Rakudo::QuantHash::WeightedRoll.new(self);
-        map { $roller.roll }, 1 .. $count;
+        Seq.new(nqp::if(
+          (my $total :=
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
+          nqp::stmts(
+            (my $done = 0),
+            Rakudo::Iterator.Callable( {
+                nqp::if(
+                  $done++ < $count,
+                  nqp::getattr(
+                    nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
+                    Pair,
+                    '$!key'
+                  ),
+                  IterationEnd
+                )
+            })
+          ),
+          Rakudo::Iterator.Empty
+        ))
     }
 }
 

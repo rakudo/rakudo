@@ -8,11 +8,7 @@ my class BagHash does Baggy {
               nqp::if(
                 (my $raw := self.raw_hash)
                   && nqp::existskey($raw,(my $which := k.WHICH)),
-                nqp::getattr(
-                  nqp::decont(nqp::atkey($raw,$which)),
-                  Pair,
-                  '$!value'
-                ),
+                nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
                 0
               )
           },
@@ -27,7 +23,7 @@ my class BagHash does Baggy {
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
                       nqp::bindattr(
-                        nqp::decont(nqp::atkey($raw,$which)),
+                        nqp::atkey($raw,$which),
                         Pair,
                         '$!value',
                         $value
@@ -95,16 +91,14 @@ my class BagHash does Baggy {
         # processing.
         nqp::stmts(
           (my $which  := nqp::iterkey_s(iter)),
-          (my $object := nqp::getattr(          # recreation
-            nqp::decont(nqp::iterval(iter)),Pair,'$!key')),
+          # save object for potential recreation
+          (my $object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
 
           Proxy.new(
             FETCH => {
                 nqp::if(
                   nqp::existskey(storage,$which),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey(storage,$which)),Pair,'$!value'
-                  ),
+                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
                   0
                 )
             },
@@ -117,7 +111,7 @@ my class BagHash does Baggy {
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
                       nqp::bindattr(            # value ok
-                        nqp::decont(nqp::atkey(storage,$which)),
+                        nqp::atkey(storage,$which),
                         Pair,
                         '$!value',
                         $value
@@ -175,8 +169,8 @@ my class BagHash does Baggy {
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
-                  $target.push(nqp::getattr(nqp::decont(
-                    nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
+                  $target.push(nqp::getattr(
+                    nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
                 )
             }
         }.new(%!elems))

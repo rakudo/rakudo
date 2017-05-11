@@ -124,7 +124,7 @@ my role Baggy does QuantHash {
         nqp::if(
           (my $raw := self.raw_hash)
             && nqp::existskey($raw,(my $which := k.WHICH)),
-          nqp::getattr(nqp::decont(nqp::atkey($raw,$which)),Pair,'$!value'),
+          nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
           0
         )
     }
@@ -245,16 +245,22 @@ my role Baggy does QuantHash {
     multi method values(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() is raw {
-                $!iter
-                    ?? nqp::getattr(nqp::decont(
-                         nqp::iterval(nqp::shift($!iter))),Pair,'$!value')
-                    !! IterationEnd
+                nqp::if(
+                  $!iter,
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!value'),
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
-                  $target.push(nqp::getattr(nqp::decont(
-                    nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
+                  $target.push(
+                    nqp::getattr(
+                      nqp::iterval(nqp::shift($!iter)),
+                      Pair,
+                      '$!value'
+                    )
+                  )
                 )
             }
         }.new(%!elems))
@@ -293,8 +299,7 @@ my role Baggy does QuantHash {
                     $!iter,
                     nqp::stmts(
                       ($!key := nqp::getattr(
-                        (my $pair := nqp::decont(
-                          nqp::iterval(nqp::shift($!iter)))),
+                        (my $pair := nqp::iterval(nqp::shift($!iter))),
                         Pair,
                         '$!key'
                       )),
@@ -314,8 +319,7 @@ my role Baggy does QuantHash {
                   $!iter,
                   nqp::stmts(
                     ($!key := nqp::getattr(
-                      (my $pair := nqp::decont(
-                        nqp::iterval(nqp::shift($!iter)))),
+                      (my $pair := nqp::iterval(nqp::shift($!iter))),
                       Pair,
                       '$!key'
                     )),
@@ -620,8 +624,8 @@ my role Baggy does QuantHash {
               $iter,
               nqp::bindkey(
                 $elems,
-                nqp::iterkey_s(my $tmp := nqp::shift($iter)),
-                nqp::getattr(nqp::decont(nqp::iterval($tmp)),Pair,'$!key'),
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key'),
               )
             ),
             nqp::create(type).SET-SELF($elems)

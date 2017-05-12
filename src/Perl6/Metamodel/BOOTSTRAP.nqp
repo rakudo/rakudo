@@ -849,7 +849,7 @@ my class Binder {
                     elsif !$suppress_arity_fail {
                         if nqp::defined($error) {
                             $error[0] := "Required named argument '" ~
-                                $named_names[0] ~ "' not passed";
+                                nqp::atpos_s($named_names,0) ~ "' not passed";
                         }
                         return $BIND_RESULT_FAIL;
                     }

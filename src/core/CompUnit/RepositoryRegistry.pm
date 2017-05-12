@@ -72,7 +72,6 @@ class CompUnit::RepositoryRegistry {
              );
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
-        my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
         try {
             if nqp::existskey($ENV,'HOME')
               ?? nqp::atkey($ENV,'HOME')

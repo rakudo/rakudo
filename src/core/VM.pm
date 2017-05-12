@@ -12,7 +12,6 @@ class VM does Systemic {
     has $.prefix;
     has $.precomp-ext;
     has $.precomp-target;
-    has $.precomp-dir;
 
     submethod BUILD(
       :$!config,
@@ -39,7 +38,6 @@ class VM does Systemic {
         $!precomp-target = "jar";
         $!config<os.name> = $!properties<os.name> // "unknown";
 #?endif
-        $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please
     }
 

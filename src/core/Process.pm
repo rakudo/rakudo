@@ -107,7 +107,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*SAY-ADDITIONAL-CONFIG-INFO', {
     for <auth desc is-win name path-sep release signature version> {
         nqp::say("distro::$_={ $*DISTRO."$_"() // '' }");
     }
-    for <arch auth bits desc hardware name release signature version> {
+    for <arch archname auth bits desc hardware name release signature version> {
         nqp::say("kernel::$_={ $*KERNEL."$_"() // '' }");
     }
 }

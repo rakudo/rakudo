@@ -93,6 +93,10 @@ class Kernel does Systemic {
         }
     }
 
+    method archname {
+        self.hardware ~ '-' ~ self.name
+    }
+
     method bits {
         $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
     }

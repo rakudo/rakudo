@@ -107,6 +107,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*SAY-ADDITIONAL-CONFIG-INFO', {
     for <auth desc is-win name path-sep release signature version> {
         nqp::say("distro::$_={ $*DISTRO."$_"() // '' }");
     }
+    for <arch auth bits desc hardware name release signature version> {
+        nqp::say("kernel::$_={ $*KERNEL."$_"() // '' }");
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

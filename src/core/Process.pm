@@ -99,4 +99,11 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', { fetch('$GROUP') };
 }
 
+# to be called when we do 'perl6 -V', nqp::say whatever we think we need
+Rakudo::Internals.REGISTER-DYNAMIC: '$*SAY-ADDITIONAL-CONFIG-INFO', {
+
+    nqp::say( 'repo::chain=' ~ 
+        try $*REPO.repo-chain.map( *.gist ).join(" ") // 'unknown' )
+}
+
 # vim: ft=perl6 expandtab sw=4

@@ -103,7 +103,10 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
 Rakudo::Internals.REGISTER-DYNAMIC: '$*SAY-ADDITIONAL-CONFIG-INFO', {
 
     nqp::say( 'repo::chain=' ~ 
-        try $*REPO.repo-chain.map( *.gist ).join(" ") // 'unknown' )
+        try $*REPO.repo-chain.map( *.gist ).join(" ") // 'unknown' );
+    for <auth desc is-win name path-sep release signature version> {
+        nqp::say("distro::$_={ $*DISTRO."$_"() // '' }");
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

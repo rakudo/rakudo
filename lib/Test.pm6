@@ -582,7 +582,7 @@ multi sub is-deeply(Mu $got, Seq $expected, $reason = '') is export {
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     $time_after = nqp::time_n;
     my $test = _is_deeply( $got, $expected );
-    my $ok = proclaim(?$test, $reason);
+    my $ok = proclaim($test, $reason);
     if !$test {
         my $got_perl      = try { $got.perl };
         my $expected_perl = try { $expected.perl };

@@ -31,8 +31,44 @@ class Compiler does Systemic {
         DateTime.new($!build-date)
     }
 
-    method sink() {
-        nqp::getcomp("perl6").verbose-config
+    method verbose-config(:$say) {
+        my $compiler := nqp::getcomp("perl6");
+        my $backend  := $compiler.backend;
+        my $name     := $backend.name;
+
+        my $items := nqp::list_s;
+        nqp::push_s($items,$name ~ '::' ~ .key ~ '=' ~ .value)
+          for $backend.config;
+
+        my $language := $compiler.language;
+        nqp::push_s($items,$language ~ '::' ~ .key ~ '=' ~ .value)
+          for $compiler.config;
+
+        nqp::push_s(
+          $items,
+          'repo::chain=' ~ (try $*REPO.repo-chain.map( *.gist ).join(" ")) // ''
+        );
+
+        nqp::push_s($items,"distro::$_={ $*DISTRO."$_"() // '' }")
+          for <auth desc is-win name path-sep release signature version>;
+
+        nqp::push_s($items,"kernel::$_={ $*KERNEL."$_"() // '' }")
+          for <arch archname auth bits desc
+               hardware name release signature version>;
+
+        if $say {
+            nqp::say(nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items)));
+            Nil
+        }
+        else {
+            my %config;
+            my $iter := nqp::iterator($items);
+            while $iter {
+                my ($main,$key,$value) = nqp::shift($iter).split(<:: =>);
+                %config.AT-KEY($main).AT-KEY($key) = $value
+            }
+            %config
+        }
     }
 }
 

@@ -64,16 +64,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method verbose-config() {
-        my $backend := self.backend;
-        my $bname   := $backend.name;
-        for $backend.config {
-            nqp::say($bname ~ '::' ~ $_.key ~ '=' ~ $_.value);
-        }
-        my $language := self.language;
-        for self.config {
-            nqp::say($language ~ '::' ~ $_.key ~ '=' ~ $_.value);
-        }
-        try { self.eval('$*SAY-ADDITIONAL-CONFIG-INFO') }
+        self.eval('Compiler.verbose-config(:say)');
         nqp::exit(0);
     }
 

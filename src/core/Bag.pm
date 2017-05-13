@@ -42,8 +42,8 @@ my class Bag does Baggy {
     }
 
 #--- coercion methods
-    method Bag() is nodal { self }
-    method Mix() is nodal {
+    multi method Bag(Bag:D:) { self }
+    multi method Mix(Bag:D:) {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
     }
 

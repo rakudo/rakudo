@@ -59,7 +59,7 @@ my class BagHash does Baggy {
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL(self.raw_hash) }
 
-    method Bag(:$view) is nodal {
+    multi method Bag(BagHash:D: :$view) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
@@ -69,8 +69,8 @@ my class BagHash does Baggy {
           bag()
         )
     }
-    method BagHash() is nodal { self }
-    method Mix() is nodal {
+    multi method BagHash(BagHash:D:) { self }
+    multi method Mix(BagHash:D:) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),

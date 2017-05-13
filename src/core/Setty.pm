@@ -214,10 +214,10 @@ my role Setty does QuantHash {
           nqp::create(type)
         )
     }
-    method Bag()     { self!BAGGIFY(Bag)     }
-    method BagHash() { self!BAGGIFY(BagHash) }
-    method Mix()     { self!BAGGIFY(Mix)     }
-    method MixHash() { self!BAGGIFY(MixHash) }
+    multi method Bag(Setty:D:)     { self!BAGGIFY(Bag)     }
+    multi method BagHash(Setty:D:) { self!BAGGIFY(BagHash) }
+    multi method Mix(Setty:D:)     { self!BAGGIFY(Mix)     }
+    multi method MixHash(Setty:D:) { self!BAGGIFY(MixHash) }
 
     method raw_hash() is raw { $!elems }
     method hll_hash() is raw {

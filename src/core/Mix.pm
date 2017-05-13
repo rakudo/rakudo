@@ -45,7 +45,7 @@ my class Mix does Mixy {
     }
 
 #--- coercion methods
-    method Mix() is nodal { self }
+    multi method Mix(Mix:D:) { self }
 
     method clone() { nqp::clone(self) }
 

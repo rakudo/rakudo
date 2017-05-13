@@ -87,8 +87,8 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method Set() is nodal { self }
-    method SetHash() is nodal {
+    multi method Set(Set:D:) { self }
+    multi method SetHash(Set:D:) {
         nqp::if(
           $!elems,
           nqp::p6bindattrinvres(

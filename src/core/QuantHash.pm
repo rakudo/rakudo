@@ -5,7 +5,9 @@ my role QuantHash does Associative {
     method Real    ( --> Real:D)    { self.total.Real }
 
     method Capture() { self.Hash.Capture }
-    method list() { self.pairs.cache }
+
+    multi method list(QuantHash:U:) { self.Any::list }
+    multi method list(QuantHash:D:) { self.pairs.cache }
 
     method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)

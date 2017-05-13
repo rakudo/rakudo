@@ -59,7 +59,7 @@ my class MixHash does Mixy {
     multi method new(MixHash:_:) { nqp::create(self) }
 
 #--- coercion methods
-    method Mix(:$view) is nodal {
+    multi method Mix(MixHash:D: :$view) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
@@ -69,7 +69,7 @@ my class MixHash does Mixy {
           mix()
         )
     }
-    method MixHash() is nodal { self }
+    multi method MixHash(MixHash:D:) { self }
 
 #--- iterator methods
     sub proxy(Mu \iter,Mu \storage) is raw {

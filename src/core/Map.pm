@@ -433,8 +433,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    method Set() is nodal     { self!SETIFY(Set)     }
-    method SetHash() is nodal { self!SETIFY(SetHash) }
+    multi method Set(Map:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Map:D:) { self!SETIFY(SetHash) }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

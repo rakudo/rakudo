@@ -637,8 +637,8 @@ my role Baggy does QuantHash {
           )
         )
     }
-    method Set() is nodal     { self!SETIFY(Set)     }
-    method SetHash() is nodal { self!SETIFY(SetHash) }
+    multi method Set(Baggy:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Baggy:D:) { self!SETIFY(SetHash) }
 
     method !BAGGIFY(\type) {
         nqp::if(
@@ -684,8 +684,8 @@ my role Baggy does QuantHash {
         )
     }
 
-    method Bag() is nodal     { self!BAGGIFY(Bag)     }
-    method BagHash() is nodal { self!BAGGIFY(BagHash) }
+    multi method Bag(Baggy:D:)     { self!BAGGIFY(Bag)     }
+    multi method BagHash(Baggy:D:) { self!BAGGIFY(BagHash) }
 
     method !MIXIFY(\type) {
         nqp::if(
@@ -716,8 +716,8 @@ my role Baggy does QuantHash {
         )
     }
 
-    method Mix() is nodal     { self!MIXIFY(Mix)     }
-    method MixHash() is nodal { self!MIXIFY(MixHash) }
+    multi method Mix(Baggy:D:)     { self!MIXIFY(Mix)     }
+    multi method MixHash(Baggy:D:) { self!MIXIFY(MixHash) }
 
     method clone() {
         nqp::if(

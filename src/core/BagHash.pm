@@ -26,7 +26,7 @@ my class BagHash does Baggy {
                         nqp::atkey($raw,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       ),
                       nqp::stmts(
                         nqp::deletekey($raw,$which),
@@ -34,8 +34,8 @@ my class BagHash does Baggy {
                       )
                     ),
                     nqp::if(
-                      nqp::isgt_i($value,0),
-                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
+                      nqp::isgt_i($value,0),    # new
+                      nqp::bindkey($raw,$which,Pair.new(k,nqp::decont($value)))
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
@@ -44,7 +44,7 @@ my class BagHash does Baggy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      Pair.new(k,$value)
+                      Pair.new(k,nqp::decont($value))
                     )
                   )
                 )
@@ -114,7 +114,7 @@ my class BagHash does Baggy {
                         nqp::atkey(storage,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       ),
                       nqp::stmts(               # goodbye!
                         nqp::deletekey(storage,$which),
@@ -123,7 +123,11 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(                    # where did it go?
                       nqp::isgt_i($value,0),
-                      nqp::bindkey(storage,$which,Pair.new($object,$value))
+                      nqp::bindkey(
+                        storage,
+                        $which,
+                        Pair.new($object,nqp::decont($value))
+                      )
                     )
                   )
                 )

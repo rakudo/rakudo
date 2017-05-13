@@ -60,7 +60,7 @@ sub combine(:$sources, :$file) {
 #	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
 #	    $(M_BUILD_DIR)/m-ModuleLoader.nqp
 
-my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<js-ModuleLoader.nqp>);
+my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<ModuleLoader.nqp>);
 
 
 my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6-ModuleLoader.js");
@@ -73,18 +73,18 @@ my $Perl6-Actions := nqp($Actions-nqp, "$blib/Perl6-Actions.js", :deps([$Perl6-O
 
 my $Perl6-Grammar := nqp('src/Perl6/Grammar.nqp', "$blib/Perl6-Grammar.js", :deps([$Perl6-World, $Perl6-Actions, $Perl6-Pod]));
 
-my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<js-Perl6-Optimizer.nqp>);
+my $Optimizer-nqp := combine(:sources("src/Perl6/Optimizer.nqp"), :file<Perl6-Optimizer.nqp>);
 
 my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6-Optimizer.js", :deps([$Perl6-Ops]));
 
 my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6-Compiler.js", :deps([$Perl6-Optimizer]));
 
-my $main-version := $build_dir ~ '/main-version';
+my $main-version := $build_dir ~ '/main-version.nqp';
 
 # TODO - generate a new version on changes
 rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
 
-my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<js-main.nqp>);
+my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>);
 
 my $Perl6-main := nqp($main-nqp, 'rakudo.js', :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
 
@@ -94,7 +94,7 @@ rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
     "./nqp-js tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
 ); 
 
-my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<js-Perl6-BOOTSTRAP.nqp>);
+my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-BOOTSTRAP.nqp>);
 
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));
 

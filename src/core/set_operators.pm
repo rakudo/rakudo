@@ -8,8 +8,7 @@ multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
       (my $elems := $b.raw_hash) && nqp::existskey($elems,$a.WHICH)
     )
 }
-multi sub infix:<(elem)>(Any $a, Any:U $b --> False) { }
-multi sub infix:<(elem)>(Any $a, Any:D $b --> Bool:D) {
+multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
     $a (elem) $b.Set(:view);
 }
 # U+2208 ELEMENT OF
@@ -30,8 +29,7 @@ multi sub infix:<(cont)>(QuantHash:D $a, Any $b --> Bool:D) {
       (my $elems := $a.raw_hash) && nqp::existskey($elems,$b.WHICH)
     )
 }
-multi sub infix:<(cont)>(Any:U $a, Any $b --> False) { }
-multi sub infix:<(cont)>(Any:D $a, Any $b --> Bool:D) {
+multi sub infix:<(cont)>(Any $a, Any $b --> Bool:D) {
     $a.Set(:view) (cont) $b;
 }
 # U+220B CONTAINS AS MEMBER

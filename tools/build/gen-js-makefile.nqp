@@ -54,12 +54,6 @@ sub combine(:$sources, :$file) {
     ); 
 }
 
-
-#$(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
-#	$(M_NQP) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > $(M_BUILD_DIR)/m-ModuleLoader.nqp
-#	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
-#	    $(M_BUILD_DIR)/m-ModuleLoader.nqp
-
 my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<ModuleLoader.nqp>);
 
 
@@ -100,11 +94,8 @@ my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :de
 
 my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
 
-#$(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
-
 say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap\n");
 
-#say("js-all: $Perl6-Metamodel $Bootstrap-combined $Perl6-main\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp");
 

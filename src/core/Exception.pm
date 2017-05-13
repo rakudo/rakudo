@@ -552,6 +552,12 @@ my class X::IO::Cwd does X::IO {
     }
 }
 
+my class X::IO::Flush does X::IO {
+    method message() {
+        "Cannot flush handle: $.os-error"
+    }
+}
+
 my class X::IO::NotAChild does X::IO {
     has $.path;
     has $.child;

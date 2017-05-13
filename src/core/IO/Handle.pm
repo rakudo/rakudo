@@ -593,8 +593,8 @@ my class IO::Handle {
 
 
     method flush(IO::Handle:D: --> True) {
-        fail("File handle not open, so cannot flush")
-            unless nqp::defined($!PIO);
+        CATCH { default { fail X::IO::Flush.new: :os-error(.Str) } }
+        nqp::defined($!PIO) or die 'File handle not open, so cannot flush';
         nqp::flushfh($!PIO);
     }
 

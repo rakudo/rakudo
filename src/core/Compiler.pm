@@ -30,6 +30,10 @@ class Compiler does Systemic {
     method build-date() {
         DateTime.new($!build-date)
     }
+
+    method sink() {
+        nqp::getcomp("perl6").verbose-config
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

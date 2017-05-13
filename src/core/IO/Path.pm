@@ -543,8 +543,6 @@ my class IO::Path is Cool does IO {
     proto method dir(|) {*} # make it possible to augment with multies from modulespace
     multi method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
-        :$absolute,
-        :$Str,
         :$CWD = $*CWD,
     ) {
 
@@ -554,17 +552,19 @@ my class IO::Path is Cool does IO {
         } }
 
         my str $dir-sep  = $!SPEC.dir-sep;
-        my int $relative = !$absolute && !$.is-absolute;
+        my int $absolute = $.is-absolute;
 
-        my str $abspath = $.absolute.ends-with($dir-sep)
-          ?? $.absolute
-          !! $.absolute ~ $dir-sep;
+        my str $abspath;
+        $absolute && nqp::unless( # calculate $abspath only when we'll need it
+            nqp::eqat(($abspath = $.absolute), $dir-sep,
+                nqp::sub_i(nqp::chars($abspath), 1)),
+            ($abspath = nqp::concat($abspath, $dir-sep)));
 
-        my str $path = $!path eq '.' || $!path eq $dir-sep
+        my str $path = nqp::iseq_s($!path, '.') || nqp::iseq_s($!path, $dir-sep)
           ?? ''
-          !! $!path.ends-with($dir-sep)
+          !! nqp::eqat($!path, $dir-sep, nqp::sub_i(nqp::chars($!path), 1))
             ?? $!path
-            !! $!path ~ $dir-sep;
+            !! nqp::concat($!path, $dir-sep);
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
@@ -578,36 +578,25 @@ my class IO::Path is Cool does IO {
           { my $*CWD = $cwd;
 #?if jvm
             for <. ..> -> $elem {
-                if $test.ACCEPTS($elem) {
-                    $Str
-                      ?? !$absolute
-                        ?? take $path ~ $elem
-                        !! take $abspath ~ $elem
-                      !! !$absolute
-                        ?? take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
-                        !! take IO::Path!new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
-                }
+                $test.ACCEPTS($elem) && (
+                  $absolute
+                    ?? take IO::Path!new-from-absolute-path(
+                        $abspath ~ $elem,:$!SPEC,:$CWD)
+                    !! take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
+                );
             }
 #?endif
             nqp::until(
-              nqp::isnull_s(my str $str_elem = nqp::nextfiledir($dirh))
-                || nqp::iseq_i(nqp::chars($str_elem),0),
+              nqp::isnull_s(my str $str-elem = nqp::nextfiledir($dirh))
+                || nqp::iseq_i(nqp::chars($str-elem),0),
               nqp::if(
-                $test.ACCEPTS($str_elem),
+                $test.ACCEPTS($str-elem),
                 nqp::if(
-                  $Str,
-                  (take
-                    nqp::concat(nqp::if($relative,$path,$abspath),$str_elem)),
-                  nqp::if(
-                    $relative,
-                    (take IO::Path.new(
-                      nqp::concat($path,$str_elem),:$!SPEC,:$CWD)),
-                    (take IO::Path!new-from-absolute-path(
-                      nqp::concat($abspath,$str_elem),:$!SPEC,:$CWD))
-                  )
-                )
-              )
-            );
+                  $absolute,
+                  (take IO::Path!new-from-absolute-path(
+                    nqp::concat($abspath,$str-elem),:$!SPEC,:$CWD)),
+                  (take IO::Path.new(
+                    nqp::concat($path,$str-elem),:$!SPEC,:$CWD)),)));
             nqp::closedir($dirh);
           }
         }

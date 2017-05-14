@@ -151,48 +151,48 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         else     { $volume ~ $dirname     ~    $file; }
     }
 
-    method rel2abs ($path is copy, $base? is copy, :$omit-volume) {
-
-        my $is_abs = ($path ~~ /^ [<$driveletter> <$slash> | <$UNCpath>]/ && 2)
-                  || ($path ~~ /^ <$slash> / && 1)
-                  || 0;
-
-        # Check for volume (should probably document the '2' thing...)
-        return self.canonpath( $path ) if $is_abs == 2 || ($is_abs == 1 && $omit-volume);
-
-        if $is_abs {
-            # It's missing a volume, add one
-            my $vol;
-            $vol = self.splitpath($base)[0] if $base.defined;
-            $vol ||= self.splitpath($*CWD)[0];
-            return self.canonpath( $vol ~ $path );
-        }
-
-        if not defined $base {
-        # TODO: implement _getdcwd call ( Windows maintains separate CWD for each volume )
-        # See: http://msdn.microsoft.com/en-us/library/1e5zwe0c%28v=vs.80%29.aspx
-            #$base = Cwd::getdcwd( (self.splitpath: $path)[0] ) if defined &Cwd::getdcwd ;
-            #$base //= $*CWD ;
-            $base = $*CWD;
-        }
-        elsif ( !self.is-absolute( $base ) ) {
-            $base = self.rel2abs( $base );
-        }
-        else {
-            $base = self.canonpath( $base );
-        }
-
-        my ($path_directories, $path_file) = self.splitpath( $path )[1..2] ;
-
-        my ($base_volume, $base_directories) = self.splitpath( $base, :nofile ) ;
-
-        $path = self.catpath(
-                    $base_volume,
-                    self.catdir( $base_directories, $path_directories ),
-                    $path_file
-                    ) ;
-
-        return self.canonpath( $path ) ;
+    method rel2abs (Str() $path is copy, $base? is copy, :$omit-volume) {
+        nqp::if(
+          (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /
+              && ( (nqp::isge_i(($_ := nqp::ord($path)), 65) # drive letter
+                  && nqp::isle_i($_, 90))
+                || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122)))
+              && ( nqp::iseq_i(($_ := nqp::ordat($path, 2)), 92) # slash
+                || nqp::iseq_i($_, 47)))
+          || 0, #($path ~~ /^ <$UNCpath>/),
+          self.canonpath($path),
+          nqp::if(
+            nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
+            || nqp::iseq_i($_, 47),                  # /^ ｢/｣ /
+            nqp::if(
+              $omit-volume,
+              self.canonpath($path),
+              nqp::stmts(
+                (my $vol),
+                nqp::if(
+                  nqp::defined($base),
+                  ($vol := self.splitpath($base).AT-POS(0))),
+                nqp::unless(
+                  $vol,
+                  ($vol := self.splitpath($*CWD)[0])),
+                self.canonpath($vol ~ $path))),
+            nqp::stmts(
+              nqp::unless(
+                nqp::defined($base),
+                ($base = $*CWD),
+                nqp::unless(
+                  self.is-absolute($base),
+                  ($base = self.rel2abs: $base),
+                  ($base = self.canonpath: $base))),
+              (my ($path_directories, $path_file)
+                = self.splitpath($path)[1, 2]),
+              (my ($base_volume, $base_directories)
+                = self.splitpath($base, :nofile)),
+              self.canonpath(
+                self.catpath(
+                  $base_volume,
+                  self.catdir($base_directories, $path_directories),
+                  $path_file)))))
     }
 
 

@@ -38,6 +38,15 @@ class Perl6::Metamodel::SubsetHOW
                 "type or a type that can provide one");
         }
         $!refinee := nqp::decont($refinee);
+        if nqp::objprimspec($!refinee) {
+            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            if nqp::existskey(%ex, 'X::NYI') {
+                %ex{'X::NYI'}('Subsets of native types');
+            }
+            else {
+                nqp::die("Subsets of native types NYI");
+            }
+        }
     }
     
     method refinee($obj) {

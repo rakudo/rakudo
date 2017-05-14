@@ -102,20 +102,20 @@ proto sub words(|) { * }
 multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
 proto sub get  (|) { * }
-multi sub get  (IO::Handle $fh = $*ARGFILES) { $fh.get  }
+multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
 
 proto sub getc (|) { * }
-multi sub getc (IO::Handle $fh = $*ARGFILES) { $fh.getc }
+multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 
 proto sub close(|) { * }
-multi sub close(IO::Handle $fh) { $fh.close }
+multi sub close(IO::Handle:D $fh) { $fh.close }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::Handle $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
+multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
 multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle $fh,   |c) { $fh  .spurt(|c) }
+multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
 multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 
 {

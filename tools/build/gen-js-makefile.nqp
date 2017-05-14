@@ -90,11 +90,16 @@ rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
 
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-BOOTSTRAP.nqp>);
 
+my $CORE-combined := $build_dir ~ "/CORE.setting";
+rule($CORE-combined, '@js_core_sources@',
+    "./nqp-js tools/build/gen-cat.nqp js  -f tools/build/js_core_sources > $CORE-combined"
+);
+
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));
 
 my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
 
-say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap\n");
+say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE-combined\n");
 
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp");

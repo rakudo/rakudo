@@ -36,19 +36,14 @@ class VM does Systemic {
         $!prefix         = $!properties<perl6.prefix>;
         $!precomp-ext    = "jar";
         $!precomp-target = "jar";
-        $!config<os.name> = $!properties<os.name> // "unknown";
+        $!config<osname> = $!properties<os.name> // "unknown";
 #?endif
 # add new backends here please
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
-#?if !jvm
         my int $is-darwin = $*VM.config<osname> eq 'darwin';
-#?endif
-#?if jvm
-        my int $is-darwin = $*VM.config<os.name> eq 'darwin';
-#?endif
 
         my $basename  = $library.basename;
         my int $full-path = $library ne $basename;

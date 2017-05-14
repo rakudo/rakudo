@@ -19,10 +19,10 @@ my class IO::Handle {
       :$truncate is copy,
       :$exclusive is copy,
       :$bin,
-      :$chomp = True,
-      :$enc   = 'utf8',
-      :$nl-in is copy = ["\x0A", "\r\n"],
-      Str:D :$nl-out is copy = "\n",
+      :$chomp = $!chomp,
+      :$enc   = $!encoding,
+      :$nl-in is copy = $!nl-in,
+      Str:D :$nl-out is copy = $!nl-out,
     ) {
         $mode = nqp::if(
           $mode,
@@ -94,7 +94,7 @@ my class IO::Handle {
 #?if !jvm
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            nqp::if( $bin,
+            nqp::if( $bin || nqp::iseq_s($enc, 'bin'),
                 ($!encoding = 'bin'),
                 nqp::setencoding($!PIO,
                     $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
@@ -137,7 +137,7 @@ my class IO::Handle {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::if( $bin,
+        nqp::if( $bin || nqp::iseq_s($enc, 'bin'),
             ($!encoding = 'bin'),
             nqp::setencoding($!PIO,
                 $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),

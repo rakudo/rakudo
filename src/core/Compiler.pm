@@ -56,6 +56,14 @@ class Compiler does Systemic {
           for <arch archname auth bits desc
                hardware name release signature version>;
 
+        try {
+            require System::Info;
+
+            my $sysinfo = System::Info.new;
+            nqp::push_s($items,"sysinfo::{ .name }={ $sysinfo.$_ // '' }")
+              for $sysinfo.^methods.grep: *.name ne 'new';
+        }
+
         my str $string = nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items));
 
         if $say {

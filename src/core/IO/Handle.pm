@@ -582,9 +582,7 @@ my class IO::Handle {
     multi method Str(IO::Handle:D:) { $.path.Str }
 
     multi method gist(IO::Handle:D:) {
-        self.opened
-            ?? self.^name ~ "<$!path.gist()>(opened, at octet {$.tell})"
-            !! self.^name ~ "<$!path.gist()>(closed)"
+        "{self.^name}<$!path.gist()>({self.opened ?? 'opened' !! 'closed'})"
     }
 
     multi method perl(IO::Handle:D:) {

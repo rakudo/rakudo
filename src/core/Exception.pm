@@ -2557,6 +2557,10 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
       X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
   },
+  'X::NYI',
+  -> $feature {
+      X::NYI.new(:$feature).throw;
+  },
 ));
 
 my class X::HyperWhatever::Multiple is Exception {

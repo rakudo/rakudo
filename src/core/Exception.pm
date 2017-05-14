@@ -1505,7 +1505,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^I' => '$*INPLACE',
       '$^M' => 'a global form such as $*M',
       '$^N' => '$/[*-1]',
-      '$^O' => '$?DISTRO.name or $*DISTRO.name',
+      '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*INITTIME',

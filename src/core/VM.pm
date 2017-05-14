@@ -43,7 +43,7 @@ class VM does Systemic {
 
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
-        my int $is-darwin = $*VM.config<osname> eq 'darwin';
+        my int $is-darwin = self.osname eq 'darwin';
 
         my $basename  = $library.basename;
         my int $full-path = $library ne $basename;
@@ -67,6 +67,24 @@ class VM does Systemic {
         $full-path
           ?? $dirname.IO.add($platform-name).absolute
           !! $platform-name.IO
+    }
+
+    proto method osname(|) { * }
+    multi method osname(VM:U:) {
+#?if jvm
+        nqp::atkey(nqp::jvmgetproperties,'os.name')
+#?endif
+#?if !jvm
+        nqp::atkey(nqp::backendconfig,'osname')
+#?endif
+    }
+    multi method osname(VM:D:) {
+#?if jvm
+        $!properties<os.name>
+#?endif
+#?if !jvm
+        $!config<osname>
+#?endif
     }
 }
 

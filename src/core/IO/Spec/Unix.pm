@@ -94,7 +94,7 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method is-absolute( Str() \path ) {
-        nqp::p6bool(nqp::eqat(path, '/', 0));
+        nqp::p6bool(nqp::iseq_i(nqp::ord(path), 47)) # '/'
     }
 
     method path {

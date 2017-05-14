@@ -152,7 +152,11 @@ my class IO::Handle {
               $!nl-in
           },
           STORE => -> $, $nl-in {
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
+            $!nl-in = $nl-in;
+            nqp::defined($!PIO)
+              and Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE(
+                $!PIO, $!nl-in = $nl-in);
+            $nl-in;
           }
         );
     }

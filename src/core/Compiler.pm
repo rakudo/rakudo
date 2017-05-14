@@ -56,8 +56,10 @@ class Compiler does Systemic {
           for <arch archname auth bits desc
                hardware name release signature version>;
 
+        my str $string = nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items));
+
         if $say {
-            nqp::say(nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items)));
+            nqp::say($string);
             Nil
         }
         else {
@@ -67,7 +69,12 @@ class Compiler does Systemic {
                 my ($main,$key,$value) = nqp::shift($iter).split(<:: =>);
                 %config.AT-KEY($main).AT-KEY($key) = $value
             }
-            %config
+
+            %config but role {
+                has $!string = $string;
+                proto method Str()  { $!string }
+                proto method gist() { $!string }
+            }
         }
     }
 }

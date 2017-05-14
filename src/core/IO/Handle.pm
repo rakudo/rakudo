@@ -602,11 +602,16 @@ my class IO::Handle {
 
     proto method encoding(|) { * }
     multi method encoding(IO::Handle:D:) { $!encoding }
-    multi method encoding(IO::Handle:D: $enc) {
-        $enc eq 'bin'
-          ?? ($!encoding = 'bin')
-          !! nqp::setencoding($!PIO,
-               $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc))
+    multi method encoding(IO::Handle:D: $!encoding) {
+        nqp::if(
+          nqp::iseq_s($!encoding, 'bin'),
+          $!encoding,
+          nqp::stmts(
+            ($!encoding = Rakudo::Internals.NORMALIZE_ENCODING($!encoding)),
+            nqp::if(
+              nqp::defined($!PIO),
+              nqp::setencoding($!PIO, $!encoding),
+              $!encoding)))
     }
 
     submethod DESTROY(IO::Handle:D:) {

@@ -8405,6 +8405,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $coerce_to.HOW.archetypes.generic {
                     return 0;
                 }
+
+                my $coerce_method := nqp::getattr_s($param_obj, $Param, '$!coerce_method');
+
                 $var.push(QAST::Op.new(
                     :op('unless'),
                     QAST::Op.new(
@@ -8412,14 +8415,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('local') ),
                         QAST::WVal.new( :value($coerce_to) )
                     ),
+                    # Check first if the coercion method is supported
                     QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($name), :scope('local') ),
+                        :op('if'),
                         QAST::Op.new(
-                            :op('callmethod'),
-                            :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        ))));
+                            :op('can'),
+                            QAST::Var.new(:name($name), :scope('local')),
+                            QAST::SVal.new(:value($coerce_method))),
+                        # Invoke the coercion method
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::Op.new(
+                                :op('callmethod'),
+                                :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
+                                QAST::Var.new( :name($name), :scope('local') ))),
+                        # Inform the user that the coercion isn't supported
+                        QAST::Op.new(
+                            :op('die_s'),
+                            QAST::SVal.new(
+                                :value('Cannot coerce the parameter from ' ~ $nomtype.HOW.name($nomtype)
+                                    ~ ' to ' ~ $coerce_method ~ '; no coercion method defined')))
+                )));
             }
 
             # If it's optional, do any default handling.

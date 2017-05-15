@@ -107,6 +107,7 @@ my role Dateish {
     }
 
     method yyyy-mm-dd() { sprintf '%04d-%02d-%02d',$!year,$!month,$!day }
+    method mm-dd-yyyy() { sprintf '%02d-%02d-%04d',$!month,$!day,$!year }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }
 

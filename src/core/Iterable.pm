@@ -11,8 +11,10 @@ my class X::Invalid::Value { ... }
 my role Iterable {
     method iterator() { ... }
 
-    method item() {
-        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
+    method item(Iterable \item:) is raw {
+        nqp::iscont(item)
+            ?? item
+            !! nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', item)
     }
 
     method flat(Iterable:D:) {

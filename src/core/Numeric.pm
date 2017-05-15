@@ -259,6 +259,7 @@ multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 proto sub infix:<**>(Mu $?, Mu $?) is pure  { * }
 multi sub infix:<**>($x = 1)     { $x.Numeric }
 multi sub infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
+multi sub infix:<**>(\a, 2)    { a.Numeric * a.Numeric }
 
 proto sub postfix:<ⁿ>(Mu $, Mu $) is pure  { * }
 multi sub postfix:<ⁿ>(\a, \b)  { a ** b }

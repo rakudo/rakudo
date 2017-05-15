@@ -607,4 +607,18 @@ sub dd(|) {
     return
 }
 
+sub ddt(|) {
+    my Mu $args := nqp::p6argvmarray();
+    while $args {
+        my $var  := nqp::shift($args);
+        my $name := $var.VAR.?name;
+        my $type := $var.WHAT.perl;
+        my $what := $var.?is-lazy
+          ?? $var[^10].perl.chop ~ "...Inf)"
+          !! $var.perl;
+        note $name ?? "$type $name = $what" !! $what;
+    }
+    return
+}
+
 # vim: ft=perl6 expandtab sw=4

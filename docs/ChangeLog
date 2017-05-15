@@ -1190,6 +1190,7 @@ New in 2016.06
    + The "cmp-ok" sub from Test now can take any infix as Str, even custom ones
    + A fail in a custom BUILD will now be returned, rather than thrown
    + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
+   + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
  + Efficiency:
    + .map between 10% and 30% faster
    + .unique, .repeated and .squish 10% to 20% faster

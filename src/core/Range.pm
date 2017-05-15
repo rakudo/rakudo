@@ -645,7 +645,7 @@ my class Range is Cool does Iterable does Positional {
 
     method rand() {
         fail "Can only get a random value on Real values, did you mean .pick?"
-          unless nqp::istype($!min,Real) && nqp::istype($!max,Real);
+          unless (nqp::istype($!min,Real) && nqp::istype($!max,Real));
         fail "Can only get a random value from numeric values"
           if $!min === NaN || $!max === NaN;
         fail "Can not get a random value from an infinite range"

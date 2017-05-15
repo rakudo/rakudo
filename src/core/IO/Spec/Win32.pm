@@ -66,7 +66,10 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
               (my int $i = -1),
               nqp::until(
                 nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
-                ($_ := nqp::atpos($parts, $i)) && take $_)))
+                ($_ := nqp::atpos($parts, $i))
+                  # unsure why old code removed all `"`, but keeping code same
+                  # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
+                  && take nqp::join('', nqp::split(｢"｣, $_)))))
         }
    }
 

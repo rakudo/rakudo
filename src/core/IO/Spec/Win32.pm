@@ -56,9 +56,18 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-       (".",
-         split(';', %*ENV<PATH> // %*ENV<Path> // '').map( {
-           .subst(:global, q/"/, '') } ).grep: *.chars );
+        gather {
+          take '.';
+          my $p := %*ENV;
+          nqp::if(
+            ($p := nqp::if(nqp::defined($_ := $p<PATH>), $_, $p<Path>)),
+            nqp::stmts(
+              (my int $els = nqp::elems(my $parts := nqp::split(';', $p))),
+              (my int $i = -1),
+              nqp::until(
+                nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
+                ($_ := nqp::atpos($parts, $i)) && take $_)))
+        }
    }
 
     method is-absolute ($path) {

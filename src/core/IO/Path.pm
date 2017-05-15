@@ -71,8 +71,8 @@ my class IO::Path is Cool does IO {
               $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
     }
 
-    method parts                  {
-        %!parts ||= $!SPEC.split($!path);
+    method parts {
+        %!parts || (%!parts := nqp::create(Map).STORE: $!SPEC.split: $!path)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }

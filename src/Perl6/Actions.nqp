@@ -5187,6 +5187,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $type.HOW.archetypes.definite {
             dissect_type_into_parameter($/, $type.HOW.base_type($type));
+            # Keep track of the smiley associated with the original type.
+            %*PARAM_INFO<defined_only>   := 1 if  $type.HOW.definite($type);
+            %*PARAM_INFO<undefined_only> := 1 if !$type.HOW.definite($type);
         }
         elsif $type.HOW.archetypes.generic {
             %*PARAM_INFO<nominal_type> := $type;

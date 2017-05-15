@@ -707,4 +707,8 @@ multi sub duckmap(\op, Associative \h) {
     hash @keys Z duckmap(op, h{@keys})
 }
 
+multi sub descend(\l) {
+    gather l.deepmap: { .take }
+}
+
 # vim: ft=perl6 expandtab sw=4

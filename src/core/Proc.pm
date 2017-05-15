@@ -154,7 +154,16 @@ sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
     $proc
 }
 
+sub runout(|c) {
+    run(|c, :out).out.slurp-rest
+}
+
+sub shellout(|c) {
+    shell(|c, :out).out.slurp-rest
+}
+
 sub QX($cmd, :$cwd = $*CWD, :$env) {
+    DEPRECATED("'runout' or 'shellout'", '2015.10');
     my %env := $env ?? $env.hash !! %*ENV;
     my Mu $pio := nqp::syncpipe();
     my $status := nqp::shell(

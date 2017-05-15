@@ -589,11 +589,6 @@ my class IO::Handle {
         "{self.^name}<$!path.gist()>({self.opened ?? 'opened' !! 'closed'})"
     }
 
-    multi method perl(IO::Handle:D:) {
-        self.^name ~ ".new({:$!path.perl},{$!chomp ?? :$!chomp.perl !! ''})"
-    }
-
-
     method flush(IO::Handle:D: --> True) {
         CATCH { default { fail X::IO::Flush.new: :os-error(.Str) } }
         nqp::defined($!PIO) or die 'File handle not open, so cannot flush';

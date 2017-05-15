@@ -329,7 +329,7 @@ my class IO::Path is Cool does IO {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work

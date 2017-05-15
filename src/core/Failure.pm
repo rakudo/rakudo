@@ -83,6 +83,12 @@ my class Failure is Nil {
         "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;
     }
 
+    method fail(Failure:D:) {
+        $!handled = 0;
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, self);
+        CATCH { self.exception.throw }
+    }
+
     method sink(Failure:D:) {
         self!throw() unless $!handled
     }

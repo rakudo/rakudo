@@ -108,7 +108,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $basename && nqp::isfalse($dirname),
             $dirname = '.'));
 
-        (:$volume, :$dirname, :$basename, :directory($dirname))
+        (:$volume, :$dirname, :$basename)
     }
 
     method join ($volume, $dirname is copy, $file is copy) {

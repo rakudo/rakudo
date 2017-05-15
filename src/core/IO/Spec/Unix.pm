@@ -168,10 +168,7 @@ my class IO::Spec::Unix is IO::Spec {
         );
 
         # shell dirname '' produces '.', but we don't because it's probably user error
-
-        # temporary, for the transition period
-        (:volume(''), :$dirname, :$basename, :directory($dirname));
-#        (:volume(''), :$dirname, :$basename);
+       (:volume(''), :$dirname, :$basename);
     }
 
     method join ($, \dir, \file) {

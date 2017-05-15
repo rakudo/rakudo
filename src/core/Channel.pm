@@ -111,12 +111,10 @@ my class Channel does Awaitable {
             # Tap the async notification for new values supply.
             whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {
                 my Mu \got = self.poll;
-                if nqp::eqaddr(got, Nil) {
-                    if $!closed_promise {
-                        $!closed_promise.status == Kept
-                            ?? done()
-                            !! die $!closed_promise.cause
-                    }
+                if nqp::eqaddr(got, Nil) and $!closed_promise {
+                    $!closed_promise.status == Kept
+                        ?? done()
+                        !! die $!closed_promise.cause
                 }
                 else {
                     emit got;

@@ -80,9 +80,9 @@ sub gist(|) {
         !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
-sub prompt($msg) {
+sub prompt($msg, :$hidden = False) {
     my $out := $*OUT;
-    $out.print($msg);
+    $out.print($msg) if !$hidden;
     $out.flush();
     $*IN.get;
 }

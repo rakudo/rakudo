@@ -669,7 +669,7 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
                 (my int $diff = nqp::sub_i(
                   nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
                   nqp::getattr(
-                    nqp::atkey($base,nqp::iterkey_s($iter)),
+                    nqp::atkey($elems,nqp::iterkey_s($iter)),
                     Pair,
                     '$!value'
                   )

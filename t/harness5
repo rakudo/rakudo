@@ -69,7 +69,7 @@ if ($list_file) {
               ? push @slow, $fn
               : push @files, $fn;
         } else {
-            warn "Missing test file: $fn\n";
+            #warn "Missing test file: $fn\n";
         }
     }
     close $f or die $!;

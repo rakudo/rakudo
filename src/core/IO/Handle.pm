@@ -207,6 +207,14 @@ my class IO::Handle {
     }
 
     proto method words (|) { * }
+    multi method words(IO::Handle:D \SELF: $limit, :$close) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.words(:$close)
+          !! $close
+            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                self.words.iterator, $limit.Int, {SELF.close}))
+            !! self.words.head($limit.Int)
+    }
     multi method words(IO::Handle:D: :$close) {
         Seq.new(class :: does Iterator {
             has $!handle;

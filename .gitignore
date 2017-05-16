@@ -99,3 +99,4 @@ perl6-valgrind-m
 *.rakudo.jvm
 **/.precomp
 t/03-jvm/*.class
+rakudo.js

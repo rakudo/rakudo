@@ -1534,7 +1534,7 @@ class Rakudo::Iterator {
               has &!callable;
               method pull-one {
                   nqp::if(
-                    nqp::iseq_i($!n, ($!i = nqp::add_i($!i, 1)))
+                    nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
                       && self!FINISH-UP(1)
                     || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
                       && self!FINISH-UP(0),

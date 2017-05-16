@@ -1555,7 +1555,6 @@ class Rakudo::Iterator {
             &callable,
             class :: does Iterator {
                 has $!source;
-                has int $!n;
                 has int $!i = -1;
                 has &!callable;
                 method pull-one {

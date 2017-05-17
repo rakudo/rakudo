@@ -570,13 +570,13 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 # `cmp-ok` with `eqv` op.
 # https://irclog.perlgeek.de/perl6-dev/2017-05-04#i_14532363
 ######################################################################
-multi sub is-deeply(Seq $got, Seq $expected, $reason = '') is export {
+multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;
 }
-multi sub is-deeply(Seq $got, Mu $expected, $reason = '') is export {
+multi sub is-deeply(Seq:D $got, Mu $expected, $reason = '') is export {
     is-deeply $got.cache, $expected, $reason;
 }
-multi sub is-deeply(Mu $got, Seq $expected, $reason = '') is export {
+multi sub is-deeply(Mu $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got, $expected.cache, $reason;
 }
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {

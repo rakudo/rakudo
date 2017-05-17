@@ -1287,7 +1287,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method lines(Str:D: $limit) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
-          !! self.lines[ lazy 0 .. $limit.Int - 1 ]
+          !! self.lines.head($limit)
     }
     multi method lines(Str:D:) {
         Seq.new(class :: does Iterator {
@@ -2151,7 +2151,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method words(Str:D: $limit) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words
-          !! self.words[ 0 .. $limit.Int - 1 ]
+          !! self.words.head($limit)
     }
     multi method words(Str:D:) {
         Seq.new(class :: does Iterator {

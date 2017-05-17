@@ -27,7 +27,11 @@ sub rule($target, $source, *@actions) {
     $target;
 }
 
+
+my @produced;
+
 sub nqp($file, $output, :$deps=[]) {
+    @produced.push($output);
     nqp::unshift($deps, $file);
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
@@ -47,6 +51,8 @@ my $blib := 'node_modules';
 sub combine(:$sources, :$file) {
 
     my $target := $build_dir ~ "/" ~ $file;
+
+    @produced.push($target);
 
     rule($target, $sources,
         make_parents($target),
@@ -109,7 +115,7 @@ my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :de
 say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE\n");
 
 
-say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp");
+say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp::join(' ', @produced)}");
 
 say("js-lint:
 	gjslint --strict --max_line_length=200 --nojsdoc src/vm/js/perl6-runtime/*.js");

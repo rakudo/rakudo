@@ -1285,7 +1285,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $count ?? self.lines.elems !! self.lines;
     }
     multi method lines(Str:D: $limit) {
-        # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
           !! self.lines[ lazy 0 .. $limit.Int - 1 ]
@@ -2150,7 +2149,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return @list == 1 ?? @list[0] !! @list;
     }
     multi method words(Str:D: $limit) {
-        # we should probably deprecate this feature
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words
           !! self.words[ 0 .. $limit.Int - 1 ]

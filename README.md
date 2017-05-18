@@ -123,9 +123,9 @@ See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/nom/CONT
 
 If you would like simple history and tab completion in the perl6 executable,
 you need to install the Linenoise module.  The recommended way to install
-Linenoise is via [panda](https://github.com/tadzik/panda):
+Linenoise is via [zef](https://github.com/ugexe/zef):
 
-    panda install Linenoise
+    zef install Linenoise
 
 An alternative is to use a third-party program such as [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap).
 

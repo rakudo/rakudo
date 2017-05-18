@@ -27,7 +27,6 @@ my class IO::Socket::INET does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    has int $.ins;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
         if ($host) {
@@ -150,7 +149,6 @@ my class IO::Socket::INET does IO::Socket {
         Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
         my str $line = nqp::readlinechompfh($io);
         if nqp::chars($line) || !nqp::eoffh($io) {
-            $!ins = $!ins + 1;
             $line
         }
         else {

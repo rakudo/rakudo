@@ -61,7 +61,7 @@ class Compiler does Systemic {
 
             my $sysinfo = System::Info.new;
             nqp::push_s($items,"sysinfo::{ .name }={ $sysinfo.$_ // '' }")
-              for $sysinfo.^methods.grep: *.name ne 'new';
+              for $sysinfo.^methods.grep: { .count == 1 && .name ne 'new' };
         }
 
         my str $string = nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items));

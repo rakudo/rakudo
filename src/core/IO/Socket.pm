@@ -67,6 +67,25 @@ my role IO::Socket {
         $res
     }
 
+    method get() {
+        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
+        nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));
+        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
+        my str $line = nqp::readlinechompfh($io);
+        if nqp::chars($line) || !nqp::eoffh($io) {
+            $line
+        }
+        else {
+            Nil
+        }
+    }
+
+    method lines() {
+        gather while (my $line = self.get()).DEFINITE {
+            take $line;
+        }
+    }
+
     method poll(Int $bitmask, $seconds) {
         die 'Socket.poll is NYI'
     }

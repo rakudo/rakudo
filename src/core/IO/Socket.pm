@@ -92,14 +92,11 @@ my role IO::Socket {
     }
 
     method print(Str(Cool) $string --> True) {
-        fail("Not connected") unless $!PIO;
-        nqp::printfh($!PIO, nqp::unbox_s($string));
+        self.write($string.encode($!encoding));
     }
 
     method put(Str(Cool) $string --> True) {
-        fail("Not connected") unless $!PIO;
-        nqp::printfh($!PIO, nqp::unbox_s($string));
-        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        self.print($string ~ $!nl-out);
     }
 
     method write(Blob:D $buf --> True) {

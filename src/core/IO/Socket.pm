@@ -87,10 +87,6 @@ my role IO::Socket {
         }
     }
 
-    method poll(Int $bitmask, $seconds) {
-        die 'Socket.poll is NYI'
-    }
-
     method print(Str(Cool) $string --> True) {
         self.write($string.encode($!encoding));
     }

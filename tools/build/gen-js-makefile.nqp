@@ -80,6 +80,7 @@ my $Perl6-Optimizer := nqp($Optimizer-nqp, "$blib/Perl6-Optimizer.js", :deps([$P
 my $Perl6-Compiler := nqp('src/Perl6/Compiler.nqp', "$blib/Perl6-Compiler.js", :deps([$Perl6-Optimizer]));
 
 my $main-version := $build_dir ~ '/main-version.nqp';
+@produced.push($main-version);
 
 # TODO - generate a new version on changes
 rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
@@ -93,6 +94,7 @@ my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";
 rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
     "./nqp-js tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
 ); 
+@produced.push($Metamodel-combined);
 
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-BOOTSTRAP.nqp>);
 

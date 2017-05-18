@@ -17,6 +17,11 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
     method consume-all-chars(--> Str:D) {
         nqp::decodertakeallchars(self)
     }
+
+    method consume-exactly-chars(int $chars --> Str) {
+        my str $result = nqp::decodertakechars(self, $chars);
+        nqp::isnull_s($result) ?? Str !! $result
+    }
 }
 
 augment class Rakudo::Internals {

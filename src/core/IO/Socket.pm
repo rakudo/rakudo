@@ -3,17 +3,30 @@ my role IO::Socket {
     has Str $.encoding = 'utf8';
     has $.nl-in is rw = ["\n", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
+    has Rakudo::Internals::VMBackedDecoder $!decoder;
 
-    # if bin is true, will return Buf, Str otherwise
-    method recv(Cool $chars = Inf, :$bin? = False) {
+    method !ensure-decoder(--> Nil) {
+        $!decoder.DEFINITE or
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding)
+    }
+
+    # The if bin is true, will return Buf, Str otherwise
+    method recv(Int(Cool) $limit = 65535, :$bin? = False) {
         fail('Socket not available') unless $!PIO;
         if $bin {
-            nqp::readfh($!PIO, nqp::decont(buf8.new),
-                $chars == Inf ?? 1048576 !! $chars.Int);
+            nqp::readfh($!PIO, nqp::decont(buf8.new), $limit)
         }
         else {
-            nqp::p6box_s(nqp::readcharsfh($!PIO,
-                $chars == Inf ?? 1048576 !! $chars.Int));
+            self!ensure-decoder();
+            my $result = $!decoder.consume-exactly-chars($limit);
+            without $result {
+                $!decoder.add-bytes(nqp::readfh($!PIO, nqp::decont(buf8.new), 65535));
+                $result = $!decoder.consume-exactly-chars($limit);
+                without $result {
+                    $result = $!decoder.consume-all-chars();
+                }
+            }
+            $result
         }
     }
 

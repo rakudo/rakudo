@@ -2,6 +2,7 @@ my role IO::Socket {
     has $!PIO;
     has Str $.encoding = 'utf8';
     has $.nl-in is rw = ["\n", "\r\n"];
+    has Str:D $.nl-out is rw = "\n";
 
     # JVM has a buffer here; Moar does enough buffering of its own
     # and gets it much more correct when bytes cross boundaries, so we use its.
@@ -98,7 +99,7 @@ my role IO::Socket {
     method put(Str(Cool) $string --> True) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));
-        nqp::printfh($!PIO, nqp::unbox_s("\n"));  # XXX should be $!nl-out
+        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
     }
 
     method write(Blob:D $buf --> True) {

@@ -1,5 +1,8 @@
 my role IO::Socket {
     has $!PIO;
+    has Str $.encoding = 'utf8';
+    has $.nl-in is rw = ["\x0A", "\r\n"];
+
     # JVM has a buffer here; Moar does enough buffering of its own
     # and gets it much more correct when bytes cross boundaries, so we use its.
 #?if jvm

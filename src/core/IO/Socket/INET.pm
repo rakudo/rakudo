@@ -18,7 +18,6 @@ my class IO::Socket::INET does IO::Socket {
         constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
 
-    has Str $.encoding = 'utf8';
     has Str $.host;
     has Int $.port;
     has Str $.localhost;
@@ -28,7 +27,6 @@ my class IO::Socket::INET does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    has $.nl-in is rw = ["\x0A", "\r\n"];
     has int $.ins;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {

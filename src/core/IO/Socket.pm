@@ -90,12 +90,12 @@ my role IO::Socket {
         die 'Socket.poll is NYI'
     }
 
-    method print (Str(Cool) $string --> True) {
+    method print(Str(Cool) $string --> True) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));
     }
 
-    method put (Str(Cool) $string --> True) {
+    method put(Str(Cool) $string --> True) {
         fail("Not connected") unless $!PIO;
         nqp::printfh($!PIO, nqp::unbox_s($string));
         nqp::printfh($!PIO, nqp::unbox_s("\n"));  # XXX should be $!nl-out
@@ -106,7 +106,7 @@ my role IO::Socket {
         nqp::writefh($!PIO, nqp::decont($buf));
     }
 
-    method close (--> True) {
+    method close(--> True) {
         fail("Not connected!") unless $!PIO;
         nqp::closefh($!PIO);
         $!PIO := nqp::null;

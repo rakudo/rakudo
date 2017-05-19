@@ -52,10 +52,9 @@ sub get-last-release-date-for ($rakudo-repo) {
     # .first's regex gives us the last non-point release
     # and we need the .slurps to silence "fatal write reset by peer" errors
     my $tag = run(
-        :out, :cwd($rakudo-repo),
-          <git for-each-ref --sort=taggerdate --format=%(refname) refs/tags>
-        ).out.slurp(:close).lines.reverse
-        .first(/^ 'refs/tags/' \d**4 '.' \d**2 $/).substr('refs/tags/'.chars)
+          :out, :cwd($rakudo-repo),
+          <git for-each-ref --sort=taggerdate --format=%(tag) refs/tags>
+        ).out.slurp(:close).lines.reverse.first: *.chars == chars '20XX.XX'
       or die "Failed to find a release tag for latest release";
 
     Date.new: Instant.from-posix: run(

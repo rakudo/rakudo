@@ -49,7 +49,7 @@ sub MAIN (
 }
 
 sub get-last-release-date-for ($rakudo-repo) {
-    # .first's regex gives us the last non-point release
+    # .first's filter gives us the last non-point release
     # and we need the .slurps to silence "fatal write reset by peer" errors
     my $tag = run(
           :out, :cwd($rakudo-repo),

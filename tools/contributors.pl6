@@ -53,11 +53,9 @@ sub get-last-release-date-for ($rakudo-repo) {
     # and we need the .slurps to silence "fatal write reset by peer" errors
     my $tag = run(
         :out, :cwd($rakudo-repo),
-        <git for-each-ref --sort=taggerdate --format>,
-        q|%(refname) %(taggerdate)|, q|refs/tags|
-      ).out.slurp(:close).lines.reverse
-      .first(/^ 'refs/tags/' \d**4 '.' \d**2 \s+/)
-      .substr('refs/tags/'.chars, '20XX.XX'.chars)
+          <git for-each-ref --sort=taggerdate --format=%(refname) refs/tags>
+        ).out.slurp(:close).lines.reverse
+        .first(/^ 'refs/tags/' \d**4 '.' \d**2 $/).substr('refs/tags/'.chars)
       or die "Failed to find a release tag for latest release";
 
     Date.new: Instant.from-posix: run(

@@ -6,8 +6,10 @@ my role IO::Socket {
     has Rakudo::Internals::VMBackedDecoder $!decoder;
 
     method !ensure-decoder(--> Nil) {
-        $!decoder.DEFINITE or
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding)
+        unless $!decoder.DEFINITE {
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder.set-line-separators($!nl-in);
+        }
     }
 
     # The if bin is true, will return Buf, Str otherwise
@@ -44,16 +46,37 @@ my role IO::Socket {
         $res
     }
 
+    method nl-in is rw {
+        Proxy.new(
+            FETCH => { $!nl-in },
+            STORE => -> $, $nl-in {
+                $!nl-in = $nl-in;
+                with $!decoder {
+                    .set-line-separators($!nl-in.list);
+                }
+                $nl-in
+            }
+        )
+    }
+
     method get() {
-        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
-        nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));
-        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
-        my str $line = nqp::readlinechompfh($io);
-        if nqp::chars($line) || !nqp::eoffh($io) {
+        self!ensure-decoder();
+        my Str $line = $!decoder.consume-line-chars(:chomp);
+        if $line.DEFINITE {
             $line
         }
         else {
-            Nil
+            loop {
+                my $read = nqp::readfh($!PIO, nqp::decont(buf8.new), 65535);
+                $!decoder.add-bytes($read);
+                $line = $!decoder.consume-line-chars(:chomp);
+                last if $line.DEFINITE;
+                if $read == 0 {
+                    $line = $!decoder.consume-line-chars(:chomp, :eof);
+                    last;
+                }
+            }
+            $line.DEFINITE ?? $line !! Nil
         }
     }
 

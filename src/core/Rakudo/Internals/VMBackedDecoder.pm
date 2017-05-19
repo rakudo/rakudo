@@ -22,6 +22,17 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
         my str $result = nqp::decodertakechars(self, $chars);
         nqp::isnull_s($result) ?? Str !! $result
     }
+
+    method set-line-separators(@seps --> Nil) {
+        my $sep-strs := nqp::list_s();
+        nqp::push_s($sep-strs, .Str) for @seps;
+        nqp::decodersetlineseps(self, $sep-strs);
+    }
+
+    method consume-line-chars(Bool:D :$chomp = False, Bool:D :$eof = False --> Str) {
+        my str $line = nqp::decodertakeline(self, $chomp, $eof);
+        nqp::isnull_s($line) ?? Str !! $line
+    }
 }
 
 augment class Rakudo::Internals {

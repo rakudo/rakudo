@@ -149,7 +149,7 @@ my class Promise does Awaitable {
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            Promise.start( { code(self) }, :$!scheduler);
+            self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
             # Create a Promise, and push 2 entries to @!thens: something that

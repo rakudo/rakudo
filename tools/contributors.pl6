@@ -49,12 +49,20 @@ sub MAIN (
 }
 
 sub get-last-release-date-for ($rakudo-repo) {
-    given $rakudo-repo.IO.child('VERSION') {
-        .e or die "Could not find rakudo's VERSION file at $_";
-        Date.new: Instant.from-posix: run(
-            :out, :cwd($rakudo-repo), <git log --pretty=format:%ct>, $_
-        ).out.lines.head;
-    }
+    # .first's regex gives us the last non-point release
+    # and we need the .slurps to silence "fatal write reset by peer" errors
+    my $tag = run(
+        :out, :cwd($rakudo-repo),
+        <git for-each-ref --sort=taggerdate --format>,
+        q|%(refname) %(taggerdate)|, q|refs/tags|
+      ).out.slurp(:close).lines.reverse
+      .first(/^ 'refs/tags/' \d**4 '.' \d**2 \s+/)
+      .substr('refs/tags/'.chars, '20XX.XX'.chars)
+      or die "Failed to find a release tag for latest release";
+
+    Date.new: Instant.from-posix: run(
+        :out, :cwd($rakudo-repo), <git log --pretty=format:%ct>, $tag
+    ).out.slurp(:close).lines.head;
 }
 
 sub get-committers($repo, $since) {

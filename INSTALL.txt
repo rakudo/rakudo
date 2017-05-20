@@ -54,9 +54,9 @@
 
     If you would like readline-like features, such as command history, line
     editing, and tab completion for builtins, you should install the Linenoise
-    module via panda:
+    module via zef:
 
-        $ panda install Linenoise
+        $ zef install Linenoise
 
     Important: To run Rakudo from outside the build directory, you must run
 

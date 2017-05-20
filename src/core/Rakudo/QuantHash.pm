@@ -11,10 +11,12 @@ my class Rakudo::QuantHash {
               self
             )
         }
-        method new(\elems, \count) {
+        method new(Mu \elems, \count) {
             nqp::if(
-              elems && nqp::elems(elems) && count >= 1,
-              nqp::create(self)!SET-SELF(elems, count),
+              (my $todo := Rakudo::QuantHash.TODO(count))
+                && elems
+                && nqp::elems(elems),
+              nqp::create(self)!SET-SELF(elems, $todo),
               Rakudo::Iterator.Empty
             )
         }
@@ -34,15 +36,11 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # Return a list_s of all keys of the given IterationSet in random order.
+    # Return a list_s of N keys of the given IterationSet in random order.
     method PICK-N(Mu \elems, \count) {
         nqp::stmts(
           (my int $elems = nqp::elems(elems)),
-          (my int $count = nqp::if(
-            count >= nqp::elems(elems),
-            nqp::elems(elems),
-            count.Int
-          )),
+          (my int $count = nqp::if(count > $elems,$elems,count)),
           (my $keys := nqp::setelems(nqp::list_s,$elems)),
           (my $iter := nqp::iterator(elems)),
           (my int $i = -1),

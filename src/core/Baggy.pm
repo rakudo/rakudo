@@ -478,11 +478,17 @@ my role Baggy does QuantHash {
           Nil
         )
     }
+    multi method roll(Baggy:D: Whatever) { self.roll(Inf) }
     multi method roll(Baggy:D: $count) {
-        Seq.new(nqp::istype($count,Whatever) || $count == Inf
-          ?? Rakudo::Iterator.Roller(self)
-          !! self!ROLLPICKGRABN($count, %!elems.values, :keep)
-        )
+        Seq.new(nqp::if(
+          $count < 1,
+          Rakudo::Iterator.Empty,
+          nqp::if(
+            $count == Inf,
+            Rakudo::Iterator.Roller(self),
+            self!ROLLPICKGRABN($count.Int, %!elems.values, :keep)
+          )
+        ))
     }
 
     method !ROLLPICKGRABN(Int() $count, @pairs, :$keep) { # N times

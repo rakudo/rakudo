@@ -140,15 +140,11 @@ my role Setty does QuantHash {
         nqp::if(
           $!elems,
           nqp::stmts(
-            (my $value := nqp::atkey(
-              $!elems,
-              (my $key := nqp::atpos_s(
-                self.raw_keys,
-                nqp::elems($!elems).rand.floor
-              ))
+            (my $object := nqp::iterval(
+              my $iter := Rakudo::QuantHash.ROLL($!elems)
             )),
-            nqp::deletekey($!elems,$key),
-            $value
+            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
+            $object
           ),
           Nil
         )

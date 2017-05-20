@@ -76,7 +76,8 @@ New in 2017.05:
     + Added Seq.Capture method (makes it possible to unpack Seqs in signatures) [98e137b1]
     + Added QuantHash.Capture [5e74017d]
     + Made `(^)`, `(+)`, `(.)` multis [8b8f66c0][44893e6a][48ce8701]
-    + Added primary and foreign key constraints to profiler's SQL output [c776c087]
+    + Added primary and foreign key constraints and renamed some fields in
+        profiler's SQL output [c776c087]
     + Added WhateverCode candidates to Map.roll and (Bag|Mix)Hash.grabpairs [1e58925c][2bda2703]
     + Made Baggy.roll/.pick/.grab Int-ify their $count arguments [31be5128]
     + Added big int support for `+<` and `+>` ops [6409ee58][ef29bb9f][66e8e72c]

@@ -26,7 +26,7 @@ my class Rakudo::QuantHash {
     # given IterationSet
     method ROLL(Mu \elems) {
         nqp::stmts(
-          (my int $i = nqp::add_i(nqp::elems(elems).rand.floor,1)),
+          (my int $i = nqp::add_i(nqp::rand_n(nqp::elems(elems)),1)),
           (my $iter := nqp::iterator(elems)),
           nqp::while(
             nqp::shift($iter) && ($i = nqp::sub_i($i,1)),

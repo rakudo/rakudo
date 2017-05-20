@@ -217,10 +217,12 @@ my class BagHash does Baggy {
     multi method grab(BagHash:D: Whatever) { self.grab(Inf) }
     multi method grab(BagHash:D: $count) {
         Seq.new(nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw) && $count > 0,
+          (my $todo = Rakudo::QuantHash.TODO($count))
+            && (my $raw := self.raw_hash)
+            && nqp::elems($raw),
           nqp::stmts(
-            (my $total = self.total),
-            (my $todo = nqp::if($count > $total,$total,$count.Int)),
+            (my Int $total = self.total),
+            nqp::if($todo > $total,$todo = $total),
             Rakudo::Iterator.Callable( {
                 nqp::if(
                   $todo,
@@ -232,11 +234,7 @@ my class BagHash does Baggy {
                 )
             } )
           ),
-          nqp::if(
-            $count === NaN,
-            die("Cannot coerce NaN to an Int"),
-            Rakudo::Iterator.Empty
-          )
+          Rakudo::Iterator.Empty
         ))
     }
 }

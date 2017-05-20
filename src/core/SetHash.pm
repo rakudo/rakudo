@@ -32,7 +32,7 @@ my class SetHash does Setty {
             STORE => -> $, $value {
                 nqp::stmts(
                   nqp::if(
-                    $value,
+                    nqp::isgt_i($value,0),
                     nqp::bindkey(storage,nqp::iterkey_s(iter),$object),
                     nqp::deletekey(storage,nqp::iterkey_s(iter))
                   ),

@@ -1,5 +1,12 @@
 New in 2017.05:
  + Fixes:
+    + Made Promise subclass-friendly [a61746fe][a7c23aa2]
+    + Fixed unwanted warnings on Windows with `$*HOME` [4ae7c697]
+    + Fixed handling of `<1` and NaN in Baggy.pick/.roll [40e4e132][e5d2c6f6]
+    + Fixed NaN and empty Baggy handling with Baggy.pick/.(pick|grab)pairs
+        [abc0509c][22ba2317][22ba2317][44c89ed9]
+    + Fixed SetHash.(iterator|values|kv) to have same semantics
+        as (Bag|Mix)Hashes [e5b5d346][e9ae0047]
     + Fixed off-by-one in `lines` routines when `:close` is given [bf399380]
     + Fixed `$*CWD` inside IO::Path.dir's :test Callable [b2a64a13]
     + Fixed regression with IO::Handle.close's value sunked in .slurp [84eb3599]

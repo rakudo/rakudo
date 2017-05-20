@@ -65,7 +65,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
         $HOME = $home;
     }
     elsif Rakudo::Internals.IS-WIN {
-        $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
+        my $env := %*ENV;
+        $env<HOMEDRIVE> && $env<HOMEPATH> && ($HOME
+          = nqp::concat($env<HOMEDRIVE>, $env<HOMEPATH>));
     }
 
     $HOME = IO::Path.new($HOME) if $HOME;

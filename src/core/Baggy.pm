@@ -445,23 +445,25 @@ my role Baggy does QuantHash {
         Seq.new(nqp::if(
           $count < 1,
           Rakudo::Iterator.Empty,
-          nqp::stmts(
-            (my Int $todo = nqp::if($count == Inf,self.total,$count.Int)),
-            (my $hash     := nqp::getattr(%!elems,Map,'$!storage')),
-            (my int $elems = nqp::elems($hash)),
-            (my $pairs    := nqp::setelems(nqp::list,$elems)),
-            (my $iter     := nqp::iterator($hash)),
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($pairs,$i,Pair.new(
-                nqp::getattr(
-                  (my $pair := nqp::iterval(nqp::shift($iter))),Pair,'$!key'),
-                nqp::assign(nqp::p6scalarfromdesc(nqp::null),
-                  nqp::getattr($pair,Pair,'$!value'))
-              ))
+          nqp::if(
+            (my $raw := self.raw_hash) && (my int $elems = nqp::elems($raw)),
+            nqp::stmts(
+              (my Int $todo = nqp::if($count == Inf,self.total,$count.Int)),
+              (my $pairs := nqp::setelems(nqp::list,$elems)),
+              (my $iter := nqp::iterator($raw)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos($pairs,$i,Pair.new(
+                  nqp::getattr(
+                    (my $pair := nqp::iterval(nqp::shift($iter))),Pair,'$!key'),
+                  nqp::assign(nqp::p6scalarfromdesc(nqp::null),
+                    nqp::getattr($pair,Pair,'$!value'))
+                ))
+              ),
+              self!ROLLPICKGRABN($todo,$pairs)
             ),
-            self!ROLLPICKGRABN($todo,$pairs)
+            Rakudo::Iterator.Empty
           )
         ))
     }

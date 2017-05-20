@@ -10,41 +10,47 @@ my class SetHash does Setty {
         )
     }
 
-    role SetHashMappy does Rakudo::Iterator::Mappy {
-        method ISINSET(\key) {
-            Proxy.new(
-              FETCH => {
-                  nqp::p6bool(
-                    nqp::existskey(
-                      nqp::getattr(self,::?CLASS,'$!storage'),
-                      key
-                    )
-                  )
-              },
-              STORE => -> $, \value {
-                  nqp::stmts(
-                    nqp::unless(
-                      value,
-                      nqp::deletekey(
-                        nqp::getattr(self,::?CLASS,'$!storage'),
-                        key
-                      )
-                    ),
-                    value
-                  )
-              }
-            )
-        }
+#--- iterator methods
+
+    sub proxy(Mu \iter,Mu \storage) is raw {
+        # We are only sure that the key exists when the Proxy
+        # is made, but we cannot be sure of its existence when
+        # either the FETCH or STORE block is executed.  So we
+        # still need to check for existence, and handle the case
+        # where we need to (re-create) the key and value.  The
+        # logic is therefore basically the same as in AT-KEY,
+        # except for tests for allocated storage and .WHICH
+        # processing.
+        nqp::stmts(
+          # save object for potential recreation
+          (my $object := nqp::iterval(iter)),
+
+          Proxy.new(
+            FETCH => {
+                nqp::p6bool(nqp::existskey(storage,nqp::iterkey_s(iter)))
+            },
+            STORE => -> $, $value {
+                nqp::stmts(
+                  nqp::if(
+                    $value,
+                    nqp::bindkey(storage,nqp::iterkey_s(iter),$object),
+                    nqp::deletekey(storage,nqp::iterkey_s(iter))
+                  ),
+                  $value.Bool
+                )
+            }
+          )
+        )
     }
 
     method iterator(SetHash:D:) {
-        class :: does SetHashMappy {
+        class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
                 Pair.new(
                   nqp::iterval(nqp::shift($!iter)),
-                  self.ISINSET(nqp::iterkey_s($!iter))
+                  proxy($!iter,$!storage)
                 ),
                 IterationEnd
               )
@@ -53,51 +59,41 @@ my class SetHash does Setty {
     }
 
     multi method kv(SetHash:D:) {
-        Seq.new(class :: does SetHashMappy {
-            has int $!on-value;
-            method pull-one() {
-              nqp::if(
-                $!on-value,
-                nqp::stmts(
-                  ($!on-value = 0),
-                  self.ISINSET(nqp::iterkey_s($!iter))
-                ),
+        Seq.new(class :: does Rakudo::Iterator::Mappy-kv-from-pairs {
+            method pull-one() is raw {
                 nqp::if(
-                  $!iter,
+                  $!on,
                   nqp::stmts(
-                    ($!on-value = 1),
-                    nqp::iterval(nqp::shift($!iter))
+                    ($!on = 0),
+                    proxy($!iter,$!storage)
                   ),
-                  IterationEnd
-                )
-              )
-            }
-            method skip-one() {
-                nqp::if(
-                  $!on-value,
-                  nqp::not_i($!on-value = 0),   # skipped a value
                   nqp::if(
-                    $!iter,                     # if false, we didn't skip
-                    nqp::stmts(                 # skipped a key
-                      nqp::shift($!iter),
-                      ($!on-value = 1)
-                    )
+                    $!iter,
+                    nqp::stmts(
+                      ($!on = 1),
+                      nqp::iterval(nqp::shift($!iter))
+                    ),
+                    IterationEnd
                   )
                 )
             }
-            method count-only() {
-                nqp::p6box_i(
-                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    $target.push(nqp::iterval(nqp::shift($!iter))),
+                    $target.push(True)
+                  )
                 )
             }
         }.new(self.hll_hash))
     }
     multi method values(SetHash:D:) {
-        Seq.new(class :: does SetHashMappy {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
-                self.ISINSET(nqp::iterkey_s(nqp::shift($!iter))),
+                proxy(nqp::shift($!iter),$!storage),
                 IterationEnd
               )
             }
@@ -155,12 +151,13 @@ my class SetHash does Setty {
           }
         )
     }
+
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
         nqp::p6bool(
           nqp::if(
-            $!elems && nqp::existskey($!elems,(my $key := k.WHICH)),
+            $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
             nqp::stmts(
-              nqp::deletekey($!elems,$key),
+              nqp::deletekey($!elems,$which),
               1
             )
           )

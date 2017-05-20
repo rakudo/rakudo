@@ -459,10 +459,10 @@ my role Baggy does QuantHash {
           ))
         );
 
-        self!ROLLPICKGRABN(
+        Seq.new(self!ROLLPICKGRABN(
           nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
           $pairs
-        )
+        ))
     }
 
     proto method roll(|) { * }
@@ -478,13 +478,14 @@ my role Baggy does QuantHash {
         )
     }
     multi method roll(Baggy:D: $count) {
-        nqp::istype($count,Whatever) || $count == Inf
-          ?? Seq.new(Rakudo::Iterator.Roller(self))
-          !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
+        Seq.new(nqp::istype($count,Whatever) || $count == Inf
+          ?? Rakudo::Iterator.Roller(self)
+          !! self!ROLLPICKGRABN($count, %!elems.values, :keep)
+        )
     }
 
     method !ROLLPICKGRABN(Int() $count, @pairs, :$keep) { # N times
-        Seq.new(class :: does Iterator {
+        class :: does Iterator {
             has Int $!total;
             has int $!elems;
             has $!pairs;
@@ -529,7 +530,7 @@ my role Baggy does QuantHash {
                 }
                 IterationEnd
             }
-        }.new(self.total,@pairs,$keep,$count))
+        }.new(self.total,@pairs,$keep,$count)
     }
 
 #--- classification method

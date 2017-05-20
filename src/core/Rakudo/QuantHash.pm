@@ -66,6 +66,24 @@ my class Rakudo::QuantHash {
           $picked
         )
     }
+
+    # Return number of items to be done if > 0, or 0 if < 1, or throw if NaN
+    method TODO(\count) is raw {
+        nqp::if(
+          count < 1,
+          0,
+          nqp::if(
+            count == Inf,
+            count,
+            nqp::if(
+              nqp::istype((my $todo := count.Int),Failure),
+              $todo.throw,
+              $todo
+            )
+          )
+        )
+    }
+
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly

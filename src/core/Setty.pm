@@ -142,9 +142,22 @@ my role Setty does QuantHash {
     proto method pick(|) { * }
     multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
-        self.hll_hash.values.pick($calculate(self.elems))
+        self.pick( $calculate(self.elems) )
     }
-    multi method pick(Setty:D: $count) { self.hll_hash.values.pick($count) }
+    multi method pick(Setty:D: Whatever $) {
+        self.pick(Inf)
+    }
+    multi method pick(Setty:D: $count) {
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::atkey($!elems,nqp::pop_s($!picked)),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
+    }
 
     proto method roll(|) { * }
     multi method roll(Setty:D:) {

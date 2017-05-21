@@ -136,7 +136,6 @@ my role Setty does QuantHash {
     }
 
     proto method grab(|) { * }
-
     proto method grabpairs(|) { * }
 
     proto method pick(|) { * }
@@ -153,6 +152,26 @@ my role Setty does QuantHash {
                 nqp::if(
                   nqp::elems($!picked),
                   nqp::atkey($!elems,nqp::pop_s($!picked)),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
+    }
+
+    proto method pickpairs(|) { * }
+    multi method pickpairs(Setty:D:) { Pair.new(self.roll,True) }
+    multi method pickpairs(Setty:D: Callable:D $calculate) {
+        self.pickpairs( $calculate(self.elems) )
+    }
+    multi method pickpairs(Setty:D: Whatever $) {
+        self.pickpairs(Inf)
+    }
+    multi method pickpairs(Setty:D: $count) {
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True),
                   IterationEnd
                 )
             }

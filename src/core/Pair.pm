@@ -2,6 +2,7 @@ my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
 
+    proto method new(|) { * }
     multi method new(Pair: Cool:D \key, Mu \value) {
         my \p := nqp::p6bindattrinvres(
           nqp::create(self),Pair,'$!key',nqp::decont(key));

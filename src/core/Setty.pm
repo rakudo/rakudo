@@ -136,25 +136,6 @@ my role Setty does QuantHash {
     }
 
     proto method grab(|) { * }
-    multi method grab(Setty:D:) {
-        nqp::if(
-          $!elems,
-          nqp::stmts(
-            (my $object := nqp::iterval(
-              my $iter := Rakudo::QuantHash.ROLL($!elems)
-            )),
-            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
-            $object
-          ),
-          Nil
-        )
-    }
-    multi method grab(Setty:D: Callable:D $calculate) {
-        self.grab($calculate(self.elems))
-    }
-    multi method grab(Setty:D: $count) {
-        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).cache;
-    }
 
     proto method grabpairs(|) { * }
     multi method grabpairs(Setty:D:) {

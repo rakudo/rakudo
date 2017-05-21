@@ -10,6 +10,27 @@ my class SetHash does Setty {
         )
     }
 
+#--- selector methods
+    multi method grab(Setty:D:) {
+        nqp::if(
+          $!elems,
+          nqp::stmts(
+            (my $object := nqp::iterval(
+              my $iter := Rakudo::QuantHash.ROLL($!elems)
+            )),
+            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
+            $object
+          ),
+          Nil
+        )
+    }
+    multi method grab(Setty:D: Callable:D $calculate) {
+        self.grab($calculate(self.elems))
+    }
+    multi method grab(Setty:D: $count) {
+        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).cache;
+    }
+
 #--- iterator methods
 
     sub proxy(Mu \iter,Mu \storage) is raw {

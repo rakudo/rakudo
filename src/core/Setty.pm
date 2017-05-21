@@ -163,7 +163,43 @@ my role Setty does QuantHash {
           Nil
         )
     }
-    multi method roll(Setty:D: $count) { self.hll_hash.values.roll($count) }
+    multi method roll(Setty:D: Callable:D $calculate) {
+        self.roll($calculate(self.elems))
+    }
+    multi method roll(Setty:D: Whatever) {
+        self.roll(Inf)
+    }
+    multi method roll(Setty:D: $count) {
+        Seq.new(nqp::if(
+          (my $todo = Rakudo::QuantHash.TODO($count))
+            && $!elems
+            && (my int $elems = nqp::elems($!elems)),
+          nqp::stmts(
+            (my $keys := self.raw_keys),
+            nqp::if(
+              $todo == Inf,
+              Rakudo::Iterator.Callable(
+                { nqp::atkey($!elems,nqp::atpos_s($keys,nqp::rand_n($elems))) },
+                True
+              ),
+              Rakudo::Iterator.Callable( {
+                  nqp::if(
+                    $todo,
+                    nqp::stmts(
+                      --$todo,
+                      nqp::atkey(
+                        $!elems,
+                        nqp::atpos_s($keys,nqp::rand_n($elems))
+                      )
+                    ),
+                    IterationEnd
+                  )
+              } )
+            )
+          ),
+          Rakudo::Iterator.Empty
+        ))
+    }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))

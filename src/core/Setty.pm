@@ -140,16 +140,7 @@ my role Setty does QuantHash {
     proto method grabpairs(|) { * }
 
     proto method pick(|) { * }
-    multi method pick(Setty:D:) {
-        nqp::if(
-          $!elems,
-          nqp::atkey(
-            $!elems,
-            nqp::atpos_s(self.raw_keys,nqp::elems($!elems).rand.floor)
-          ),
-          Nil
-        )
-    }
+    multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.hll_hash.values.pick($calculate(self.elems))
     }

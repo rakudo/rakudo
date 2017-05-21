@@ -138,15 +138,6 @@ my role Setty does QuantHash {
     proto method grab(|) { * }
 
     proto method grabpairs(|) { * }
-    multi method grabpairs(Setty:D:) {
-        Pair.new(self.grab,True)
-    }
-    multi method grabpairs(Setty:D: Callable:D $calculate) {
-        self.grabpairs($calculate(self.elems))
-    }
-    multi method grabpairs(Setty:D: $count) {
-        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).map( { ($_=>True) } );
-    }
 
     proto method pick(|) { * }
     multi method pick(Setty:D:) {

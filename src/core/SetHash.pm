@@ -50,6 +50,16 @@ my class SetHash does Setty {
         }.new($!elems, $count))
     }
 
+    multi method grabpairs(SetHash:D:) {
+        Pair.new(self.grab,True)
+    }
+    multi method grabpairs(SetHash:D: Callable:D $calculate) {
+        self.grabpairs($calculate(self.elems))
+    }
+    multi method grabpairs(SetHash:D: $count) {
+        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).map( { ($_=>True) } );
+    }
+
 #--- iterator methods
 
     sub proxy(Mu \iter,Mu \storage) is raw {

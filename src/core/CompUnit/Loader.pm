@@ -43,7 +43,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
-#?if moar
+#?if !jvm
         nqp::loadbytecodefh(nqp::getattr($file, IO::Handle, '$!PIO'), $file.path.Str);
 #?endif
         $handle

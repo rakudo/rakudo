@@ -156,7 +156,13 @@ my role Setty does QuantHash {
     multi method pick(Setty:D: $count) { self.hll_hash.values.pick($count) }
 
     proto method roll(|) { * }
-    multi method roll(Setty:D:)       { self.hll_hash.values.roll()       }
+    multi method roll(Setty:D:) {
+        nqp::if(
+          $!elems,
+          nqp::iterval(Rakudo::QuantHash.ROLL($!elems)),
+          Nil
+        )
+    }
     multi method roll(Setty:D: $count) { self.hll_hash.values.roll($count) }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {

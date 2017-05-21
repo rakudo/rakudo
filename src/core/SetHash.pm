@@ -11,7 +11,8 @@ my class SetHash does Setty {
     }
 
 #--- selector methods
-    multi method grab(Setty:D:) {
+
+    multi method grab(SetHash:D:) {
         nqp::if(
           $!elems,
           nqp::stmts(
@@ -24,11 +25,29 @@ my class SetHash does Setty {
           Nil
         )
     }
-    multi method grab(Setty:D: Callable:D $calculate) {
+    multi method grab(SetHash:D: Callable:D $calculate) {
         self.grab($calculate(self.elems))
     }
-    multi method grab(Setty:D: $count) {
-        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).cache;
+    multi method grab(SetHash:D: Whatever) {
+        self.grab(Inf)
+    }
+    multi method grab(SetHash:D: $count) {
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::stmts(
+                    (my $object := nqp::atkey(
+                      $!elems,
+                      (my $key := nqp::pop_s($!picked))
+                    )),
+                    nqp::deletekey($!elems,$key),
+                    $object
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
     }
 
 #--- iterator methods

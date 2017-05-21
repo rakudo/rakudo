@@ -56,8 +56,26 @@ my class SetHash does Setty {
     multi method grabpairs(SetHash:D: Callable:D $calculate) {
         self.grabpairs($calculate(self.elems))
     }
+    multi method grabpairs(SetHash:D: Whatever) {
+        self.grabpairs(Inf)
+    }
     multi method grabpairs(SetHash:D: $count) {
-        (self.hll_hash{ self.hll_hash.keys.pick($count) }:delete).map( { ($_=>True) } );
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::stmts(
+                    (my $object := nqp::atkey(
+                      $!elems,
+                      (my $key := nqp::pop_s($!picked))
+                    )),
+                    nqp::deletekey($!elems,$key),
+                    Pair.new($object,True)
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
     }
 
 #--- iterator methods

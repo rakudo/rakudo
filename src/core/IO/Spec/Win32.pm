@@ -148,19 +148,34 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         }
     }
 
-    method catpath($volume is copy, $dirname, $file) {
-
-        # Make sure the glue separator is present
-        # unless it's a relative path like A:foo.txt
-        if $volume.chars and $dirname.chars
-           and $volume !~~ /^<$driveletter>/
-           and $volume !~~ /<$slash> $/
-           and $dirname !~~ /^ <$slash>/
-            { $volume ~= '\\' }
-        if $file.chars and $dirname.chars
-           and $dirname !~~ /<$slash> $/
-            { $volume ~ $dirname ~ '\\' ~ $file; }
-        else     { $volume ~ $dirname     ~    $file; }
+    method catpath($vol is copy, \dir, \file) {
+        nqp::stmts(
+          nqp::if(       # Make sure the glue separator is present
+            $vol && dir  # unless it's a relative path like A:foo.txt
+            && nqp::isfalse(
+              nqp::iseq_i(nqp::ord($vol, 1), 58) # /^ <[A..Z a..z]> ':'/
+                && (  (nqp::isge_i(nqp::ord($vol), 65) # 'A'
+                    && nqp::isle_i(nqp::ord($vol), 90)) # 'Z'
+                  ||  (nqp::isge_i(nqp::ord($vol), 97)  # 'a'
+                    && nqp::isle_i(nqp::ord($vol), 122)))) # 'z'
+            && nqp::isfalse( # /<[/\\]> $/
+                nqp::iseq_i(92, nqp::ord( # '\'
+                  $vol, nqp::sub_i(nqp::chars($vol), 1)))
+                || nqp::iseq_i(47, nqp::ord( # '/'
+                  $vol, nqp::sub_i(nqp::chars($vol), 1))))
+            && nqp::isfalse( # /^ /<[/\\]>/
+                nqp::iseq_i(92, nqp::ord(dir)) # '\'
+                || nqp::iseq_i(47, nqp::ord(dir))), # '/'
+            $vol = nqp::concat($vol, ｢\｣)),
+            nqp::if(
+              dir && file
+              && nqp::isfalse( # /<[/\\]> $/
+                  nqp::iseq_i(92, nqp::ord( # '\'
+                    dir, nqp::sub_i(nqp::chars(dir), 1)))
+                  || nqp::iseq_i(47, nqp::ord( # '/'
+                    dir, nqp::sub_i(nqp::chars(dir), 1)))),
+              nqp::concat($vol, nqp::concat(dir, nqp::concat(｢\｣, file))),
+              nqp::concat($vol, nqp::concat(dir,                  file))))
     }
 
     method rel2abs (Str() $path is copy, $base? is copy, :$omit-volume) {

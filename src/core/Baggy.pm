@@ -342,11 +342,39 @@ my role Baggy does QuantHash {
     multi method WHICH(Baggy:D:)   { self!WHICH }
     multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
     multi method Bool(Baggy:D: --> Bool:D) { %!elems.Bool }
-    multi method hash(Baggy:D: --> Hash:D) {
-        my \h = Hash.^parameterize(Any, Any).new;
-        h = %!elems.values;
-        h;
+
+    method HASHIFY(\type) {
+        nqp::stmts(
+          (my $hash := Hash.^parameterize(type,Any).new),
+          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          nqp::if(
+            (my $raw := self.raw_hash) && nqp::elems($raw),
+            nqp::stmts(
+              (my $storage := nqp::clone($raw)),
+              (my $iter := nqp::iterator($storage)),
+              nqp::while(
+                $iter,
+                nqp::bindkey(
+                  $storage,
+                  nqp::iterkey_s(nqp::shift($iter)),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($iter)),
+                    Pair,
+                    '$!value',
+                    (nqp::p6scalarfromdesc($descriptor) =
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                  )
+                )
+              ),
+              nqp::bindattr($hash,Map,'$!storage',$storage)
+            )
+          ),
+          $hash
+        )
     }
+    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
+    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+
     method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {

@@ -82,12 +82,12 @@ my role Setty does QuantHash {
         nqp::p6bool(nqp::istrue($!elems) && nqp::elems($!elems))
     }
 
-    multi method hash(Setty:D: --> Hash:D) {
+    method HASHIFY(\type) {
         nqp::stmts(
-          (my $hash := Hash.^parameterize(Bool,Any).new),
+          (my $hash := Hash.^parameterize(type,Any).new),
           (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
           nqp::if(
-            $!elems,
+            $!elems && nqp::elems($!elems),
             nqp::stmts(
               (my $storage := nqp::clone($!elems)),
               (my $iter := nqp::iterator($storage)),
@@ -108,6 +108,8 @@ my role Setty does QuantHash {
           $hash
         )
     }
+    multi method hash(Setty:D: --> Hash:D) { self.HASHIFY(Any) }
+    multi method Hash(Setty:D: --> Hash:D) { self.HASHIFY(Bool) }
 
     multi method ACCEPTS(Setty:U: $other) {
         $other.^does(self)

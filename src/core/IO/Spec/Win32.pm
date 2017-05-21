@@ -123,13 +123,20 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         (:$volume, :$dirname, :$basename)
     }
 
-    method join ($volume, $dirname is copy, $file is copy) {
-        $dirname = '' if $dirname eq '.' && $file.chars;
-        if $dirname.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
-            $file    = '';
-            $dirname = '' if $volume.chars > 2; #i.e. UNC path
-        }
-        self.catpath($volume, $dirname, $file);
+    method join (\vol, $dir is copy, $file is copy) {
+        nqp::stmts(
+          nqp::if(
+            $file && nqp::iseq_s($dir, '.'),
+            ($dir = ''),
+            nqp::if(
+                 (nqp::iseq_s($dir,  ｢\｣) || nqp::iseq_s($dir,  ｢/｣))
+              && (nqp::iseq_s($file, ｢\｣) || nqp::iseq_s($file, ｢/｣)),
+              nqp::stmts(
+                ($file = ''),
+                nqp::if(
+                  nqp::isgt_i(nqp::chars(vol), 2), # i.e. UNC path
+                  $dir = '')))),
+          self.catpath: vol, $dir, $file)
     }
 
     method splitpath(Str() $path, :$nofile = False) {

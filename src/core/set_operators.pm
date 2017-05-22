@@ -857,34 +857,28 @@ only sub infix:<⊄>($a, $b --> Bool:D) is pure {
 
 proto sub infix:<<(>=)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (>=) $b.Set(:view);
-}
-multi sub infix:<<(>=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
-    $a >= $b and so $b.keys.all (elem) $a;
+    $b (<=) $a
 }
 # U+2287 SUPERSET OF OR EQUAL TO
 only sub infix:<⊇>($a, $b --> Bool:D) is pure {
-    $a (>=) $b;
+    $b (<=) $a
 }
 # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
 only sub infix:<⊉>($a, $b --> Bool:D) is pure {
-    $a !(>=) $b;
+    not $b (<=) $a
 }
 
 proto sub infix:<<(>)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (>) $b.Set(:view);
-}
-multi sub infix:<<(>)>>(Setty:D $a, Setty:D $b --> Bool:D) {
-    $a > $b and so $b.keys.all (elem) $a;
+    $b (<) $a
 }
 # U+2283 SUPERSET OF
 only sub infix:<⊃>($a, $b --> Bool:D) is pure {
-    $a (>) $b;
+    $b (<) $a
 }
 # U+2285 NOT A SUPERSET OF
 only sub infix:<⊅>($a, $b --> Bool:D) is pure {
-    $a !(>) $b;
+    not $b (<) $a
 }
 
 proto sub infix:<(.)>(|) is pure { * }

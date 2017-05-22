@@ -123,7 +123,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         (:$volume, :$dirname, :$basename)
     }
 
-    method join (\vol, $dir is copy, $file is copy) {
+    method join (Str \vol, Str $dir is copy, Str $file is copy) {
         nqp::stmts(
           nqp::if(
             $file && nqp::iseq_s($dir, '.'),
@@ -155,7 +155,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         }
     }
 
-    method catpath($vol is copy, \dir, \file) {
+    method catpath(Str $vol is copy, Str \dir, Str \file) {
         nqp::stmts(
           nqp::if(       # Make sure the glue separator is present
             $vol && dir  # unless it's a relative path like A:foo.txt

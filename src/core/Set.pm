@@ -11,6 +11,13 @@ my class Set does Setty {
           set()
         )
     }
+    multi method new(Set:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Set),
+          set(),
+          nqp::create(self)
+        )
+    }
 
     multi method WHICH (Set:D:) {
         nqp::if(

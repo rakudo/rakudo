@@ -43,7 +43,13 @@ my class Mix does Mixy {
     }
 
 #--- object creation methods
-    multi method new(Mix:_:) { mix() }
+    multi method new(Mix:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Mix),
+          mix(),
+          nqp::create(self)
+        )
+    }
 
 #--- selection methods
     multi method grab($count? --> Real:D) {

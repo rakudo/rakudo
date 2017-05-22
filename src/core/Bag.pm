@@ -19,7 +19,13 @@ my class Bag does Baggy {
     }
 
 #--- object creation methods
-    multi method new(Bag:_:) { bag() }
+    multi method new(Bag:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Bag),
+          bag(),
+          nqp::create(self)
+        )
+    }
 
 #--- interface methods
     method SET-SELF(Bag:D: \elems) {

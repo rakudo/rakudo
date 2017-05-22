@@ -135,7 +135,6 @@ op.p6capturelex = function(ctx, codeObj) {
 };
 
 op.p6capturelexwhere = function(ctx, codeObj) {
-//  console.trace("p6captaturelexwhere");
   var closure = codeObj.$$getattr(Code, "$!do");
   var wantedStaticInfo = closure.staticCode.outerCodeRef;
 
@@ -149,7 +148,7 @@ op.p6capturelexwhere = function(ctx, codeObj) {
       }
       find = find.$$caller;
   }
-  console.log("HORRIBLE hack - p6capturelexwhere will do nothing");
+//  console.log("HORRIBLE hack - p6capturelexwhere will do nothing");
 
   return codeObj;
 };

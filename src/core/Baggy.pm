@@ -128,6 +128,16 @@ my role Baggy does QuantHash {
           0
         )
     }
+    multi method AT-KEY(Bag:D: \k) {
+        nqp::getattr(
+          nqp::ifnull(
+            nqp::atkey(self.raw_hash,k.WHICH),
+            BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+          ),
+          Pair,
+          '$!value'
+        )
+    }
     multi method DELETE-KEY(Baggy:D: \k) {
         nqp::if(
           (my $raw := self.raw_hash)

@@ -14,14 +14,6 @@ my class Mix does Mixy {
         )
     }
 
-    my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
-    multi method AT-KEY(Mix:D: \k) {
-        nqp::getattr( 
-          nqp::ifnull(nqp::atkey(self.raw_hash,k.WHICH),$p0),
-          Pair,
-          '$!value'
-        )
-    }
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

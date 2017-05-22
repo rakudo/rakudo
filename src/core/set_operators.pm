@@ -827,7 +827,7 @@ proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
     $a.Set(:view) (<=) $b.Set(:view);
 }
-multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool:D) {
+multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     $a <= $b and so $a.keys.all (elem) $b
 }
 # U+2286 SUBSET OF OR EQUAL TO
@@ -843,7 +843,7 @@ proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
     $a.Set(:view) (<) $b.Set(:view);
 }
-multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool:D) {
+multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     $a < $b and so $a.keys.all (elem) $b;
 }
 # U+2282 SUBSET OF
@@ -859,7 +859,7 @@ proto sub infix:<<(>=)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
     $a.Set(:view) (>=) $b.Set(:view);
 }
-multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool:D) {
+multi sub infix:<<(>=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     $a >= $b and so $b.keys.all (elem) $a;
 }
 # U+2287 SUPERSET OF OR EQUAL TO
@@ -875,7 +875,7 @@ proto sub infix:<<(>)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
     $a.Set(:view) (>) $b.Set(:view);
 }
-multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool:D) {
+multi sub infix:<<(>)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     $a > $b and so $b.keys.all (elem) $a;
 }
 # U+2283 SUPERSET OF

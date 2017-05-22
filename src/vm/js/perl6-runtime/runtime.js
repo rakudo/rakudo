@@ -230,6 +230,26 @@ op.p6decodelocaltime = function(sinceEpoch) {
     date.getMonth()+1,
     date.getFullYear()
   ]);
+}
+
+op.p6finddispatcher = function(ctx, usage, argss) {
+  let dispatcher;
+  let search = ctx.$$caller;
+  while (search) {
+    /* Do we have a dispatcher here? */
+    if (search.hasOwnProperty(["$*DISPATCHER"])) {
+      dispatcher = search["$*DISPATCHER"];
+      if (dispatcher.typeObject_) {
+        dispatcher = dispatcher.vivify_for(dispatcher, ctx.codeRef().codeObj, ctx, args);
+        search["$*DISPATCHER"] = dispatcher;
+      }
+      return dispatcher;
+    }
+    search = search.$$caller;
+  }
+
+  /* TODO - throw X::NoDispatcher */
+  throw usage + ' is not in the dynamic scope of a dispatcher';
 };
 
 var containerSpecs = require('nqp-runtime/container-specs.js');

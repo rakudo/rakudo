@@ -76,7 +76,7 @@ MAIN: {
         $options{backends} = qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
             or die "Could not get backend information from $nqp_bin";
         if (defined $options{backends} && $passed_backends ne $options{backends}) {
-            die "Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($options{backends}";
+            die "Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($options{backends})";
         }
     }
     if (defined $options{backends}) {

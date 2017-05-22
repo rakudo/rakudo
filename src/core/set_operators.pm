@@ -852,7 +852,7 @@ multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr($a,$b),
-      True,                       # X (<=) X is always True
+      True,                     # X (<=) X is always True
       $a.Set(:view) (<=) $b.Set(:view)
     )
 }
@@ -866,11 +866,38 @@ only sub infix:<⊈>($a, $b --> Bool:D) is pure {
 }
 
 proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (<) $b.Set(:view);
-}
 multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
-    $a < $b and so $a.keys.all (elem) $b;
+    nqp::if(
+      nqp::eqaddr($a,$b),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::if(
+          (my $araw := $a.raw_hash)
+            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+            && (my $iter := nqp::iterator($araw)),
+          nqp::stmts(           # A has fewer elems than B
+            nqp::while(
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                return False    # elem in A doesn't exist in B
+              )
+            ),
+            True                # all elems in A exist in B
+          ),
+          False                 # number of elems in B smaller or equal to A
+        ),
+        False                   # can never have fewer elems in A than in B
+      )
+    )
+}
+multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr($a,$b),
+      False,                    # X (<) X is always False
+      $a.Set(:view) (<) $b.Set(:view)
+    )
 }
 # U+2282 SUBSET OF
 only sub infix:<⊂>($a, $b --> Bool:D) is pure {

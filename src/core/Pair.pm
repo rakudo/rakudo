@@ -3,6 +3,7 @@ my class Pair does Associative {
     has $.value is rw is default(Nil);
 
     proto method new(|) { * }
+    # This candidate is needed because it currently JITS better
     multi method new(Pair: Cool:D \key, Mu \value) {
         my \p := nqp::p6bindattrinvres(
           nqp::create(self),Pair,'$!key',nqp::decont(key));
@@ -15,7 +16,7 @@ my class Pair does Associative {
         nqp::bindattr(p,Pair,'$!value',value);
         p
     }
-    multi method new(Pair: Mu :$key, Mu :$value) {
+    multi method new(Pair: Mu :$key!, Mu :$value!) {
         my \p := nqp::p6bindattrinvres(
           nqp::create(self),Pair,'$!key',$key);
         nqp::bindattr(p,Pair,'$!value',$value);

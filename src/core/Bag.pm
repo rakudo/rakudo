@@ -32,6 +32,15 @@ my class Bag does Baggy {
           bag()
         )
     }
+
+    my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
+    multi method AT-KEY(Bag:D: \k) {
+        nqp::getattr(
+          nqp::ifnull(nqp::atkey(self.raw_hash,k.WHICH),$p0),
+          Pair,
+          '$!value'
+        )
+    }
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

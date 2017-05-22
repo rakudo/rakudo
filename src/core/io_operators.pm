@@ -80,7 +80,10 @@ sub gist(|) {
         !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
-sub prompt($msg) {
+multi sub prompt() {
+    $*IN.get
+}
+multi sub prompt($msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();

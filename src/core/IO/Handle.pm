@@ -502,7 +502,7 @@ my class IO::Handle {
     multi method print(IO::Handle:D: Str:D \x --> True) {
         nqp::printfh($!PIO, nqp::unbox_s(x));
     }
-    multi method print(IO::Handle:D: *@list is raw --> True) { # is raw gives List, which is cheaper
+    multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
     }
 
@@ -515,7 +515,7 @@ my class IO::Handle {
         nqp::printfh($!PIO,
           nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)))
     }
-    multi method put(IO::Handle:D: *@list is raw --> True) { # is raw gives List, which is cheaper
+    multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
         nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
     }

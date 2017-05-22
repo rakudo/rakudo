@@ -194,17 +194,9 @@ my class IO::Handle {
         nqp::if(nqp::chars(my str $c = nqp::getcfh($!PIO)),$c,Nil)
     }
 
-    method comb(IO::Handle:D: :$close, |c) {
-        my $ret := self.slurp.comb: |c;
-        self.close if $close;
-        $ret;
-    }
-
-    method split(IO::Handle:D: :$close, |c) {
-        my $ret := self.slurp.split: |c;
-        self.close if $close;
-        $ret;
-    }
+    # XXX TODO: Make these routine read handle lazily when we have Cat type
+    method comb (IO::Handle:D: :$close, |c) { self.slurp(:$close).comb:  |c }
+    method split(IO::Handle:D: :$close, |c) { self.slurp(:$close).split: |c }
 
     proto method words (|) { * }
     multi method words(IO::Handle:D \SELF: $limit, :$close) {

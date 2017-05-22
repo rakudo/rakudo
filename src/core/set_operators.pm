@@ -824,11 +824,37 @@ multi sub infix:<eqv>(Setty:D \a, Setty:D \b) {
 }
 
 proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (<=) $b.Set(:view);
-}
 multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
-    $a <= $b and so $a.keys.all (elem) $b
+    nqp::stmts(
+      nqp::unless(
+        nqp::eqaddr($a,$b),
+        nqp::if(
+          (my $araw := $a.raw_hash)
+            && nqp::elems($araw),
+          nqp::if(                # number of elems in B *always* >= A
+            (my $braw := $b.raw_hash)
+              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::while(           # number of elems in B >= A
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                return False      # elem in A doesn't exist in B
+              )
+            ),
+            return False          # number of elems in B smaller than A
+          )
+        )
+      ),
+      True
+    )
+}
+multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr($a,$b),
+      True,                       # X (<=) X is always True
+      $a.Set(:view) (<=) $b.Set(:view)
+    )
 }
 # U+2286 SUBSET OF OR EQUAL TO
 only sub infix:<⊆>($a, $b --> Bool:D) is pure {

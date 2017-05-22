@@ -787,6 +787,7 @@ S16-io/lines.t
 S16-io/newline.t
 S16-io/note.t
 S16-io/print.t
+S16-io/prompt.t
 S16-io/put.t
 S16-io/quoting-syntax.t
 S16-io/say-and-ref.t

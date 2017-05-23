@@ -46,36 +46,18 @@ my class IO::CatHandle is IO::Handle {
         ($!active-handle = Nil))
     }
 
-    method !CALL-ON-ALL ($meth, |c) {
-        # Call method $meth on all filehandles, returns the return value of
-        # the last call. Uses `try` to catch any throwage and ignores it
-        nqp::stmts(
-          (my int $els = @!handles.elems),
-          (my int $i = -1),
-          nqp::while(
-            nqp::isne_i($els, $i = nqp::add_i($i, 1)),
-            my $_ := try @!handles.AT-POST($i)."$meth"(|c)),
-          $_)
-    }
-
-    method !CALL-ON-ACTIVE ($meth, \no-handle, |c) {
-        # Call $meth on active handle, passing |c as arguments to it.
-        # If no handle is active, return the $no-active value.
-        # NOTE: keep no-handle as RAW, so that Nils get passed around correctly
-        $!active-handle.DEFINITE ?? $!active-handle."$meth"(|c) !! no-handle
-    }
-
-    method !SEQ ($meth, \no-handle, |c) {
-        # Call $meth on active handle, passing |c as arguments to it.
-        # If no handle is active, return the $no-active value.
-        # NOTE: keep no-handle as RAW, so that Nils get passed around correctly
-    }
-
     # Produce a Seq with an iterator that walks through all handles
     method comb (::?CLASS:D: |c) {}
     method split (::?CLASS:D: |c) {}
     method words (::?CLASS:D: |c) {}
-    method lines (::?CLASS:D: |c) {}
+    method lines (::?CLASS:D: |c) {
+        $!active-handle.DEFINITE
+          ??
+        flat gather {
+            takeself!CALL-ON-ACTIVE("lines", NoHandle, |c
+            nqp::while
+        }
+    }
 
     method Supply (::?CLASS:D: |c) {}
 
@@ -87,15 +69,7 @@ my class IO::CatHandle is IO::Handle {
 
     # Walk through all handles, producing single result
     method slurp (::?CLASS:D: |c) {
-        # The '~' takes care of both Strs and Blobs
-        [~] gather {
-          nqp::stmts(
-            (my int $els = @!handles.elems),
-            (my int $i = -1),
-            nqp::while(
-              nqp::isne_i($els, $i = nqp::add_i($i, 1)),
-              take @!handles.AT-POST($i).slurp: |c))
-        }
+
     }
     method slurp-rest (|) {
         # We inherit deprecated .slurp-rest from IO::Handle. Pull the

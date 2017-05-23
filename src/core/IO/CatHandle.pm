@@ -7,6 +7,10 @@ my class IO::CatHandle is IO::Handle {
     has $.nl-in;
     has str $.encoding;
 
+    method !SET-SELF (@!handles, $!chomp, $!nl-in, $!encoding) {
+        self.next-handle;
+        self
+    }
     method new (*@handles, :$pre-open-all,
         :$chomp = True, :$nl-in = ["\x0A", "\r\n"], :$encoding = 'utf8',
     ) {
@@ -19,9 +23,7 @@ my class IO::CatHandle is IO::Handle {
                 $_ = .IO.open: :r, :$chomp, :$nl-in, :$encoding orelse .throw;
             }
         }
-        $_ := self.bless: :@handles, :$chomp, :$nl-in, :$encoding;
-        .next-handle;
-        $_
+        self.bless!SET-SELF(@handles, $chomp, $nl-in, $encoding)
     }
     method next-handle {
       # Set $!active-handle to the next handle in line, opening it if necessary
@@ -39,15 +41,15 @@ my class IO::CatHandle is IO::Handle {
               ($!active-handle = $_),
               nqp::if(
                 nqp::istype(
-                  ($!active-handle = .open: :r, :$!chomp, :$!nl-in, :$!encoding),
+                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding),
                   Failure),
                 .throw,
-                $_)),
+                ($!active-handle = $_))),
             nqp::if(
               nqp::istype(($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding),
                 Failure),
               .throw,
-              $_)),
+              ($!active-handle = $_))),
           ($!active-handle = Nil)))
     }
 

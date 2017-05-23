@@ -827,7 +827,7 @@ proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::stmts(
       nqp::unless(
-        nqp::eqaddr($a,$b),
+        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
         nqp::if(
           (my $araw := $a.raw_hash)
             && nqp::elems($araw),
@@ -850,9 +850,10 @@ multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
+    # don't need to check for object hashes, just checking keys is ok
     nqp::stmts(
       nqp::unless(
-        nqp::eqaddr($a,$b),
+        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
         nqp::if(
           (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
             && nqp::elems($araw),
@@ -876,7 +877,7 @@ multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
 }
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr($a,$b),
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       True,                     # X (<=) X is always True
       $a.Set(:view) (<=) $b.Set(:view)
     )
@@ -893,7 +894,7 @@ only sub infix:<⊈>($a, $b --> Bool:D) is pure {
 proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr($a,$b),
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X is never a true subset of itself
       nqp::if(
         (my $braw := $b.raw_hash) && nqp::elems($braw),
@@ -918,8 +919,9 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
+    # don't need to check for object hashes, just checking keys is ok
     nqp::if(
-      nqp::eqaddr($a,$b),
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X is never a true subset of itself
       nqp::if(
         (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
@@ -946,7 +948,7 @@ multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
 }
 multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr($a,$b),
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X (<) X is always False
       $a.Set(:view) (<) $b.Set(:view)
     )

@@ -917,6 +917,33 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       )
     )
 }
+multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr($a,$b),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+          && nqp::elems($braw),
+        nqp::if(
+          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+            && (my $iter := nqp::iterator($araw)),
+          nqp::stmts(           # A has fewer elems than B
+            nqp::while(
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                return False    # elem in A doesn't exist in B
+              )
+            ),
+            True                # all elems in A exist in B
+          ),
+          False                 # number of elems in B smaller or equal to A
+        ),
+        False                   # can never have fewer elems in A than in B
+      )
+    )
+}
 multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr($a,$b),

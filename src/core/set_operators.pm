@@ -975,35 +975,13 @@ multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
             ),
             True                # all checks worked out, so ok
           ),
-          nqp::stmts(           # nothing in B, all elems in A should be < 0
-            ($iter := nqp::iterator($araw)),
-            nqp::while(
-              $iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                  <             # value in A should be < 0
-                0,
-                return False
-              )
-            ),
-            True                # all checks worked out, so ok
-          )
+          # nothing in B, all elems in A should be < 0
+          Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
         ),
         nqp::if(                # nothing in A
           ($braw := $b.raw_hash) && nqp::elems($braw),
-          nqp::stmts(           # something in B, all elems in B should be > 0
-            ($iter := nqp::iterator($braw)),
-            nqp::while(
-              $iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                  >             # value in B should be > 0
-                0,
-                return False
-              )
-            ),
-            True                # all checks worked out, so ok
-          ),
+          # something in B, all elems in B should be > 0
+          Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
           False                 # nothing in A nor B
         )
       )

@@ -126,6 +126,7 @@ my class IO::Socket::INET does IO::Socket {
         }
 
         if $.listening {
+            $!localport = nqp::getport($PIO) if !$!localport;
         }
         elsif $.type == PIO::SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));

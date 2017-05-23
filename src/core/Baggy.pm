@@ -121,14 +121,6 @@ my role Baggy does QuantHash {
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        nqp::if(
-          (my $raw := self.raw_hash)
-            && nqp::existskey($raw,(my $which := k.WHICH)),
-          nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
-          0
-        )
-    }
-    multi method AT-KEY(Bag:D: \k) {
         nqp::getattr(
           nqp::ifnull(
             nqp::atkey(self.raw_hash,k.WHICH),

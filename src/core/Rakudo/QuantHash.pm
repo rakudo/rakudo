@@ -423,6 +423,32 @@ my class Rakudo::QuantHash {
           )
         )
     }
+    method MIX-ALL-POSITIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') > 0,
+              return False
+            )
+          ),
+          True
+        )
+    }
+    method MIX-ALL-NEGATIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') < 0,
+              return False
+            )
+          ),
+          True
+        )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

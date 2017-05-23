@@ -899,20 +899,23 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       nqp::if(
         (my $braw := $b.raw_hash) && nqp::elems($braw),
         nqp::if(
-          (my $araw := $a.raw_hash)
-            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
-            && (my $iter := nqp::iterator($araw)),
-          nqp::stmts(           # A has fewer elems than B
-            nqp::while(
-              $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                return False    # elem in A doesn't exist in B
-              )
+          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(         # A has fewer elems than B
+              nqp::while(
+                $iter,
+                nqp::unless(
+                  nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                  return False  # elem in A doesn't exist in B
+                )
+              ),
+              True              # all elems in A exist in B
             ),
-            True                # all elems in A exist in B
+            False               # number of elems in B smaller or equal to A
           ),
-          False                 # number of elems in B smaller or equal to A
+          True,                 # no elems in A, and elems in B
         ),
         False                   # can never have fewer elems in A than in B
       )

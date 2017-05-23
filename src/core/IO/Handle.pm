@@ -488,32 +488,25 @@ my class IO::Handle {
     }
 
     proto method print(|) { * }
-    multi method print(IO::Handle:D: str:D \x --> True) {
-        nqp::printfh($!PIO,x);
-    }
     multi method print(IO::Handle:D: Str:D \x --> True) {
-        nqp::printfh($!PIO, nqp::unbox_s(x));
+        nqp::writefh($!PIO, x.encode($!encoding));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
     }
 
     proto method put(|) { * }
-    multi method put(IO::Handle:D: str:D \x --> True) {
-        nqp::printfh($!PIO,
-          nqp::concat(x, nqp::unbox_s($!nl-out)))
-    }
     multi method put(IO::Handle:D: Str:D \x --> True) {
-        nqp::printfh($!PIO,
-          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)))
+        nqp::writefh($!PIO,
+          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
     }
 
     multi method say(IO::Handle:D: \x --> True) {
-        nqp::printfh($!PIO,
-          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)))
+        nqp::writefh($!PIO,
+          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding))
     }
     multi method say(IO::Handle:D: |) {
         my Mu $args := nqp::p6argvmarray();
@@ -524,7 +517,7 @@ my class IO::Handle {
     }
 
     method print-nl(IO::Handle:D: --> True) {
-        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        nqp::writefh($!PIO, $!nl-out.encode($!encoding));
     }
 
     proto method slurp-rest(|) { * }

@@ -146,9 +146,6 @@ my class IO::Socket::INET does IO::Socket {
     method accept() {
         ## A solution as proposed by moritz
         my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!nl-in);
-#?if jvm
-        nqp::getattr($new_sock, $?CLASS, '$!buffer') = buf8.new;
-#?endif
         nqp::bindattr($new_sock, $?CLASS, '$!PIO',
             nqp::accept(nqp::getattr(self, $?CLASS, '$!PIO'))
         );

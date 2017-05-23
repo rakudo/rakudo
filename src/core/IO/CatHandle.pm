@@ -25,39 +25,61 @@ my class IO::CatHandle is IO::Handle {
     }
     method next-handle {
       # Set $!active-handle to the next handle in line, opening it if necessary
-      nqp::if(
-        @handles,
+      nqp::stmts(
         nqp::if(
-          nqp::istype(($_ := @handles.shift), IO::Handle),
+          nqp::defined($!active-handle),
+          ($ = $!active-handle.close)), # don't sink the result, since it might
+          # .. be an IO::Pipe that returns a Proc that might throw
+        nqp::if(
+          @!handles,
           nqp::if(
-            .opened,
-            ($!active-handle = $_),
+            nqp::istype(($_ := @!handles.shift), IO::Handle),
             nqp::if(
-              nqp::istype(
-                ($!active-handle = .open: :r, :$!chomp, :$!nl-in, :$!encoding),
+              .opened,
+              ($!active-handle = $_),
+              nqp::if(
+                nqp::istype(
+                  ($!active-handle = .open: :r, :$!chomp, :$!nl-in, :$!encoding),
+                  Failure),
+                .throw,
+                $_)),
+            nqp::if(
+              nqp::istype(($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding),
                 Failure),
               .throw,
               $_)),
-          nqp::if(
-            nqp::istype(($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding),
-              Failure),
-            .throw,
-            $_),
-        ($!active-handle = Nil))
+          ($!active-handle = Nil)))
     }
 
     # Produce a Seq with an iterator that walks through all handles
     method comb (::?CLASS:D: |c) {}
     method split (::?CLASS:D: |c) {}
     method words (::?CLASS:D: |c) {}
-    method lines (::?CLASS:D: |c) {
-        $!active-handle.DEFINITE
-          ??
-        flat gather {
-            takeself!CALL-ON-ACTIVE("lines", NoHandle, |c
-            nqp::while
-        }
+
+    method !LINES {
+      nqp::if(
+        nqp::defined($!active-handle),
+        (flat $!active-handle.lines, gather {
+          nqp::while(
+            nqp::defined(self.next-handle),
+            take $!active-handle.lines)}),
+        Seq.new: Rakudo::Iterator.Empty)
     }
+    multi method lines(::?CLASS:D \SELF: $limit, :$close) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.lines(:$close)
+          !! $close
+            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                self!LINES.iterator, $limit.Int, {SELF.close}))
+            !! self.lines.head($limit.Int)
+    }
+    multi method lines(::?CLASS:D \SELF: :$close) {
+      $close # use -1 as N in FirstNThenSinkAllSeq to get all items
+        ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+            self!LINES.iterator, -1, {SELF.close}))
+        !! self!LINES
+    }
+    multi method lines(::?CLASS:D:) { self!LINES }
 
     method Supply (::?CLASS:D: |c) {}
 
@@ -94,7 +116,6 @@ my class IO::CatHandle is IO::Handle {
     method opened   {}
     method lock     {}
     method nl-in    {}
-    method Str      {}
     method seek     {}
     method tell     {}
     method t        {}

@@ -484,7 +484,7 @@ my class IO::Handle {
     }
 
     method printf(IO::Handle:D: |c) {
-        nqp::printfh($!PIO, sprintf |c);
+        self.print(sprintf |c);
     }
 
     proto method print(|) { * }
@@ -495,7 +495,7 @@ my class IO::Handle {
         nqp::printfh($!PIO, nqp::unbox_s(x));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
+        self.print(@list.join);
     }
 
     proto method put(|) { * }
@@ -508,8 +508,7 @@ my class IO::Handle {
           nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        nqp::printfh($!PIO, nqp::unbox_s(.Str)) for @list;
-        nqp::printfh($!PIO, nqp::unbox_s($!nl-out));
+        self.put(@list.join);
     }
 
     multi method say(IO::Handle:D: \x --> True) {
@@ -519,8 +518,9 @@ my class IO::Handle {
     multi method say(IO::Handle:D: |) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
-        self.print: nqp::shift($args).gist while $args;
-        self.print-nl;
+        my str $conc = '';
+        $conc = nqp::concat($conc, nqp::shift($args).gist) while $args;
+        self.print(nqp::concat($conc, $!nl-out));
     }
 
     method print-nl(IO::Handle:D: --> True) {

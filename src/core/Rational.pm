@@ -71,7 +71,7 @@ my role Rational[::NuT, ::DeT] does Real {
         $!denominator
             ?? self.truncate
             !! fail X::Numeric::DivideByZero.new:
-                   :details('when coersing Rational to Int')
+                   :details('when coercing Rational to Int')
     }
     method Bridge() { self.Num }
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }

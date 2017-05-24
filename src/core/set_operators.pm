@@ -2,6 +2,20 @@ proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     $b.AT-KEY($a).Bool;
 }
+multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
+    nqp::stmts(
+      (my str $needle = $a.WHICH),
+      (my $iterator := $b.iterator),
+      nqp::until(
+        nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+        nqp::if(
+          nqp::iseq_s($needle,$pulled.WHICH),
+          return True
+        )
+      ),
+      False
+    )
+}
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
     nqp::p6bool(
       (my $elems := $b.raw_hash) && nqp::existskey($elems,$a.WHICH)

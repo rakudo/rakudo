@@ -561,14 +561,14 @@ my class IO::Handle {
         $!decoder or die X::IO::BinaryMode.new(:trying<slurp-rest>);
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
-        nqp::p6box_s(nqp::readallfh($!PIO));
+        self!slurp-all-chars()
     }
 
     method slurp(IO::Handle:D: :$close) {
         my $res;
         nqp::if(
           $!decoder,
-          ($res := nqp::p6box_s(nqp::readallfh($!PIO))),
+          ($res := self!slurp-all-chars()),
           nqp::stmts(
             ($res := buf8.new),
             nqp::while(
@@ -581,6 +581,13 @@ my class IO::Handle {
         # don't sink result of .close; it might be a failed Proc
         $ = self.close if $close;
         $res
+    }
+
+    method !slurp-all-chars() {
+        while nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)) {
+            $!decoder.add-bytes($buf);
+        }
+        $!decoder.consume-all-chars()
     }
 
     proto method spurt(|) { * }

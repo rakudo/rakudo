@@ -72,18 +72,18 @@ class VM does Systemic {
     proto method osname(|) { * }
     multi method osname(VM:U:) {
 #?if jvm
-        nqp::atkey(nqp::jvmgetproperties,'os.name')
+        nqp::lc(nqp::atkey(nqp::jvmgetproperties,'os.name'))
 #?endif
 #?if !jvm
-        nqp::atkey(nqp::backendconfig,'osname')
+        nqp::lc(nqp::atkey(nqp::backendconfig,'osname'))
 #?endif
     }
     multi method osname(VM:D:) {
 #?if jvm
-        $!properties<os.name>
+        nqp::lc($!properties<os.name>)
 #?endif
 #?if !jvm
-        $!config<osname>
+        nqp::lc($!config<osname>)
 #?endif
     }
 }

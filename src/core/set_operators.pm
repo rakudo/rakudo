@@ -1187,8 +1187,7 @@ only sub infix:<⊄>($a, $b --> Bool:D) is pure {
     not $a (<) $b;
 }
 
-proto sub infix:<<(>=)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
+only sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
     $b (<=) $a
 }
 # U+2287 SUPERSET OF OR EQUAL TO
@@ -1200,8 +1199,7 @@ only sub infix:<⊉>($a, $b --> Bool:D) is pure {
     not $b (<=) $a
 }
 
-proto sub infix:<<(>)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
+only sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
     $b (<) $a
 }
 # U+2283 SUPERSET OF

@@ -2324,10 +2324,12 @@ my class X::Numeric::Real is Exception {
 
 my class X::Numeric::DivideByZero is Exception {
     has $.using;
+    has $.details;
     has $.numerator;
     method message() {
         "Attempt to divide{$.numerator ?? " $.numerator" !! ''} by zero"
-          ~ ( $.using ?? " using $.using" !! '' );
+          ~ ( $.using ?? " using $.using" !! '' )
+          ~ ( $_ with $.details );
     }
 }
 

@@ -2,6 +2,22 @@ proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     nqp::p6bool($b.AT-KEY($a))
 }
+multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
+    nqp::p6bool(
+      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+        && nqp::elems($storage)                         # haz a haystack
+        && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
+        && nqp::getattr(
+             nqp::ifnull(
+               nqp::atkey($storage,$a.WHICH),           # exists
+               BEGIN   # provide virtual value False    # did not exist
+                 nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+             ),
+             Pair,
+             '$!value'
+           )
+    )
+}
 multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
     nqp::stmts(
       (my str $needle = $a.WHICH),

@@ -67,7 +67,12 @@ my role Rational[::NuT, ::DeT] does Real {
             !! ($!numerator div $!denominator + 1)
     }
 
-    method Int() { self.truncate }
+    method Int() {
+        $!denominator
+            ?? self.truncate
+            !! fail X::Numeric::DivideByZero.new:
+                   :details('when coersing Rational to Int')
+    }
     method Bridge() { self.Num }
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
     method isNaN {

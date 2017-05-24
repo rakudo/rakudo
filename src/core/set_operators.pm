@@ -1008,7 +1008,7 @@ only sub infix:<⊆>($a, $b --> Bool:D) is pure {
 }
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
 only sub infix:<⊈>($a, $b --> Bool:D) is pure {
-    $a !(<=) $b;
+    not $a (<=) $b;
 }
 
 proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
@@ -1184,7 +1184,7 @@ only sub infix:<⊂>($a, $b --> Bool:D) is pure {
 }
 # U+2284 NOT A SUBSET OF
 only sub infix:<⊄>($a, $b --> Bool:D) is pure {
-    $a !(<) $b;
+    not $a (<) $b;
 }
 
 proto sub infix:<<(>=)>>($, $ --> Bool:D) is pure {*}

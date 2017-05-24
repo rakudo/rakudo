@@ -1,4 +1,3 @@
-
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     $b.AT-KEY($a).Bool;
@@ -20,25 +19,15 @@ only sub infix:<∉>($a, $b --> Bool:D) is pure {
     $a !(elem) $b;
 }
 
-proto sub infix:<(cont)>($, $ --> Bool:D) is pure {*}
-multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
-    $a.AT-KEY($b).Bool
-}
-multi sub infix:<(cont)>(QuantHash:D $a, Any $b --> Bool:D) {
-    nqp::p6bool(
-      (my $elems := $a.raw_hash) && nqp::existskey($elems,$b.WHICH)
-    )
-}
-multi sub infix:<(cont)>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (cont) $b;
-}
+only sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }
+
 # U+220B CONTAINS AS MEMBER
 only sub infix:<∋>($a, $b --> Bool:D) is pure {
-    $a (cont) $b;
+    $b (elem) $a;
 }
 # U+220C DOES NOT CONTAIN AS MEMBER
 only sub infix:<∌>($a, $b --> Bool:D) is pure {
-    $a !(cont) $b;
+    not $b (elem) $a;
 }
 
 proto sub infix:<(|)>(|) is pure { * }

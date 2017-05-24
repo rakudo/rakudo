@@ -1132,7 +1132,7 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
                   Pair,
                   '$!value'
                 ),
-                return False    # elem in A not in B or same or more in B 
+                return False    # elem in A not in B or same or more in B
               )
             ),
             True                # all elems in A exist in B and are less

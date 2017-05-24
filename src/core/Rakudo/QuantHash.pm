@@ -337,7 +337,7 @@ my class Rakudo::QuantHash {
             nqp::while(
               $iter,
               nqp::if(
-                0 < (my $value := 
+                0 < (my $value :=
                   nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
                 ($total := $total + $value)
               )

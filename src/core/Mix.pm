@@ -5,7 +5,7 @@ my class Mix does Mixy {
 #--- interface methods
     method SET-SELF(Mix:D: \elems) {
         nqp::if(
-          nqp::elems(elems),          
+          nqp::elems(elems),
           nqp::stmts(                 # need to have allocated %!elems
             nqp::bindattr(%!elems,Map,'$!storage',elems),
             self

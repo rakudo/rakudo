@@ -852,71 +852,14 @@ multi sub infix:<<(<=)>>(Setty:D $a, QuantHash:D $b --> Bool:D) {
 multi sub infix:<<(<=)>>(QuantHash:D $a, Setty:D $b --> Bool:D) {
     Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
 }
+multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
 multi sub infix:<<(<=)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
-    infix:<<(<=)>>($a, $b.Mix)
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
 }
 multi sub infix:<<(<=)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
-    infix:<<(<=)>>($a.Mix, $b)
-}
-multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
-    nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      True,                     # X is always a subset of itself
-      nqp::if(
-        (my $araw := $a.raw_hash) && nqp::elems($araw),
-        nqp::if(                # elems in A
-          (my $braw := $b.raw_hash) && nqp::elems($braw),
-          nqp::stmts(           # elems in A and B
-            (my $iter := nqp::iterator($araw)),
-            nqp::while(         # check all values in A with B
-              $iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                  <=            # value in A should be less or equal than B
-                nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey($braw,nqp::iterkey_s($iter)),
-                    BEGIN       # provide virtual value 0
-                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-                  ),
-                  Pair,
-                  '$!value'
-                ),
-                return False
-              )
-            ),
-
-            ($iter := nqp::iterator($braw)),
-            nqp::while(         # check all values in B with A
-              $iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                  >=            # value in B should be more or equal than A
-                nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey($araw,nqp::iterkey_s($iter)),
-                    BEGIN       # provide virtual value 0
-                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-                  ),
-                  Pair,
-                  '$!value'
-                ),
-                return False
-              )
-            ),
-            True                # all checks worked out, so ok
-          ),
-          # nothing in B, all elems in A should be < 0
-          Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
-        ),
-        nqp::if(
-          ($braw := $b.raw_hash) && nqp::elems($braw),
-          # nothing in A, all elems in B should be >= 0
-          Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
-          False                 # nothing in A nor B
-        )
-      )
-    )
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
 }
 multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::stmts(

@@ -106,8 +106,22 @@ my class IO::CatHandle is IO::Handle {
         try .close for @!handles
     }
 
-    # Call on current handle and do NOT switch to the next one
-    method close    {}
+    method close (::?CLASS:D: --> True) {
+        # Note: our IO::Handles might be IO::Pipes, whose .close
+        # method returns the Proc object, which will explode when sunk if the
+        # process exited unsuccessfully. So here, we ensure we never sink it.
+        nqp::stmts(
+          nqp::if(
+            nqp::defined($!active-handle),
+            $ = $!active-handle.close),
+          (my int $i = -1),
+          (my int $els = @!handles.elems),
+          nqp::while(
+            nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+            nqp::if(
+              nqp::istype(($_ := @!handles.AT-POS($i)), IO::Handle),
+              $ = .close)))
+    }
     method encoding {}
     method eof      {}
     method gist     {}

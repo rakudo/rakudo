@@ -1,6 +1,6 @@
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
-    $b.AT-KEY($a).Bool;
+    nqp::p6bool($b.AT-KEY($a))
 }
 multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
     nqp::stmts(

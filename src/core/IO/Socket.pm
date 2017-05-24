@@ -13,7 +13,7 @@ my role IO::Socket {
     }
 
     # The if bin is true, will return Buf, Str otherwise
-    method recv(Cool $limit? is copy, :$bin? = False) {
+    method recv(Cool $limit? is copy, :$bin) {
         fail('Socket not available') unless $!PIO;
         $limit = 65535 if !$limit.DEFINITE || $limit === Inf;
         if $bin {

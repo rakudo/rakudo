@@ -13,8 +13,9 @@ my role IO::Socket {
     }
 
     # The if bin is true, will return Buf, Str otherwise
-    method recv(Int(Cool) $limit = 65535, :$bin? = False) {
+    method recv(Cool $limit? is copy, :$bin? = False) {
         fail('Socket not available') unless $!PIO;
+        $limit = 65535 if !$limit.DEFINITE || $limit === Inf;
         if $bin {
             nqp::readfh($!PIO, nqp::decont(buf8.new), $limit)
         }

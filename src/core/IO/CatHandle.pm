@@ -139,6 +139,8 @@ my class IO::CatHandle is IO::Handle {
     multi method nl-out  (|) { die X::NYI.new: :feature<nl-out>   }
     proto method print   (|) { * }
     multi method print   (|) { die X::NYI.new: :feature<print>    }
+    proto method printf  (|) { * }
+    multi method printf  (|) { die X::NYI.new: :feature<printf>   }
     proto method print-nl(|) { * }
     multi method print-nl(|) { die X::NYI.new: :feature<print-nl> }
     proto method put     (|) { * }

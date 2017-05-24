@@ -883,7 +883,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             my int $i = -1;
             my $v;
             nqp::istype(($v := nqp::atpos($!reified, $i)),Pair)
-              ?? nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value)
+              ?? nqp::bindkey($hash, $v.key.Str, $v.value)
               !! nqp::push($list,$v)
               while nqp::islt_i($i = nqp::add_i($i,1),$elems);
             nqp::bindattr($capture,Capture,'@!list',$list) if nqp::elems($list);

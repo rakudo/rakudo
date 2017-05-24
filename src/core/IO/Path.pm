@@ -625,7 +625,7 @@ my class IO::Path is Cool does IO {
           nqp::if(
             nqp::istype(
               (my $handle := IO::Handle.new(:path(self)).open(
-                :enc(%_<enc> || 'utf8'), :bin(%_<bin>), :mode<ro>)),
+                :enc(%_<enc>), :bin(%_<bin>), :mode<ro>)),
               Failure,),
             $handle, # our open failed; return the Failure object here,
             nqp::stmts(
@@ -646,7 +646,7 @@ my class IO::Path is Cool does IO {
               $_))) # <-- we've succeeded in slow-path; that's the data
     }
 
-    method spurt(IO::Path:D: $data, :$enc = 'utf8', :$append, :$createonly) {
+    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {
         my $fh := self.open:
             :$enc,     :bin(nqp::istype($data, Blob)),
             :mode<wo>, :create, :exclusive($createonly),

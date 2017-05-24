@@ -8,7 +8,8 @@ my class IO::Handle {
     has $.chomp is rw = Bool::True;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
-    has str $.encoding = 'utf8';
+    has Str $.encoding;
+    has Rakudo::Internals::VMBackedDecoder $!decoder;
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -20,7 +21,7 @@ my class IO::Handle {
       :$exclusive is copy,
       :$bin,
       :$chomp = $!chomp,
-      :$enc   = $!encoding,
+      :$enc = $!encoding,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
     ) {
@@ -91,15 +92,19 @@ my class IO::Handle {
             }
             $!chomp = $chomp;
             $!nl-out = $nl-out;
+            if $bin {
+                die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
+            }
+            else {
+                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
+                # XXX Remove next two lines after streaming decoder is in use
+                nqp::setencoding($!PIO, $!encoding);
 #?if !jvm
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
+                Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
 #?endif
-            nqp::if( $bin || nqp::iseq_s($enc, 'bin'),
-                ($!encoding = 'bin'),
-                nqp::setencoding($!PIO,
-                    $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
-                )
-            );
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+                $!decoder.set-line-separators($!nl-in.list);
+            }
             return self;
         }
 
@@ -136,13 +141,17 @@ my class IO::Handle {
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;
-        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-        nqp::if( $bin || nqp::iseq_s($enc, 'bin'),
-            ($!encoding = 'bin'),
-            nqp::setencoding($!PIO,
-                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc),
-            )
-        );
+        if $bin {
+            die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
+        }
+        else {
+            $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
+            # XXX Remove next two lines after streaming decoder is in use
+            nqp::setencoding($!PIO, $!encoding);
+            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder.set-line-separators($!nl-in.list);
+        }
         self;
     }
 
@@ -176,6 +185,7 @@ my class IO::Handle {
     }
 
     method get(IO::Handle:D:) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<get>);
         nqp::if(
           $!chomp,
           nqp::if(
@@ -191,6 +201,7 @@ my class IO::Handle {
     }
 
     method getc(IO::Handle:D:) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<getc>);
         nqp::if(nqp::chars(my str $c = nqp::getcfh($!PIO)),$c,Nil)
     }
 
@@ -200,6 +211,7 @@ my class IO::Handle {
 
     proto method words (|) { * }
     multi method words(IO::Handle:D \SELF: $limit, :$close) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<words>);
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words(:$close)
           !! $close
@@ -208,6 +220,7 @@ my class IO::Handle {
             !! self.words.head($limit.Int)
     }
     multi method words(IO::Handle:D: :$close) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<words>);
         Seq.new(class :: does Iterator {
             has $!handle;
             has $!close;
@@ -312,6 +325,7 @@ my class IO::Handle {
     }
 
     method !LINES-ITERATOR (IO::Handle:D:) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<lines>);
         nqp::if(
           nqp::eqaddr(self.WHAT,IO::Handle),
           nqp::if(
@@ -406,6 +420,7 @@ my class IO::Handle {
     }
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<readchars>);
 #?if jvm
         my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
         # a char = 2 bytes
@@ -418,20 +433,7 @@ my class IO::Handle {
     }
 
     method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
-        if nqp::iseq_s($!encoding, 'bin') { # handle is in binary mode
-            supply {
-                my $buf := self.read($size);
-                nqp::while(
-                  nqp::elems($buf),
-                  nqp::stmts(
-                    (emit $buf),
-                    ($buf := self.read($size))
-                  )
-                );
-                done;
-            }
-        }
-        else {
+        if $!decoder { # handle is in character mode
             supply {
                 my int $chars = $size;
                 my str $str = self.readchars($chars);
@@ -440,6 +442,19 @@ my class IO::Handle {
                   nqp::stmts(
                     (emit nqp::p6box_s($str)),
                     ($str = self.readchars($chars))
+                  )
+                );
+                done;
+            }
+        }
+        else {
+            supply {
+                my $buf := self.read($size);
+                nqp::while(
+                  nqp::elems($buf),
+                  nqp::stmts(
+                    (emit $buf),
+                    ($buf := self.read($size))
                   )
                 );
                 done;
@@ -489,6 +504,7 @@ my class IO::Handle {
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x --> True) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<print>);
         nqp::writefh($!PIO, x.encode($!encoding));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
@@ -497,6 +513,7 @@ my class IO::Handle {
 
     proto method put(|) { * }
     multi method put(IO::Handle:D: Str:D \x --> True) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<put>);
         nqp::writefh($!PIO,
           nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding))
     }
@@ -505,10 +522,12 @@ my class IO::Handle {
     }
 
     multi method say(IO::Handle:D: \x --> True) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
         nqp::writefh($!PIO,
           nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding))
     }
     multi method say(IO::Handle:D: |) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         my str $conc = '';
@@ -517,6 +536,7 @@ my class IO::Handle {
     }
 
     method print-nl(IO::Handle:D: --> True) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
         nqp::writefh($!PIO, $!nl-out.encode($!encoding));
     }
 
@@ -538,6 +558,7 @@ my class IO::Handle {
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
+        $!decoder or die X::IO::BinaryMode.new(:trying<slurp-rest>);
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         nqp::p6box_s(nqp::readallfh($!PIO));
@@ -546,15 +567,15 @@ my class IO::Handle {
     method slurp(IO::Handle:D: :$close) {
         my $res;
         nqp::if(
-          nqp::iseq_s($!encoding, 'bin'),
+          $!decoder,
+          ($res := nqp::p6box_s(nqp::readallfh($!PIO))),
           nqp::stmts(
             ($res := buf8.new),
             nqp::while(
               nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)),
               $res.append($buf)
             )
-          ),
-          ($res := nqp::p6box_s(nqp::readallfh($!PIO))),
+          )
         );
 
         # don't sink result of .close; it might be a failed Proc

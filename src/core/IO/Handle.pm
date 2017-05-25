@@ -202,7 +202,17 @@ my class IO::Handle {
 
     method getc(IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<getc>);
-        nqp::if(nqp::chars(my str $c = nqp::getcfh($!PIO)),$c,Nil)
+        $!decoder.consume-exactly-chars(1) || self!getc-slow-path()
+    }
+
+    method !getc-slow-path() {
+        if nqp::eoffh($!PIO) && $!decoder.is-empty {
+            Str
+        }
+        else {
+            $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));
+            $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars()
+        }
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type

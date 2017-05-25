@@ -668,11 +668,10 @@ my class IO::Handle {
             # bytes the current decoder is holding on to but has not yet done
             # decoding of.
             my $available = $!decoder.bytes-available;
-            my $bytes = $!decoder.consume-bytes($available) if $available;
             with $new-encoding {
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!decoder.add-bytes($bytes) if $bytes;
+                $!decoder.add-bytes($!decoder.consume-exactly-bytes($available)) if $available;
                 $!encoding = $new-encoding;
             }
             else {

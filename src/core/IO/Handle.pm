@@ -183,19 +183,17 @@ my class IO::Handle {
 
     method !get-line-slow-path() {
         my $line := Nil;
-        unless nqp::eoffh($!PIO) && $!decoder.is-empty {
-            loop {
-                my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
-                if $buf.elems {
-                    $!decoder.add-bytes($buf);
-                    $line := $!decoder.consume-line-chars(:$!chomp);
-                    last if nqp::isconcrete($line);
-                }
-                else {
-                    $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                        unless nqp::eoffh($!PIO) && $!decoder.is-empty;
-                    last;
-                }
+        loop {
+            my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+            if $buf.elems {
+                $!decoder.add-bytes($buf);
+                $line := $!decoder.consume-line-chars(:$!chomp);
+                last if nqp::isconcrete($line);
+            }
+            else {
+                $line := $!decoder.consume-line-chars(:$!chomp, :eof)
+                    unless nqp::eoffh($!PIO) && $!decoder.is-empty;
+                last;
             }
         }
         $line
@@ -207,13 +205,8 @@ my class IO::Handle {
     }
 
     method !getc-slow-path() {
-        if nqp::eoffh($!PIO) && $!decoder.is-empty {
-            Nil
-        }
-        else {
-            $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));
-            $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars()
-        }
+        $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));
+        $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars() || Nil
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type

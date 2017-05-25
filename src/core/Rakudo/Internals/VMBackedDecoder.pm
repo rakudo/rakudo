@@ -42,7 +42,7 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
         nqp::decoderbytesavailable(self)
     }
 
-    method consume-bytes(int $bytes --> Blob) {
+    method consume-exactly-bytes(int $bytes --> Blob) {
         nqp::ifnull(nqp::decodertakebytes(self, blob8.new, $bytes), Blob)
     }
 }

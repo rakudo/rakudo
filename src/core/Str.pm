@@ -142,7 +142,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method starts-with(|) {*}
     multi method starts-with(Str:D: Cool:D $needle) {self.starts-with: $needle.Str}
     multi method starts-with(Str:D: Str:D $needle) {
-        nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
+        nqp::p6bool(nqp::eqat(self, $needle, 0))
     }
 
     # TODO Use coercer in 1 candidate when RT131014

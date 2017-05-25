@@ -422,15 +422,26 @@ my class IO::Handle {
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
         $!decoder or die X::IO::BinaryMode.new(:trying<readchars>);
-#?if jvm
-        my Buf $buf := Buf.new;   # nqp::readcharsfh doesn't work on the JVM
-        # a char = 2 bytes
-        nqp::readfh($!PIO, $buf, nqp::unbox_i($chars + $chars));
-        nqp::unbox_s($buf.decode);
-#?endif
-#?if !jvm
-        nqp::readcharsfh($!PIO, nqp::unbox_i($chars));
-#?endif
+        $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
+    }
+
+    method !readchars-slow-path($chars) {
+        my $result := '';
+        unless nqp::eoffh($!PIO) && $!decoder.is-empty {
+            loop {
+                my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+                if $buf.elems {
+                    $!decoder.add-bytes($buf);
+                    $result := $!decoder.consume-exactly-chars($chars);
+                    last if nqp::isconcrete($result);
+                }
+                else {
+                    $result := $!decoder.consume-all-chars();
+                    last;
+                }
+            }
+        }
+        $result
     }
 
     method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {

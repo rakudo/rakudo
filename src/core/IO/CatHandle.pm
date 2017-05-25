@@ -81,7 +81,17 @@ my class IO::CatHandle is IO::Handle {
     method Supply (::?CLASS:D: |c) {}
 
     # Get a single result, going to the next handle on EOF
-    method get (::?CLASS:D: |c) {}
+    method get (::?CLASS:D:) {
+        nqp::if(
+          nqp::defined($!active-handle),
+          nqp::stmts(
+            nqp::while(
+              nqp::eqaddr(Nil, my $res := $!active-handle.get)
+              && nqp::defined(self.next-handle),
+              nqp::null),
+            $res),
+          Nil)
+    }
     method getc (::?CLASS:D: |c) {}
     method read (::?CLASS:D: |c) {}
     method readchars (::?CLASS:D: |c) {}

@@ -186,18 +186,26 @@ my class IO::Handle {
 
     method get(IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<get>);
-        nqp::if(
-          $!chomp,
-          nqp::if(
-            nqp::chars(my str $str = nqp::readlinechompfh($!PIO))
-              # loses last empty line because EOF is set too early, RT #126598
-              || nqp::not_i(nqp::eoffh($!PIO)),
-            $str,
-            Nil
-          ),
-          # not chomping, no need to check EOF
-          nqp::if(nqp::chars($str = nqp::readlinefh($!PIO)),$str,Nil)
-        )
+        $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
+    }
+
+    method !get-line-slow-path() {
+        my $line := Str;
+        unless nqp::eoffh($!PIO) && $!decoder.is-empty {
+            loop {
+                my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+                if $buf.elems {
+                    $!decoder.add-bytes($buf);
+                    $line := $!decoder.consume-line-chars(:$!chomp);
+                    last if nqp::isconcrete($line);
+                }
+                else {
+                    $line := $!decoder.consume-line-chars(:$!chomp, :eof);
+                    last;
+                }
+            }
+        }
+        $line
     }
 
     method getc(IO::Handle:D:) {

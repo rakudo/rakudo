@@ -33,6 +33,18 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
         my str $line = nqp::decodertakeline(self, $chomp, $eof);
         nqp::isnull_s($line) ?? Str !! $line
     }
+
+    method is-empty() {
+        nqp::decoderempty(self)
+    }
+
+    method bytes-available() {
+        nqp::decoderbytesavailable(self)
+    }
+
+    method consume-bytes(int $bytes --> Blob) {
+        nqp::ifnull(nqp::decodertakebytes(self, blob8.new, $bytes), Blob)
+    }
 }
 
 augment class Rakudo::Internals {

@@ -8,7 +8,9 @@ my class IO::CatHandle is IO::Handle {
     has str $.encoding;
 
     method !SET-SELF (@handles, $!chomp, $!nl-in, $!encoding) {
-        @handles.elems; # reify
+        # reify:
+        @handles.elems
+          or die 'Must have at least one item to create IO::CatHandle from';
         $!handles := nqp::getattr(@handles, List, '$!reified');
         self.next-handle;
         self

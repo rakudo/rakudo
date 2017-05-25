@@ -403,7 +403,7 @@ my class IO::Handle {
     multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
-        # If we have on, read bytes via. the decoder to support mixed-mode I/O.
+        # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
             !! nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))

@@ -647,9 +647,11 @@ my class IO::Handle {
             # decoding of.
             my $available = $!decoder.bytes-available;
             with $new-encoding {
+                my $prev-decoder := $!decoder;
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!decoder.add-bytes($!decoder.consume-exactly-bytes($available)) if $available;
+                $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
+                    if $available;
                 $!encoding = $new-encoding;
             }
             else {

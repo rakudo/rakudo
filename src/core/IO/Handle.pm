@@ -192,7 +192,8 @@ my class IO::Handle {
                     last if nqp::isconcrete($line);
                 }
                 else {
-                    $line := $!decoder.consume-line-chars(:$!chomp, :eof);
+                    $line := $!decoder.consume-line-chars(:$!chomp, :eof)
+                        unless nqp::eoffh($!PIO) && $!decoder.is-empty;
                     last;
                 }
             }

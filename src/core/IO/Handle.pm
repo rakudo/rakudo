@@ -182,7 +182,7 @@ my class IO::Handle {
     }
 
     method !get-line-slow-path() {
-        my $line := Str;
+        my $line := Nil;
         unless nqp::eoffh($!PIO) && $!decoder.is-empty {
             loop {
                 my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);

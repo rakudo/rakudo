@@ -125,6 +125,16 @@ for <fail die throw rethrow resume> -> $meth {
         'trying to instantiate a non-class gives the name in the error';
 }
 
+subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
+    plan 2;
+
+    with run $*EXECUTABLE, '-e', 'say 0୯', :err, :out {
+        is   .out.slurp(:close), "9\n", 'STDOUT is right';
+        like .err.slurp(:close), /'୯ is not a valid octal number'/,
+            'STDERR mentions the end-result is not valid octal';
+    }
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

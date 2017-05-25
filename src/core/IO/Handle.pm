@@ -9,6 +9,7 @@ my class IO::Handle {
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
+    has Bool $.bin = False;
     has Rakudo::Internals::VMBackedDecoder $!decoder;
 
     method open(IO::Handle:D:
@@ -19,7 +20,7 @@ my class IO::Handle {
       :$append is copy,
       :$truncate is copy,
       :$exclusive is copy,
-      :$bin,
+      :$bin = $!bin,
       :$chomp = $!chomp,
       :$enc = $!encoding,
       :$nl-in is copy = $!nl-in,
@@ -93,6 +94,7 @@ my class IO::Handle {
             $!chomp = $chomp;
             $!nl-out = $nl-out;
             if $bin {
+                $!bin = True;
                 die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
             }
             else {
@@ -137,6 +139,7 @@ my class IO::Handle {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         if $bin {
+            $!bin = True;
             die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
         }
         else {
@@ -650,6 +653,7 @@ my class IO::Handle {
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
                 $!decoder := Rakudo::Internals::VMBackedDecoder;
+                $!bin = True;
                 $!encoding = Nil;
             }
         }
@@ -658,6 +662,7 @@ my class IO::Handle {
             with $new-encoding {
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
                 $!decoder.set-line-separators($!nl-in.list);
+                $!bin = False;
                 $!encoding = $new-encoding;
             }
             else {

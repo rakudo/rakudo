@@ -51,7 +51,31 @@ my class IO::CatHandle is IO::Handle {
     # Produce a Seq with an iterator that walks through all handles
     method comb (::?CLASS:D: |c) {}
     method split (::?CLASS:D: |c) {}
-    method words (::?CLASS:D: |c) {}
+
+    method !WORDS {
+      nqp::if(
+        nqp::defined($!active-handle),
+        (flat $!active-handle.words, gather {
+          nqp::while(
+            nqp::defined(self.next-handle),
+            take $!active-handle.words)}),
+        Seq.new: Rakudo::Iterator.Empty)
+    }
+    multi method words(::?CLASS:D \SELF: $limit, :$close) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.words(:$close)
+          !! $close
+            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                self!WORDS.iterator, $limit.Int, {SELF.close}))
+            !! self.words.head($limit.Int)
+    }
+    multi method words(::?CLASS:D \SELF: :$close) {
+      $close # use -1 as N in FirstNThenSinkAllSeq to get all items
+        ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+            self!WORDS.iterator, -1, {SELF.close}))
+        !! self!WORDS
+    }
+    multi method words(::?CLASS:D:) { self!WORDS }
 
     method !LINES {
       nqp::if(

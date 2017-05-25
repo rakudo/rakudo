@@ -181,7 +181,9 @@ my class IO::Handle {
     }
 
     method eof(IO::Handle:D:) {
-        nqp::p6bool(nqp::eoffh($!PIO));
+        nqp::p6bool($!decoder
+            ?? $!decoder.is-empty && nqp::eoffh($!PIO)
+            !! nqp::eoffh($!PIO));
     }
 
     method get(IO::Handle:D:) {

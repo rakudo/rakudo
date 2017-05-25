@@ -785,14 +785,12 @@ Parenthesize as \\(...) if you intended a capture of a single numeric value./
 my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     has $.value;
     method message {
-        if $!value ~~ /<[89]>/ {
-            "Leading 0 is not allowed. For octals, use '0o' prefix,"
-            ~ " but note that $!value is not a valid octal number";
-        }
-        else {
-            'Leading 0 does not indicate octal in Perl 6.'
-                ~ " Please use 0o$!value if you mean that.";
-        }
+        'Leading 0 has no meaning. If you meant to create an octal number'
+        ~ ", use '0o' prefix" ~ (
+            $!value ~~ /<[89]>/
+                ?? ", but note that $!value is not a valid octal number"
+                !! "; like, '0o$!value'"
+        ) ~ '. If you meant to create a string, please add quotation marks.'
     }
 }
 

@@ -238,4 +238,20 @@ is feed_repl_with(['say "hi"']).subst(:g, /\W+/, ''),
 # 2. Test REPL does not show errors when $*HOME is not set:
 #    https://rt.perl.org/Ticket/Display.html?id=130456
 
+# RT #119339
+{
+    todo 'make the function check STDERR', 2;
+    like feed_repl_with(['say 069']),
+        /'Potential difficulties:'
+            .* 'Leading 0' .+ "use '0o' prefix,"
+            .* '69 is not a valid octal number'/,
+        'prefix 0 on invalid octal warns in REPL';
+
+    like feed_repl_with(['say 069']),
+        /'Potential difficulties:'
+            .* 'Leading 0' .+ "use '0o' prefix,"
+            .* '0o67 is not a valid octal number'/,
+        'prefix 0 on valid octal warns in REPL';
+}
+
 done-testing;

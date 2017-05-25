@@ -97,13 +97,8 @@ my class IO::Handle {
             }
             else {
                 $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
-                # XXX Remove next two lines after streaming decoder is in use
-                nqp::setencoding($!PIO, $!encoding);
-#?if !jvm
-                Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
-#?endif
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
-                $!decoder.set-line-separators($!nl-in.list);
+                $!decoder.set-line-separators(($!nl-in = $nl-in).list);
             }
             return self;
         }
@@ -146,11 +141,8 @@ my class IO::Handle {
         }
         else {
             $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
-            # XXX Remove next two lines after streaming decoder is in use
-            nqp::setencoding($!PIO, $!encoding);
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!PIO, $!nl-in = $nl-in);
             $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
-            $!decoder.set-line-separators($!nl-in.list);
+            $!decoder.set-line-separators(($!nl-in = $nl-in).list);
         }
         self;
     }

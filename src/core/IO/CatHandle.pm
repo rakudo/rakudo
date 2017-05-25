@@ -13,18 +13,9 @@ my class IO::CatHandle is IO::Handle {
         self.next-handle;
         self
     }
-    method new (*@handles, :$pre-open-all,
+    method new (*@handles,
         :$chomp = True, :$nl-in = ["\x0A", "\r\n"], :$encoding = 'utf8',
     ) {
-        if $pre-open-all {
-            for @handles {
-                when IO::Handle {
-                    next if .opened;
-                    $_ = .open: :r, :$chomp, :$nl-in, :$encoding orelse .throw;
-                }
-                $_ = .IO.open: :r, :$chomp, :$nl-in, :$encoding orelse .throw;
-            }
-        }
         self.bless!SET-SELF(@handles, $chomp, $nl-in, $encoding)
     }
     method next-handle {

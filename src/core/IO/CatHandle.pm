@@ -1,5 +1,5 @@
 my class IO::CatHandle is IO::Handle {
-    has @!handles;
+    has $!handles;
     has IO::Handle $!active-handle;
 
     has $.path;
@@ -7,7 +7,9 @@ my class IO::CatHandle is IO::Handle {
     has $.nl-in;
     has str $.encoding;
 
-    method !SET-SELF (@!handles, $!chomp, $!nl-in, $!encoding) {
+    method !SET-SELF (@handles, $!chomp, $!nl-in, $!encoding) {
+        @handles.elems; # reify
+        $!handles := nqp::getattr(@handles, List, '$!reified');
         self.next-handle;
         self
     }
@@ -33,9 +35,9 @@ my class IO::CatHandle is IO::Handle {
           ($ = $!active-handle.close)), # don't sink the result, since it might
           # .. be an IO::Pipe that returns a Proc that might throw
         nqp::if(
-          @!handles,
+          nqp::elems($!handles),
           nqp::if(
-            nqp::istype(($_ := @!handles.shift), IO::Handle),
+            nqp::istype(($_ := nqp::shift($!handles)), IO::Handle),
             nqp::if(
               .opened,
               ($!active-handle = $_),
@@ -102,9 +104,7 @@ my class IO::CatHandle is IO::Handle {
         die X::Obsolete.new: :old<slurp-rest>, :new<slurp>,
             :when('with IO::CatHandle')
     }
-    method DESTROY {
-        try .close for @!handles
-    }
+    method DESTROY { self.close }
 
     method close (::?CLASS:D: --> True) {
         # Note: our IO::Handles might be IO::Pipes, whose .close
@@ -115,11 +115,11 @@ my class IO::CatHandle is IO::Handle {
             nqp::defined($!active-handle),
             $ = $!active-handle.close),
           (my int $i = -1),
-          (my int $els = @!handles.elems),
+          (my int $els = nqp::elems($!handles)),
           nqp::while(
             nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
             nqp::if(
-              nqp::istype(($_ := @!handles.AT-POS($i)), IO::Handle),
+              nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
               $ = .close)))
     }
     method encoding {}

@@ -473,6 +473,12 @@ my class IO::Handle {
 
     proto method seek(|) { * }
     multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
+        if $!decoder {
+            # Freshen decoder, so we won't have stuff left over from earlier reads
+            # that were in the wrong place.
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder.set-line-separators($!nl-in.list);
+        }
         nqp::seekfh($!PIO, $offset, +$whence);
     }
 

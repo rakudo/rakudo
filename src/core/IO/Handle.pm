@@ -426,7 +426,22 @@ my class IO::Handle {
     multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes) {
-        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+        # If we have on, read bytes via. the decoder to support mixed-mode I/O.
+        $!decoder
+            ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
+            !! nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+    }
+
+    method !read-slow-path($bytes) {
+        if nqp::eoffh($!PIO) && $!decoder.is-empty {
+            buf8.new
+        }
+        else {
+            $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, $bytes max 0x10000));
+            $!decoder.consume-exactly-bytes($bytes)
+                // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
+                // buf8.new
+        }
     }
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {

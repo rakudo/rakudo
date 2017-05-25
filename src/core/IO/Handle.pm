@@ -208,7 +208,7 @@ my class IO::Handle {
 
     method !getc-slow-path() {
         if nqp::eoffh($!PIO) && $!decoder.is-empty {
-            Str
+            Nil
         }
         else {
             $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));

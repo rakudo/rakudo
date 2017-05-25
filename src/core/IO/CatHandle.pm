@@ -92,7 +92,17 @@ my class IO::CatHandle is IO::Handle {
             $res),
           Nil)
     }
-    method getc (::?CLASS:D: |c) {}
+    method getc (::?CLASS:D:) {
+        nqp::if(
+          nqp::defined($!active-handle),
+          nqp::stmts(
+            nqp::while(
+              nqp::eqaddr(Nil, my $res := $!active-handle.getc)
+              && nqp::defined(self.next-handle),
+              nqp::null),
+            $res),
+          Nil)
+    }
     method read (::?CLASS:D: |c) {}
     method readchars (::?CLASS:D: |c) {}
 

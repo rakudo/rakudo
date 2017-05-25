@@ -162,10 +162,8 @@ my class IO::Handle {
           },
           STORE => -> $, $nl-in {
             $!nl-in = $nl-in;
-            nqp::defined($!PIO)
-              and Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE(
-                $!PIO, $!nl-in = $nl-in);
-            $nl-in;
+            $!decoder && $!decoder.set-line-separators($nl-in.list);
+            $nl-in
           }
         );
     }
@@ -332,87 +330,63 @@ my class IO::Handle {
     }
 
     my role PIOIterator does Iterator {
-        has $!PIO;
+        has $!handle;
+        has $!chomp;
+        has $!decoder;
         method new(\handle) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),self.WHAT,'$!PIO',
-              nqp::getattr(handle,IO::Handle,'$!PIO')
-            )
+            my \res = nqp::create(self);
+            nqp::bindattr(res, self.WHAT, '$!handle', handle);
+            nqp::bindattr(res, self.WHAT, '$!chomp',
+                nqp::getattr(handle, IO::Handle, '$!chomp'));
+            nqp::p6bindattrinvres(res, self.WHAT, '$!decoder',
+                nqp::getattr(handle, IO::Handle, '$!decoder'))
         }
         method sink-all(--> IterationEnd) {
-            nqp::seekfh($!PIO,0,2)  # seek to end
+            nqp::seekfh(nqp::getattr($!handle, IO::Handle, '$!PIO'), 0, 2)  # seek to end
         }
     }
 
     method !LINES-ITERATOR (IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<lines>);
-        nqp::if(
-          nqp::eqaddr(self.WHAT,IO::Handle),
-          nqp::if(
-            $!chomp,
-            class :: does PIOIterator { # shortcircuit .get, chomping
+        (nqp::eqaddr(self.WHAT,IO::Handle)
+            ?? (class :: does PIOIterator { # exact type, can shortcircuit get
+                method pull-one() {
+                    # Slow path falls back to .get on the handle, which will
+                    # replenish the buffer once we exhaust it.
+                    $!decoder.consume-line-chars(:$!chomp) // $!handle.get // IterationEnd
+                }
+                method push-all($target --> IterationEnd) {
+                    nqp::while(
+                        nqp::isconcrete(my $line :=
+                            $!decoder.consume-line-chars(:$!chomp) // $!handle.get),
+                        $target.push($line)
+                    )
+                }
+            })
+            !! (class :: does Iterator {    # can *NOT* shortcircuit .get
+                has $!handle;
+                method new(\handle) {
+                    nqp::p6bindattrinvres(
+                      nqp::create(self),self.WHAT,'$!handle',handle)
+                }
                 method pull-one() {
                     nqp::if(
-                      nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
-                        # loses last empty line because EOF is set too early
-                        # RT #126598
-                        || nqp::not_i(nqp::eoffh($!PIO)),
+                      (my $line := $!handle.get).DEFINITE,
                       $line,
                       IterationEnd
                     )
                 }
                 method push-all($target --> IterationEnd) {
                     nqp::while(
-                      nqp::chars(my str $line = nqp::readlinechompfh($!PIO))
-                        # loses last empty line because EOF is set too early
-                        # RT #126598
-                        || nqp::not_i(nqp::eoffh($!PIO)),
-                      $target.push(nqp::p6box_s($line))
+                      (my $line := $!handle.get).DEFINITE,
+                      $target.push($line)
                     )
                 }
-            },
-            class :: does PIOIterator { # shortcircuit .get, *NOT* chomping
-                method pull-one() {
-                    nqp::if(
-                      # not chomping, no need to check EOF
-                      nqp::chars(my str $line = nqp::readlinefh($!PIO)),
-                      $line,
-                      IterationEnd
-                    )
+                method sink-all(--> IterationEnd) {
+                    # can't seek pipes, so need the `try`
+                    try $!handle.seek(0,SeekFromEnd)  # seek to end
                 }
-                method push-all($target --> IterationEnd) {
-                    nqp::while(
-                      # not chomping, no need to check EOF
-                      nqp::chars(my str $line = nqp::readlinefh($!PIO)),
-                      $target.push(nqp::p6box_s($line))
-                    )
-                }
-            }
-          ),
-          class :: does Iterator {    # can *NOT* shortcircuit .get
-              has $!handle;
-              method new(\handle) {
-                  nqp::p6bindattrinvres(
-                    nqp::create(self),self.WHAT,'$!handle',handle)
-              }
-              method pull-one() {
-                  nqp::if(
-                    (my $line := $!handle.get).DEFINITE,
-                    $line,
-                    IterationEnd
-                  )
-              }
-              method push-all($target --> IterationEnd) {
-                  nqp::while(
-                    (my $line := $!handle.get).DEFINITE,
-                    $target.push($line)
-                  )
-              }
-              method sink-all(--> IterationEnd) {
-                  # can't seek pipes, so need the `try`
-                  try $!handle.seek(0,SeekFromEnd)  # seek to end
-              }
-          }
+            })
         ).new(self)
     }
 

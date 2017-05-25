@@ -573,7 +573,7 @@ my class IO::Handle {
         LEAVE self.close if $close;
         my $res := buf8.new;
         loop {
-            my $buf := nqp::readfh($!PIO,buf8.new,0x100000);
+            my $buf := self.read(0x100000);
             nqp::elems($buf)
               ?? $res.append($buf)
               !! return $res

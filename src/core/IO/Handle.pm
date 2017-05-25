@@ -632,7 +632,7 @@ my class IO::Handle {
     }
 
     proto method encoding(|) { * }
-    multi method encoding(IO::Handle:D:) { $!encoding }
+    multi method encoding(IO::Handle:D:) { $!encoding // Nil }
     multi method encoding(IO::Handle:D: $new-encoding is copy) {
         with $new-encoding {
             if $_ eq 'bin' {
@@ -640,7 +640,7 @@ my class IO::Handle {
             }
             else {
                 $_ = Rakudo::Internals.NORMALIZE_ENCODING(.Str);
-                return $!encoding if $!encoding eq $_;
+                return $!encoding if $!encoding && $!encoding eq $_;
             }
         }
         with $!decoder {
@@ -661,6 +661,7 @@ my class IO::Handle {
                 $!decoder := Rakudo::Internals::VMBackedDecoder;
                 $!bin = True;
                 $!encoding = Nil;
+                Nil
             }
         }
         else {

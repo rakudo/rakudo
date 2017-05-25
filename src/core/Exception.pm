@@ -796,7 +796,7 @@ my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     method message {
         'Leading 0 has no meaning. If you meant to create an octal number'
         ~ ", use '0o' prefix" ~ (
-            $!value ~~ /<[89]>/
+            $!value.comb.grep(*.unival > 7)
                 ?? ", but note that $!value is not a valid octal number"
                 !! "; like, '0o$!value'"
         ) ~ '. If you meant to create a string, please add quotation marks.'

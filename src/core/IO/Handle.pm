@@ -477,7 +477,7 @@ my class IO::Handle {
     }
 
     method tell(IO::Handle:D: --> Int:D) {
-        nqp::p6box_i(nqp::tellfh($!PIO));
+        nqp::tellfh($!PIO) - ($!decoder ?? $!decoder.bytes-available !! 0)
     }
 
     method write(IO::Handle:D: Blob:D $buf --> True) {

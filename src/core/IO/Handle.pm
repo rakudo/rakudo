@@ -643,16 +643,45 @@ my class IO::Handle {
 
     proto method encoding(|) { * }
     multi method encoding(IO::Handle:D:) { $!encoding }
-    multi method encoding(IO::Handle:D: $!encoding) {
-        nqp::if(
-          nqp::iseq_s($!encoding, 'bin'),
-          $!encoding,
-          nqp::stmts(
-            ($!encoding = Rakudo::Internals.NORMALIZE_ENCODING($!encoding)),
-            nqp::if(
-              nqp::defined($!PIO),
-              nqp::setencoding($!PIO, $!encoding),
-              $!encoding)))
+    multi method encoding(IO::Handle:D: $new-encoding is copy) {
+        with $new-encoding {
+            if $_ eq 'bin' {
+                $_ = Nil;
+            }
+            else {
+                $_ = Rakudo::Internals.NORMALIZE_ENCODING(.Str);
+                return $!encoding if $!encoding eq $_;
+            }
+        }
+        with $!decoder {
+            # We're switching encoding, or back to binary mode. First grab any
+            # bytes the current decoder is holding on to but has not yet done
+            # decoding of.
+            my $available = $!decoder.bytes-available;
+            my $bytes = $!decoder.consume-bytes($available) if $available;
+            with $new-encoding {
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
+                $!decoder.set-line-separators($!nl-in.list);
+                $!decoder.add-bytes($bytes) if $bytes;
+                $!encoding = $new-encoding;
+            }
+            else {
+                nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
+                $!decoder := Rakudo::Internals::VMBackedDecoder;
+                $!encoding = Nil;
+            }
+        }
+        else {
+            # No previous decoder; make a new one if needed, otherwise no change.
+            with $new-encoding {
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
+                $!decoder.set-line-separators($!nl-in.list);
+                $!encoding = $new-encoding;
+            }
+            else {
+                Nil
+            }
+        }
     }
 
     submethod DESTROY(IO::Handle:D:) {

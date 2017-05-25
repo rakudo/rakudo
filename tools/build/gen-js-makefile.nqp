@@ -27,6 +27,7 @@ sub rule($target, $source, *@actions) {
     $target;
 }
 
+constant('JS_NQP', '@js_nqp@');
 
 my @produced;
 
@@ -35,7 +36,7 @@ sub nqp($file, $output, :$deps=[]) {
     nqp::unshift($deps, $file);
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "./nqp-js --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -56,7 +57,7 @@ sub combine(:$sources, :$file) {
 
     rule($target, $sources,
         make_parents($target),
-        "./nqp-js tools/build/gen-cat.nqp js $sources > $target"
+        "\$(JS_NQP) tools/build/gen-cat.nqp js $sources > $target"
     ); 
 }
 
@@ -92,7 +93,7 @@ my $Perl6-main := nqp($main-nqp, 'rakudo.js', :deps([$Perl6-Grammar, $Perl6-Acti
 
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";
 rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
-    "./nqp-js tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
+    "\$(JS_NQP) tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
 ); 
 @produced.push($Metamodel-combined);
 
@@ -101,7 +102,7 @@ my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-
 my $CORE-combined := $build_dir ~ "/CORE.setting";
 rule($CORE-combined, '@js_core_sources@',
     '@echo "The following step can take a very long time, please be patient."',
-    "./nqp-js tools/build/gen-cat.nqp js  -f tools/build/js_core_sources > $CORE-combined"
+    "\$(JS_NQP) tools/build/gen-cat.nqp js  -f tools/build/js_core_sources > $CORE-combined"
 
 );
 

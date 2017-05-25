@@ -244,7 +244,7 @@ sub gen_nqp {
 
     my (%impls, %need);
 
-    for my $b (qw/jvm moar/) {
+    for my $b (qw/jvm moar js/) {
         if ($backends =~ /$b/) {
             my $postfix = substr $b, 0, 1;
             my $bin = $nqp_bin || ($sdkroot

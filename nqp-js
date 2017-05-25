@@ -1,2 +1,0 @@
-#node nqp-bootstrapped.js "$@"
-./node_modules/.bin/nqp-js-on-js "$@"

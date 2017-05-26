@@ -12,7 +12,7 @@ my class IO::Pipe is IO::Handle {
             nqp::bindattr(self, IO::Handle, '$!PIO', nqp::decont($PIO));
             nqp::setencoding(nqp::decont($PIO), $encoding);
             Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE(nqp::decont($PIO), $.nl-in);
-            my $decoder := Rakudo::Internals::VMBackedDecoder.new($encoding);
+            my $decoder := Rakudo::Internals::VMBackedDecoder.new($encoding, :translate-nl);
             $decoder.set-line-separators($.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);
         }

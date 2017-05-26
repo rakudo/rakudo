@@ -131,7 +131,7 @@ my class Proc {
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.spawn(@args, :$cwd, :$env);
     $proc
@@ -139,7 +139,7 @@ sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
 
 sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc

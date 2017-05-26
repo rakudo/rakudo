@@ -9,8 +9,14 @@ my class IO::Handle {
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
-    has Bool $.bin = False;
     has Rakudo::Internals::VMBackedDecoder $!decoder;
+
+    submethod TWEAK (:$encoding, :$bin) {
+        nqp::if(
+          $bin,
+          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
+          $!encoding = $encoding || 'utf8')
+    }
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -20,12 +26,21 @@ my class IO::Handle {
       :$append is copy,
       :$truncate is copy,
       :$exclusive is copy,
-      :$bin = $!bin,
+      :$bin,
+      :$enc is copy,
       :$chomp = $!chomp,
-      :$enc = $!encoding,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
     ) {
+        nqp::if(
+          $bin,
+          nqp::stmts(
+            nqp::isconcrete($enc) && X::IO::BinaryAndEncoding.new.throw,
+            $!encoding = Nil),
+          nqp::unless(
+            nqp::isconcrete($enc),
+            $enc = $!encoding));
+
         $mode = nqp::if(
           $mode,
           nqp::if(nqp::istype($mode, Str), $mode, $mode.Str),
@@ -93,12 +108,8 @@ my class IO::Handle {
             }
             $!chomp = $chomp;
             $!nl-out = $nl-out;
-            if $bin {
-                $!bin = True;
-                die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
-            }
-            else {
-                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
+            if nqp::isconcrete($enc) {
+                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
             }
@@ -138,12 +149,8 @@ my class IO::Handle {
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;
-        if $bin {
-            $!bin = True;
-            die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
-        }
-        else {
-            $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
+        if nqp::isconcrete($enc) {
+            $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
             $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
         }
@@ -659,7 +666,6 @@ my class IO::Handle {
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
                 $!decoder := Rakudo::Internals::VMBackedDecoder;
-                $!bin = True;
                 $!encoding = Nil;
                 Nil
             }
@@ -669,7 +675,6 @@ my class IO::Handle {
             with $new-encoding {
                 $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!bin = False;
                 $!encoding = $new-encoding;
             }
             else {

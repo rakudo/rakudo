@@ -593,6 +593,15 @@ my class X::IO::Chmod does X::IO {
     }
 }
 
+my class X::IO::BinaryAndEncoding does X::IO {
+    method message { "Cannot open a handle in binary mode (:bin) and also specify an encoding" }
+}
+
+my class X::IO::BinaryMode does X::IO {
+    has $.trying;
+    method message { "Cannot do '$.trying' on a handle in binary mode" }
+}
+
 my role X::Comp is Exception {
     has $.filename;
     has $.pos;

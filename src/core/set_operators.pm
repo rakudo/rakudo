@@ -1041,30 +1041,33 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       nqp::if(
         (my $braw := $b.raw_hash) && nqp::elems($braw),
         nqp::if(
-          (my $araw := $a.raw_hash)
-            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
-            && (my $iter := nqp::iterator($araw)),
-          nqp::stmts(           # A has fewer elems than B
-            nqp::while(
-              $iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                 <
-                nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey($braw,nqp::iterkey_s($iter)),
-                    BEGIN       # missing means value 0
-                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(         # A has fewer elems than B
+              nqp::while(
+                $iter,
+                nqp::unless(
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                   <
+                  nqp::getattr(
+                    nqp::ifnull(
+                      nqp::atkey($braw,nqp::iterkey_s($iter)),
+                      BEGIN nqp::p6bindattrinvres(     # virtual 0
+                        nqp::create(Pair),Pair,'$!value',0)
+                    ),
+                    Pair,
+                    '$!value'
                   ),
-                  Pair,
-                  '$!value'
-                ),
-                return False    # elem in A not in B or same or more in B
-              )
+                  return False  # elem in A not in B or same or more in B
+                )
+              ),
+              True              # all elems in A exist in B and are less
             ),
-            True                # all elems in A exist in B and are less
+            False               # number of elems in B smaller or equal to A
           ),
-          False                 # number of elems in B smaller or equal to A
+          True                  # elems in B, no elems in A
         ),
         False                   # can never have fewer elems in A than in B
       )

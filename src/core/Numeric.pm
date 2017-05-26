@@ -5,7 +5,7 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
-        (my \numeric = a.Numeric).defined
+        (try my \numeric = a.Numeric).defined
                 ?? (self.isNaN && numeric.isNaN or numeric == self)
                 !! False
     }

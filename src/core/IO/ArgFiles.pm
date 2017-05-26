@@ -173,7 +173,7 @@ my class IO::ArgFiles is IO::Handle {
           },
           STORE => -> $, $nl-in {
               if $!io.defined {
-                  Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!io, $nl-in);
+                  $!io.nl-in = $nl-in;
               }
               $!nl-in = $nl-in;
           }

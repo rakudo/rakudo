@@ -480,13 +480,18 @@ my class IO::Handle {
 
     proto method seek(|) { * }
     multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
+        my int $rewind = 0;
         if $!decoder {
+            # consider bytes we pre-read, when seeking from current position:
+            $rewind = $!decoder.bytes-available if
+                nqp::eqaddr(nqp::decont($whence), SeekFromCurrent);
+
             # Freshen decoder, so we won't have stuff left over from earlier reads
             # that were in the wrong place.
             $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
             $!decoder.set-line-separators($!nl-in.list);
         }
-        nqp::seekfh($!PIO, $offset, +$whence);
+        nqp::seekfh($!PIO, $offset - $rewind, +$whence);
     }
 
     method tell(IO::Handle:D: --> Int:D) {

@@ -5,9 +5,10 @@ my class IO::CatHandle is IO::Handle {
     has $.path;
     has $.chomp is rw;
     has $.nl-in;
-    has str $.encoding;
+    has Str $.encoding;
+    has Bool $.bin = False;
 
-    method !SET-SELF (@handles, $!chomp, $!nl-in, $!encoding) {
+    method !SET-SELF (@handles, $!chomp, $!nl-in, $!encoding, $!bin) {
         # reify:
         @handles.elems
           or die 'Must have at least one item to create IO::CatHandle from';
@@ -16,9 +17,9 @@ my class IO::CatHandle is IO::Handle {
         self
     }
     method new (*@handles,
-        :$chomp = True, :$nl-in = ["\x0A", "\r\n"], :$encoding = 'utf8',
+        :$chomp = True, :$nl-in = ["\x0A", "\r\n"], Str :$encoding, Bool :$bin
     ) {
-        self.bless!SET-SELF(@handles, $chomp, $nl-in, $encoding)
+        self.bless!SET-SELF(@handles, $chomp, $nl-in, $encoding, $bin)
     }
     method next-handle {
       # Set $!active-handle to the next handle in line, opening it if necessary
@@ -36,12 +37,13 @@ my class IO::CatHandle is IO::Handle {
               ($!active-handle = $_),
               nqp::if(
                 nqp::istype(
-                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding),
+                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding, :$!bin),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
-              nqp::istype(($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding),
+              nqp::istype(($_ := .IO.open:
+                  :r, :$!chomp, :$!nl-in, :$!encoding, :$!bin),
                 Failure),
               .throw,
               ($!active-handle = $_))),

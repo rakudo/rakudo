@@ -111,7 +111,7 @@ my class Set does Setty {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
-        X::Assignment::RO.new(typename => self.^name).throw;
+        X::Assignment::RO.new(value => self).throw;
     }
     multi method DELETE-KEY(Set:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;

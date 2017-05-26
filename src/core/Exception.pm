@@ -2150,10 +2150,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
-    has $.typename = "value";
+    has $.value = "value";
     method message {
-        "Cannot modify an immutable {$.typename}";
+        "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
     }
+    method typename { $.value.^name } 
 }
 
 my class X::Assignment::RO::Comp does X::Comp {
@@ -2514,8 +2515,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Assignment::RO',
-  -> $typename = "value" {
-      X::Assignment::RO.new(:$typename).throw;
+  -> $value = "value" {
+      X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
   {

@@ -3319,18 +3319,17 @@ nqp::sethllconfig('perl6', nqp::hash(
         }
     },
     'method_not_found_error', -> $obj, str $name {
-        my $type := $obj.HOW.name($obj);
         if $name eq 'STORE' {
             my %ex := nqp::gethllsym('perl6', 'P6EX');
             if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Assignment::RO') {
-                nqp::atkey(%ex, 'X::Assignment::RO')($type);
+                nqp::atkey(%ex, 'X::Assignment::RO')($obj);
             }
         }
         my %ex := nqp::gethllsym('perl6', 'P6EX');
         if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Method::NotFound') {
-            nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $type);
+            nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $obj.HOW.name($obj));
         }
-        nqp::die("Method '$name' not found for invocant of class '$type'");
+        nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
     },
 #?endif
     'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {

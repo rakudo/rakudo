@@ -99,7 +99,7 @@ my class IO::Handle {
             }
             else {
                 $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
             }
             return self;
@@ -144,7 +144,7 @@ my class IO::Handle {
         }
         else {
             $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
         }
         self;
@@ -476,7 +476,7 @@ my class IO::Handle {
         if $!decoder {
             # Freshen decoder, so we won't have stuff left over from earlier reads
             # that were in the wrong place.
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
             $!decoder.set-line-separators($!nl-in.list);
         }
         nqp::seekfh($!PIO, $offset, +$whence);
@@ -520,7 +520,7 @@ my class IO::Handle {
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        nqp::writefh($!PIO, x.encode($!encoding));
+        nqp::writefh($!PIO, x.encode($!encoding, :translate-nl));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -530,7 +530,7 @@ my class IO::Handle {
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
         nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding))
+          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
@@ -539,7 +539,7 @@ my class IO::Handle {
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
         nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding))
+          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
     }
     multi method say(IO::Handle:D: |) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
@@ -552,7 +552,7 @@ my class IO::Handle {
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        nqp::writefh($!PIO, $!nl-out.encode($!encoding));
+        nqp::writefh($!PIO, $!nl-out.encode($!encoding, :translate-nl));
     }
 
     proto method slurp-rest(|) { * }
@@ -650,7 +650,7 @@ my class IO::Handle {
             my $available = $!decoder.bytes-available;
             with $new-encoding {
                 my $prev-decoder := $!decoder;
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
@@ -667,7 +667,7 @@ my class IO::Handle {
         else {
             # No previous decoder; make a new one if needed, otherwise no change.
             with $new-encoding {
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding);
+                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!bin = False;
                 $!encoding = $new-encoding;

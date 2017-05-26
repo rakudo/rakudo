@@ -748,7 +748,12 @@ my role X::Pod                 { }
 
 my class X::NYI is Exception {
     has $.feature;
-    method message() { "$.feature not yet implemented. Sorry. " }
+    has $.did-you-mean;
+    method message() {
+        my $msg = "$.feature not yet implemented. Sorry.";
+        $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
+        $msg
+    }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
 my class X::NYI::Available is X::NYI {

@@ -2203,6 +2203,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
+    my int $is-win = Rakudo::Internals.IS-WIN;
 
 #?if moar
     proto method encode(|) {*}
@@ -2220,7 +2221,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         my $type := nqp::ifnull(nqp::atkey($enc_type,$enc),blob8);
         my str $target = self;
-        if $translate-nl && $*DISTRO.is-win {
+        if $is-win && $translate-nl {
             $target .= subst("\n", "\r\n", :g);
         }
 #?if moar

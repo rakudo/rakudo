@@ -29,6 +29,8 @@ sub rule($target, $source, *@actions) {
 
 constant('JS_NQP', '@js_nqp@');
 
+constant('JS_RUNTIME', '@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime');
+
 my @produced;
 
 sub nqp($file, $output, :$deps=[]) {
@@ -36,7 +38,7 @@ sub nqp($file, $output, :$deps=[]) {
     nqp::unshift($deps, $file);
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) --nqp-runtime \$(JS_RUNTIME) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
     );
 }
 

@@ -264,7 +264,7 @@ MAIN: {
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'bld_nqp_jars'}  = join( $config{'cpsep'}, map { $config{'sysroot'} . $_ } split( $config{'cpsep'}, $nqp_config{'jvm::runtime.jars'} ) );
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-            $config{'nqp_libdir'}    = $nqp_config{'nqp::libdir'};
+            $config{'nqp::libdir'}    = $nqp_config{'nqp::libdir'};
             $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 
@@ -313,6 +313,17 @@ MAIN: {
         my %nqp_config;
         $config{js_nqp} = $impls{js}{bin};
         $config{js_nqp} =~ s{/}{\\}g if $win;
+
+        if ( $impls{js}{ok} ) {
+            %nqp_config = %{ $impls{js}{config} };
+        }
+        elsif ( $impls{js}{config} ) {
+            push @errors, "The nqp-js is too old";
+        }
+        else {
+            push @errors, "Unable to read configuration from NQP on JS";
+        }
+
         system("$config{js_nqp} tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
         fill_template_file('gen/js/Makefile-JS.in', $MAKEFILE, %config, %nqp_config);
     }

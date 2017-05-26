@@ -8,10 +8,7 @@ my class IO::Pipe is IO::Handle {
         else {
             my $encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
             nqp::bindattr(self, IO::Handle, '$!encoding', $encoding);
-            # XXX Remove next three lines after streaming decoder is in use
             nqp::bindattr(self, IO::Handle, '$!PIO', nqp::decont($PIO));
-            nqp::setencoding(nqp::decont($PIO), $encoding);
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE(nqp::decont($PIO), $.nl-in);
             my $decoder := Rakudo::Internals::VMBackedDecoder.new($encoding, :translate-nl);
             $decoder.set-line-separators($.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);

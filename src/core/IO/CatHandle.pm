@@ -151,7 +151,20 @@ my class IO::CatHandle is IO::Handle {
           ),
           buf8.new)
     }
-    method readchars (::?CLASS:D: |c) {…}
+    method readchars (::?CLASS:D: Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
+        nqp::if(
+          nqp::defined($!active-handle),
+          nqp::stmts(
+            (my $ret := $!active-handle.readchars: $chars),
+            nqp::while(
+              nqp::islt_i(nqp::chars($ret), $chars)
+              && nqp::defined(self.next-handle),
+              $ret := nqp::concat($ret, $!active-handle.readchars:
+                nqp::sub_i($chars, nqp::chars($ret)))),
+            $ret
+          ),
+          '')
+    }
 
     method slurp (::?CLASS:D:) {
         # we don't take a :close arg, because we close exhausted handles

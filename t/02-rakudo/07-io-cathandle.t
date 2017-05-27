@@ -8,4 +8,6 @@ plan 1 + @meths;
 
 throws-like { IO::CatHandle.new."$_"() }, X::NYI, $_ for @meths;
 
-throws-like { IO::CatHandle.new.slurp-rest }, X::Obsolete, '.slurp-rest';
+throws-like { IO::CatHandle.new.slurp-rest }, X::Obsolete,
+    :old<slurp-rest>, :replacement<slurp>, :when('with IO::CatHandle'),
+    '.slurp-rest';

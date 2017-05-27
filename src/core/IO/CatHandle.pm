@@ -148,7 +148,7 @@ my class IO::CatHandle is IO::Handle {
         # We inherit deprecated .slurp-rest from IO::Handle. Pull the
         # plug on it in this class, since no one is using this yet.
         # The old IO::ArgFiles used .slurp
-        die X::Obsolete.new: :old<slurp-rest>, :new<slurp>,
+        die X::Obsolete.new: :old<slurp-rest>, :replacement<slurp>,
             :when('with IO::CatHandle')
     }
     method DESTROY { self.close }

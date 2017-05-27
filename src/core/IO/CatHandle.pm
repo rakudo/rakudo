@@ -58,9 +58,9 @@ my class IO::CatHandle is IO::Handle {
           ($!active-handle = Nil)))
     }
 
-    # Produce a Seq with an iterator that walks through all handles
-    method comb (::?CLASS:D: |c) {…}
-    method split (::?CLASS:D: |c) {…}
+    # XXX TODO: Make these routine read handle lazily when we have Cat type
+    method comb (::?CLASS:D: |c) { self.slurp.comb:  |c }
+    method split(::?CLASS:D: |c) { self.slurp.split: |c }
 
     method !WORDS {
       nqp::if(

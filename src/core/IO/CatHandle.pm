@@ -245,16 +245,19 @@ my class IO::CatHandle is IO::Handle {
             nqp::isfalse($!active-handle)
             || $!active-handle.eof))
     }
-    method gist     {…}
-    method Str      {…}
+    multi method gist (::?CLASS:D:) {
+        "{self.^name}({self.opened ?? "opened on {$.path.gist}" !! 'closed'})"
+    }
+    multi method Str (::?CLASS:D:) {
+        nqp::if($!active-handle, $.path.Str, '<closed IO::CatHandle>')
+    }
     method IO (::?CLASS:D:) {
         nqp::if($!active-handle, $!active-handle.IO, Nil)
     }
     method path (::?CLASS:D:) {
         nqp::if($!active-handle, $!active-handle.path, Nil)
     }
-    method open     {…}
-    method opened   {…}
+    method opened(::?CLASS:D:) { nqp::p6bool($!active-handle) }
     method lock     {…}
     method nl-in    {…}
     method seek     {…}
@@ -265,6 +268,15 @@ my class IO::CatHandle is IO::Handle {
     method unlock   {…}
     method native-descriptor (::?CLASS:D: --> Int:D) {
         nqp::if($!active-handle, $!active-handle.native-descriptor, Nil)
+    }
+    method open (::?CLASS:D: --> ::?CLASS:D) {
+        # The idea behind cat handle's open is to fake .open in code that
+        # doesn't know it's dealing with a cat handle, so we accept any args
+        # IO::Handle.open accepts and then just return self. Since that .open
+        # takes only named args methods have `*%_` in sigs, we don't put any
+        # args in our sig. If that ever changes, then ensure cat handle's .open
+        # can be called with any of the IO::Handle.open's args
+        self
     }
 
     #                        __________________________________________

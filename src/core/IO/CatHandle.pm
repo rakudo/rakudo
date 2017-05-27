@@ -43,14 +43,14 @@ my class IO::CatHandle is IO::Handle {
                 $!active-handle = $_),
               nqp::if(
                 nqp::istype(
-                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding,
+                  ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
                     :bin(nqp::isfalse($!encoding))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
               nqp::istype(
-                ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding,
+                ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
                   :bin(nqp::isfalse($!encoding))),
                 Failure),
               .throw,
@@ -140,9 +140,17 @@ my class IO::CatHandle is IO::Handle {
     method read (::?CLASS:D: |c) {}
     method readchars (::?CLASS:D: |c) {}
 
-    # Walk through all handles, producing single result
-    method slurp (::?CLASS:D: |c) {
-
+    method slurp (::?CLASS:D:) {
+        # we don't take a :close arg, because we close exhausted handles
+        # and .slurp isn't lazy, so all handles will get exhausted
+        nqp::if(
+          nqp::defined($!active-handle),
+          ([~] gather nqp::stmts( # the [~] takes care of both Str and Blobs
+            (take $!active-handle.slurp),
+            nqp::while(
+              nqp::defined(self.next-handle),
+              take $!active-handle.slurp))),
+          Nil)
     }
     method slurp-rest (|) {
         # We inherit deprecated .slurp-rest from IO::Handle. Pull the

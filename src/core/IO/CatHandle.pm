@@ -247,17 +247,25 @@ my class IO::CatHandle is IO::Handle {
     }
     method gist     {…}
     method Str      {…}
-    method IO       {…}
-    method path     {…}
+    method IO (::?CLASS:D:) {
+        nqp::if($!active-handle, $!active-handle.IO, Nil)
+    }
+    method path (::?CLASS:D:) {
+        nqp::if($!active-handle, $!active-handle.path, Nil)
+    }
     method open     {…}
     method opened   {…}
     method lock     {…}
     method nl-in    {…}
     method seek     {…}
     method tell     {…}
-    method t        {…}
+    method t (::?CLASS:D: --> Bool:D) {
+        nqp::if($!active-handle, $!active-handle.t, False)
+    }
     method unlock   {…}
-    method native-descriptor {…}
+    method native-descriptor (::?CLASS:D: --> Int:D) {
+        nqp::if($!active-handle, $!active-handle.native-descriptor, Nil)
+    }
 
     #                        __________________________________________
     #                       / I don't know what the write methods      \

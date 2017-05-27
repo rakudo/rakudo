@@ -246,7 +246,8 @@ sub gen_nqp {
 
     for my $b (qw/jvm moar js/) {
         if ($backends =~ /$b/) {
-            my $postfix = substr $b, 0, 1;
+            my %postfixes = (jvm => 'j', moar => 'm', js  => 'js');
+            my $postfix = $postfixes{$b};
             my $bin = $nqp_bin || ($sdkroot
                 ? File::Spec->catfile( $sdkroot, $prefix, 'bin', "nqp-$postfix$bat" )
                 : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" ));

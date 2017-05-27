@@ -137,7 +137,20 @@ my class IO::CatHandle is IO::Handle {
             $res),
           Nil)
     }
-    method read (::?CLASS:D: |c) {…}
+    method read (::?CLASS:D: Int(Cool:D) $bytes) {
+        nqp::if(
+          nqp::defined($!active-handle),
+          nqp::stmts(
+            (my $ret := buf8.new: $!active-handle.read: $bytes),
+            nqp::while(
+              nqp::islt_i(nqp::elems($ret), $bytes)
+              && nqp::defined(self.next-handle),
+              $ret.append: $!active-handle.read:
+                nqp::sub_i($bytes, nqp::elems($ret))),
+            $ret
+          ),
+          buf8.new)
+    }
     method readchars (::?CLASS:D: |c) {…}
 
     method slurp (::?CLASS:D:) {

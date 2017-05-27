@@ -112,7 +112,26 @@ my class IO::CatHandle is IO::Handle {
     }
     multi method lines(::?CLASS:D:) { self!LINES }
 
-    method Supply (::?CLASS:D: |c) {…}
+    method Supply (::?CLASS:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+        nqp::if(
+          nqp::isconcrete($!encoding),
+          (supply nqp::stmts(
+            (my str $str = self.readchars: $size),
+            nqp::while(
+              nqp::chars($str),
+              nqp::stmts(
+                (emit nqp::p6box_s($str)),
+                ($str = self.readchars: $size))),
+            done)),
+          (supply nqp::stmts(
+            (my $buf := self.read: $size),
+            nqp::while(
+              nqp::elems($buf),
+              nqp::stmts(
+                (emit $buf),
+                ($buf := self.read: $size))),
+            done)))
+    }
 
     # Get a single result, going to the next handle on EOF
     method get (::?CLASS:D:) {

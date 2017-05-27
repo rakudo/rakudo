@@ -234,7 +234,17 @@ my class IO::CatHandle is IO::Handle {
             Rakudo::Internals.NORMALIZE_ENCODING: $enc.Str))
     }
 
-    method eof      {…}
+    method eof (::?CLASS:D: --> Bool:D) {
+        nqp::p6bool(
+          nqp::stmts(
+            nqp::while(
+              $!active-handle
+              && $!active-handle.eof
+              && self.next-handle,
+              nqp::null),
+            nqp::isfalse($!active-handle)
+            || $!active-handle.eof))
+    }
     method gist     {…}
     method Str      {…}
     method IO       {…}

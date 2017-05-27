@@ -2,7 +2,6 @@ my class IO::CatHandle is IO::Handle {
     has $!handles;
     has IO::Handle $!active-handle;
 
-    has $.path;
     has $.chomp is rw;
     has $.nl-in;
     has Str $.encoding;

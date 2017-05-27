@@ -59,8 +59,8 @@ my class IO::CatHandle is IO::Handle {
     }
 
     # Produce a Seq with an iterator that walks through all handles
-    method comb (::?CLASS:D: |c) {}
-    method split (::?CLASS:D: |c) {}
+    method comb (::?CLASS:D: |c) {…}
+    method split (::?CLASS:D: |c) {…}
 
     method !WORDS {
       nqp::if(
@@ -112,7 +112,7 @@ my class IO::CatHandle is IO::Handle {
     }
     multi method lines(::?CLASS:D:) { self!LINES }
 
-    method Supply (::?CLASS:D: |c) {}
+    method Supply (::?CLASS:D: |c) {…}
 
     # Get a single result, going to the next handle on EOF
     method get (::?CLASS:D:) {
@@ -137,8 +137,8 @@ my class IO::CatHandle is IO::Handle {
             $res),
           Nil)
     }
-    method read (::?CLASS:D: |c) {}
-    method readchars (::?CLASS:D: |c) {}
+    method read (::?CLASS:D: |c) {…}
+    method readchars (::?CLASS:D: |c) {…}
 
     method slurp (::?CLASS:D:) {
         # we don't take a :close arg, because we close exhausted handles
@@ -177,21 +177,21 @@ my class IO::CatHandle is IO::Handle {
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
               $ = .close)))
     }
-    method encoding {}
-    method eof      {}
-    method gist     {}
-    method Str      {}
-    method IO       {}
-    method path     {}
-    method open     {}
-    method opened   {}
-    method lock     {}
-    method nl-in    {}
-    method seek     {}
-    method tell     {}
-    method t        {}
-    method unlock   {}
-    method native-descriptor {}
+    method encoding {…}
+    method eof      {…}
+    method gist     {…}
+    method Str      {…}
+    method IO       {…}
+    method path     {…}
+    method open     {…}
+    method opened   {…}
+    method lock     {…}
+    method nl-in    {…}
+    method seek     {…}
+    method tell     {…}
+    method t        {…}
+    method unlock   {…}
+    method native-descriptor {…}
 
     #                        __________________________________________
     #                       / I don't know what the write methods      \

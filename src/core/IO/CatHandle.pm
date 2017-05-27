@@ -6,13 +6,15 @@ my class IO::CatHandle is IO::Handle {
     has $.chomp is rw;
     has $.nl-in;
     has Str $.encoding;
-    has Bool $.bin = False;
 
-    method !SET-SELF (@handles, $!chomp, $!nl-in, $!encoding, $!bin) {
-        # reify:
-        @handles.elems
-          or die 'Must have at least one item to create IO::CatHandle from';
-        $!handles := nqp::getattr(@handles, List, '$!reified');
+    method !SET-SELF (@handles, $!chomp, $!nl-in, $encoding, $bin) {
+        nqp::if(
+          $bin,
+          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
+          $!encoding = $encoding || 'utf8');
+
+        @handles.elems; # reify
+        $!handles := nqp::getattr(@handles || [], List, '$!reified');
         self.next-handle;
         self
     }
@@ -34,16 +36,22 @@ my class IO::CatHandle is IO::Handle {
             nqp::istype(($_ := nqp::shift($!handles)), IO::Handle),
             nqp::if(
               .opened,
-              ($!active-handle = $_),
+              nqp::stmts(
+                (.encoding: $!encoding), # *Jedi wave*
+                (.nl-in = $!nl-in),      # These aren't the attribute assignment
+                (.chomp = $!chomp),      # inconsistencies you're looking for!
+                $!active-handle = $_),
               nqp::if(
                 nqp::istype(
-                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding, :$!bin),
+                  ($_ = .open: :r, :$!chomp, :$!nl-in, :$!encoding,
+                    :bin(nqp::isfalse($!encoding))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
-              nqp::istype(($_ := .IO.open:
-                  :r, :$!chomp, :$!nl-in, :$!encoding, :$!bin),
+              nqp::istype(
+                ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :$!encoding,
+                  :bin(nqp::isfalse($!encoding))),
                 Failure),
               .throw,
               ($!active-handle = $_))),

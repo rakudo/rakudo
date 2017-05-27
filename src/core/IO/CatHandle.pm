@@ -258,14 +258,22 @@ my class IO::CatHandle is IO::Handle {
         nqp::if($!active-handle, $!active-handle.path, Nil)
     }
     method opened(::?CLASS:D:) { nqp::p6bool($!active-handle) }
-    method lock     {…}
+    method lock(::?CLASS:D: |c) {
+        nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
+    }
     method nl-in    {…}
-    method seek     {…}
-    method tell     {…}
+    method seek(::?CLASS:D: |c) {
+        nqp::if($!active-handle, $!active-handle.seek(|c), Nil)
+    }
+    method tell(::?CLASS:D: --> Int:D) {
+        nqp::if($!active-handle, $!active-handle.tell, Nil)
+    }
     method t (::?CLASS:D: --> Bool:D) {
         nqp::if($!active-handle, $!active-handle.t, False)
     }
-    method unlock   {…}
+    method unlock(::?CLASS:D:) {
+        nqp::if($!active-handle, $!active-handle.unlock, Nil)
+    }
     method native-descriptor (::?CLASS:D: --> Int:D) {
         nqp::if($!active-handle, $!active-handle.native-descriptor, Nil)
     }

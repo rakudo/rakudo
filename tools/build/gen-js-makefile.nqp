@@ -30,6 +30,8 @@ sub rule($target, $source, *@actions) {
 constant('JS_NQP', '@js_nqp@');
 
 constant('JS_RUNTIME', '@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime');
+constant('JS_FLAGS', '--nqp-runtime $(JS_RUNTIME) --perl6-runtime @perl6_runtime@ --libpath "@perl6_lowlevel_libs@|||@nqp::libdir@/nqp-js-on-js/"');
+
 
 my @produced;
 
@@ -38,7 +40,7 @@ sub nqp($file, $output, :$deps=[]) {
     nqp::unshift($deps, $file);
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) --nqp-runtime \$(JS_RUNTIME) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) \$(JS_FLAGS) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -110,7 +112,7 @@ rule($CORE-combined, '@js_core_sources@',
 
 my $CORE := "$blib/CORE.setting.js";
 rule($CORE, "$CORE-combined rakudo.js",
-    "node --max-old-space-size=8192 rakudo.js --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
+    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
 );
 
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));

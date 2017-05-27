@@ -313,6 +313,8 @@ MAIN: {
         my %nqp_config;
         $config{js_nqp} = $impls{js}{bin};
         $config{js_nqp} =~ s{/}{\\}g if $win;
+        $config{'perl6_runtime'} = File::Spec->rel2abs('src/vm/js/perl6-runtime');
+        $config{'perl6_lowlevel_libs'} = File::Spec->rel2abs('node_modules') . '/';
 
         if ( $impls{js}{ok} ) {
             %nqp_config = %{ $impls{js}{config} };

@@ -222,7 +222,19 @@ my class IO::CatHandle is IO::Handle {
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
               $ = .close)))
     }
-    method encoding {…}
+
+    proto method encoding(|) { * }
+    multi method encoding(IO::Handle:D:) { $!encoding || Nil }
+    multi method encoding(IO::Handle:D: $enc is copy) {
+        $!encoding = nqp::if(
+          nqp::defined($!active-handle),
+          $!active-handle.encoding($enc),
+          nqp::if(
+            nqp::isfalse($enc.defined) || nqp::iseq_s($enc.Str, 'bin'),
+            Nil,
+            Rakudo::Internals.NORMALIZE_ENCODING: $enc.Str))
+    }
+
     method eof      {…}
     method gist     {…}
     method Str      {…}

@@ -188,29 +188,20 @@ PROCESS::<$OUT> =
 PROCESS::<$ERR> =
   IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
 
-sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub chmod($mode, *@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
 }
-sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
+sub unlink(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
 }
-sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub rmdir(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
 sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 

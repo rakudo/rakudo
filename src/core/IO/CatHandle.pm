@@ -228,7 +228,9 @@ my class IO::CatHandle is IO::Handle {
             nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
             nqp::if(
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
-              $ = .close)))
+              $ = .close)),
+          ($!handles := nqp::list),
+          ($!active-handle = Nil))
     }
 
     proto method encoding(|) { * }

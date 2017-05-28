@@ -220,8 +220,14 @@ my class IO::Handle {
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
-    method comb (IO::Handle:D: :$close, |c) { self.slurp(:$close).comb:  |c }
-    method split(IO::Handle:D: :$close, |c) { self.slurp(:$close).split: |c }
+    method comb (IO::Handle:D: :$close, |c) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<comb>);
+        self.slurp(:$close).comb: |c
+    }
+    method split(IO::Handle:D: :$close, |c) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<split>);
+        self.slurp(:$close).split: |c
+    }
 
     proto method words (|) { * }
     multi method words(IO::Handle:D \SELF: $limit, :$close) {

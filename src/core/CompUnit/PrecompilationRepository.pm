@@ -69,7 +69,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
 #?if moar
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
-        $unit.close;
 #?endif
 #?if !moar
         my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);

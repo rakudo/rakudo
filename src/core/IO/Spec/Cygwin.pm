@@ -62,8 +62,8 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
     method split(IO::Spec::Cygwin: Cool:D $path) {
         IO::Spec::Win32.split($path).map(
-          { (.key => .value.subst(:global, '\\', '/')) }
-        );
+          { .key => .value.subst(:global, '\\', '/') }
+        ).List;
     }
     method join(|c) {
         IO::Spec::Win32.join(|c).subst(:global, '\\', '/');

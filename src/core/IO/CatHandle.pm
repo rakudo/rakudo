@@ -275,7 +275,7 @@ my class IO::CatHandle is IO::Handle {
               && self.next-handle,
               nqp::null),
             nqp::isfalse($!active-handle)
-            || $!active-handle.eof))
+            || False))
     }
     multi method gist (::?CLASS:D:) {
         "{self.^name}({self.opened ?? "opened on {$.path.gist}" !! 'closed'})"

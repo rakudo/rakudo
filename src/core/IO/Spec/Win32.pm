@@ -19,10 +19,15 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     # NOTE: IO::Path.resolve assumes dir sep is 1 char
-    method dir-sep        { '\\' }
-    method splitdir($dir) { $dir.split($slash)  }
-    method devnull        { 'nul'               }
-    method rootdir        { '\\'                }
+    method dir-sep {  ｢\｣  }
+    method devnull { 'nul' }
+    method rootdir {  ｢\｣  }
+    method splitdir(Cool:D $path) {
+        nqp::p6bindattrinvres(
+          (), List, '$!reified',
+          nqp::split('/', nqp::join('/', nqp::split(｢\｣, $path.Str))))
+        || ('',)
+    }
 
     method basename(\path) {
         my str $str = nqp::unbox_s(path);

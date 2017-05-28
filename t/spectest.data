@@ -878,7 +878,7 @@ S17-supply/zip-latest.t
 S19-command-line/arguments.t
 S19-command-line/dash-e.t
 S19-command-line/help.t
-S19-command-line/repl.t
+S19-command-line/repl.t    # moar
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S19-command-line-options/04-negation.t

@@ -213,6 +213,12 @@ my class IO::Path is Cool does IO {
     multi method IO { self }
     method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
 
+#?if moar
+    method watch(IO::Path:D:) {
+        IO::Notification.watch-path($.absolute);
+    }
+#?endif
+
     proto method absolute(|) { * }
     multi method absolute (IO::Path:D:) {
         $!abspath //= $!SPEC.rel2abs($!path,$!CWD)

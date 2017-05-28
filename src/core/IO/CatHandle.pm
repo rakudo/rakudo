@@ -7,6 +7,23 @@ my class IO::CatHandle is IO::Handle {
     has Str $.encoding;
     has &.on-switch is rw;
 
+    multi method perl(::?CLASS:D:) {
+        my @handles =
+            ($!active-handle if $!active-handle),
+            |nqp::p6bindattrinvres((), List, '$!reified', $!handles);
+
+        my $parts = join ', ',
+            (@handles.List.perl if @handles),
+            (':!chomp' if not $!chomp),
+            (":nl-in({$!nl-in.list.perl})" if $!nl-in !eqv ["\x0A", "\r\n"]),
+            (nqp::isconcrete($!encoding)
+                ?? ":encoding({$!encoding.perl})"
+                !! ':bin'),
+            (':&.on-switch({;})' if &!on-switch); # can't .perl Callables :(
+
+        "{self.^name}.new($parts)"
+    }
+
     method !SET-SELF (
         @handles, &!on-switch, $!chomp, $!nl-in, $encoding, $bin
     ) {

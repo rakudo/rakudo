@@ -121,13 +121,17 @@ my role Baggy does QuantHash {
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        nqp::getattr(
-          nqp::ifnull(
-            nqp::atkey(self.raw_hash,k.WHICH),
-            BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+        nqp::if(
+          (my $raw := self.raw_hash),
+          nqp::getattr(
+            nqp::ifnull(
+              nqp::atkey($raw,k.WHICH),
+              BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+            ),
+            Pair,
+            '$!value'
           ),
-          Pair,
-          '$!value'
+          0
         )
     }
     multi method DELETE-KEY(Baggy:D: \k) {

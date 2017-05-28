@@ -57,6 +57,15 @@ my class IO::CatHandle is IO::Handle {
           ($!active-handle = Nil)))
     }
 
+    method chomp (::?CLASS:D:) is rw {
+        Proxy.new:
+          :FETCH{ $!chomp },
+          :STORE( -> $, $chomp {
+              $!active-handle && $!active-handle.chomp = $chomp;
+              $!chomp = $chomp
+          })
+    }
+
     # XXX TODO: Make these routine read handle lazily when we have Cat type
     method comb (::?CLASS:D: |c) { self.slurp.comb:  |c }
     method split(::?CLASS:D: |c) { self.slurp.split: |c }
@@ -261,7 +270,14 @@ my class IO::CatHandle is IO::Handle {
     method lock(::?CLASS:D: |c) {
         nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
     }
-    method nl-in    {…}
+    method nl-in (::?CLASS:D:) is rw {
+        Proxy.new:
+          :FETCH{ $!nl-in },
+          :STORE( -> $, $nl-in {
+              $!active-handle && $!active-handle.nl-in = $nl-in;
+              $!nl-in = $nl-in
+          })
+    }
     method seek(::?CLASS:D: |c) {
         nqp::if($!active-handle, $!active-handle.seek(|c), Nil)
     }

@@ -1,12 +1,15 @@
 my class IO::CatHandle is IO::Handle {
     has $!handles;
-    has IO::Handle $!active-handle;
+    has $!active-handle is default(Nil) = Nil;
 
     has $.chomp is rw;
     has $.nl-in;
     has Str $.encoding;
+    has &.on-switch is rw;
 
-    method !SET-SELF (@handles, $!chomp, $!nl-in, $encoding, $bin) {
+    method !SET-SELF (
+        @handles, &!on-switch, $!chomp, $!nl-in, $encoding, $bin
+    ) {
         nqp::if(
           $bin,
           nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
@@ -17,14 +20,17 @@ my class IO::CatHandle is IO::Handle {
         self.next-handle;
         self
     }
-    method new (*@handles,
+    method new (
+        *@handles, :&on-switch,
         :$chomp = True, :$nl-in = ["\x0A", "\r\n"], Str :$encoding, Bool :$bin
     ) {
-        self.bless!SET-SELF(@handles, $chomp, $nl-in, $encoding, $bin)
+        self.bless!SET-SELF:
+            @handles, &on-switch, $chomp, $nl-in, $encoding, $bin
     }
     method next-handle {
       # Set $!active-handle to the next handle in line, opening it if necessary
       nqp::stmts(
+        (my $old-handle is default(Nil) = $!active-handle),
         nqp::if(
           nqp::defined($!active-handle),
           ($ = $!active-handle.close)), # don't sink the result, since it might
@@ -54,7 +60,22 @@ my class IO::CatHandle is IO::Handle {
                 Failure),
               .throw,
               ($!active-handle = $_))),
-          ($!active-handle = Nil)))
+          ($!active-handle = Nil)),
+        nqp::if(
+          &!on-switch,
+          nqp::stmts(
+            (my $c := &!on-switch.count),
+            nqp::if(
+              $c,
+              nqp::if(
+                nqp::istype($c, Num) || nqp::iseq_i($c, 2), # inf or 2
+                &!on-switch($!active-handle, $old-handle),
+                nqp::if(
+                  nqp::iseq_i($c, 1),
+                  &!on-switch($!active-handle),
+                  die ':&on-switch must have .count 0, 1, 2, or Inf')),
+              &!on-switch()))),
+        $!active-handle)
     }
 
     method chomp (::?CLASS:D:) is rw {

@@ -2447,8 +2447,8 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator for a List that has been completely reified
-    # already.  Returns an nqp::null for elements don't exist before
-    # the end of the reified list.
+    # already.  Returns an nqp::null for elements that don't exist
+    # before the end of the reified list.
     method ReifiedList(\list) {
         class :: does Iterator {
             has $!reified;

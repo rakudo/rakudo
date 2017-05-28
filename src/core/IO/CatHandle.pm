@@ -306,7 +306,7 @@ my class IO::CatHandle is IO::Handle {
     method path (::?CLASS:D:) {
         nqp::if($!active-handle, $!active-handle.path, Nil)
     }
-    method opened(::?CLASS:D:) { nqp::p6bool($!active-handle) }
+    method opened(::?CLASS:D: --> Bool:D) { nqp::p6bool($!active-handle) }
     method lock(::?CLASS:D: |c) {
         nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
     }

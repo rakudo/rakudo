@@ -84,7 +84,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 || nqp::iseq_i($_, 47))))
     }
 
-    multi method split(IO::Spec::Win32: Cool:D $path is copy) {
+    method split(IO::Spec::Win32: Cool:D $path is copy) {
         $path ~~ s[ <$slash>+ $] = ''                       #=
             unless $path ~~ /^ <$driveletter>? <$slash>+ $/;
 

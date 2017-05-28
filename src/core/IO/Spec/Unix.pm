@@ -117,7 +117,7 @@ my class IO::Spec::Unix is IO::Spec {
         }
     }
 
-    multi method split(IO::Spec::Unix: Cool:D $path) {
+    method split(IO::Spec::Unix: Cool:D $path) {
         my str $p = $path.Str;
         my int $chars = nqp::chars($p);
 

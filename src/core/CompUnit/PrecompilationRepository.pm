@@ -264,7 +264,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           "--source-name=$source-name",
           $path,
           :out,
-          :err,
+          :err($RMD ?? '-' !! True),
           :%env
         );
 
@@ -273,10 +273,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             $RMD("Precomping $path failed: $proc.status()") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $proc.err.slurp-rest(:close);
+            die $RMD ?? @result !! $proc.err.slurp-rest(:close);
         }
 
-        if $proc.err.slurp-rest(:close) -> $warnings {
+        if not $RMD and $proc.err.slurp-rest(:close) -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

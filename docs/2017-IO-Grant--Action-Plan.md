@@ -28,7 +28,8 @@ purpose.**
 10. Leave IO::Path.Str as is, without any changes. [Discussion](https://github.com/zoffixznet/IOwesomeness/issues/20)
 11. The change to [`IO::Handle.Supply(:bin)` arg handling](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#changes-to-supply-issue-for-discussion), change to `IO::Handle.lock` argument handling, and making `IO::Path.new-from-absolute-path` private is to be done in 6.c and not 6.d; the change were miscategorized.
 12. Make all IO routines that throw fail instead. [Discussion](https://irclog.perlgeek.de/perl6-dev/2016-12-28#i_13814044)
-
+13. The behaviour of [.is-absolute on Windows](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#make-iopathis-absolute-give-false-for--path-on-windows-issue-for-discussion) was decided to be left as is.
+14. .child was left as is [the proposed secure version](https://github.com/rakudo/rakudo/blob/nom/docs/2017-IO-Grant--Action-Plan.md#make-iopathchild-fail-for-non-child-paths--add-iopathconcat-with-issue-for-discussion) is implemented and is commented out in Rakudo's source. It was decided to switch to it in 6.d. The `.concat-with` routine was eventually named `.add`
 
 ---------------------------
 

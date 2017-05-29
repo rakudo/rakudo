@@ -35,12 +35,13 @@ constant('JS_FLAGS', '--nqp-runtime $(JS_RUNTIME) --perl6-runtime @perl6_runtime
 
 my @produced;
 
-sub nqp($file, $output, :$deps=[]) {
+sub nqp($file, $output, :$deps=[], :$execname) {
     @produced.push($output);
     nqp::unshift($deps, $file);
+    my $options := $execname ?? "--execname $execname" !! "";
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) \$(JS_FLAGS) --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -92,7 +93,7 @@ rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>);
 
-my $Perl6-main := nqp($main-nqp, 'rakudo.js', :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
+my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('@perl6_js_runner@'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
 
 
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";

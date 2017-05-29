@@ -831,18 +831,17 @@ class Rakudo::Iterator {
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
-                            nqp::isnull(
-                              $elem := nqp::getattr($elem,List,'$!reified'))
-                              || nqp::iseq_i(nqp::elems($elem),0),
-
-                            # cross with an empty list is always an empty list
-                            (return Rakudo::Iterator.Empty),
+                            ($elem := nqp::getattr($elem,List,'$!reified'))
+                              && nqp::isgt_i(nqp::elems($elem),0),
 
                             # use the available reified directly
                             nqp::stmts(
                               nqp::bindpos($!reifieds,$i,$elem),
                               nqp::atpos($elem,0)
-                            )
+                            ),
+
+                            # cross with an empty list is always an empty list
+                            return Rakudo::Iterator.Empty
                           ),
 
                           # need to set up an iterator

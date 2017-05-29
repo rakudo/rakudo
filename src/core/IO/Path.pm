@@ -174,10 +174,7 @@ my class IO::Path is Cool does IO {
         ), $base, $subst, $joiner
     }
 
-
-    # core can't do 'basename handles <Numeric Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }
-    method Int    (IO::Path:D:) { self.basename.Int     }
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {

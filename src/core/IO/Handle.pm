@@ -401,7 +401,7 @@ my class IO::Handle {
                 self!LINES-ITERATOR, $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
-    multi method lines(IO::Handle:D \SELF: :$close) {
+    multi method lines(IO::Handle:D \SELF: :$close!) {
       Seq.new(
         $close # use -1 as N in FirstNThenSinkAllSeq to get all items
           ?? Rakudo::Iterator.FirstNThenSinkAll(

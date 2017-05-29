@@ -125,7 +125,7 @@ my class IO::CatHandle is IO::Handle {
                 self!WORDS.iterator, $limit.Int, {SELF.close}))
             !! self.words.head($limit.Int)
     }
-    multi method words(::?CLASS:D \SELF: :$close) {
+    multi method words(::?CLASS:D \SELF: :$close!) {
       $close # use -1 as N in FirstNThenSinkAllSeq to get all items
         ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
             self!WORDS.iterator, -1, {SELF.close}))
@@ -150,7 +150,7 @@ my class IO::CatHandle is IO::Handle {
                 self!LINES.iterator, $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
-    multi method lines(::?CLASS:D \SELF: :$close) {
+    multi method lines(::?CLASS:D \SELF: :$close!) {
       $close # use -1 as N in FirstNThenSinkAllSeq to get all items
         ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
             self!LINES.iterator, -1, {SELF.close}))

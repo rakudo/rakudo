@@ -61,6 +61,8 @@ perl6-m
 perl6-m.bat
 perl6-debug-m
 perl6-debug-m.bat
+perl6-js
+perl6-js.bat
 t/localtest.data
 t/spec
 /panda

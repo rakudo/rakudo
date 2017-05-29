@@ -28,6 +28,7 @@ sub rule($target, $source, *@actions) {
 }
 
 constant('JS_NQP', '@js_nqp@');
+constant('JS_RUNNER', '@perl6_js_runner@');
 
 constant('JS_RUNTIME', '@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime');
 constant('JS_FLAGS', '--nqp-runtime $(JS_RUNTIME) --perl6-runtime @perl6_runtime@ --libpath "@perl6_lowlevel_libs@|||@nqp::libdir@/nqp-js-on-js/"');
@@ -93,8 +94,10 @@ rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>);
 
-my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('@perl6_js_runner@'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
+my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('$(JS_RUNNER)'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
 
+
+rule('$(JS_RUNNER)', '', '$(PERL5) tools/build/create-js-runner.pl');
 
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";
 rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
@@ -120,8 +123,7 @@ my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :de
 
 my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
 
-say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE\n");
-
+say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER)\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp::join(' ', @produced)}");
 

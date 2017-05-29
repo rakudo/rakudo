@@ -579,6 +579,7 @@ S11-modules/module-file.t
 S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
+S11-modules/runtime.t
 S11-repository/curli-install.t
 S12-attributes/class.t
 S12-attributes/clone.t
@@ -617,6 +618,7 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
+S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-construction/TWEAK.t
@@ -890,6 +892,7 @@ S24-testing/3-output.t
 S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
 S24-testing/9-is_deeply.t
+S24-testing/10-is-approx.t
 S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
 S24-testing/line-numbers.t
@@ -981,6 +984,7 @@ S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/indir.t
+S32-io/io-cathandle.t
 S32-io/io-handle.t
 S32-io/lock.t                   # slow
 S32-io/socket-host-port-split.t
@@ -1011,6 +1015,7 @@ S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
+S32-io/tell.t
 S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t

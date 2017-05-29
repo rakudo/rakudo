@@ -135,6 +135,26 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     }
 }
 
+# RT #123085
+{
+    throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
+        Exception,
+        message => all(/<<'Too many'>>/, /<<'expected 1'>>/, /<<'got 2'>>/),
+        'wrong arity in a signature has correct values in error message';
+    throws-like { sub foo([$head, $tail], [$foo]) {}; foo([3, 4]) },
+        Exception,
+        message => all(/<<'Too few'>>/, /<<'expected 2'>>/, /<<'got 1'>>/),
+        'wrong arity in a signature has correct values in error message';
+    throws-like { sub foo([$head]) {}; foo([3, 4]) },
+        Exception,
+        message => all(/<<'Too many'>>/, /<<'expected 1'>>/, /<<'got 2'>>/, /<<'sub-signature'>>/),
+        'wrong arity in a sub-signature has correct values in error message';
+    throws-like { sub foo(@bar ($head, $tail)) {}; foo([3]) },
+        Exception,
+        message => all(/<<'Too few'>>/, /<<'expected 2'>>/, /<<'got 1'>>/, /<<'sub-signature'>>/, /<<'parameter @bar'>>/),
+        'wrong arity in a sub-signature with a named parameter has correct values in error message';
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

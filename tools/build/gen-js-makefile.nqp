@@ -130,5 +130,9 @@ say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp
 say("js-lint:
 	gjslint --strict --max_line_length=200 --nojsdoc src/vm/js/perl6-runtime/*.js");
 
+
+rule('js-testable', 'js-all spectest_checkout spectest_update');
+rule('js-spectest', 'js-testable', '$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=t/spectest.js.data');
+
 # Stub
 say("js-runner-default:")

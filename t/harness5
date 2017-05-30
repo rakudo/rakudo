@@ -27,6 +27,7 @@ GetOptions(
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'jvm'               => \my $jvm,
+    'js'               => \my $js,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
@@ -36,7 +37,8 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
+
+$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = "lib"; 
 
 my @slow;
@@ -176,7 +178,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
+    my $impl = $js ? 'rakudo.js' : $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -202,4 +204,4 @@ Options:
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
-    --moar/--jvm - mutually exclusive. Use MoarVM/JVM backend
+    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend

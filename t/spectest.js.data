@@ -1,0 +1,62 @@
+# This is a list of all spec tests that are expected to pass.
+#
+# Empty lines and those beginning with a # are ignored
+#
+# We intend to include *all* tests from roast, even when we
+# skip most of the tests or the entire test file. To verify
+# we are running all tests, run:
+#
+# perl tools/update-passing-test-data.pl
+#
+# If a file appears in the output of the script, it is not run
+# by default. It may need to be fudged in order to run successfully.
+# Open an RT when necessary as part of the fudge process, using the
+# RT in the fudge message, and then add the test file to this file, sorted.
+#
+# Each file may have one or more markers that deselects the test:
+#     long   - run tests unless --quick
+#     stress - run tests only if --stress
+#     moar   - run tests only for MoarVM backend
+# See the "make quicktest" and "make stresstest" targets in
+# build/Makefile.in for examples of use.
+
+
+S02-lexical-conventions/begin_end_pod.t
+S02-lexical-conventions/bom.t
+S02-lexical-conventions/comments.t
+S02-lexical-conventions/end-pod.t
+S02-lexical-conventions/minimal-whitespace.t
+S02-lexical-conventions/one-pass-parsing.t
+S02-lexical-conventions/pod-in-multi-line-exprs.t
+S02-lexical-conventions/sub-block-parsing.t
+S02-lexical-conventions/unicode.t
+S02-lexical-conventions/unicode-whitespace.t
+S02-lexical-conventions/unspace.t
+S02-lists/indexing.t
+S02-lists/tree.t
+#S02-literals/adverbs.t
+#S02-literals/allomorphic.t
+S02-literals/array-interpolation.t
+S02-literals/autoref.t
+#S02-literals/char-by-name.t
+S02-literals/char-by-number.t
+S02-literals/fmt-interpolation.t
+S02-literals/hash-interpolation.t
+#S02-literals/heredocs.t
+S02-literals/hex_chars.t
+S02-literals/listquote.t
+S02-literals/listquote-whitespace.t
+S02-literals/misc-interpolation.t
+S02-literals/numeric.t
+S02-literals/pair-boolean.t
+S02-literals/pairs.t
+S02-literals/pod.t
+#S02-literals/quoting.t
+S02-literals/quoting-unicode.t
+S02-literals/radix.t
+#S02-literals/string-interpolation.t
+S02-literals/sub-calls.t
+S02-literals/subscript.t
+S02-literals/types.t
+S02-literals/underscores.t
+#S02-literals/version.t

@@ -131,7 +131,7 @@ sub formatting2text($pod) {
 }
 
 sub twine2text($_) {
-    .map({ when Pod { twine2text .contents }; $_ }).join
+    .map({ when Pod::Block { twine2text .contents }; .&pod2text }).join
 }
 
 sub twrap($text is copy, :$wrap=75 ) {

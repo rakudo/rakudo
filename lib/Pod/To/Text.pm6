@@ -20,16 +20,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        {
-            my @arr;
-            my $r = '';
-            for $pod.flat -> $p {
-                my $s = pod2text $p;
-                @arr.append($s) if $s;
-            }
-            $r = join("\n\n", @arr) if @arr;
-            $r;
-        }
+        when Positional        { .flat».&pod2text.grep(?*).join: "\n\n" }
         when Pod::Block::Comment { '' }
         when Pod::Config       { '' }
         default                { $pod.Str                       }
@@ -139,19 +130,8 @@ sub formatting2text($pod) {
       !! $text
 }
 
-sub twine2text($twine) {
-    return '' unless $twine.elems;
-    my $r = '';
-    # make no assumptions about array contents...
-    for $twine[0..*] -> $t {
-        if $t ~~ Pod {
-            $r ~= twine2text($t.contents);
-        }
-        else {
-            $r ~= $t;
-        }
-    }
-    $r;
+sub twine2text($_) {
+    .map({ when Pod { twine2text .contents }; $_ }).join
 }
 
 sub twrap($text is copy, :$wrap=75 ) {

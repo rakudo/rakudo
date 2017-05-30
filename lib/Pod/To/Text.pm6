@@ -20,7 +20,16 @@ sub pod2text($pod) is export {
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
+        when Positional        {
+            my @arr;
+            my $r = '';
+            for $pod.flat -> $p {
+                my $s = pod2text $p;
+                @arr.append($s) if $s;
+            }
+            $r = join("\n\n", @arr) if @arr;
+            $r;
+        }
         when Pod::Block::Comment { '' }
         when Pod::Config       { '' }
         default                { $pod.Str                       }
@@ -109,7 +118,7 @@ sub declarator2text($pod) {
 
 sub signature2text($params) {
       $params.elems ??
-      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)" 
+      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)"
       !! "()";
 }
 sub param2text($p) {
@@ -132,10 +141,15 @@ sub formatting2text($pod) {
 
 sub twine2text($twine) {
     return '' unless $twine.elems;
-    my $r = $twine[0];
-    for $twine[1..*] -> $f, $s {
-        $r ~= twine2text($f.contents);
-        $r ~= $s;
+    my $r = '';
+    # make no assumptions about array contents...
+    for $twine[0..*] -> $t {
+        if $t ~~ Pod {
+            $r ~= twine2text($t.contents);
+        }
+        else {
+            $r ~= $t;
+        }
     }
     $r;
 }

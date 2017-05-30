@@ -20,7 +20,25 @@ sub pod2text($pod) is export {
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
+        when Positional        {
+            =begin comment
+	    # original code
+            $pod.map({pod2text($_)}).join("\n\n")
+            =end comment
+
+	    # unwrapping original code for debugging...
+	    # fix based on irc #perl6, 2017-05-30, word descrip from
+	    # kurahaupo at 23:43 and on 2017-05-30 MasterDuke's hint
+	    # at 00:24
+            my @arr;
+            my $r = '';
+            for $pod.flat -> $p {
+                my $s = pod2text $p;
+                @arr.append($s) if $s;
+            }
+            $r = join("\n\n", @arr) if @arr;
+            $r;
+        }
         when Pod::Block::Comment { '' }
         when Pod::Config       { '' }
         default                { $pod.Str                       }
@@ -109,7 +127,7 @@ sub declarator2text($pod) {
 
 sub signature2text($params) {
       $params.elems ??
-      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)" 
+      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)"
       !! "()";
 }
 sub param2text($p) {
@@ -132,10 +150,30 @@ sub formatting2text($pod) {
 
 sub twine2text($twine) {
     return '' unless $twine.elems;
+    =begin comment
+    # original code in this block
+    # check this algorithm closely ref pod:
+    # looks like the contents array first element (for a para)
+    # is assumed to ALWAYS be a string, and other assumptions that
+    # will be ignored--need to treat the contents as they are found
     my $r = $twine[0];
     for $twine[1..*] -> $f, $s {
         $r ~= twine2text($f.contents);
         $r ~= $s;
+    }
+    $r;
+    =end comment
+
+    # new code:
+    my $r = '';
+    # make no assumptions about array contents...
+    for $twine[0..*] -> $t {
+        if $t ~~ Pod {
+            $r ~= twine2text($t.contents);
+        }
+        else {
+            $r ~= $t;
+        }
     }
     $r;
 }

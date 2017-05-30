@@ -81,6 +81,7 @@ src/core/Rational.pm
 src/core/Rat.pm
 src/core/Complex.pm
 src/core/Backtrace.pm
+src/core/StrDistance.pm
 src/core/Exception.pm
 src/core/Failure.pm
 src/core/Match.pm
@@ -180,7 +181,6 @@ src/core/CompUnit/Repository/Perl5.pm
 src/core/CompUnit/Repository/Unknown.pm
 src/core/Argfiles.pm
 src/core/Process.pm
-src/core/StrDistance.pm
 src/core/Slang.pm
 src/core/Metamodel/Primitives.pm
 src/core/REPL.pm

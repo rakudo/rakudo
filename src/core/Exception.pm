@@ -156,6 +156,7 @@ my class X::Method::NotFound is Exception {
         my $message = $.private
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
+
         if $.method eq 'length' {
             $message ~= "\nDid you mean ";
             given $.invocant {
@@ -167,6 +168,28 @@ my class X::Method::NotFound is Exception {
         elsif $.method eq 'bytes' {
             $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
         }
+
+        my @suggestions;
+        for $.invocant.^methods(:local)>>.name -> $method_name {
+            my $dist = StrDistance.new(:before($.method), :after($method_name));
+            if $dist == 1 or ($.method eq $method_name and $.private) {
+                @suggestions.push($method_name);
+            }
+        }
+
+        for $.invocant.^private_method_table.keys -> $method_name {
+            my $dist = StrDistance.new(:before($.method), :after($method_name));
+            if $dist == 1 or ($.method eq $method_name and not $.private) {
+                @suggestions.push("!$method_name");
+            }
+        }
+
+        if +@suggestions == 1 {
+            $message ~= ". Did you mean '@suggestions[0]'?";
+        } elsif +@suggestions > 1 {
+            $message ~= ". Did you mean any of these?\n    { @suggestions.head(3).join("\n    ") }\n";
+        }
+
         $message;
     }
 }

@@ -155,6 +155,20 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a sub-signature with a named parameter has correct values in error message';
 }
 
+{ # https://irclog.perlgeek.de/perl6-dev/2017-05-31#i_14666102
+    throws-like '42.length      ', Exception, '.length on non-List Cool',
+        :message{ .contains: <chars codes>.all & none <elems graphs> };
+
+    throws-like '[].length      ', Exception, '.length on List',
+        :message{ .contains: 'elems' & none <chars codes graphs>     };
+
+    throws-like 'class {}.length', Exception, '.length on non-Cool',
+        :message{ .contains: <elems chars codes>.all & none 'graphs' };
+
+    throws-like 'length 42      ', Exception, '&length',
+        :message{ .contains: <elems chars codes>.all & none 'graphs' };
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

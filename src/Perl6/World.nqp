@@ -4047,7 +4047,6 @@ class Perl6::World is HLL::World {
         if $name eq '&length' {
             @suggestions.push: $with_sigil ?? '&elems'  !! 'elems';
             @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
-            @suggestions.push: $with_sigil ?? '&graphs' !! 'graphs';
             @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
         }
         elsif $name eq '&bytes' {

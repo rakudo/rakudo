@@ -137,7 +137,7 @@ my class Binder {
     my $PositionalBindFailover;
 
 #?if moar
-    sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
+    sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
         my int $arity;
@@ -165,14 +165,15 @@ my class Binder {
             $param_i++;
         }
         my str $s := $arity == 1 ?? "" !! "s";
+        my str $routine := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
 
         if $arity == $count {
-            return "$error_prefix positionals passed; expected $arity argument$s but got $num_pos_args";
+            return "$error_prefix positionals passed to '$routine'; expected $arity argument$s but got $num_pos_args";
         } elsif $count < 0 {
-            return "$error_prefix positionals passed; expected at least $arity argument$s but got only $num_pos_args";
+            return "$error_prefix positionals passed to '$routine'; expected at least $arity argument$s but got only $num_pos_args";
         } else {
             my str $conj := $count == $arity+1 ?? "or" !! "to";
-            return "$error_prefix positionals passed; expected $arity $conj $count arguments but got $num_pos_args";
+            return "$error_prefix positionals passed to '$routine'; expected $arity $conj $count arguments but got $num_pos_args";
         }
     }
 
@@ -812,7 +813,7 @@ my class Binder {
                         }
                         else {
                             if nqp::defined($error) {
-                                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0);
+                                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0, $lexpad);
                             }
                             return $BIND_RESULT_FAIL;
                         }
@@ -868,7 +869,7 @@ my class Binder {
         if $cur_pos_arg < $num_pos_args && !$suppress_arity_fail {
             # Oh noes, too many positionals passed.
             if nqp::defined($error) {
-                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 1);
+                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 1, $lexpad);
             }
             return $BIND_RESULT_FAIL;
         }

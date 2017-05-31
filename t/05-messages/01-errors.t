@@ -155,6 +155,18 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a sub-signature with a named parameter has correct values in error message';
 }
 
+# RT #131408
+{
+    throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
+        Exception,
+        message => /<<'foo'>>/,
+        'wrong arity in a signature mentions the name of the sub';
+    throws-like { class A { foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
+        Exception,
+        message => /<<'foo'>>/,
+        'wrong arity in a signature mentions the name of the method';
+}
+
 { # https://irclog.perlgeek.de/perl6-dev/2017-05-31#i_14666102
     throws-like '42.length      ', Exception, '.length on non-List Cool',
         :message{ .contains: <chars codes>.all & none <elems graphs> };

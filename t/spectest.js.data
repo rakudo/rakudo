@@ -60,3 +60,7 @@ S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 #S02-literals/version.t
+S03-junctions/associative.t
+S03-junctions/autothreading.t
+S03-junctions/boolean-context.t
+S03-junctions/misc.t

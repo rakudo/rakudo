@@ -139,5 +139,9 @@ $ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want, :$cps) {
 $ops.add_simple_op('p6decodelocaltime', $ops.OBJ, [$ops.INT], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 
 $ops.add_simple_op('p6finddispatcher', $ops.OBJ, [$ops.STR], :side_effects, sub ($usage) {
-    "nqp.op.p6finddispatcher({$*BLOCK.ctx}, $usage, nqp.op.savecapture(Array.prototype.slice.call(arguments)))"
+    "nqp.op.p6finddispatcher({$*BLOCK.ctx}, $usage)"
+});
+
+$ops.add_simple_op('p6argsfordispatcher', $ops.OBJ, [$ops.OBJ], :side_effects, sub ($dispatcher) {
+    "nqp.op.p6argsfordispatcher({$*BLOCK.ctx}, $dispatcher)"
 });

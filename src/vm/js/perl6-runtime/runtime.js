@@ -1,4 +1,4 @@
-module.exports.load = function(nqp, CodeRef, containerSpecs) {
+module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   var Null = nqp.Null;
   var op = {};
 
@@ -231,7 +231,7 @@ module.exports.load = function(nqp, CodeRef, containerSpecs) {
     ]);
   }
 
-  op.p6finddispatcher = function(ctx, usage, argss) {
+  op.p6finddispatcher = function(ctx, usage) {
     let dispatcher;
     let search = ctx.$$caller;
     while (search) {
@@ -239,7 +239,7 @@ module.exports.load = function(nqp, CodeRef, containerSpecs) {
       if (search.hasOwnProperty(["$*DISPATCHER"])) {
         dispatcher = search["$*DISPATCHER"];
         if (dispatcher.typeObject_) {
-          dispatcher = dispatcher.vivify_for(dispatcher, ctx.codeRef().codeObj, ctx, args);
+          dispatcher = dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
           search["$*DISPATCHER"] = dispatcher;
         }
         return dispatcher;
@@ -251,6 +251,19 @@ module.exports.load = function(nqp, CodeRef, containerSpecs) {
     throw usage + ' is not in the dynamic scope of a dispatcher';
   };
 
+  op.p6argsfordispatcher = function(ctx, dispatcher) {
+    console.log("calling p6argsfordispatcher");
+    let search = ctx;
+    while (search) {
+      /* Do we have the dispatcher we're looking for? */
+      if (search['$*DISPATCHER'] === dispatcher) {
+        return new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2));
+      }
+      /* Follow dynamic chain. */
+      search = search.$$caller;
+    }
+    throw 'Could not find arguments for dispatcher';
+  };
 
   function RakudoScalar(STable) {
     this.STable = STable;

@@ -26,12 +26,14 @@ else {
     $separator = "; ";
 }
 
-sub feed_repl_with ( @lines ) {
+sub feed_repl_with ( @lines, Bool:D :$no-filter-messages = False ) {
     ## warning: works only with simple input lines which don't need quoting for Windows
     my $repl-input = '(' ~ (@lines.map: { 'echo ' ~ $quote ~ $_ ~ $quote }).join($separator) ~ ')';
     my $repl-output = qqx[$repl-input | $*EXECUTABLE].trim-trailing;
-    $repl-output ~~ s/^^ "You may want to `panda install Readline` or `panda install Linenoise` or use rlwrap for a line editor\n\n"//;
-    $repl-output ~~ s/^^ "To exit type 'exit' or '^D'\n"//;
+    unless $no-filter-messages {
+        $repl-output ~~ s/^^ "You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor\n\n"//;
+        $repl-output ~~ s/^^ "To exit type 'exit' or '^D'\n"//;
+    }
     $repl-output ~~ s:g/ ^^ "> " //; # Strip out the prompts
     $repl-output ~~ s:g/ ">" $ //; # Strip out the final prompt
     $repl-output ~~ s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
@@ -226,9 +228,9 @@ like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
 # or what not, strip all \W and then check what we have left over is what
 # a normal session should have. This lets us catch any unexpected error
 # messages and stuff.
-is feed_repl_with(['say "hi"']).subst(:g, /\W+/, ''),
+is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
     'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
-    ~ 'oruserlwrapforalineeditorhi',
+    ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi',
 'REPL session does not have unexpected stuff';
 
 ## XXX TODO: need to write tests that exercise the REPL with Linenoise

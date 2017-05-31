@@ -254,6 +254,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 sub bail-out ($desc?) is export {
+    _init_io() unless $output;
     $output.put: join ' ', 'Bail out!', ($desc if $desc);
     $done_testing_has_been_run = 1;
     exit 255;

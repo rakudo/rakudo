@@ -175,37 +175,20 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
 }
 
 multi sub infix:<(|)>(Map:D $a, Map:D $b) {
-    nqp::if(
-      nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
-      nqp::stmts(                                 # both ordinary Str hashes
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        nqp::if(
-          (my $raw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && (my $iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::iterval(nqp::shift($iter)),
-              nqp::bindkey(
-                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
-            )
-          )
+    nqp::stmts(
+      (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+      nqp::if(
+        nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+        nqp::stmts(                               # both ordinary Str hashes
+          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$a),
+          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$b)
         ),
-        nqp::if(
-          ($raw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && ($iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::iterval(nqp::shift($iter)),
-              nqp::bindkey(
-                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
-            )
-          )
-        ),
-        nqp::create(Set).SET-SELF($elems),
+        nqp::stmts(                               # object hash(es), coerce!
+          Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$a),
+          Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$b)
+        )
       ),
-      $a.Set (|) $b.Set                           # object hash(es), coerce!
+      nqp::create(Set).SET-SELF($elems)
     )
 }
 

@@ -112,6 +112,45 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # add to given IterationSet the keys of given Map
+    method ADD-MAP-TO-SET(\elems,\map --> Nil) {
+        nqp::if(
+          (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::iterval(nqp::shift($iter)),
+              nqp::bindkey(
+                elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+            )
+          )
+        )
+    }
+
+    # add to given IterationSet the objects of given object Hash
+    method ADD-OBJECTHASH-TO-SET(\elems,\objecthash --> Nil) {
+        nqp::if(
+          (my $raw := nqp::getattr(nqp::decont(objecthash),Map,'$!storage'))
+            && (my $iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::getattr(
+                nqp::decont(nqp::iterval(nqp::shift($iter))),
+                Pair,
+                '$!value'
+              ),
+              nqp::bindkey(
+                elems,
+                nqp::iterkey_s($iter),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+              )
+            )
+          )
+        )
+    }
+
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly

@@ -157,37 +157,44 @@ my class X::Method::NotFound is Exception {
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
 
-        if $.method eq 'length' {
-            $message ~= "\nDid you mean ";
-            given $.invocant {
-                when List { $message ~= "'elems'?" }
-                when Cool { $message ~= "'chars' or 'codes'?" }
-                default   { $message ~= "'elems', 'chars', or 'codes'?" }
-            }
-        }
-        elsif $.method eq 'bytes' {
-            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+        my %suggestions;
+        my int $max_length = do given $.method.chars {
+            when 0..3 { 1 }
+            when 4..8 { 2 }
+            when 9..* { 3 }
         }
 
-        my @suggestions;
-        for $.invocant.^methods(:local)>>.name -> $method_name {
+        if $.method eq 'length' {
+            given $!invocant {
+                when List { %suggestions{$_} = 0 for <elems> }
+                when Cool { %suggestions{$_} = 0 for <chars codes>; }
+                default   { %suggestions{$_} = 0 for <elems chars codes>; }
+            }
+            
+        }
+        elsif $.method eq 'bytes' {
+            %suggestions<encode($encoding).bytes> = 0;
+        }
+
+        for $.invocant.^methods(:all)>>.name -> $method_name {
             my $dist = StrDistance.new(:before($.method), :after($method_name));
-            if $dist == 1 or ($.method eq $method_name and $.private) {
-                @suggestions.push($method_name);
+            if $dist <= $max_length {
+                %suggestions{$method_name} = $dist;
             }
         }
 
         for $.invocant.^private_method_table.keys -> $method_name {
             my $dist = StrDistance.new(:before($.method), :after($method_name));
-            if $dist == 1 or ($.method eq $method_name and not $.private) {
-                @suggestions.push("!$method_name");
+            if $dist <= $max_length {
+                %suggestions{"!$method_name"} = $dist;
             }
         }
 
-        if +@suggestions == 1 {
-            $message ~= ". Did you mean '@suggestions[0]'?";
-        } elsif +@suggestions > 1 {
-            $message ~= ". Did you mean any of these?\n    { @suggestions.head(3).join("\n    ") }\n";
+        if +%suggestions == 1 {
+            $message ~= ". Did you mean '%suggestions.keys()'?";
+        }
+        elsif +%suggestions > 1 {
+            $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
         }
 
         $message;

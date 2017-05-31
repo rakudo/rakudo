@@ -338,25 +338,22 @@ do {
 
         try {
             my $v := $e.vault-backtrace;
-            my Mu $err := nqp::getstderr();
+            my Mu $err := $*ERR;
 
             $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
-                nqp::printfh($err, $e.gist);
-                nqp::printfh($err, "\n");
+                $err.say($e.gist);
                 if $v {
-                   nqp::printfh($err, "Actually thrown at:\n");
-                   nqp::printfh($err, $v.Str);
-                   nqp::printfh($err, "\n");
+                   $err.say("Actually thrown at:");
+                   $err.say($v.Str);
                 }
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
-                nqp::printfh($err, $e.Str);
+                $err.print($e.Str);
             }
             else {
-                nqp::printfh($err, "===SORRY!===\n");
-                nqp::printfh($err, $e.Str);
-                nqp::printfh($err, "\n");
+                $err.say("===SORRY!===");
+                $err.say($e.Str);
             }
             Rakudo::Internals.THE_END();
             CONTROL { when CX::Warn { .resume } }
@@ -375,11 +372,10 @@ do {
           nqp::if(
             nqp::iseq_i($type,nqp::const::CONTROL_WARN),
             nqp::stmts(
-              (my Mu $err := nqp::getstderr),
+              (my Mu $err := $*ERR),
               (my str $msg = nqp::getmessage($ex)),
-              nqp::printfh($err,nqp::if(nqp::chars($msg),$msg,"Warning")),
-              nqp::printfh($err, "\n"),
-              nqp::printfh($err, $backtrace.first-none-setting-line),
+              $err.say(nqp::if(nqp::chars($msg),$msg,"Warning")),
+              $err.print($backtrace.first-none-setting-line),
               nqp::resume($ex)
             )
           )
@@ -2783,8 +2779,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
 my class Exceptions::JSON {
     method process($ex) {
-        nqp::printfh(
-          nqp::getstderr,
+        $*ERR.print:
           Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
             (message => $ex.?message),
             $ex.^attributes.grep(*.has_accessor).map: {
@@ -2795,8 +2790,7 @@ my class Exceptions::JSON {
                     ) given $ex."$attr"()
                 }
             }
-          ))
-        );
+          ));
         False  # done processing
     }
 }

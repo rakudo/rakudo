@@ -391,11 +391,11 @@ my class Problems {
 
         # We didn't die from any Exception, so we print warnings now.
         if +%!worrying {
-            my $err := nqp::getstderr();
-            nqp::sayfh($err, "WARNINGS for " ~ $*W.current_file ~ ":");
+            my $err := stderr();
+            $err.say("WARNINGS for " ~ $*W.current_file ~ ":");
             my @fails;
             for %!worrying {
-                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                $err.print($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
                     join(', ', $_.value) ~ ")\n");
             }
         }

@@ -73,10 +73,10 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         $p6repl := $repl-class.new(self, %adverbs);
-        my $stdin    := nqp::getstdin();
+        my $stdin    := stdin();
         my $encoding := ~%adverbs<encoding>;
         if $encoding && $encoding ne 'fixed_8' {
-            nqp::setencoding($stdin, $encoding);
+            $stdin.set-encoding($encoding);
         }
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)

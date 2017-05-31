@@ -157,7 +157,7 @@ sub QX($cmd, :$cwd = $*CWD, :$env) {
     );
     my $result;
     try {
-        $result = nqp::p6box_s(nqp::readallfh($pio));
+        $result = IO::Pipe.new(:PIO($pio)).slurp;
         $status := nqp::closefh_i($pio);
     }
     $result.DEFINITE

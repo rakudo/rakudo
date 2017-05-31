@@ -237,7 +237,8 @@ do {
             if $problem {
                 say 'Continuing without tab completions or line editor';
                 say 'You may want to consider using rlwrap for simple line editor functionality';
-            } elsif !$*DISTRO.is-win {
+            }
+            elsif !$*DISTRO.is-win and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
                 say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
             }
             say '';

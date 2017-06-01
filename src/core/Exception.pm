@@ -2464,7 +2464,7 @@ my class X::Multi::NoMatch is Exception {
                 )
             !! ( @cand
                  ??  join "\n    ", 'none of these signatures match:', @cand
-                 !! "No signature match."
+                 !! "Routine does not have any candidates. Is only the proto defined?"
                )
         );
     }

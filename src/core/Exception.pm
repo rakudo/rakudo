@@ -176,17 +176,21 @@ my class X::Method::NotFound is Exception {
             %suggestions<encode($encoding).bytes> = 0;
         }
 
-        for $.invocant.^methods(:all)>>.name -> $method_name {
-            my $dist = StrDistance.new(:before($.method), :after($method_name));
-            if $dist <= $max_length {
-                %suggestions{$method_name} = $dist;
+        if nqp::can($!invocant.HOW, 'methods') {
+            for $!invocant.^methods(:all)>>.name -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{$method_name} = $dist;
+                }
             }
         }
 
-        for $.invocant.^private_method_table.keys -> $method_name {
-            my $dist = StrDistance.new(:before($.method), :after($method_name));
-            if $dist <= $max_length {
-                %suggestions{"!$method_name"} = $dist;
+        if nqp::can($!invocant.HOW, 'private_method_table') {
+            for $!invocant.^private_method_table.keys -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{"!$method_name"} = $dist;
+                }
             }
         }
 

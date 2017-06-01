@@ -178,15 +178,14 @@ multi sub infix:<(|)>(Map:D $a, Map:D $b) {
     nqp::stmts(
       (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
       nqp::if(
-        nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
-        nqp::stmts(                               # both ordinary Str hashes
-          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$a),
-          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$b)
-        ),
-        nqp::stmts(                               # object hash(es), coerce!
-          Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$a),
-          Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$b)
-        )
+        nqp::eqaddr($a.keyof,Str(Any)),
+        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$a),        # ordinary hash
+        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$a)  # object hash
+      ),
+      nqp::if(
+        nqp::eqaddr($b.keyof,Str(Any)),
+        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$b),        # ordinary hash
+        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$b)  # objetc hash
       ),
       nqp::create(Set).SET-SELF($elems)
     )

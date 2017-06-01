@@ -181,9 +181,20 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 }
 
+# RT #131201
 throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined';
+
+# RT #131367
+throws-like { Blob.split }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined (Blob.split)';
+
+# RT #131367
+throws-like { Blob.splice }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined (Blob.splice)';
 
 done-testing;
 

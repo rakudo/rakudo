@@ -1,6 +1,5 @@
 my role Mixy does Baggy  {
 
-    method !PAIR(\key,\value) { Pair.new(key, my Real $ = value ) }
     method SANITY(\elems --> Nil) {
        nqp::stmts(
           (my $iter := nqp::iterator(elems)),
@@ -32,9 +31,8 @@ my role Mixy does Baggy  {
 
     multi method roll(Mixy:D:) {
         nqp::if(
-          (my $raw := self.raw_hash)
-            && nqp::elems($raw)
-            && (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($raw)),
+          (my $total :=
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
           nqp::getattr(
             nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
             Pair,
@@ -43,9 +41,34 @@ my role Mixy does Baggy  {
           Nil
         )
     }
+    multi method roll(Mixy:D: Whatever) { self.roll(Inf) }
+    multi method roll(Mixy:D: Callable:D $calculate) {
+      nqp::if(
+        (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.raw_hash)),
+        self.roll($calculate($total)),
+        Seq.new(Rakudo::Iterator.Empty)
+      )
+    }
     multi method roll(Mixy:D: $count) {
-        my $roller = Rakudo::QuantHash::WeightedRoll.new(self);
-        map { $roller.roll }, 1 .. $count;
+        Seq.new(nqp::if(
+          (my $total :=
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
+          nqp::stmts(
+            (my $done = 0),
+            Rakudo::Iterator.Callable( {
+                nqp::if(
+                  $done++ < $count,
+                  nqp::getattr(
+                    nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
+                    Pair,
+                    '$!key'
+                  ),
+                  IterationEnd
+                )
+            })
+          ),
+          Rakudo::Iterator.Empty
+        ))
     }
 }
 

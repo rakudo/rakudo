@@ -195,7 +195,7 @@ my role Setty does QuantHash {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
 
-    method !BAGGIFY(\type, int $bind) {
+    method !BAGGIFY(\type) {
         nqp::if(
           $!elems,
           nqp::stmts(
@@ -206,14 +206,7 @@ my role Setty does QuantHash {
               nqp::bindkey(
                 $elems,
                 nqp::iterkey_s(nqp::shift($iter)),
-                Pair.new(
-                  nqp::decont(nqp::iterval($iter)),
-                  nqp::if(
-                    $bind,
-                    1,
-                    (nqp::p6scalarfromdesc(nqp::null) = 1)
-                  )
-                )
+                Pair.new(nqp::decont(nqp::iterval($iter)),1)
               )
             ),
             nqp::create(type).SET-SELF($elems)
@@ -221,10 +214,10 @@ my role Setty does QuantHash {
           nqp::create(type)
         )
     }
-    method Bag()     { self!BAGGIFY(Bag,     1) }
-    method BagHash() { self!BAGGIFY(BagHash, 0) }
-    method Mix()     { self!BAGGIFY(Mix,     1) }
-    method MixHash() { self!BAGGIFY(MixHash, 0) }
+    method Bag()     { self!BAGGIFY(Bag)     }
+    method BagHash() { self!BAGGIFY(BagHash) }
+    method Mix()     { self!BAGGIFY(Mix)     }
+    method MixHash() { self!BAGGIFY(MixHash) }
 
     method raw_hash() is raw { $!elems }
     method hll_hash() is raw {

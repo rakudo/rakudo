@@ -10,11 +10,7 @@ my class MixHash does Mixy {
               nqp::if(
                 (my $raw := self.raw_hash)
                   && nqp::existskey($raw,(my $which := k.WHICH)),
-                nqp::getattr(
-                  nqp::decont(nqp::atkey($raw,$which)),
-                  Pair,
-                  '$!value'
-                ),
+                nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
                 0
               )
           },
@@ -32,15 +28,16 @@ my class MixHash does Mixy {
                         nqp::deletekey($raw,$which),
                         0
                       ),
-                      (nqp::getattr(
-                        nqp::decont(nqp::atkey($raw,$which)),
+                      nqp::bindattr(
+                        nqp::atkey($raw,$which),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
@@ -49,7 +46,7 @@ my class MixHash does Mixy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      self!PAIR(k,$value)
+                      Pair.new(k,$value)
                     )
                   )
                 )
@@ -86,16 +83,14 @@ my class MixHash does Mixy {
         # processing.
         nqp::stmts(
           (my $which := nqp::iterkey_s(iter)),
-          (my $object := nqp::getattr(          # recreation
-            nqp::decont(nqp::iterval(iter)),Pair,'$!key')),
+          # save for possible object recreation
+          (my $object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
 
           Proxy.new(
             FETCH => {
                 nqp::if(
                   nqp::existskey(storage,$which),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey(storage,$which)),Pair,'$!value'
-                  ),
+                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
                   0
                 )
             },
@@ -111,11 +106,12 @@ my class MixHash does Mixy {
                         nqp::deletekey(storage,$which),
                         0
                       ),
-                      (nqp::getattr(            # value ok
-                        nqp::decont(nqp::atkey(storage,$which)),
+                      nqp::bindattr(            # value ok
+                        nqp::atkey(storage,$which),
                         Pair,
-                        '$!value'
-                      ) = $value)
+                        '$!value',
+                        $value
+                      )
                     ),
                     nqp::unless(                # where did it go?
                       $value == 0,
@@ -165,8 +161,8 @@ my class MixHash does Mixy {
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
-                  $target.push(nqp::getattr(nqp::decont(
-                    nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
+                  $target.push(nqp::getattr(
+                    nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
                 )
             }
         }.new(%!elems))

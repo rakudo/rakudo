@@ -71,10 +71,6 @@ my class Exception {
         nqp::rethrow($!ex)
     }
 
-    method resumable(Exception:D:) {
-        nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
-    }
-
     method resume(Exception:D: --> True) {
         nqp::resume($!ex);
     }
@@ -1284,7 +1280,8 @@ my class X::Invalid::ComputedValue is Exception {
     has $.value;
     has $.reason;
     method message {
-        "$.name on $.method computed to $.value, which cannot be used"
+        "$.name {"on $.method " if $.method}computed to $.value,"
+            ~ " which cannot be used"
             ~ (" because $.reason" if $.reason);
     }
 }

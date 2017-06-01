@@ -1,28 +1,71 @@
 my class Rakudo::QuantHash {
 
-    our class WeightedRoll {
-        has @!pairs;
-        has $!total;
+    our role Pairs does Iterator {
+        has $!elems;
+        has $!picked;
 
-        method !SET-SELF(\list-of-pairs) {
-            $!total = 0;
-            for list-of-pairs.pairs {
-                my $value := .value;
-                if $value > 0 {
-                    @!pairs.push($_);
-                    $!total = $!total + $value;
-                }
-            }
-            self
+        method !SET-SELF(\elems,\count) {
+            nqp::stmts(
+              ($!elems := elems),
+              ($!picked := Rakudo::QuantHash.PICK-N(elems, count)),
+              self
+            )
         }
-        method new(\list-of-pairs) { nqp::create(self)!SET-SELF(list-of-pairs) }
-        method roll() {
-            my $rand = $!total.rand;
-            my $seen = 0;
-            return .key if ( $seen = $seen + .value ) > $rand for @!pairs;
+        method new(\elems, \count) {
+            nqp::if(
+              elems && nqp::elems(elems) && count >= 1,
+              nqp::create(self)!SET-SELF(elems, count),
+              Rakudo::Iterator.Empty
+            )
         }
     }
 
+    # Return the iterator state of a randomly selected entry in a
+    # given IterationSet
+    method ROLL(Mu \elems) {
+        nqp::stmts(
+          (my int $i = nqp::add_i(nqp::elems(elems).rand.floor,1)),
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+            nqp::null
+          ),
+          $iter
+        )
+    }
+
+    # Return a list_s of all keys of the given IterationSet in random order.
+    method PICK-N(Mu \elems, \count) {
+        nqp::stmts(
+          (my int $elems = nqp::elems(elems)),
+          (my int $count = nqp::if(
+            count >= nqp::elems(elems),
+            nqp::elems(elems),
+            count.Int
+          )),
+          (my $keys := nqp::setelems(nqp::list_s,$elems)),
+          (my $iter := nqp::iterator(elems)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos_s($keys,$i,nqp::iterkey_s(nqp::shift($iter)))
+          ),
+          (my $picked := nqp::setelems(nqp::list_s,$count)),
+          ($i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$count),
+            nqp::stmts(
+              nqp::bindpos_s($picked,$i,
+                nqp::atpos_s($keys,(my int $pick = $elems.rand.floor))
+              ),
+              nqp::bindpos_s($keys,$pick,
+                nqp::atpos_s($keys,($elems = nqp::sub_i($elems,1)))
+              )
+            )
+          ),
+          $picked
+        )
+    }
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly
@@ -37,9 +80,7 @@ my class Rakudo::QuantHash {
               $iter,
               $total := nqp::add_I(
                 $total,
-nqp::decont(   # can go when we got rid of containers in BagHashes
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-),
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
                 Int
               )
             ),
@@ -62,11 +103,7 @@ nqp::decont(   # can go when we got rid of containers in BagHashes
               nqp::isle_I(
                 ($seen := nqp::add_I(
                   $seen,
-nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
-                  nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-)
-                  ),
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
                   Int
                 )),
                 $rand
@@ -74,6 +111,36 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
             nqp::null
           ),
           $iter
+        )
+    }
+
+    # Return random object from a given BagHash.  Takes an initialized
+    # IterationSet with at least 1 element in Bag format, and the total
+    # value of values in the Bag.  Decrements the count of the iterator
+    # found, completely removes it when going to 0.
+    method BAG-GRAB(\elems, \total) {
+        nqp::stmts(
+          (my $iter := Rakudo::QuantHash.BAG-ROLL(elems,total)),
+          nqp::if(
+            nqp::iseq_i(
+              (my $value := nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+              1
+            ),
+            nqp::stmts(              # going to 0, so remove
+              (my $object := nqp::getattr(nqp::iterval($iter),Pair,'$!key')),
+              nqp::deletekey(elems,nqp::iterkey_s($iter)),
+              $object
+            ),
+            nqp::stmts(
+              nqp::bindattr(
+                nqp::iterval($iter),
+                Pair,
+                '$!value',
+                nqp::sub_i($value,1)
+              ),
+              nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+            )
+          )
         )
     }
 
@@ -92,9 +159,7 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
                   nqp::clone(nqp::iterval($iter)),
                   Pair,
                   '$!value',
-                  nqp::decont(
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                  )
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                 )
               )
             ),
@@ -267,15 +332,12 @@ nqp::decont(   # can go when we get rid of containers in (Bag|Mix)Hashes
         )
     }
 
-    # Return random Pair from a given Bag(Hash).  Takes a initialized
-    # IterationSet with at least 1 element in Bag format, and the total
-    # value of values in the Bag.
     # Return random iterator item from a given Mix(Hash).  Takes an
     # initialized IterationSet with at least 1 element in Mix format,
     # and the total value of values in the Mix.
     method MIX-ROLL(\elems, \total) {
         nqp::stmts(
-          (my Int $rand := total.rand.Int),
+          (my     $rand := total.rand),
           (my Int $seen := 0),
           (my $iter := nqp::iterator(elems)),
           nqp::while(

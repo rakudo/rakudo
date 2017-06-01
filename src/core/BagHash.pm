@@ -8,17 +8,13 @@ my class BagHash does Baggy {
               nqp::if(
                 (my $raw := self.raw_hash)
                   && nqp::existskey($raw,(my $which := k.WHICH)),
-                nqp::getattr(
-                  nqp::decont(nqp::atkey($raw,$which)),
-                  Pair,
-                  '$!value'
-                ),
+                nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
                 0
               )
           },
           STORE => -> $, Int() $value {
               nqp::if(
-                nqp::istype($value,Failure),   # RT 128927
+                nqp::istype($value,Failure),    # RT 128927
                 $value.throw,
                 nqp::if(
                   (my $raw := self.raw_hash),
@@ -26,11 +22,12 @@ my class BagHash does Baggy {
                     nqp::existskey($raw,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
-                      (nqp::getattr(
-                        nqp::decont(nqp::atkey($raw,$which)),
+                      nqp::bindattr(
+                        nqp::atkey($raw,$which),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                       nqp::stmts(
                         nqp::deletekey($raw,$which),
                         0
@@ -38,7 +35,7 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(
                       nqp::isgt_i($value,0),
-                      nqp::bindkey($raw,$which,self!PAIR(k,$value))  # new
+                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
@@ -47,7 +44,7 @@ my class BagHash does Baggy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      self!PAIR(k,$value)
+                      Pair.new(k,$value)
                     )
                   )
                 )
@@ -94,16 +91,14 @@ my class BagHash does Baggy {
         # processing.
         nqp::stmts(
           (my $which  := nqp::iterkey_s(iter)),
-          (my $object := nqp::getattr(          # recreation
-            nqp::decont(nqp::iterval(iter)),Pair,'$!key')),
+          # save object for potential recreation
+          (my $object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
 
           Proxy.new(
             FETCH => {
                 nqp::if(
                   nqp::existskey(storage,$which),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey(storage,$which)),Pair,'$!value'
-                  ),
+                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
                   0
                 )
             },
@@ -115,11 +110,12 @@ my class BagHash does Baggy {
                     nqp::existskey(storage,$which),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
-                      (nqp::getattr(            # value ok
-                        nqp::decont(nqp::atkey(storage,$which)),
+                      nqp::bindattr(            # value ok
+                        nqp::atkey(storage,$which),
                         Pair,
-                        '$!value'
-                      ) = $value),
+                        '$!value',
+                        $value
+                      ),
                       nqp::stmts(               # goodbye!
                         nqp::deletekey(storage,$which),
                         0
@@ -173,8 +169,8 @@ my class BagHash does Baggy {
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
-                  $target.push(nqp::getattr(nqp::decont(
-                    nqp::iterval(nqp::shift($!iter))),Pair,'$!value'))
+                  $target.push(nqp::getattr(
+                    nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
                 )
             }
         }.new(%!elems))
@@ -201,6 +197,43 @@ my class BagHash does Baggy {
                 )
             }
         }.new(%!elems))
+    }
+
+#---- selection methods
+    multi method grab(BagHash:D:) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          Rakudo::QuantHash.BAG-GRAB($raw,self.total),
+          Nil
+        )
+    }
+    multi method grab(BagHash:D: Callable:D $calculate) {
+        self.grab( $calculate(self.total) )
+    }
+    multi method grab(BagHash:D: Whatever) { self.grab(Inf) }
+    multi method grab(BagHash:D: $count) {
+        Seq.new(nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw) && $count > 0,
+          nqp::stmts(
+            (my $total = self.total),
+            (my $todo = nqp::if($count > $total,$total,$count.Int)),
+            Rakudo::Iterator.Callable( {
+                nqp::if(
+                  $todo,
+                  nqp::stmts(
+                    --$todo,
+                    Rakudo::QuantHash.BAG-GRAB($raw,$total--)
+                  ),
+                  IterationEnd
+                )
+            } )
+          ),
+          nqp::if(
+            $count === NaN,
+            die("Cannot coerce NaN to an Int"),
+            Rakudo::Iterator.Empty
+          )
+        ))
     }
 }
 

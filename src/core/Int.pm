@@ -401,20 +401,14 @@ multi sub infix:<+^>(Int:D \a, Int:D \b) {
 #}
 
 multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
-    nqp::isbig_I(nqp::decont(b))
-      ?? Failure.new(X::NYI::BigInt.new(:op('+<'),:big(b)))
-      !! nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
+    nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 #multi sub infix:«+<»(int $a, int $b) { RT#128655
 #    nqp::bitshiftl_i($a, $b);
 #}
 
 multi sub infix:«+>»(Int:D \a, Int:D \b --> Int:D) {
-    nqp::isbig_I(nqp::decont(b))
-      ?? Failure.new(X::NYI::BigInt.new(:op('+>'),:big(b)))
-      !! a < 0 && b > 31
-        ?? -1 # temp fix for RT#126942, remove if fixed otherwise
-        !! nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
+    nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 #multi sub infix:«+>»(int $a, int $b) { RT#128655
 #    nqp::bitshiftr_i($a, $b)

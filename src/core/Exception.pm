@@ -157,7 +157,12 @@ my class X::Method::NotFound is Exception {
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
         if $.method eq 'length' {
-            $message ~= "\nDid you mean 'elems', 'chars', 'graphs' or 'codes'?";
+            $message ~= "\nDid you mean ";
+            given $.invocant {
+                when List { $message ~= "'elems'?" }
+                when Cool { $message ~= "'chars' or 'codes'?" }
+                default   { $message ~= "'elems', 'chars', or 'codes'?" }
+            }
         }
         elsif $.method eq 'bytes' {
             $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
@@ -338,25 +343,22 @@ do {
 
         try {
             my $v := $e.vault-backtrace;
-            my Mu $err := nqp::getstderr();
+            my Mu $err := $*ERR;
 
             $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
-                nqp::printfh($err, $e.gist);
-                nqp::printfh($err, "\n");
+                $err.say($e.gist);
                 if $v {
-                   nqp::printfh($err, "Actually thrown at:\n");
-                   nqp::printfh($err, $v.Str);
-                   nqp::printfh($err, "\n");
+                   $err.say("Actually thrown at:");
+                   $err.say($v.Str);
                 }
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
-                nqp::printfh($err, $e.Str);
+                $err.print($e.Str);
             }
             else {
-                nqp::printfh($err, "===SORRY!===\n");
-                nqp::printfh($err, $e.Str);
-                nqp::printfh($err, "\n");
+                $err.say("===SORRY!===");
+                $err.say($e.Str);
             }
             Rakudo::Internals.THE_END();
             CONTROL { when CX::Warn { .resume } }
@@ -375,11 +377,10 @@ do {
           nqp::if(
             nqp::iseq_i($type,nqp::const::CONTROL_WARN),
             nqp::stmts(
-              (my Mu $err := nqp::getstderr),
+              (my Mu $err := $*ERR),
               (my str $msg = nqp::getmessage($ex)),
-              nqp::printfh($err,nqp::if(nqp::chars($msg),$msg,"Warning")),
-              nqp::printfh($err, "\n"),
-              nqp::printfh($err, $backtrace.first-none-setting-line),
+              $err.say(nqp::if(nqp::chars($msg),$msg,"Warning")),
+              $err.print($backtrace.first-none-setting-line),
               nqp::resume($ex)
             )
           )
@@ -552,6 +553,12 @@ my class X::IO::Cwd does X::IO {
     }
 }
 
+my class X::IO::Flush does X::IO {
+    method message() {
+        "Cannot flush handle: $.os-error"
+    }
+}
+
 my class X::IO::NotAChild does X::IO {
     has $.path;
     has $.child;
@@ -585,6 +592,15 @@ my class X::IO::Chmod does X::IO {
     method message() {
         "Failed to set the mode of '$.path' to '0o{$.mode.fmt("%03o")}': $.os-error"
     }
+}
+
+my class X::IO::BinaryAndEncoding does X::IO {
+    method message { "Cannot open a handle in binary mode (:bin) and also specify an encoding" }
+}
+
+my class X::IO::BinaryMode does X::IO {
+    has $.trying;
+    method message { "Cannot do '$.trying' on a handle in binary mode" }
 }
 
 my role X::Comp is Exception {
@@ -733,7 +749,12 @@ my role X::Pod                 { }
 
 my class X::NYI is Exception {
     has $.feature;
-    method message() { "$.feature not yet implemented. Sorry. " }
+    has $.did-you-mean;
+    method message() {
+        my $msg = "$.feature not yet implemented. Sorry.";
+        $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
+        $msg
+    }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
 my class X::NYI::Available is X::NYI {
@@ -779,14 +800,17 @@ Parenthesize as \\(...) if you intended a capture of a single numeric value./
 my class X::Worry::P5::LeadingZero is X::Worry::P5 {
     has $.value;
     method message {
-        if $!value ~~ /<[89]>/ {
-            "Leading 0 is not allowed. For octals, use '0o' prefix,"
-            ~ " but note that $!value is not a valid octal number";
-        }
-        else {
-            'Leading 0 does not indicate octal in Perl 6.'
-                ~ " Please use 0o$!value if you mean that.";
-        }
+        'Leading 0 has no meaning. If you meant to create an octal number'
+        ~ ", use '0o' prefix" ~ (
+#?if jvm
+            $!value ~~ /<[89]>/
+#?endif
+#?if !jvm
+            $!value.comb.grep(*.unival > 7)
+#?endif
+                ?? ", but note that $!value is not a valid octal number"
+                !! "; like, '0o$!value'"
+        ) ~ '. If you meant to create a string, please add quotation marks.'
     }
 }
 
@@ -1499,7 +1523,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^I' => '$*INPLACE',
       '$^M' => 'a global form such as $*M',
       '$^N' => '$/[*-1]',
-      '$^O' => '$?DISTRO.name or $*DISTRO.name',
+      '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*INITTIME',
@@ -2137,10 +2161,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
-    has $.typename = "value";
+    has $.value = "value";
     method message {
-        "Cannot modify an immutable {$.typename}";
+        "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
     }
+    method typename { $.value.^name } 
 }
 
 my class X::Assignment::RO::Comp does X::Comp {
@@ -2318,10 +2343,12 @@ my class X::Numeric::Real is Exception {
 
 my class X::Numeric::DivideByZero is Exception {
     has $.using;
+    has $.details;
     has $.numerator;
     method message() {
         "Attempt to divide{$.numerator ?? " $.numerator" !! ''} by zero"
-          ~ ( $.using ?? " using $.using" !! '' );
+          ~ ( $.using ?? " using $.using" !! '' )
+          ~ ( $_ with $.details );
     }
 }
 
@@ -2499,8 +2526,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Assignment::RO',
-  -> $typename = "value" {
-      X::Assignment::RO.new(:$typename).throw;
+  -> $value = "value" {
+      X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
   {
@@ -2550,6 +2577,10 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::Parameter::InvalidConcreteness',
   -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
       X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
+  },
+  'X::NYI',
+  -> $feature {
+      X::NYI.new(:$feature).throw;
   },
 ));
 
@@ -2753,8 +2784,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
 my class Exceptions::JSON {
     method process($ex) {
-        nqp::printfh(
-          nqp::getstderr,
+        $*ERR.print:
           Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
             (message => $ex.?message),
             $ex.^attributes.grep(*.has_accessor).map: {
@@ -2765,8 +2795,7 @@ my class Exceptions::JSON {
                     ) given $ex."$attr"()
                 }
             }
-          ))
-        );
+          ));
         False  # done processing
     }
 }

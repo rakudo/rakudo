@@ -80,7 +80,10 @@ sub gist(|) {
         !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
-sub prompt($msg) {
+multi sub prompt() {
+    $*IN.get
+}
+multi sub prompt($msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();
@@ -102,20 +105,20 @@ proto sub words(|) { * }
 multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
 proto sub get  (|) { * }
-multi sub get  (IO::Handle $fh = $*ARGFILES) { $fh.get  }
+multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
 
 proto sub getc (|) { * }
-multi sub getc (IO::Handle $fh = $*ARGFILES) { $fh.getc }
+multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 
 proto sub close(|) { * }
-multi sub close(IO::Handle $fh) { $fh.close }
+multi sub close(IO::Handle:D $fh) { $fh.close }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::Handle $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
+multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
 multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
 proto sub spurt(|) { * }
-multi sub spurt(IO::Handle $fh,   |c) { $fh  .spurt(|c) }
+multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
 multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 
 {
@@ -185,29 +188,20 @@ PROCESS::<$OUT> =
 PROCESS::<$ERR> =
   IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
 
-sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub chmod($mode, *@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
 }
-sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
+sub unlink(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
 }
-sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub rmdir(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
 sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 

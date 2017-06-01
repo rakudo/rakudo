@@ -114,7 +114,7 @@ multi sub pass($desc = '') is export {
 
 multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim(?$cond, $desc);
+    my $ok = proclaim($cond, $desc);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -142,7 +142,7 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
                     ?? False
                     !! $got === $expected;
 
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             _diag "expected: ($expected.^name())\n"
                 ~ "     got: ($got.^name())";
@@ -162,7 +162,7 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                 !! nqp::eqaddr($got.WHAT, Mu)
                     ?? False
                     !! $got eq $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             if try    $got     .Str.subst(/\s/, '', :g)
                    eq $expected.Str.subst(/\s/, '', :g)
@@ -194,7 +194,7 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
     }
     else {
         my $test = $got !=== $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             _diag "expected: anything except '$expected.perl()'\n"
                 ~ "     got: '$got.perl()'";
@@ -209,7 +209,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     my $ok;
     if $got.defined { # also hack to deal with Failures
         my $test = $got ne $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             _diag "expected: anything except '$expected.perl()'\n"
                 ~ "     got: '$got.perl()'";
@@ -238,7 +238,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
             // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
 
     if $matcher {
-        $ok = proclaim(?$matcher($got,$expected), $desc);
+        $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
             _diag "expected: '{$expected // $expected.^name}'\n"
                 ~ " matcher: '{$matcher.?name || $matcher.^name}'\n"
@@ -254,6 +254,7 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
 }
 
 sub bail-out ($desc?) is export {
+    _init_io() unless $output;
     $output.put: join ' ', 'Bail out!', ($desc if $desc);
     $done_testing_has_been_run = 1;
     exit 255;
@@ -265,7 +266,7 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
-    my $ok = proclaim(?$test, $desc);
+    my $ok = proclaim($test, $desc);
     unless $test {
         _diag "expected: $expected\n"
             ~ "got:      $got";
@@ -475,7 +476,7 @@ multi sub like(
     my $ok;
     if $got ~~ Str:D {
         my $test = $got ~~ $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             _diag "     expected: '$expected.perl()'\n"
                 ~ "     got: '$got'";
@@ -498,7 +499,7 @@ multi sub unlike(
     my $ok;
     if $got ~~ Str:D {
         my $test = !($got ~~ $expected);
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
             _diag "     expected: '$expected.perl()'\n"
                 ~ "     got: '$got'";
@@ -570,13 +571,13 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 # `cmp-ok` with `eqv` op.
 # https://irclog.perlgeek.de/perl6-dev/2017-05-04#i_14532363
 ######################################################################
-multi sub is-deeply(Seq $got, Seq $expected, $reason = '') is export {
+multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;
 }
-multi sub is-deeply(Seq $got, Mu $expected, $reason = '') is export {
+multi sub is-deeply(Seq:D $got, Mu $expected, $reason = '') is export {
     is-deeply $got.cache, $expected, $reason;
 }
-multi sub is-deeply(Mu $got, Seq $expected, $reason = '') is export {
+multi sub is-deeply(Mu $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got, $expected.cache, $reason;
 }
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
@@ -661,7 +662,8 @@ sub eval_exception($code) {
     $!;
 }
 
-sub proclaim($cond, $desc is copy ) {
+# Take $cond as Mu so we don't thread with Junctions:
+sub proclaim(Bool(Mu) $cond, $desc is copy ) {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;

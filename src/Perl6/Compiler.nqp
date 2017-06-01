@@ -63,15 +63,20 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
+    method verbose-config() {
+        self.eval('Compiler.verbose-config(:say)');
+        nqp::exit(0);
+    }
+
     method interactive(*%adverbs) {
         my $p6repl;
 
         my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         $p6repl := $repl-class.new(self, %adverbs);
-        my $stdin    := nqp::getstdin();
+        my $stdin    := stdin();
         my $encoding := ~%adverbs<encoding>;
         if $encoding && $encoding ne 'fixed_8' {
-            nqp::setencoding($stdin, $encoding);
+            $stdin.set-encoding($encoding);
         }
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)

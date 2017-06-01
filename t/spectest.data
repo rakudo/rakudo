@@ -218,6 +218,7 @@ S03-operators/comparison-simple.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
+S03-operators/elem.t
 S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/flip-flop.t
@@ -240,6 +241,7 @@ S03-operators/notandthen.t
 S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
+S03-operators/proper-subset.t
 S03-operators/range-basic.t
 S03-operators/range-int.t
 S03-operators/range.t
@@ -254,8 +256,10 @@ S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-adverbs.t
 S03-operators/subscript-vs-lt.t
+S03-operators/subset.t
 S03-operators/ternary.t
 S03-operators/u2212-minus.t
+S03-operators/union.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
@@ -576,6 +580,7 @@ S11-modules/module-file.t
 S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
+S11-modules/runtime.t
 S11-repository/curli-install.t
 S12-attributes/class.t
 S12-attributes/clone.t
@@ -614,6 +619,7 @@ S12-coercion/coercion-types.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
+S12-construction/destruction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-construction/TWEAK.t
@@ -787,6 +793,8 @@ S16-io/lines.t
 S16-io/newline.t
 S16-io/note.t
 S16-io/print.t
+S16-io/prompt.t
+S16-io/put.t
 S16-io/quoting-syntax.t
 S16-io/say-and-ref.t
 S16-io/say.t
@@ -873,7 +881,7 @@ S17-supply/zip-latest.t
 S19-command-line/arguments.t
 S19-command-line/dash-e.t
 S19-command-line/help.t
-S19-command-line/repl.t
+S19-command-line/repl.t    # moar
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S19-command-line-options/04-negation.t
@@ -885,6 +893,7 @@ S24-testing/3-output.t
 S24-testing/7-bail_out.t
 S24-testing/8-die_on_fail.t
 S24-testing/9-is_deeply.t
+S24-testing/10-is-approx.t
 S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
 S24-testing/line-numbers.t
@@ -976,6 +985,7 @@ S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/indir.t
+S32-io/io-cathandle.t
 S32-io/io-handle.t
 S32-io/lock.t                   # slow
 S32-io/socket-host-port-split.t
@@ -1006,6 +1016,7 @@ S32-io/socket-accept-and-working-threads.t
 S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
+S32-io/tell.t
 S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t

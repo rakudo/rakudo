@@ -65,6 +65,7 @@ perl6-js
 perl6-js.bat
 t/localtest.data
 t/spec
+t/packages
 /panda
 perl6.c
 perl6.o

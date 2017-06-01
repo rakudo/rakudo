@@ -26,7 +26,7 @@ my class BagHash does Baggy {
                         nqp::atkey($raw,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       ),
                       nqp::stmts(
                         nqp::deletekey($raw,$which),
@@ -34,8 +34,8 @@ my class BagHash does Baggy {
                       )
                     ),
                     nqp::if(
-                      nqp::isgt_i($value,0),
-                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
+                      nqp::isgt_i($value,0),    # new
+                      nqp::bindkey($raw,$which,Pair.new(k,nqp::decont($value)))
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
@@ -44,7 +44,7 @@ my class BagHash does Baggy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      Pair.new(k,$value)
+                      Pair.new(k,nqp::decont($value))
                     )
                   )
                 )
@@ -59,7 +59,7 @@ my class BagHash does Baggy {
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL(self.raw_hash) }
 
-    method Bag(:$view) is nodal {
+    multi method Bag(BagHash:D: :$view) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
@@ -69,8 +69,8 @@ my class BagHash does Baggy {
           bag()
         )
     }
-    method BagHash() is nodal { self }
-    method Mix() is nodal {
+    multi method BagHash(BagHash:D:) { self }
+    multi method Mix(BagHash:D:) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),
@@ -114,7 +114,7 @@ my class BagHash does Baggy {
                         nqp::atkey(storage,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       ),
                       nqp::stmts(               # goodbye!
                         nqp::deletekey(storage,$which),
@@ -123,7 +123,11 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(                    # where did it go?
                       nqp::isgt_i($value,0),
-                      nqp::bindkey(storage,$which,Pair.new($object,$value))
+                      nqp::bindkey(
+                        storage,
+                        $which,
+                        Pair.new($object,nqp::decont($value))
+                      )
                     )
                   )
                 )
@@ -213,10 +217,12 @@ my class BagHash does Baggy {
     multi method grab(BagHash:D: Whatever) { self.grab(Inf) }
     multi method grab(BagHash:D: $count) {
         Seq.new(nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw) && $count > 0,
+          (my $todo = Rakudo::QuantHash.TODO($count))
+            && (my $raw := self.raw_hash)
+            && nqp::elems($raw),
           nqp::stmts(
-            (my $total = self.total),
-            (my $todo = nqp::if($count > $total,$total,$count.Int)),
+            (my Int $total = self.total),
+            nqp::if($todo > $total,$todo = $total),
             Rakudo::Iterator.Callable( {
                 nqp::if(
                   $todo,
@@ -228,11 +234,7 @@ my class BagHash does Baggy {
                 )
             } )
           ),
-          nqp::if(
-            $count === NaN,
-            die("Cannot coerce NaN to an Int"),
-            Rakudo::Iterator.Empty
-          )
+          Rakudo::Iterator.Empty
         ))
     }
 }

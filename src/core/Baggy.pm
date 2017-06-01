@@ -122,9 +122,15 @@ my role Baggy does QuantHash {
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         nqp::if(
-          (my $raw := self.raw_hash)
-            && nqp::existskey($raw,(my $which := k.WHICH)),
-          nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
+          (my $raw := self.raw_hash),
+          nqp::getattr(
+            nqp::ifnull(
+              nqp::atkey($raw,k.WHICH),
+              BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+            ),
+            Pair,
+            '$!value'
+          ),
           0
         )
     }
@@ -342,11 +348,39 @@ my role Baggy does QuantHash {
     multi method WHICH(Baggy:D:)   { self!WHICH }
     multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
     multi method Bool(Baggy:D: --> Bool:D) { %!elems.Bool }
-    multi method hash(Baggy:D: --> Hash:D) {
-        my \h = Hash.^parameterize(Any, Any).new;
-        h = %!elems.values;
-        h;
+
+    method HASHIFY(\type) {
+        nqp::stmts(
+          (my $hash := Hash.^parameterize(type,Any).new),
+          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          nqp::if(
+            (my $raw := self.raw_hash) && nqp::elems($raw),
+            nqp::stmts(
+              (my $storage := nqp::clone($raw)),
+              (my $iter := nqp::iterator($storage)),
+              nqp::while(
+                $iter,
+                nqp::bindkey(
+                  $storage,
+                  nqp::iterkey_s(nqp::shift($iter)),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($iter)),
+                    Pair,
+                    '$!value',
+                    (nqp::p6scalarfromdesc($descriptor) =
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                  )
+                )
+              ),
+              nqp::bindattr($hash,Map,'$!storage',$storage)
+            )
+          ),
+          $hash
+        )
     }
+    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
+    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+
     method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {
@@ -440,29 +474,29 @@ my role Baggy does QuantHash {
     multi method pick(Baggy:D: Callable:D $calculate) {
         self.pick( $calculate(self.total) )
     }
+    multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
     multi method pick(Baggy:D: $count) {
-        my $hash     := nqp::getattr(%!elems,Map,'$!storage');
-        my int $elems = nqp::elems($hash);
-        my $pairs    := nqp::setelems(nqp::list,$elems);
-
-        my \iter := nqp::iterator($hash);
-        my int $i = -1;
-        my $pair;
-
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::bindpos($pairs,$i,Pair.new(
-            nqp::getattr(
-              ($pair := nqp::iterval(nqp::shift(iter))),Pair,'$!key'),
-            nqp::assign(nqp::p6scalarfromdesc(nqp::null),
-              nqp::getattr($pair,Pair,'$!value'))
-          ))
-        );
-
-        self!ROLLPICKGRABN(
-          nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
-          $pairs
-        )
+        Seq.new(nqp::if(
+          (my $todo = Rakudo::QuantHash.TODO($count))
+            && (my $raw := self.raw_hash)
+            && (my int $elems = nqp::elems($raw)),
+          nqp::stmts(
+            (my $pairs := nqp::setelems(nqp::list,$elems)),
+            (my $iter := nqp::iterator($raw)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($pairs,$i,Pair.new(
+                nqp::getattr(
+                  (my $pair := nqp::iterval(nqp::shift($iter))),Pair,'$!key'),
+                nqp::assign(nqp::p6scalarfromdesc(nqp::null),
+                  nqp::getattr($pair,Pair,'$!value'))
+              ))
+            ),
+            self!ROLLPICKGRABN(nqp::if($todo == Inf,self.total,$todo),$pairs)
+          ),
+          Rakudo::Iterator.Empty
+        ))
     }
 
     proto method roll(|) { * }
@@ -477,14 +511,21 @@ my role Baggy does QuantHash {
           Nil
         )
     }
+    multi method roll(Baggy:D: Whatever) { self.roll(Inf) }
     multi method roll(Baggy:D: $count) {
-        nqp::istype($count,Whatever) || $count == Inf
-          ?? Seq.new(Rakudo::Iterator.Roller(self))
-          !! self!ROLLPICKGRABN($count, %!elems.values, :keep);
+        Seq.new(nqp::if(
+          $count < 1,
+          Rakudo::Iterator.Empty,
+          nqp::if(
+            $count == Inf,
+            Rakudo::Iterator.Roller(self),
+            self!ROLLPICKGRABN($count.Int, %!elems.values, :keep)
+          )
+        ))
     }
 
     method !ROLLPICKGRABN(Int() $count, @pairs, :$keep) { # N times
-        Seq.new(class :: does Iterator {
+        class :: does Iterator {
             has Int $!total;
             has int $!elems;
             has $!pairs;
@@ -529,7 +570,7 @@ my role Baggy does QuantHash {
                 }
                 IterationEnd
             }
-        }.new(self.total,@pairs,$keep,$count))
+        }.new(self.total,@pairs,$keep,$count)
     }
 
 #--- classification method
@@ -637,8 +678,8 @@ my role Baggy does QuantHash {
           )
         )
     }
-    method Set() is nodal     { self!SETIFY(Set)     }
-    method SetHash() is nodal { self!SETIFY(SetHash) }
+    multi method Set(Baggy:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Baggy:D:) { self!SETIFY(SetHash) }
 
     method !BAGGIFY(\type) {
         nqp::if(
@@ -684,8 +725,8 @@ my role Baggy does QuantHash {
         )
     }
 
-    method Bag() is nodal     { self!BAGGIFY(Bag)     }
-    method BagHash() is nodal { self!BAGGIFY(BagHash) }
+    multi method Bag(Baggy:D:)     { self!BAGGIFY(Bag)     }
+    multi method BagHash(Baggy:D:) { self!BAGGIFY(BagHash) }
 
     method !MIXIFY(\type) {
         nqp::if(
@@ -716,8 +757,8 @@ my role Baggy does QuantHash {
         )
     }
 
-    method Mix() is nodal     { self!MIXIFY(Mix)     }
-    method MixHash() is nodal { self!MIXIFY(MixHash) }
+    multi method Mix(Baggy:D:)     { self!MIXIFY(Mix)     }
+    multi method MixHash(Baggy:D:) { self!MIXIFY(MixHash) }
 
     method clone() {
         nqp::if(

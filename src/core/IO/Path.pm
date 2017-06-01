@@ -71,8 +71,8 @@ my class IO::Path is Cool does IO {
               $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
     }
 
-    method parts                  {
-        %!parts ||= $!SPEC.split($!path);
+    method parts {
+        %!parts || (%!parts := nqp::create(Map).STORE: $!SPEC.split: $!path)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
@@ -174,10 +174,7 @@ my class IO::Path is Cool does IO {
         ), $base, $subst, $joiner
     }
 
-
-    # core can't do 'basename handles <Numeric Int>'
     method Numeric(IO::Path:D:) { self.basename.Numeric }
-    method Int    (IO::Path:D:) { self.basename.Int     }
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
@@ -329,7 +326,7 @@ my class IO::Path is Cool does IO {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -543,8 +540,6 @@ my class IO::Path is Cool does IO {
     proto method dir(|) {*} # make it possible to augment with multies from modulespace
     multi method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
-        :$absolute,
-        :$Str,
         :$CWD = $*CWD,
     ) {
 
@@ -554,17 +549,19 @@ my class IO::Path is Cool does IO {
         } }
 
         my str $dir-sep  = $!SPEC.dir-sep;
-        my int $relative = !$absolute && !$.is-absolute;
+        my int $absolute = $.is-absolute;
 
-        my str $abspath = $.absolute.ends-with($dir-sep)
-          ?? $.absolute
-          !! $.absolute ~ $dir-sep;
+        my str $abspath;
+        $absolute && nqp::unless( # calculate $abspath only when we'll need it
+            nqp::eqat(($abspath = $.absolute), $dir-sep,
+                nqp::sub_i(nqp::chars($abspath), 1)),
+            ($abspath = nqp::concat($abspath, $dir-sep)));
 
-        my str $path = $!path eq '.' || $!path eq $dir-sep
+        my str $path = nqp::iseq_s($!path, '.') || nqp::iseq_s($!path, $dir-sep)
           ?? ''
-          !! $!path.ends-with($dir-sep)
+          !! nqp::eqat($!path, $dir-sep, nqp::sub_i(nqp::chars($!path), 1))
             ?? $!path
-            !! $!path ~ $dir-sep;
+            !! nqp::concat($!path, $dir-sep);
 
         my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
@@ -578,86 +575,45 @@ my class IO::Path is Cool does IO {
           { my $*CWD = $cwd;
 #?if jvm
             for <. ..> -> $elem {
-                if $test.ACCEPTS($elem) {
-                    $Str
-                      ?? !$absolute
-                        ?? take $path ~ $elem
-                        !! take $abspath ~ $elem
-                      !! !$absolute
-                        ?? take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
-                        !! take IO::Path!new-from-absolute-path($abspath ~ $elem,:$!SPEC,:$CWD);
-                }
+                $test.ACCEPTS($elem) && (
+                  $absolute
+                    ?? take IO::Path!new-from-absolute-path(
+                        $abspath ~ $elem,:$!SPEC,:$CWD)
+                    !! take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
+                );
             }
 #?endif
             nqp::until(
-              nqp::isnull_s(my str $str_elem = nqp::nextfiledir($dirh))
-                || nqp::iseq_i(nqp::chars($str_elem),0),
+              nqp::isnull_s(my str $str-elem = nqp::nextfiledir($dirh))
+                || nqp::iseq_i(nqp::chars($str-elem),0),
               nqp::if(
-                $test.ACCEPTS($str_elem),
+                $test.ACCEPTS($str-elem),
                 nqp::if(
-                  $Str,
-                  (take
-                    nqp::concat(nqp::if($relative,$path,$abspath),$str_elem)),
-                  nqp::if(
-                    $relative,
-                    (take IO::Path.new(
-                      nqp::concat($path,$str_elem),:$!SPEC,:$CWD)),
-                    (take IO::Path!new-from-absolute-path(
-                      nqp::concat($abspath,$str_elem),:$!SPEC,:$CWD))
-                  )
-                )
-              )
-            );
+                  $absolute,
+                  (take IO::Path!new-from-absolute-path(
+                    nqp::concat($abspath,$str-elem),:$!SPEC,:$CWD)),
+                  (take IO::Path.new(
+                    nqp::concat($path,$str-elem),:$!SPEC,:$CWD)),)));
             nqp::closedir($dirh);
           }
         }
     }
 
     proto method slurp() { * }
-    multi method slurp(IO::Path:D:) { # we use :$enc, :$bin args in body via %_
-        # We have two paths:
-        # 1) No args given: we open and slurp with just nqp ops. We also
-        #   use a `try` on nqp::open to fail in the fast path if open fails.
-        #   In that specific case we'll reach the slow path and obtain proper
-        #   Failure that we'll return
-        # 2) In slow path, just pop open IO::Handle and steal its $!PIO:
-        #   If in non-bin, just slurp from $PIO; the open call already set the
-        #   encoding right. If in bin, then check if we got a file size;
-        #   If yes, read that many bytes from $PIO, if not, loop over chunked
-        #   reads with nqp::readfh, until we don't get any more elems
-        my $PIO;
+    multi method slurp(IO::Path:D: :$enc, :$bin) {
+        # We use an IO::Handle in binary mode, and then decode the string
+        # all in one go, which avoids the overhead of setting up streaming
+        # decoding.
         nqp::if(
-          nqp::iseq_i(nqp::elems(nqp::getattr(%_,Map,'$!storage')),0)
-            && ($PIO := try nqp::open(self.absolute,"r")),
-          nqp::stmts(
-            ($_ := nqp::p6box_s(nqp::readallfh($PIO))),
-            nqp::closefh($PIO),
-            $_), # <-- we've succeeed in fast-path; that's the data
-          nqp::if(
-            nqp::istype(
-              (my $handle := IO::Handle.new(:path(self)).open(
-                :enc(%_<enc> || 'utf8'), :bin(%_<bin>), :mode<ro>)),
-              Failure,),
-            $handle, # our open failed; return the Failure object here,
+            nqp::istype((my $handle := IO::Handle.new(:path(self)).open(:bin)), Failure),
+            $handle,
             nqp::stmts(
-              ($PIO := nqp::getattr($handle, IO::Handle, '$!PIO')),
-              nqp::if( %_<bin>,
-                nqp::if(
-                  (my int $size = Rakudo::Internals.FILETEST-S(self.absolute)),
-                  ($_ := nqp::readfh($PIO, buf8.new, $size)),
-                  nqp::stmts(
-                    ($_ := buf8.new),
-                    nqp::while(
-                      nqp::elems(
-                        my $buf := nqp::readfh($PIO, buf8.new, 0x100000)),
-                      .append($buf),
-                    ))),
-                ($_ := nqp::p6box_s(nqp::readallfh($PIO)))),
-              $handle.close,
-              $_))) # <-- we've succeeded in slow-path; that's the data
+                (my $blob := $handle.slurp(:close)),
+                nqp::if($bin, $blob, $blob.decode($enc || 'utf-8').subst("\r\n", "\n", :g))
+            ))
     }
 
-    method spurt(IO::Path:D: $data, :$enc = 'utf8', :$append, :$createonly) {
+    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {
         my $fh := self.open:
             :$enc,     :bin(nqp::istype($data, Blob)),
             :mode<wo>, :create, :exclusive($createonly),

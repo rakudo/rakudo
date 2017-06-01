@@ -405,36 +405,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method !SETIFY(\type) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          nqp::if(
-            $!storage,
-            nqp::stmts(
-              (my $iter := nqp::iterator($!storage)),
-              nqp::while(
-                $iter,
-                nqp::if(
-                  nqp::iterval(nqp::shift($iter)),
-                  nqp::bindkey(
-                    $elems,
-                    nqp::iterkey_s($iter).WHICH,
-                    nqp::iterkey_s($iter),
-                  )
-                )
-              )
-            )
-          ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(type).SET-SELF($elems),
-            nqp::if(
-              nqp::eqaddr(type,Set),
-              set(),
-              nqp::create(type)
-            )
-          )
+          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,self),
+          nqp::create(type).SET-SELF($elems)
         )
     }
-    method Set() is nodal     { self!SETIFY(Set)     }
-    method SetHash() is nodal { self!SETIFY(SetHash) }
+    multi method Set(Map:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Map:D:) { self!SETIFY(SetHash) }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

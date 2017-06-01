@@ -12,7 +12,6 @@ class VM does Systemic {
     has $.prefix;
     has $.precomp-ext;
     has $.precomp-target;
-    has $.precomp-dir;
 
     submethod BUILD(
       :$!config,
@@ -47,18 +46,12 @@ class VM does Systemic {
         $!precomp-ext    = "todo";
         $!precomp-target = "todo";
 #?endif
-        $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
-#?if !jvm
-        my int $is-darwin = $*VM.config<osname> eq 'darwin';
-#?endif
-#?if jvm
-        my int $is-darwin = $*VM.config<os.name> eq 'darwin';
-#?endif
+        my int $is-darwin = self.osname eq 'darwin';
 
         my $basename  = $library.basename;
         my int $full-path = $library ne $basename;
@@ -86,6 +79,24 @@ class VM does Systemic {
         $full-path
           ?? $dirname.IO.add($platform-name).absolute
           !! $platform-name.IO
+    }
+
+    proto method osname(|) { * }
+    multi method osname(VM:U:) {
+#?if jvm
+        nqp::lc(nqp::atkey(nqp::jvmgetproperties,'os.name'))
+#?endif
+#?if !jvm
+        nqp::lc(nqp::atkey(nqp::backendconfig,'osname'))
+#?endif
+    }
+    multi method osname(VM:D:) {
+#?if jvm
+        nqp::lc($!properties<os.name>)
+#?endif
+#?if !jvm
+        nqp::lc($!config<osname>)
+#?endif
     }
 }
 

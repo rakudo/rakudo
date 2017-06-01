@@ -9,8 +9,8 @@ sub MAIN(*@ARGS) {
     if @ARGS[0] eq '-f' && nqp::elems(@ARGS) >= 2 {
         nqp::shift(@ARGS);
         my $file := nqp::shift(@ARGS);
-        my $fh   := open($file, :r);
-        while nqp::readlinefh($fh) -> $line {
+        my $fh   := open($file, :r, :!chomp);
+        while $fh.get -> $line {
             if $line ~~ /\S/ {
                 $line := subst($line, /\s+/, '', :global);
                 nqp::push(@ARGS, $line);
@@ -21,11 +21,11 @@ sub MAIN(*@ARGS) {
     my $stderr := nqp::getstderr();
     for @ARGS -> $file {
         say("#line 1 SETTING::$file");
-        my $fh := open($file, :r);
+        my $fh := open($file, :r, :!chomp);
         my int $in_cond := 0;
         my int $in_omit := 0;
         my int $line    := 1;
-        while nqp::readlinefh($fh) -> $_ {
+        while $fh.get -> $_ {
             if my $x := $_ ~~ / ^ '#?if' \s+ ('!')? \s* (\w+) \s* $ / {
                 nqp::die("Nested conditionals not supported, line $line") if $in_cond;
                 $in_cond := 1;
@@ -33,7 +33,7 @@ sub MAIN(*@ARGS) {
                 print("\n");
             } elsif $_ ~~ /^ '#?endif' / {
                 unless $in_cond {
-                    nqp::sayfh($stderr,
+                    stderr().say(
                         "#?endif without matching #?if in file $file, line $line"
                     );
                 }

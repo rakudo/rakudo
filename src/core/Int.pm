@@ -401,6 +401,9 @@ multi sub infix:<+^>(Int:D \a, Int:D \b) {
 #}
 
 multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
+#?if moar
+    my $ignore = nqp::ctx(); # <-- kludge for RT#131306
+#?endif
     nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 #multi sub infix:«+<»(int $a, int $b) { RT#128655
@@ -408,6 +411,9 @@ multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
 #}
 
 multi sub infix:«+>»(Int:D \a, Int:D \b --> Int:D) {
+#?if moar
+    my $ignore = nqp::ctx(); # <-- kludge for RT#131306
+#?endif
     nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 #multi sub infix:«+>»(int $a, int $b) { RT#128655

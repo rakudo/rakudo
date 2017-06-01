@@ -1734,7 +1734,10 @@ class Perl6::World is HLL::World {
         }
         else {
             if @cont_type {
-                self.throw($/, 'X::NYI', :feature('is trait on $-sigil variable'));
+                self.throw($/, 'X::NYI',
+                  :feature('is trait on $-sigil variable'),
+                  :did-you-mean("my {@cont_type[0].HOW.name(@cont_type[0])} $sigil{~$<variable><desigilname>}")
+                );
             }
             %info<container_base>     := self.find_symbol(['Scalar']);
             %info<container_type>     := %info<container_base>;
@@ -4091,7 +4094,6 @@ class Perl6::World is HLL::World {
         if $name eq '&length' {
             @suggestions.push: $with_sigil ?? '&elems'  !! 'elems';
             @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
-            @suggestions.push: $with_sigil ?? '&graphs' !! 'graphs';
             @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
         }
         elsif $name eq '&bytes' {

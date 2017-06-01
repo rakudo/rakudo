@@ -1,7 +1,36 @@
-
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
-    $b.AT-KEY($a).Bool;
+    nqp::p6bool($b.AT-KEY($a))
+}
+multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
+    nqp::p6bool(
+      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+        && nqp::elems($storage)                         # haz a haystack
+        && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
+        && nqp::getattr(
+             nqp::ifnull(
+               nqp::atkey($storage,$a.WHICH),           # exists
+               BEGIN   # provide virtual value False    # did not exist
+                 nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+             ),
+             Pair,
+             '$!value'
+           )
+    )
+}
+multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
+    nqp::stmts(
+      (my str $needle = $a.WHICH),
+      (my $iterator := $b.iterator),
+      nqp::until(
+        nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+        nqp::if(
+          nqp::iseq_s($needle,$pulled.WHICH),
+          return True
+        )
+      ),
+      False
+    )
 }
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
     nqp::p6bool(
@@ -20,25 +49,15 @@ only sub infix:<∉>($a, $b --> Bool:D) is pure {
     $a !(elem) $b;
 }
 
-proto sub infix:<(cont)>($, $ --> Bool:D) is pure {*}
-multi sub infix:<(cont)>(Map:D $a, Str:D $b --> Bool:D) {
-    $a.AT-KEY($b).Bool
-}
-multi sub infix:<(cont)>(QuantHash:D $a, Any $b --> Bool:D) {
-    nqp::p6bool(
-      (my $elems := $a.raw_hash) && nqp::existskey($elems,$b.WHICH)
-    )
-}
-multi sub infix:<(cont)>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (cont) $b;
-}
+only sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }
+
 # U+220B CONTAINS AS MEMBER
 only sub infix:<∋>($a, $b --> Bool:D) is pure {
-    $a (cont) $b;
+    $b (elem) $a;
 }
 # U+220C DOES NOT CONTAIN AS MEMBER
 only sub infix:<∌>($a, $b --> Bool:D) is pure {
-    $a !(cont) $b;
+    not $b (elem) $a;
 }
 
 proto sub infix:<(|)>(|) is pure { * }
@@ -156,37 +175,19 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
 }
 
 multi sub infix:<(|)>(Map:D $a, Map:D $b) {
-    nqp::if(
-      nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
-      nqp::stmts(                                 # both ordinary Str hashes
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        nqp::if(
-          (my $raw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && (my $iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::iterval(nqp::shift($iter)),
-              nqp::bindkey(
-                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
-            )
-          )
-        ),
-        nqp::if(
-          ($raw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && ($iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::iterval(nqp::shift($iter)),
-              nqp::bindkey(
-                $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
-            )
-          )
-        ),
-        nqp::create(Set).SET-SELF($elems),
+    nqp::stmts(
+      (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+      nqp::if(
+        nqp::eqaddr($a.keyof,Str(Any)),
+        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$a),        # ordinary hash
+        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$a)  # object hash
       ),
-      $a.Set (|) $b.Set                           # object hash(es), coerce!
+      nqp::if(
+        nqp::eqaddr($b.keyof,Str(Any)),
+        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$b),        # ordinary hash
+        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$b)  # objetc hash
+      ),
+      nqp::create(Set).SET-SELF($elems)
     )
 }
 
@@ -669,7 +670,7 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
                 (my int $diff = nqp::sub_i(
                   nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
                   nqp::getattr(
-                    nqp::atkey($base,nqp::iterkey_s($iter)),
+                    nqp::atkey($elems,nqp::iterkey_s($iter)),
                     Pair,
                     '$!value'
                   )
@@ -824,11 +825,91 @@ multi sub infix:<eqv>(Setty:D \a, Setty:D \b) {
 }
 
 proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (<=) $b.Set(:view);
+multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
+    Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
 }
-multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool:D) {
-    $a <= $b and so $a.keys.all (elem) $b
+multi sub infix:<<(<=)>>(Setty:D $a, QuantHash:D $b --> Bool:D) {
+    Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(QuantHash:D $a, Setty:D $b --> Bool:D) {
+    Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+    nqp::stmts(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+        nqp::if(
+          (my $araw := $a.raw_hash)
+            && nqp::elems($araw),
+          nqp::if(                # number of elems in B *always* >= A
+            (my $braw := $b.raw_hash)
+              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::while(           # number of elems in B >= A
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                  <=              # value in A should be less or equal than B
+                nqp::getattr(
+                  nqp::ifnull(
+                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    BEGIN       # provide virtual value 0
+                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+                  ),
+                  Pair,
+                  '$!value'
+                ),
+                return False
+              )
+            ),
+            return False          # number of elems in B smaller than A
+          )
+        )
+      ),
+      True
+    )
+}
+multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
+    # don't need to check for object hashes, just checking keys is ok
+    nqp::stmts(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+        nqp::if(
+          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+            && nqp::elems($araw),
+          nqp::if(                # number of elems in B *always* >= A
+            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::while(           # number of elems in B >= A
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                return False      # elem in A doesn't exist in B
+              )
+            ),
+            return False          # number of elems in B smaller than A
+          )
+        )
+      ),
+      True
+    )
+}
+multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      True,                     # X (<=) X is always True
+      $a.Set(:view) (<=) $b.Set(:view)
+    )
 }
 # U+2286 SUBSET OF OR EQUAL TO
 only sub infix:<⊆>($a, $b --> Bool:D) is pure {
@@ -836,15 +917,178 @@ only sub infix:<⊆>($a, $b --> Bool:D) is pure {
 }
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
 only sub infix:<⊈>($a, $b --> Bool:D) is pure {
-    $a !(<=) $b;
+    not $a (<=) $b;
 }
 
 proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (<) $b.Set(:view);
+multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::if(
+          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(         # A has fewer elems than B
+              nqp::while(
+                $iter,
+                nqp::unless(
+                  nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                  return False  # elem in A doesn't exist in B
+                )
+              ),
+              True              # all elems in A exist in B
+            ),
+            False               # number of elems in B smaller or equal to A
+          ),
+          True,                 # no elems in A, and elems in B
+        ),
+        False                   # can never have fewer elems in A than in B
+      )
+    )
 }
-multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool:D) {
-    $a < $b and so $a.keys.all (elem) $b;
+multi sub infix:<<(<)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
+    infix:<<(<)>>($a, $b.Mix)
+}
+multi sub infix:<<(<)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
+    infix:<<(<)>>($a.Mix, $b)
+}
+multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $araw := $a.raw_hash) && nqp::elems($araw),
+        nqp::if(                # elems in A
+          (my $braw := $b.raw_hash) && nqp::elems($braw),
+          nqp::stmts(           # elems in A and B
+            (my $iter := nqp::iterator($araw)),
+            nqp::while(         # check all values in A with B
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                  <             # value in A should be less than (virtual) B
+                nqp::getattr(
+                  nqp::ifnull(
+                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    BEGIN       # provide virtual value 0
+                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+                  ),
+                  Pair,
+                  '$!value'
+                ),
+                return False
+              )
+            ),
+
+            ($iter := nqp::iterator($braw)),
+            nqp::while(         # check all values in B with A
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                  >             # value in B should be more than (virtual) A
+                nqp::getattr(
+                  nqp::ifnull(
+                    nqp::atkey($araw,nqp::iterkey_s($iter)),
+                    BEGIN       # provide virtual value 0
+                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+                  ),
+                  Pair,
+                  '$!value'
+                ),
+                return False
+              )
+            ),
+            True                # all checks worked out, so ok
+          ),
+          # nothing in B, all elems in A should be < 0
+          Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
+        ),
+        nqp::if(                # nothing in A
+          ($braw := $b.raw_hash) && nqp::elems($braw),
+          # something in B, all elems in B should be > 0
+          Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
+          False                 # nothing in A nor B
+        )
+      )
+    )
+}
+multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr($a,$b),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::if(
+          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(         # A has fewer elems than B
+              nqp::while(
+                $iter,
+                nqp::unless(
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                   <
+                  nqp::getattr(
+                    nqp::ifnull(
+                      nqp::atkey($braw,nqp::iterkey_s($iter)),
+                      BEGIN nqp::p6bindattrinvres(     # virtual 0
+                        nqp::create(Pair),Pair,'$!value',0)
+                    ),
+                    Pair,
+                    '$!value'
+                  ),
+                  return False  # elem in A not in B or same or more in B
+                )
+              ),
+              True              # all elems in A exist in B and are less
+            ),
+            False               # number of elems in B smaller or equal to A
+          ),
+          True                  # elems in B, no elems in A
+        ),
+        False                   # can never have fewer elems in A than in B
+      )
+    )
+}
+multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
+    # don't need to check for object hashes, just checking keys is ok
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # X is never a true subset of itself
+      nqp::if(
+        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+          && nqp::elems($braw),
+        nqp::if(
+          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+            && (my $iter := nqp::iterator($araw)),
+          nqp::stmts(           # A has fewer elems than B
+            nqp::while(
+              $iter,
+              nqp::unless(
+                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                return False    # elem in A doesn't exist in B
+              )
+            ),
+            True                # all elems in A exist in B
+          ),
+          False                 # number of elems in B smaller or equal to A
+        ),
+        False                   # can never have fewer elems in A than in B
+      )
+    )
+}
+multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # X (<) X is always False
+      $a.Set(:view) (<) $b.Set(:view)
+    )
 }
 # U+2282 SUBSET OF
 only sub infix:<⊂>($a, $b --> Bool:D) is pure {
@@ -852,39 +1096,31 @@ only sub infix:<⊂>($a, $b --> Bool:D) is pure {
 }
 # U+2284 NOT A SUBSET OF
 only sub infix:<⊄>($a, $b --> Bool:D) is pure {
-    $a !(<) $b;
+    not $a (<) $b;
 }
 
-proto sub infix:<<(>=)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (>=) $b.Set(:view);
-}
-multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool:D) {
-    $a >= $b and so $b.keys.all (elem) $a;
+only sub infix:<<(>=)>>(Any $a, Any $b --> Bool:D) {
+    $b (<=) $a
 }
 # U+2287 SUPERSET OF OR EQUAL TO
 only sub infix:<⊇>($a, $b --> Bool:D) is pure {
-    $a (>=) $b;
+    $b (<=) $a
 }
 # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
 only sub infix:<⊉>($a, $b --> Bool:D) is pure {
-    $a !(>=) $b;
+    not $b (<=) $a
 }
 
-proto sub infix:<<(>)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
-    $a.Set(:view) (>) $b.Set(:view);
-}
-multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool:D) {
-    $a > $b and so $b.keys.all (elem) $a;
+only sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
+    $b (<) $a
 }
 # U+2283 SUPERSET OF
 only sub infix:<⊃>($a, $b --> Bool:D) is pure {
-    $a (>) $b;
+    $b (<) $a
 }
 # U+2285 NOT A SUPERSET OF
 only sub infix:<⊅>($a, $b --> Bool:D) is pure {
-    $a !(>) $b;
+    not $b (<) $a
 }
 
 proto sub infix:<(.)>(|) is pure { * }

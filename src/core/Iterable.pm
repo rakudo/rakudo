@@ -157,8 +157,8 @@ my role Iterable {
           )
         )
     }
-    method Set() is nodal     { self!SETIFY(Set)     }
-    method SetHash() is nodal { self!SETIFY(SetHash) }
+    multi method Set(Iterable:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }
 }
 
 #if !moar

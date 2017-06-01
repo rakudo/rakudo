@@ -44,6 +44,9 @@ class CompUnit::Loader is repr('Uninstantiable') {
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
 #?if !jvm
+        # Switch file handle to binary mode before passing it off to the VM,
+        # so we don't lose things hanging around in the decoder.
+        $file.encoding(Nil);
         nqp::loadbytecodefh(nqp::getattr($file, IO::Handle, '$!PIO'), $file.path.Str);
 #?endif
         $handle

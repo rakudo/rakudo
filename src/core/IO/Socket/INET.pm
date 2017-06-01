@@ -18,7 +18,6 @@ my class IO::Socket::INET does IO::Socket {
         constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
 
-    has Str $.encoding = 'utf8';
     has Str $.host;
     has Int $.port;
     has Str $.localhost;
@@ -28,8 +27,6 @@ my class IO::Socket::INET does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    has $.nl-in is rw = ["\x0A", "\r\n"];
-    has int $.ins;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
         if ($host) {
@@ -129,6 +126,9 @@ my class IO::Socket::INET does IO::Socket {
         }
 
         if $.listening {
+#?if moar
+            $!localport = nqp::getport($PIO) if !$!localport;
+#?endif
         }
         elsif $.type == PIO::SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
@@ -146,32 +146,9 @@ my class IO::Socket::INET does IO::Socket {
         self.new(:$localhost, :$localport, :listen)
     }
 
-    method get() {
-        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
-        nqp::setencoding($io, Rakudo::Internals.NORMALIZE_ENCODING($!encoding));
-        Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($io, $!nl-in);
-        my str $line = nqp::readlinechompfh($io);
-        if nqp::chars($line) || !nqp::eoffh($io) {
-            $!ins = $!ins + 1;
-            $line
-        }
-        else {
-            Nil
-        }
-    }
-
-    method lines() {
-        gather while (my $line = self.get()).DEFINITE {
-            take $line;
-        }
-    }
-
     method accept() {
         ## A solution as proposed by moritz
         my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!nl-in);
-#?if jvm
-        nqp::getattr($new_sock, $?CLASS, '$!buffer') = buf8.new;
-#?endif
         nqp::bindattr($new_sock, $?CLASS, '$!PIO',
             nqp::accept(nqp::getattr(self, $?CLASS, '$!PIO'))
         );

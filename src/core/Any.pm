@@ -432,12 +432,24 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
-    method Set()     is nodal {     Set.new-from-pairs(self.list) }
-    method SetHash() is nodal { SetHash.new-from-pairs(self.list) }
-    method Bag()     is nodal {     Bag.new-from-pairs(self.list) }
-    method BagHash() is nodal { BagHash.new-from-pairs(self.list) }
-    method Mix()     is nodal {     Mix.new-from-pairs(self.list) }
-    method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
+    proto method Set(|) is nodal { * }
+    multi method Set(Any:) { Set.new-from-pairs(self.list) }
+
+    proto method SetHash(|) is nodal { * }
+    multi method SetHash(Any:) { SetHash.new-from-pairs(self.list) }
+
+    proto method Bag(|) is nodal { * }
+    multi method Bag(Any:) { Bag.new-from-pairs(self.list) }
+
+    proto method BagHash(|) is nodal { * }
+    multi method BagHash(Any:) { BagHash.new-from-pairs(self.list) }
+
+    proto method Mix(|) is nodal { * }
+    multi method Mix(Any:) { Mix.new-from-pairs(self.list) }
+
+    proto method MixHash(|) is nodal { * }
+    multi method MixHash() { MixHash.new-from-pairs(self.list) }
+
     # XXX GLR does this really need to force a list?
     method Supply() is nodal { self.list.Supply }
 

@@ -831,18 +831,17 @@ class Rakudo::Iterator {
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
-                            nqp::isnull(
-                              $elem := nqp::getattr($elem,List,'$!reified'))
-                              || nqp::iseq_i(nqp::elems($elem),0),
-
-                            # cross with an empty list is always an empty list
-                            (return Rakudo::Iterator.Empty),
+                            ($elem := nqp::getattr($elem,List,'$!reified'))
+                              && nqp::isgt_i(nqp::elems($elem),0),
 
                             # use the available reified directly
                             nqp::stmts(
                               nqp::bindpos($!reifieds,$i,$elem),
                               nqp::atpos($elem,0)
-                            )
+                            ),
+
+                            # cross with an empty list is always an empty list
+                            return Rakudo::Iterator.Empty
                           ),
 
                           # need to set up an iterator
@@ -1534,7 +1533,7 @@ class Rakudo::Iterator {
               has &!callable;
               method pull-one {
                   nqp::if(
-                    nqp::iseq_i($!n, ($!i = nqp::add_i($!i, 1)))
+                    nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
                       && self!FINISH-UP(1)
                     || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
                       && self!FINISH-UP(0),
@@ -1555,7 +1554,6 @@ class Rakudo::Iterator {
             &callable,
             class :: does Iterator {
                 has $!source;
-                has int $!n;
                 has int $!i = -1;
                 has &!callable;
                 method pull-one {
@@ -2448,8 +2446,8 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator for a List that has been completely reified
-    # already.  Returns an nqp::null for elements don't exist before
-    # the end of the reified list.
+    # already.  Returns an nqp::null for elements that don't exist
+    # before the end of the reified list.
     method ReifiedList(\list) {
         class :: does Iterator {
             has $!reified;

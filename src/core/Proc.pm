@@ -13,7 +13,7 @@ my class Proc {
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
-                    Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$signal --> Nil) {
+                    Str :$enc, Str:D :$nl = "\n", :$signal --> Nil) {
         if $merge {
             die "Executing programs with :merge is known to be broken\n"
               ~ "Please see https://rt.perl.org//Public/Bug/Display.html?id=128594 for the bug report.\n";
@@ -24,13 +24,10 @@ my class Proc {
             $!flags += nqp::const::PIPE_INHERIT_IN;
         }
         elsif $in === True {
-            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-out => $nl);
             $!in_fh := nqp::syncpipe();
             $!flags += nqp::const::PIPE_CAPTURE_IN;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!in_fh, $nl);
-            nqp::setencoding($!in_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!in), IO::Handle, '$!PIO', $!in_fh);
+            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
+                nl-out => $nl, :PIO($!in_fh));
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
             $!in_fh := nqp::null();
@@ -42,13 +39,10 @@ my class Proc {
         }
 
         if $out === True || $merge {
-            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in => $nl);
             $!out_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_OUT;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!out_fh, $nl);
-            nqp::setencoding($!out_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!out), IO::Handle, '$!PIO', $!out_fh);
+            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
+                nl-in => $nl, :PIO($!out_fh));
         }
         elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
             $!out_fh := nqp::getattr(nqp::decont($out), IO::Handle, '$!PIO');
@@ -77,13 +71,10 @@ my class Proc {
             $!flags  += nqp::const::PIPE_INHERIT_ERR;
         }
         elsif $err === True {
-            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in =>  $nl);
             $!err_fh := nqp::syncpipe();
             $!flags  += nqp::const::PIPE_CAPTURE_ERR;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!err_fh, $nl);
-            nqp::setencoding($!err_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!err), IO::Handle, '$!PIO', $!err_fh);
+            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
+                nl-in => $nl, :PIO($!err_fh));
         }
         else {
             $!err_fh := nqp::null();
@@ -140,7 +131,7 @@ my class Proc {
 
 sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.spawn(@args, :$cwd, :$env);
     $proc
@@ -148,7 +139,7 @@ sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
 
 sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc
@@ -166,7 +157,7 @@ sub QX($cmd, :$cwd = $*CWD, :$env) {
     );
     my $result;
     try {
-        $result = nqp::p6box_s(nqp::readallfh($pio));
+        $result = IO::Pipe.new(:PIO($pio)).slurp;
         $status := nqp::closefh_i($pio);
     }
     $result.DEFINITE

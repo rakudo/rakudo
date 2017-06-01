@@ -24,7 +24,7 @@ class Distro does Systemic {
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
-    # This is a temporary migration method needed for e.g. panda.
+    # This is a temporary migration method needed for installation
     method cur-sep() { "," }
 }
 

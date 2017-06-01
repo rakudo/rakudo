@@ -32,12 +32,12 @@ my class MixHash does Mixy {
                         nqp::atkey($raw,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       ),
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($raw,$which,Pair.new(k,$value))  # new
+                      nqp::bindkey($raw,$which,Pair.new(k,nqp::decont($value)))
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
@@ -46,7 +46,7 @@ my class MixHash does Mixy {
                       nqp::bindattr(%!elems,Map,'$!storage',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
-                      Pair.new(k,$value)
+                      Pair.new(k,nqp::decont($value))
                     )
                   )
                 )
@@ -59,7 +59,7 @@ my class MixHash does Mixy {
     multi method new(MixHash:_:) { nqp::create(self) }
 
 #--- coercion methods
-    method Mix(:$view) is nodal {
+    multi method Mix(MixHash:D: :$view) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
           nqp::p6bindattrinvres(
@@ -69,7 +69,7 @@ my class MixHash does Mixy {
           mix()
         )
     }
-    method MixHash() is nodal { self }
+    multi method MixHash(MixHash:D:) { self }
 
 #--- iterator methods
     sub proxy(Mu \iter,Mu \storage) is raw {
@@ -110,12 +110,16 @@ my class MixHash does Mixy {
                         nqp::atkey(storage,$which),
                         Pair,
                         '$!value',
-                        $value
+                        nqp::decont($value)
                       )
                     ),
                     nqp::unless(                # where did it go?
                       $value == 0,
-                      nqp::bindkey(storage,$which,Pair.new($object,$value))
+                      nqp::bindkey(
+                        storage,
+                        $which,
+                        Pair.new($object,nqp::decont($value))
+                      )
                     )
                   )
                 )

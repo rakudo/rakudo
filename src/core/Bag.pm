@@ -19,7 +19,13 @@ my class Bag does Baggy {
     }
 
 #--- object creation methods
-    multi method new(Bag:_:) { bag() }
+    multi method new(Bag:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Bag),
+          bag(),
+          nqp::create(self)
+        )
+    }
 
 #--- interface methods
     method SET-SELF(Bag:D: \elems) {
@@ -32,6 +38,7 @@ my class Bag does Baggy {
           bag()
         )
     }
+
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
@@ -42,8 +49,8 @@ my class Bag does Baggy {
     }
 
 #--- coercion methods
-    method Bag() is nodal { self }
-    method Mix() is nodal {
+    multi method Bag(Bag:D:) { self }
+    multi method Mix(Bag:D:) {
         nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
     }
 

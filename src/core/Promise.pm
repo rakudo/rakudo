@@ -149,14 +149,14 @@ my class Promise does Awaitable {
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            Promise.start( { code(self) }, :$!scheduler);
+            self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
             # Create a Promise, and push 2 entries to @!thens: something that
             # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
-            my $then_promise = Promise.new(:$!scheduler);
+            my $then_promise = self.new(:$!scheduler);
             my $vow = $then_promise.vow;
             @!thens.push({ $vow.keep(code(self)) });
             @!thens.push(-> $ex { $vow.break($ex) });
@@ -209,7 +209,7 @@ my class Promise does Awaitable {
     }
 
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
-        my $p := Promise.new(:$scheduler);
+        my $p := self.new(:$scheduler);
         nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
         my $vow = $p.vow;
         $scheduler.cue(
@@ -219,7 +219,7 @@ my class Promise does Awaitable {
     }
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
-        my $p   = Promise.new(:$scheduler);
+        my $p   = self.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
@@ -232,7 +232,7 @@ my class Promise does Awaitable {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int $N, Str $combinator) {
-        my $p = Promise.new;
+        my $p = self.new;
         unless @promises {
             $p.keep;
             return $p

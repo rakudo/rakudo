@@ -69,6 +69,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
 #?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
+        $unit.close;
 #?endif
 #?if jvm
         my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
@@ -263,7 +264,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
           "--source-name=$source-name",
           $path,
           :out,
-          :err,
+          :err($RMD ?? '-' !! True),
           :%env
         );
 
@@ -272,10 +273,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             $RMD("Precomping $path failed: $proc.status()") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $proc.err.slurp-rest(:close);
+            die $RMD ?? @result !! $proc.err.slurp-rest(:close);
         }
 
-        if $proc.err.slurp-rest(:close) -> $warnings {
+        if not $RMD and $proc.err.slurp-rest(:close) -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

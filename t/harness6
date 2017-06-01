@@ -1,9 +1,25 @@
+
 #! perl6
 
 # note: Due to a limitation in argument parsing options that should be passed
 # through to fudgeall have to come after all other options
 
-use TAP;
+# We keep TAP module in a non-core repo, so here we either clone
+# it or just pull in any changes into the directory with the module
+# that we then load:
+
+use lib <t/packages/tap-harness6/lib>;
+constant $tap-dir  = 't/packages/tap-harness6'.IO;
+constant $tap-repo = 'https://github.com/perl6/tap-harness6';
+if $tap-dir.d {
+    say 'Updating TAP::Harness checkout...';
+    run :cwd($tap-dir), <git pull>;
+}
+else {
+    say 'TAP::Harness checkout not found; going to clone...';
+    run <git clone>, $tap-repo, $tap-dir.absolute;
+}
+require ::('TAP');
 
 my $vm = $*VM.name;
 
@@ -64,7 +80,7 @@ multi sub MAIN(
         @tfiles = batch(200, @tfiles).flatmap(&fudge);
     }
 
-    my $harness = TAP::Harness.new(
+    my $harness = ::('TAP::Harness').new(
             :handlers[get-handler($vm, :$perlpath)],
             :ignore-exit,
 #            :trap,
@@ -115,10 +131,10 @@ multi sub MAIN(
 #        unlink 'TESTTOKEN';
 #        state $server = run ".".IO.child("perl6-eval-server"), <-bind-stdin -cookie TESTTOKEN -app perl6.jar>, :in;
 #        sleep 1;
-#        TAP::Harness::SourceHandler::Exec.new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
+#        ::('TAP::Harness::SourceHandler::Exec').new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
 #    }
     multi sub get-handler(Any, :$perlpath) {
-        TAP::Harness::SourceHandler::Perl6.new(:incdirs['lib'], :path($perlpath));
+       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($perlpath));
     }
 }
 

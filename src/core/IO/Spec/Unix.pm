@@ -94,16 +94,17 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method is-absolute( Str() \path ) {
-        nqp::p6bool(nqp::eqat(path, '/', 0));
+        nqp::p6bool(nqp::iseq_i(nqp::ord(path), 47)) # '/'
     }
 
     method path {
-        if %*ENV<PATH> -> $PATH {
-            $PATH.split( ':' ).map: { $_ || '.' };
-        }
-        else {
-            ();
-        }
+        (my $p := %*ENV<PATH>) ?? gather {
+            my int $els = nqp::elems(my $parts := nqp::split(':', $p));
+            my int $i = -1;
+            nqp::until(
+              nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
+              take nqp::atpos($parts, $i) || '.')
+        } !! Seq.new: Rakudo::Iterator.Empty
     }
 
     method splitpath( $path, :$nofile = False ) {
@@ -116,7 +117,7 @@ my class IO::Spec::Unix is IO::Spec {
         }
     }
 
-    multi method split(IO::Spec::Unix: Cool:D $path) {
+    method split(IO::Spec::Unix: Cool:D $path) {
         my str $p = $path.Str;
         my int $chars = nqp::chars($p);
 
@@ -168,10 +169,7 @@ my class IO::Spec::Unix is IO::Spec {
         );
 
         # shell dirname '' produces '.', but we don't because it's probably user error
-
-        # temporary, for the transition period
-        (:volume(''), :$dirname, :$basename, :directory($dirname));
-#        (:volume(''), :$dirname, :$basename);
+       (:volume(''), :$dirname, :$basename);
     }
 
     method join ($, \dir, \file) {
@@ -207,7 +205,10 @@ my class IO::Spec::Unix is IO::Spec {
             nqp::if(@parts, '/', ''),
         )
     }
-    method splitdir( $path ) { $path.split( '/' )  }
+    method splitdir(Cool:D $path) {
+        nqp::p6bindattrinvres((), List, '$!reified', nqp::split('/', $path.Str))
+        || ('',)
+    }
     method catfile( |c )     { self.catdir(|c) }
 
     method abs2rel( $path is copy, $base is copy = $*CWD ) {

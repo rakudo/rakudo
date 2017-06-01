@@ -247,28 +247,6 @@ my class Rakudo::Internals {
         }
     }
 
-    method SET_LINE_ENDING_ON_HANDLE(Mu \handle, $ending) {
-        if nqp::istype($ending, Iterable) {
-            my \endings = nqp::list_s();
-            my int $i = -1;
-            my int $elems = $ending.elems;
-            nqp::while(
-                nqp::isne_i( ($i = nqp::add_i($i, 1)), $elems ),
-                nqp::push_s(endings, nqp::unbox_s($ending.AT-POS($i).Str))
-            );
-#?if !jvm
-            nqp::setinputlineseps(handle, endings);
-#?endif
-#?if jvm
-            nqp::setinputlinesep(handle, nqp::atpos_s(endings, 0))
-#?endif
-        }
-        else {
-            nqp::setinputlinesep(handle, nqp::unbox_s($ending.Str))
-        }
-        Nil
-    }
-
     # 1 if all elements of given type, otherwise 0
     method ALL_TYPE(\values,\type) {
         nqp::if(

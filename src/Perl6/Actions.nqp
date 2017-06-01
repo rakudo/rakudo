@@ -827,7 +827,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Emit any worries.  Note that unwanting $mainline can produce worries.
         if @*WORRIES {
-            nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
+            stderr().print($*W.group_exception().gist());
         }
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
@@ -1419,9 +1419,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $code    := subst($code, /\s+$/, ''); # chomp!
                     $past := QAST::Stmts.new(:node($/),
                         QAST::Op.new(
-                            :op<sayfh>,
+                            :op<writefh>,
                             QAST::Op.new(:op<getstderr>),
-                            QAST::SVal.new(:value("$id ($file line $line)\n$code"))
+                            QAST::Op.new(
+                                :op('encode'),
+                                QAST::SVal.new(:value("$id ($file line $line)\n$code\n")),
+                                QAST::SVal.new(:value('utf8')),
+                                QAST::Op.new(
+                                    :op('callmethod'), :name('new'),
+                                    QAST::WVal.new( :value($*W.find_symbol(['Blob'])) )
+                                )
+                            )
                         ),
                         $past
                     );

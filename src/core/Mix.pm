@@ -5,7 +5,7 @@ my class Mix does Mixy {
 #--- interface methods
     method SET-SELF(Mix:D: \elems) {
         nqp::if(
-          nqp::elems(elems),          
+          nqp::elems(elems),
           nqp::stmts(                 # need to have allocated %!elems
             nqp::bindattr(%!elems,Map,'$!storage',elems),
             self
@@ -13,6 +13,7 @@ my class Mix does Mixy {
           mix()
         )
     }
+
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
@@ -34,7 +35,13 @@ my class Mix does Mixy {
     }
 
 #--- object creation methods
-    multi method new(Mix:_:) { mix() }
+    multi method new(Mix:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Mix),
+          mix(),
+          nqp::create(self)
+        )
+    }
 
 #--- selection methods
     multi method grab($count? --> Real:D) {
@@ -45,7 +52,7 @@ my class Mix does Mixy {
     }
 
 #--- coercion methods
-    method Mix() is nodal { self }
+    multi method Mix(Mix:D:) { self }
 
     method clone() { nqp::clone(self) }
 

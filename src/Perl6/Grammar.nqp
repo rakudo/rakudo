@@ -4582,7 +4582,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $lang.clone_braid_from(self);
             my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
             $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
-            # nqp::printfh(nqp::getstderr(), "$meth $op\n");
             my $cursor := $lang."$meth"();
             my $match := $cursor.MATCH;
             if $cursor.pos == nqp::chars($op) && (
@@ -4596,7 +4595,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $META := $match.ast;
                 $META := $META[0] unless $META.name;
                 $META.name('&METAOP_HYPER_POSTFIX') if $META.name eq '&METAOP_HYPER_POSTFIX_ARGS';
-                # nqp::printfh(nqp::getstderr(), $META.dump);
                 my $fun := $*W.compile_time_evaluate(self.MATCH,$META);
                 $*W.install_lexical_symbol($*W.cur_lexpad(),'&' ~ $categorical[0],$fun);
                 $fun.set_name($name);

@@ -1,5 +1,8 @@
 my class Rakudo::QuantHash {
 
+    # a Pair with the value 0
+    my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
+
     our role Pairs does Iterator {
         has $!elems;
         has $!picked;
@@ -11,10 +14,12 @@ my class Rakudo::QuantHash {
               self
             )
         }
-        method new(\elems, \count) {
+        method new(Mu \elems, \count) {
             nqp::if(
-              elems && nqp::elems(elems) && count >= 1,
-              nqp::create(self)!SET-SELF(elems, count),
+              (my $todo := Rakudo::QuantHash.TODO(count))
+                && elems
+                && nqp::elems(elems),
+              nqp::create(self)!SET-SELF(elems, $todo),
               Rakudo::Iterator.Empty
             )
         }
@@ -24,7 +29,7 @@ my class Rakudo::QuantHash {
     # given IterationSet
     method ROLL(Mu \elems) {
         nqp::stmts(
-          (my int $i = nqp::add_i(nqp::elems(elems).rand.floor,1)),
+          (my int $i = nqp::add_i(nqp::rand_n(nqp::elems(elems)),1)),
           (my $iter := nqp::iterator(elems)),
           nqp::while(
             nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
@@ -34,15 +39,11 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # Return a list_s of all keys of the given IterationSet in random order.
+    # Return a list_s of N keys of the given IterationSet in random order.
     method PICK-N(Mu \elems, \count) {
         nqp::stmts(
           (my int $elems = nqp::elems(elems)),
-          (my int $count = nqp::if(
-            count >= nqp::elems(elems),
-            nqp::elems(elems),
-            count.Int
-          )),
+          (my int $count = nqp::if(count > $elems,$elems,count)),
           (my $keys := nqp::setelems(nqp::list_s,$elems)),
           (my $iter := nqp::iterator(elems)),
           (my int $i = -1),
@@ -66,6 +67,90 @@ my class Rakudo::QuantHash {
           $picked
         )
     }
+
+    # Return number of items to be done if > 0, or 0 if < 1, or throw if NaN
+    method TODO(\count) is raw {
+        nqp::if(
+          count < 1,
+          0,
+          nqp::if(
+            count == Inf,
+            count,
+            nqp::if(
+              nqp::istype((my $todo := count.Int),Failure),
+              $todo.throw,
+              $todo
+            )
+          )
+        )
+    }
+
+#--- Set/SetHash related methods
+    method SET-IS-SUBSET($a,$b) {
+        nqp::stmts(
+          nqp::unless(
+            nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+            nqp::if(
+              (my $araw := $a.raw_hash)
+                && nqp::elems($araw),
+              nqp::if(                # number of elems in B *always* >= A
+                (my $braw := $b.raw_hash)
+                  && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
+                  && (my $iter := nqp::iterator($araw)),
+                nqp::while(           # number of elems in B >= A
+                  $iter,
+                  nqp::unless(
+                    nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                    return False      # elem in A doesn't exist in B
+                  )
+                ),
+                return False          # number of elems in B smaller than A
+              )
+            )
+          ),
+          True
+        )
+    }
+
+    # add to given IterationSet the keys of given Map
+    method ADD-MAP-TO-SET(\elems,\map --> Nil) {
+        nqp::if(
+          (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::iterval(nqp::shift($iter)),
+              nqp::bindkey(
+                elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+            )
+          )
+        )
+    }
+
+    # add to given IterationSet the objects of given object Hash
+    method ADD-OBJECTHASH-TO-SET(\elems,\objecthash --> Nil) {
+        nqp::if(
+          (my $raw := nqp::getattr(nqp::decont(objecthash),Map,'$!storage'))
+            && (my $iter := nqp::iterator($raw)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::getattr(
+                nqp::decont(nqp::iterval(nqp::shift($iter))),
+                Pair,
+                '$!value'
+              ),
+              nqp::bindkey(
+                elems,
+                nqp::iterkey_s($iter),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+              )
+            )
+          )
+        )
+    }
+
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly
@@ -321,7 +406,7 @@ my class Rakudo::QuantHash {
             nqp::while(
               $iter,
               nqp::if(
-                0 < (my $value := 
+                0 < (my $value :=
                   nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
                 ($total := $total + $value)
               )
@@ -403,6 +488,85 @@ my class Rakudo::QuantHash {
             nqp::while(   # nothing to match against, so reset
               $iter,
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
+            )
+          )
+        )
+    }
+    method MIX-ALL-POSITIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') > 0,
+              return False
+            )
+          ),
+          True
+        )
+    }
+    method MIX-ALL-NEGATIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(elems)),
+          nqp::while(
+            $iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') < 0,
+              return False
+            )
+          ),
+          True
+        )
+    }
+
+    method MIX-IS-SUBSET($a,$b) {
+        nqp::if(
+          nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+          True,                     # X is always a subset of itself
+          nqp::if(
+            (my $araw := $a.raw_hash) && nqp::elems($araw),
+            nqp::if(                # elems in A
+              (my $braw := $b.raw_hash) && nqp::elems($braw),
+              nqp::stmts(           # elems in A and B
+                (my $iter := nqp::iterator($araw)),
+                nqp::while(         # check all values in A with B
+                  $iter,
+                  nqp::unless(
+                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                      <=            # value in A should be less or equal than B
+                    nqp::getattr(
+                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                      Pair,
+                      '$!value'
+                    ),
+                    return False
+                  )
+                ),
+                
+                ($iter := nqp::iterator($braw)),
+                nqp::while(         # check all values in B with A
+                  $iter,
+                  nqp::unless(
+                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                      >=            # value in B should be more or equal than A
+                    nqp::getattr(
+                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                      Pair,
+                      '$!value'
+                    ),
+                    return False
+                  )
+                ),
+                True                # all checks worked out, so ok
+              ),
+              # nothing in B, all elems in A should be < 0
+              Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
+            ),
+            nqp::if( 
+              ($braw := $b.raw_hash) && nqp::elems($braw),
+              # nothing in A, all elems in B should be >= 0
+              Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
+              False                 # nothing in A nor B
             )
           )
         )

@@ -125,6 +125,62 @@ for <fail die throw rethrow resume> -> $meth {
         'trying to instantiate a non-class gives the name in the error';
 }
 
+subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
+    plan 2;
+
+    with run $*EXECUTABLE, '-e', 'say 0୯', :err, :out {
+        is   .out.slurp(:close), "9\n", 'STDOUT is right';
+        like .err.slurp(:close), /'୯ is not a valid octal number'/,
+            'STDERR mentions the end-result is not valid octal';
+    }
+}
+
+# RT #123085
+{
+    throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
+        Exception,
+        message => all(/<<'Too many'>>/, /<<'expected 1'>>/, /<<'got 2'>>/),
+        'wrong arity in a signature has correct values in error message';
+    throws-like { sub foo([$head, $tail], [$foo]) {}; foo([3, 4]) },
+        Exception,
+        message => all(/<<'Too few'>>/, /<<'expected 2'>>/, /<<'got 1'>>/),
+        'wrong arity in a signature has correct values in error message';
+    throws-like { sub foo([$head]) {}; foo([3, 4]) },
+        Exception,
+        message => all(/<<'Too many'>>/, /<<'expected 1'>>/, /<<'got 2'>>/, /<<'sub-signature'>>/),
+        'wrong arity in a sub-signature has correct values in error message';
+    throws-like { sub foo(@bar ($head, $tail)) {}; foo([3]) },
+        Exception,
+        message => all(/<<'Too few'>>/, /<<'expected 2'>>/, /<<'got 1'>>/, /<<'sub-signature'>>/, /<<'parameter @bar'>>/),
+        'wrong arity in a sub-signature with a named parameter has correct values in error message';
+}
+
+# RT #131408
+{
+    throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
+        Exception,
+        message => /<<'foo'>>/,
+        'wrong arity in a signature mentions the name of the sub';
+    throws-like { class A { foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
+        Exception,
+        message => /<<'foo'>>/,
+        'wrong arity in a signature mentions the name of the method';
+}
+
+{ # https://irclog.perlgeek.de/perl6-dev/2017-05-31#i_14666102
+    throws-like '42.length      ', Exception, '.length on non-List Cool',
+        :message{ .contains: <chars codes>.all & none <elems graphs> };
+
+    throws-like '[].length      ', Exception, '.length on List',
+        :message{ .contains: 'elems' & none <chars codes graphs>     };
+
+    throws-like 'class {}.length', Exception, '.length on non-Cool',
+        :message{ .contains: <elems chars codes>.all & none 'graphs' };
+
+    throws-like 'length 42      ', Exception, '&length',
+        :message{ .contains: <elems chars codes>.all & none 'graphs' };
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

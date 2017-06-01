@@ -265,7 +265,7 @@ E: rightfold@gmail.com
 
 N: Elizabeth Mattijsen
 U: lizmat
-E: liz@dijkmat.nl
+E: liz@wenzperl.nl
 
 N: Erik Johansen
 E: perl6-git@uniejo.dk
@@ -623,6 +623,7 @@ U: paultcochrane
 E: paul@liekut.de
 
 N: Pawel Murias
+U: pmurias
 E: pawelmurias@gmail.com
 
 N: Pepe Schwarz
@@ -848,5 +849,9 @@ N: Вячеслав Матюхин
 U: mmcleric
 E: me@berekuk.ru
 D: Whatever-currying, colonpair fixes
+
+N: eater
+U: the-eater
+E: perl6@eaterofco.de
 
 =cut

@@ -19,10 +19,15 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     # NOTE: IO::Path.resolve assumes dir sep is 1 char
-    method dir-sep        { '\\' }
-    method splitdir($dir) { $dir.split($slash)  }
-    method devnull        { 'nul'               }
-    method rootdir        { '\\'                }
+    method dir-sep {  ｢\｣  }
+    method devnull { 'nul' }
+    method rootdir {  ｢\｣  }
+    method splitdir(Cool:D $path) {
+        nqp::p6bindattrinvres(
+          (), List, '$!reified',
+          nqp::split('/', nqp::join('/', nqp::split(｢\｣, $path.Str))))
+        || ('',)
+    }
 
     method basename(\path) {
         my str $str = nqp::unbox_s(path);
@@ -56,9 +61,21 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-       (".",
-         split(';', %*ENV<PATH> // %*ENV<Path> // '').map( {
-           .subst(:global, q/"/, '') } ).grep: *.chars );
+        gather {
+          take '.';
+          my $p := %*ENV;
+          nqp::if(
+            ($p := nqp::if(nqp::defined($_ := $p<PATH>), $_, $p<Path>)),
+            nqp::stmts(
+              (my int $els = nqp::elems(my $parts := nqp::split(';', $p))),
+              (my int $i = -1),
+              nqp::until(
+                nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
+                ($_ := nqp::atpos($parts, $i))
+                  # unsure why old code removed all `"`, but keeping code same
+                  # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
+                  && take nqp::join('', nqp::split(｢"｣, $_)))))
+        }
    }
 
     method is-absolute ($path) {
@@ -72,7 +89,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                 || nqp::iseq_i($_, 47))))
     }
 
-    multi method split(IO::Spec::Win32: Cool:D $path is copy) {
+    method split(IO::Spec::Win32: Cool:D $path is copy) {
         $path ~~ s[ <$slash>+ $] = ''                       #=
             unless $path ~~ /^ <$driveletter>? <$slash>+ $/;
 
@@ -108,16 +125,23 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $basename && nqp::isfalse($dirname),
             $dirname = '.'));
 
-        (:$volume, :$dirname, :$basename, :directory($dirname))
+        (:$volume, :$dirname, :$basename)
     }
 
-    method join ($volume, $dirname is copy, $file is copy) {
-        $dirname = '' if $dirname eq '.' && $file.chars;
-        if $dirname.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
-            $file    = '';
-            $dirname = '' if $volume.chars > 2; #i.e. UNC path
-        }
-        self.catpath($volume, $dirname, $file);
+    method join (Str \vol, Str $dir is copy, Str $file is copy) {
+        nqp::stmts(
+          nqp::if(
+            $file && nqp::iseq_s($dir, '.'),
+            ($dir = ''),
+            nqp::if(
+                 (nqp::iseq_s($dir,  ｢\｣) || nqp::iseq_s($dir,  ｢/｣))
+              && (nqp::iseq_s($file, ｢\｣) || nqp::iseq_s($file, ｢/｣)),
+              nqp::stmts(
+                ($file = ''),
+                nqp::if(
+                  nqp::isgt_i(nqp::chars(vol), 2), # i.e. UNC path
+                  $dir = '')))),
+          self.catpath: vol, $dir, $file)
     }
 
     method splitpath(Str() $path, :$nofile = False) {
@@ -136,63 +160,78 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         }
     }
 
-    method catpath($volume is copy, $dirname, $file) {
-
-        # Make sure the glue separator is present
-        # unless it's a relative path like A:foo.txt
-        if $volume.chars and $dirname.chars
-           and $volume !~~ /^<$driveletter>/
-           and $volume !~~ /<$slash> $/
-           and $dirname !~~ /^ <$slash>/
-            { $volume ~= '\\' }
-        if $file.chars and $dirname.chars
-           and $dirname !~~ /<$slash> $/
-            { $volume ~ $dirname ~ '\\' ~ $file; }
-        else     { $volume ~ $dirname     ~    $file; }
+    method catpath(Str $vol is copy, Str \dir, Str \file) {
+        nqp::stmts(
+          nqp::if(       # Make sure the glue separator is present
+            $vol && dir  # unless it's a relative path like A:foo.txt
+            && nqp::isfalse(
+              nqp::iseq_i(nqp::ord($vol, 1), 58) # /^ <[A..Z a..z]> ':'/
+                && (  (nqp::isge_i(nqp::ord($vol), 65) # 'A'
+                    && nqp::isle_i(nqp::ord($vol), 90)) # 'Z'
+                  ||  (nqp::isge_i(nqp::ord($vol), 97)  # 'a'
+                    && nqp::isle_i(nqp::ord($vol), 122)))) # 'z'
+            && nqp::isfalse( # /<[/\\]> $/
+                nqp::iseq_i(92, nqp::ord( # '\'
+                  $vol, nqp::sub_i(nqp::chars($vol), 1)))
+                || nqp::iseq_i(47, nqp::ord( # '/'
+                  $vol, nqp::sub_i(nqp::chars($vol), 1))))
+            && nqp::isfalse( # /^ /<[/\\]>/
+                nqp::iseq_i(92, nqp::ord(dir)) # '\'
+                || nqp::iseq_i(47, nqp::ord(dir))), # '/'
+            $vol = nqp::concat($vol, ｢\｣)),
+            nqp::if(
+              dir && file
+              && nqp::isfalse( # /<[/\\]> $/
+                  nqp::iseq_i(92, nqp::ord( # '\'
+                    dir, nqp::sub_i(nqp::chars(dir), 1)))
+                  || nqp::iseq_i(47, nqp::ord( # '/'
+                    dir, nqp::sub_i(nqp::chars(dir), 1)))),
+              nqp::concat($vol, nqp::concat(dir, nqp::concat(｢\｣, file))),
+              nqp::concat($vol, nqp::concat(dir,                  file))))
     }
 
-    method rel2abs ($path is copy, $base? is copy, :$omit-volume) {
-
-        my $is_abs = ($path ~~ /^ [<$driveletter> <$slash> | <$UNCpath>]/ && 2)
-                  || ($path ~~ /^ <$slash> / && 1)
-                  || 0;
-
-        # Check for volume (should probably document the '2' thing...)
-        return self.canonpath( $path ) if $is_abs == 2 || ($is_abs == 1 && $omit-volume);
-
-        if $is_abs {
-            # It's missing a volume, add one
-            my $vol;
-            $vol = self.splitpath($base)[0] if $base.defined;
-            $vol ||= self.splitpath($*CWD)[0];
-            return self.canonpath( $vol ~ $path );
-        }
-
-        if not defined $base {
-        # TODO: implement _getdcwd call ( Windows maintains separate CWD for each volume )
-        # See: http://msdn.microsoft.com/en-us/library/1e5zwe0c%28v=vs.80%29.aspx
-            #$base = Cwd::getdcwd( (self.splitpath: $path)[0] ) if defined &Cwd::getdcwd ;
-            #$base //= $*CWD ;
-            $base = $*CWD;
-        }
-        elsif ( !self.is-absolute( $base ) ) {
-            $base = self.rel2abs( $base );
-        }
-        else {
-            $base = self.canonpath( $base );
-        }
-
-        my ($path_directories, $path_file) = self.splitpath( $path )[1..2] ;
-
-        my ($base_volume, $base_directories) = self.splitpath( $base, :nofile ) ;
-
-        $path = self.catpath(
-                    $base_volume,
-                    self.catdir( $base_directories, $path_directories ),
-                    $path_file
-                    ) ;
-
-        return self.canonpath( $path ) ;
+    method rel2abs (Str() $path is copy, $base? is copy, :$omit-volume) {
+        nqp::if(
+          (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /
+              && ( (nqp::isge_i(($_ := nqp::ord($path)), 65) # drive letter
+                  && nqp::isle_i($_, 90))
+                || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122)))
+              && ( nqp::iseq_i(($_ := nqp::ordat($path, 2)), 92) # slash
+                || nqp::iseq_i($_, 47)))
+          || 0, #($path ~~ /^ <$UNCpath>/),
+          self.canonpath($path),
+          nqp::if(
+            nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
+            || nqp::iseq_i($_, 47),                  # /^ ｢/｣ /
+            nqp::if(
+              $omit-volume,
+              self.canonpath($path),
+              nqp::stmts(
+                (my $vol),
+                nqp::if(
+                  nqp::defined($base),
+                  ($vol := self.splitpath($base).AT-POS(0))),
+                nqp::unless(
+                  $vol,
+                  ($vol := self.splitpath($*CWD)[0])),
+                self.canonpath($vol ~ $path))),
+            nqp::stmts(
+              nqp::unless(
+                nqp::defined($base),
+                ($base = $*CWD),
+                nqp::unless(
+                  self.is-absolute($base),
+                  ($base = self.rel2abs: $base),
+                  ($base = self.canonpath: $base))),
+              (my ($path_directories, $path_file)
+                = self.splitpath($path)[1, 2]),
+              (my ($base_volume, $base_directories)
+                = self.splitpath($base, :nofile)),
+              self.canonpath(
+                self.catpath(
+                  $base_volume,
+                  self.catdir($base_directories, $path_directories),
+                  $path_file)))))
     }
 
 

@@ -42,6 +42,8 @@ my class Proc::Async {
     my class ProcessCancellation is repr('AsyncTask') { }
     my enum  CharsOrBytes ( :Bytes(0), :Chars(1) );
 
+    has $!ready_promise = Promise.new;
+    has $!ready_vow = $!ready_promise.vow;
     has $.path;
     has @.args;
     has $.w;
@@ -95,6 +97,10 @@ my class Proc::Async {
             $enc, :$translate-nl
     }
 
+    method ready(--> Promise) {
+        $!ready_promise;
+    }
+
     method !wrap-decoder(Supply:D $bin-supply, $enc, :$translate-nl) {
         Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
             :translate-nl($translate-nl // $!translate-nl))
@@ -128,8 +134,15 @@ my class Proc::Async {
                :command[ $!path, |@!args ],
            ))
         });
+
+        nqp::bindkey($callbacks, 'ready', {
+            $!ready_vow.keep(Nil);
+        });
+
         nqp::bindkey($callbacks, 'error', -> Mu \err {
-            $!exit_promise.break(X::OS.new(os-error => err));
+            my $error = X::OS.new(os-error => err);
+            $!exit_promise.break($error);
+            $!ready_vow.break($error);
         });
 
         @!promises.push(

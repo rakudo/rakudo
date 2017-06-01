@@ -1,53 +1,36 @@
 my role IO::Socket {
     has $!PIO;
-    # JVM has a buffer here; Moar does enough buffering of its own
-    # and gets it much more correct when bytes cross boundaries, so we use its.
-#?if jvm
-    has $!buffer = buf8.new;
-#?endif
+    has Str $.encoding = 'utf8';
+    has $.nl-in is rw = ["\n", "\r\n"];
+    has Str:D $.nl-out is rw = "\n";
+    has Rakudo::Internals::VMBackedDecoder $!decoder;
 
-    # if bin is true, will return Buf, Str otherwise
-    method recv (Cool $chars = Inf, :$bin? = False) {
+    method !ensure-decoder(--> Nil) {
+        unless $!decoder.DEFINITE {
+            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder.set-line-separators($!nl-in);
+        }
+    }
+
+    # The if bin is true, will return Buf, Str otherwise
+    method recv(Cool $limit? is copy, :$bin) {
         fail('Socket not available') unless $!PIO;
-
-#?if jvm
-        if $!buffer.elems < $chars {
-            my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), $*DEFAULT-READ-ELEMS);
-            $!buffer.append($r);
-        }
-
+        $limit = 65535 if !$limit.DEFINITE || $limit === Inf;
         if $bin {
-            my $rec;
-            if $!buffer.elems > $chars {
-                $rec = $!buffer.subbuf(0, $chars);
-                $!buffer = $!buffer.subbuf($chars);
-            } else {
-                $rec = $!buffer;
-                $!buffer = buf8.new;
-            }
-            $rec;
-        } else {
-            my $rec = nqp::decode(nqp::decont($!buffer), 'utf8');
-            if $rec.chars > $chars {
-                $rec = substr($rec,0,$chars);
-                my $used = $rec.encode('utf8').elems;
-                $!buffer = $!buffer.subbuf($used)
-            } else {
-                $!buffer = buf8.new;
-            }
-            $rec;
-        }
-#?endif
-#?if moar
-        if $bin {
-            nqp::readfh($!PIO, nqp::decont(buf8.new),
-                $chars == Inf ?? 1048576 !! $chars.Int);
+            nqp::readfh($!PIO, nqp::decont(buf8.new), $limit)
         }
         else {
-            nqp::p6box_s(nqp::readcharsfh($!PIO,
-                $chars == Inf ?? 1048576 !! $chars.Int));
+            self!ensure-decoder();
+            my $result = $!decoder.consume-exactly-chars($limit);
+            without $result {
+                $!decoder.add-bytes(nqp::readfh($!PIO, nqp::decont(buf8.new), 65535));
+                $result = $!decoder.consume-exactly-chars($limit);
+                without $result {
+                    $result = $!decoder.consume-all-chars();
+                }
+            }
+            $result
         }
-#?endif
     }
 
     method read(IO::Socket:D: Int(Cool) $bufsize) {
@@ -64,19 +47,52 @@ my role IO::Socket {
         $res
     }
 
-    method poll(Int $bitmask, $seconds) {
-        die 'Socket.poll is NYI'
+    method nl-in is rw {
+        Proxy.new(
+            FETCH => { $!nl-in },
+            STORE => -> $, $nl-in {
+                $!nl-in = $nl-in;
+                with $!decoder {
+                    .set-line-separators($!nl-in.list);
+                }
+                $nl-in
+            }
+        )
     }
 
-    method print (Str(Cool) $string --> True) {
-        fail("Not connected") unless $!PIO;
-        nqp::printfh($!PIO, nqp::unbox_s($string));
+    method get() {
+        self!ensure-decoder();
+        my Str $line = $!decoder.consume-line-chars(:chomp);
+        if $line.DEFINITE {
+            $line
+        }
+        else {
+            loop {
+                my $read = nqp::readfh($!PIO, nqp::decont(buf8.new), 65535);
+                $!decoder.add-bytes($read);
+                $line = $!decoder.consume-line-chars(:chomp);
+                last if $line.DEFINITE;
+                if $read == 0 {
+                    $line = $!decoder.consume-line-chars(:chomp, :eof);
+                    last;
+                }
+            }
+            $line.DEFINITE ?? $line !! Nil
+        }
     }
 
-    method put (Str(Cool) $string --> True) {
-        fail("Not connected") unless $!PIO;
-        nqp::printfh($!PIO, nqp::unbox_s($string));
-        nqp::printfh($!PIO, nqp::unbox_s("\n"));  # XXX should be $!nl-out
+    method lines() {
+        gather while (my $line = self.get()).DEFINITE {
+            take $line;
+        }
+    }
+
+    method print(Str(Cool) $string --> True) {
+        self.write($string.encode($!encoding));
+    }
+
+    method put(Str(Cool) $string --> True) {
+        self.print($string ~ $!nl-out);
     }
 
     method write(Blob:D $buf --> True) {
@@ -84,7 +100,7 @@ my role IO::Socket {
         nqp::writefh($!PIO, nqp::decont($buf));
     }
 
-    method close (--> True) {
+    method close(--> True) {
         fail("Not connected!") unless $!PIO;
         nqp::closefh($!PIO);
         $!PIO := nqp::null;

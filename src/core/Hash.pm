@@ -743,42 +743,12 @@ my class Hash { # declared in BOOTSTRAP
         method !SETIFY(\type) {
             nqp::stmts(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              nqp::if(
-                (my $raw := nqp::getattr(self,Map,'$!storage'))
-                  && nqp::elems($raw),
-                nqp::stmts(
-                  (my $iter := nqp::iterator($raw)),
-                  nqp::while(
-                    $iter,
-                    nqp::istrue(
-                      nqp::getattr(
-                        nqp::decont(nqp::iterval(nqp::shift($iter))),
-                        Pair,
-                        '$!value'
-                      )
-                    ),
-                    nqp::bindkey(
-                      $elems,
-                      nqp::iterkey_s($iter),
-                      nqp::getattr(
-                        nqp::decont(nqp::iterval($iter)),Pair,'$!key'),
-                    )
-                  )
-                )
-              ),
-              nqp::if(
-                nqp::elems($elems),
-                nqp::create(type).SET-SELF($elems),
-                nqp::if(
-                  nqp::eqaddr(type,Set),
-                  set(),
-                  nqp::create(type)
-                )
-              )
+              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,self),
+              nqp::create(type).SET-SELF($elems)
             )
         }
-        method Set() is nodal     { self!SETIFY(Set    ) }
-        method SetHash() is nodal { self!SETIFY(SetHash) }
+        multi method Set(::?CLASS:D:)     { self!SETIFY(Set    ) }
+        multi method SetHash(::?CLASS:D:) { self!SETIFY(SetHash) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

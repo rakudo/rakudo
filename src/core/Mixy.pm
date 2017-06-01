@@ -17,6 +17,9 @@ my role Mixy does Baggy  {
         )
     }
 
+    multi method hash(Mixy:D: --> Hash:D) { self.HASHIFY(Any) }
+    multi method Hash(Mixy:D: --> Hash:D) { self.HASHIFY(Real) }
+
     multi method kxxv(Mixy:D:) {
         Failure.new(".kxxv is not supported on a {self.^name}")
     }

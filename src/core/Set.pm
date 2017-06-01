@@ -11,6 +11,13 @@ my class Set does Setty {
           set()
         )
     }
+    multi method new(Set:_:) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Set),
+          set(),
+          nqp::create(self)
+        )
+    }
 
     multi method WHICH (Set:D:) {
         nqp::if(
@@ -87,8 +94,8 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
-    method Set() is nodal { self }
-    method SetHash() is nodal {
+    multi method Set(Set:D:) { self }
+    multi method SetHash(Set:D:) {
         nqp::if(
           $!elems,
           nqp::p6bindattrinvres(
@@ -104,7 +111,7 @@ my class Set does Setty {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
-        X::Assignment::RO.new(typename => self.^name).throw;
+        X::Assignment::RO.new(value => self).throw;
     }
     multi method DELETE-KEY(Set:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;

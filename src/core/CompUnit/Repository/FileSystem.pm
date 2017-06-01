@@ -76,13 +76,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
               nqp::until(
                 nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                  nqp::filereadable($pulled)
-                    && (my $pio := nqp::open($pulled,'r')),
-                  nqp::stmts(
-                    nqp::setencoding($pio,'iso-8859-1'),
-                    nqp::push_s($parts,nqp::sha1(nqp::readallfh($pio))),
-                    nqp::closefh($pio)
-                  )
+                  nqp::filereadable($pulled),
+                  nqp::push_s($parts,nqp::sha1(slurp($pulled, :enc<iso-8859-1>))),
                 )
               ),
               nqp::if(

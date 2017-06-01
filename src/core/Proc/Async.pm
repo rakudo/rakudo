@@ -59,7 +59,7 @@ my class Proc::Async {
     has @!promises;
 
     proto method new(|) { * }
-    multi method new($path, *@args, *%_) {
+    multi method new(*@ ($path, *@args), *%_) {
         self.bless(:$path, :@args, |%_)
     }
 

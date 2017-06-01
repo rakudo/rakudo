@@ -161,7 +161,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         Exception,
         message => /<<'foo'>>/,
         'wrong arity in a signature mentions the name of the sub';
-    throws-like { class A { foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
+    throws-like { class A { sub foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
         Exception,
         message => /<<'foo'>>/,
         'wrong arity in a signature mentions the name of the method';

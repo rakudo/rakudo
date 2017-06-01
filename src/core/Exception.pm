@@ -2447,7 +2447,7 @@ my class X::Multi::NoMatch is Exception {
         else {
             @bits.push('...');
         }
-        if @cand[0] ~~ /': '/ {
+        if @cand && @cand[0] ~~ /': '/ {
             my $invocant = @bits.shift;
             my $first = @bits ?? @bits.shift !! '';
             @bits.unshift($invocant ~ ': ' ~ $first);
@@ -2462,9 +2462,10 @@ my class X::Multi::NoMatch is Exception {
                         ~  join("\n    ", '', sort keys @cand ∖ @un-rw-cand)
                     unless @cand == @un-rw-cand
                 )
-            !! join "\n    ",
-                'none of these signatures match:',
-                @cand
+            !! ( @cand
+                 ??  join "\n    ", 'none of these signatures match:', @cand
+                 !! "No signature match."
+               )
         );
     }
 }

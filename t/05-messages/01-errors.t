@@ -181,6 +181,10 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 }
 
+throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined';
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

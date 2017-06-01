@@ -1486,7 +1486,7 @@ my class Rakudo::Internals {
                                     nqp::if(
                                         $deep,
                                         nqp::if(
-                                            nqp::istype($value, Iterable),
+                                            nqp::istype($value, Iterable) && $value.DEFINITE,
                                             ($result := Rakudo::Internals.coremap(&!block, $value, :$deep).item),
                                             ($result := &!block($value))
                                         ),

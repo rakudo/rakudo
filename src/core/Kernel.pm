@@ -136,7 +136,7 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         once {
             nqp::stmts(
-              (my int $els = @!signals.elems),
+              (my int $els = @.signals.elems),
               (my int $i = -1),
               nqp::while(
                 nqp::isgt_i($els, $i = nqp::add_i($i, 1)),

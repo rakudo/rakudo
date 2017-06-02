@@ -1419,10 +1419,6 @@ class Perl6::Optimizer {
                 }
 
 
-#?if js
-                return $op; # Avoid looping on Slip while constant folding
-#?endif
-
                 # Don't constant fold the 'x' operator if the resulting string would be too big.
                 # 1024 is just a heuristic, measuring might show a bigger value would be fine.
                 if $all_args_known && $op.name eq '&infix:<x>' && $!symbols.is_from_core('&infix:<x>') {

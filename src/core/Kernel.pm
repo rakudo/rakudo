@@ -136,7 +136,7 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
 
     # NOTE: if you make this method thread-safe, remove the locking
-    # done by Prock::Async.kill
+    # done by Proc::Async.kill
 
         once {
             nqp::stmts(

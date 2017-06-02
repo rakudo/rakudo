@@ -134,6 +134,10 @@ class Kernel does Systemic {
     has %!signals_by_Str;
     proto method signal (|) { * }
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
+
+    # NOTE: if you make this method thread-safe, remove the locking
+    # done by Prock::Async.kill
+
         once {
             nqp::stmts(
               (my int $els = @.signals.elems),

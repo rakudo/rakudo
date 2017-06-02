@@ -7,6 +7,7 @@ class Kernel does Systemic {
     has Str $.release;
     has Str $!hardware;
     has Str $!arch;
+    has Int $!bits;
 
     sub uname($opt) {
         state $has_uname = "/bin/uname".IO.s || "/usr/bin/uname".IO.s;
@@ -96,7 +97,9 @@ class Kernel does Systemic {
         self.hardware ~ '-' ~ self.name
     }
 
-    method bits { $?BITS }
+    method bits {
+        $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
+    }
 
     has @!signals;  # Signal
 #?if jvm

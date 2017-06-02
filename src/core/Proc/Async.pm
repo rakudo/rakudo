@@ -221,8 +221,24 @@ my class Proc::Async {
         True;
     }
 
-    method kill(Proc::Async:D: $signal = "HUP") {
+    # Note: some of the duplicated code in methods could be moved to
+    # proto, but at the moment (2017-06-02) that makes the call 24% slower
+    proto method kill(|) { * }
+    multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, $*KERNEL.signal($signal));
+        nqp::killprocasync($!process_handle, signal.value)
+    }
+    multi method kill(Proc::Async:D: Int:D \signal) {
+        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
+        nqp::killprocasync($!process_handle, signal)
+    }
+
+    # $*KERNEL.signal with Str:D signal isn't thread-safe, as it initializes
+    # a hash attribute, so we stick this operation into a lock
+    my $kill-lock = Lock.new;
+    multi method kill(Proc::Async:D: Str:D \signal) {
+        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
+        nqp::killprocasync($!process_handle,
+          $kill-lock.protect: { $*KERNEL.signal: signal })
     }
 }

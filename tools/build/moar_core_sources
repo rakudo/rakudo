@@ -149,8 +149,8 @@ src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm
 src/core/Proc.pm
-src/core/Proc/Async.pm
 src/core/signals.pm
+src/core/Proc/Async.pm
 src/core/Systemic.pm
 src/core/VM.pm
 src/core/Distro.pm

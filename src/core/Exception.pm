@@ -156,17 +156,51 @@ my class X::Method::NotFound is Exception {
         my $message = $.private
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
+
+        my %suggestions;
+        my int $max_length = do given $.method.chars {
+            when 0..3 { 1 }
+            when 4..8 { 2 }
+            when 9..* { 3 }
+        }
+
         if $.method eq 'length' {
-            $message ~= "\nDid you mean ";
-            given $.invocant {
-                when List { $message ~= "'elems'?" }
-                when Cool { $message ~= "'chars' or 'codes'?" }
-                default   { $message ~= "'elems', 'chars', or 'codes'?" }
+            given $!invocant {
+                when List { %suggestions{$_} = 0 for <elems> }
+                when Cool { %suggestions{$_} = 0 for <chars codes>; }
+                default   { %suggestions{$_} = 0 for <elems chars codes>; }
             }
+            
         }
         elsif $.method eq 'bytes' {
-            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+            %suggestions<encode($encoding).bytes> = 0;
         }
+
+        if nqp::can($!invocant.HOW, 'methods') {
+            for $!invocant.^methods(:all)>>.name -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{$method_name} = $dist;
+                }
+            }
+        }
+
+        if nqp::can($!invocant.HOW, 'private_method_table') {
+            for $!invocant.^private_method_table.keys -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{"!$method_name"} = $dist;
+                }
+            }
+        }
+
+        if +%suggestions == 1 {
+            $message ~= ". Did you mean '%suggestions.keys()'?";
+        }
+        elsif +%suggestions > 1 {
+            $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
+        }
+
         $message;
     }
 }

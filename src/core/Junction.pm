@@ -13,10 +13,10 @@ my class Junction { # declared in BOOTSTRAP
               || nqp::iseq_s($!type,"one"),
             nqp::stmts(
               ($!storage := nqp::if(
-                nqp::attrinited((my $L := values.eager.list),List,'$!reified'),
-                nqp::getattr($L,List,'$!reified'),
-                nqp::create(IterationBuffer)
-              )),
+                nqp::isconcrete(
+                  $_ := nqp::getattr(values.eager.list,List,'$!reified')),
+                $_,
+                nqp::create(IterationBuffer))),
               self
             ),
             Failure.new("Junction can only have 'any', 'all', 'none', 'one' type")

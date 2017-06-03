@@ -737,7 +737,7 @@ sub infix:<orelse>(+$) {
             $els = $args.elems)),
         (my int $i),
         nqp::until(
-          $current.defined || nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
+          nqp::iseq_i($els, $i = nqp::add_i($i, 1)) || $current.defined,
           ($current := nqp::if(
             nqp::istype(($_ := $args[$i]), Callable),
             nqp::if(.count, $_($current), $_()),

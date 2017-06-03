@@ -136,6 +136,7 @@ multi sub fail(Failure:U $f --> Nil) {
     CATCH { $fail.exception.throw }
 }
 multi sub fail(Failure:D $fail --> Nil) {
+    $fail.handled = 0;
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
 }

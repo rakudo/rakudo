@@ -24,6 +24,7 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
+    proto method new(|) { * }
     multi method new(Junction: \values, Str :$type!) {
         nqp::create(Junction)!SET-SELF($type,values)
     }

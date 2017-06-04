@@ -82,11 +82,15 @@ my class IO::Handle {
             nqp::stmts(
                 nqp::if(
                     nqp::iseq_s($mode, 'ro'),
-                    (return $*IN),
+                    nqp::stmts(
+                      $*IN.encoding($enc),
+                      return $*IN),
                     nqp::if(
-                        nqp::iseq_s($mode, 'wo'),
-                        (return $*OUT),
-                        die("Cannot open standard stream in mode '$mode'"),
+                      nqp::iseq_s($mode, 'wo'),
+                      nqp::stmts(
+                        $*OUT.encoding($enc),
+                        (return $*OUT)),
+                      die("Cannot open standard stream in mode '$mode'"),
                     ),
                 ),
             ),

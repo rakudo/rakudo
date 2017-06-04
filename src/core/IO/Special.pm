@@ -4,8 +4,9 @@ class IO::Special does IO {
     method new(\what) {
         nqp::p6bindattrinvres(nqp::create(self),self,'$!what',what)
     }
-    multi method WHICH(IO::Special:D:) { "IO::Special$!what" }
-    multi method Str(IO::Special:D:)   { $!what }
+    multi method WHICH(IO::Special:D:) {        "IO::Special$!what"        }
+    multi method Str  (IO::Special:D:) {                    $!what         }
+    multi method perl (IO::Special:D:) { "{self.^name}.new({$!what.perl})" }
 
     method IO(IO::Special:D:) { self }
 

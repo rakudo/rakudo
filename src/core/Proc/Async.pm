@@ -11,6 +11,13 @@ my class X::Proc::Async::TapBeforeSpawn does X::Proc::Async {
     }
 }
 
+my class X::Proc::Async::SupplyOrStd does X::Proc::Async {
+    method message() {
+        "Using .Supply on a Proc::Async implies merging stdout and stderr; .stdout " ~
+            "and .stderr cannot therefore be used in combination with it"
+    }
+}
+
 my class X::Proc::Async::CharsOrBytes does X::Proc::Async {
     has $.handle;
     method message() {
@@ -54,6 +61,8 @@ my class Proc::Async {
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
     has CharsOrBytes $!stderr_type;
+    has $!merge_supply;
+    has CharsOrBytes $!merge_type;
     has $!process_handle;
     has $!exit_promise;
     has @!promises;
@@ -75,11 +84,13 @@ my class Proc::Async {
 
     proto method stdout(|) { * }
     multi method stdout(Proc::Async:D: :$bin!) {
+        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         $bin
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
             !! self.stdout(|%_)
     }
     multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
+        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         self!wrap-decoder:
             self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
             $enc, :$translate-nl
@@ -87,13 +98,29 @@ my class Proc::Async {
 
     proto method stderr(|) { * }
     multi method stderr(Proc::Async:D: :$bin!) {
+        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         $bin
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
             !! self.stderr(|%_)
     }
     multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
+        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         self!wrap-decoder:
             self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
+            $enc, :$translate-nl
+    }
+
+    proto method Supply(|) { * }
+    multi method Supply(Proc::Async:D: :$bin!) {
+        die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
+        $bin
+            ?? self!supply('merge', $!merge_supply, $!merge_type, Bytes).Supply
+            !! self.Supply(|%_)
+    }
+    multi method Supply(Proc::Async:D: :$enc, :$translate-nl) {
+        die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
+        self!wrap-decoder:
+            self!supply('merge', $!merge_supply, $!merge_type, Chars).Supply,
             $enc, :$translate-nl
     }
 
@@ -151,6 +178,9 @@ my class Proc::Async {
         @!promises.push(
           self!capture($callbacks,'stderr',$!stderr_supply)
         ) if $!stderr_supply;
+        @!promises.push(
+          self!capture($callbacks,'merge',$!merge_supply)
+        ) if $!merge_supply;
 
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
         nqp::bindkey($callbacks, 'write', True) if $.w;

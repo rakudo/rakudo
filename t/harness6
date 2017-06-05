@@ -1,5 +1,4 @@
-
-#! perl6
+#!/usr/bin/env perl6
 
 # note: Due to a limitation in argument parsing options that should be passed
 # through to fudgeall have to come after all other options

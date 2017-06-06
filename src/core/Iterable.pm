@@ -161,8 +161,8 @@ my role Iterable {
     multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }
 }
 
-#if !moar
+#?if !moar
 nqp::p6setitertype(Iterable);
-#endif
+#?endif
 
 # vim: ft=perl6 expandtab sw=4

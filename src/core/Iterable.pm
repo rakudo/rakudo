@@ -151,9 +151,13 @@ my role Iterable {
 
 
     method !SETIFY(\type) {
-        nqp::create(type).SET-SELF(
-          type.fill_IterationSet(
-            nqp::create(Rakudo::Internals::IterationSet),self.flat.iterator
+        nqp::if(
+          (my $iterator := self.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            type.fill_IterationSet(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
           )
         )
     }

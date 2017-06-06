@@ -18,6 +18,14 @@ my class X::Proc::Async::SupplyOrStd does X::Proc::Async {
     }
 }
 
+my class X::Proc::Async::BindOrUse does X::Proc::Async {
+    has $.handle;
+    has $.use;
+    method message() {
+        "Cannot both bind $.handle to a handle and also $.use"
+    }
+}
+
 my class X::Proc::Async::CharsOrBytes does X::Proc::Async {
     has $.handle;
     method message() {
@@ -88,12 +96,16 @@ my class Proc::Async {
     proto method stdout(|) { * }
     multi method stdout(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
+            if $!stdout-fd;
         $bin
             ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
             !! self.stdout(|%_)
     }
     multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
+            if $!stdout-fd;
         self!wrap-decoder:
             self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
             $enc, :$translate-nl
@@ -102,12 +114,16 @@ my class Proc::Async {
     proto method stderr(|) { * }
     multi method stderr(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
+            if $!stderr-fd;
         $bin
             ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
             !! self.stderr(|%_)
     }
     multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
+            if $!stderr-fd;
         self!wrap-decoder:
             self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
             $enc, :$translate-nl
@@ -116,26 +132,43 @@ my class Proc::Async {
     proto method Supply(|) { * }
     multi method Supply(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
+            if $!stdout-fd;
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
+            if $!stderr-fd;
         $bin
             ?? self!supply('merge', $!merge_supply, $!merge_type, Bytes).Supply
             !! self.Supply(|%_)
     }
     multi method Supply(Proc::Async:D: :$enc, :$translate-nl) {
         die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
+            if $!stdout-fd;
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
+            if $!stderr-fd;
         self!wrap-decoder:
             self!supply('merge', $!merge_supply, $!merge_type, Chars).Supply,
             $enc, :$translate-nl
     }
 
     method bind-stdin(IO::Handle:D $handle --> Nil) {
+        die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
         $!stdin-fd := $handle.native-descriptor;
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
+            if $!stdout_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
+            if $!merge_supply;
         $!stdout-fd := $handle.native-descriptor;
     }
 
     method bind-stderr(IO::Handle:D $handle --> Nil) {
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
+            if $!stderr_supply;
+        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
+            if $!merge_supply;
         $!stderr-fd := $handle.native-descriptor;
     }
 

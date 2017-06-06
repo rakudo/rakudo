@@ -537,11 +537,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
               )
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Mix).SET-SELF($elems), # difference, so make it a Mix
-            mix()                              # nothing to see here
-          )
+          nqp::create(Mix).SET-SELF($elems)
         ),
         nqp::if(nqp::istype($a,Mix),$a,$a.Mix) # $b empty, so $a
       ),
@@ -596,11 +592,7 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Bag).SET-SELF($elems), # difference, so make it a Bag
-            bag()                              # nothing to see here
-          )
+          nqp::create(Bag).SET-SELF($elems)
         ),
         nqp::if(nqp::istype($a,Bag),$a,$a.Bag) # $b empty, so $a
       ),
@@ -1041,11 +1033,7 @@ multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
       (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems),
-          bag()
-        )
+        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1057,11 +1045,7 @@ multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
         && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Mix).SET-SELF($elems),
-          mix()
-        )
+        nqp::create(Mix).SET-SELF($elems)
       ),
       mix()
     )
@@ -1075,11 +1059,7 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
         && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems),
-          bag()
-        )
+        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1133,11 +1113,7 @@ multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-SET-TO-BAG($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Bag).SET-SELF($elems),
-        bag()
-      )
+      nqp::create(Bag).SET-SELF($elems)
     )
 }
 
@@ -1148,11 +1124,7 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-MIX-TO-MIX($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Mix).SET-SELF($elems),
-        mix()
-      )
+      nqp::create(Mix).SET-SELF($elems)
     )
 }
 
@@ -1165,11 +1137,7 @@ multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-BAG-TO-BAG($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Bag).SET-SELF($elems),
-        bag()
-      )
+      nqp::create(Bag).SET-SELF($elems)
     )
 }
 multi sub infix:<(+)>(Any:D $a, Any:D $b) { $a.Bag (+) $b.Bag }

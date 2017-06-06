@@ -252,7 +252,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6argsfordispatcher = function(ctx, dispatcher) {
-    console.log("calling p6argsfordispatcher");
     let search = ctx;
     while (search) {
       /* Do we have the dispatcher we're looking for? */

@@ -63,6 +63,9 @@ my class Proc::Async {
     has CharsOrBytes $!stderr_type;
     has $!merge_supply;
     has CharsOrBytes $!merge_type;
+    has Int $!stdin-fd;
+    has Int $!stdout-fd;
+    has Int $!stderr-fd;
     has $!process_handle;
     has $!exit_promise;
     has @!promises;
@@ -122,6 +125,18 @@ my class Proc::Async {
         self!wrap-decoder:
             self!supply('merge', $!merge_supply, $!merge_type, Chars).Supply,
             $enc, :$translate-nl
+    }
+
+    method bind-stdin(IO::Handle:D $handle --> Nil) {
+        $!stdin-fd := $handle.native-descriptor;
+    }
+
+    method bind-stdout(IO::Handle:D $handle --> Nil) {
+        $!stdout-fd := $handle.native-descriptor;
+    }
+
+    method bind-stderr(IO::Handle:D $handle --> Nil) {
+        $!stderr-fd := $handle.native-descriptor;
     }
 
     method ready(--> Promise) {
@@ -184,6 +199,9 @@ my class Proc::Async {
 
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
         nqp::bindkey($callbacks, 'write', True) if $.w;
+        nqp::bindkey($callbacks, 'stdin_fd', $!stdin-fd) if $!stdin-fd.DEFINITE;
+        nqp::bindkey($callbacks, 'stdout_fd', $!stdout-fd) if $!stdout-fd.DEFINITE;
+        nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue,
             CLONE-LIST-DECONTAINERIZED($!path,@!args),

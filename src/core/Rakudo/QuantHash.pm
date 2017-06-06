@@ -85,6 +85,53 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Create intersection of 2 Baggies, default to given empty type
+    method INTERSECT-BAGGIES(\a,\b,\empty) {
+        nqp::if(
+          (my $araw := a.raw_hash) && nqp::elems($araw)
+            && (my $braw := b.raw_hash) && nqp::elems($braw),
+          nqp::stmts(                          # both have elems
+            nqp::if(
+              nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+              nqp::stmts(                      # $a smallest, iterate over it
+                (my $iter := nqp::iterator($araw)),
+                (my $base := $braw)
+              ),
+              nqp::stmts(                      # $b smallest, iterate over that
+                ($iter := nqp::iterator($braw)),
+                ($base := $araw)
+              )
+            ),
+            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+            nqp::while(
+              $iter,
+              nqp::if(                         # bind if in both
+                nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::bindkey(
+                  $elems,
+                  nqp::iterkey_s($iter),
+                  nqp::if(
+                    nqp::getattr(
+                      nqp::decont(nqp::iterval($iter)),
+                      Pair,
+                      '$!value'
+                    ) < nqp::getattr(          # must be HLL comparison
+                          nqp::atkey($base,nqp::iterkey_s($iter)),
+                          Pair,
+                          '$!value'
+                        ),
+                    nqp::iterval($iter),
+                    nqp::atkey($base,nqp::iterkey_s($iter))
+                  )
+                )
+              )
+            ),
+            nqp::create(empty.WHAT).SET-SELF($elems),
+          ),
+          empty                                # one/neither has elems
+        )
+    }
+
 #--- Set/SetHash related methods
     method SET-IS-SUBSET($a,$b) {
         nqp::stmts(

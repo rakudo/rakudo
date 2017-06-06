@@ -197,8 +197,8 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
         || (my $biterator := $b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
       nqp::create(Set).SET-SELF(
-        Set.fill_IterationSet(
-          Set.fill_IterationSet(
+        Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+          Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
             $aiterator
           ),
@@ -647,7 +647,7 @@ multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
         || (my $biterator := $b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'),:what<set>)),
       nqp::stmts(
-        (my $elems := Set.fill_IterationSet(
+        (my $elems := Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
           nqp::create(Rakudo::Internals::IterationSet),
           $aiterator
         )),

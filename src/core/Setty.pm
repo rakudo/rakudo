@@ -22,34 +22,10 @@ my role Setty does QuantHash {
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
           nqp::create(self).SET-SELF(
-            self.fill_IterationSet(
+            Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
             )
           )
-        )
-    }
-
-    method fill_IterationSet(\elems,\iterator) {
-        nqp::stmts(
-          nqp::until(
-            nqp::eqaddr(
-              (my $pulled := iterator.pull-one),
-              IterationEnd
-            ),
-            nqp::if(
-              nqp::istype($pulled,Pair),
-              nqp::if(
-                nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
-                nqp::bindkey(
-                  elems,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key')
-                )
-              ),
-              nqp::bindkey(elems,$pulled.WHICH,$pulled)
-            )
-          ),
-          elems
         )
     }
 

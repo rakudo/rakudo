@@ -86,6 +86,10 @@ my class Failure is Nil {
     method sink(Failure:D:) {
         self!throw() unless $!handled
     }
+    method self(Failure:D:) {
+        self!throw() unless $!handled;
+        self
+    }
     method CALL-ME(Failure:D: |) {
         self!throw()
     }

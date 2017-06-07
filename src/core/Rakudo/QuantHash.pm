@@ -1,3 +1,5 @@
+my role Real { ... }
+
 my class Rakudo::QuantHash {
 
     # a Pair with the value 0
@@ -622,28 +624,35 @@ my class Rakudo::QuantHash {
                     got   => $value,
                     range => '-Inf^..^Inf'
                   ).throw,
-                  nqp::if(           # valid value
-                    nqp::existskey(
-                      elems,
-                      (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                  nqp::stmts(        # apparently valid
+                    nqp::unless(
+                      nqp::istype($value,Real)
+                        || nqp::istype(($value := $value.Real),Real),
+                      $value.throw   # not a Real value, so throw Failure
                     ),
-                    nqp::stmts(      # seen before, add value
-                      (my $pair := nqp::atkey(elems,$which)),
-                      nqp::bindattr(
-                        $pair,
-                        Pair,
-                        '$!value',
-                        nqp::getattr($pair,Pair,'$!value') + $value
-                      )
-                    ),
-                    nqp::bindkey(    # new, create new Pair
-                      elems,
-                      $which,
-                      nqp::p6bindattrinvres(
-                        nqp::clone($pulled),
-                        Pair,
-                        '$!value',
-                        $value
+                    nqp::if(         # valid Real value
+                      nqp::existskey(
+                        elems,
+                        (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                      ),
+                      nqp::stmts(    # seen before, add value
+                        (my $pair := nqp::atkey(elems,$which)),
+                        nqp::bindattr(
+                          $pair,
+                          Pair,
+                          '$!value',
+                          nqp::getattr($pair,Pair,'$!value') + $value
+                        )
+                      ),
+                      nqp::bindkey(  # new, create new Pair
+                        elems,
+                        $which,
+                        nqp::p6bindattrinvres(
+                          nqp::clone($pulled),
+                          Pair,
+                          '$!value',
+                          $value
+                        )
                       )
                     )
                   )

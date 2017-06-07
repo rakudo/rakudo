@@ -155,7 +155,7 @@ my role Iterable {
           (my $iterator := self.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::create(type).SET-SELF(
-            Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
             )
           )

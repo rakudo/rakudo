@@ -160,7 +160,7 @@ my class Rakudo::QuantHash {
     }
 
     # add to given IterationSet the values of given iterator with Pair check
-    method ADD-ITERATOR-TO-SET(\elems,\iterator) {
+    method ADD-PAIRS-TO-SET(\elems,\iterator) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(

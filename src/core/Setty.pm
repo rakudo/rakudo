@@ -22,7 +22,7 @@ my role Setty does QuantHash {
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
           nqp::create(self).SET-SELF(
-            Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
             )
           )

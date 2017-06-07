@@ -5,7 +5,7 @@ my role Setty does QuantHash {
     multi method new(Setty: +@args --> Setty:D) {
         nqp::if(
           (my $iterator := @args.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::stmts(
             (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
             (my $iter  := @args.iterator),
@@ -20,7 +20,7 @@ my role Setty does QuantHash {
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator

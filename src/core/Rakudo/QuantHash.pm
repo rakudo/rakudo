@@ -391,9 +391,9 @@ my class Rakudo::QuantHash {
                       elems,
                       (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
                     ),
-                    nqp::stmts(
+                    nqp::stmts(      # seen before, add value
                       (my $pair := nqp::atkey(elems,$which)),
-                      nqp::bindattr( # seen before, add value
+                      nqp::bindattr(
                         $pair,
                         Pair,
                         '$!value',
@@ -599,6 +599,76 @@ my class Rakudo::QuantHash {
               )
             )
           )
+        )
+    }
+
+    # add to given IterationSet the values of given iterator with Pair check
+    method ADD-PAIRS-TO-MIX(\elems,Mu \iterator) is raw {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::unless(           # got a Pair
+                (my $value :=
+                  nqp::decont(nqp::getattr($pulled,Pair,'$!value'))) == 0,
+                nqp::if(             # non-zero value
+                  nqp::istype($value,Num) && nqp::isnanorinf($value),
+                  X::OutOfRange.new( # NaN or -Inf or Inf, we're done
+                    what  => 'Value',
+                    got   => $value,
+                    range => '-Inf^..^Inf'
+                  ).throw,
+                  nqp::if(           # valid value
+                    nqp::existskey(
+                      elems,
+                      (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                    ),
+                    nqp::stmts(      # seen before, add value
+                      (my $pair := nqp::atkey(elems,$which)),
+                      nqp::bindattr(
+                        $pair,
+                        Pair,
+                        '$!value',
+                        nqp::getattr($pair,Pair,'$!value') + $value
+                      )
+                    ),
+                    nqp::bindkey(    # new, create new Pair
+                      elems,
+                      $which,
+                      nqp::p6bindattrinvres(
+                        nqp::clone($pulled),
+                        Pair,
+                        '$!value',
+                        $value
+                      )
+                    )
+                  )
+                )
+              ),
+              nqp::if(               # not a Pair
+                nqp::existskey(
+                  elems,
+                  ($which := $pulled.WHICH)
+                ),
+                nqp::stmts(
+                  ($pair := nqp::atkey(elems,$which)),
+                  nqp::bindattr(     # seen before, so increment
+                    $pair,
+                    Pair,
+                    '$!value',
+                    nqp::getattr($pair,Pair,'$!value') + 1
+                  )
+                ),
+                nqp::bindkey(        # new, create new Pair
+                  elems,$which,Pair.new($pulled,1))
+              )
+            )
+          ),
+          elems                      # we're done, return what we got so far
         )
     }
 

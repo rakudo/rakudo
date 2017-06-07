@@ -149,6 +149,19 @@ my role Iterable {
         }.new(self.iterator, $configuration));
     }
 
+    sub BAGGIFY(\iterable,\type) {
+        nqp::if(
+          (my $iterator := iterable.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
+    }
+    multi method Bag(Iterable:D:)     { BAGGIFY(self,Bag)     }
+    multi method BagHash(Iterable:D:) { BAGGIFY(self,BagHash) }
 
     method !SETIFY(\type) {
         nqp::if(

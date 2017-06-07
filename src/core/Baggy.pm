@@ -595,9 +595,9 @@ my role Baggy does QuantHash {
     multi method Set(Baggy:D:)     { SETIFY(self,Set)     }
     multi method SetHash(Baggy:D:) { SETIFY(self,SetHash) }
 
-    method !BAGGIFY(\type) {
+    sub BAGGIFY(\baggy, \type) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := baggy.raw_hash) && nqp::elems($raw),
           nqp::stmts(                               # something to coerce
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -639,8 +639,8 @@ my role Baggy does QuantHash {
         )
     }
 
-    multi method Bag(Baggy:D:)     { self!BAGGIFY(Bag)     }
-    multi method BagHash(Baggy:D:) { self!BAGGIFY(BagHash) }
+    multi method Bag(Baggy:D:)     { BAGGIFY(self, Bag)     }
+    multi method BagHash(Baggy:D:) { BAGGIFY(self, BagHash) }
 
     method !MIXIFY(\type) {
         nqp::if(

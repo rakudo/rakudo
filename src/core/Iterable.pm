@@ -160,8 +160,8 @@ my role Iterable {
           )
         )
     }
-    multi method Bag(Iterable:D:)     { BAGGIFY(self,Bag)     }
-    multi method BagHash(Iterable:D:) { BAGGIFY(self,BagHash) }
+    multi method Bag(Iterable:D:)     { BAGGIFY(self, Bag)     }
+    multi method BagHash(Iterable:D:) { BAGGIFY(self, BagHash) }
 
     sub SETIFY(\iterable, \type) {
         nqp::if(

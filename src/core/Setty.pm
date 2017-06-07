@@ -206,11 +206,11 @@ my role Setty does QuantHash {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
 
-    method !BAGGIFY(\type) {
+    sub BAGGIFY(\setty, \type) {
         nqp::if(
-          $!elems,
+          (my $raw := setty.raw_hash) && nqp::elems($raw),
           nqp::stmts(
-            (my $elems := nqp::clone($!elems)),
+            (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
@@ -225,10 +225,10 @@ my role Setty does QuantHash {
           nqp::create(type)
         )
     }
-    multi method Bag(Setty:D:)     { self!BAGGIFY(Bag)     }
-    multi method BagHash(Setty:D:) { self!BAGGIFY(BagHash) }
-    multi method Mix(Setty:D:)     { self!BAGGIFY(Mix)     }
-    multi method MixHash(Setty:D:) { self!BAGGIFY(MixHash) }
+    multi method Bag(Setty:D:)     { BAGGIFY(self, Bag)     }
+    multi method BagHash(Setty:D:) { BAGGIFY(self, BagHash) }
+    multi method Mix(Setty:D:)     { BAGGIFY(self, Mix)     }
+    multi method MixHash(Setty:D:) { BAGGIFY(self, MixHash) }
 
     method raw_hash() is raw { $!elems }
     method hll_hash() is raw {

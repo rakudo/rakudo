@@ -73,6 +73,68 @@ my role Mixy does Baggy  {
           Rakudo::Iterator.Empty
         ))
     }
+    method new-from-pairs(*@pairs) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iterator := @pairs.iterator),
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont($iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::stmts(
+                (my int $seen-pair = 1),
+                nqp::if(
+                  nqp::existskey(
+                    $elems,
+                    (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                  ),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey($elems,$which)),
+                    nqp::bindattr(
+                      $pair,
+                      Pair,
+                      '$!value',
+                      nqp::getattr($pair,Pair,'$!value')
+                        + nqp::getattr($pulled,Pair,'$!value')
+                    )
+                  ),
+                  nqp::bindkey(
+                    $elems,
+                    $which,
+                    nqp::p6bindattrinvres(
+                      nqp::clone($pulled),
+                      Pair,
+                      '$!value',
+                      nqp::decont(nqp::getattr($pulled,Pair,'$!value'))
+                    )
+                  )
+                )
+              ),
+              nqp::if(
+                nqp::existskey(
+                  $elems,
+                  ($which := $pulled.WHICH)
+                ),
+                nqp::stmts(
+                  ($pair := nqp::atkey($elems,$which)),
+                  nqp::bindattr(
+                    $pair,
+                    Pair,
+                    '$!value',
+                    nqp::getattr($pair,Pair,'$!value') + 1
+                  )
+                ),
+                nqp::bindkey($elems,$which,Pair.new($pulled,1))
+              )
+            )
+          ),
+          nqp::if($seen-pair && nqp::elems($elems),self.SANITY($elems)),
+          nqp::create(self).SET-SELF($elems)
+        )
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

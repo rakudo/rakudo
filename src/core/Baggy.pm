@@ -17,41 +17,6 @@ my role Baggy does QuantHash {
           ~ '|'
           ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
     }
-    method SANITY(\elems --> Nil) {
-        nqp::stmts(
-          (my $low := nqp::create(IterationBuffer)),
-          (my $iter := nqp::iterator(elems)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::isle_I(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
-                0
-              ),
-              nqp::stmts(
-                nqp::if(
-                  nqp::islt_I(
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
-                    0
-                  ),
-                  nqp::push($low,nqp::getattr(nqp::iterval($iter),Pair,'$!key'))
-                ),
-                nqp::deletekey(elems,nqp::iterkey_s($iter))
-              )
-            )
-          ),
-          nqp::if(
-            nqp::elems($low),
-            X::AdHoc.new( payload =>
-              "Found negative values for "
-              ~ nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$low)
-              ~ " in "
-              ~ self.^name
-            ).throw,
-            Nil
-          )
-        )
-    }
     method !LISTIFY(&formatter, str $joiner) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
@@ -163,66 +128,15 @@ my role Baggy does QuantHash {
           nqp::create(self).SET-SELF($elems)
         )
     }
-    method new-from-pairs(*@pairs) {
-        nqp::stmts(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          (my $iterator := @pairs.iterator),
-          nqp::until(
-            nqp::eqaddr(
-              (my $pulled := nqp::decont($iterator.pull-one)),
-              IterationEnd
-            ),
-            nqp::if(
-              nqp::istype($pulled,Pair),
-              nqp::stmts(
-                (my int $seen-pair = 1),
-                nqp::if(
-                  nqp::existskey(
-                    $elems,
-                    (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
-                  ),
-                  nqp::stmts(
-                    (my $pair := nqp::atkey($elems,$which)),
-                    nqp::bindattr(
-                      $pair,
-                      Pair,
-                      '$!value',
-                      nqp::getattr($pair,Pair,'$!value')
-                        + nqp::getattr($pulled,Pair,'$!value')
-                    )
-                  ),
-                  nqp::bindkey(
-                    $elems,
-                    $which,
-                    nqp::p6bindattrinvres(
-                      nqp::clone($pulled),
-                      Pair,
-                      '$!value',
-                      nqp::decont(nqp::getattr($pulled,Pair,'$!value'))
-                    )
-                  )
-                )
-              ),
-              nqp::if(
-                nqp::existskey(
-                  $elems,
-                  ($which := $pulled.WHICH)
-                ),
-                nqp::stmts(
-                  ($pair := nqp::atkey($elems,$which)),
-                  nqp::bindattr(
-                    $pair,
-                    Pair,
-                    '$!value',
-                    nqp::getattr($pair,Pair,'$!value') + 1
-                  )
-                ),
-                nqp::bindkey($elems,$which,Pair.new($pulled,1))
-              )
+    method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
+          nqp::create(self).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
             )
-          ),
-          nqp::if($seen-pair && nqp::elems($elems),self.SANITY($elems)),
-          nqp::create(self).SET-SELF($elems)
+          )
         )
     }
 

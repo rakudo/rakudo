@@ -149,7 +149,21 @@ my role Iterable {
         }.new(self.iterator, $configuration));
     }
 
-    sub BAGGIFY(\iterable,\type) {
+    sub MIXIFY(\iterable, \type) {
+        nqp::if(
+          (my $iterator := iterable.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
+    }
+    multi method Mix(Iterable:D:)     { MIXIFY(self, Mix)     }
+    multi method MixHash(Iterable:D:) { MIXIFY(self, MixHash) }
+
+    sub BAGGIFY(\iterable, \type) {
         nqp::if(
           (my $iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),

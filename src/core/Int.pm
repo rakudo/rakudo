@@ -180,19 +180,16 @@ my class Int does Real { # declared in BOOTSTRAP
             when uint32 { Range.new( 0, 4294967295           ) }
             when uint16 { Range.new( 0, 65535                ) }
             when uint8  { Range.new( 0, 255                  ) }
+            when byte   { Range.new( 0, 255                  ) }
             # Bring back in a future Perl 6 version, or just put on the type object
             #when uint4  { Range.new( 0, 15                   ) }
             #when uint2  { Range.new( 0, 3                    ) }
             #when uint1  { Range.new( 0, 1                    ) }
 
-            when Int    {  # smartmatch matches both UInt and Int
+            default {  # some other kind of Int
                 .^name eq 'UInt'
                   ?? Range.new(    0, Inf, :excludes-max )
                   !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
-                }
-
-            default {
-                fail "Unknown integer type: {self.^name}";
             }
         }
     }

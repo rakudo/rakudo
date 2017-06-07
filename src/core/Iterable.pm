@@ -163,9 +163,9 @@ my role Iterable {
     multi method Bag(Iterable:D:)     { BAGGIFY(self,Bag)     }
     multi method BagHash(Iterable:D:) { BAGGIFY(self,BagHash) }
 
-    method !SETIFY(\type) {
+    sub SETIFY(\iterable, \type) {
         nqp::if(
-          (my $iterator := self.flat.iterator).is-lazy,
+          (my $iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::create(type).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
@@ -174,8 +174,8 @@ my role Iterable {
           )
         )
     }
-    multi method Set(Iterable:D:)     { self!SETIFY(Set)     }
-    multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }
+    multi method Set(Iterable:D:)     { SETIFY(self,Set)     }
+    multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
 }
 
 #?if jvm

@@ -402,15 +402,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method pick(Map:D:) { self.roll }
 
-    method !SETIFY(\type) {
+    sub SETIFY(\map, \type) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,self),
+          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,map),
           nqp::create(type).SET-SELF($elems)
         )
     }
-    multi method Set(Map:D:)     { self!SETIFY(Set)     }
-    multi method SetHash(Map:D:) { self!SETIFY(SetHash) }
+    multi method Set(Map:D:)     { SETIFY(self,Set)     }
+    multi method SetHash(Map:D:) { SETIFY(self,SetHash) }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

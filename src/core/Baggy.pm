@@ -569,9 +569,9 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-    method !SETIFY(\type) {
+   sub SETIFY(\baggy, \type) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := baggy.raw_hash) && nqp::elems($raw),
           nqp::stmts(
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -592,8 +592,8 @@ my role Baggy does QuantHash {
           )
         )
     }
-    multi method Set(Baggy:D:)     { self!SETIFY(Set)     }
-    multi method SetHash(Baggy:D:) { self!SETIFY(SetHash) }
+    multi method Set(Baggy:D:)     { SETIFY(self,Set)     }
+    multi method SetHash(Baggy:D:) { SETIFY(self,SetHash) }
 
     method !BAGGIFY(\type) {
         nqp::if(

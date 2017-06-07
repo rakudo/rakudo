@@ -382,7 +382,7 @@ do {
             $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
-                if $v {
+                if $v and !$e.gist.ends-with($v.Str) {
                    $err.say("Actually thrown at:");
                    $err.say($v.Str);
                 }

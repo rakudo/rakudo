@@ -3506,6 +3506,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | 'Inf' >>
         | $<uinf>='∞'
         | <?{ nqp::existskey(nqp::backendconfig(), 'moarlib') }> <unum=:No+:Nl>
+          [ <.after <[⁰¹²³⁴⁵⁶⁷⁸⁹]>> <.before <[⁰¹²³⁴⁵⁶⁷⁸⁹]>> {$/.worry: "$<unum> is parsed as a separate numeric literal. Did you forget a term?"} ]?
         ]
     }
 

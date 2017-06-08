@@ -449,31 +449,34 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-SET-TO-BAG(\elems,Mu \set --> Nil) {
-        nqp::if(
-          set && nqp::elems(set),
-          nqp::stmts(
-            (my $iter := nqp::iterator(set)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                  nqp::bindattr($pair,Pair,'$!value',
-                    nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+    method ADD-SET-TO-BAG(\elems,Mu \set) {
+        nqp::stmts(
+          nqp::if(
+            set && nqp::elems(set),
+            nqp::stmts(
+              (my $iter := nqp::iterator(set)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                    nqp::bindattr($pair,Pair,'$!value',
+                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                    )
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),
+                    Pair.new(nqp::iterval($iter),1)
                   )
-                ),
-                nqp::bindkey(elems,nqp::iterkey_s($iter),
-                  Pair.new(nqp::iterval($iter),1)
                 )
               )
             )
-          )
+          ),
+          elems
         )
     }
 
-    method MULTIPLY-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
+    method MULTIPLY-BAG-TO-BAG(\elems,Mu \bag) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
@@ -502,11 +505,12 @@ my class Rakudo::QuantHash {
               $iter,
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
             )
-          )
+          ),
+          elems
         )
     }
 
-    method MULTIPLY-SET-TO-BAG(\elems,Mu \set --> Nil) {
+    method MULTIPLY-SET-TO-BAG(\elems,Mu \set) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
@@ -522,7 +526,8 @@ my class Rakudo::QuantHash {
               $iter,
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
             )
-          )
+          ),
+          elems
         )
     }
 

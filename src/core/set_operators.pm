@@ -1031,9 +1031,8 @@ multi sub infix:<(.)>(Any $a)         { $a.Bag }
 multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
     nqp::if(
       (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
-      nqp::stmts(
+      nqp::create(Bag).SET-SELF(
         Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,$b.raw_hash),
-        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1057,9 +1056,8 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
       (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.raw_hash))
         && nqp::elems($elems),
-      nqp::stmts(
+      nqp::create(Bag).SET-SELF(
         Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.raw_hash),
-        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1107,13 +1105,14 @@ multi sub infix:<(+)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(+)>(Any $a)         { $a.Bag }
 
 multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
-    nqp::stmts(
+    nqp::create(Bag).SET-SELF(
       Rakudo::QuantHash.ADD-SET-TO-BAG(
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a.raw_hash
-      ),
-      Rakudo::QuantHash.ADD-SET-TO-BAG($elems,$b.raw_hash),
-      nqp::create(Bag).SET-SELF($elems)
+        Rakudo::QuantHash.ADD-SET-TO-BAG(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a.raw_hash
+        ),
+        $b.raw_hash
+      )
     )
 }
 

@@ -120,12 +120,11 @@ my role Baggy does QuantHash {
 
 #--- object creation methods
     multi method new(Baggy:_: +@args) {
-        nqp::stmts(
+        nqp::create(self).SET-SELF(
           Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
-            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-            (my $iterator := @args.iterator)
-          ),
-          nqp::create(self).SET-SELF($elems)
+            nqp::create(Rakudo::Internals::IterationSet),
+            @args.iterator
+          )
         )
     }
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {

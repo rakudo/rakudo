@@ -1131,13 +1131,14 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
 multi sub infix:<(+)>(Mixy:D $a, Baggy:D $b) { infix:<(+)>($a, $b.Mix) }
 multi sub infix:<(+)>(Baggy:D $a, Mixy:D $b) { infix:<(+)>($a.Mix, $b) }
 multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
-    nqp::stmts(
+    nqp::create(Bag).SET-SELF(
       Rakudo::QuantHash.ADD-BAG-TO-BAG(
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a.raw_hash
-      ),
-      Rakudo::QuantHash.ADD-BAG-TO-BAG($elems,$b.raw_hash),
-      nqp::create(Bag).SET-SELF($elems)
+        Rakudo::QuantHash.ADD-BAG-TO-BAG(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a.raw_hash
+        ),
+        $b.raw_hash
+      )
     )
 }
 multi sub infix:<(+)>(Any:D $a, Any:D $b) { $a.Bag (+) $b.Bag }

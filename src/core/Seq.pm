@@ -157,14 +157,16 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
     multi method perl(Seq:D \SELF:) {
         # If we don't have an iterator, someone grabbed it already;
         # Check for cached $!list; if that's missing too, we're consumed
+        my $perl;
         if not $!iter.DEFINITE and not $!list.DEFINITE {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
             # compare RT #127492
-            return self.^name ~ '.new-consumed()';
+            $perl = self.^name ~ '.new-consumed()';
         }
-        self.cache.perl ~ '.Seq';
+        else { $perl = self.cache.perl ~ '.Seq' }
+        nqp::iscont(SELF) ?? '$(' ~ $perl ~ ')' !! $perl
     }
 
     method join(Seq:D: $separator = '' --> Str:D) {

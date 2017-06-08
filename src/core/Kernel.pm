@@ -134,23 +134,24 @@ class Kernel does Systemic {
     has %!signals_by_Str;
     proto method signal (|) { * }
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
+
+    # NOTE: if you make this method thread-safe, remove the locking
+    # done by Proc::Async.kill
+
         once {
-            %!signals_by_Str =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value => +.key});
+            nqp::stmts(
+              (my int $els = @.signals.elems),
+              (my int $i = -1),
+              nqp::while(
+                nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+                ($_ := @!signals.AT-POS($i)).defined
+                  && %!signals_by_Str.ASSIGN-KEY(.Str, nqp::decont($i))))
         }
         %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"} // Int;
     }
 
-    has %!signals_by_Signal;
-    multi method signal(Kernel:D: Signal:D $signal --> Int:D) {
-        once {
-            %!signals_by_Signal =
-              @.signals.pairs.grep(*.value.defined).map({~$_.value.WHICH => +.key});
-        }
-        %!signals_by_Signal{$signal.WHICH} // Int;
-    }
-
-    multi method signal(Kernel:D: Int:D $signal --> Int:D) { $signal }
+    multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
+    multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

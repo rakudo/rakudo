@@ -740,15 +740,15 @@ my class Hash { # declared in BOOTSTRAP
         }
         method Map() { self.pairs.Map }
 
-        method !SETIFY(\type) {
+        sub SETIFY(\objecthash, \type) {
             nqp::stmts(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,self),
+              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,objecthash),
               nqp::create(type).SET-SELF($elems)
             )
         }
-        multi method Set(::?CLASS:D:)     { self!SETIFY(Set    ) }
-        multi method SetHash(::?CLASS:D:) { self!SETIFY(SetHash) }
+        multi method Set(::?CLASS:D:)     { SETIFY(self,Set)     }
+        multi method SetHash(::?CLASS:D:) { SETIFY(self,SetHash) }
     }
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {

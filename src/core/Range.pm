@@ -96,7 +96,9 @@ my class Range is Cool does Iterable does Positional {
     method elems {
         $!is-int
           ?? 0 max $!max - $!excludes-max - $!min - $!excludes-min + 1
-          !! $!infinite ?? Inf !! nextsame;
+          !! $!infinite
+            ?? Failure.new(X::Cannot::Lazy.new(:action<.elems>))
+            !! nextsame
     }
 
     method iterator() {

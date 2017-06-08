@@ -78,19 +78,34 @@ my class IO::Handle {
         );
 
         nqp::if(
-            nqp::iseq_s($!path.Str, '-'),
-            nqp::stmts(
+          nqp::iseq_s($!path.Str, '-'),
+          nqp::if(
+            nqp::iseq_s($mode, 'ro'),
+            nqp::if(
+              $*IN.opened,
+              nqp::stmts(
+                $*IN.encoding($enc),
+                return $*IN),
+              nqp::stmts(
                 nqp::if(
-                    nqp::iseq_s($mode, 'ro'),
-                    (return $*IN),
-                    nqp::if(
-                        nqp::iseq_s($mode, 'wo'),
-                        (return $*OUT),
-                        die("Cannot open standard stream in mode '$mode'"),
-                    ),
-                ),
-            ),
-        );
+                  nqp::iseq_s($*IN.path.Str, '-'),
+                  $*IN = IO::Handle.new: :path(IO::Special.new: '<STDIN>')),
+                return $*IN.open: :$enc,
+                  :bin(nqp::isfalse(nqp::isconcrete($enc))))),
+            nqp::if(
+              nqp::iseq_s($mode, 'wo'),
+              nqp::if(
+                $*OUT.opened,
+                nqp::stmts(
+                  $*OUT.encoding($enc),
+                  return $*OUT),
+                nqp::stmts(
+                  nqp::if(
+                    nqp::iseq_s($*OUT.path.Str, '-'),
+                    $*OUT = IO::Handle.new: :path(IO::Special.new: '<STDOUT>')),
+                  return $*OUT.open: :w, :$enc,
+                    :bin(nqp::isfalse(nqp::isconcrete($enc))))),
+              die("Cannot open standard stream in mode '$mode'"))));
 
         if nqp::istype($!path, IO::Special) {
             my $what := $!path.what;

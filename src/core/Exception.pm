@@ -156,17 +156,51 @@ my class X::Method::NotFound is Exception {
         my $message = $.private
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
+
+        my %suggestions;
+        my int $max_length = do given $.method.chars {
+            when 0..3 { 1 }
+            when 4..8 { 2 }
+            when 9..* { 3 }
+        }
+
         if $.method eq 'length' {
-            $message ~= "\nDid you mean ";
-            given $.invocant {
-                when List { $message ~= "'elems'?" }
-                when Cool { $message ~= "'chars' or 'codes'?" }
-                default   { $message ~= "'elems', 'chars', or 'codes'?" }
+            given $!invocant {
+                when List { %suggestions{$_} = 0 for <elems> }
+                when Cool { %suggestions{$_} = 0 for <chars codes>; }
+                default   { %suggestions{$_} = 0 for <elems chars codes>; }
             }
+            
         }
         elsif $.method eq 'bytes' {
-            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+            %suggestions<encode($encoding).bytes> = 0;
         }
+
+        if nqp::can($!invocant.HOW, 'methods') {
+            for $!invocant.^methods(:all)>>.name -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{$method_name} = $dist;
+                }
+            }
+        }
+
+        if nqp::can($!invocant.HOW, 'private_method_table') {
+            for $!invocant.^private_method_table.keys -> $method_name {
+                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                if $dist <= $max_length {
+                    %suggestions{"!$method_name"} = $dist;
+                }
+            }
+        }
+
+        if +%suggestions == 1 {
+            $message ~= ". Did you mean '%suggestions.keys()'?";
+        }
+        elsif +%suggestions > 1 {
+            $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
+        }
+
         $message;
     }
 }
@@ -348,7 +382,7 @@ do {
             $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
-                if $v {
+                if $v and !$e.gist.ends-with($v.Str) {
                    $err.say("Actually thrown at:");
                    $err.say($v.Str);
                 }
@@ -2447,7 +2481,7 @@ my class X::Multi::NoMatch is Exception {
         else {
             @bits.push('...');
         }
-        if @cand[0] ~~ /': '/ {
+        if @cand && @cand[0] ~~ /': '/ {
             my $invocant = @bits.shift;
             my $first = @bits ?? @bits.shift !! '';
             @bits.unshift($invocant ~ ': ' ~ $first);
@@ -2462,9 +2496,10 @@ my class X::Multi::NoMatch is Exception {
                         ~  join("\n    ", '', sort keys @cand ∖ @un-rw-cand)
                     unless @cand == @un-rw-cand
                 )
-            !! join "\n    ",
-                'none of these signatures match:',
-                @cand
+            !! ( @cand
+                 ??  join "\n    ", 'none of these signatures match:', @cand
+                 !! "Routine does not have any candidates. Is only the proto defined?"
+               )
         );
     }
 }

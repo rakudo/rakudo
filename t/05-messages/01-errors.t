@@ -161,7 +161,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         Exception,
         message => /<<'foo'>>/,
         'wrong arity in a signature mentions the name of the sub';
-    throws-like { class A { foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
+    throws-like { class A { sub foo([$head, $tail]) {} }; A.foo([3, 4], [3]) },
         Exception,
         message => /<<'foo'>>/,
         'wrong arity in a signature mentions the name of the method';
@@ -180,6 +180,21 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     throws-like 'length 42      ', Exception, '&length',
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 }
+
+# RT #131201
+throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined';
+
+# RT #131367
+throws-like { Blob.split }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined (Blob.split)';
+
+# RT #131367
+throws-like { Blob.splice }, X::Multi::NoMatch,
+    :message{ .contains: 'only the proto' & none 'none of these signatures' },
+    'error points out only only proto is defined (Blob.splice)';
 
 done-testing;
 

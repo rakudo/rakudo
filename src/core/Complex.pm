@@ -92,7 +92,9 @@ my class Complex is Cool does Numeric {
         my Num ($mag, $angle) = self.polar;
         Complex.new($mag.log, $angle);
     }
-
+    method cis(Complex:D:) {
+        self.cos + self.sin*Complex.new(0,1)
+    }
     method sqrt(Complex:D:) {
         my Num $abs = self.abs;
         my Num $re = (($abs + self.re)/2).sqrt;

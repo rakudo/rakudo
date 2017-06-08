@@ -149,16 +149,47 @@ my role Iterable {
         }.new(self.iterator, $configuration));
     }
 
-
-    method !SETIFY(\type) {
-        nqp::create(type).SET-SELF(
-          type.fill_IterationSet(
-            nqp::create(Rakudo::Internals::IterationSet),self.flat.iterator
+    sub MIXIFY(\iterable, \type) {
+        nqp::if(
+          (my $iterator := iterable.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
           )
         )
     }
-    multi method Set(Iterable:D:)     { self!SETIFY(Set)     }
-    multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }
+    multi method Mix(Iterable:D:)     { MIXIFY(self, Mix)     }
+    multi method MixHash(Iterable:D:) { MIXIFY(self, MixHash) }
+
+    sub BAGGIFY(\iterable, \type) {
+        nqp::if(
+          (my $iterator := iterable.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
+    }
+    multi method Bag(Iterable:D:)     { BAGGIFY(self, Bag)     }
+    multi method BagHash(Iterable:D:) { BAGGIFY(self, BagHash) }
+
+    sub SETIFY(\iterable, \type) {
+        nqp::if(
+          (my $iterator := iterable.flat.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
+    }
+    multi method Set(Iterable:D:)     { SETIFY(self,Set)     }
+    multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
 }
 
 #?if !moar

@@ -197,8 +197,8 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
         || (my $biterator := $b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
       nqp::create(Set).SET-SELF(
-        Set.fill_IterationSet(
-          Set.fill_IterationSet(
+        Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+          Rakudo::QuantHash.ADD-PAIRS-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
             $aiterator
           ),
@@ -278,113 +278,41 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
       set()                                    # one/neither has elems
     )
 }
-
-multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
-    nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw)
-        && (my $braw := $b.raw_hash) && nqp::elems($braw),
-      nqp::stmts(                              # both have elems
-        nqp::if(
-          nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
-          nqp::stmts(                          # $a smallest, iterate over it
-            (my $iter := nqp::iterator($araw)),
-            (my $base := $braw)
-          ),
-          nqp::stmts(                          # $b smallest, iterate over that
-            ($iter := nqp::iterator($braw)),
-            ($base := $araw)
-          )
-        ),
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        nqp::while(
-          $iter,
-          nqp::if(                             # bind if in both
-            nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
-            nqp::bindkey(
-              $elems,
-              nqp::iterkey_s($iter),
-              nqp::if(
-                nqp::getattr(
-                  nqp::decont(nqp::iterval($iter)),
-                  Pair,
-                  '$!value'
-                ) < nqp::getattr(              # must be HLL comparison
-                      nqp::atkey($base,nqp::iterkey_s($iter)),
-                      Pair,
-                      '$!value'
-                    ),
-                nqp::iterval($iter),
-                nqp::atkey($base,nqp::iterkey_s($iter))
-              )
-            )
-          )
-        ),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Mix).SET-SELF($elems),   # overlap, so make it a Mix
-          mix()                                # nothing to see here
-        )
-      ),
-      mix()                                    # one/neither has elems
-    )
+multi sub infix:<(&)>(Setty:D $a, Baggy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Bag, $b, bag())
 }
-
-multi sub infix:<(&)>(Mixy:D $a, Baggy:D $b) { infix:<(&)>($a, $b.Mix) }
-multi sub infix:<(&)>(Baggy:D $a, Mixy:D $b) { infix:<(&)>($a.Mix, $b) }
+multi sub infix:<(&)>(Baggy:D $a, Setty:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Bag, bag())
+}
+multi sub infix:<(&)>(Setty:D $a, Mixy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Mix, $b, mix())
+}
+multi sub infix:<(&)>(Mixy:D $a, Setty:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Mix, mix())
+}
 multi sub infix:<(&)>(Baggy:D $a, Baggy:D $b) {
-    nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw)
-        && (my $braw := $b.raw_hash) && nqp::elems($braw),
-      nqp::stmts(                            # both have elems
-        nqp::if(
-          nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
-          nqp::stmts(                        # $a smallest, iterate over it
-            (my $iter := nqp::iterator($araw)),
-            (my $base := $braw)
-          ),
-          nqp::stmts(                        # $b smallest, iterate over that
-            ($iter := nqp::iterator($braw)),
-            ($base := $araw)
-          )
-        ),
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        nqp::while(
-          $iter,
-          nqp::if(                           # bind if in both
-          nqp::existskey(
-              $base,
-              nqp::iterkey_s(nqp::shift($iter))
-            ),
-            nqp::bindkey(
-              $elems,
-              nqp::iterkey_s($iter),
-              nqp::if(
-                nqp::isle_i(
-                  nqp::getattr(
-                    nqp::decont(nqp::iterval($iter)),
-                    Pair,
-                    '$!value'
-                  ),
-                  nqp::getattr(
-                    nqp::atkey($base,nqp::iterkey_s($iter)),
-                    Pair,
-                    '$!value'
-                  )
-                ),
-                nqp::iterval($iter),
-                nqp::atkey($base,nqp::iterkey_s($iter))
-              )
-            )
-          )
-        ),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems), # overlap, so make it a Bag
-          bag()                              # nothing to see here
-        )
-      ),
-      bag()                                  # one/neither has elems
-    )
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, bag())
+}
+multi sub infix:<(&)>(Mixy:D $a, Baggy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, mix())
+}
+multi sub infix:<(&)>(Baggy:D $a, Mixy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, mix())
+}
+multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, mix())
+}
+multi sub infix:<(&)>(Baggy:D $a, Any:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Bag, bag())
+}
+multi sub infix:<(&)>(Any:D $a, Baggy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Bag, $b, bag())
+}
+multi sub infix:<(&)>(Mixy:D $a, Any:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Mix, mix())
+}
+multi sub infix:<(&)>(Any:D $a, Mixy:D $b) {
+    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Mix, $b, mix())
 }
 
 multi sub infix:<(&)>(Map:D $a, Map:D $b) {
@@ -423,34 +351,12 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
         ),
         set()                                # one/neither has elems
       ),
-      $a.Set (&) $b.Set                      # object hash(es), coerce!
+      infix:<(&)>($a.Set, $b.Set)            # object hash(es), coerce!
     )
 }
 
-multi sub infix:<(&)>(Iterable:D $a, Iterable:D $b) {
-    nqp::if(
-      (my $aiterator := $a.flat.iterator).is-lazy
-        || (my $biterator := $b.flat.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action<intersect>,:what<set>)),
-      nqp::if(                                # won't hang
-        nqp::elems(my $base := Set.fill_IterationSet(
-          nqp::create(Rakudo::Internals::IterationSet),
-          $aiterator
-        )),
-        nqp::stmts(                           # have something to look up in
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          nqp::until(
-            nqp::eqaddr((my $pulled := $biterator.pull-one),IterationEnd),
-            nqp::if(
-              nqp::existskey($base,(my $which := $pulled.WHICH)),
-              nqp::bindkey($elems,$which,$pulled)
-            )
-          ),
-          nqp::create(Set).SET-SELF($elems)
-        ),
-        set()                                 # nothing to look up in, bye!
-      )
-    )
+multi sub infix:<(&)>(Any:D $a, Any:D $b) {
+    infix:<(&)>($a.Set, $b.Set)
 }
 multi sub infix:<(&)>(**@p) {
     return set() unless @p;
@@ -631,11 +537,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
               )
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Mix).SET-SELF($elems), # difference, so make it a Mix
-            mix()                              # nothing to see here
-          )
+          nqp::create(Mix).SET-SELF($elems)
         ),
         nqp::if(nqp::istype($a,Mix),$a,$a.Mix) # $b empty, so $a
       ),
@@ -690,11 +592,7 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::if(
-            nqp::elems($elems),
-            nqp::create(Bag).SET-SELF($elems), # difference, so make it a Bag
-            bag()                              # nothing to see here
-          )
+          nqp::create(Bag).SET-SELF($elems)
         ),
         nqp::if(nqp::istype($a,Bag),$a,$a.Bag) # $b empty, so $a
       ),
@@ -749,7 +647,7 @@ multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
         || (my $biterator := $b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'),:what<set>)),
       nqp::stmts(
-        (my $elems := Set.fill_IterationSet(
+        (my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
           nqp::create(Rakudo::Internals::IterationSet),
           $aiterator
         )),
@@ -1135,11 +1033,7 @@ multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
       (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems),
-          bag()
-        )
+        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1151,11 +1045,7 @@ multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
         && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Mix).SET-SELF($elems),
-          mix()
-        )
+        nqp::create(Mix).SET-SELF($elems)
       ),
       mix()
     )
@@ -1169,11 +1059,7 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
         && nqp::elems($elems),
       nqp::stmts(
         Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.raw_hash),
-        nqp::if(
-          nqp::elems($elems),
-          nqp::create(Bag).SET-SELF($elems),
-          bag()
-        )
+        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1227,11 +1113,7 @@ multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-SET-TO-BAG($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Bag).SET-SELF($elems),
-        bag()
-      )
+      nqp::create(Bag).SET-SELF($elems)
     )
 }
 
@@ -1242,11 +1124,7 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-MIX-TO-MIX($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Mix).SET-SELF($elems),
-        mix()
-      )
+      nqp::create(Mix).SET-SELF($elems)
     )
 }
 
@@ -1259,11 +1137,7 @@ multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
         $a.raw_hash
       ),
       Rakudo::QuantHash.ADD-BAG-TO-BAG($elems,$b.raw_hash),
-      nqp::if(
-        nqp::elems($elems),
-        nqp::create(Bag).SET-SELF($elems),
-        bag()
-      )
+      nqp::create(Bag).SET-SELF($elems)
     )
 }
 multi sub infix:<(+)>(Any:D $a, Any:D $b) { $a.Bag (+) $b.Bag }

@@ -156,12 +156,13 @@ my class Promise does Awaitable {
             # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
-            my $then_promise = self.new(:$!scheduler);
-            my $vow = $then_promise.vow;
-            @!thens.push({ $vow.keep(code(self)) });
+            my $then-p := self.new(:$!scheduler);
+            nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
+            my $vow = $then-p.vow;
+            @!thens.push({ my $*PROMISE := $then-p; $vow.keep(code(self)) });
             @!thens.push(-> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
-            $then_promise
+            $then-p
         }
     }
 

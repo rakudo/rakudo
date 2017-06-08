@@ -1,22 +1,5 @@
 my role Mixy does Baggy  {
 
-    method SANITY(\elems --> Nil) {
-       nqp::stmts(
-          (my $iter := nqp::iterator(elems)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::getattr(
-                nqp::iterval(nqp::shift($iter)),
-                Pair,
-                '$!value'
-              ) == 0,
-              nqp::deletekey(elems,nqp::iterkey_s($iter))
-            )
-          )
-        )
-    }
-
     multi method hash(Mixy:D: --> Hash:D) { self.HASHIFY(Any) }
     multi method Hash(Mixy:D: --> Hash:D) { self.HASHIFY(Real) }
 
@@ -72,6 +55,19 @@ my role Mixy does Baggy  {
           ),
           Rakudo::Iterator.Empty
         ))
+    }
+
+#--- object creation methods
+    method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
+          nqp::create(self).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
     }
 }
 

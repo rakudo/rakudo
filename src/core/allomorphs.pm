@@ -5,7 +5,15 @@ my class IntStr is Int is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(IntStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+            self.Int.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Int.ACCEPTS(a)))
+    }
     multi method Numeric(IntStr:D:) { self.Int }
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
@@ -20,7 +28,15 @@ my class NumStr is Num is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(NumStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Num.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Num.ACCEPTS(a)))
+    }
     multi method Numeric(NumStr:D:) { self.Num }
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
@@ -36,7 +52,15 @@ my class RatStr is Rat is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(RatStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Rat.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
+    }
     multi method Numeric(RatStr:D:) { self.Rat }
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
@@ -52,7 +76,15 @@ my class ComplexStr is Complex is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(ComplexStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Complex.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Complex.ACCEPTS(a)))
+    }
     multi method Numeric(ComplexStr:D:) { self.Complex }
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }

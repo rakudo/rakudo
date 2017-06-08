@@ -79,6 +79,7 @@ src/core/Rational.pm
 src/core/Rat.pm
 src/core/Complex.pm
 src/core/Backtrace.pm
+src/core/StrDistance.pm
 src/core/Exception.pm
 src/core/Failure.pm
 src/core/Match.pm
@@ -181,7 +182,6 @@ src/vm/jvm/CompUnit/Repository/Java.pm
 src/vm/jvm/CompUnit/Repository/JavaRuntime.pm
 src/core/Argfiles.pm
 src/core/Process.pm
-src/core/StrDistance.pm
 src/core/Slang.pm
 src/core/Metamodel/Primitives.pm
 src/core/REPL.pm

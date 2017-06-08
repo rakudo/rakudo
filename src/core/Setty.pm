@@ -5,7 +5,7 @@ my role Setty does QuantHash {
     multi method new(Setty: +@args --> Setty:D) {
         nqp::if(
           (my $iterator := @args.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::stmts(
             (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
             (my $iter  := @args.iterator),
@@ -20,36 +20,12 @@ my role Setty does QuantHash {
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what<Set>)),
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
-            self.fill_IterationSet(
+            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
             )
           )
-        )
-    }
-
-    method fill_IterationSet(\elems,\iterator) {
-        nqp::stmts(
-          nqp::until(
-            nqp::eqaddr(
-              (my $pulled := iterator.pull-one),
-              IterationEnd
-            ),
-            nqp::if(
-              nqp::istype($pulled,Pair),
-              nqp::if(
-                nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
-                nqp::bindkey(
-                  elems,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key')
-                )
-              ),
-              nqp::bindkey(elems,$pulled.WHICH,$pulled)
-            )
-          ),
-          elems
         )
     }
 
@@ -230,11 +206,11 @@ my role Setty does QuantHash {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
 
-    method !BAGGIFY(\type) {
+    sub BAGGIFY(\setty, \type) {
         nqp::if(
-          $!elems,
+          (my $raw := setty.raw_hash) && nqp::elems($raw),
           nqp::stmts(
-            (my $elems := nqp::clone($!elems)),
+            (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
@@ -249,10 +225,10 @@ my role Setty does QuantHash {
           nqp::create(type)
         )
     }
-    multi method Bag(Setty:D:)     { self!BAGGIFY(Bag)     }
-    multi method BagHash(Setty:D:) { self!BAGGIFY(BagHash) }
-    multi method Mix(Setty:D:)     { self!BAGGIFY(Mix)     }
-    multi method MixHash(Setty:D:) { self!BAGGIFY(MixHash) }
+    multi method Bag(Setty:D:)     { BAGGIFY(self, Bag)     }
+    multi method BagHash(Setty:D:) { BAGGIFY(self, BagHash) }
+    multi method Mix(Setty:D:)     { BAGGIFY(self, Mix)     }
+    multi method MixHash(Setty:D:) { BAGGIFY(self, MixHash) }
 
     method raw_hash() is raw { $!elems }
     method hll_hash() is raw {

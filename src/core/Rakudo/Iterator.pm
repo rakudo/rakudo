@@ -703,7 +703,7 @@ class Rakudo::Iterator {
           X::OutOfRange.new(
             :what("First parameter"),
             :got($n),
-            :range("-Inf^..{$*KERNEL.bits == 32 ?? 2**28-1 !! 2**31-1}")
+            :range("-Inf^..{$?BITS == 32 ?? 2**28-1 !! 2**31-1}")
           ).throw,
           nqp::if(
             # k = 0 → can pick just 1 combination (empty list); return ((),)

@@ -89,7 +89,7 @@ my class Proc {
         }
     }
 
-    method spawn(*@args ($, *@), :$cwd = $*CWD, :$env) {
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env) {
         @!command = @args;
         my %env := $env ?? $env.hash !! %*ENV;
         self.status(nqp::p6box_i(nqp::spawn(
@@ -129,7 +129,7 @@ my class Proc {
     }
 }
 
-sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
+sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);

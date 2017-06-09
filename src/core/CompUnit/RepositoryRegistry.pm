@@ -12,13 +12,9 @@ class CompUnit::Repository::JavaRuntime { ... }
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
 
-    proto method repository-for-spec(|) { * }
-    multi method repository-for-spec(IO::Path $spec, |c) {
-        self.repository-for-spec: $spec.absolute, |c;
-    }
-    multi method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
+    method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
         state %include-spec2cur;
-        # state $lock = Lock.new; # XXX TODO: RT#131542
+        state $lock = Lock.new;
 
         my ($short-id,%options,$path) := parse-include-spec($spec);
         my $class := short-id2class($short-id);

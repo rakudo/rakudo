@@ -1038,8 +1038,11 @@ class Perl6::World is HLL::World {
             }
             if nqp::islist($arglist) {
                 my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
+                my $io-path  := self.find_symbol(['IO', 'Path']);
                 for $arglist -> $arg {
-                    $registry.use-repository($registry.repository-for-spec($arg));
+                    $registry.use-repository($registry.repository-for-spec(
+                        nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
+                    ));
                 }
             }
             else {

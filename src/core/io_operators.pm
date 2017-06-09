@@ -160,7 +160,10 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
             :$path, :os-error("did not pass :w test")).fail,
           $x && nqp::isfalse($path.x) && X::IO::Chdir.new(
             :$path, :os-error("did not pass :x test")).fail,
-          my $*CWD = $path)
+          # $*CWD gets stringified with .Str in IO::Path.new, so we need to
+          # ensure it's set to an absolute path
+          my $*CWD = $path.WHAT.new: $path.absolute,
+            :SPEC($path.SPEC), :CWD($path.SPEC.rootdir))
         && what
     }
 }

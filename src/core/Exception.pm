@@ -154,7 +154,7 @@ my class X::Method::NotFound is Exception {
     has Bool $.private = False;
     method message() {
         my $message = $.private
-          ?? "No such private method '$.method' for invocant of type '$.typename'"
+          ?? "No such private method '!$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
 
         my %suggestions;

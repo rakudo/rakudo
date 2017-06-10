@@ -196,6 +196,26 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined (Blob.splice)';
 
+# RT #127395, #123078
+{
+    throws-like q| class RT123078_1 { method foo { self.bar }; method !bar { }; method baz { } }; RT123078_1.new.foo |,
+        X::Method::NotFound,
+        message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_1'>>/, /\W '!bar'>>/, /<<'baz'>>/),
+        'a private method of the same name as the public missing method is suggested';
+    throws-like q| class RT123078_2 { method foo { self!bar }; method bar { }; method baz { } }; RT123078_2.new.foo |,
+        X::Method::NotFound,
+        message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
+        'a public method of the same name as the missing private method is suggested';
+    throws-like q| <a a b>.uniq |,
+        X::Method::NotFound,
+        message => all(/<<"No such method 'uniq'" \W/, /<<'unique'>>/),
+        'potentially common misspelling gives the right suggestion';
+    throws-like q| ‘foo’.starts-wizh(‘f’) |,
+        X::Method::NotFound,
+        message => all(/<<"No such method 'starts-wizh'" \W/, /<<'starts-with'>>/),
+        'longer method names are suggested also';
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

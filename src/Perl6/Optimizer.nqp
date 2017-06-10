@@ -1712,7 +1712,7 @@ class Perl6::Optimizer {
             else {
                 $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
                     :private(nqp::p6bool(1)), :method($name),
-                    :typename($pkg.HOW.name($pkg)));
+                    :typename($pkg.HOW.name($pkg)), :invocant($pkg));
             }
         }
     }

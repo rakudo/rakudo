@@ -29,16 +29,20 @@ my class StrDistance is Cool {
             @d[$_][ 0] = $_ for ^@s.end;
             @d[ 0][$_] = $_ for ^@t.end;
 
-            for flat 1..@s.end X 1..@t.end -> $i, $j {
-                @d[$i][$j] = @s[$i] eq @t[$j]
-                    ??   @d[$i-1][$j-1]    # No operation required when eq
-                    !! ( @d[$i-1][$j  ],   # Deletion
-                         @d[$i  ][$j-1],   # Insertion
-                         @d[$i-1][$j-1],   # Substitution
-                       ).min + 1;
+            loop (my int $i = 1; $i < @s.elems; $i = $i + 1) {
+                loop (my int $j = 1; $j < @t.elems; $j = $j + 1) {
+                    @d[$i][$j] = @s[$i] eq @t[$j]
+                        ??   @d[$i-1][$j-1]    # No operation required when eq
+                        !! ( @d[$i-1][$j  ],   # Deletion
+                             @d[$i  ][$j-1],   # Insertion
+                             @d[$i-1][$j-1],   # Substitution
+                           ).min + 1;
+                }
             }
 
             @d.tail.tail;
         }
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

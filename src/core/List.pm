@@ -911,7 +911,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    method Supply(List:D:) { Supply.from-list(self) }
+    multi method Supply(List:D:) { Supply.from-list(self) }
 
     method CALL-ME(List:U: |c) {
         self.new(|c);

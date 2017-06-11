@@ -573,7 +573,7 @@ my class Supply does Awaitable {
     ## Coercions
     ##
 
-    method Supply(Supply:) { self }
+    multi method Supply(Supply:D:) { self }
 
     method Channel(Supply:D:) {
         my $c = Channel.new();
@@ -585,7 +585,7 @@ my class Supply does Awaitable {
     }
 
     my class ConcQueue is repr('ConcBlockingQueue') { }
-    method list(Supply:D:) {
+    multi method list(Supply:D:) {
         gather {
             my Mu \queue = nqp::create(ConcQueue);
             my $exception;

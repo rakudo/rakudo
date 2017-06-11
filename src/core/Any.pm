@@ -453,7 +453,8 @@ my class Any { # declared in BOOTSTRAP
     multi method MixHash() { MixHash.new-from-pairs(self.list) }
 
     # XXX GLR does this really need to force a list?
-    method Supply() is nodal { self.list.Supply }
+    proto method Supply(|) is nodal { * }
+    multi method Supply() { self.list.Supply }
 
     method nl-out() { "\n" }
     method print-nl() { self.print(self.nl-out) }

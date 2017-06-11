@@ -41,7 +41,7 @@ my class IO::Socket::Async {
         -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
     }
 
-    method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
             my $cancellation;
             Supply.on-demand:

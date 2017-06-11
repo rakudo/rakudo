@@ -106,7 +106,7 @@ my class Channel does Awaitable {
         }
     }
 
-    method Supply(Channel:D:) {
+    multi method Supply(Channel:D:) {
         supply {
             # Tap the async notification for new values supply.
             whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {

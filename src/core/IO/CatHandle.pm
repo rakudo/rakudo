@@ -158,7 +158,7 @@ my class IO::CatHandle is IO::Handle {
     }
     multi method lines(::?CLASS:D:) { self!LINES }
 
-    method Supply (::?CLASS:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+    multi method Supply (::?CLASS:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
         nqp::if(
           nqp::isconcrete($!encoding),
           (supply nqp::stmts(

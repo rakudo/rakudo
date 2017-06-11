@@ -24,8 +24,8 @@ my role PositionalBindFailover {
             ?? $!list
             !! ($!list := List.from-iterator(self.iterator))
     }
-    method list() {
-            List.from-iterator(self.iterator)
+    multi method list(::?CLASS:D:) {
+        List.from-iterator(self.iterator)
     }
 
     method iterator() { ... }
@@ -74,24 +74,14 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    method eager {
-        List.from-iterator(self.iterator).eager;
-    }
+    multi method eager(Seq:D:) { List.from-iterator(self.iterator).eager }
+    multi method List(Seq:D:)  { List.from-iterator(self.iterator) }
+    multi method Slip(Seq:D:)  { Slip.from-iterator(self.iterator) }
+    multi method Array(Seq:D:) { Array.from-iterator(self.iterator) }
+    multi method Seq(Seq:D:)   { self }
 
     method Capture() {
         self.List.Capture
-    }
-
-    method List() {
-        List.from-iterator(self.iterator)
-    }
-
-    method Slip() {
-        Slip.from-iterator(self.iterator)
-    }
-
-    method Array() {
-        Array.from-iterator(self.iterator)
     }
 
     method elems() {

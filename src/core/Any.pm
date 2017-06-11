@@ -65,6 +65,8 @@ my class Any { # declared in BOOTSTRAP
     multi method Slip() { self.list.Slip }
     proto method Array(|) is nodal { * }
     multi method Array() { self.list.Array }
+    proto method Seq(|) is nodal { * }
+    multi method Seq() { self.list.Seq }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }

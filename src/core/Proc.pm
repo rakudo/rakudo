@@ -1,3 +1,6 @@
+# Proc is a wrapper around Proc::Async, providing a synchronous API atop of
+# the asynchronous API.
+my class Proc::Async { ... }
 my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
@@ -6,79 +9,91 @@ my class Proc {
     has $.signal;
     has @.command;
 
-    has $!in_fh;
-    has $!out_fh;
-    has $!err_fh;
-    has int $!flags;
+    has Proc::Async $!proc;
+    has Bool $!w;
+    has @!pre-spawn;
+    has @!post-spawn;
+    has $!active-handles = 0;
+    has $!finished;
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
                     Str :$enc, Str:D :$nl = "\n", :$signal --> Nil) {
-        if $merge {
-            die "Executing programs with :merge is known to be broken\n"
-              ~ "Please see https://rt.perl.org//Public/Bug/Display.html?id=128594 for the bug report.\n";
-        }
         @!command = |$command if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
-            $!in_fh := nqp::getattr(nqp::decont($in), IO::Handle, '$!PIO');
-            $!flags += nqp::const::PIPE_INHERIT_IN;
+            @!pre-spawn.push({ $!proc.bind-stdin($in) });
         }
         elsif $in === True {
-            $!in_fh := nqp::syncpipe();
-            $!flags += nqp::const::PIPE_CAPTURE_IN;
-            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
-                nl-out => $nl, :PIO($!in_fh));
+            $!in = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-out => $nl,
+                :on-write({ await $!proc.write($_) }),
+                :on-close({ $!proc.close-stdin; self!await-if-last-handle }));
+            $!active-handles++;
+            $!w := True;
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
-            $!in_fh := nqp::null();
-            $!flags += nqp::const::PIPE_INHERIT_IN;
+            # Inherit; nothing to do
         }
         else {
-            $!in_fh := nqp::null();
-            $!flags += nqp::const::PIPE_IGNORE_IN;
-        }
-
-        if $out === True || $merge {
-            $!out_fh := nqp::syncpipe();
-            $!flags  += nqp::const::PIPE_CAPTURE_OUT;
-            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
-                nl-in => $nl, :PIO($!out_fh));
-        }
-        elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
-            $!out_fh := nqp::getattr(nqp::decont($out), IO::Handle, '$!PIO');
-            $!flags  += nqp::const::PIPE_INHERIT_OUT;
-        }
-        elsif nqp::istype($out, Str) && $out eq '-' {
-            $!out_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_INHERIT_OUT;
-        }
-        else {
-            $!out_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_IGNORE_OUT;
+            $!w := True;
+            @!post-spawn.push({ $!proc.close-stdin });
         }
 
         if $merge {
-            $!err    := $!out;
-            $!err_fh := $!out_fh;
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {
-            $!err_fh := nqp::getattr(nqp::decont($err), IO::Handle, '$!PIO');
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif nqp::istype($err, Str) && $err eq '-' {
-            $!err_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif $err === True {
-            $!err_fh := nqp::syncpipe();
-            $!flags  += nqp::const::PIPE_CAPTURE_ERR;
-            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, :$enc, :$bin,
-                nl-in => $nl, :PIO($!err_fh));
+            my $chan = Channel.new;
+            $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                :on-read({ (try $chan.receive) // buf8.new }),
+                :on-close({ self!await-if-last-handle }));
+            $!active-handles++;
+            @!pre-spawn.push({ $!proc.Supply(:bin).tap: { $chan.send($_) } });
         }
         else {
-            $!err_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_IGNORE_ERR;
+            if $out === True {
+                my $chan = Channel.new;
+                $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({ (try $chan.receive) // buf8.new }),
+                    :on-close({ self!await-if-last-handle }));
+                $!active-handles++;
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).tap: { $chan.send($_) },
+                        done => { $chan.close },
+                        quit => { $chan.quit($_) }
+                });
+            }
+            elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
+                @!pre-spawn.push({ $!proc.bind-stdout($out) });
+            }
+            elsif nqp::istype($out, Str) && $out eq '-' {
+                # Inherit; nothing to do
+            }
+            else {
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).tap: -> $ { }, quit => -> $ { }
+                });
+            }
+
+            if $err === True {
+                my $chan = Channel.new;
+                $!err = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({ (try $chan.receive) // buf8.new }),
+                    :on-close({ self!await-if-last-handle }));
+                $!active-handles++;
+                @!pre-spawn.push({
+                    $!proc.stderr(:bin).tap: { $chan.send($_) },
+                        done => { $chan.close },
+                        quit => { $chan.quit($_) }
+                });
+            }
+            elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {
+                @!pre-spawn.push({ $!proc.bind-stderr($err) });
+            }
+            elsif nqp::istype($err, Str) && $err eq '-' {
+                # Inherit; nothing to do
+            }
+            else {
+                @!pre-spawn.push({
+                    $!proc.stderr(:bin).tap: -> $ { }, quit => -> $ { }
+                });
+            }
         }
 
         if nqp::istype($exitcode, Int) && $exitcode.DEFINITE {
@@ -86,6 +101,14 @@ my class Proc {
         }
         if nqp::istype($signal, Int) && $signal.DEFINITE {
             $!signal = $signal;
+        }
+    }
+
+    method !await-if-last-handle(--> Nil) {
+        $!active-handles--;
+        if $!active-handles == 0 {
+            self.status(await($!finished).status);
+            CATCH { default { self.status(0x100) } }
         }
     }
 
@@ -105,13 +128,13 @@ my class Proc {
     }
 
     method !spawn-internal(@args, $cwd, %env) {
-        self.status(nqp::p6box_i(nqp::spawn(
-            CLONE-LIST-DECONTAINERIZED(@args),
-            nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%env),
-            $!in_fh, $!out_fh, $!err_fh,
-            $!flags
-        )));
+        $!proc := Proc::Async.new(|@args, :$!w);
+        .() for @!pre-spawn;
+        $!finished = $!proc.start(scheduler => $PROCESS::SCHEDULER);
+        unless $!in || $!out || $!err {
+            self.status(await($!finished).status);
+            CATCH { default { self.status(0x100) } }
+        }
         self.Bool
     }
 
@@ -125,7 +148,7 @@ my class Proc {
     multi method Bool(Proc:D:)    { $!exitcode == 0 }
 
     method sink(--> Nil) {
-        X::Proc::Unsuccessful.new(:proc(self)).throw unless self;
+        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0;
     }
 }
 

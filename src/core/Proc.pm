@@ -146,19 +146,12 @@ sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
 }
 
 sub QX($cmd, :$cwd = $*CWD, :$env) {
-    my %env := $env ?? $env.hash !! %*ENV;
-    my Mu $pio := nqp::syncpipe();
-    my $status := nqp::shell(
-        nqp::unbox_s($cmd),
-        nqp::unbox_s($cwd.Str),
-        CLONE-HASH-DECONTAINERIZED(%env),
-        nqp::null(), $pio, nqp::null(),
-        nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
-    );
+    my $proc = Proc.new(:out);
+    my $status := $proc.shell($cmd, :$cwd, :$env);
     my $result;
     try {
-        $result = IO::Pipe.new(:PIO($pio)).slurp;
-        $status := nqp::closefh_i($pio);
+        $result := $proc.out.slurp;
+        $status := $proc.out.close;
     }
     $result.DEFINITE
       ?? $result

@@ -92,21 +92,21 @@ my class Proc {
     method spawn(*@args where .so, :$cwd = $*CWD, :$env) {
         @!command = @args;
         my %env := $env ?? $env.hash !! %*ENV;
-        self.status(nqp::p6box_i(nqp::spawn(
-            CLONE-LIST-DECONTAINERIZED(@args),
-            nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%env),
-            $!in_fh, $!out_fh, $!err_fh,
-            $!flags
-        )));
-        self.Bool
+        self!spawn-internal(@args, $cwd, %env)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env) {
         @!command = $cmd;
         my %env := $env ?? $env.hash !! %*ENV;
-        self.status(nqp::p6box_i(nqp::shell(
-            nqp::unbox_s($cmd),
+        my @args := Rakudo::Internals.IS-WIN
+            ?? (%*ENV<ComSpec>, '/c', $cmd)
+            !! ('/bin/sh', '-c', $cmd);
+        self!spawn-internal(@args, $cwd, %env)
+    }
+
+    method !spawn-internal(@args, $cwd, %env) {
+        self.status(nqp::p6box_i(nqp::spawn(
+            CLONE-LIST-DECONTAINERIZED(@args),
             nqp::unbox_s($cwd.Str),
             CLONE-HASH-DECONTAINERIZED(%env),
             $!in_fh, $!out_fh, $!err_fh,

@@ -242,7 +242,6 @@ my class Proc::Async {
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );
-
         Promise.allof( $!exit_promise, @!promises ).then({
             $!exit_promise.status == Broken
                 ?? $!exit_promise.cause.throw
@@ -305,12 +304,10 @@ my class Proc::Async {
     # Note: some of the duplicated code in methods could be moved to
     # proto, but at the moment (2017-06-02) that makes the call 24% slower
     proto method kill(|) { * }
-#?if !jvm
     multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
         nqp::killprocasync($!process_handle, signal.value)
     }
-#?endif
     multi method kill(Proc::Async:D: Int:D \signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
         nqp::killprocasync($!process_handle, signal)

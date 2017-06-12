@@ -197,8 +197,12 @@ my class IO::Handle {
 
     method eof(IO::Handle:D:) {
         nqp::p6bool($!decoder
-            ?? $!decoder.is-empty && nqp::eoffh($!PIO)
-            !! nqp::eoffh($!PIO));
+            ?? $!decoder.is-empty && self.eof-internal
+            !! self.eof-internal)
+    }
+
+    method eof-internal() {
+        nqp::eoffh($!PIO)
     }
 
     method read-internal(Int $bytes) {
@@ -221,7 +225,7 @@ my class IO::Handle {
             }
             else {
                 $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                    unless nqp::eoffh($!PIO) && $!decoder.is-empty;
+                    unless self.eof-internal && $!decoder.is-empty;
                 last;
             }
         }
@@ -438,7 +442,7 @@ my class IO::Handle {
     }
 
     method !read-slow-path($bytes) {
-        if nqp::eoffh($!PIO) && $!decoder.is-empty {
+        if self.eof-internal && $!decoder.is-empty {
             buf8.new
         }
         else {
@@ -456,7 +460,7 @@ my class IO::Handle {
 
     method !readchars-slow-path($chars) {
         my $result := '';
-        unless nqp::eoffh($!PIO) && $!decoder.is-empty {
+        unless self.eof-internal && $!decoder.is-empty {
             loop {
                 my $buf := self.read-internal(0x100000);
                 if $buf.elems {

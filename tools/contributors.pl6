@@ -32,7 +32,8 @@ sub MAIN (
     say "Contributors to Rakudo since the release on $last_release:";
     my @contributors = @repos.map({
       |get-committers($_,$last_release)
-    }).unique(:as(*.key))».value.Bag.sort(*.value).reverse».key;
+    }).unique(:as(*.key))».value.Bag.sort(-*.value)».key;
+    @contributors .= rotate if @contributors.head eq 'Zoffix Znet';
 
     for @contributors -> $name is rw {
         state $length = 0;

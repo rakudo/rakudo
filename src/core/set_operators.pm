@@ -46,7 +46,7 @@ only sub infix:<∈>($a, $b --> Bool:D) is pure {
 }
 # U+2209 NOT AN ELEMENT OF
 only sub infix:<∉>($a, $b --> Bool:D) is pure {
-    $a !(elem) $b;
+    not $a (elem) $b;
 }
 
 only sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }

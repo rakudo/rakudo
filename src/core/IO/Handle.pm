@@ -201,6 +201,10 @@ my class IO::Handle {
             !! nqp::eoffh($!PIO));
     }
 
+    method read-internal(Int $bytes) {
+        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+    }
+
     method get(IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<get>);
         $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
@@ -209,7 +213,7 @@ my class IO::Handle {
     method !get-line-slow-path() {
         my $line := Nil;
         loop {
-            my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+            my $buf := self.read-internal(0x100000);
             if $buf.elems {
                 $!decoder.add-bytes($buf);
                 $line := $!decoder.consume-line-chars(:$!chomp);
@@ -230,7 +234,7 @@ my class IO::Handle {
     }
 
     method !getc-slow-path() {
-        $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));
+        $!decoder.add-bytes(self.read-internal(0x100000));
         $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars() || Nil
     }
 
@@ -430,7 +434,7 @@ my class IO::Handle {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
-            !! nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+            !! self.read-internal($bytes)
     }
 
     method !read-slow-path($bytes) {
@@ -438,7 +442,7 @@ my class IO::Handle {
             buf8.new
         }
         else {
-            $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, $bytes max 0x10000));
+            $!decoder.add-bytes(self.read-internal($bytes max 0x10000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
                 // buf8.new
@@ -454,7 +458,7 @@ my class IO::Handle {
         my $result := '';
         unless nqp::eoffh($!PIO) && $!decoder.is-empty {
             loop {
-                my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+                my $buf := self.read-internal(0x100000);
                 if $buf.elems {
                     $!decoder.add-bytes($buf);
                     $result := $!decoder.consume-exactly-chars($chars);
@@ -520,6 +524,10 @@ my class IO::Handle {
     }
 
     method write(IO::Handle:D: Blob:D $buf --> True) {
+        self.write-internal($buf)
+    }
+
+    method write-internal(IO::Handle:D: Blob:D $buf --> True) {
         nqp::writefh($!PIO, nqp::decont($buf));
     }
 
@@ -553,7 +561,7 @@ my class IO::Handle {
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        nqp::writefh($!PIO, x.encode($!encoding, :translate-nl));
+        self.write-internal(x.encode($!encoding, :translate-nl));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -562,8 +570,8 @@ my class IO::Handle {
     proto method put(|) { * }
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
-        nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal(nqp::concat(nqp::unbox_s(x),
+            nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
@@ -571,8 +579,8 @@ my class IO::Handle {
 
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal(nqp::concat(nqp::unbox_s(x.gist),
+            nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
     }
     multi method say(IO::Handle:D: |) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
@@ -585,7 +593,7 @@ my class IO::Handle {
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        nqp::writefh($!PIO, $!nl-out.encode($!encoding, :translate-nl));
+        self.write-internal($!nl-out.encode($!encoding, :translate-nl));
     }
 
     proto method slurp-rest(|) { * }
@@ -620,7 +628,7 @@ my class IO::Handle {
           nqp::stmts(
             ($res := buf8.new),
             nqp::while(
-              nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)),
+              nqp::elems(my $buf := self.read-internal(0x100000)),
               $res.append($buf)
             )
           )
@@ -632,7 +640,7 @@ my class IO::Handle {
     }
 
     method !slurp-all-chars() {
-        while nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)) {
+        while nqp::elems(my $buf := self.read-internal(0x100000)) {
             $!decoder.add-bytes($buf);
         }
         $!decoder.consume-all-chars()
@@ -641,7 +649,7 @@ my class IO::Handle {
     proto method spurt(|) { * }
     multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
-        self.write($data);
+        self.write-internal($data);
     }
     multi method spurt(IO::Handle:D: Cool $data, :$close) {
         LEAVE self.close if $close;

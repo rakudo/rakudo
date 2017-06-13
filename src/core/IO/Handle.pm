@@ -434,7 +434,7 @@ my class IO::Handle {
     }
     multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
-    method read(IO::Handle:D: Int(Cool:D) $bytes) {
+    method read(IO::Handle:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))

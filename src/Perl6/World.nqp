@@ -4055,6 +4055,9 @@ class Perl6::World is HLL::World {
         elsif $name eq '&bytes' {
             @suggestions.push: '.encode($encoding).bytes';
         }
+        elsif $name eq '&break' {
+            @suggestions.push: 'last';
+        }
         return @suggestions;
     }
 

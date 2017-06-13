@@ -130,10 +130,10 @@ my class Proc {
         self!spawn-internal(@args, $cwd, %env)
     }
 
-    method !spawn-internal(@args, $cwd, %env) {
+    method !spawn-internal(@args, $cwd, %ENV) {
         $!proc := Proc::Async.new(|@args, :$!w);
         .() for @!pre-spawn;
-        $!finished = $!proc.start(scheduler => $PROCESS::SCHEDULER);
+        $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         unless $!in || $!out || $!err {
             self.status(await($!finished).status);
             CATCH { default { self.status(0x100) } }

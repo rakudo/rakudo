@@ -859,7 +859,7 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
             ),
             False               # number of elems in B smaller or equal to A
           ),
-          True,                 # no elems in A, and elems in B
+          True                  # no elems in A, and elems in B
         ),
         False                   # can never have fewer elems in A than in B
       )

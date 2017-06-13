@@ -3922,7 +3922,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $past.ann('placeholder_sig') {
                 $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
-            $past[1] := wrap_return_handler($past[1]);
+            if is_clearly_returnless($past) {
+                $past[1] := QAST::Op.new(
+                    :op('p6decontrv'),
+                    QAST::WVal.new( :value($*DECLARAND) ),
+                    $past[1]);
+                $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
+            }
+            else {
+                $past[1] := wrap_return_handler($past[1]);
+            }
         }
         $past.blocktype('declaration_static');
 

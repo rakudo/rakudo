@@ -42,7 +42,8 @@ my class Proc {
             my $chan = Channel.new;
             $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                 :on-read({ (try $chan.receive) // buf8.new }),
-                :on-close({ self!await-if-last-handle }));
+                :on-close({ self!await-if-last-handle }),
+                :bin-supply({ $chan.Supply }));
             $!active-handles++;
             @!pre-spawn.push({ $!proc.Supply(:bin).tap: { $chan.send($_) } });
         }
@@ -51,7 +52,8 @@ my class Proc {
                 my $chan = Channel.new;
                 $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                     :on-read({ (try $chan.receive) // buf8.new }),
-                    :on-close({ self!await-if-last-handle }));
+                    :on-close({ self!await-if-last-handle }),
+                    :bin-supply({ $chan.Supply }));
                 $!active-handles++;
                 @!pre-spawn.push({
                     $!proc.stdout(:bin).tap: { $chan.send($_) },
@@ -75,7 +77,8 @@ my class Proc {
                 my $chan = Channel.new;
                 $!err = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                     :on-read({ (try $chan.receive) // buf8.new }),
-                    :on-close({ self!await-if-last-handle }));
+                    :on-close({ self!await-if-last-handle }),
+                    :bin-supply({ $chan.Supply }));
                 $!active-handles++;
                 @!pre-spawn.push({
                     $!proc.stderr(:bin).tap: { $chan.send($_) },

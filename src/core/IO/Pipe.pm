@@ -3,10 +3,11 @@ my class IO::Pipe is IO::Handle {
     has $!on-read;
     has $!on-write;
     has $!on-close;
+    has $!bin-supply;
     has $!eof = False;
     has $!closed = False;
 
-    method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write --> Nil) {
+    method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write, :$!bin-supply --> Nil) {
         if $bin {
             die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
         }
@@ -54,6 +55,10 @@ my class IO::Pipe is IO::Handle {
 
     method t(IO::Pipe:D:) {
         False
+    }
+
+    method native-descriptor(IO::Pipe:D:) {
+        fail "An IO::Pipe does not have a native-descriptor"
     }
 
     method IO   { IO::Path }

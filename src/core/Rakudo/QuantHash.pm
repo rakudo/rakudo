@@ -629,9 +629,9 @@ my class Rakudo::QuantHash {
             ),
             nqp::if(
               nqp::istype($pulled,Pair),
-              nqp::unless(           # got a Pair
+              nqp::if(               # got a Pair
                 (my $value :=
-                  nqp::decont(nqp::getattr($pulled,Pair,'$!value'))) == 0,
+                  nqp::decont(nqp::getattr($pulled,Pair,'$!value'))),
                 nqp::if(             # non-zero value
                   nqp::istype($value,Num) && nqp::isnanorinf($value),
                   X::OutOfRange.new( # NaN or -Inf or Inf, we're done
@@ -650,14 +650,14 @@ my class Rakudo::QuantHash {
                         elems,
                         (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
                       ),
-                      nqp::stmts(    # seen before, add value
-                        (my $pair := nqp::atkey(elems,$which)),
-                        nqp::bindattr(
-                          $pair,
+                      nqp::if( # seen before, add value
+                        ($value := nqp::getattr(
+                          (my $pair := nqp::atkey(elems,$which)),
                           Pair,
-                          '$!value',
-                          nqp::getattr($pair,Pair,'$!value') + $value
-                        )
+                          '$!value'
+                        ) + $value),
+                        nqp::bindattr($pair,Pair,'$!value',$value),  # non-zero
+                        nqp::deletekey(elems,$which)                 # zero
                       ),
                       nqp::bindkey(  # new, create new Pair
                         elems,

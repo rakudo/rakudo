@@ -27,7 +27,7 @@ my class IO::Pipe is IO::Handle {
             result
         }
         else {
-            die "This pipe was opened is for writing, not reading"
+            die "This pipe was opened for writing, not reading"
         }
     }
 
@@ -38,7 +38,7 @@ my class IO::Pipe is IO::Handle {
     method write-internal($data) {
         $!on-write
             ?? $!on-write($data)
-            !! die "This pipe was opened is for reading, not writing"
+            !! die "This pipe was opened for reading, not writing"
     }
 
     method flush(IO::Handle:D: --> True) { #`(No buffering) }

@@ -202,7 +202,7 @@ my class IO::CatHandle is IO::Handle {
             $res),
           Nil)
     }
-    method read (::?CLASS:D: Int(Cool:D) $bytes) {
+    method read (::?CLASS:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
         nqp::if(
           nqp::defined($!active-handle),
           nqp::stmts(

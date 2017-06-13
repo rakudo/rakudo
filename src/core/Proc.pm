@@ -58,7 +58,7 @@ my class Proc {
                 @!pre-spawn.push({
                     $!proc.stdout(:bin).tap: { $chan.send($_) },
                         done => { $chan.close },
-                        quit => { $chan.quit($_) }
+                        quit => { $chan.fail($_) }
                 });
             }
             elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
@@ -83,7 +83,7 @@ my class Proc {
                 @!pre-spawn.push({
                     $!proc.stderr(:bin).tap: { $chan.send($_) },
                         done => { $chan.close },
-                        quit => { $chan.quit($_) }
+                        quit => { $chan.fail($_) }
                 });
             }
             elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {

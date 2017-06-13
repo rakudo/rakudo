@@ -274,7 +274,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
             unless $RMD {
                 whenever $proc.stderr {
-                    .note
+                    $err ~= $_
                 }
             }
             whenever $proc.start(ENV => %env) {

@@ -3257,7 +3257,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                         $phaser();
 #?endif
-#?if moar
+#?if !jvm
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
                         CATCH { nqp::push(@exceptions, $_) }
@@ -3274,7 +3274,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif

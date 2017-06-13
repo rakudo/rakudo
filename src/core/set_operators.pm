@@ -777,29 +777,46 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
-    # don't need to check for object hashes, just checking keys is ok
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-        nqp::if(
-          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && nqp::elems($araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-              && (my $iter := nqp::iterator($araw)),
-            nqp::while(           # number of elems in B >= A
-              $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                return False      # elem in A doesn't exist in B
-              )
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      True,                       # B is alias of A
+      nqp::if(                    # A and B are different
+        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+          && nqp::elems($araw),
+        nqp::if(                  # something in A
+          nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+          nqp::if(                # both are normal Maps
+            (my $iter := nqp::iterator($araw))
+              && (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::elems($braw),
+            nqp::stmts(           # something to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::unless(    # valid in A
+                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    return False  # valid elem in A isn't valid elem in B
+                  )
+                )
+              ),
+              True                # all valids in A occur as valids in B
             ),
-            return False          # number of elems in B smaller than A
-          )
-        )
-      ),
-      True
+            nqp::stmts(           # nothing to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  return False    # valid in elem in A (and none in B)
+                )
+              ),
+              True                # no valid elems in A
+            )
+          ),
+          $a.Set (<=) $b.Set      # either is objectHash, so coerce
+        ),
+        True                      # nothing in A
+      )
     )
 }
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {

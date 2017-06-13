@@ -254,29 +254,43 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
             note "starting jdb on port " ~ ++%env<RAKUDO_JDB_PORT>;
         }
-        my $proc = run(
-          $perl6,
-          $lle,
-          $profile,
-          $optimize,
-          "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
-          "--output=$bc",
-          "--source-name=$source-name",
-          $path,
-          :out,
-          :err($RMD ?? '-' !! True),
-          :%env
-        );
+        my $out = '';
+        my $err = '';
+        my $status;
+        react {
+            my $proc = Proc::Async.new(
+                $perl6,
+                $lle,
+                $profile,
+                $optimize,
+                "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
+                "--output=$bc",
+                "--source-name=$source-name",
+                $path
+            );
 
-        my @result = $proc.out.lines.unique;
-        if not $proc.out.close or $proc.status {  # something wrong
-            self.store.unlock;
-            $RMD("Precomping $path failed: $proc.status()") if $RMD;
-            Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $RMD ?? @result !! $proc.err.slurp-rest(:close);
+            whenever $proc.stdout {
+                $out ~= $_
+            }
+            unless $RMD {
+                whenever $proc.stderr {
+                    .note
+                }
+            }
+            whenever $proc.start(ENV => %env) {
+                $status = .exitcode
+            }
         }
 
-        if not $RMD and $proc.err.slurp-rest(:close) -> $warnings {
+        my @result = $out.lines.unique;
+        if $status {  # something wrong
+            self.store.unlock;
+            $RMD("Precomping $path failed: $status") if $RMD;
+            Rakudo::Internals.VERBATIM-EXCEPTION(1);
+            die $RMD ?? @result !! $err;
+        }
+
+        if not $RMD and $err -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

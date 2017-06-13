@@ -149,10 +149,11 @@ src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm
 src/core/Proc.pm
+src/core/signals.pm
+src/core/Proc/Async.pm
 src/core/Systemic.pm
 src/core/VM.pm
 src/core/Distro.pm
-src/core/signals.pm
 src/core/Kernel.pm
 src/core/Compiler.pm
 src/core/Perl.pm

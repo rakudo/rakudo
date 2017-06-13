@@ -811,6 +811,7 @@ S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
+S17-procasync/bind-handles.t # moar
 S17-procasync/encoding.t # moar
 S17-procasync/nonexistent.t # moar
 S17-procasync/print.t    # moar

@@ -1377,14 +1377,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     unless $past.ann('past_block') {
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
-                    my $fornode := QAST::Op.new(
+                    $past := QAST::Want.new(
+                        QAST::Op.new(
                             :op<p6for>, :node($/),
                             $cond,
                             block_closure($past),
-                        );
-                    $past := QAST::Want.new(
-                        $fornode,
-                        'v', QAST::Op.new(:op<p6sink>, $fornode),
+                        ),
+                        'v', QAST::Op.new(
+                            :op<p6for>, :node($/),
+                            $cond,
+                            block_closure($past),
+                        ),
                     );
                     $past[2].sunk(1);
                     my $sinkee := $past[0];
@@ -1764,14 +1767,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
-        my $fornode := QAST::Op.new(
+        my $past := QAST::Want.new(
+            QAST::Op.new(
                 :op<p6for>, :node($/),
                 $xblock[0],
                 block_closure($xblock[1]),
-            );
-        my $past := QAST::Want.new(
-            $fornode,
-            'v', QAST::Op.new(:op<p6sink>, $fornode),
+            ),
+            'v', QAST::Op.new(
+                :op<p6for>, :node($/),
+                $xblock[0],
+                block_closure($xblock[1]),
+            ),
         );
         if $*LABEL {
             my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );

@@ -114,14 +114,15 @@ rule($CORE-combined, '@js_core_sources@',
 
 );
 
-my $CORE := "$blib/CORE.setting.js";
-rule($CORE, "$CORE-combined rakudo.js",
-    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
-);
-
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));
 
 my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
+
+my $CORE := "$blib/CORE.setting.js";
+rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
+    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
+);
+
 
 say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER)\n");
 

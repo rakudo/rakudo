@@ -44,6 +44,31 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return rv;
   };
 
+  const prePhaserFrames = [];
+
+  op.p6setpre = function(ctx) {
+    prePhaserFrames.push(ctx);
+    return Null;
+  };
+
+  op.p6clearpre = function(ctx) {
+    const index = prePhaserFrames.indexOf(ctx);
+    if (index !== -1) {
+      prePhaserFrames.splice(index, 1);
+    }
+    return Null;
+  };
+
+  op.p6inpre = function(ctx) {
+    const index = prePhaserFrames.indexOf(ctx.$$caller);
+    if (index !== -1) {
+      prePhaserFrames.splice(index, 1);
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+
   function isRWScalar(check) {
     if (check._STable === Scalar._STable && !check.typeObject_) {
       let desc = check.$$getattr(Scalar, '$!descriptor');

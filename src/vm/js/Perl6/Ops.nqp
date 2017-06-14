@@ -142,9 +142,11 @@ $ops.add_simple_op('p6finddispatcher', $ops.OBJ, [$ops.STR], :side_effects, sub 
     "nqp.op.p6finddispatcher({$*BLOCK.ctx}, $usage)"
 });
 
-# HACK before we implement PRE fully
-$ops.add_simple_op('p6inpre', $ops.INT, [],  sub () {"(0)"});
 
 $ops.add_simple_op('p6argsfordispatcher', $ops.OBJ, [$ops.OBJ], :side_effects, sub ($dispatcher) {
     "nqp.op.p6argsfordispatcher({$*BLOCK.ctx}, $dispatcher)"
 });
+
+$ops.add_simple_op('p6setpre', $ops.OBJ,  [], :ctx, :side_effects);
+$ops.add_simple_op('p6clearpre', $ops.OBJ, [], :ctx, :side_effects);
+$ops.add_simple_op('p6inpre', $ops.INT, [], :ctx, :side_effects);

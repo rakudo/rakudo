@@ -147,6 +147,9 @@ $ops.add_simple_op('p6argsfordispatcher', $ops.OBJ, [$ops.OBJ], :side_effects, s
     "nqp.op.p6argsfordispatcher({$*BLOCK.ctx}, $dispatcher)"
 });
 
+$ops.add_simple_op('p6setfirstflag', $ops.OBJ, [$ops.OBJ], :side_effects);
+$ops.add_simple_op('p6takefirstflag', $ops.INT, [], :ctx, :side_effects);
+
 $ops.add_simple_op('p6setpre', $ops.OBJ,  [], :ctx, :side_effects);
 $ops.add_simple_op('p6clearpre', $ops.OBJ, [], :ctx, :side_effects);
 $ops.add_simple_op('p6inpre', $ops.INT, [], :ctx, :side_effects);

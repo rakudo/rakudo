@@ -44,6 +44,17 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return rv;
   };
 
+  op.p6setfirstflag = function(codeObj) {
+    firstPhaserCodeBlock = codeObj.$$getattr(Code, "$!do");
+    return codeObj;
+  };
+
+  op.p6takefirstflag = function(ctx) {
+    const matches = firstPhaserCodeBlock === ctx.codeRef();
+    firstPhaserCodeBlock = Null;
+    return matches ? 1 : 0;
+  };
+
   const prePhaserFrames = [];
 
   op.p6setpre = function(ctx) {

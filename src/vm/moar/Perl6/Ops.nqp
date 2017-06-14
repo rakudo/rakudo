@@ -672,7 +672,7 @@ $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
         }
         else {
             my @ops;
-            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj), :want-decont);
             push_ilist(@ops, $value_res);
             nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($qastcomp.mast_compunit),
                 $value_res.result_reg, $value_res.result_reg ));

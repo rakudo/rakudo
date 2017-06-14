@@ -4210,6 +4210,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::istype($past, QAST::Op)
                     && $past.op ne 'callmethod' # May be .return or similar
                     && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
+                # A QAST::Stmt node
+                nqp::istype($past, QAST::Stmt) ||
                 # Just a variable lookup.
                 nqp::istype($past, QAST::Var) ||
                 # Just a QAST::Want
@@ -4229,27 +4231,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             1;
         }
 
-        # Only analyse things with a single simple statement.
-        if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
-            # Ensure there's no nested blocks.
-            for @($block[0]) {
-                if nqp::istype($_, QAST::Block) { return 0; }
-                if nqp::istype($_, QAST::Stmts) {
-                    for @($_) {
-                        if nqp::istype($_, QAST::Block) { return 0; }
-                    }
+        # Ensure second node is QAST::Stmts.
+        return 0 unless nqp::istype($block[1], QAST::Stmts);
+
+        # Ensure there's no nested blocks.
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Block) { return 0; }
+            if nqp::istype($_, QAST::Stmts) {
+                for @($_) {
+                    if nqp::istype($_, QAST::Block) { return 0; }
                 }
             }
+        }
 
-            # Ensure that the PAST is whitelisted things.
-            returnless_past($block[1][0][0])
+        # Check the block content.
+        for @($block[1]) {
+            return 0 unless returnless_past($_);
         }
-        elsif +$block[1].list == 1 && nqp::istype($block[1][0], QAST::WVal) {
-            1
-        }
-        else {
-            0
-        }
+        return 1;
     }
 
     sub is_yada($/) {

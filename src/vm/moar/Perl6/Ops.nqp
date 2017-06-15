@@ -279,15 +279,7 @@ my $p6bool := -> $qastcomp, $op {
     # sure we do a fast lexical access instead of creating a LexicalRef obj
     # and going through that.
     my @ops;
-    my $exprres;
-    my $want := $MVM_reg_obj;
-    if nqp::istype($op[0], QAST::Var) && $op[0].scope eq 'lexicalref' {
-        my $spec := nqp::objprimspec($op[0].returns);
-        if $spec == 1 { $want := $MVM_reg_int64 }
-        elsif $spec == 2 { $want := $MVM_reg_num64 }
-        elsif $spec == 3 { $want := $MVM_reg_str }
-    }
-    $exprres := $qastcomp.as_mast($op[0], :want($want));
+    my $exprres := $qastcomp.as_mast($op[0], :want-decont);
     push_ilist(@ops, $exprres);
 
     # Go by result kind.

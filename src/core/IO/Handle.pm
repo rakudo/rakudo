@@ -378,7 +378,7 @@ my class IO::Handle {
                 method pull-one() {
                     # Slow path falls back to .get on the handle, which will
                     # replenish the buffer once we exhaust it.
-                    $!decoder.consume-line-chars(:$!chomp) // $!handle.get // IterationEnd
+                    $!decoder.consume-line-chars(:$!chomp) // ($!handle.get // IterationEnd)
                 }
                 method push-all($target --> IterationEnd) {
                     nqp::while(

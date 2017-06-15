@@ -85,7 +85,7 @@ my class Mu { # declared in BOOTSTRAP
         if $why.defined && !$.defined #`(ie. we're a type object) {
             $why.set_docee(self);
         }
-        $why // Any
+        $why // Nil
     }
 
     method set_why($why) {

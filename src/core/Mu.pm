@@ -82,7 +82,13 @@ my class Mu { # declared in BOOTSTRAP
         if $why.defined && !$.defined #`(ie. we're a type object) {
             $why.set_docee(self);
         }
-        $why // Nil
+        $why // do {
+            my $name := self.^name;
+            Nil but role { method gist {
+                "No documentation available for type '$name'.
+Perhaps it can be found at https://docs.perl6.org/type/$name"
+            } }
+        }
     }
 
     method set_why($why) {

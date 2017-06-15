@@ -75,6 +75,13 @@ my class Mu { # declared in BOOTSTRAP
     multi method WHY(Mu:) {
         my Mu $why;
 
+        my role Suggestion[$name] {
+            method gist {
+                "No documentation available for type '$name'.
+Perhaps it can be found at https://docs.perl6.org/type/$name"
+            }
+        }
+
         if nqp::can(self.HOW, 'WHY') {
             $why := self.HOW.WHY;
         }
@@ -82,13 +89,7 @@ my class Mu { # declared in BOOTSTRAP
         if $why.defined && !$.defined #`(ie. we're a type object) {
             $why.set_docee(self);
         }
-        $why // do {
-            my $name := self.^name;
-            Nil but role { method gist {
-                "No documentation available for type '$name'.
-Perhaps it can be found at https://docs.perl6.org/type/$name"
-            } }
-        }
+        $why // Nil but Suggestion[self.^name]
     }
 
     method set_why($why) {

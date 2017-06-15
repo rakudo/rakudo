@@ -272,12 +272,9 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
-#$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
 my $p6bool := -> $qastcomp, $op {
-    # Having a Var with a lexicalref scope isn't uncommon, so we make extra
-    # sure we do a fast lexical access instead of creating a LexicalRef obj
-    # and going through that.
+    # We never want a container here, so mark as decont context.
     my @ops;
     my $exprres := $qastcomp.as_mast($op[0], :want-decont);
     push_ilist(@ops, $exprres);

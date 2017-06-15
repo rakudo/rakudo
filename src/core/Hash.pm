@@ -579,7 +579,7 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
+        method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
             nqp::if(
               nqp::getattr(self,Map,'$!storage').DEFINITE,
               nqp::if(

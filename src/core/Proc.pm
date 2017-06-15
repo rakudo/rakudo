@@ -108,37 +108,40 @@ my class Proc {
     }
 
     method !await-if-last-handle(--> Nil) {
-        $!active-handles--;
-        if $!active-handles == 0 {
-            self.status(await($!finished).status);
-            CATCH { default { self.status(0x100) } }
-        }
+        self!wait-for-finish unless --$!active-handles;
     }
 
-    method spawn(*@args where .so, :$cwd = $*CWD, :$env) {
+    method !wait-for-finish {
+        CATCH { default { self.status(0x100) } }
+        self.status(await($!finished).status) if $!exitcode == -1;
+    }
+
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
         @!command = @args;
-        my %env := $env ?? $env.hash !! %*ENV;
-        self!spawn-internal(@args, $cwd, %env)
+        self!spawn-internal(@args, $cwd, $env)
     }
 
-    method shell($cmd, :$cwd = $*CWD, :$env) {
+    method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
         @!command = $cmd;
-        my %env := $env ?? $env.hash !! %*ENV;
         my @args := Rakudo::Internals.IS-WIN
             ?? (%*ENV<ComSpec>, '/c', $cmd)
             !! ('/bin/sh', '-c', $cmd);
-        self!spawn-internal(@args, $cwd, %env)
+        self!spawn-internal(@args, $cwd, $env)
     }
 
-    method !spawn-internal(@args, $cwd, %ENV) {
+    method !spawn-internal(@args, $cwd, $env --> Bool:D) {
+        my %ENV := $env ?? $env.hash !! %*ENV;
         $!proc := Proc::Async.new(|@args, :$!w);
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
-        unless $!in || $!out || $!err {
-            self.status(await($!finished).status);
+        my $is-spawned := do {
             CATCH { default { self.status(0x100) } }
-        }
-        self.Bool
+            await $!proc.ready;
+            True
+        } // False;
+        .() for @!post-spawn;
+        self!wait-for-finish unless $!out || $!err || $!in;
+        $is-spawned
     }
 
     proto method status(|) { * }
@@ -146,11 +149,25 @@ my class Proc {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  { ($!exitcode +< 8) +| $!signal }
-    multi method Numeric(Proc:D:) { $!exitcode }
-    multi method Bool(Proc:D:)    { $!exitcode == 0 }
+    multi method status(Proc:D:)  {
+        self!wait-for-finish;
+        ($!exitcode +< 8) +| $!signal
+    }
+    multi method Numeric(Proc:D:) {
+        self!wait-for-finish;
+        $!exitcode
+    }
+    multi method Bool(Proc:D:) {
+        self!wait-for-finish;
+        $!exitcode == 0
+    }
+    method exitcode {
+        self!wait-for-finish;
+        $!exitcode
+    }
 
     method sink(--> Nil) {
+        self!wait-for-finish;
         X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0;
     }
 }

@@ -971,30 +971,49 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
-    # don't need to check for object hashes, just checking keys is ok
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      False,                    # X is never a true subset of itself
-      nqp::if(
-        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-          && nqp::elems($braw),
-        nqp::if(
-          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
-            && (my $iter := nqp::iterator($araw)),
-          nqp::stmts(           # A has fewer elems than B
+      False,                      # X is never a true subset of itself
+      nqp::if(                    # A and B are different
+        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+          && nqp::elems($araw),
+        nqp::if(                  # something in A
+          nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+          nqp::if(                # both are normal Maps
+            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::elems($braw)
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(           # something to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter))
+                    || nqp::isfalse(nqp::atkey($braw,nqp::iterkey_s($iter))),
+                  return False    # valid elem in A or invalid elem in B
+                )
+              ),
+              True                # no valids in A, valids in B
+            ),
+            False                 # something in A, nothing in B
+          ),
+          $a.Set (<) $b.Set       # either is objectHash, so coerce
+        ),
+        nqp::if(                  # nothing in A
+          ($braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+            && nqp::elems($braw)
+            && ($iter := nqp::iterator($braw)),
+          nqp::stmts(             # something in B
             nqp::while(
               $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                return False    # elem in A doesn't exist in B
+              nqp::if(
+                nqp::iterval(nqp::shift($iter)),
+                return True       # found valid elem in B
               )
             ),
-            True                # all elems in A exist in B
+            False                 # no valid elem in B
           ),
-          False                 # number of elems in B smaller or equal to A
-        ),
-        False                   # can never have fewer elems in A than in B
+          False                   # nothing in B (nor A)
+        )
       )
     )
 }

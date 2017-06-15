@@ -29,25 +29,27 @@ my class Lock is repr('ReentrantMutex') { ... }
 
 sub DYNAMIC(\name) is raw {
     nqp::ifnull(
-      nqp::getlexdyn(nqp::unbox_s(name)),
+      nqp::getlexdyn(name),
       nqp::stmts(
         nqp::unless(
           nqp::isnull(my $prom := nqp::getlexdyn('$*PROMISE')),
           (my Mu $x := nqp::getlexreldyn(
-            nqp::getattr($prom,Promise,'$!dynamic_context'),nqp::unbox_s(name))
+            nqp::getattr($prom,Promise,'$!dynamic_context'),name)
           )
         ),
-        nqp::if(
-          nqp::isnull($x),
+        nqp::ifnull(
+          $x,
           nqp::stmts(
-            (my str $pkgname = nqp::replace(nqp::unbox_s(name),1,1,'')),
-            ($x := nqp::ifnull(nqp::atkey(GLOBAL.WHO,$pkgname),
-                   nqp::ifnull(nqp::atkey(PROCESS.WHO,$pkgname),
-                   Rakudo::Internals.INITIALIZE-DYNAMIC(nqp::unbox_s(name))))
+            (my str $pkgname = nqp::replace(name,1,1,'')),
+            nqp::ifnull(
+              nqp::atkey(GLOBAL.WHO,$pkgname),
+              nqp::ifnull(
+                nqp::atkey(PROCESS.WHO,$pkgname),
+                Rakudo::Internals.INITIALIZE-DYNAMIC(name)
+              )
             )
           )
-        ),
-        $x
+        )
       )
     )
 }

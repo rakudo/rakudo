@@ -1,18 +1,38 @@
 my role Setty does QuantHash {
     has $!elems; # key.WHICH => key
 
-    multi method new(Setty: --> Setty:D) { nqp::create(self) }
-    multi method new(Setty: +@args --> Setty:D) {
+    # helper sub to create Set from iterator, check for laziness
+    sub create-from-iterator(\type, \iterator --> Setty:D) {
         nqp::if(
-          (my $iterator := @args.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
-          nqp::create(self).SET-SELF(
+          iterator.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
             Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet), iterator
             )
           )
         )
     }
+
+    multi method new(Setty: --> Setty:D) { nqp::create(self) }
+    multi method new(Setty: \value --> Setty:D) {
+        nqp::if(
+          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
+          create-from-iterator(self, value.iterator),
+          nqp::stmts(
+            nqp::bindkey(
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              value.WHICH,
+              nqp::decont(value)
+            ),
+            nqp::create(self).SET-SELF($elems)
+          )
+        )
+    }
+    multi method new(Setty: **@args --> Setty:D) {
+        create-from-iterator(self, @args.iterator)
+    }
+
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,

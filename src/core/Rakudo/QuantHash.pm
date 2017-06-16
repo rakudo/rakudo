@@ -161,14 +161,25 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # add to given IterationSet the values of given iterator
+    method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::bindkey(elems,$pulled.WHICH,$pulled)
+          ),
+          elems
+        )
+    }
+
     # add to given IterationSet the values of given iterator with Pair check
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr(
-              (my $pulled := iterator.pull-one),
-              IterationEnd
-            ),
+            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(

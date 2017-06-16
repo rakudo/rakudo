@@ -4058,6 +4058,14 @@ class Perl6::World is HLL::World {
         elsif $name eq '&break' {
             @suggestions.push: 'last';
         }
+        elsif $name eq '&skip' {
+            @suggestions.push: 'next';
+        }
+        elsif $name eq '&continue' {
+            @suggestions.push: 'NEXT';
+            @suggestions.push: 'proceed';
+            @suggestions.push: 'succeed';
+        }
         return @suggestions;
     }
 

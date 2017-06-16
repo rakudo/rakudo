@@ -6,14 +6,10 @@ my role Setty does QuantHash {
         nqp::if(
           (my $iterator := @args.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
-          nqp::stmts(
-            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-            (my $iter  := @args.iterator),
-            nqp::until(
-              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
-              nqp::bindkey($elems,$pulled.WHICH,$pulled)
-            ),
-            nqp::create(self).SET-SELF($elems)
+          nqp::create(self).SET-SELF(
+            Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+              nqp::create(Rakudo::Internals::IterationSet), $iterator
+            )
           )
         )
     }
@@ -23,7 +19,7 @@ my role Setty does QuantHash {
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),$iterator
+              nqp::create(Rakudo::Internals::IterationSet), $iterator
             )
           )
         )

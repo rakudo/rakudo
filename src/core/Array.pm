@@ -586,7 +586,7 @@ my class Array { # declared in BOOTSTRAP
           )
         )
     }
-    multi method append(Array:D: **@values is raw) {
+    multi method append(Array:D: *@values is raw) {
         self.is-lazy
           ?? X::Cannot::Lazy.new(action => 'append to').throw
           !! self!append-list(@values)

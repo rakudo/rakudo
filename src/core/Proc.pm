@@ -190,15 +190,8 @@ sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
 
 sub QX($cmd, :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:out);
-    my $status := $proc.shell($cmd, :$cwd, :$env);
-    my $result;
-    try {
-        $result := $proc.out.slurp;
-        $status := $proc.out.close;
-    }
-    $result.DEFINITE
-      ?? $result
-      !! Failure.new("Unable to read from '$cmd'")
+    $proc.shell($cmd, :$cwd, :$env);
+    $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }
 
 # vim: ft=perl6 expandtab sw=4

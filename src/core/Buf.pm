@@ -407,11 +407,11 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    method decode(utf8:D: $encoding = 'utf-8') {
+    method decode(utf8:D: $encoding = 'utf-8', Bool :$force) {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-8 buffer as if it were $encoding"
-            unless $enc eq 'utf8';
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
+        die "Can not decode a utf-8 buffer as if it were $encoding without :force"
+            if !$force and $enc ne 'utf8';
+        nqp::p6box_s(nqp::decode(self, $encoding))
     }
     method encoding() { 'utf-8' }
     multi method Str(utf8:D:) { self.decode }
@@ -419,11 +419,11 @@ my class utf8 does Blob[uint8] is repr('VMArray') {
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    method decode(utf16:D: $encoding = 'utf-16') {
+    method decode(utf16:D: $encoding = 'utf-16', Bool :$force) {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16';
-        nqp::p6box_s(nqp::decode(self, 'utf16'))
+        die "Can not decode a utf-16 buffer as if it were $encoding without :force"
+            if !$force and $enc ne 'utf16';
+        nqp::p6box_s(nqp::decode(self, $encoding))
     }
     method encoding() { 'utf-16' }
     multi method Str(utf16:D:) { self.decode }
@@ -431,11 +431,11 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    method decode(utf32:D: $encoding = 'utf-32') {
+    method decode(utf32:D: $encoding = 'utf-32', Bool :$force) {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-32 buffer as if it were $encoding"
-            unless $enc eq 'utf32';
-        nqp::p6box_s(nqp::decode(self, 'utf32'))
+        die "Can not decode a utf-32 buffer as if it were $encoding without :force"
+            if !$force and $enc ne 'utf32';
+        nqp::p6box_s(nqp::decode(self, $encoding))
     }
     method encoding() { 'utf-32' }
     multi method Str(utf32:D:) { self.decode }

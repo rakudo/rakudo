@@ -260,16 +260,16 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.add($id);
             my $handle      = $dist.content($file);
-            self!add-short-name($name, $dist, $id, nqp::sha1($handle.open(:enc<iso-8859-1>).slurp(:close)));
+            my $content     = $handle.open(:bin).slurp(:close);
+
+            self!add-short-name($name, $dist, $id, nqp::sha1($content.decode('iso-8859-1')));
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
                 :$!cver
             };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
-            my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
-            $handle.close;
         }
 
         # bin/ scripts

@@ -115,7 +115,13 @@ class Kernel does Systemic {
                 # These are the ones libuv emulates on Windows.
                 @names = flat "", <INT BREAK HUP WINCH>;
             } else {
-                @names = flat "", qx/kill -l/.words;
+                if self.name eq 'openbsd' {
+                    # otherwise it uses a shell buildin
+                    @names = flat "", qx!/bin/kill -l!.words;
+                }
+                else {
+                    @names = flat "", qx/kill -l/.words;
+                }
                 @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
                 @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
             }

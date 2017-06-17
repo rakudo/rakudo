@@ -115,7 +115,7 @@ class Kernel does Systemic {
                 # These are the ones libuv emulates on Windows.
                 @names = flat "", <INT BREAK HUP WINCH>;
             } else {
-                if $*KERNEL.name eq 'openbsd' {
+                if self.name eq 'openbsd' {
                     # otherwise it uses a shell buildin
                     @names = flat "", qx!/bin/kill -l!.words;
                 }

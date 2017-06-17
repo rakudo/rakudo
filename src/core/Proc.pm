@@ -45,7 +45,11 @@ my class Proc {
                 :on-close({ self!await-if-last-handle }),
                 :bin-supply({ $chan.Supply }));
             $!active-handles++;
-            @!pre-spawn.push({ $!proc.Supply(:bin).tap: { $chan.send($_) } });
+            @!pre-spawn.push({
+                $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
+                    done => { $chan.close },
+                    quit => { $chan.fail($_) }
+            });
         }
         else {
             if $out === True {

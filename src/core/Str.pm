@@ -1144,10 +1144,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                        *%options) {
 
         # take the fast lane if we can
-        return Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
-          if nqp::istype($matcher,Str) && nqp::istype($replacement,Str)
-          && $g
-          && !$samecase && !$samespace && !$samemark && !%options;
+        return $g
+          ?? Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
+          !! Rakudo::Internals.TRANSPOSE-ONE(self,$matcher,$replacement)
+          if nqp::istype($matcher,Str:D)
+            && nqp::istype($replacement,Str:D)
+            && !$samecase
+            && !$samespace
+            && !$samemark
+            && !%options;
 
         X::Str::Subst::Adverb.new(:name($_), :got(%options{$_})).throw
           if %options{$_} for <ov ex>;

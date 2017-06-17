@@ -309,7 +309,7 @@ my class Rakudo::Internals {
             nqp::substr($string,0,$index),
             nqp::concat(
               $final,
-              nqp::substr($string,nqp::add_i($index,nqp::chars($final)))
+              nqp::substr($string,nqp::add_i($index,nqp::chars($original)))
             )
           )
         )

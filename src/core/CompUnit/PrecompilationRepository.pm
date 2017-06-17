@@ -174,7 +174,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     multi method load(
         CompUnit::PrecompilationId $id,
         IO::Path :$source,
-        Str :$checksum,
+        Str :$checksum is copy,
         Instant :$since,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
     ) {
@@ -186,7 +186,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or ($checksum // nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
+                and (not $source or ($checksum //= nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my \loaded = self!load-handle-for-path($unit);
@@ -194,9 +194,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 return (loaded, $unit.checksum);
             }
             else {
-                if $*RAKUDO_MODULE_DEBUG -> $RMD {
-                    $RMD("Outdated precompiled $unit\nmtime: {$unit.modified}{$since ?? "\nsince: $since" !! ''}")
-                }
+                $RMD("Outdated precompiled {$unit}{$source ?? " for $source" !! ''}\n"
+                     ~ "    mtime: {$unit.modified}{$since ?? ", since: $since" !! ''}\n"
+                     ~ "    checksum: {$unit.source-checksum}, expected: $checksum") if $RMD;
                 $unit.close;
                 fail "Outdated precompiled $unit";
             }
@@ -312,7 +312,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD($dependency.Str()) if $RMD;
             @dependencies.push: $dependency;
         }
-        $RMD("Writing dependencies and byte code to $io.tmp") if $RMD;
+        $RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum") if $RMD;
         self.store.store-unit(
             $compiler-id,
             $id,

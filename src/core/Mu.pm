@@ -3,6 +3,9 @@ my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = nqp::create(Mu);
+
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }

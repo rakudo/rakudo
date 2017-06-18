@@ -262,8 +262,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $handle      = $dist.content($file);
             my $content     = $handle.open(:bin).slurp(:close);
 
-            self!add-short-name($name, $dist, $id, nqp::sha1(
-                $content.decode('iso-8859-1').subst: :g, "\r\n", "\n"));
+            self!add-short-name($name, $dist, $id,
+              nqp::sha1(nqp::join("\n", nqp::split("\r\n",
+                $content.decode('iso-8859-1')))));
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),

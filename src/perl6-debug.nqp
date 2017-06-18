@@ -5,24 +5,24 @@ use Perl6::Compiler;
 class Perl6::DebugHooks {
     has %!hooks;
     has $!suspended;
-    
+
     method set_hook($name, $callback) {
         $*W.add_object($callback);
         %!hooks{$name} := $callback;
     }
-    
+
     method has_hook($name) {
         !$!suspended && nqp::existskey(%!hooks, $name)
     }
-    
+
     method get_hook($name) {
         %!hooks{$name}
     }
-    
+
     method suspend() {
         $!suspended := 1
     }
-    
+
     method unsuspend() {
         $!suspended := 0
     }
@@ -54,7 +54,7 @@ class Perl6::HookRegexActions is Perl6::RegexActions {
         }
         Perl6::RegexActions.nibbler($/);
     }
-    
+
     method quantified_atom($/) {
         Perl6::RegexActions.quantified_atom($/);
         my $qa := $/.ast;
@@ -109,7 +109,7 @@ class QRegex::P5Regex::HookActions is Perl6::P5RegexActions {
         }
         QRegex::P5Regex::Actions.nibbler($/);
     }
-    
+
     method quantified_atom($/) {
         QRegex::P5Regex::Actions.quantified_atom($/);
         my $qa := $/.ast;
@@ -172,7 +172,7 @@ class Perl6::HookActions is Perl6::Actions {
         }
         $accept
     }
-    
+
     method statement($/) {
         Perl6::Actions.statement($/);
         if $*ST_DEPTH <= 1 && $<EXPR> && interesting_expr($<EXPR>) {
@@ -195,7 +195,7 @@ class Perl6::HookActions is Perl6::Actions {
             }
         }
     }
-    
+
     method statement_control:sym<if>($/) {
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
             my $from := $<sym>[0].from;
@@ -218,7 +218,7 @@ class Perl6::HookActions is Perl6::Actions {
         }
         Perl6::Actions.statement_control:sym<if>($/);
     }
-    
+
     sub simple_xblock_hook($/) {
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
             my $stmt := $/.ast;
@@ -236,17 +236,17 @@ class Perl6::HookActions is Perl6::Actions {
             );
         }
     }
-    
+
     method statement_control:sym<unless>($/) {
         Perl6::Actions.statement_control:sym<unless>($/);
         simple_xblock_hook($/);
     }
-    
+
     method statement_control:sym<while>($/) {
         Perl6::Actions.statement_control:sym<while>($/);
         simple_xblock_hook($/);
     }
-    
+
     method statement_control:sym<repeat>($/) {
         Perl6::Actions.statement_control:sym<repeat>($/);
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
@@ -267,7 +267,7 @@ class Perl6::HookActions is Perl6::Actions {
             );
         }
     }
-    
+
     method statement_control:sym<loop>($/) {
         if $*DEBUG_HOOKS.has_hook('statement_cond') {
             for <e1 e2 e3> -> $expr {
@@ -289,7 +289,7 @@ class Perl6::HookActions is Perl6::Actions {
         }
         Perl6::Actions.statement_control:sym<loop>($/);
     }
-    
+
     sub widen_expr_from($e) {
         my $from := $e.from;
         for @($e) {
@@ -299,7 +299,7 @@ class Perl6::HookActions is Perl6::Actions {
         }
         $from
     }
-    
+
     sub widen_expr_to($e) {
         my $to := $e.to;
         for @($e) {
@@ -309,22 +309,22 @@ class Perl6::HookActions is Perl6::Actions {
         }
         $to
     }
-    
+
     method statement_control:sym<for>($/) {
         Perl6::Actions.statement_control:sym<for>($/);
         simple_xblock_hook($/);
     }
-    
+
     method statement_control:sym<given>($/) {
         Perl6::Actions.statement_control:sym<given>($/);
         simple_xblock_hook($/);
     }
-    
+
     method statement_control:sym<when>($/) {
         Perl6::Actions.statement_control:sym<when>($/);
         simple_xblock_hook($/);
     }
-    
+
     method statement_control:sym<require>($/) {
         Perl6::Actions.statement_control:sym<require>($/);
         if $*DEBUG_HOOKS.has_hook('statement_simple') {
@@ -341,14 +341,14 @@ class Perl6::HookActions is Perl6::Actions {
             ));
         }
     }
-    
+
     sub routine_hook($/, $body, $type, $name) {
         if $*DEBUG_HOOKS.has_hook('routine_region') {
             my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
             $*DEBUG_HOOKS.get_hook('routine_region')($file, $/.from, $/.to, $type, $name);
         }
     }
-    
+
     method routine_declarator:sym<sub>($/) {
         Perl6::Actions.routine_declarator:sym<sub>($/);
         routine_hook($/, $<routine_def>, 'sub',
@@ -373,7 +373,7 @@ class Perl6::HookActions is Perl6::Actions {
 
 class Perl6::HookGrammar is Perl6::Grammar {
     my %seen_files;
-    
+
     method statementlist($*statement_level = 0) {
         my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
         unless nqp::existskey(%*SEEN_FILES, $file) {
@@ -389,11 +389,11 @@ class Perl6::HookGrammar is Perl6::Grammar {
             Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'statementlist')(self, $*statement_level)
         }
     }
-    
+
     method comp_unit() {
         my $*ST_DEPTH := 0;
         my %*SEEN_FILES;
-        
+
         # Fiddle the %*LANG for the appropriate actions.
         %*LANG<Regex>           := Perl6::HookRegexGrammar;
         %*LANG<Regex-actions>   := Perl6::HookRegexActions;
@@ -404,15 +404,15 @@ class Perl6::HookGrammar is Perl6::Grammar {
         self.define_slang('MAIN',Perl6::HookGrammar, Perl6::HookActions);
         self.define_slang('Regex',Perl6::HookRegexGrammar, Perl6::HookRegexActions);
         self.define_slang('P5Regex',Perl6::HookP5RegexGrammar, Perl6::HookP5RegexActions);
-        
+
         Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'comp_unit')(self)
     }
-    
+
     method blockoid() {
         my $*ST_DEPTH := 0;
         Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'blockoid')(self)
     }
-    
+
     method semilist() {
         my $cur_st_depth := $*ST_DEPTH;
         {
@@ -420,7 +420,7 @@ class Perl6::HookGrammar is Perl6::Grammar {
             Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'semilist')(self)
         }
     }
-    
+
     method comment:sym<#>() {
         my $c := Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'comment:sym<#>')(self);
         if $c {
@@ -452,7 +452,7 @@ sub MAIN(*@ARGS) {
     if nqp::islist(@ARGS[0]) {
         @ARGS := @ARGS[0];
     }
-    
+
     # Initialize dynops.
     nqp::p6init();
 
@@ -466,7 +466,7 @@ sub MAIN(*@ARGS) {
     hll-config($comp.config);
     my $COMPILER_CONFIG := $comp.config;
     nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
-    
+
     # Add extra command line options.
     my @clo := $comp.commandline_options();
     @clo.push('setting=s');
@@ -476,7 +476,7 @@ sub MAIN(*@ARGS) {
 
     # Set up module loading trace
     my @*MODULES := [];
-    
+
     # Set up END block list, which we'll run at exit.
     nqp::bindhllsym('perl6', '@END_PHASERS', []);
 
@@ -506,7 +506,7 @@ sub MAIN(*@ARGS) {
 
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
-    
+
     # Run any END blocks before exiting.
     for nqp::gethllsym('perl6', '@END_PHASERS') {
         my $result := $_();

@@ -1139,30 +1139,41 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $/ := nqp::getlexcaller('$/');
         {*}
     }
-    multi method subst(Str:D: $matcher, $replacement, :global(:$g),
-                       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
-                       *%options) {
-
-        # take the fast lane if we can
-        return $g
-          ?? Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
-          !! Rakudo::Internals.TRANSPOSE-ONE(self,$matcher,$replacement)
-          if nqp::istype($matcher,Str:D)
-            && nqp::istype($replacement,Str:D)
-            && !$samecase
-            && !$samespace
-            && !$samemark
-            && !%options;
-
+    multi method subst(Str:D: Str:D $original, Str:D $final, *%options) {
+        nqp::if(
+          (my $opts := nqp::getattr(%options,Map,'$!storage'))
+            && nqp::isgt_i(nqp::elems($opts),1),
+            self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
+          nqp::if(
+            nqp::elems($opts),
+            nqp::if(                                      # one named
+              nqp::atkey($opts,'g') || nqp::atkey($opts,'global'),
+              Rakudo::Internals.TRANSPOSE(self, $original, $final),
+              nqp::if(                                    # no trueish g/global
+                nqp::existskey($opts,'g') || nqp::existskey($opts,'global'),
+                Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final),
+                self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options)
+              )
+            ),
+            Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final) # no nameds
+          )
+        )
+    }
+    multi method subst(Str:D: $matcher, $replacement, *%options) {
+        self!SUBST(nqp::getlexcaller('$/'), $matcher, $replacement, |%options)
+    }
+    method !SUBST(Str:D: \caller_dollar_slash, $matcher, $replacement,
+      :global(:$g), :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
+      *%options
+    ) {
         X::Str::Subst::Adverb.new(:name($_), :got(%options{$_})).throw
           if %options{$_} for <ov ex>;
 
-        my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
+        my $SET_DOLLAR_SLASH = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         # nothing to do
-        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        try caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = %options
           ?? self.match($matcher, :$g, |%options)
           !! self.match($matcher, :$g);  # 30% faster
@@ -1174,7 +1185,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   !! self!APPLY-MATCHES(
                        @matches,
                        $replacement,
-                       $caller_dollar_slash,
+                       caller_dollar_slash,
                        $SET_DOLLAR_SLASH,
                        $word_by_word,
                        $samespace,

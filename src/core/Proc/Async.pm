@@ -163,7 +163,7 @@ my class Proc::Async {
             unless $sup.DEFINITE;
         $!w = True;
         $!ready_promise.then({
-            $sup().tap: { self.write($_) },
+            $sup().tap: { await self.write($_) },
                 done => { self.close-stdin },
                 quit => { self.close-stdin };
         });

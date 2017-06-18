@@ -446,7 +446,7 @@ my class IO::Handle {
             buf8.new
         }
         else {
-            $!decoder.add-bytes(self.read-internal($bytes max 0x10000));
+            $!decoder.add-bytes(self.read-internal($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
                 // buf8.new

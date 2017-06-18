@@ -473,6 +473,7 @@ sub MAIN(*@ARGS) {
     @clo.push('c');
     @clo.push('I=s');
     @clo.push('M=s');
+    @clo.push('nqp-lib=s');
 
     # Set up module loading trace
     my @*MODULES := [];

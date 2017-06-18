@@ -609,7 +609,8 @@ my class IO::Path is Cool does IO {
             $handle,
             nqp::stmts(
                 (my $blob := $handle.slurp(:close)),
-                nqp::if($bin, $blob, $blob.decode($enc || 'utf-8').subst("\r\n", "\n", :g))
+                nqp::if($bin, $blob, nqp::join("\n",
+                  nqp::split("\r\n", $blob.decode: $enc || 'utf-8')))
             ))
     }
 

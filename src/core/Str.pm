@@ -2992,7 +2992,7 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ).throw;
     ORDER(
         nqp::unicmp_s(
-            nqp::unbox_s(a), nqp::unbox_s(b), 15,0,0))
+            nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
 }
 multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
     (a.key unicmp b.key) || (a.value unicmp b.value)

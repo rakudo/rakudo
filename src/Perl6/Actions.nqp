@@ -179,7 +179,7 @@ sub wanted($ast,$by) {
             elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }
-            elsif $node.op eq 'p6for' {
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
@@ -394,7 +394,7 @@ sub unwanted($ast, $by) {
                 }
                 $node.sunk(1);
             }
-            elsif $node.op eq 'p6for' {
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));

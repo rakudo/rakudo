@@ -3,7 +3,7 @@ class Encoding::Builtin does Encoding {
     has @.alternative-names;
 
     method new() {
-        die "Do not create instnaces of this class directly; instead use Encoding::Registry"
+        X::Cannot::New.new(class => self.WHAT).throw
     }
 
     method alternative-names() { @!alternative-names }

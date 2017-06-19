@@ -1,6 +1,6 @@
 my class Supply { ... }
 
-my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') {
+my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') does Encoding::Decoder {
     method new(str $encoding, :$translate-nl) {
         nqp::decoderconfigure(nqp::create(self), $encoding,
             $translate-nl ?? nqp::hash('translate_newlines', 1) !! nqp::null())

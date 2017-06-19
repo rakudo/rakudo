@@ -1,6 +1,4 @@
-my class Supply { ... }
-
-my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') does Encoding::Decoder {
+my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
     method new(str $encoding, :$translate-nl) {
         nqp::decoderconfigure(nqp::create(self), $encoding,
             $translate-nl ?? nqp::hash('translate_newlines', 1) !! nqp::null())
@@ -47,11 +45,12 @@ my class Rakudo::Internals::VMBackedDecoder is repr('Decoder') does Encoding::De
     }
 }
 
+my class Supply { ... }
 augment class Rakudo::Internals {
     method BYTE_SUPPLY_DECODER(Supply:D $bin-supply, Str:D $enc, :$translate-nl) {
         my $norm-enc = self.NORMALIZE_ENCODING($enc);
         supply {
-            my $decoder = Rakudo::Internals::VMBackedDecoder.new($norm-enc, :$translate-nl);
+            my $decoder = Encoding::Decoder::Builtin.new($norm-enc, :$translate-nl);
             whenever $bin-supply {
                 $decoder.add-bytes($_);
                 my $available = $decoder.consume-available-chars();

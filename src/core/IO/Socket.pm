@@ -3,11 +3,11 @@ my role IO::Socket {
     has Str $.encoding = 'utf8';
     has $.nl-in is rw = ["\n", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
-    has Rakudo::Internals::VMBackedDecoder $!decoder;
+    has Encoding::Decoder $!decoder;
 
     method !ensure-decoder(--> Nil) {
         unless $!decoder.DEFINITE {
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            $!decoder := Encoding::Decoder::Builtin.new($!encoding);
             $!decoder.set-line-separators($!nl-in);
         }
     }

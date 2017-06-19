@@ -9,7 +9,7 @@ my class IO::Handle {
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
-    has Rakudo::Internals::VMBackedDecoder $!decoder;
+    has Encoding::Decoder $!decoder;
 
     submethod TWEAK (:$encoding, :$bin) {
         nqp::if(
@@ -125,7 +125,7 @@ my class IO::Handle {
             $!nl-out = $nl-out;
             if nqp::isconcrete($enc) {
                 $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+                $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
             }
             return self;
@@ -166,7 +166,7 @@ my class IO::Handle {
         $!nl-out = $nl-out;
         if nqp::isconcrete($enc) {
             $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+            $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
         }
         self;
@@ -517,7 +517,7 @@ my class IO::Handle {
 
             # Freshen decoder, so we won't have stuff left over from earlier reads
             # that were in the wrong place.
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+            $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
             $!decoder.set-line-separators($!nl-in.list);
         }
         nqp::seekfh($!PIO, $offset - $rewind, +$whence);
@@ -695,7 +695,7 @@ my class IO::Handle {
             my $available = $!decoder.bytes-available;
             with $new-encoding {
                 my $prev-decoder := $!decoder;
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
+                $!decoder := Encoding::Decoder::Builtin.new($new-encoding, :translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
@@ -703,7 +703,7 @@ my class IO::Handle {
             }
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
-                $!decoder := Rakudo::Internals::VMBackedDecoder;
+                $!decoder := Encoding::Decoder;
                 $!encoding = Nil;
                 Nil
             }
@@ -711,7 +711,7 @@ my class IO::Handle {
         else {
             # No previous decoder; make a new one if needed, otherwise no change.
             with $new-encoding {
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
+                $!decoder := Encoding::Decoder::Builtin.new($new-encoding, :translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!encoding = $new-encoding;
             }

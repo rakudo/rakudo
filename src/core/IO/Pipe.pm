@@ -14,7 +14,7 @@ my class IO::Pipe is IO::Handle {
         else {
             my $encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc || 'utf-8');
             nqp::bindattr(self, IO::Handle, '$!encoding', $encoding);
-            my $decoder := Rakudo::Internals::VMBackedDecoder.new($encoding, :translate-nl);
+            my $decoder := Encoding::Decoder::Builtin.new($encoding, :translate-nl);
             $decoder.set-line-separators($.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);
         }

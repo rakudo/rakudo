@@ -21,6 +21,9 @@ Encoding::Registry.register(Encoding::Builtin.bless(
     :name<utf8>, :alternative-names<utf-8>
 ));
 Encoding::Registry.register(Encoding::Builtin.bless(
+    :name<utf8-c8>, :alternative-names<utf-8-c8>
+));
+Encoding::Registry.register(Encoding::Builtin.bless(
     :name<ascii>
 ));
 Encoding::Registry.register(Encoding::Builtin.bless(

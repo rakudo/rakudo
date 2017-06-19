@@ -8,8 +8,8 @@ class Encoding::Builtin does Encoding {
 
     method alternative-names() { @!alternative-names }
 
-    method decoder(--> Encoding::Decoder) {
-        die "NYI";
+    method decoder(*%options --> Encoding::Decoder) {
+        Encoding::Decoder::Builtin.new($!name, |%options)
     }
 
     method encoder(--> Encoding::Encoder) {

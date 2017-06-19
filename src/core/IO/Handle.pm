@@ -124,9 +124,10 @@ my class IO::Handle {
             $!chomp = $chomp;
             $!nl-out = $nl-out;
             if nqp::isconcrete($enc) {
-                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-                $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($enc);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+                $!encoding = $encoding.name;
             }
             return self;
         }
@@ -165,9 +166,10 @@ my class IO::Handle {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         if nqp::isconcrete($enc) {
-            $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-            $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
+            my $encoding = Encoding::Registry.find($enc);
+            $!decoder := $encoding.decoder(:translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+            $!encoding = $encoding.name;
         }
         self;
     }
@@ -517,7 +519,7 @@ my class IO::Handle {
 
             # Freshen decoder, so we won't have stuff left over from earlier reads
             # that were in the wrong place.
-            $!decoder := Encoding::Decoder::Builtin.new($!encoding, :translate-nl);
+            $!decoder := Encoding::Registry.find($!encoding).decoder(:translate-nl);
             $!decoder.set-line-separators($!nl-in.list);
         }
         nqp::seekfh($!PIO, $offset - $rewind, +$whence);
@@ -684,7 +686,6 @@ my class IO::Handle {
                 $_ = Nil;
             }
             else {
-                $_ = Rakudo::Internals.NORMALIZE_ENCODING(.Str);
                 return $!encoding if $!encoding && $!encoding eq $_;
             }
         }
@@ -695,11 +696,12 @@ my class IO::Handle {
             my $available = $!decoder.bytes-available;
             with $new-encoding {
                 my $prev-decoder := $!decoder;
-                $!decoder := Encoding::Decoder::Builtin.new($new-encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($new-encoding);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
-                $!encoding = $new-encoding;
+                $!encoding = $encoding.name;
             }
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
@@ -711,9 +713,10 @@ my class IO::Handle {
         else {
             # No previous decoder; make a new one if needed, otherwise no change.
             with $new-encoding {
-                $!decoder := Encoding::Decoder::Builtin.new($new-encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($new-encoding);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!encoding = $new-encoding;
+                $!encoding = $encoding.name;
             }
             else {
                 Nil

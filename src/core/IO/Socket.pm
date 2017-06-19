@@ -7,7 +7,8 @@ my role IO::Socket {
 
     method !ensure-decoder(--> Nil) {
         unless $!decoder.DEFINITE {
-            $!decoder := Encoding::Decoder::Builtin.new($!encoding);
+            my $encoding = Encoding::Registry.find($!encoding);
+            $!decoder := $encoding.decoder();
             $!decoder.set-line-separators($!nl-in);
         }
     }

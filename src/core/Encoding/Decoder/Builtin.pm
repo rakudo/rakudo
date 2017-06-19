@@ -46,11 +46,11 @@ my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
 }
 
 my class Supply { ... }
+my class Encoding::Registry { ... }
 augment class Rakudo::Internals {
     method BYTE_SUPPLY_DECODER(Supply:D $bin-supply, Str:D $enc, :$translate-nl) {
-        my $norm-enc = self.NORMALIZE_ENCODING($enc);
         supply {
-            my $decoder = Encoding::Decoder::Builtin.new($norm-enc, :$translate-nl);
+            my $decoder = Encoding::Registry.find($enc).decoder(:$translate-nl);
             whenever $bin-supply {
                 $decoder.add-bytes($_);
                 my $available = $decoder.consume-available-chars();

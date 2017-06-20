@@ -10,6 +10,7 @@ my class IO::Handle {
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
     has Encoding::Decoder $!decoder;
+    has Encoding::Encoder $!encoder;
 
     submethod TWEAK (:$encoding, :$bin) {
         nqp::if(
@@ -127,6 +128,7 @@ my class IO::Handle {
                 my $encoding = Encoding::Registry.find($enc);
                 $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+                $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
             return self;
@@ -169,6 +171,7 @@ my class IO::Handle {
             my $encoding = Encoding::Registry.find($enc);
             $!decoder := $encoding.decoder(:translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+            $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
         }
         self;
@@ -567,7 +570,7 @@ my class IO::Handle {
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        self.write-internal(x.encode($!encoding, :translate-nl));
+        self.write-internal($!encoder.encode-chars(x));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -576,8 +579,8 @@ my class IO::Handle {
     proto method put(|) { * }
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
-        self.write-internal(nqp::concat(nqp::unbox_s(x),
-            nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal($!encoder.encode-chars(
+            nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
@@ -585,8 +588,8 @@ my class IO::Handle {
 
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        self.write-internal(nqp::concat(nqp::unbox_s(x.gist),
-            nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal($!encoder.encode-chars(
+            nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
     }
     multi method say(IO::Handle:D: |) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
@@ -599,7 +602,7 @@ my class IO::Handle {
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        self.write-internal($!nl-out.encode($!encoding, :translate-nl));
+        self.write-internal($!encoder.encode-chars($!nl-out));
     }
 
     proto method slurp-rest(|) { * }
@@ -701,11 +704,13 @@ my class IO::Handle {
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
+                $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
                 $!decoder := Encoding::Decoder;
+                $!encoder := Encoding::Encoder;
                 $!encoding = Nil;
                 Nil
             }
@@ -716,6 +721,7 @@ my class IO::Handle {
                 my $encoding = Encoding::Registry.find($new-encoding);
                 $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
+                $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
             else {

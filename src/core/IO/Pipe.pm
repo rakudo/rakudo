@@ -17,6 +17,7 @@ my class IO::Pipe is IO::Handle {
             my $decoder := $encoding.decoder(:translate-nl);
             $decoder.set-line-separators($.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);
+            nqp::bindattr(self, IO::Handle, '$!encoder', $encoding.encoder(:translate-nl))
         }
     }
 

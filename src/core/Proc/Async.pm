@@ -77,10 +77,15 @@ my class Proc::Async {
     has $!process_handle;
     has $!exit_promise;
     has @!promises;
+    has $!encoder;
 
     proto method new(|) { * }
     multi method new(*@ ($path, *@args), *%_) {
         self.bless(:$path, :@args, |%_)
+    }
+
+    submethod TWEAK(--> Nil) {
+        $!encoder := Encoding::Registry.find($!enc).encoder(:$!translate-nl);
     }
 
     method !supply(\what,\the-supply,\type,\value) {
@@ -266,7 +271,7 @@ my class Proc::Async {
         X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
 
-        self.write($str.encode($!enc, :$!translate-nl))
+        self.write($!encoder.encode-chars($str))
     }
 
     method put(Proc::Async:D: \x, |c) {

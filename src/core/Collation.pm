@@ -40,4 +40,7 @@ class Collation {
     method tertiary    { self.check(16,  32) }
     method quaternary  { self.check(64, 128) }
 }
-PROCESS::<$COLLATION> = Collation.new;
+
+Rakudo::Internals.REGISTER-DYNAMIC: '$*COLLATION', {
+    PROCESS::<$COLLATION> := Collation.new;
+}

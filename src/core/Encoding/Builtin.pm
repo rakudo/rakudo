@@ -12,8 +12,26 @@ class Encoding::Builtin does Encoding {
         Encoding::Decoder::Builtin.new($!name, |%options)
     }
 
-    method encoder(--> Encoding::Encoder) {
-        die "NYI"
+    my int $is-win = Rakudo::Internals.IS-WIN;
+    method encoder(:$replacement, :$translate-nl --> Encoding::Encoder) {
+        my $encoder = $replacement
+            ?? Encoding::Encoder::Builtin::Replacement.new($!name,
+                    self!buf-type(), self!rep-char($replacement))
+            !! Encoding::Encoder::Builtin.new($!name, self!buf-type());
+        $translate-nl && $is-win
+            ?? Encoding::Encoder::TranslateNewlineWrapper.new($encoder)
+            !! $encoder
+    }
+
+    my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
+    method !buf-type() {
+        nqp::ifnull(nqp::atkey($enc_type, $!name), Blob)
+    }
+
+    method !rep-char($replacement) {
+        nqp::istype($replacement, Bool)
+            ?? ($!name.starts-with('utf') ?? "\x[FFFD]" !! "?")
+            !! $replacement.Str
     }
 }
 

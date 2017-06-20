@@ -14,7 +14,7 @@ class Encoding::Builtin does Encoding {
 
     my int $is-win = Rakudo::Internals.IS-WIN;
     method encoder(:$replacement, :$translate-nl --> Encoding::Encoder) {
-        my $encoder = $replacement
+        my $encoder = $replacement.DEFINITE && $replacement !=== False
             ?? Encoding::Encoder::Builtin::Replacement.new($!name,
                     self!buf-type(), self!rep-char($replacement))
             !! Encoding::Encoder::Builtin.new($!name, self!buf-type());

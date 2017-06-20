@@ -3,12 +3,15 @@ my role IO::Socket {
     has Str $.encoding = 'utf8';
     has $.nl-in is rw = ["\n", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
-    has Rakudo::Internals::VMBackedDecoder $!decoder;
+    has Encoding::Decoder $!decoder;
+    has Encoding::Encoder $!encoder;
 
-    method !ensure-decoder(--> Nil) {
+    method !ensure-coders(--> Nil) {
         unless $!decoder.DEFINITE {
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding);
+            my $encoding = Encoding::Registry.find($!encoding);
+            $!decoder := $encoding.decoder();
             $!decoder.set-line-separators($!nl-in);
+            $!encoder := $encoding.encoder();
         }
     }
 
@@ -20,7 +23,7 @@ my role IO::Socket {
             nqp::readfh($!PIO, nqp::decont(buf8.new), $limit)
         }
         else {
-            self!ensure-decoder();
+            self!ensure-coders();
             my $result = $!decoder.consume-exactly-chars($limit);
             without $result {
                 $!decoder.add-bytes(nqp::readfh($!PIO, nqp::decont(buf8.new), 65535));
@@ -61,7 +64,7 @@ my role IO::Socket {
     }
 
     method get() {
-        self!ensure-decoder();
+        self!ensure-coders();
         my Str $line = $!decoder.consume-line-chars(:chomp);
         if $line.DEFINITE {
             $line
@@ -88,7 +91,8 @@ my role IO::Socket {
     }
 
     method print(Str(Cool) $string --> True) {
-        self.write($string.encode($!encoding));
+        self!ensure-coders();
+        self.write($!encoder.encode-chars($string));
     }
 
     method put(Str(Cool) $string --> True) {

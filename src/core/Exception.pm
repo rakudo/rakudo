@@ -2013,6 +2013,22 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     }
 }
 
+my role X::Encoding is Exception { }
+
+my class X::Encoding::Unknown does X::Encoding {
+    has $.name;
+    method message() {
+        "Unknown string encoding '$.name'"
+    }
+}
+
+my class X::Encoding::AlreadyRegistered does X::Encoding {
+    has $.name;
+    method message() {
+        "An encoding with name '$.name' has already been registered"
+    }
+}
+
 my class X::Range::InvalidArg is Exception {
     has $.got is default(Nil);
     method message() {

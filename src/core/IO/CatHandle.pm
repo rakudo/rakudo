@@ -280,7 +280,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::if(
             nqp::isfalse($enc.defined) || nqp::iseq_s($enc.Str, 'bin'),
             Nil,
-            Rakudo::Internals.NORMALIZE_ENCODING: $enc.Str))
+            Encoding::Registry.find($enc.Str).name))
     }
 
     method eof (::?CLASS:D: --> Bool:D) {

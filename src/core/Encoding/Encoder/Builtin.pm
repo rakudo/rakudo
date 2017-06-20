@@ -12,7 +12,7 @@ my class Encoding::Encoder::Builtin does Encoding::Encoder {
         self
     }
 
-    method encode-chars(Str:D $str --> Blob:D) {
+    method encode-chars(str $str --> Blob:D) {
         nqp::encode($str, $!encoding, nqp::create($!type))
     }
 }
@@ -33,7 +33,7 @@ my class Encoding::Encoder::Builtin::Replacement does Encoding::Encoder {
         self
     }
 
-    method encode-chars(Str:D $str --> Blob:D) {
+    method encode-chars(str $str --> Blob:D) {
 #?if moar
         nqp::encoderep($str, $!encoding, $!replacement, nqp::create($!type))
 #?endif

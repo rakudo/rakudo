@@ -962,6 +962,7 @@ S32-container/cat.t
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
+S32-encoding/encoder.t
 S32-encoding/registry.t
 S32-exceptions/misc.t
 S32-hash/adverbs.t

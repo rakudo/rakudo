@@ -167,7 +167,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               nqp::if(
                 nqp::existskey($init,nqp::atpos($task,2)),
                 (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2))))
+                  = %attrinit.AT-KEY(nqp::atpos($task,2)))
               ),
 
               nqp::if( # 2
@@ -175,7 +175,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 nqp::if(
                   nqp::existskey($init,nqp::atpos($task,2)),
                   (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                    = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))),
+                    = %attrinit.AT-KEY(nqp::atpos($task,2))),
                   nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
                     nqp::list)
                 ),
@@ -185,7 +185,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                   nqp::if(
                     nqp::existskey($init,nqp::atpos($task,2)),
                     (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                       = %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))),
+                       = %attrinit.AT-KEY(nqp::atpos($task,2))),
                     nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
                        nqp::hash)
                   ),
@@ -213,9 +213,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         nqp::bindattr_i(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(
-                            nqp::p6box_s(nqp::atpos($task,2))
-                          ))
+                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                         )
                       ),
 
@@ -226,9 +224,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                           nqp::bindattr_n(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,3),
-                            nqp::decont(%attrinit.AT-KEY(
-                              nqp::p6box_s(nqp::atpos($task,2))
-                            ))
+                            nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                           )
                         ),
 
@@ -239,9 +235,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::bindattr_s(self,
                               nqp::atpos($task,1),
                               nqp::atpos($task,3),
-                              nqp::decont(%attrinit.AT-KEY(
-                                nqp::p6box_s(nqp::atpos($task,2))
-                              ))
+                              nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                             )
                           ),
 

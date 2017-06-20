@@ -2218,33 +2218,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self));
     }
 
-    my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
-    my int $is-win = Rakudo::Internals.IS-WIN;
-
-#?if moar
     proto method encode(|) {*}
-    multi method encode(Str:D $encoding = 'utf8', Bool:D :$replacement) {
-        self.encode($encoding, :replacement($replacement
-            ?? ($encoding ~~ m:i/^utf/ ?? "\x[FFFD]" !! "?" )
-            !! Nil
-        ), |%_)
-    }
-    multi method encode(Str:D $encoding = 'utf8', Str :$replacement, Bool() :$translate-nl = False) {
-#?endif
-#?if !moar
-    method encode(Str:D $encoding = 'utf8', Bool() :$translate-nl = False) {
-#?endif
-        my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        my $type := nqp::ifnull(nqp::atkey($enc_type,$enc),blob8);
-        my str $target = self;
-        if $is-win && $translate-nl {
-            $target .= subst("\n", "\r\n", :g);
-        }
-#?if moar
-        return nqp::encoderep(nqp::unbox_s($target), $enc, nqp::unbox_s($replacement), nqp::decont($type.new))
-            if $replacement.defined;
-#?endif
-        nqp::encode(nqp::unbox_s($target), $enc, nqp::decont($type.new))
+    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False) {
+        Encoding::Registry.find($encoding)
+            .encoder(:$replacement, :$translate-nl)
+            .encode-chars(self)
     }
 
 #?if moar

@@ -332,8 +332,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     method BUILD_LEAST_DERIVED(%attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan for just this class.
-        my $build_plan := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
-        my int $count = nqp::elems($build_plan);
+        my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
+        my int $count = nqp::elems($bp);
         my int $i     = -1;
         my $task;
         my $build;
@@ -347,7 +347,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
           nqp::if( # 0     # Custom BUILD call.
             nqp::iseq_i(($code = nqp::atpos(
-              ($task := nqp::atpos($build_plan,$i)),0
+              ($task := nqp::atpos($bp,$i)),0
             )),0),
             nqp::if(
               nqp::istype(
@@ -494,9 +494,28 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                     # Force vivification, for the sake of meta-object
                                     # mix-ins at compile time ending up with correctly
                                     # shared containers.
-                                    nqp::getattr(self,
-                                      nqp::atpos($task,1),
-                                      nqp::atpos($task,2)
+                                    nqp::stmts(
+                                      nqp::getattr(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      nqp::while(  # 13's flock together
+                                        nqp::islt_i(
+                                          ($i = nqp::add_i($i,1)),
+                                          $count
+                                        ) && nqp::iseq_i(
+                                          nqp::atpos(
+                                            ($task := nqp::atpos($bp,$i)),
+                                            0
+                                          ),
+                                          13
+                                        ),
+                                        nqp::getattr(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        )
+                                      ),
+                                      ($i = nqp::sub_i($i,1))
                                     ),
                                     die("Invalid BUILD_LEAST_DERIVED plan")
                                   )

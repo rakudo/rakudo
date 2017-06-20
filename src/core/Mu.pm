@@ -139,9 +139,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
-        my $build_plan :=
-          nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
-        my int $count = nqp::elems($build_plan);
+        my $bp := nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
+        my int $count = nqp::elems($bp);
         my int $i     = -1;
         my $task;
         my $build;
@@ -155,7 +154,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
           nqp::if( # 0     # Custom BUILD call.
             nqp::iseq_i(($code = nqp::atpos(
-              ($task := nqp::atpos($build_plan,$i)),0
+              ($task := nqp::atpos($bp,$i)),0
             )),0),
             nqp::if(
               nqp::istype(
@@ -310,7 +309,20 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                   ),
 
                                   nqp::if( # 13
-                                    nqp::isne_i($code,13),  # no-op
+                                    nqp::iseq_i($code,13),  # no-op in BUILDALL
+                                    nqp::stmts(  # 13's flock together
+                                      nqp::while(
+                                        nqp::islt_i(
+                                          ($i = nqp::add_i($i,1)),
+                                          $count
+                                        ) && nqp::iseq_i(
+                                          nqp::atpos(nqp::atpos($bp,$i),0),
+                                          13
+                                        ),
+                                        nqp::null
+                                      ),
+                                      ($i = nqp::sub_i($i,1))
+                                    ),
                                     die("Invalid BUILDALL plan")
                                   )
         ))))))))))))));

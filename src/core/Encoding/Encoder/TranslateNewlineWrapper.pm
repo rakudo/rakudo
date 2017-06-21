@@ -1,4 +1,4 @@
-my class Encoding::Encoder::TranslateNewlineWrapper {
+my class Encoding::Encoder::TranslateNewlineWrapper does Encoding::Encoder {
     has Encoding::Encoder $!delegate;
 
     method new(Encoding::Encoder $delegate) {

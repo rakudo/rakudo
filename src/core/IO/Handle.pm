@@ -32,6 +32,7 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
+      :$buffer = False
     ) {
         nqp::if(
           $bin,
@@ -41,6 +42,10 @@ my class IO::Handle {
           nqp::unless(
             nqp::isconcrete($enc),
             $enc = $!encoding));
+
+        my int $buffer-size = nqp::istype($buffer, Bool)
+            ?? ($buffer ?? 8192 !! 0)
+            !! $buffer.Int;
 
         $mode = nqp::if(
           $mode,
@@ -131,6 +136,7 @@ my class IO::Handle {
                 $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
+            nqp::setbuffersizefh($!PIO, $buffer-size);
             return self;
         }
 
@@ -174,6 +180,7 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
         }
+        nqp::setbuffersizefh($!PIO, $buffer-size);
         self;
     }
 

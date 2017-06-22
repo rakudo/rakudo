@@ -259,7 +259,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
                 }
             }
-            self!add-short-name($name-path, $dist);
+            self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp-rest(:bin,:close);
@@ -369,6 +369,26 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         # delete the meta file
         unlink( $dist-dir.add($dist.id) )
+    }
+
+    method script($file, :$name!, :$auth, :$ver) {
+        my $prefix = self.prefix;
+        my $lookup = $prefix.add('short').add(nqp::sha1($file));
+        return unless $lookup.e;
+
+        # Scripts using this interface could only have been installed long after the introduction of
+        # repo version 1, so we don't have to care about very old repos in this method.
+        my @dists = $lookup.dir.map({
+                my ($ver, $auth, $api, $resource-id) = $_.slurp.split("\n");
+                $resource-id ||= self!read-dist($_.basename)<files>{$file};
+                (id => $_.basename, ver => Version.new( $ver || 0 ), :$auth, :$api, :$resource-id).hash
+            }).grep({
+                $_.<auth> ~~ $auth
+                and $_.<ver> ~~ $ver
+            });
+        for @dists.sort(*.<ver>).reverse {
+            return self!resources-dir.add($_<resource-id>);
+        }
     }
 
     method files($file, :$name!, :$auth, :$ver) {

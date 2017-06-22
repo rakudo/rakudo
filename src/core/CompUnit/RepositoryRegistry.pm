@@ -216,10 +216,10 @@ class CompUnit::RepositoryRegistry {
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
         $name //= $dist-name;
-        my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
-        my @binaries = flat @installations.map: { .files("bin/$script", :$name, :$auth, :$ver) };
+        my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
+        my @binaries = @installations.map({ .script("bin/$script", :$name, :$auth, :$ver) }).grep(*.defined);
         unless +@binaries {
-            @binaries = flat @installations.map: { .files("bin/$script", :$name) };
+            @binaries = flat @installations.map: { .script("bin/$script", :$name) };
             if +@binaries {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"
@@ -241,7 +241,7 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $bin = @binaries.sort(*<ver>).tail.hash.<files>{"bin/$script"};
+        my $bin = @binaries[0];
         require "$bin";
     }
 

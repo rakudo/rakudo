@@ -297,7 +297,13 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
             nqp::if(                                    # 0 Custom BUILD call.
               nqp::istype(
-                ($build := nqp::atpos($task,1)(self,|%attrinit)),Failure),
+                ($build := nqp::if(
+                  nqp::elems($init),
+                  nqp::atpos($task,1)(self,|%attrinit),
+                  nqp::atpos($task,1)(self)
+                )),
+                Failure
+              ),
               return $build
             )
           )
@@ -327,7 +333,13 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             )),0),
             nqp::if(
               nqp::istype(
-                ($build := nqp::atpos($task,1)(self,|%attrinit)),Failure),
+                ($build := nqp::if(
+                  nqp::elems($init),
+                  nqp::atpos($task,1)(self,|%attrinit),
+                  nqp::atpos($task,1)(self)
+                )),
+                Failure
+              ),
               return $build
             ),
 

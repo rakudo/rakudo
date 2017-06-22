@@ -1902,10 +1902,10 @@ class Rakudo::Iterator {
           nqp::stmts(
             (my $result := IterationEnd),
             nqp::if(
-              nqp::can(iterator, 'count-only')
-              && (my $count := iterator.count-only),
+              nqp::can(iterator, 'count-only'),
               nqp::if(
-                iterator.skip-at-least($count - 1),
+                (my $count := iterator.count-only)
+                && iterator.skip-at-least($count - 1),
                 $result := iterator.pull-one
               ),
               nqp::until(

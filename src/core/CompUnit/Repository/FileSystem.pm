@@ -197,7 +197,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return $.prefix.add( %!meta<files><<$key>> )
             if %!meta<files> && %!meta<files><<$key>>;
         return $.prefix.add( $key )
-            if %!meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
+            if %!meta<resources> && %!meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
 
         # When $.prefix is presumably the 'lib' folder (eg. -Ilib)
         return $.prefix.parent.add($key);

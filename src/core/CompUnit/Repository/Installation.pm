@@ -52,39 +52,7 @@ __END__
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
 sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
-    shift @*ARGS if $name;
-    shift @*ARGS if $auth;
-    shift @*ARGS if $ver;
-    $name //= \'#dist-name#\';
-    my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
-    my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
-    unless +@binaries {
-        @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name) };
-        if +@binaries {
-            note q:to/SORRY/;
-                ===SORRY!===
-                No candidate found for \'#name#\' that match your criteria.
-                Did you perhaps mean one of these?
-                SORRY
-            my %caps = :name([\'Distribution\', 12]), :auth([\'Author(ity)\', 11]), :ver([\'Version\', 7]);
-            for @binaries -> $dist {
-                for %caps.kv -> $caption, @opts {
-                    @opts[1] = max @opts[1], ($dist{$caption} // \'\').Str.chars
-                }
-            }
-            note \'  \' ~ %caps.values.map({ sprintf(\'%-*s\', .[1], .[0]) }).join(\' | \');
-            for @binaries -> $dist {
-                note \'  \' ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist{$k} // \'\') } ).join(\' | \')
-            }
-        }
-        else {
-            note "===SORRY!===\nNo candidate found for \'#name#\'.\n";
-        }
-        exit 1;
-    }
-
-    %*ENV<PERL6_PROGRAM_NAME> = $*PROGRAM-NAME;
-    exit run($*EXECUTABLE, @binaries.sort(*<ver>).tail.hash.<files><bin/#name#>, @*ARGS).exitcode
+    CompUnit::RepositoryRegistry.run-script("#name#", :dist-name<#dist-name#>, :$name, :$auth, :$ver);
 }';
 
     method !sources-dir() {

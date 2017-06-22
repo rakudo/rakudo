@@ -211,6 +211,40 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
+    method run-script($script, :$dist-name, :$name is copy, :$auth, :$ver) {
+        shift @*ARGS if $name;
+        shift @*ARGS if $auth;
+        shift @*ARGS if $ver;
+        $name //= $dist-name;
+        my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
+        my @binaries = flat @installations.map: { .files("bin/$script", :$name, :$auth, :$ver) };
+        unless +@binaries {
+            @binaries = flat @installations.map: { .files("bin/$script", :$name) };
+            if +@binaries {
+                note "===SORRY!===\n"
+                    ~ "No candidate found for '$script' that match your criteria.\n"
+                    ~ "Did you perhaps mean one of these?";
+                my %caps = :name(['Distribution', 12]), :auth(['Author(ity)', 11]), :ver(['Version', 7]);
+                for @binaries -> $dist {
+                    for %caps.kv -> $caption, @opts {
+                        @opts[1] = max @opts[1], ($dist{$caption} // '').Str.chars
+                    }
+                }
+                note '  ' ~ %caps.values.map({ sprintf('%-*s', .[1], .[0]) }).join(' | ');
+                for @binaries -> $dist {
+                    note '  ' ~ %caps.kv.map( -> $k, $v { sprintf('%-*s', $v.[1], $dist{$k} // '') } ).join(' | ')
+                }
+            }
+            else {
+                note "===SORRY!===\nNo candidate found for '$script'.\n";
+            }
+            exit 1;
+        }
+
+        my $bin = @binaries.sort(*<ver>).tail.hash.<files>{"bin/$script"};
+        require "$bin";
+    }
+
     method head() { # mostly usefull for access from NQP
         $*REPO
     }

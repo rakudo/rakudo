@@ -194,8 +194,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         # but we also want to root any path request to the CUR's resources directory
 
         # When $.prefix points at a directory containing a meta file (eg. -I.)
-        return $.prefix.add( %!meta<files>.first(*<<$key>>).values[0] )
-            if %!meta<files>.first(*<<$key>>);
+        return $.prefix.add( %!meta<files><<$key>> )
+            if %!meta<files> && %!meta<files><<$key>>;
         return $.prefix.add( $key )
             if %!meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
 

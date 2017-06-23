@@ -51,7 +51,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
             nqp::chars($!value)
           )
-#?if moar
+#?if !jvm
             # Compare Str.chars == Str.codes to filter out any combining characters
             && nqp::iseq_i(
                 nqp::chars($!value),
@@ -1252,10 +1252,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-#?if moar
+#?if !jvm
     method ords(Str:D:) { self.NFC.list }
 #?endif
-#?if !moar
+#?if jvm
     method ords(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;
@@ -1982,7 +1982,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-#?if moar
+#?if !jvm
     method samemark(Str:D: Str:D $pattern) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
@@ -2231,7 +2231,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::encode(nqp::unbox_s($target), $enc, nqp::decont($type.new))
     }
 
-#?if moar
+#?if !jvm
     method NFC() {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
     }
@@ -2718,7 +2718,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method codes(|) { * }
     multi method codes(Str:D: --> Int:D) {
-#?if moar
+#?if !jvm
         self.NFC.codes
 #?endif
 #?if jvm

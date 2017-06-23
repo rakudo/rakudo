@@ -69,6 +69,41 @@ my role Mixy does Baggy  {
           )
         )
     }
+
+#--- coercion methods
+   sub SETIFY(\mixy, \type) {
+        nqp::if(
+          (my $raw := mixy.raw_hash) && nqp::elems($raw),
+          nqp::stmts(
+            (my $elems := nqp::clone($raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::getattr(
+                  nqp::iterval(nqp::shift($iter)),
+                  Pair,
+                  '$!value'
+                ) < 0,
+                nqp::deletekey($elems,nqp::iterkey_s($iter)),
+                nqp::bindkey(
+                  $elems,
+                  nqp::iterkey_s($iter),
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+                )
+              )
+            ),
+            nqp::create(type).SET-SELF($elems)
+          ),
+          nqp::if(
+            nqp::eqaddr(type,Set),
+            set(),
+            nqp::create(type)
+          )
+        )
+    }
+    multi method Set(Mixy:D:)     { SETIFY(self,Set)     }
+    multi method SetHash(Mixy:D:) { SETIFY(self,SetHash) }
 }
 
 # vim: ft=perl6 expandtab sw=4

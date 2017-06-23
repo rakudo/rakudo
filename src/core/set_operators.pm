@@ -408,6 +408,30 @@ multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(-)>(Any $a)         { $a.Set } # also for Iterable/Map
 
+multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(                                 # elems in $a
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::stmts(                            # both have elems
+          (my $elems := nqp::clone($araw)),
+          (my $iter  := nqp::iterator($braw)),
+          nqp::while(
+            $iter,
+            nqp::deletekey($elems,nqp::iterkey_s(nqp::shift($iter)))
+          ),
+          nqp::create(Set).SET-SELF($elems)
+        ),
+        nqp::if(                               # no elems in $b
+          nqp::istype($a,Set),
+          $a,                                  # Set is immutable, so identity
+          nqp::create(Set).SET-SELF(nqp::clone($araw))
+        )
+      ),
+      set()                                    # no elems in $a
+    )
+}
+
 multi sub infix:<(-)>(**@p) {
     return set() unless @p;
 

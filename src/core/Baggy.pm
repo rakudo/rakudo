@@ -332,9 +332,21 @@ my role Baggy does QuantHash {
         ~ ')'
     }
     multi method perl(Baggy:D: --> Str:D) {
-        '('
-        ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
-        ~ ").{self.^name}"
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          '('
+            ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
+            ~ ").{self.^name}",
+          nqp::if(
+            nqp::istype(self,Bag),
+            'bag()',
+            nqp::if(
+              nqp::istype(self,Mix),
+              'mix()',
+              '()' ~ self.^name
+            )
+          )
+        )
     }
 
 #--- selection methods

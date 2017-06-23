@@ -683,8 +683,7 @@ multi sub infix:<(^)>(**@p) is pure {
                     # set formula for the two-arg set.
                     !! ($a (|) $b) (-) ($b (&) $a);
     } else {
-        if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy)
-             || Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
+        if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
             my $head;
             while (@p) {
                 my ($a, $b);

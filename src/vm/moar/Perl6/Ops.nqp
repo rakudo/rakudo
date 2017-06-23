@@ -272,22 +272,11 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
-#$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
 my $p6bool := -> $qastcomp, $op {
-    # Having a Var with a lexicalref scope isn't uncommon, so we make extra
-    # sure we do a fast lexical access instead of creating a LexicalRef obj
-    # and going through that.
+    # We never want a container here, so mark as decont context.
     my @ops;
-    my $exprres;
-    my $want := $MVM_reg_obj;
-    if nqp::istype($op[0], QAST::Var) && $op[0].scope eq 'lexicalref' {
-        my $spec := nqp::objprimspec($op[0].returns);
-        if $spec == 1 { $want := $MVM_reg_int64 }
-        elsif $spec == 2 { $want := $MVM_reg_num64 }
-        elsif $spec == 3 { $want := $MVM_reg_str }
-    }
-    $exprres := $qastcomp.as_mast($op[0], :want($want));
+    my $exprres := $qastcomp.as_mast($op[0], :want-decont);
     push_ilist(@ops, $exprres);
 
     # Go by result kind.
@@ -672,7 +661,7 @@ $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
         }
         else {
             my @ops;
-            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj), :want-decont);
             push_ilist(@ops, $value_res);
             nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($qastcomp.mast_compunit),
                 $value_res.result_reg, $value_res.result_reg ));

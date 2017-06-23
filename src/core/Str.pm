@@ -1139,25 +1139,41 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $/ := nqp::getlexcaller('$/');
         {*}
     }
-    multi method subst(Str:D: $matcher, $replacement, :global(:$g),
-                       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
-                       *%options) {
-
-        # take the fast lane if we can
-        return Rakudo::Internals.TRANSPOSE(self,$matcher,$replacement)
-          if nqp::istype($matcher,Str) && nqp::istype($replacement,Str)
-          && $g
-          && !$samecase && !$samespace && !$samemark && !%options;
-
+    multi method subst(Str:D: Str:D $original, Str:D $final, *%options) {
+        nqp::if(
+          (my $opts := nqp::getattr(%options,Map,'$!storage'))
+            && nqp::isgt_i(nqp::elems($opts),1),
+            self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
+          nqp::if(
+            nqp::elems($opts),
+            nqp::if(                                      # one named
+              nqp::atkey($opts,'g') || nqp::atkey($opts,'global'),
+              Rakudo::Internals.TRANSPOSE(self, $original, $final),
+              nqp::if(                                    # no trueish g/global
+                nqp::existskey($opts,'g') || nqp::existskey($opts,'global'),
+                Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final),
+                self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options)
+              )
+            ),
+            Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final) # no nameds
+          )
+        )
+    }
+    multi method subst(Str:D: $matcher, $replacement, *%options) {
+        self!SUBST(nqp::getlexcaller('$/'), $matcher, $replacement, |%options)
+    }
+    method !SUBST(Str:D: \caller_dollar_slash, $matcher, $replacement,
+      :global(:$g), :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),
+      *%options
+    ) {
         X::Str::Subst::Adverb.new(:name($_), :got(%options{$_})).throw
           if %options{$_} for <ov ex>;
 
-        my $caller_dollar_slash := nqp::getlexcaller('$/');
-        my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
+        my $SET_DOLLAR_SLASH = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         # nothing to do
-        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        try caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = %options
           ?? self.match($matcher, :$g, |%options)
           !! self.match($matcher, :$g);  # 30% faster
@@ -1169,7 +1185,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   !! self!APPLY-MATCHES(
                        @matches,
                        $replacement,
-                       $caller_dollar_slash,
+                       caller_dollar_slash,
                        $SET_DOLLAR_SLASH,
                        $word_by_word,
                        $samespace,
@@ -2202,33 +2218,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self));
     }
 
-    my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
-    my int $is-win = Rakudo::Internals.IS-WIN;
-
-#?if moar
     proto method encode(|) {*}
-    multi method encode(Str:D $encoding = 'utf8', Bool:D :$replacement) {
-        self.encode($encoding, :replacement($replacement
-            ?? ($encoding ~~ m:i/^utf/ ?? "\x[FFFD]" !! "?" )
-            !! Nil
-        ), |%_)
-    }
-    multi method encode(Str:D $encoding = 'utf8', Str :$replacement, Bool() :$translate-nl = False) {
-#?endif
-#?if !moar
-    method encode(Str:D $encoding = 'utf8', Bool() :$translate-nl = False) {
-#?endif
-        my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        my $type := nqp::ifnull(nqp::atkey($enc_type,$enc),blob8);
-        my str $target = self;
-        if $is-win && $translate-nl {
-            $target .= subst("\n", "\r\n", :g);
-        }
-#?if moar
-        return nqp::encoderep(nqp::unbox_s($target), $enc, nqp::unbox_s($replacement), nqp::decont($type.new))
-            if $replacement.defined;
-#?endif
-        nqp::encode(nqp::unbox_s($target), $enc, nqp::decont($type.new))
+    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False) {
+        Encoding::Registry.find($encoding)
+            .encoder(:$replacement, :$translate-nl)
+            .encode-chars(self)
     }
 
 #?if !jvm
@@ -2976,7 +2970,7 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ).throw;
     ORDER(
         nqp::unicmp_s(
-            nqp::unbox_s(a), nqp::unbox_s(b), 15,0,0))
+            nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
 }
 multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
     (a.key unicmp b.key) || (a.value unicmp b.value)

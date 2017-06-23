@@ -64,13 +64,14 @@ my class Pair does Associative {
 
     multi method perl(Pair:D: :$arglist) {
         self.perlseen('Pair', -> :$arglist {
-            nqp::istype($!key, Str)
+            nqp::istype($!key, Str) && nqp::isconcrete($!key)
               ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
-                ?? nqp::istype($!value,Bool)
+                ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
                    ?? ':' ~ '!' x !$!value ~ $!key
                    !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
                 !! $!key.perl ~ ' => ' ~ $!value.perl
               !! nqp::istype($!key, Numeric)
+                   && nqp::isconcrete($!key)
                    && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
                 ?? $!key.perl ~ ' => ' ~ $!value.perl
                 !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl

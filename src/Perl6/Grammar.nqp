@@ -437,6 +437,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
 
         # Old language braid, going away eventually
+        # XXX TODO: if these are going out, be sure to make similar change
+        # to src/perl6-debug.nqp and ensure it still works.
         my %*LANG;
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;

@@ -46,7 +46,7 @@ only sub infix:<∈>($a, $b --> Bool:D) is pure {
 }
 # U+2209 NOT AN ELEMENT OF
 only sub infix:<∉>($a, $b --> Bool:D) is pure {
-    $a !(elem) $b;
+    not $a (elem) $b;
 }
 
 only sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }
@@ -777,29 +777,46 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
-    # don't need to check for object hashes, just checking keys is ok
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-        nqp::if(
-          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && nqp::elems($araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-              && (my $iter := nqp::iterator($araw)),
-            nqp::while(           # number of elems in B >= A
-              $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                return False      # elem in A doesn't exist in B
-              )
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      True,                       # B is alias of A
+      nqp::if(                    # A and B are different
+        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+          && nqp::elems($araw),
+        nqp::if(                  # something in A
+          nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+          nqp::if(                # both are normal Maps
+            (my $iter := nqp::iterator($araw))
+              && (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::elems($braw),
+            nqp::stmts(           # something to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::unless(    # valid in A
+                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    return False  # valid elem in A isn't valid elem in B
+                  )
+                )
+              ),
+              True                # all valids in A occur as valids in B
             ),
-            return False          # number of elems in B smaller than A
-          )
-        )
-      ),
-      True
+            nqp::stmts(           # nothing to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  return False    # valid in elem in A (and none in B)
+                )
+              ),
+              True                # no valid elems in A
+            )
+          ),
+          $a.Set (<=) $b.Set      # either is objectHash, so coerce
+        ),
+        True                      # nothing in A
+      )
     )
 }
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
@@ -842,7 +859,7 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
             ),
             False               # number of elems in B smaller or equal to A
           ),
-          True,                 # no elems in A, and elems in B
+          True                  # no elems in A, and elems in B
         ),
         False                   # can never have fewer elems in A than in B
       )
@@ -954,30 +971,49 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     )
 }
 multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
-    # don't need to check for object hashes, just checking keys is ok
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      False,                    # X is never a true subset of itself
-      nqp::if(
-        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-          && nqp::elems($braw),
-        nqp::if(
-          (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-            && nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
-            && (my $iter := nqp::iterator($araw)),
-          nqp::stmts(           # A has fewer elems than B
+      False,                      # X is never a true subset of itself
+      nqp::if(                    # A and B are different
+        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
+          && nqp::elems($araw),
+        nqp::if(                  # something in A
+          nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
+          nqp::if(                # both are normal Maps
+            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::elems($braw)
+              && (my $iter := nqp::iterator($araw)),
+            nqp::stmts(           # something to check for in B
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter))
+                    || nqp::isfalse(nqp::atkey($braw,nqp::iterkey_s($iter))),
+                  return False    # valid elem in A or invalid elem in B
+                )
+              ),
+              True                # no valids in A, valids in B
+            ),
+            False                 # something in A, nothing in B
+          ),
+          $a.Set (<) $b.Set       # either is objectHash, so coerce
+        ),
+        nqp::if(                  # nothing in A
+          ($braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+            && nqp::elems($braw)
+            && ($iter := nqp::iterator($braw)),
+          nqp::stmts(             # something in B
             nqp::while(
               $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                return False    # elem in A doesn't exist in B
+              nqp::if(
+                nqp::iterval(nqp::shift($iter)),
+                return True       # found valid elem in B
               )
             ),
-            True                # all elems in A exist in B
+            False                 # no valid elem in B
           ),
-          False                 # number of elems in B smaller or equal to A
-        ),
-        False                   # can never have fewer elems in A than in B
+          False                   # nothing in B (nor A)
+        )
       )
     )
 }
@@ -1031,9 +1067,8 @@ multi sub infix:<(.)>(Any $a)         { $a.Bag }
 multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
     nqp::if(
       (my $elems := $a.Bag.raw_hash) && nqp::elems($elems),
-      nqp::stmts(
+      nqp::create(Bag).SET-SELF(
         Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,$b.raw_hash),
-        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1057,9 +1092,8 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
       (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.raw_hash))
         && nqp::elems($elems),
-      nqp::stmts(
+      nqp::create(Bag).SET-SELF(
         Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.raw_hash),
-        nqp::create(Bag).SET-SELF($elems)
       ),
       bag()
     )
@@ -1107,13 +1141,14 @@ multi sub infix:<(+)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(+)>(Any $a)         { $a.Bag }
 
 multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
-    nqp::stmts(
+    nqp::create(Bag).SET-SELF(
       Rakudo::QuantHash.ADD-SET-TO-BAG(
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a.raw_hash
-      ),
-      Rakudo::QuantHash.ADD-SET-TO-BAG($elems,$b.raw_hash),
-      nqp::create(Bag).SET-SELF($elems)
+        Rakudo::QuantHash.ADD-SET-TO-BAG(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a.raw_hash
+        ),
+        $b.raw_hash
+      )
     )
 }
 
@@ -1131,13 +1166,14 @@ multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
 multi sub infix:<(+)>(Mixy:D $a, Baggy:D $b) { infix:<(+)>($a, $b.Mix) }
 multi sub infix:<(+)>(Baggy:D $a, Mixy:D $b) { infix:<(+)>($a.Mix, $b) }
 multi sub infix:<(+)>(Baggy:D $a, Baggy:D $b) {
-    nqp::stmts(
+    nqp::create(Bag).SET-SELF(
       Rakudo::QuantHash.ADD-BAG-TO-BAG(
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        $a.raw_hash
-      ),
-      Rakudo::QuantHash.ADD-BAG-TO-BAG($elems,$b.raw_hash),
-      nqp::create(Bag).SET-SELF($elems)
+        Rakudo::QuantHash.ADD-BAG-TO-BAG(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a.raw_hash
+        ),
+        $b.raw_hash
+      )
     )
 }
 multi sub infix:<(+)>(Any:D $a, Any:D $b) { $a.Bag (+) $b.Bag }

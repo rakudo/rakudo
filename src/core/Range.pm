@@ -124,9 +124,9 @@ my class Range is Cool does Iterable does Positional {
             class :: does Iterator {
                 has $!i;
 
-                method !SET-SELF(\i)  { $!i = i; self }
+                method !SET-SELF(\i)  { $!i = i - 1; self }
                 method new(\i)    { nqp::create(self)!SET-SELF(i) }
-                method pull-one() { $!i++ }
+                method pull-one() { ++$!i }
                 method is-lazy()  { True  }
             }.new($!min + $!excludes-min)
         }

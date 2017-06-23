@@ -150,34 +150,21 @@ multi sub indir(IO() $path, &what, :$test!) {
 multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     {   # NOTE: we need this extra block so that the IO() coercer doesn't
         # use our (empty at the time) $*CWD when making the IO::Path object
-
-        nqp::if(
-            nqp::stmts(
-                nqp::unless(
-                    nqp::unless(nqp::isfalse($d), $path.d),
-                    fail X::IO::Chdir.new: :$path, :os-error(
-                        nqp::if($path.e, 'is not a directory', 'does not exist')
-                    )
-                ),
-                nqp::unless(
-                    nqp::unless(nqp::isfalse($r), $path.r),
-                    fail X::IO::Chdir.new: :$path,
-                        :os-error("did not pass :r test")
-                ),
-                nqp::unless(
-                    nqp::unless(nqp::isfalse($w), $path.w),
-                    fail X::IO::Chdir.new: :$path,
-                        :os-error("did not pass :w test")
-                ),
-                nqp::unless(
-                    nqp::unless(nqp::isfalse($x), $path.x),
-                    fail X::IO::Chdir.new: :$path,
-                        :os-error("did not pass :x test")
-                ),
-                my $*CWD = $path,
-            ),
-            what
-        )
+        nqp::stmts(
+          $d && nqp::isfalse($path.d) && X::IO::Chdir.new(
+            :$path, :os-error(
+              $path.e ?? 'is not a directory' !! 'does not exist')).fail,
+          $r && nqp::isfalse($path.r) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :r test")).fail,
+          $w && nqp::isfalse($path.w) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :w test")).fail,
+          $x && nqp::isfalse($path.x) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :x test")).fail,
+          # $*CWD gets stringified with .Str in IO::Path.new, so we need to
+          # ensure it's set to an absolute path
+          my $*CWD = $path.WHAT.new: $path.absolute,
+            :SPEC($path.SPEC), :CWD($path.SPEC.rootdir))
+        && what
     }
 }
 

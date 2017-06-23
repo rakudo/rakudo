@@ -366,8 +366,12 @@ static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
 static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
     /* If it's already deconted, can just become a set. */
     MVMSpeshFacts *obj_facts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[1]);
-    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ))
+    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ)) {
+        MVMSpeshFacts *res_facts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
         ins->info = MVM_op_get_op(MVM_OP_set);
+        res_facts->flags = obj_facts->flags;
+        res_facts->type = obj_facts->type;
+    }
 }
 
 static MVMuint8 s_p6capturelex[] = {

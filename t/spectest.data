@@ -218,6 +218,7 @@ S03-operators/comparison-simple.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
+S03-operators/difference.t
 S03-operators/elem.t
 S03-operators/equality.t
 S03-operators/eqv.t
@@ -313,7 +314,6 @@ S04-phasers/check.t
 S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
-S04-phasers/eval-in-begin.t
 S04-phasers/first.t
 S04-phasers/init.t
 S04-phasers/in-eval.t
@@ -811,6 +811,7 @@ S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
 S17-procasync/basic.t    # moar
+S17-procasync/bind-handles.t # moar
 S17-procasync/encoding.t # moar
 S17-procasync/nonexistent.t # moar
 S17-procasync/print.t    # moar
@@ -962,6 +963,8 @@ S32-container/cat.t
 S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
+S32-encoding/encoder.t
+S32-encoding/registry.t
 S32-exceptions/misc.t
 S32-hash/adverbs.t
 S32-hash/antipairs.t

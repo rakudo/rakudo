@@ -741,10 +741,10 @@ my class Hash { # declared in BOOTSTRAP
         method Map() { self.pairs.Map }
 
         sub SETIFY(\objecthash, \type) {
-            nqp::stmts(
-              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,objecthash),
-              nqp::create(type).SET-SELF($elems)
+            nqp::create(type).SET-SELF(
+              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET(
+                nqp::create(Rakudo::Internals::IterationSet), objecthash
+              )
             )
         }
         multi method Set(::?CLASS:D:)     { SETIFY(self,Set)     }

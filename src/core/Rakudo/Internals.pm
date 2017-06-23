@@ -298,10 +298,10 @@ my class Rakudo::Internals {
         )
     }
 
-    method TRANSPOSE(str $string, str $original, str $final) {
+    method TRANSPOSE(Str:D $string, Str:D $original, Str:D $final) {
         nqp::join($final,nqp::split($original,$string))
     }
-    method TRANSPOSE-ONE(str $string, str $original, str $final) {
+    method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {
         nqp::if(
           nqp::iseq_i((my int $index = nqp::index($string, $original)), -1),
           $string,
@@ -309,7 +309,7 @@ my class Rakudo::Internals {
             nqp::substr($string,0,$index),
             nqp::concat(
               $final,
-              nqp::substr($string,nqp::add_i($index,nqp::chars($final)))
+              nqp::substr($string,nqp::add_i($index,nqp::chars($original)))
             )
           )
         )

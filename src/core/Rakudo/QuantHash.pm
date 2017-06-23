@@ -135,7 +135,7 @@ my class Rakudo::QuantHash {
     }
 
 #--- Set/SetHash related methods
-    method SET-IS-SUBSET($a,$b) {
+    method SET-IS-SUBSET($a,$b --> Bool:D) {
         nqp::stmts(
           nqp::unless(
             nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
@@ -161,14 +161,25 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # add to given IterationSet the values of given iterator
+    method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::bindkey(elems,$pulled.WHICH,$pulled)
+          ),
+          elems
+        )
+    }
+
     # add to given IterationSet the values of given iterator with Pair check
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr(
-              (my $pulled := iterator.pull-one),
-              IterationEnd
-            ),
+            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(
@@ -187,41 +198,47 @@ my class Rakudo::QuantHash {
     }
 
     # add to given IterationSet the keys of given Map
-    method ADD-MAP-TO-SET(\elems,\map --> Nil) {
-        nqp::if(
-          (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-            && (my $iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::iterval(nqp::shift($iter)),
-              nqp::bindkey(
-                elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+    method ADD-MAP-TO-SET(\elems, \map) {
+        nqp::stmts(
+          nqp::if(
+            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+              && (my $iter := nqp::iterator($raw)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::iterval(nqp::shift($iter)),
+                nqp::bindkey(
+                  elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+              )
             )
-          )
+          ),
+          elems
         )
     }
 
     # add to given IterationSet the objects of given object Hash
-    method ADD-OBJECTHASH-TO-SET(\elems,\objecthash --> Nil) {
-        nqp::if(
-          (my $raw := nqp::getattr(nqp::decont(objecthash),Map,'$!storage'))
-            && (my $iter := nqp::iterator($raw)),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::getattr(
-                nqp::decont(nqp::iterval(nqp::shift($iter))),
-                Pair,
-                '$!value'
-              ),
-              nqp::bindkey(
-                elems,
-                nqp::iterkey_s($iter),
-                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+    method ADD-OBJECTHASH-TO-SET(\elems, \objecthash) {
+        nqp::stmts(
+          nqp::if(
+            (my $raw := nqp::getattr(nqp::decont(objecthash),Map,'$!storage'))
+              && (my $iter := nqp::iterator($raw)),
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::getattr(
+                  nqp::decont(nqp::iterval(nqp::shift($iter))),
+                  Pair,
+                  '$!value'
+                ),
+                nqp::bindkey(
+                  elems,
+                  nqp::iterkey_s($iter),
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+                )
               )
             )
-          )
+          ),
+          elems
         )
     }
 
@@ -328,51 +345,55 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
-        nqp::if(
-          bag && nqp::elems(bag),
-          nqp::stmts(
-            (my $iter := nqp::iterator(bag)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                  nqp::bindattr($pair,Pair,'$!value',
-                    nqp::add_i(
-                      nqp::getattr($pair,Pair,'$!value'),
-                      nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+    method ADD-BAG-TO-BAG(\elems,Mu \bag) {
+        nqp::stmts(
+          nqp::if(
+            bag && nqp::elems(bag),
+            nqp::stmts(
+              (my $iter := nqp::iterator(bag)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                    nqp::bindattr($pair,Pair,'$!value',
+                      nqp::getattr($pair,Pair,'$!value')
+                        + nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                     )
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),
+                    nqp::clone(nqp::iterval($iter))
                   )
-                ),
-                nqp::bindkey(elems,nqp::iterkey_s($iter),
-                  nqp::clone(nqp::iterval($iter))
                 )
               )
             )
-          )
+          ),
+          elems
         )
     }
 
-    method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator --> Nil) {
-        nqp::until(
-          nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
-          nqp::if(
-            nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
-            nqp::stmts(
-              (my $pair := nqp::atkey(elems,$WHICH)),
-              nqp::bindattr($pair,Pair,'$!value',
-                nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
-              )
-            ),
-            nqp::bindkey(elems,$WHICH,Pair.new($pulled,1))
-          )
+    method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator) {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::if(
+              nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
+              nqp::stmts(
+                (my $pair := nqp::atkey(elems,$WHICH)),
+                nqp::bindattr($pair,Pair,'$!value',
+                  nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                )
+              ),
+              nqp::bindkey(elems,$WHICH,Pair.new($pulled,1))
+            )
+          ),
+          elems
         )
     }
 
     # add to given IterationSet the values of given iterator with Pair check
-    method ADD-PAIRS-TO-BAG(\elems,Mu \iterator) is raw {
+    method ADD-PAIRS-TO-BAG(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
@@ -439,31 +460,34 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-SET-TO-BAG(\elems,Mu \set --> Nil) {
-        nqp::if(
-          set && nqp::elems(set),
-          nqp::stmts(
-            (my $iter := nqp::iterator(set)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                  nqp::bindattr($pair,Pair,'$!value',
-                    nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+    method ADD-SET-TO-BAG(\elems,Mu \set) {
+        nqp::stmts(
+          nqp::if(
+            set && nqp::elems(set),
+            nqp::stmts(
+              (my $iter := nqp::iterator(set)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                    nqp::bindattr($pair,Pair,'$!value',
+                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                    )
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),
+                    Pair.new(nqp::iterval($iter),1)
                   )
-                ),
-                nqp::bindkey(elems,nqp::iterkey_s($iter),
-                  Pair.new(nqp::iterval($iter),1)
                 )
               )
             )
-          )
+          ),
+          elems
         )
     }
 
-    method MULTIPLY-BAG-TO-BAG(\elems,Mu \bag --> Nil) {
+    method MULTIPLY-BAG-TO-BAG(\elems,Mu \bag) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
@@ -492,11 +516,12 @@ my class Rakudo::QuantHash {
               $iter,
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
             )
-          )
+          ),
+          elems
         )
     }
 
-    method MULTIPLY-SET-TO-BAG(\elems,Mu \set --> Nil) {
+    method MULTIPLY-SET-TO-BAG(\elems,Mu \set) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
           nqp::if(
@@ -512,7 +537,8 @@ my class Rakudo::QuantHash {
               $iter,
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
             )
-          )
+          ),
+          elems
         )
     }
 
@@ -614,9 +640,9 @@ my class Rakudo::QuantHash {
             ),
             nqp::if(
               nqp::istype($pulled,Pair),
-              nqp::unless(           # got a Pair
+              nqp::if(               # got a Pair
                 (my $value :=
-                  nqp::decont(nqp::getattr($pulled,Pair,'$!value'))) == 0,
+                  nqp::decont(nqp::getattr($pulled,Pair,'$!value'))),
                 nqp::if(             # non-zero value
                   nqp::istype($value,Num) && nqp::isnanorinf($value),
                   X::OutOfRange.new( # NaN or -Inf or Inf, we're done
@@ -635,14 +661,14 @@ my class Rakudo::QuantHash {
                         elems,
                         (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
                       ),
-                      nqp::stmts(    # seen before, add value
-                        (my $pair := nqp::atkey(elems,$which)),
-                        nqp::bindattr(
-                          $pair,
+                      nqp::if( # seen before, add value
+                        ($value := nqp::getattr(
+                          (my $pair := nqp::atkey(elems,$which)),
                           Pair,
-                          '$!value',
-                          nqp::getattr($pair,Pair,'$!value') + $value
-                        )
+                          '$!value'
+                        ) + $value),
+                        nqp::bindattr($pair,Pair,'$!value',$value),  # non-zero
+                        nqp::deletekey(elems,$which)                 # zero
                       ),
                       nqp::bindkey(  # new, create new Pair
                         elems,

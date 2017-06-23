@@ -323,7 +323,7 @@ my class Block { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Nil
+            nextsame
         } else {
             $!why.set_docee(self);
             $!why

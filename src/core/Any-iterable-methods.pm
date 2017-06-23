@@ -314,6 +314,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       $target.push(&!block($pulled)),
                       'LABELED', $!label,
                       'REDO', ($stopped = 0),
+                      'NEXT', nqp::null, # need NEXT for next LABEL support
                       'LAST', return
                     )
                   ),
@@ -338,6 +339,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       &!block($pulled),
                       'LABELED', $!label,
                       'REDO', ($stopped = 0),
+                      'NEXT', nqp::null, # need NEXT for next LABEL support
                       'LAST', return
                     )
                   ),
@@ -447,6 +449,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
                       'LAST', (return IterationEnd),
+                      'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
                   :nohandler
@@ -611,7 +614,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd)
+                      'LAST', (return IterationEnd),
+                      'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
                   :nohandler

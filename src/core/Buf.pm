@@ -114,7 +114,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
-    method decode(Blob:D: $encoding = 'utf-8') {
+    proto method decode(|) { * }
+    multi method decode(Blob:D:) {
+        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    }
+    multi method decode(Blob:D: $encoding) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
@@ -407,7 +411,7 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    method decode(utf8:D: $encoding = 'utf-8') {
+    multi method decode(utf8:D: $encoding) {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-8 buffer as if it were $encoding"
             unless $enc eq 'utf8';
@@ -419,7 +423,7 @@ my class utf8 does Blob[uint8] is repr('VMArray') {
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    method decode(utf16:D: $encoding = 'utf-16') {
+    multi method decode(utf16:D: $encoding = 'utf-16') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
             unless $enc eq 'utf16';
@@ -431,7 +435,7 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    method decode(utf32:D: $encoding = 'utf-32') {
+    multi method decode(utf32:D: $encoding = 'utf-32') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-32 buffer as if it were $encoding"
             unless $enc eq 'utf32';

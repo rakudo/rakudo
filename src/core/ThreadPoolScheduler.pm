@@ -318,8 +318,6 @@ my class ThreadPoolScheduler does Scheduler {
 }
 
 # This thread pool scheduler will be the default one.
-Rakudo::Internals.REGISTER-DYNAMIC: '$*SCHEDULER', {
-    PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
-}
+PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
 
 # vim: ft=perl6 expandtab sw=4

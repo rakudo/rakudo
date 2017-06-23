@@ -119,15 +119,39 @@ my role Baggy does QuantHash {
     }
 
 #--- object creation methods
-    multi method new(Baggy:_: +@args) {
-        nqp::stmts(
-          Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
-            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-            (my $iterator := @args.iterator)
-          ),
-          nqp::create(self).SET-SELF($elems)
+
+    # helper sub to create Bag from iterator, check for laziness
+    sub create-from-iterator(\type, \iterator --> Baggy:D) {
+        nqp::if(
+          iterator.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet), iterator
+            )
+          )
         )
     }
+
+    multi method new(Baggy:_: --> Baggy:D) { nqp::create(self) }
+    multi method new(Baggy:_: \value --> Baggy:D) {
+        nqp::if(
+          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
+          create-from-iterator(self, value.iterator),
+          nqp::stmts(
+            nqp::bindkey(
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              value.WHICH,
+              Pair.new(value,1)
+            ),
+            nqp::create(self).SET-SELF($elems)
+          )
+        )
+    }
+    multi method new(Baggy:_: **@args) {
+        create-from-iterator(self, @args.iterator)
+    }
+
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,

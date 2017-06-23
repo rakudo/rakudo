@@ -52,39 +52,7 @@ __END__
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
 sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
-    shift @*ARGS if $name;
-    shift @*ARGS if $auth;
-    shift @*ARGS if $ver;
-    $name //= \'#dist-name#\';
-    my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installable);
-    my @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name, :$auth, :$ver) };
-    unless +@binaries {
-        @binaries = flat @installations.map: { .files(\'bin/#name#\', :$name) };
-        if +@binaries {
-            note q:to/SORRY/;
-                ===SORRY!===
-                No candidate found for \'#name#\' that match your criteria.
-                Did you perhaps mean one of these?
-                SORRY
-            my %caps = :name([\'Distribution\', 12]), :auth([\'Author(ity)\', 11]), :ver([\'Version\', 7]);
-            for @binaries -> $dist {
-                for %caps.kv -> $caption, @opts {
-                    @opts[1] = max @opts[1], ($dist{$caption} // \'\').Str.chars
-                }
-            }
-            note \'  \' ~ %caps.values.map({ sprintf(\'%-*s\', .[1], .[0]) }).join(\' | \');
-            for @binaries -> $dist {
-                note \'  \' ~ %caps.kv.map( -> $k, $v { sprintf(\'%-*s\', $v.[1], $dist{$k} // \'\') } ).join(\' | \')
-            }
-        }
-        else {
-            note "===SORRY!===\nNo candidate found for \'#name#\'.\n";
-        }
-        exit 1;
-    }
-
-    %*ENV<PERL6_PROGRAM_NAME> = $*PROGRAM-NAME;
-    exit run($*EXECUTABLE, @binaries.sort(*<ver>).tail.hash.<files><bin/#name#>, @*ARGS).exitcode
+    CompUnit::RepositoryRegistry.run-script("#name#", :dist-name<#dist-name#>, :$name, :$auth, :$ver);
 }';
 
     method !sources-dir() {
@@ -260,16 +228,18 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.add($id);
             my $handle      = $dist.content($file);
-            self!add-short-name($name, $dist, $id, nqp::sha1($handle.open(:enc<iso-8859-1>).slurp(:close)));
+            my $content     = $handle.open(:bin).slurp(:close);
+
+            self!add-short-name($name, $dist, $id,
+              nqp::sha1(nqp::join("\n", nqp::split("\r\n",
+                $content.decode('iso-8859-1')))));
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
                 :$!cver
             };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
-            my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
-            $handle.close;
         }
 
         # bin/ scripts
@@ -289,7 +259,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
                 }
             }
-            self!add-short-name($name-path, $dist);
+            self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp-rest(:bin,:close);
@@ -399,6 +369,26 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         # delete the meta file
         unlink( $dist-dir.add($dist.id) )
+    }
+
+    method script($file, :$name!, :$auth, :$ver) {
+        my $prefix = self.prefix;
+        my $lookup = $prefix.add('short').add(nqp::sha1($file));
+        return unless $lookup.e;
+
+        # Scripts using this interface could only have been installed long after the introduction of
+        # repo version 1, so we don't have to care about very old repos in this method.
+        my @dists = $lookup.dir.map({
+                my ($ver, $auth, $api, $resource-id) = $_.slurp.split("\n");
+                $resource-id ||= self!read-dist($_.basename)<files>{$file};
+                (id => $_.basename, ver => Version.new( $ver || 0 ), :$auth, :$api, :$resource-id).hash
+            }).grep({
+                $_.<auth> ~~ $auth
+                and $_.<ver> ~~ $ver
+            });
+        for @dists.sort(*.<ver>).reverse {
+            return self!resources-dir.add($_<resource-id>);
+        }
     }
 
     method files($file, :$name!, :$auth, :$ver) {

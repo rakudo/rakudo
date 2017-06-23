@@ -14,6 +14,8 @@ my class Lock {
         method signal_all() { nqp::condsignalall(self) }
     }
 
+    method new() { nqp::create(self) }
+
     method lock(Lock:D:) { nqp::lock(self) }
 
     method unlock(Lock:D:) { nqp::unlock(self) }

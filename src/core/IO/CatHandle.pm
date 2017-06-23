@@ -158,7 +158,7 @@ my class IO::CatHandle is IO::Handle {
     }
     multi method lines(::?CLASS:D:) { self!LINES }
 
-    method Supply (::?CLASS:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+    multi method Supply (::?CLASS:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
         nqp::if(
           nqp::isconcrete($!encoding),
           (supply nqp::stmts(
@@ -202,7 +202,7 @@ my class IO::CatHandle is IO::Handle {
             $res),
           Nil)
     }
-    method read (::?CLASS:D: Int(Cool:D) $bytes) {
+    method read (::?CLASS:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
         nqp::if(
           nqp::defined($!active-handle),
           nqp::stmts(
@@ -280,7 +280,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::if(
             nqp::isfalse($enc.defined) || nqp::iseq_s($enc.Str, 'bin'),
             Nil,
-            Rakudo::Internals.NORMALIZE_ENCODING: $enc.Str))
+            Encoding::Registry.find($enc.Str).name))
     }
 
     method eof (::?CLASS:D: --> Bool:D) {

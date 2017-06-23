@@ -9,7 +9,8 @@ my class IO::Handle {
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
-    has Rakudo::Internals::VMBackedDecoder $!decoder;
+    has Encoding::Decoder $!decoder;
+    has Encoding::Encoder $!encoder;
 
     submethod TWEAK (:$encoding, :$bin) {
         nqp::if(
@@ -31,6 +32,7 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
+      :$buffer = False
     ) {
         nqp::if(
           $bin,
@@ -40,6 +42,10 @@ my class IO::Handle {
           nqp::unless(
             nqp::isconcrete($enc),
             $enc = $!encoding));
+
+        my int $buffer-size = nqp::istype($buffer, Bool)
+            ?? ($buffer ?? 8192 !! 0)
+            !! $buffer.Int;
 
         $mode = nqp::if(
           $mode,
@@ -124,10 +130,13 @@ my class IO::Handle {
             $!chomp = $chomp;
             $!nl-out = $nl-out;
             if nqp::isconcrete($enc) {
-                $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($enc);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+                $!encoder := $encoding.encoder(:translate-nl);
+                $!encoding = $encoding.name;
             }
+            nqp::setbuffersizefh($!PIO, $buffer-size);
             return self;
         }
 
@@ -165,10 +174,13 @@ my class IO::Handle {
         $!chomp = $chomp;
         $!nl-out = $nl-out;
         if nqp::isconcrete($enc) {
-            $!encoding = Rakudo::Internals.NORMALIZE_ENCODING($enc);
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+            my $encoding = Encoding::Registry.find($enc);
+            $!decoder := $encoding.decoder(:translate-nl);
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
+            $!encoder := $encoding.encoder(:translate-nl);
+            $!encoding = $encoding.name;
         }
+        nqp::setbuffersizefh($!PIO, $buffer-size);
         self;
     }
 
@@ -197,8 +209,16 @@ my class IO::Handle {
 
     method eof(IO::Handle:D:) {
         nqp::p6bool($!decoder
-            ?? $!decoder.is-empty && nqp::eoffh($!PIO)
-            !! nqp::eoffh($!PIO));
+            ?? $!decoder.is-empty && self.eof-internal
+            !! self.eof-internal)
+    }
+
+    method eof-internal() {
+        nqp::eoffh($!PIO)
+    }
+
+    method read-internal(Int $bytes) {
+        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
     }
 
     method get(IO::Handle:D:) {
@@ -209,7 +229,7 @@ my class IO::Handle {
     method !get-line-slow-path() {
         my $line := Nil;
         loop {
-            my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+            my $buf := self.read-internal(0x100000);
             if $buf.elems {
                 $!decoder.add-bytes($buf);
                 $line := $!decoder.consume-line-chars(:$!chomp);
@@ -217,7 +237,7 @@ my class IO::Handle {
             }
             else {
                 $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                    unless nqp::eoffh($!PIO) && $!decoder.is-empty;
+                    unless self.eof-internal && $!decoder.is-empty;
                 last;
             }
         }
@@ -230,7 +250,7 @@ my class IO::Handle {
     }
 
     method !getc-slow-path() {
-        $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, 0x100000));
+        $!decoder.add-bytes(self.read-internal(0x100000));
         $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars() || Nil
     }
 
@@ -370,7 +390,7 @@ my class IO::Handle {
                 method pull-one() {
                     # Slow path falls back to .get on the handle, which will
                     # replenish the buffer once we exhaust it.
-                    $!decoder.consume-line-chars(:$!chomp) // $!handle.get // IterationEnd
+                    $!decoder.consume-line-chars(:$!chomp) // ($!handle.get // IterationEnd)
                 }
                 method push-all($target --> IterationEnd) {
                     nqp::while(
@@ -426,19 +446,19 @@ my class IO::Handle {
     }
     multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
-    method read(IO::Handle:D: Int(Cool:D) $bytes) {
+    method read(IO::Handle:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
-            !! nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+            !! self.read-internal($bytes)
     }
 
     method !read-slow-path($bytes) {
-        if nqp::eoffh($!PIO) && $!decoder.is-empty {
+        if self.eof-internal && $!decoder.is-empty {
             buf8.new
         }
         else {
-            $!decoder.add-bytes(nqp::readfh($!PIO, buf8.new, $bytes max 0x10000));
+            $!decoder.add-bytes(self.read-internal($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
                 // buf8.new
@@ -452,9 +472,9 @@ my class IO::Handle {
 
     method !readchars-slow-path($chars) {
         my $result := '';
-        unless nqp::eoffh($!PIO) && $!decoder.is-empty {
+        unless self.eof-internal && $!decoder.is-empty {
             loop {
-                my $buf := nqp::readfh($!PIO, buf8.new, 0x100000);
+                my $buf := self.read-internal(0x100000);
                 if $buf.elems {
                     $!decoder.add-bytes($buf);
                     $result := $!decoder.consume-exactly-chars($chars);
@@ -469,7 +489,7 @@ my class IO::Handle {
         $result
     }
 
-    method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+    multi method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
         if $!decoder { # handle is in character mode
             supply {
                 my int $chars = $size;
@@ -509,7 +529,7 @@ my class IO::Handle {
 
             # Freshen decoder, so we won't have stuff left over from earlier reads
             # that were in the wrong place.
-            $!decoder := Rakudo::Internals::VMBackedDecoder.new($!encoding, :translate-nl);
+            $!decoder := Encoding::Registry.find($!encoding).decoder(:translate-nl);
             $!decoder.set-line-separators($!nl-in.list);
         }
         nqp::seekfh($!PIO, $offset - $rewind, +$whence);
@@ -520,6 +540,10 @@ my class IO::Handle {
     }
 
     method write(IO::Handle:D: Blob:D $buf --> True) {
+        self.write-internal($buf)
+    }
+
+    method write-internal(IO::Handle:D: Blob:D $buf --> True) {
         nqp::writefh($!PIO, nqp::decont($buf));
     }
 
@@ -553,7 +577,7 @@ my class IO::Handle {
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        nqp::writefh($!PIO, x.encode($!encoding, :translate-nl));
+        self.write-internal($!encoder.encode-chars(x));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -562,17 +586,22 @@ my class IO::Handle {
     proto method put(|) { * }
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
-        nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal($!encoder.encode-chars(
+            nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
     }
 
+    multi method say(IO::Handle:D: Str $x --> True) {
+        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
+        self.write-internal($!encoder.encode-chars(
+            nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))));
+    }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        nqp::writefh($!PIO,
-          nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out)).encode($!encoding, :translate-nl))
+        self.write-internal($!encoder.encode-chars(
+            nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
     }
     multi method say(IO::Handle:D: |) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
@@ -585,7 +614,7 @@ my class IO::Handle {
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        nqp::writefh($!PIO, $!nl-out.encode($!encoding, :translate-nl));
+        self.write-internal($!encoder.encode-chars($!nl-out));
     }
 
     proto method slurp-rest(|) { * }
@@ -620,7 +649,7 @@ my class IO::Handle {
           nqp::stmts(
             ($res := buf8.new),
             nqp::while(
-              nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)),
+              nqp::elems(my $buf := self.read-internal(0x100000)),
               $res.append($buf)
             )
           )
@@ -632,7 +661,7 @@ my class IO::Handle {
     }
 
     method !slurp-all-chars() {
-        while nqp::elems(my $buf := nqp::readfh($!PIO, buf8.new, 0x100000)) {
+        while nqp::elems(my $buf := self.read-internal(0x100000)) {
             $!decoder.add-bytes($buf);
         }
         $!decoder.consume-all-chars()
@@ -641,7 +670,7 @@ my class IO::Handle {
     proto method spurt(|) { * }
     multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
-        self.write($data);
+        self.write-internal($data);
     }
     multi method spurt(IO::Handle:D: Cool $data, :$close) {
         LEAVE self.close if $close;
@@ -672,7 +701,6 @@ my class IO::Handle {
                 $_ = Nil;
             }
             else {
-                $_ = Rakudo::Internals.NORMALIZE_ENCODING(.Str);
                 return $!encoding if $!encoding && $!encoding eq $_;
             }
         }
@@ -683,15 +711,18 @@ my class IO::Handle {
             my $available = $!decoder.bytes-available;
             with $new-encoding {
                 my $prev-decoder := $!decoder;
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($new-encoding);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
-                $!encoding = $new-encoding;
+                $!encoder := $encoding.encoder(:translate-nl);
+                $!encoding = $encoding.name;
             }
             else {
                 nqp::seekfh($!PIO, -$available, SeekFromCurrent) if $available;
-                $!decoder := Rakudo::Internals::VMBackedDecoder;
+                $!decoder := Encoding::Decoder;
+                $!encoder := Encoding::Encoder;
                 $!encoding = Nil;
                 Nil
             }
@@ -699,9 +730,11 @@ my class IO::Handle {
         else {
             # No previous decoder; make a new one if needed, otherwise no change.
             with $new-encoding {
-                $!decoder := Rakudo::Internals::VMBackedDecoder.new($new-encoding, :translate-nl);
+                my $encoding = Encoding::Registry.find($new-encoding);
+                $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!encoding = $new-encoding;
+                $!encoder := $encoding.encoder(:translate-nl);
+                $!encoding = $encoding.name;
             }
             else {
                 Nil

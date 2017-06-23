@@ -65,6 +65,8 @@ my class Any { # declared in BOOTSTRAP
     multi method Slip() { self.list.Slip }
     proto method Array(|) is nodal { * }
     multi method Array() { self.list.Array }
+    proto method Seq(|) is nodal { * }
+    multi method Seq() { self.list.Seq }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }
@@ -451,7 +453,8 @@ my class Any { # declared in BOOTSTRAP
     multi method MixHash() { MixHash.new-from-pairs(self.list) }
 
     # XXX GLR does this really need to force a list?
-    method Supply() is nodal { self.list.Supply }
+    proto method Supply(|) is nodal { * }
+    multi method Supply() { self.list.Supply }
 
     method nl-out() { "\n" }
     method print-nl() { self.print(self.nl-out) }

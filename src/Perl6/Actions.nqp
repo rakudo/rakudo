@@ -179,7 +179,7 @@ sub wanted($ast,$by) {
             elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }
-            elsif $node.op eq 'p6for' {
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
@@ -394,7 +394,7 @@ sub unwanted($ast, $by) {
                 }
                 $node.sunk(1);
             }
-            elsif $node.op eq 'p6for' {
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
@@ -508,6 +508,95 @@ register_op_desugar('p6for', -> $qast {
         QAST::Op.new( :op<callmethod>, :name($qast.sunk ?? 'sink' !! 'eager'), $call )
     );
 });
+register_op_desugar('p6forstmt', -> $qast {
+    my $for-target-name := QAST::Node.unique('for_target');
+    my $for-target := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($for-target-name), :scope('local'), :decl('var') ),
+        $qast[0]
+    );
+
+    my $iterator-name := QAST::Node.unique('for_iterator');
+    my $iterator := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($iterator-name), :scope('local'), :decl('var') ),
+        QAST::Op.new(
+            :op('callmethod'), :name('iterator'),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('iscont'),
+                    QAST::Var.new( :name($for-target-name), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('callstatic'), :name('&infix:<,>'),
+                    QAST::Var.new( :name($for-target-name), :scope('local') )
+                ),
+                QAST::Var.new( :name($for-target-name), :scope('local') )
+            )));
+
+    my $iteration-end-name := QAST::Node.unique('for_iterationend');
+    my $iteration-end := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($iteration-end-name), :scope('local'), :decl('var') ),
+        QAST::WVal.new( :value($qast.ann('IterationEnd')) )
+    );
+
+    my $block-name := QAST::Node.unique('for_block');
+    my $block := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($block-name), :scope('local'), :decl('var') ),
+        $qast[1]
+    );
+
+    my $iter-val-name := QAST::Node.unique('for_iterval');
+    my $loop := QAST::Op.new(
+        :op('until'),
+        QAST::Op.new(
+            :op('eqaddr'),
+            QAST::Op.new(
+                :op('decont'),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($iter-val-name), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('pull-one'),
+                        QAST::Var.new( :name($iterator-name), :scope('local') )
+                    )
+                )
+            ),
+            QAST::Var.new( :name($iteration-end-name), :scope('local') )
+        ),
+        QAST::Op.new(
+            :op('call'),
+            QAST::Var.new( :name($block-name), :scope('local') ),
+            QAST::Var.new( :name($iter-val-name), :scope('local') )
+        ));
+    if $qast[2] {
+        $loop.push($qast[2]);
+    }
+
+    QAST::Stmts.new(
+        $for-target,
+        $iterator,
+        $iteration-end,
+        $block,
+        $loop,
+        QAST::WVal.new( :value($qast.ann('Nil')) )
+    )
+});
+
+sub can-use-p6forstmt($block) {
+    my $past_block := $block.ann('past_block');
+    my $count := $past_block.ann('count');
+    return 0 unless nqp::isconcrete($count) && $count == 1;
+    my $code := $block.ann('code_object');
+    my $block_type := $*W.find_symbol(['Block'], :setting-only);
+    return 1 unless nqp::istype($code, $block_type);
+    my $p := nqp::getattr($code, $block_type, '$!phasers');
+    nqp::isnull($p) ||
+        !(nqp::existskey($p, 'FIRST') || nqp::existskey($p, 'LAST') || nqp::existskey($p, 'NEXT'))
+}
 
 sub monkey_see_no_eval($/) {
     my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
@@ -1374,21 +1463,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     unless $past.ann('past_block') {
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
+                    my $fornode := QAST::Op.new(
+                            :op<p6for>, :node($/),
+                            $cond,
+                            block_closure($past),
+                        );
                     $past := QAST::Want.new(
-                        QAST::Op.new(
-                            :op<p6for>, :node($/),
-                            $cond,
-                            block_closure($past),
-                        ),
-                        'v', QAST::Op.new(
-                            :op<p6for>, :node($/),
-                            $cond,
-                            block_closure($past),
-                        ),
+                        $fornode,
+                        'v', QAST::Op.new(:op<p6sink>, $fornode),
                     );
                     $past[2].sunk(1);
                     my $sinkee := $past[0];
-                    $past.annotate('statement_level', -> { UNWANTED($sinkee, 'force for mod') });
+                    $past.annotate('statement_level', -> {
+                        UNWANTED($sinkee, 'force for mod');
+                        $fornode.op('p6forstmt') if can-use-p6forstmt($fornode[1]);
+                        $fornode.annotate('IterationEnd', $*W.find_symbol(['IterationEnd']));
+                        $fornode.annotate('Nil', $*W.find_symbol(['Nil']));
+                    });
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1764,17 +1855,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
+        my $fornode := QAST::Op.new(
+                :op<p6for>, :node($/),
+                $xblock[0],
+                block_closure($xblock[1]),
+            );
         my $past := QAST::Want.new(
-            QAST::Op.new(
-                :op<p6for>, :node($/),
-                $xblock[0],
-                block_closure($xblock[1]),
-            ),
-            'v', QAST::Op.new(
-                :op<p6for>, :node($/),
-                $xblock[0],
-                block_closure($xblock[1]),
-            ),
+            $fornode,
+            'v', QAST::Op.new(:op<p6sink>, $fornode),
         );
         if $*LABEL {
             my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );
@@ -1783,7 +1871,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $past[2].sunk(1);
         my $sinkee := $past[0];
-        $past.annotate('statement_level', -> { UNWANTED($sinkee,'force for') });
+        $past.annotate('statement_level', -> {
+            UNWANTED($sinkee,'force for');
+            if can-use-p6forstmt($fornode[1]) {
+                $fornode.op('p6forstmt');
+                $fornode.annotate('IterationEnd', $*W.find_symbol(['IterationEnd']));
+                $fornode.annotate('Nil', $*W.find_symbol(['Nil']));
+            }
+        });
         make $past;
     }
 
@@ -3920,7 +4015,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $past.ann('placeholder_sig') {
                 $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
-            $past[1] := wrap_return_handler($past[1]);
+            if is_clearly_returnless($past) {
+                $past[1] := QAST::Op.new(
+                    :op('p6decontrv'),
+                    QAST::WVal.new( :value($*DECLARAND) ),
+                    $past[1]);
+                $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
+            }
+            else {
+                $past[1] := wrap_return_handler($past[1]);
+            }
         }
         $past.blocktype('declaration_static');
 
@@ -4205,6 +4309,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::istype($past, QAST::Op)
                     && $past.op ne 'callmethod' # May be .return or similar
                     && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
+                # A QAST::Stmt node
+                nqp::istype($past, QAST::Stmt) ||
                 # Just a variable lookup.
                 nqp::istype($past, QAST::Var) ||
                 # Just a QAST::Want
@@ -4224,27 +4330,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             1;
         }
 
-        # Only analyse things with a single simple statement.
-        if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
-            # Ensure there's no nested blocks.
-            for @($block[0]) {
-                if nqp::istype($_, QAST::Block) { return 0; }
-                if nqp::istype($_, QAST::Stmts) {
-                    for @($_) {
-                        if nqp::istype($_, QAST::Block) { return 0; }
-                    }
+        # Ensure second node is QAST::Stmts.
+        return 0 unless nqp::istype($block[1], QAST::Stmts);
+
+        # Ensure there's no nested blocks.
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Block) { return 0; }
+            if nqp::istype($_, QAST::Stmts) {
+                for @($_) {
+                    if nqp::istype($_, QAST::Block) { return 0; }
                 }
             }
+        }
 
-            # Ensure that the PAST is whitelisted things.
-            returnless_past($block[1][0][0])
+        # Check the block content.
+        for @($block[1]) {
+            return 0 unless returnless_past($_);
         }
-        elsif +$block[1].list == 1 && nqp::istype($block[1][0], QAST::WVal) {
-            1
-        }
-        else {
-            0
-        }
+        return 1;
     }
 
     sub is_yada($/) {
@@ -8122,12 +8225,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
         my int $arity := 0;
+        my int $count := 0;
         for @params {
-            last if $_<optional> || $_<named_names> ||
-               $_<pos_slurpy> || $_<pos_onearg> ||  $_<named_slurpy>;
-            $arity := $arity + 1;
+            last if $_<named_names> || $_<pos_slurpy> || $_<pos_onearg> || $_<named_slurpy>;
+            $arity := $arity + 1 unless $_<optional>;
+            $count := $count + 1;
         }
         $block.arity($arity);
+        $block.annotate('count', $count);
 
         # Consider using the VM binder on backends where it will work out
         # (e.g. we can get the same errors).

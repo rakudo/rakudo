@@ -22,7 +22,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         ) {
             if $!bytecode {
                 $!initialized = True;
-                $!checksum = nqp::sha1($!bytecode.decode("latin-1"));
+                $!checksum = nqp::sha1($!bytecode.decode('iso-8859-1'));
             }
         }
 
@@ -126,8 +126,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     {
         $!update-lock.protect: {
             %!dir-cache{$compiler-id ~ $precomp-id} //=
-                (%!compiler-cache{$compiler-id} //= self.prefix.add($compiler-id.IO))
-                    .add($precomp-id.substr(0, 2).IO)
+                (%!compiler-cache{$compiler-id} //= self.prefix.add($compiler-id))
+                    .add($precomp-id.substr(0, 2))
         }
     }
 
@@ -135,7 +135,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  Str :$extension = '')
     {
-        self!dir($compiler-id, $precomp-id).add(($precomp-id ~ $extension).IO)
+        self!dir($compiler-id, $precomp-id).add($precomp-id ~ $extension)
     }
 
     method !lock(--> Nil) {
@@ -203,11 +203,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  Str :$extension = ''
                  --> IO::Path:D)
     {
-        my $compiler-dir = self.prefix.add($compiler-id.IO);
+        my $compiler-dir = self.prefix.add($compiler-id);
         $compiler-dir.mkdir unless $compiler-dir.e;
         my $dest = self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
-        $dest.add(($precomp-id ~ $extension).IO)
+        $dest.add($precomp-id ~ $extension)
     }
 
     method store-file(CompUnit::PrecompilationId $compiler-id,
@@ -245,7 +245,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
     {
-         my $compiler-dir = self.prefix.add($compiler-id.IO);
+         my $compiler-dir = self.prefix.add($compiler-id);
          for $compiler-dir.dir -> $subdir {
              $subdir.dir>>.unlink;
              $subdir.rmdir;

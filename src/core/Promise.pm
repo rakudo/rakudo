@@ -256,7 +256,7 @@ my class Promise does Awaitable {
         $p
     }
 
-    method Supply(Promise:D:) {
+    multi method Supply(Promise:D:) {
         Supply.on-demand: -> $s {
             self.then({
                 if self.status == Kept {

@@ -154,7 +154,7 @@ my class X::Method::NotFound is Exception {
     has Bool $.private = False;
     method message() {
         my $message = $.private
-          ?? "No such private method '$.method' for invocant of type '$.typename'"
+          ?? "No such private method '!$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
 
         my %suggestions;
@@ -2010,6 +2010,22 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has $.directive;
     method message() {
         "Directive $.directive not applicable for type $.type"
+    }
+}
+
+my role X::Encoding is Exception { }
+
+my class X::Encoding::Unknown does X::Encoding {
+    has $.name;
+    method message() {
+        "Unknown string encoding '$.name'"
+    }
+}
+
+my class X::Encoding::AlreadyRegistered does X::Encoding {
+    has $.name;
+    method message() {
+        "An encoding with name '$.name' has already been registered"
     }
 }
 

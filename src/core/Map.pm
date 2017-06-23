@@ -403,10 +403,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method pick(Map:D:) { self.roll }
 
     sub SETIFY(\map, \type) {
-        nqp::stmts(
-          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-          Rakudo::QuantHash.ADD-MAP-TO-SET($elems,map),
-          nqp::create(type).SET-SELF($elems)
+        nqp::create(type).SET-SELF(
+          Rakudo::QuantHash.ADD-MAP-TO-SET(
+            nqp::create(Rakudo::Internals::IterationSet), map
+          )
         )
     }
     multi method Set(Map:D:)     { SETIFY(self,Set)     }

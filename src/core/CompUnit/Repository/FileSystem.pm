@@ -192,7 +192,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         # We now save the 'resources/' part of a resource's path in files, i.e:
         # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
         # but we also want to root any path request to the CUR's resources directory
-        $.prefix.parent.add('resources').add($key.subst(/^resources\//, ""));
+
+        # When $.prefix points at a directory containing a meta file (eg. -I.)
+        return $.prefix.add( %!meta<files><<$key>> )
+            if %!meta<files> && %!meta<files><<$key>>;
+        return $.prefix.add( $key )
+            if %!meta<resources> && %!meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
+
+        # When $.prefix is presumably the 'lib' folder (eg. -Ilib)
+        return $.prefix.parent.add($key);
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {

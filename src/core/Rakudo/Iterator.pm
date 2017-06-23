@@ -1901,9 +1901,17 @@ class Rakudo::Iterator {
           X::Cannot::Lazy.new(:$action).throw,
           nqp::stmts(
             (my $result := IterationEnd),
-            nqp::until(
-              nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
-              ($result := $pulled)
+            nqp::if(
+              nqp::can(iterator, 'count-only'),
+              nqp::if(
+                (my $count := iterator.count-only)
+                && iterator.skip-at-least($count - 1),
+                $result := iterator.pull-one
+              ),
+              nqp::until(
+                nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+                ($result := $pulled)
+              ),
             ),
             $result
           )

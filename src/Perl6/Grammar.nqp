@@ -1589,13 +1589,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version> [
-                    ||  <?{ $<version><vnum>[0] == 5 }> {
+        | <version> {} # <-- update $/ so we can grab $<version>
+                    # we parse out the numeral, since we could have "6c"
+                    :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
+                    [
+                    ||  <?{ $version == 5 }> {
                             my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                             $*W.do_import($/, $module, 'Perl5');
                             $*W.import_EXPORTHOW($/, $module);
                         }
-                    ||  <?{ $<version><vnum>[0] == 6 }> {
+                    ||  <?{ $version == 6 }> {
                             my $version_parts := $<version><vnum>;
                             my $vwant := $<version>.ast.compile_time_value;
                             my $comp := nqp::getcomp('perl6');

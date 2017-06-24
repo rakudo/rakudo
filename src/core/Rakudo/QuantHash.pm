@@ -542,6 +542,52 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # set difference two IterationSet bags, both assumed to have elems
+    method SUB-BAG-FROM-BAG(\aelems, \belems) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iter  := nqp::iterator(aelems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              (my $value :=
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                 - nqp::getattr(
+                     nqp::ifnull(nqp::atkey(belems,nqp::iterkey_s($iter)),$p0),
+                     Pair,
+                     '$!value'
+                   )
+              ) > 0,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),Pair,'$!value',$value
+                )
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference two Baggies
+    method DIFFERENCE-BAGGIES(\a, \b) {
+        nqp::if(
+          (my $araw := a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            (my $braw := b.raw_hash) && nqp::elems($braw),
+            nqp::create(Bag).SET-SELF(self.SUB-BAG-FROM-BAG($araw, $braw)),
+            nqp::if(
+              nqp::istype(a,Bag),
+              a,
+              nqp::create(Bag).SET-SELF(nqp::clone($araw))
+            )
+          ),
+          bag()
+        )
+    }
+
 #--- Mix/MixHash related methods
 
     # Calculate total of values of a Mix(Hash).  Takes a (possibly
@@ -814,6 +860,57 @@ my class Rakudo::QuantHash {
               False                 # nothing in A nor B
             )
           )
+        )
+    }
+
+    # set difference two IterationSet mixes, both assumed to have elems
+    method SUB-MIX-FROM-MIX(\aelems, \belems) {
+        nqp::stmts(
+          (my $elems := nqp::clone(aelems)),
+          (my $iter  := nqp::iterator(belems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              (my $value :=
+                nqp::getattr(
+                  nqp::ifnull(
+                    nqp::atkey(aelems,nqp::iterkey_s(nqp::shift($iter))),
+                    $p0
+                  ),
+                  Pair,
+                  '$!value'
+                ) - nqp::getattr(
+                      (my $pair := nqp::iterval($iter)),
+                      Pair,
+                      '$!value'
+                     )
+              ),
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(nqp::clone($pair),Pair,'$!value',$value)
+              ),
+              nqp::deletekey($elems,nqp::iterkey_s($iter))
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference two Mixies
+    method DIFFERENCE-MIXIES(\a, \b) {
+        nqp::if(
+          (my $araw := a.raw_hash) && nqp::elems($araw),
+          nqp::if(
+            (my $braw := b.raw_hash) && nqp::elems($braw),
+            nqp::create(Mix).SET-SELF(self.SUB-MIX-FROM-MIX($araw, $braw)),
+            nqp::if(
+              nqp::istype(a,Mix),
+              a,
+              nqp::create(Mix).SET-SELF(nqp::clone($araw))
+            )
+          ),
+          mix()
         )
     }
 }

@@ -923,16 +923,25 @@ my class Rakudo::QuantHash {
             nqp::bindkey(
               $elems,
               nqp::iterkey_s(nqp::shift($iter)),
-              nqp::p6bindattrinvres(
-                nqp::clone(nqp::iterval($iter)),
-                Pair,
-                '$!value',
-                nqp::getattr(
-                  nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
+              nqp::if(
+                issetty,
+                Pair.new(
+                  nqp::iterval($iter),
+                  nqp::getattr(
+                    nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
+                    Pair,
+                    '$!value'
+                  ) - 1
+                ),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
                   Pair,
-                  '$!value'
-                ) - (
-                  issetty || nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  '$!value',
+                  nqp::getattr(
+                    nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
+                    Pair,
+                    '$!value'
+                  ) - nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                 )
               )
             )

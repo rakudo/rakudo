@@ -53,9 +53,22 @@ my class Mix does Mixy {
 
 #--- coercion methods
     multi method Mix(Mix:D:) { self }
+    multi method MixHash(Mix:D) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(MixHash)
+        )
+    }
+    method clone() {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::clone(self),
+          mix()
+        )
+    }
 
-    method clone() { nqp::clone(self) }
-
+#--- illegal methods
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }

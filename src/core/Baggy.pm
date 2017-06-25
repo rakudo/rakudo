@@ -631,75 +631,11 @@ my role Baggy does QuantHash {
     multi method Set(Baggy:D:)     { SETIFY(self,Set)     }
     multi method SetHash(Baggy:D:) { SETIFY(self,SetHash) }
 
-    sub BAGGIFY(\baggy, \type) {
-        nqp::if(
-          (my $raw := baggy.raw_hash) && nqp::elems($raw),
-          nqp::stmts(                               # something to coerce
-            (my $elems := nqp::clone($raw)),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::isgt_i(
-                  (my $value := nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),
-                    Pair,
-                    '$!value'
-                    ).Int
-                  ),                                # .Int also deconts
-                  0
-                ),
-                nqp::bindkey(                       # ok to keep value.Int
-                  $elems,
-                  nqp::iterkey_s($iter),
-                  nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($iter)),
-                    Pair,
-                    '$!value',
-                    $value
-                  )
-                ),
-                nqp::deletekey(                     # we don't do <= 0 in bags
-                  $elems,
-                  nqp::iterkey_s($iter)
-                )
-              )
-            ),
-            nqp::create(type).SET-SELF($elems),
-          ),
-          nqp::if(                                  # nothing to coerce
-            nqp::istype(type,Bag),
-            bag(),
-            nqp::create(BagHash)
-          )
-        )
-    }
-
-    multi method Bag(Baggy:D:)     { BAGGIFY(self, Bag)     }
-    multi method BagHash(Baggy:D:) { BAGGIFY(self, BagHash) }
-
     sub MIXIFY(\baggy, \type) {
         nqp::if(
           (my $raw := baggy.raw_hash) && nqp::elems($raw),
-          nqp::stmts(                             # something to coerce
-            (my $elems := nqp::clone($raw)),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::bindkey(
-                $elems,
-                nqp::iterkey_s(nqp::shift($iter)),
-                nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval($iter)),
-                  Pair,
-                  '$!value',
-                  nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                )
-              )
-            ),
-            nqp::create(type).SET-SELF($elems)
-          ),
-          nqp::if(                                # nothing to coerce
+          nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::if(
             nqp::istype(type,Mix),
             mix(),
             nqp::create(MixHash)
@@ -709,31 +645,6 @@ my role Baggy does QuantHash {
 
     multi method Mix(Baggy:D:)     { MIXIFY(self, Mix)     }
     multi method MixHash(Baggy:D:) { MIXIFY(self, MixHash) }
-
-    method clone() {
-        nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::stmts(                             # something to clone
-            (my $elems := nqp::clone($raw)),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::bindkey(
-                $elems,
-                nqp::iterkey_s(nqp::shift($iter)),
-                nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval($iter)),
-                  Pair,
-                  '$!value',
-                  nqp::clone(nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
-                )
-              )
-            ),
-            nqp::create(self).SET-SELF($elems)
-          ),
-          nqp::create(self)                       # nothing to clone
-        )
-    }
 
     method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 }

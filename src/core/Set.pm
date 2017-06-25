@@ -94,19 +94,26 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
+#--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {
         nqp::if(
-          $!elems,
+          $!elems && nqp::elems($!elems),
           nqp::p6bindattrinvres(
-            nqp::create(SetHash),SetHash,'$!elems',$!elems.clone
+            nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
           ),
           nqp::create(SetHash)
         )
     }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::clone(self),
+          set()
+        )
+    }
 
-    method clone() { nqp::clone(self) }
-
+#--- interface methods
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }

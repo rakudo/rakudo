@@ -168,31 +168,24 @@ my class SetHash does Setty {
         }.new(self.hll_hash))
     }
 
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::p6bindattrinvres(                  # something to clone
-            nqp::create(self),
-            ::?CLASS,
-            '$!elems',
-            nqp::clone($!elems)
-          ),
-          nqp::create(self)                       # nothing to clone
-        )
-    }
-
+#--- coercion methods
     multi method Set(SetHash:D: :$view) {
         nqp::if(
-          $!elems,
-          nqp::p6bindattrinvres(
-            nqp::create(Set),Set,'$!elems',
-            nqp::if($view,$!elems,$!elems.clone)
-          ),
+          $!elems && nqp::elems($!elems),
+          nqp::create(Set).SET-SELF(nqp::if($view,$!elems,nqp::clone($!elems))),
           nqp::create(Set)
         )
     }
     multi method SetHash(SetHash:D:) { self }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(self).SET-SELF(nqp::clone($!elems)),
+          nqp::create(self)
+        )
+    }
 
+#--- interface methods
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {

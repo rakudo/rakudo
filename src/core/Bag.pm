@@ -50,12 +50,36 @@ my class Bag does Baggy {
 
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
+    multi method BagHash(Bag:D) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(BagHash)
+        )
+    }
     multi method Mix(Bag:D:) {
-        nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(Mix).SET-SELF($raw),
+          mix()
+        )
+    }
+    multi method MixHash(Bag:D) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(MixHash)
+        )
+    }
+    method clone() {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::clone(self),
+          bag()
+        )
     }
 
-    method clone() { nqp::clone(self) }
-
+#--- illegal methods
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }

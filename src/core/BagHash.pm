@@ -59,22 +59,40 @@ my class BagHash does Baggy {
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL(self.raw_hash) }
 
+#--- coercion methods
     multi method Bag(BagHash:D: :$view) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::p6bindattrinvres(
-            nqp::create(Bag),Bag,'%!elems',
-            nqp::if($view,%!elems,%!elems.clone)
+          nqp::create(Bag).SET-SELF(               # not empty
+            nqp::if(
+              $view,
+              $raw,                                # BagHash won't change
+              Rakudo::QuantHash.BAGGY-CLONE($raw)  # need deep copy
+            )
           ),
-          bag()
+          bag()                               # empty, bag() will do
         )
     }
     multi method BagHash(BagHash:D:) { self }
     multi method Mix(BagHash:D:) {
         nqp::if(
           (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),
+          nqp::create(Mix).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
           mix()
+        )
+    }
+    multi method MixHash(BagHash:D:) {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(MixHash)
+        )
+    }
+    method clone() {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(BagHash)
         )
     }
 

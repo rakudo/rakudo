@@ -70,6 +70,13 @@ my class MixHash does Mixy {
         )
     }
     multi method MixHash(MixHash:D:) { self }
+    method clone() {
+        nqp::if(
+          (my $raw := self.raw_hash) && nqp::elems($raw),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          nqp::create(MixHash)
+        )
+    }
 
 #--- iterator methods
     sub proxy(Mu \iter,Mu \storage) is raw {

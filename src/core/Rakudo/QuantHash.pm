@@ -264,6 +264,29 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # remove iterator elements from set using Pair semantics, stops pulling
+    # from the iterator as soon as the result is the empty set.
+    method SUB-PAIRS-FROM-SET(\elems, \iterator) {
+        nqp::stmts(
+          (my $elems := nqp::clone(elems)),
+          nqp::until(           
+            nqp::eqaddr(                            # end of iterator?
+              (my $pulled := iterator.pull-one),
+              IterationEnd
+            ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::if(                              # must check for thruthiness
+                nqp::getattr($pulled,Pair,'$!value'),
+                nqp::deletekey($elems,nqp::getattr($pulled,Pair,'$!key').WHICH)
+              ),
+              nqp::deletekey($elems,$pulled.WHICH)  # attempt to remove
+            )
+          ),
+          $elems
+        )
+    }
+
 #--- Bag/BagHash related methods
 
     # Calculate total of value of a Bag(Hash).  Takes a (possibly

@@ -277,6 +277,42 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # remove hash elements from set, stop if the result is the empty Set
+    method SUB-MAP-FROM-SET(\aelems, \map) {
+        nqp::stmts(                            # both have elems
+          (my $elems := nqp::clone(aelems)),
+          (my $iter  := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
+          nqp::while(
+            $iter && nqp::elems($elems),
+            nqp::if(
+              nqp::iterval(nqp::shift($iter)),
+              nqp::deletekey($elems,nqp::iterkey_s($iter).WHICH)
+            )
+          ),
+          $elems
+        )
+    }
+
+    # remove object hash elements from set, stop if the result is the empty Set
+    method SUB-OBJECTHASH-FROM-SET(\aelems, \map) {
+        nqp::stmts(                            # both have elems
+          (my $elems := nqp::clone(aelems)),
+          (my $iter  := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
+          nqp::while(
+            $iter && nqp::elems($elems),
+            nqp::if(
+              nqp::getattr(
+                nqp::iterval(nqp::shift($iter)),
+                Pair,
+                '$!value'
+              ),
+              nqp::deletekey($elems,nqp::iterkey_s($iter))
+            )
+          ),
+          $elems
+        )
+    }
+
     # remove iterator elements from set using Pair semantics, stops pulling
     # from the iterator as soon as the result is the empty set.
     method SUB-PAIRS-FROM-SET(\elems, \iterator) {

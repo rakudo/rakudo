@@ -421,6 +421,24 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
       set()                                    # no elems in $a
     )
 }
+multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::create(Set).SET-SELF(               # elems in $a
+        nqp::if(
+          (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+            && nqp::elems($braw),
+          nqp::if(                             # both have elems
+            nqp::eqaddr($b.keyof,Str(Any)),
+            Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, nqp::decont($b)),
+            Rakudo::QuantHash.SUB-OBJECTHASH-FROM-SET($araw, nqp::decont($b))
+          ),
+          nqp::clone($araw)                    # no elems in $b
+        )
+      ),
+      set()                                    # no elems in $a
+    )
+}
 multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
     nqp::if(
       (my $raw := $a.raw_hash) && nqp::elems($raw),

@@ -264,6 +264,19 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # remove set elements from set, stop when the result is the empty Set
+    method SUB-SET-FROM-SET(\aelems, \belems) {
+        nqp::stmts(                            # both have elems
+          (my $elems := nqp::clone(aelems)),
+          (my $iter  := nqp::iterator(belems)),
+          nqp::while(
+            $iter && nqp::elems($elems),
+            nqp::deletekey($elems,nqp::iterkey_s(nqp::shift($iter)))
+          ),
+          $elems
+        )
+    }
+
     # remove iterator elements from set using Pair semantics, stops pulling
     # from the iterator as soon as the result is the empty set.
     method SUB-PAIRS-FROM-SET(\elems, \iterator) {

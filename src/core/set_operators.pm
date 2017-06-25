@@ -413,20 +413,10 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
       (my $araw := $a.raw_hash) && nqp::elems($araw),
       nqp::if(                                 # elems in $a
         (my $braw := $b.raw_hash) && nqp::elems($braw),
-        nqp::stmts(                            # both have elems
-          (my $elems := nqp::clone($araw)),
-          (my $iter  := nqp::iterator($braw)),
-          nqp::while(
-            $iter,
-            nqp::deletekey($elems,nqp::iterkey_s(nqp::shift($iter)))
-          ),
-          nqp::create(Set).SET-SELF($elems)
+        nqp::create(Set).SET-SELF(             # both have elems
+          Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
         ),
-        nqp::if(                               # no elems in $b
-          nqp::istype($a,Set),
-          $a,                                  # Set is immutable, so identity
-          nqp::create(Set).SET-SELF(nqp::clone($araw))
-        )
+        $a.Set,                                # no elems in $b
       ),
       set()                                    # no elems in $a
     )

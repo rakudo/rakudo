@@ -134,6 +134,28 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # create a deep clone of the given IterSet with baggy
+    method BAGGY-CLONE(\raw) {
+        nqp::stmts(
+          (my $elems := nqp::clone(raw)),
+          (my $iter  := nqp::iterator($elems)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::p6bindattrinvres(
+                nqp::clone(nqp::iterval($iter)),
+                Pair,
+                '$!value',
+                nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
 #--- Set/SetHash related methods
     method SET-IS-SUBSET($a,$b --> Bool:D) {
         nqp::stmts(

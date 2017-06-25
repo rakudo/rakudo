@@ -439,8 +439,8 @@ multi sub infix:<(-)>(Mixy:D $a, QuantHash:D $b) {
 multi sub infix:<(-)>(QuantHash:D $a, Mixy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
 }
-multi sub infix:<(-)>(Mixy:D $a, Any:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Mix)
+multi sub infix:<(-)>(Mixy:D $a, Any:D $b) {     # also Iterable
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Set)
 }
 multi sub infix:<(-)>(Any:D $a, Mixy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
@@ -457,8 +457,8 @@ multi sub infix:<(-)>(Baggy:D $a, QuantHash:D $b) {
 multi sub infix:<(-)>(QuantHash:D $a, Baggy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
 }
-multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
+multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {    # also Iterable
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Set)
 }
 multi sub infix:<(-)>(Any:D $a, Baggy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)

@@ -286,7 +286,7 @@ my class Rakudo::QuantHash {
             nqp::eqaddr(                            # end of iterator?
               (my $pulled := iterator.pull-one),
               IterationEnd
-            ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove
+            ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove?
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(                              # must check for thruthiness

@@ -431,41 +431,38 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
       set()                                    # no elems in $a
     )
 }
-multi sub infix:<(-)>(Setty:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGIES($a.Bag, $b)
+multi sub infix:<(-)>(Mixy:D $a, Mixy:D $b) {    # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)
 }
-multi sub infix:<(-)>(Baggy:D $a, Setty:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGIES($a, $b.Bag)
+multi sub infix:<(-)>(Mixy:D $a, QuantHash:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)
 }
-multi sub infix:<(-)>(Setty:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a.Mix, $b)
-}
-multi sub infix:<(-)>(Mixy:D $a, Setty:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a, $b.Mix)
-}
-multi sub infix:<(-)>(Baggy:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGIES($a, $b)
-}
-multi sub infix:<(-)>(Mixy:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a, $b)
-}
-multi sub infix:<(-)>(Baggy:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a, $b)
-}
-multi sub infix:<(-)>(Mixy:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a, $b)
-}
-multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGIES($a, $b.Bag)
-}
-multi sub infix:<(-)>(Any:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGIES($a.Bag, $b)
+multi sub infix:<(-)>(QuantHash:D $a, Mixy:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
 }
 multi sub infix:<(-)>(Mixy:D $a, Any:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a, $b.Mix)
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Mix)
 }
 multi sub infix:<(-)>(Any:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXIES($a.Mix, $b)
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
+}
+multi sub infix:<(-)>(Baggy:D $a, Mixy:D $b) {   # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
+}
+multi sub infix:<(-)>(Baggy:D $a, Baggy:D $b) {  # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
+}
+multi sub infix:<(-)>(Baggy:D $a, QuantHash:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
+}
+multi sub infix:<(-)>(QuantHash:D $a, Baggy:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
+}
+multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
+}
+multi sub infix:<(-)>(Any:D $a, Baggy:D $b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
 }
 
 multi sub infix:<(-)>(**@p) {

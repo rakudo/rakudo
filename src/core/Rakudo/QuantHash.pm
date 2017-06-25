@@ -564,8 +564,8 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # set difference two IterationSet bags, both assumed to have elems
-    method SUB-BAG-FROM-BAG(\aelems, \belems) {
+    # set difference Baggy IterSet from Bag IterSet, both assumed to have elems
+    method SUB-BAGGY-FROM-BAG(\aelems, \belems) {
         nqp::stmts(
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iter  := nqp::iterator(aelems)),
@@ -593,18 +593,45 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # set difference two Baggies
-    method DIFFERENCE-BAGGIES(\a, \b) {
+    # set difference Setty IterSet from Bag IterSet, both assumed to have elems
+    method SUB-SETTY-FROM-BAG(\aelems, \belems) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iter  := nqp::iterator(aelems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              (my $value :=
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                 - nqp::existskey(belems,nqp::iterkey_s($iter))
+              ) > 0,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),Pair,'$!value',$value
+                )
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference of a Baggy and a QuantHash
+    method DIFFERENCE-BAGGY-QUANTHASH(\a, \b) {
         nqp::if(
           (my $araw := a.raw_hash) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.raw_hash) && nqp::elems($braw),
-            nqp::create(Bag).SET-SELF(self.SUB-BAG-FROM-BAG($araw, $braw)),
-            nqp::if(
-              nqp::istype(a,Bag),
-              a,
-              nqp::create(Bag).SET-SELF(nqp::clone($araw))
-            )
+            nqp::create(Bag).SET-SELF(
+              nqp::if(
+                nqp::istype(b,Setty),
+                self.SUB-SETTY-FROM-BAG($araw, $braw),
+                self.SUB-BAGGY-FROM-BAG($araw, $braw)
+              )
+            ),
+            a.Bag
           ),
           bag()
         )
@@ -885,52 +912,70 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # set difference two IterationSet mixes, both assumed to have elems
-    method SUB-MIX-FROM-MIX(\aelems, \belems) {
+    # set difference QuantHash IterSet from Mix IterSet, both assumed to have
+    # elems.  3rd parameter is 1 for Setty, 0 for Baggy semantics
+    method SUB-QUANTHASH-FROM-MIX(\aelems, \belems, \issetty) {
         nqp::stmts(
-          (my $elems := nqp::clone(aelems)),
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
           (my $iter  := nqp::iterator(belems)),
-          nqp::while(
+          nqp::while(                   # subtract all righthand keys
             $iter,
-            nqp::if(
-              (my $value :=
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::p6bindattrinvres(
+                nqp::clone(nqp::iterval($iter)),
+                Pair,
+                '$!value',
                 nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey(aelems,nqp::iterkey_s(nqp::shift($iter))),
-                    $p0
-                  ),
+                  nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
                   Pair,
                   '$!value'
-                ) - nqp::getattr(
-                      (my $pair := nqp::iterval($iter)),
-                      Pair,
-                      '$!value'
-                     )
+                ) - (
+                  issetty || nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                )
+              )
+            )
+          ),
+          ($iter := nqp::iterator(aelems)),
+          nqp::while(                   # vivify all untouched lefthand keys
+            $iter,
+            nqp::if(
+              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+              nqp::unless(              # was touched
+                nqp::getattr(
+                  nqp::atkey($elems,nqp::iterkey_s($iter)),
+                  Pair,
+                  '$!value'
+                ),
+                nqp::deletekey($elems,nqp::iterkey_s($iter)) # but no value
               ),
-              nqp::bindkey(
+              nqp::bindkey(             # not touched, add it
                 $elems,
                 nqp::iterkey_s($iter),
-                nqp::p6bindattrinvres(nqp::clone($pair),Pair,'$!value',$value)
-              ),
-              nqp::deletekey($elems,nqp::iterkey_s($iter))
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                )
+              )
             )
           ),
           $elems
         )
     }
 
-    # set difference two Mixies
-    method DIFFERENCE-MIXIES(\a, \b) {
+    # set difference of a Mixy and a QuantHash
+    method DIFFERENCE-MIXY-QUANTHASH(\a, \b) {
         nqp::if(
           (my $araw := a.raw_hash) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.raw_hash) && nqp::elems($braw),
-            nqp::create(Mix).SET-SELF(self.SUB-MIX-FROM-MIX($araw, $braw)),
-            nqp::if(
-              nqp::istype(a,Mix),
-              a,
-              nqp::create(Mix).SET-SELF(nqp::clone($araw))
-            )
+            nqp::create(Mix).SET-SELF(
+              self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
+            ),
+            a.Mix
           ),
           mix()
         )

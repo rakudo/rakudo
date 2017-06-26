@@ -705,7 +705,11 @@ my class Rakudo::QuantHash {
             ),
             a.Bag
           ),
-          bag()
+          nqp::if(
+            nqp::istype(b,Failure),
+            b.throw,
+            bag()
+          )
         )
     }
 
@@ -1058,7 +1062,11 @@ my class Rakudo::QuantHash {
             ),
             a.Mix
           ),
-          mix()
+          nqp::if(
+            nqp::istype(b,Failure),
+            b.throw,
+            mix()
+          )
         )
     }
 }

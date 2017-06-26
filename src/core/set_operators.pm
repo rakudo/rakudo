@@ -441,11 +441,15 @@ multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
 }
 multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
     nqp::if(
-      (my $raw := $a.raw_hash) && nqp::elems($raw),
-      nqp::create(Set).SET-SELF(
-        Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $b.iterator)
-      ),
-      set()
+      (my $iterator := $b.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action('difference'),:what<set>)),
+      nqp::if(
+        (my $raw := $a.raw_hash) && nqp::elems($raw),
+        nqp::create(Set).SET-SELF(
+          Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
+        ),
+        set()
+      )
     )
 }
 multi sub infix:<(-)>(Mixy:D $a, Mixy:D $b) {    # needed as tie-breaker

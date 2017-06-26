@@ -58,7 +58,7 @@ MAIN: {
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     unless (defined $options{libdir}) {
-        my $default = File::Spec->catdir($options{prefix}, 'lib');
+        my $default = File::Spec->catdir($options{prefix}, 'share');
         # print "ATTENTION: no --libdir supplied, building and installing architecture specific files to $default\n";
         $options{libdir} = $default;
     }

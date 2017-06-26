@@ -12,7 +12,8 @@ SHELL   = @shell@
 SYSROOT= @sysroot@
 SDKROOT= @sdkroot@
 PREFIX = @prefix@
-PERL6_LANG_DIR = $(PREFIX)/share/perl6
+LIBDIR = @libdir@
+PERL6_LANG_DIR = $(LIBDIR)/perl6
 
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \

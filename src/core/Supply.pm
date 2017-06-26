@@ -70,6 +70,7 @@ my class Supply does Awaitable {
 
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
+    method Tappable(--> Tappable) { $!tappable }
 
     my \DISCARD = -> $ {};
     my \NOP = -> {};

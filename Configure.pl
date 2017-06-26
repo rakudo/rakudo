@@ -53,13 +53,11 @@ MAIN: {
 
     unless (defined $options{prefix}) {
         my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
-        # print "ATTENTION: no --prefix supplied, building and installing to $default\n";
         $options{prefix} = $default;
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     unless (defined $options{libdir}) {
         my $default = File::Spec->catdir($options{prefix}, 'share');
-        # print "ATTENTION: no --libdir supplied, building and installing architecture specific files to $default\n";
         $options{libdir} = $default;
     }
     my $prefix         = $options{'prefix'};

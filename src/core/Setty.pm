@@ -225,20 +225,16 @@ my role Setty does QuantHash {
     sub BAGGIFY(\setty, \type) {
         nqp::if(
           (my $raw := setty.raw_hash) && nqp::elems($raw),
-          nqp::stmts(
-            (my $elems := nqp::clone($raw)),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::bindkey(
-                $elems,
-                nqp::iterkey_s(nqp::shift($iter)),
-                Pair.new(nqp::decont(nqp::iterval($iter)),1)
-              )
-            ),
-            nqp::create(type).SET-SELF($elems)
-          ),
-          nqp::create(type)
+          nqp::create(type).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($raw)),
+          nqp::if(
+            nqp::istype(type,Bag),
+            bag(),
+            nqp::if(
+              nqp::istype(type,Mix),
+              mix(),
+              nqp::create(type)
+            )
+          )
         )
     }
     multi method Bag(Setty:D:)     { BAGGIFY(self, Bag)     }

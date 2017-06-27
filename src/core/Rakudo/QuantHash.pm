@@ -1065,7 +1065,28 @@ my class Rakudo::QuantHash {
           nqp::if(
             nqp::istype(b,Failure),
             b.throw,
-            mix()
+            nqp::if(
+              ($braw := b.raw_hash) && nqp::elems($braw),
+              nqp::stmts(
+                (my $elems := nqp::clone($braw)),
+                (my $iter  := nqp::iterator($braw)),
+                nqp::while(
+                  $iter,
+                  nqp::bindkey(    # clone with negated value
+                    $elems,
+                    nqp::iterkey_s(nqp::shift($iter)),
+                    nqp::p6bindattrinvres(
+                      nqp::clone(nqp::iterval($iter)),
+                      Pair,
+                      '$!value',
+                      - nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                    )
+                  )
+                ),
+                nqp::create(Mix).SET-SELF($elems)
+              ),
+              mix()
+            )
           )
         )
     }

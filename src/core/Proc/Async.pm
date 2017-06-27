@@ -117,6 +117,7 @@ my class Proc::Async {
     has $!exit_promise;
     has @!promises;
     has $!encoder;
+    has @!close-after-exit;
 
     proto method new(|) { * }
     multi method new(*@ ($path, *@args), *%_) {
@@ -226,6 +227,7 @@ my class Proc::Async {
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
         die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
         $!stdin-fd := $handle.native-descriptor;
+        @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
@@ -327,6 +329,7 @@ my class Proc::Async {
         );
         nqp::permit($!process_handle, 0, -1) if $!merge_supply;
         Promise.allof( $!exit_promise, @!promises ).then({
+            .close for @!close-after-exit;
             $!exit_promise.status == Broken
                 ?? $!exit_promise.cause.throw
                 !! $!exit_promise.result

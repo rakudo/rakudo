@@ -1225,31 +1225,36 @@ multi sub infix:<(+)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(+)>(Any $a)         { $a.Bag }
 
 multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
-    nqp::create(Bag).SET-SELF(
-      Rakudo::QuantHash.ADD-SET-TO-BAG(
-        Rakudo::QuantHash.ADD-SET-TO-BAG(
-          nqp::create(Rakudo::Internals::IterationSet),
-          $a.raw_hash
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(                                         # elems on left
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::create(Bag).SET-SELF(                     # elems on both sides
+          Rakudo::QuantHash.ADD-SET-TO-BAG(
+            Rakudo::QuantHash.SET-BAGGIFY($araw),
+            $braw
+          )
         ),
-        $b.raw_hash
-      )
+        $a.Bag                                         # no elems on right
+      ),
+      $b.Bag                                           # no elems left/either
     )
 }
 
 multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
       (my $araw := $a.raw_hash) && nqp::elems($araw),
-      nqp::if(
+      nqp::if(                                         # elems on left
         (my $braw := $b.raw_hash) && nqp::elems($braw),
-        nqp::create(Mix).SET-SELF(
+        nqp::create(Mix).SET-SELF(                     # elems on both sides
           Rakudo::QuantHash.ADD-MIX-TO-MIX(
             Rakudo::QuantHash.BAGGY-CLONE($araw),
             $braw
           )
         ),
-        $a.Mix
+        $a.Mix                                         # no elems on right
       ),
-      $b.Mix
+      $b.Mix                                           # no elems left/either
     )
 }
 multi sub infix:<(+)>(Mixy:D $a, Baggy:D $b) { infix:<(+)>($a, $b.Mix) }

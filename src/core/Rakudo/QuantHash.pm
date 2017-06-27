@@ -573,6 +573,8 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Take the given IterationSet with baggy semantics, and add the other
+    # IterationSet with setty semantics to it.  Return the given IterationSet.
     method ADD-SET-TO-BAG(\elems,Mu \set) {
         nqp::stmts(
           nqp::if(
@@ -586,11 +588,11 @@ my class Rakudo::QuantHash {
                   nqp::stmts(
                     (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
                     nqp::bindattr($pair,Pair,'$!value',
-                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                      nqp::getattr($pair,Pair,'$!value') + 1
                     )
                   ),
                   nqp::bindkey(elems,nqp::iterkey_s($iter),
-                    Pair.new(nqp::iterval($iter),1)
+                    Pair.new(nqp::iterval($iter), 1)
                   )
                 )
               )
@@ -908,6 +910,38 @@ my class Rakudo::QuantHash {
             )
           ),
           elems                      # we're done, return what we got so far
+        )
+    }
+
+    # Take the given IterationSet with mixy semantics, and add the other
+    # IterationSet with setty semantics to it.  Return the given IterationSet.
+    method ADD-SET-TO-MIX(\elems,Mu \set) {
+        nqp::stmts(
+          nqp::if(
+            set && nqp::elems(set),
+            nqp::stmts(
+              (my $iter := nqp::iterator(set)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::if(
+                    (my $value := nqp::getattr(
+                      (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                      Pair,
+                      '$!value'
+                    ) + 1),
+                    nqp::bindattr($pair,Pair,'$!value',$value),   # still valid
+                    nqp::deletekey(elems,nqp::iterkey_s($iter))   # not, byebye
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),       # new key
+                    Pair.new(nqp::iterval($iter), 1)
+                  )
+                )
+              )
+            )
+          ),
+          elems
         )
     }
 

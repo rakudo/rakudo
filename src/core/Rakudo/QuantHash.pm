@@ -776,6 +776,9 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Given an IterationSet in baggy/mixy format considered to contain the
+    # final result, add the other IterationSet using Mix semantics and return
+    # the first IterationSet.
     method ADD-MIX-TO-MIX(\elems, Mu \mix) {
         nqp::stmts(
           nqp::if(
@@ -785,16 +788,24 @@ my class Rakudo::QuantHash {
               nqp::while(
                 $iter,
                 nqp::if(
-                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                  nqp::stmts(
-                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                    nqp::bindattr($pair,Pair,'$!value',
-                      nqp::getattr($pair,Pair,'$!value')
-                      + nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  nqp::isnull((my $pair :=
+                    nqp::atkey(elems,nqp::iterkey_s(nqp::shift($iter)))
+                  )),
+                  nqp::bindkey(                 # doesn't exist on left, create
+                    elems,
+                    nqp::iterkey_s($iter),
+                    nqp::p6bindattrinvres(
+                      nqp::clone(nqp::iterval($iter)),
+                      Pair,
+                      '$!value',
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                     )
                   ),
-                  nqp::bindkey(elems,nqp::iterkey_s($iter),
-                    nqp::clone(nqp::iterval($iter))
+                  nqp::if(                      # exists on left, update
+                    (my $value := nqp::getattr($pair,Pair,'$!value')
+                      + nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+                    nqp::bindattr($pair,Pair,'$!value',$value), # valid for Mix
+                    nqp::deletekey(elems,nqp::iterkey_s($iter)) # bye bye
                   )
                 )
               )

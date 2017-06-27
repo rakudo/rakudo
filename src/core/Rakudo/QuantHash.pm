@@ -157,6 +157,25 @@ my class Rakudo::QuantHash {
     }
 
 #--- Set/SetHash related methods
+
+    # Create an IterationSet with baggy semantics from IterationSet with
+    # Setty semantics.
+    method SET-BAGGIFY(\raw) {
+        nqp::stmts(
+          (my $elems := nqp::clone(raw)),
+          (my $iter  := nqp::iterator($elems)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              Pair.new(nqp::decont(nqp::iterval($iter)),1)
+            )
+          ),
+          $elems
+        )
+    }
+
     method SET-IS-SUBSET($a,$b --> Bool:D) {
         nqp::stmts(
           nqp::unless(

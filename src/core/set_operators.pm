@@ -1237,14 +1237,19 @@ multi sub infix:<(+)>(Setty:D $a, Setty:D $b) {
 }
 
 multi sub infix:<(+)>(Mixy:D $a, Mixy:D $b) {
-    nqp::create(Mix).SET-SELF(
-      Rakudo::QuantHash.ADD-MIX-TO-MIX(
-        Rakudo::QuantHash.ADD-MIX-TO-MIX(
-          nqp::create(Rakudo::Internals::IterationSet),
-          $a.raw_hash
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(
+        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        nqp::create(Mix).SET-SELF(
+          Rakudo::QuantHash.ADD-MIX-TO-MIX(
+            Rakudo::QuantHash.BAGGY-CLONE($araw),
+            $braw
+          )
         ),
-        $b.raw_hash
-      )
+        $a.Mix
+      ),
+      $b.Mix
     )
 }
 multi sub infix:<(+)>(Mixy:D $a, Baggy:D $b) { infix:<(+)>($a, $b.Mix) }

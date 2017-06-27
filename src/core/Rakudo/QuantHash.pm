@@ -776,28 +776,31 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
-        nqp::if(
-          mix && nqp::elems(mix),
-          nqp::stmts(
-            (my $iter := nqp::iterator(mix)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                  nqp::bindattr($pair,Pair,'$!value',
-                    nqp::getattr($pair,Pair,'$!value')
-                    + nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+    method ADD-MIX-TO-MIX(\elems, Mu \mix) {
+        nqp::stmts(
+          nqp::if(
+            mix && nqp::elems(mix),
+            nqp::stmts(
+              (my $iter := nqp::iterator(mix)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                    nqp::bindattr($pair,Pair,'$!value',
+                      nqp::getattr($pair,Pair,'$!value')
+                      + nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                    )
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),
+                    nqp::clone(nqp::iterval($iter))
                   )
-                ),
-                nqp::bindkey(elems,nqp::iterkey_s($iter),
-                  nqp::clone(nqp::iterval($iter))
                 )
               )
             )
-          )
+          ),
+          elems
         )
     }
 

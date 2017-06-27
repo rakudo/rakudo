@@ -14,6 +14,8 @@ my class Proc {
     has @!pre-spawn;
     has @!post-spawn;
     has $!active-handles = 0;
+    has &!start-stdout;
+    has &!start-stderr;
     has $!finished;
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
@@ -24,9 +26,16 @@ my class Proc {
             @!pre-spawn.push({ $!proc.bind-stdin($in) });
         }
         elsif $in === True {
+            my $cur-promise = Promise.new;
+            $cur-promise.keep(True);
             $!in = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-out => $nl,
-                :on-write({ await $!proc.write($_) }),
-                :on-close({ $!proc.close-stdin; self!await-if-last-handle }));
+                :on-write(-> $blob {
+                    $cur-promise .= then({ await $!proc.write($blob) });
+                }),
+                :on-close({
+                    $cur-promise .= then({ $!proc.close-stdin; });
+                    self!await-if-last-handle
+                }));
             $!active-handles++;
             $!w := True;
         }
@@ -42,8 +51,7 @@ my class Proc {
             my $chan = Channel.new;
             $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                 :on-read({ (try $chan.receive) // buf8.new }),
-                :on-close({ self!await-if-last-handle }),
-                :bin-supply({ $chan.Supply }));
+                :on-close({ self!await-if-last-handle }));
             $!active-handles++;
             @!pre-spawn.push({
                 $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
@@ -53,16 +61,29 @@ my class Proc {
         }
         else {
             if $out === True {
-                my $chan = Channel.new;
+                my $chan;
+                my $stdout-supply;
+                &!start-stdout = {
+                    $chan = $stdout-supply.Channel;
+                    &!start-stdout = Nil;
+                }
                 $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                    :on-read({ (try $chan.receive) // buf8.new }),
-                    :on-close({ self!await-if-last-handle }),
-                    :bin-supply({ $chan.Supply }));
+                    :on-read({
+                        &!start-stdout() if &!start-stdout;
+                        (try $chan.receive) // buf8.new
+                    }),
+                    :on-close({
+                        $chan //= $stdout-supply.Channel; # If we never read
+                        self!await-if-last-handle
+                    }),
+                    :on-native-descriptor({
+                        $!active-handles--;
+                        &!start-stdout = Nil;
+                        await $stdout-supply.native-descriptor
+                    }));
                 $!active-handles++;
                 @!pre-spawn.push({
-                    $!proc.stdout(:bin).tap: { $chan.send($_) },
-                        done => { $chan.close },
-                        quit => { $chan.fail($_) }
+                    $stdout-supply = $!proc.stdout(:bin)
                 });
             }
             elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
@@ -78,16 +99,29 @@ my class Proc {
             }
 
             if $err === True {
-                my $chan = Channel.new;
+                my $chan;
+                my $stderr-supply;
+                &!start-stderr = {
+                    $chan = $stderr-supply.Channel;
+                    &!start-stderr = Nil;
+                }
                 $!err = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                    :on-read({ (try $chan.receive) // buf8.new }),
-                    :on-close({ self!await-if-last-handle }),
-                    :bin-supply({ $chan.Supply }));
+                    :on-read({
+                        &!start-stderr() if &!start-stderr;
+                        (try $chan.receive) // buf8.new
+                    }),
+                    :on-close({
+                        $chan //= $stderr-supply.Channel; # If we never read
+                        self!await-if-last-handle
+                    }),
+                    :on-native-descriptor({
+                        &!start-stderr = Nil;
+                        $!active-handles--;
+                        await $stderr-supply.native-descriptor
+                    }));
                 $!active-handles++;
                 @!pre-spawn.push({
-                    $!proc.stderr(:bin).tap: { $chan.send($_) },
-                        done => { $chan.close },
-                        quit => { $chan.fail($_) }
+                    $stderr-supply = $!proc.stderr(:bin);
                 });
             }
             elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {
@@ -111,12 +145,20 @@ my class Proc {
         }
     }
 
-    method !await-if-last-handle(--> Nil) {
-        self!wait-for-finish unless --$!active-handles;
+    method !await-if-last-handle() {
+        if --$!active-handles {
+            Nil
+        }
+        else {
+            self!wait-for-finish;
+            self
+        }
     }
 
     method !wait-for-finish {
         CATCH { default { self.status(0x100) } }
+        &!start-stdout() if &!start-stdout;
+        &!start-stderr() if &!start-stderr;
         self.status(await($!finished).status) if $!exitcode == -1;
     }
 

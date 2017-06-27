@@ -227,18 +227,6 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
         $!stdin-fd := $handle.native-descriptor;
     }
-    multi method bind-stdin(IO::Pipe:D $handle --> Nil) {
-        die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
-        my $sup := nqp::getattr(nqp::decont($handle), IO::Pipe, '$!bin-supply');
-        die "Can only bind an output IO::Pipe to stdin of a process"
-            unless $sup.DEFINITE;
-        $!w = True;
-        $!ready_promise.then({
-            $sup().tap: { await self.write($_) },
-                done => { self.close-stdin },
-                quit => { self.close-stdin };
-        });
-    }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
         die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))

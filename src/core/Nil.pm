@@ -5,7 +5,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method gist(Nil:)   { 'Nil' }
     method Numeric() { warn "Use of {self.gist} in numeric context"; 0 }
     method Str() { warn "Use of {self.gist} in string context"; '' }
-    method sink(| --> Nil)   { }     # required by RESTRICTED setting
+    method sink(--> Nil) { }     # required by RESTRICTED setting
 
     method AT-POS(| --> Nil) { }
     method AT-KEY(| --> Nil) { }

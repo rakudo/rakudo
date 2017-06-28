@@ -92,6 +92,7 @@ my class Proc::Async {
 
     has $!ready_promise = Promise.new;
     has $!ready_vow = $!ready_promise.vow;
+    has $!handle_available_promise = Promise.new;
     has $!stdout_descriptor_vow;
     has $!stderr_descriptor_vow;
     has $!stdout_descriptor_used = Promise.new;
@@ -129,7 +130,7 @@ my class Proc::Async {
     }
 
     method !pipe-cbs(\channel) {
-        -> { $!ready_promise.then({ nqp::permit($!process_handle, channel, -1) }) },
+        -> { $!handle_available_promise.then({ nqp::permit($!process_handle, channel, -1) }) },
         -> { (channel == 1 ?? $!stdout_descriptor_used !! $!stderr_descriptor_used).keep(True) }
     }
 
@@ -341,6 +342,7 @@ my class Proc::Async {
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );
+        $!handle_available_promise.keep(True);
         nqp::permit($!process_handle, 0, -1) if $!merge_supply;
         Promise.allof( $!exit_promise, @!promises ).then({
             .close for @!close-after-exit;

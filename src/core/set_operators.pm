@@ -1248,6 +1248,27 @@ multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
       nqp::if(nqp::istype($b,Mixy),$b.Mix,$b.Bag)      # no elems left/either
     )
 }
+multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
+    nqp::if(
+      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      nqp::if(                                         # elems on left
+        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+          && nqp::elems($braw),
+        nqp::stmts(                                    # elems on both sides
+          (my $elems := Rakudo::QuantHash.SET-BAGGIFY($araw)),
+          nqp::create(Bag).SET-SELF(
+            nqp::if(
+              nqp::eqaddr($b.keyof,Str(Any)),
+              Rakudo::QuantHash.ADD-MAP-TO-BAG($elems, $b),
+              Rakudo::QuantHash.ADD-OBJECTHASH-TO-BAG($elems, $b),
+            )
+          )
+        ),
+        $a.Bag                                         # no elems on right
+      ),
+      $b.Bag                                           # no elems left/either
+    )
+}
 multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
     nqp::if(
       (my $araw := $a.raw_hash) && nqp::elems($araw),

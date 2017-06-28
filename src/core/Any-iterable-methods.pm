@@ -810,12 +810,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! nqp::p6box_i($!index = $!index + 1)
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
                     $target.push(nqp::p6box_i($!index)) if $!test($_);
                 }
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -851,7 +850,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
                   nqp::stmts(
@@ -865,7 +864,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     )
                   )
                 );
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -888,12 +886,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! Pair.new($!index = $!index + 1,$_)
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
                     $target.push(Pair.new($!index,$_)) if $!test($_);
                 }
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -950,7 +947,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 $_
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
                   nqp::if(  # doesn't sink
@@ -958,7 +955,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     $target.push($_)
                   )
                 );
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -1575,7 +1571,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value;
                 my str $needle;
                 nqp::until(
@@ -1588,7 +1584,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     )
                   )
                 );
-                IterationEnd
             }
         }.new(self, &as))
     }
@@ -1628,7 +1623,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value;
                 my str $needle;
                 nqp::until( # doesn't sink
@@ -1637,7 +1632,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ?? $target.push($value)
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self))
@@ -1674,7 +1668,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value;
                 my str $needle;
                 nqp::until(  # doesn't sink
@@ -1683,7 +1677,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ?? $target.push($value)
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &as))
@@ -1734,7 +1727,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 $value;
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $which;
@@ -1760,7 +1753,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       )
                     );
                 }
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &as, &with))
@@ -1795,7 +1787,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 $value;
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $last_val = $!last;
@@ -1819,7 +1811,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       )
                     );
                 }
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &with))

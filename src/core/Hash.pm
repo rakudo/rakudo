@@ -739,17 +739,8 @@ my class Hash { # declared in BOOTSTRAP
               !! nqp::create(Capture)
         }
         method Map() { self.pairs.Map }
-
-        sub SETIFY(\objecthash, \type) {
-            nqp::create(type).SET-SELF(
-              Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET(
-                nqp::create(Rakudo::Internals::IterationSet), objecthash
-              )
-            )
-        }
-        multi method Set(::?CLASS:D:)     { SETIFY(self,Set)     }
-        multi method SetHash(::?CLASS:D:) { SETIFY(self,SetHash) }
     }
+
     method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
         if c.elems == 0 {
             my $what := hash.^mixin(TypedHash[t]);

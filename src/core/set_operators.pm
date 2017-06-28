@@ -175,19 +175,14 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
 }
 
 multi sub infix:<(|)>(Map:D $a, Map:D $b) {
-    nqp::stmts(
-      (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-      nqp::if(
-        nqp::eqaddr($a.keyof,Str(Any)),
-        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$a),        # ordinary hash
-        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$a)  # object hash
-      ),
-      nqp::if(
-        nqp::eqaddr($b.keyof,Str(Any)),
-        Rakudo::QuantHash.ADD-MAP-TO-SET($elems,$b),        # ordinary hash
-        Rakudo::QuantHash.ADD-OBJECTHASH-TO-SET($elems,$b)  # objetc hash
-      ),
-      nqp::create(Set).SET-SELF($elems)
+    nqp::create(Set).SET-SELF(
+      Rakudo::QuantHash.ADD-MAP-TO-SET(
+        Rakudo::QuantHash.ADD-MAP-TO-SET(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a
+        ),
+        $b
+      )
     )
 }
 
@@ -424,19 +419,15 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
 multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
     nqp::if(
       (my $araw := $a.raw_hash) && nqp::elems($araw),
-      nqp::create(Set).SET-SELF(               # elems in $a
+      nqp::create(Set).SET-SELF(                          # elems in $a
         nqp::if(
           (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
             && nqp::elems($braw),
-          nqp::if(                             # both have elems
-            nqp::eqaddr($b.keyof,Str(Any)),
-            Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, nqp::decont($b)),
-            Rakudo::QuantHash.SUB-OBJECTHASH-FROM-SET($araw, nqp::decont($b))
-          ),
-          nqp::clone($araw)                    # no elems in $b
+          Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, $b),  # both have elems
+          nqp::clone($araw)                               # no elems in $b
         )
       ),
-      set()                                    # no elems in $a
+      set()                                               # no elems in $a
     )
 }
 multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
@@ -1254,14 +1245,9 @@ multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
       nqp::if(                                         # elems on left
         (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
           && nqp::elems($braw),
-        nqp::stmts(                                    # elems on both sides
-          (my $elems := Rakudo::QuantHash.SET-BAGGIFY($araw)),
-          nqp::create(Bag).SET-SELF(
-            nqp::if(
-              nqp::eqaddr($b.keyof,Str(Any)),
-              Rakudo::QuantHash.ADD-MAP-TO-BAG($elems, $b),
-              Rakudo::QuantHash.ADD-OBJECTHASH-TO-BAG($elems, $b),
-            )
+        nqp::create(Bag).SET-SELF(                     # elems on both sides
+          Rakudo::QuantHash.ADD-MAP-TO-BAG(
+            Rakudo::QuantHash.SET-BAGGIFY($araw), $b
           )
         ),
         $a.Bag                                         # no elems on right

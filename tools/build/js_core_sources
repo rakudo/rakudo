@@ -46,8 +46,15 @@ src/core/Num.pm
 src/core/Buf.pm
 src/core/Uni.pm
 src/core/Collation.pm
+src/core/Encoding/Decoder.pm
+src/core/Encoding/Decoder/Builtin.pm
+src/core/Encoding/Encoder.pm
+src/core/Encoding/Encoder/Builtin.pm
+src/core/Encoding/Encoder/TranslateNewlineWrapper.pm
+src/core/Encoding.pm
+src/core/Encoding/Registry.pm
+src/core/Encoding/Builtin.pm
 src/core/Str.pm
-src/core/Rakudo/Internals/VMBackedDecoder.pm
 src/core/Capture.pm
 src/core/IterationBuffer.pm
 src/core/HyperConfiguration.pm

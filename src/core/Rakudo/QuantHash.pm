@@ -518,8 +518,9 @@ my class Rakudo::QuantHash {
               nqp::if(               # we have a Pair
                 nqp::istype(
                   (my $value :=
-                    nqp::decont(nqp::getattr($pulled,Pair,'$!value'))),Int
-                ) || nqp::istype(($value := $value.Int),Int),
+                    nqp::decont(nqp::getattr($pulled,Pair,'$!value')).Int),
+                  Int
+                ),
                 nqp::if(             # is a (coerced) Int
                   $value > 0,
                   nqp::if(           # and a positive one at that
@@ -858,8 +859,7 @@ my class Rakudo::QuantHash {
                   ).throw,
                   nqp::stmts(        # apparently valid
                     nqp::unless(
-                      nqp::istype($value,Real)
-                        || nqp::istype(($value := $value.Real),Real),
+                      nqp::istype(($value := $value.Real),Real),
                       $value.throw   # not a Real value, so throw Failure
                     ),
                     nqp::if(         # valid Real value

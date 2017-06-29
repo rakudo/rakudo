@@ -222,25 +222,34 @@ my role Setty does QuantHash {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }
 
-    sub BAGGIFY(\setty, \type) {
+    multi method Bag(Setty:D:) {
         nqp::if(
-          (my $raw := setty.raw_hash) && nqp::elems($raw),
-          nqp::create(type).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($raw)),
-          nqp::if(
-            nqp::istype(type,Bag),
-            bag(),
-            nqp::if(
-              nqp::istype(type,Mix),
-              mix(),
-              nqp::create(type)
-            )
-          )
+          $!elems && nqp::elems($!elems),
+          nqp::create(Bag).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($!elems)),
+          bag()
         )
     }
-    multi method Bag(Setty:D:)     { BAGGIFY(self, Bag)     }
-    multi method BagHash(Setty:D:) { BAGGIFY(self, BagHash) }
-    multi method Mix(Setty:D:)     { BAGGIFY(self, Mix)     }
-    multi method MixHash(Setty:D:) { BAGGIFY(self, MixHash) }
+    multi method BagHash(Setty:D:) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($!elems)),
+          nqp::create(BagHash)
+        )
+    }
+    multi method Mix(Setty:D:) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(Mix).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($!elems)),
+          mix()
+        )
+    }
+    multi method MixHash(Setty:D:) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.SET-BAGGIFY($!elems)),
+          nqp::create(MixHash)
+        )
+    }
 
     method raw_hash() is raw { $!elems }
     method hll_hash() is raw {

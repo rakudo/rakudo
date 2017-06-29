@@ -13,7 +13,7 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
-    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE;
+    my $no-named-after = nqp::isfalse(%*SUB-MAIN-OPTS.AT-KEY: 'named-anywhere');
 
     sub thevalue(\a) {
         ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
@@ -218,8 +218,8 @@ my sub MAIN_HELPER($retval = 0) {
     }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*MAIN-ALLOW-NAMED-ANYWHERE', {
-    PROCESS::<$MAIN-ALLOW-NAMED-ANYWHERE> := 0;
+Rakudo::Internals.REGISTER-DYNAMIC: '%*SUB-MAIN-OPTS', {
+    PROCESS::<%SUB-MAIN-OPTS> := nqp::create(Hash);
 }
 
 # vim: ft=perl6 expandtab sw=4

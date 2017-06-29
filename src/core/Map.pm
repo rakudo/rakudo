@@ -402,15 +402,24 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method pick(Map:D:) { self.roll }
 
-    sub SETIFY(\map, \type) {
-        nqp::create(type).SET-SELF(
-          Rakudo::QuantHash.ADD-MAP-TO-SET(
-            nqp::create(Rakudo::Internals::IterationSet), map
-          )
-        )
+    multi method Set(Map:D:)     {
+        nqp::create(Set).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method Set(Map:D:)     { SETIFY(self,Set)     }
-    multi method SetHash(Map:D:) { SETIFY(self,SetHash) }
+    multi method SetHash(Map:D:)     {
+        nqp::create(SetHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
+    }
+    multi method Bag(Map:D:)     {
+        nqp::create(Bag).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+    }
+    multi method BagHash(Map:D:)     {
+        nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+    }
+    multi method Mix(Map:D:)     {
+        nqp::create(Mix).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+    }
+    multi method MixHash(Map:D:)     {
+        nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+    }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {

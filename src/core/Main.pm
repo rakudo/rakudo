@@ -219,7 +219,9 @@ my sub MAIN_HELPER($retval = 0) {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '%*SUB-MAIN-OPTS', {
-    PROCESS::<%SUB-MAIN-OPTS> := nqp::create(Hash);
+    PROCESS::<%SUB-MAIN-OPTS> := {
+        named-anywhere => False
+    };
 }
 
 # vim: ft=perl6 expandtab sw=4

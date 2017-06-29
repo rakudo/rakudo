@@ -70,7 +70,7 @@ my class Proc {
                 $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                     :on-read({
                         &!start-stdout() if &!start-stdout;
-                        (try $chan.receive) // buf8.new
+                        (try $chan.receive) // buf8
                     }),
                     :on-close({
                         $chan //= $stdout-supply.Channel; # If we never read
@@ -108,7 +108,7 @@ my class Proc {
                 $!err = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                     :on-read({
                         &!start-stderr() if &!start-stderr;
-                        (try $chan.receive) // buf8.new
+                        (try $chan.receive) // buf8
                     }),
                     :on-close({
                         $chan //= $stderr-supply.Channel; # If we never read

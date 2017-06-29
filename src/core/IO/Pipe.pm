@@ -24,9 +24,16 @@ my class IO::Pipe is IO::Handle {
 
     method read-internal($) {
         if $!on-read {
-            my \result = $!on-read();
-            $!eof = True if result.elems == 0;
-            result
+            loop {
+                my \result = $!on-read();
+                if result.DEFINITE {
+                    return result if result.elems;
+                }
+                else {
+                    $!eof = True;
+                    return buf8.new
+                }
+            }
         }
         else {
             die "This pipe was opened for writing, not reading"

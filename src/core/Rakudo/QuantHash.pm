@@ -202,7 +202,7 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator
+    # add to given IterationSet with setty semantics the values of iterator
     method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -216,7 +216,8 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to IterationSet with setty semantics the values of the given
+    # iterator while checking for Pairs (only include if value is trueish)
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -652,7 +653,8 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to given IterationSet with baggy semantics the values of the given
+    # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-BAG(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -1068,7 +1070,8 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to given IterationSet with mixy semantics the values of the given
+    # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-MIX(\elems,Mu \iterator) is raw {
         nqp::stmts(
           nqp::until(

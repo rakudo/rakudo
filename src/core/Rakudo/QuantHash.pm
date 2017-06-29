@@ -280,7 +280,10 @@ my class Rakudo::QuantHash {
         # Once object hashes have IterationSets, we could optimize the
         # object hash case by cloning the object hash, rather than creating
         # an empty IterationSet.  Until then, this is just a wrapper.
-        self.ADD-MAP-TO-SET(nqp::create(Rakudo::Internals::IterationSet),map)
+        Rakudo::QuantHash.ADD-MAP-TO-SET(
+          nqp::create(Rakudo::Internals::IterationSet),
+          map
+        )
     }
 
     # remove set elements from set, stop when the result is the empty Set
@@ -584,70 +587,68 @@ my class Rakudo::QuantHash {
 
     # Coerce the given Map to an IterationSet with baggy semantics.
     method COERCE-MAP-TO-BAG(\map) {
-        nqp::stmts(
-          nqp::if(
-            (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($storage)),
-            nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::stmts(
-                (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-                nqp::while(            # ordinary Map
-                  $iter,
-                  nqp::if(
-                    nqp::istype(
-                      (my $value := nqp::iterval(nqp::shift($iter)).Int),
-                      Int
-                    ),
-                    nqp::if(           # a valid Int
-                      $value > 0,
-                      nqp::bindkey(    # and a positive one at that
-                        $elems,
-                        nqp::iterkey_s($iter).WHICH,
-                        Pair.new(nqp::iterkey_s($iter),$value)
-                      )
-                    ),
-                    $value.throw       # huh?  let the world know
-                  )
-                ),
-                $elems
+        nqp::if(
+          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($storage)),
+          nqp::if(                   # something to coerce
+            nqp::eqaddr(map.keyof,Str(Any)),
+            nqp::stmts(              # ordinary Map
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Int),
+                    Int
+                  ),
+                  nqp::if(           # a valid Int
+                    $value > 0,
+                    nqp::bindkey(    # and a positive one at that
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
               ),
-              nqp::stmts(
-                # once object hashes have IterationSets inside them, we can
-                # make this an nqp::clone for more performance, which would
-                # pre-populate the IterationSet with the right keys off the
-                # bat.
-                ($elems := nqp::create(Rakudo::Internals::IterationSet)),
-                nqp::while(            # object hash
-                  $iter,
-                  nqp::if(
-                    nqp::istype(
-                      ($value := nqp::getattr(
-                        nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-                      ).Int),
-                      Int
-                    ),
-                    nqp::if(           # a valid Int
-                      $value > 0,
-                      nqp::bindkey(    # and a positive one at that
-                        $elems,
-                        nqp::iterkey_s($iter),
-                        nqp::p6bindattrinvres(
-                          nqp::clone(nqp::iterval($iter)),
-                          Pair,
-                          '$!value',
-                          $value
-                        )
+              $elems
+            ),
+            nqp::stmts(              # object hash
+              # once object hashes have IterationSets inside them, we can
+              # make this an nqp::clone for more performance, which would
+              # pre-populate the IterationSet with the right keys off the
+              # bat.
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Int),
+                    Int
+                  ),
+                  nqp::if(           # a valid Int
+                    $value > 0,
+                    nqp::bindkey(    # and a positive one at that
+                      $elems,
+                      nqp::iterkey_s($iter),
+                      nqp::p6bindattrinvres(
+                        nqp::clone(nqp::iterval($iter)),
+                        Pair,
+                        '$!value',
+                        $value
                       )
-                    ),
-                    $value.throw       # huh?  let the world know
-                  )
-                ),
-                $elems
-              )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
             )
           ),
-          nqp::create(Rakudo::Internals::IterationSet),
+          nqp::create(Rakudo::Internals::IterationSet)  # nothing to coerce
         )
     }
 
@@ -1177,70 +1178,68 @@ my class Rakudo::QuantHash {
 
     # Coerce the given Map to an IterationSet with mixy semantics.
     method COERCE-MAP-TO-MIX(\map) {
-        nqp::stmts(
-          nqp::if(
-            (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($storage)),
-            nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::stmts(
-                (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-                nqp::while(            # ordinary Map
-                  $iter,
-                  nqp::if(
-                    nqp::istype(
-                      (my $value := nqp::iterval(nqp::shift($iter)).Real),
-                      Real
-                    ),
-                    nqp::if(           # a valid Real
-                      $value,
-                      nqp::bindkey(    # and not 0
-                        $elems,
-                        nqp::iterkey_s($iter).WHICH,
-                        Pair.new(nqp::iterkey_s($iter),$value)
-                      )
-                    ),
-                    $value.throw       # huh?  let the world know
-                  )
-                ),
-                $elems
+        nqp::if(
+          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($storage)),
+          nqp::if(                   # something to coerce
+            nqp::eqaddr(map.keyof,Str(Any)),
+            nqp::stmts(              # ordinary Map
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Real),
+                    Real
+                  ),
+                  nqp::if(           # a valid Real
+                    $value,
+                    nqp::bindkey(    # and not 0
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
               ),
-              nqp::stmts(
-                # once object hashes have IterationSets inside them, we can
-                # make this an nqp::clone for more performance, which would
-                # pre-populate the IterationSet with the right keys off the
-                # bat.
-                ($elems := nqp::create(Rakudo::Internals::IterationSet)),
-                nqp::while(            # object hash
-                  $iter,
-                  nqp::if(
-                    nqp::istype(
-                      ($value := nqp::getattr(
-                        nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-                      ).Real),
-                      Real
-                    ),
-                    nqp::if(           # a valid Real
-                      $value,
-                      nqp::bindkey(    # and not 0
-                        $elems,
-                        nqp::iterkey_s($iter),
-                        nqp::p6bindattrinvres(
-                          nqp::clone(nqp::iterval($iter)),
-                          Pair,
-                          '$!value',
-                          $value
-                        )
+              $elems
+            ),
+            nqp::stmts(              # object hash
+              # once object hashes have IterationSets inside them, we can
+              # make this an nqp::clone for more performance, which would
+              # pre-populate the IterationSet with the right keys off the
+              # bat.
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Real),
+                    Real
+                  ),
+                  nqp::if(           # a valid Real
+                    $value,
+                    nqp::bindkey(    # and not 0
+                      $elems,
+                      nqp::iterkey_s($iter),
+                      nqp::p6bindattrinvres(
+                        nqp::clone(nqp::iterval($iter)),
+                        Pair,
+                        '$!value',
+                        $value
                       )
-                    ),
-                    $value.throw       # huh?  let the world know
-                  )
-                ),
-                $elems
-              )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
             )
           ),
-          nqp::create(Rakudo::Internals::IterationSet),
+          nqp::create(Rakudo::Internals::IterationSet) # nothing to coerce
         )
     }
 

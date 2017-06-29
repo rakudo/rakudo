@@ -177,10 +177,7 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
 multi sub infix:<(|)>(Map:D $a, Map:D $b) {
     nqp::create(Set).SET-SELF(
       Rakudo::QuantHash.ADD-MAP-TO-SET(
-        Rakudo::QuantHash.ADD-MAP-TO-SET(
-          nqp::create(Rakudo::Internals::IterationSet),
-          $a
-        ),
+        Rakudo::QuantHash.COERCE-MAP-TO-SET($a),
         $b
       )
     )
@@ -1298,6 +1295,24 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
         nqp::if(nqp::istype($b,Mixy),$a.Mix,$a.Bag)    # no elems on right
       ),
       nqp::if(nqp::istype($b,Mixy),$b.Mix,$b.Bag)      # no elems left/either
+    )
+}
+
+multi sub infix:<(+)>(Map:D $a, Map:D $b) {
+    nqp::if(
+      (my $araw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+        && nqp::elems($araw),
+      nqp::if(                                         # elems on left
+        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+          && nqp::elems($braw),
+        nqp::create(Bag).SET-SELF(                     # elems on both sides
+          Rakudo::QuantHash.ADD-MAP-TO-BAG(
+            Rakudo::QuantHash.COERCE-MAP-TO-BAG($a), $b
+          )
+        ),
+        $a.Bag                                         # no elems on right
+      ),
+      $b.Bag                                           # no elems left/either
     )
 }
 

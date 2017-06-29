@@ -146,7 +146,7 @@ src/core/Awaitable.pm
 src/core/Awaiter.pm
 src/core/Scheduler.pm
 src/core/Env.pm
-src/core/ThreadPoolScheduler.pm
+src/core/JavaScriptScheduler.pm
 src/core/CurrentThreadScheduler.pm
 src/core/Promise.pm
 src/core/Channel.pm

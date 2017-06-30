@@ -200,8 +200,6 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
     )
 }
 multi sub infix:<(|)>(**@p) {
-    return set() unless @p;
-
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
@@ -351,8 +349,6 @@ multi sub infix:<(&)>(Any:D $a, Any:D $b) {
     infix:<(&)>($a.Set, $b.Set)
 }
 multi sub infix:<(&)>(**@p) {
-    return set() unless @p;
-
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
@@ -484,8 +480,6 @@ multi sub infix:<(-)>(Any:D $a, Iterable:D $b) { infix:<(-)>($a.Set, $b) }
 multi sub infix:<(-)>(Any:D $a, Any:D $b)      { infix:<(-)>($a.Set, $b.Set) }
 
 multi sub infix:<(-)>(**@p) {
-    return set() unless @p;
-
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
@@ -738,7 +732,7 @@ multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
 }
 
 multi sub infix:<(^)>(**@p) is pure {
-    return set() unless my $chain = @p.elems;
+    my $chain = @p.elems;
 
     if $chain == 1 {
         return @p[0];
@@ -1173,8 +1167,6 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
 multi sub infix:<(.)>(Any:D $a, Any:D $b) { $a.Bag (.) $b.Bag }
 
 multi sub infix:<(.)>(**@p) is pure {
-    return bag() unless @p;
-
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)
@@ -1341,8 +1333,6 @@ multi sub infix:<(+)>(Any $a, Any $b) {
 }
 
 multi sub infix:<(+)>(**@p) is pure {
-    return bag() unless @p;
-
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
         my $mixhash = nqp::istype(@p[0], MixHash)
             ?? MixHash.new-from-pairs(@p.shift.pairs)

@@ -19,17 +19,20 @@ multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
     )
 }
 multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
-    nqp::stmts(
-      (my str $needle = $a.WHICH),
-      (my $iterator := $b.iterator),
-      nqp::until(
-        nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-        nqp::if(
-          nqp::iseq_s($needle,$pulled.WHICH),
-          return True
-        )
-      ),
-      False
+    nqp::if(
+      (my $iterator := $b.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action<(elem)>)),
+      nqp::stmts(
+        (my str $needle = $a.WHICH),
+        nqp::until(
+          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::iseq_s($needle,$pulled.WHICH),
+            return True
+          )
+        ),
+        False
+      )
     )
 }
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {

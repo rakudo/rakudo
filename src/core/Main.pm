@@ -15,7 +15,7 @@ my sub MAIN_HELPER($retval = 0) {
 
     my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
     my $no-named-after =
-      !(%SUB-MAIN-OPTS<named-anywhere> || $*MAIN-ALLOW-NAMED-ANYWHERE);
+      !(%SUB-MAIN-OPTS<named-anywhere> // $*MAIN-ALLOW-NAMED-ANYWHERE);
 
     sub thevalue(\a) {
         ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))

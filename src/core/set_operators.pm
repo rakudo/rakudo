@@ -1316,6 +1316,18 @@ multi sub infix:<(+)>(Map:D $a, Map:D $b) {
     )
 }
 
+multi sub infix:<(+)>(Iterable:D $a, Iterable:D $b) {
+    nqp::create(Bag).SET-SELF(
+      Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+        Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+          nqp::create(Rakudo::Internals::IterationSet),
+          $a.iterator
+        ),
+        $b.iterator
+      )
+    )
+}
+
 multi sub infix:<(+)>(Any $a, Any $b) {
     nqp::if(
       nqp::istype($a,Baggy:D),

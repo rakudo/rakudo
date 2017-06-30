@@ -293,16 +293,24 @@ multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
     Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, mix())
 }
 multi sub infix:<(&)>(Baggy:D $a, Any:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Bag, bag())
+    nqp::if(
+      nqp::istype((my $bbag := $b.Bag),Bag),
+      Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bbag, bag()),
+      $bbag.throw
+    )
 }
 multi sub infix:<(&)>(Any:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Bag, $b, bag())
+    infix:<(&)>($b, $a)
 }
 multi sub infix:<(&)>(Mixy:D $a, Any:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Mix, mix())
+    nqp::if(
+      nqp::istype((my $bmix := $b.Mix),Mix),
+      Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bmix, mix()),
+      $bmix.throw
+    )
 }
 multi sub infix:<(&)>(Any:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Mix, $b, mix())
+    infix:<(&)>($b, $a)
 }
 
 multi sub infix:<(&)>(Map:D $a, Map:D $b) {
@@ -346,7 +354,15 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
 }
 
 multi sub infix:<(&)>(Any:D $a, Any:D $b) {
-    infix:<(&)>($a.Set, $b.Set)
+    nqp::if(
+      nqp::istype((my $aset := $a.Set),Set),
+      nqp::if(
+        nqp::istype((my $bset := $b.Set),Set),
+        infix:<(&)>($aset, $bset),
+        $bset.throw
+      ),
+      $aset.throw
+    )
 }
 multi sub infix:<(&)>(**@p) {
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {

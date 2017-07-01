@@ -1,3 +1,7 @@
+# This file implements the following set operators:
+#   (.)  set multiplication (Texas)
+#   ⊍    set multiplication
+
 proto sub infix:<(.)>(|) is pure { * }
 multi sub infix:<(.)>()               { bag()  }
 multi sub infix:<(.)>(Bag:D $a)       { $a     }

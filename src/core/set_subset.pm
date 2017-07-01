@@ -1,3 +1,11 @@
+# This file implements the following set operators:
+#   (<=)  is a subset of (Texas)
+#   ⊆     is a subset of
+#   ⊈     is NOT a subset of
+#   (>=)  is a superset of (Texas)
+#   ⊇     is a superset of
+#   ⊉     is NOT a superset of
+
 proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     Rakudo::QuantHash.SET-IS-SUBSET($a,$b)

@@ -1,3 +1,7 @@
+# This file implements the following set operators:
+#   (+)     baggy addition (Texas)
+#   ⊎       baggy addition
+
 proto sub infix:<(+)>(|) is pure { * }
 multi sub infix:<(+)>()               { bag()  }
 multi sub infix:<(+)>(Bag:D $a)       { $a     }

@@ -1,3 +1,7 @@
+# This test file tests the following set operators:
+#   (^)     set symmetric difference (Texas)
+#   ⊖       set symmetric difference
+
 proto sub infix:<(^)>(|) is pure { * }
 multi sub infix:<(^)>()               { set()  }
 multi sub infix:<(^)>(QuantHash:D $a) { $a     } # Set/Bag/Mix

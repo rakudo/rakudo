@@ -1,3 +1,9 @@
+# This file implements the following set operators:
+#   (<+)    precedes (Texas)
+#   ≼       precedes
+#   (>+)    succeeds (Texas)
+#   ≽       succeeds
+
 proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {*}
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(

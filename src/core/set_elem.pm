@@ -1,3 +1,11 @@
+# This file implements the following set operators:
+#   (elem)  is an element of (Texas)
+#   ∈       is an element of
+#   ∉       is NOT an element of
+#   (cont)  contains (Texas)
+#   ∋       contains
+#   ∌       does NOT contain
+
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     nqp::p6bool($b.AT-KEY($a))

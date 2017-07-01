@@ -1,3 +1,7 @@
+# This file implements the following set operators:
+#   (-)     set difference (Texas)
+#   ∖       set difference
+
 proto sub infix:<(-)>(|) is pure { * }
 multi sub infix:<(-)>()               { set()  }
 multi sub infix:<(-)>(QuantHash:D $a) { $a     } # Set/Bag/Mix

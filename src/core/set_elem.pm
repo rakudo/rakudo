@@ -8,7 +8,23 @@
 
 proto sub infix:<(elem)>($, $ --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
-    nqp::p6bool($b.AT-KEY($a))
+    nqp::p6bool(
+      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+        && nqp::elems($storage)
+        && nqp::if(
+             nqp::eqaddr($b.keyof,Str(Any)),
+             nqp::atkey($storage,$a),                     # normal hash
+             nqp::getattr(                                # object hash
+               nqp::ifnull(
+                 nqp::atkey($storage,$a.WHICH),
+                 BEGIN   # provide virtual value False    # did not exist
+                   nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+               ),
+               Pair,
+              '$!value'
+             )
+           )
+    )
 }
 multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
     nqp::p6bool(

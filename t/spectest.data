@@ -194,7 +194,6 @@ S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
-S03-operators/addition.t
 S03-operators/adverbial-modifiers.t
 S03-operators/also.t
 S03-operators/andthen.t
@@ -219,8 +218,6 @@ S03-operators/comparison-simple.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
-S03-operators/difference.t
-S03-operators/elem.t
 S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/flip-flop.t
@@ -230,7 +227,6 @@ S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/infixed-function.t
 S03-operators/inplace.t
-S03-operators/intersection.t
 S03-operators/is-divisible-by.t
 S03-operators/lcm.t
 S03-operators/list-quote-junction.t
@@ -244,7 +240,6 @@ S03-operators/notandthen.t
 S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
-S03-operators/proper_subset.t
 S03-operators/range-basic.t
 S03-operators/range-int.t
 S03-operators/range.t
@@ -253,16 +248,21 @@ S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/set.t
+S03-operators/set_addition.t
+S03-operators/set_difference.t
+S03-operators/set_elem.t
+S03-operators/set_intersection.t
+S03-operators/set_proper_subset.t
+S03-operators/set_subset.t
+S03-operators/set_union.t
 S03-operators/short-circuit.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-adverbs.t
 S03-operators/subscript-vs-lt.t
-S03-operators/subset.t
 S03-operators/ternary.t
 S03-operators/u2212-minus.t
-S03-operators/union.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t

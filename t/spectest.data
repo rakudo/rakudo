@@ -244,7 +244,7 @@ S03-operators/notandthen.t
 S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
-S03-operators/proper-subset.t
+S03-operators/proper_subset.t
 S03-operators/range-basic.t
 S03-operators/range-int.t
 S03-operators/range.t

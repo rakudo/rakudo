@@ -908,7 +908,15 @@ multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       True,                     # X (<=) X is always True
-      $a.Set(:view) (<=) $b.Set(:view)
+      nqp::if(
+        nqp::istype((my $aset := $a.Set(:view)),Set),
+        nqp::if(
+          nqp::istype((my $bset := $b.Set(:view)),Set),
+          $aset (<=) $bset,
+          $bset.throw
+        ),
+        $aset.throw
+      )
     )
 }
 # U+2286 SUBSET OF OR EQUAL TO
@@ -1106,7 +1114,15 @@ multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X (<) X is always False
-      $a.Set(:view) (<) $b.Set(:view)
+      nqp::if(
+        nqp::istype((my $aset := $a.Set(:view)),Set),
+        nqp::if(
+          nqp::istype((my $bset := $b.Set(:view)),Set),
+          $aset (<) $bset,
+          $bset.throw
+        ),
+        $aset.throw
+      )
     )
 }
 # U+2282 SUBSET OF

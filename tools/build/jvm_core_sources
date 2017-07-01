@@ -129,6 +129,16 @@ src/core/Mixy.pm
 src/core/Mix.pm
 src/core/MixHash.pm
 src/core/set_operators.pm
+src/core/set_elem.pm
+src/core/set_union.pm
+src/core/set_intersection.pm
+src/core/set_difference.pm
+src/core/set_symmetric_difference.pm
+src/core/set_subset.pm
+src/core/set_proper_subset.pm
+src/core/set_multiply.pm
+src/core/set_addition.pm
+src/core/set_precedes.pm
 src/core/ObjAt.pm
 src/core/Version.pm
 src/core/ForeignCode.pm

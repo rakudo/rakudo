@@ -8,7 +8,6 @@ import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
-import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
 import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 

@@ -2040,13 +2040,6 @@ class Perl6::Optimizer {
                         }
                         else {
                             $visit.returns($visit[$resultchild].returns);
-                            if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
-                                if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
-                                    # Lexotic in something making no calls, which
-                                    # means there's no way to use it.
-                                    $node[$i] := $visit[0][0];
-                                }
-                            }
                         }
                     }
                 }

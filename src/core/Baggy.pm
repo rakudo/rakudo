@@ -343,7 +343,7 @@ my role Baggy does QuantHash {
             nqp::if(
               nqp::istype(self,Mix),
               'mix()',
-              '()' ~ self.^name
+              '().' ~ self.^name
             )
           )
         )

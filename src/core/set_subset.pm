@@ -7,8 +7,58 @@
 #   ⊉     is NOT a superset of
 
 proto sub infix:<<(<=)>>($, $ --> Bool:D) is pure {*}
-multi sub infix:<<(<=)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D) {
+multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Setty:D $a, QuantHash:D $b --> Bool:D) {
+    Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(QuantHash:D $a, Setty:D $b --> Bool:D) {
+    Rakudo::QuantHash.SET-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
+}
+multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+    nqp::stmts(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+        nqp::if(
+          (my $araw := $a.raw_hash)
+            && nqp::elems($araw),
+          nqp::if(                # number of elems in B *always* >= A
+            (my $braw := $b.raw_hash)
+              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
+              && (my $iter := nqp::iterator($araw)),
+            nqp::while(           # number of elems in B >= A
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                  <=              # value in A should be less or equal than B
+                nqp::getattr(
+                  nqp::ifnull(
+                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    BEGIN       # provide virtual value 0
+                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+                  ),
+                  Pair,
+                  '$!value'
+                ),
+                return False
+              )
+            ),
+            return False          # number of elems in B smaller than A
+          )
+        )
+      ),
+      True
+    )
 }
 multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
     nqp::if(

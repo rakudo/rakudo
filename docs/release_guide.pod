@@ -326,7 +326,7 @@ You’re done!  Celebrate with the appropriate amount of fun.
 
 =back
 
-=head2 Development releases so far
+=head2 Releases so far
 
 Previous releases were bundled as part of monthly Parrot releases.
 

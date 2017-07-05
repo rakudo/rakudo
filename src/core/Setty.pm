@@ -103,15 +103,36 @@ my role Setty does QuantHash {
     multi method hash(Setty:D: --> Hash:D) { self.HASHIFY(Any) }
     multi method Hash(Setty:D: --> Hash:D) { self.HASHIFY(Bool) }
 
-    multi method ACCEPTS(Setty:U: $other) {
-        $other.^does(self)
+    multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
+    multi method ACCEPTS(Setty:D: Setty:D \other) {
+        nqp::p6bool(
+          nqp::unless(
+            nqp::eqaddr(self,other),
+            nqp::if(                                # not same object
+              $!elems,
+              nqp::if(                              # something on left
+                (my $oraw := other.raw_hash),
+                nqp::if(                            # something on both sides
+                  nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
+                  nqp::stmts(                       # same size
+                    (my $iter := nqp::iterator($!elems)),
+                    nqp::while(
+                      $iter,
+                      nqp::unless(
+                        nqp::existskey($oraw,nqp::iterkey_s(nqp::shift($iter))),
+                        return False                # missing key, we're done
+                      )
+                    ),
+                    True                            # all keys identical
+                  )
+                )
+              ),
+              nqp::isfalse(other.raw_hash),         # true -> both empty
+            )
+          )
+        )
     }
-    multi method ACCEPTS(Setty:D: Seq:D \seq) {
-        self.ACCEPTS(seq.list)
-    }
-    multi method ACCEPTS(Setty:D: $other) {
-        $other (<=) self && self (<=) $other
-    }
+    multi method ACCEPTS(Setty:D: \other) { self.ACCEPTS(other.Set) }
 
     multi method Str(Setty:D $ : --> Str:D) { ~ self.hll_hash.values }
     multi method gist(Setty:D $ : --> Str:D) {
@@ -261,33 +282,7 @@ my role Setty does QuantHash {
 
 multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
     nqp::p6bool(
-      nqp::unless(
-        nqp::eqaddr(a,b),
-        nqp::if(                                  # not same object
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(                                # same type
-            (my $araw := a.raw_hash),
-            nqp::if(                              # something on left
-              (my $braw := b.raw_hash),
-              nqp::if(                            # something on both sides
-                nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
-                nqp::stmts(                       # same size
-                  (my $iter := nqp::iterator($araw)),
-                  nqp::while(
-                    $iter,
-                    nqp::unless(
-                      nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                      return False                # missing key, we're done
-                    )
-                  ),
-                  True                            # all keys identical
-                )
-              )
-            ),
-            nqp::isfalse(b.raw_hash),             # true -> both empty
-          )
-        )
-      )
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
 

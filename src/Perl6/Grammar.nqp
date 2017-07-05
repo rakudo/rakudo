@@ -4102,11 +4102,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token postfix_prefix_meta_operator:sym<»> {
         [ <sym> | $<sym> = '>>' ]
         [ <!{ $*QSIGIL }> || <![(]> ]
-        { if (self.pragma("STOPPER") // '') eq $<sym> {
-            self.worry("Ambiguous use of $<sym>; use " ~
-            ($<sym> eq '>>' ?? '»' !! '>>') ~
-            " instead to mean hyper, or insert whitespace before $<sym> to mean a quote terminator (or use different delimiters?)")
-        }}
     }
 
     token prefix_postfix_meta_operator:sym<«> {

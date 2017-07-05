@@ -7401,6 +7401,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.name('&METAOP_HYPER_POSTFIX_ARGS');
                 }
             }
+
+            # Check if we are inside «...» quoters and complain if the hyper creates
+            # ambiguity with the quoters, since user may not wanted to have a hyper
+            if ($/.pragma("STOPPER") // '')
+                eq (my $sym := $<postfix_prefix_meta_operator>[0]<sym>)
+            {
+                $/.worry(
+                    "Ambiguous use of $sym; use "
+                    ~ ($sym eq '>>' ?? '»' !! '>>')
+                    ~ " instead to mean hyper, or insert whitespace before"
+                    ~ " $sym to mean a quote terminator (or use different delimiters?)"
+                )
+            }
+
             make $past;
         }
     }

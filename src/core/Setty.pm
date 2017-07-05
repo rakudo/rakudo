@@ -259,4 +259,36 @@ my role Setty does QuantHash {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
+multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
+    nqp::p6bool(
+      nqp::unless(
+        nqp::eqaddr(a,b),
+        nqp::if(                                  # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                                # same type
+            (my $araw := a.raw_hash),
+            nqp::if(                              # something on left
+              (my $braw := b.raw_hash),
+              nqp::if(                            # something on both sides
+                nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
+                nqp::stmts(                       # same size
+                  (my $iter := nqp::iterator($araw)),
+                  nqp::while(
+                    $iter,
+                    nqp::unless(
+                      nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                      return False                # missing key, we're done
+                    )
+                  ),
+                  True                            # all keys identical
+                )
+              )
+            ),
+            nqp::isfalse(b.raw_hash),             # true -> both empty
+          )
+        )
+      )
+    )
+}
+
 # vim: ft=perl6 expandtab sw=4

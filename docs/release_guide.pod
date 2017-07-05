@@ -28,6 +28,18 @@ some releases to ensure any compatibility issues are resolved.
   2017-10-21   Rakudo #116
   2017-11-18   Rakudo #117
   2017-12-16   Rakudo #118
+  2018-01-20   Rakudo #119
+  2018-02-17   Rakudo #120
+  2018-03-17   Rakudo #121
+  2018-04-21   Rakudo #122
+  2018-05-19   Rakudo #123
+  2018-06-16   Rakudo #124
+  2018-07-21   Rakudo #125
+  2018-08-18   Rakudo #126
+  2018-09-15   Rakudo #127
+  2018-10-20   Rakudo #128
+  2018-11-17   Rakudo #129
+  2018-12-15   Rakudo #130
 
 (More planned dates can be generated with F<tools/release-dates.pl>).
 

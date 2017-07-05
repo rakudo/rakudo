@@ -649,13 +649,40 @@ my role Baggy does QuantHash {
     method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
 }
 
-multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b) {
+multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::p6bool(
       nqp::unless(
         nqp::eqaddr(a,b),
-        nqp::eqaddr(a.WHAT,b.WHAT)
-          && nqp::getattr(nqp::decont(a),a.WHAT,'%!elems')
-               eqv nqp::getattr(nqp::decont(b),b.WHAT,'%!elems')
+        nqp::if(                           # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                         # same type
+            (my $araw := a.raw_hash),
+            nqp::if(                       # something on left
+              (my $braw := b.raw_hash),
+              nqp::if(                     # something on both sides
+                nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
+                nqp::stmts(                # same size
+                  (my $iter := nqp::iterator($araw)),
+                  nqp::while(
+                    $iter,
+                    nqp::unless(
+                      nqp::getattr(
+                        nqp::ifnull(
+                          nqp::atkey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                          BEGIN nqp::p6bindattrinvres(    # virtual Pair with 0
+                            nqp::create(Pair),Pair,'$!value',0)
+                        ),Pair,'$!value')
+                        == nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                      return False         # missing/different: we're done
+                    )
+                  ),
+                  True                     # all keys identical/same value
+                )
+              )
+            ),
+            nqp::isfalse(b.raw_hash),      # true -> both empty
+          )
+        )
       )
     )
 }

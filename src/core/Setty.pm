@@ -127,7 +127,10 @@ my role Setty does QuantHash {
                   )
                 )
               ),
-              nqp::isfalse(other.raw_hash),         # true -> both empty
+              # true -> both empty
+              nqp::isfalse(
+                ($oraw := other.raw_hash) && nqp::elems($oraw)
+              )
             )
           )
         )

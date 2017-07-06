@@ -10,6 +10,7 @@ M_BUILD_DIR = gen/moar
 MOAR_PREFIX = @moar::prefix@
 MOAR   = @moar::bindir@@slash@moar@exe@
 M_NQP  = @m_nqp@
+M_LIBDEFPATH = $(PREFIX)@slash@share@slash@nqp@slash@lib
 M_LIBPATH = $(LIBDIR)@slash@nqp@slash@lib
 M_INCPATH = $(MOAR_PREFIX)@slash@include
 NQP_LIBPATH = @nqp::libdir@
@@ -195,7 +196,7 @@ $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR) $(SETTI
 
 $(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)

@@ -145,6 +145,15 @@ my class SetHash does Setty {
                   )
                 )
             }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    $target.push(nqp::iterval(nqp::shift($!iter))),
+                    $target.push(True)
+                  )
+                )
+            }
         }.new(self))
     }
     multi method values(SetHash:D:) {

@@ -51,15 +51,6 @@ my class Rakudo::QuantHash {
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method push-all($target --> IterationEnd) {
-            nqp::while(
-              $!iter,
-              nqp::stmts(  # doesn't sink
-                $target.push(nqp::iterval(nqp::shift($!iter))),
-                $target.push(True)
-              )
-            )
-        }
         method skip-one() {
             nqp::if(
               $!on,

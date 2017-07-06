@@ -66,6 +66,15 @@ my class Set does Setty {
                   )
                 )
             }
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    $target.push(nqp::iterval(nqp::shift($!iter))),
+                    $target.push(True)
+                  )
+                )
+            }
         }.new(self))
     }
     multi method values(Set:D:) { True xx self.total }

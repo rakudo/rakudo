@@ -4,7 +4,16 @@
 #   (>+)    succeeds (Texas)
 #   ≽       succeeds
 
-proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {*}
+proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {
+    DEPRECATED(
+      "set operator {$*INSTEAD // "(<=)"}",
+      "",
+      "6.d",
+      :what("Set operator {$*WHAT // "(<+)"}"),
+      :up( 1 + ?$*WHAT )
+    );
+    {*}
+}
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(
       (my $a := a.raw_hash),
@@ -95,16 +104,22 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
 }
 # U+227C PRECEDES OR EQUAL TO
 only sub infix:<≼>($a, $b --> Bool:D) is pure {
-    $a (<+) $b;
+    my $*WHAT    = "≼";
+    my $*INSTEAD = "⊆";
+    infix:<<(<+)>>($a, $b)
 }
 
 # $a (>+) $b === $a R(<+) $b
 only sub infix:<<(>+)>>($a, $b --> Bool:D) is pure {
-    $b (<+) $a
+    my $*WHAT    = "(>+)";
+    my $*INSTEAD = "(>=)";
+    infix:<<(<+)>>($b, $a)
 }
 # U+227D SUCCEEDS OR EQUAL TO
 only sub infix:<≽>($a, $b --> Bool:D) is pure {
-    $b (<+) $a;
+    my $*WHAT    = "≽";
+    my $*INSTEAD = "⊇";
+    infix:<<(<+)>>($b, $a)
 }
 
 # vim: ft=perl6 expandtab sw=4

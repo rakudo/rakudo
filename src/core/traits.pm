@@ -251,13 +251,12 @@ my $!;
 my $/;
 my $_;
 
-multi sub trait_mod:<is>(Routine:D \r, :$export!) {
+multi sub trait_mod:<is>(Routine:D \r, :$export!, :$SYMBOL = '&' ~ r.name) {
     my $to_export := r.multi ?? r.dispatcher !! r;
-    my $exp_name  := '&' ~ r.name;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, $to_export);
+    Rakudo::Internals.EXPORT_SYMBOL(nqp::decont($SYMBOL), @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^shortname;

@@ -48,40 +48,23 @@ my class Set does Setty {
     }
 
     multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty {
-            has int $!on-value;
+        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
             method pull-one() is raw {
                 nqp::if(
-                  $!on-value,
+                  $!on,
                   nqp::stmts(
-                    ($!on-value = 0),
+                    ($!on = 0),
                     True,
                   ),
                   nqp::if(
                     $!iter,
                     nqp::stmts(
-                      ($!on-value = 1),
+                      ($!on = 1),
                       nqp::iterval(nqp::shift($!iter))
                     ),
                     IterationEnd
                   )
                 )
-            }
-            method skip-one() {
-                nqp::if(
-                  $!on-value,
-                  nqp::not_i($!on-value = 0),   # skipped a value
-                  nqp::if(
-                    $!iter,                     # if false, we didn't skip
-                    nqp::stmts(                 # skipped a key
-                      nqp::shift($!iter),
-                      ($!on-value = 1)
-                    )
-                  )
-                )
-            }
-            method count-only() {
-                nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
             }
         }.new(self))
     }

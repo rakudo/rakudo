@@ -127,13 +127,13 @@ my class SetHash does Setty {
     }
 
     multi method kv(SetHash:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy-kv-from-pairs {
+        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
             method pull-one() is raw {
                 nqp::if(
                   $!on,
                   nqp::stmts(
                     ($!on = 0),
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!elems)
                   ),
                   nqp::if(
                     $!iter,
@@ -145,16 +145,7 @@ my class SetHash does Setty {
                   )
                 )
             }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    $target.push(nqp::iterval(nqp::shift($!iter))),
-                    $target.push(True)
-                  )
-                )
-            }
-        }.new(self.hll_hash))
+        }.new(self))
     }
     multi method values(SetHash:D:) {
         Seq.new(class :: does Rakudo::QuantHash::Quanty {

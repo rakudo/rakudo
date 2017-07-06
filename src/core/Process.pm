@@ -23,7 +23,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
 #?endif
 #?if moar
       nqp::execname()
-      // ($*VM.config<prefix> ~ '/bin/'
+      || ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
     ).IO;

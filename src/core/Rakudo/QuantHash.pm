@@ -30,6 +30,56 @@ my class Rakudo::QuantHash {
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
+    # Specialized role for .kv methods on QuantHashes: copied methods
+    # from Quanty because of visibiity issues wrt to $!elems and $!iter :-(
+    our role Quanty-kv does Iterator {
+        has $!elems;
+        has $!iter;
+        has $!on;
+
+        method SET-SELF(\elems) {
+            nqp::stmts(
+              ($!elems := elems),
+              ($!iter  := nqp::iterator(elems)),
+              self
+            )
+        }
+        method new(\quanthash) {
+            nqp::if(
+              (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
+              nqp::create(self).SET-SELF($elems),
+              Rakudo::Iterator.Empty   # nothing to iterate
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                $target.push(nqp::iterval(nqp::shift($!iter))),
+                $target.push(True)
+              )
+            )
+        }
+        method skip-one() {
+            nqp::if(
+              $!on,
+              nqp::not_i($!on = 0),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  nqp::shift($!iter),
+                  ($!on = 1)
+                )
+              )
+            )
+        }
+        method count-only() {
+            nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
+        }
+        method bool-only(--> True) { }
+        method sink-all(--> IterationEnd) { $!iter := nqp::null }
+    }
+
     our role Pairs does Iterator {
         has $!elems;
         has $!picked;

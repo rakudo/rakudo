@@ -178,13 +178,15 @@ my role Baggy does QuantHash {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 $!iter
-                  ?? nqp::iterval(nqp::shift($!iter)).key
+                  ?? nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
                   !! IterationEnd
             }
             method push-all($target --> IterationEnd) {
                 nqp::while(  # doesn't sink
                   $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)).key)
+                  $target.push(
+                    nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+                  )
                 )
             }
         }.new(%!elems))

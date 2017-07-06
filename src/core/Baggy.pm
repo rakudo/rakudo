@@ -652,36 +652,6 @@ my role Baggy does QuantHash {
     multi method MixHash(Baggy:D:) { MIXIFY(self, MixHash) }
 
     method raw_hash() is raw { nqp::getattr(%!elems,Map,'$!storage') }
-
-    method raw_keys_values() {
-        nqp::if(
-          (my $elems := self.raw_hash) && nqp::elems($elems),
-          nqp::stmts(
-            (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
-            (my $iter := nqp::iterator($elems)),
-            nqp::while(
-              $iter,
-              nqp::stmts(
-                nqp::shift($iter),
-                nqp::bindpos_s(
-                  $list,
-                  ($i = nqp::add_i($i,1)),
-                  nqp::concat(
-                    nqp::iterkey_s($iter),
-                    nqp::concat(
-                      '\0',
-                      nqp::getattr(nqp::iterval($iter),Pair,'$!value').Str
-                    )
-                  )
-                )
-              )
-            ),
-            $list
-          ),
-          nqp::list_s
-        )
-    }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {

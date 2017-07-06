@@ -24,7 +24,9 @@ my class Mix does Mixy {
           nqp::attrinited(self,Mix,'$!WHICH'),
           $!WHICH,
           $!WHICH := ObjAt.new('Mix|' ~ nqp::sha1(
-            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys_values))
+            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+              Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+            ))
           ))
         )
     }

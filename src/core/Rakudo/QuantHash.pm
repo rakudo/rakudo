@@ -109,6 +109,38 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Return an nqp::list_s of all keys in a Baggy with the weight
+    # joined with a null-byte inbetween.
+    method BAGGY-RAW-KEY-VALUES(\baggy) is raw {
+        nqp::if(
+          (my $elems := baggy.raw_hash) && nqp::elems($elems),
+          nqp::stmts(
+            (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::stmts(
+                nqp::shift($iter),
+                nqp::bindpos_s(
+                  $list,
+                  ($i = nqp::add_i($i,1)),
+                  nqp::concat(
+                    nqp::iterkey_s($iter),
+                    nqp::concat(
+                      '\0',
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value').Str
+                    )
+                  )
+                )
+              )
+            ),
+            $list
+          ),
+          nqp::list_s
+        )
+    }
+
     # Create intersection of 2 Baggies, default to given empty type
     method INTERSECT-BAGGIES(\a,\b,\empty) {
         nqp::if(

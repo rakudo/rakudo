@@ -7,9 +7,9 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := 'Bag!' ~ nqp::sha1(
+          $!WHICH := ObjAt.new('Bag!' ~ nqp::sha1(
             nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys_values))
-          )
+          ))
         )
     }
     method total(Bag:D: --> Int:D) {

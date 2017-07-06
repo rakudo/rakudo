@@ -23,9 +23,9 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!WHICH'),
           $!WHICH,
-          $!WHICH := 'Mix|' ~ nqp::sha1(
+          $!WHICH := ObjAt.new('Mix|' ~ nqp::sha1(
             nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys_values))
-          )
+          ))
         )
     }
     method total(Mix:D: --> Real:D) {

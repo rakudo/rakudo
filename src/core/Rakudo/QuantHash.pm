@@ -90,7 +90,7 @@ my class Rakudo::QuantHash {
     # Return an nqp::list_s of all keys of a QuantHash
     method RAW-KEYS(\quanthash) is raw {
         nqp::if(
-          (my $elems := quanthash.raw_hash),
+          (my $elems := quanthash.RAW-HASH),
           nqp::stmts(
             (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
             (my int $i = -1),
@@ -113,7 +113,7 @@ my class Rakudo::QuantHash {
     # joined with a null-byte inbetween.
     method BAGGY-RAW-KEY-VALUES(\baggy) is raw {
         nqp::if(
-          (my $elems := baggy.raw_hash) && nqp::elems($elems),
+          (my $elems := baggy.RAW-HASH) && nqp::elems($elems),
           nqp::stmts(
             (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
             (my int $i = -1),
@@ -144,8 +144,8 @@ my class Rakudo::QuantHash {
     # Create intersection of 2 Baggies, default to given empty type
     method INTERSECT-BAGGIES(\a,\b,\empty) {
         nqp::if(
-          (my $araw := a.raw_hash) && nqp::elems($araw)
-            && (my $braw := b.raw_hash) && nqp::elems($braw),
+          (my $araw := a.RAW-HASH) && nqp::elems($araw)
+            && (my $braw := b.RAW-HASH) && nqp::elems($braw),
           nqp::stmts(                          # both have elems
             nqp::if(
               nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -235,10 +235,10 @@ my class Rakudo::QuantHash {
           nqp::unless(
             nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
             nqp::if(
-              (my $araw := $a.raw_hash)
+              (my $araw := $a.RAW-HASH)
                 && nqp::elems($araw),
               nqp::if(                # number of elems in B *always* >= A
-                (my $braw := $b.raw_hash)
+                (my $braw := $b.RAW-HASH)
                   && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
                   && (my $iter := nqp::iterator($araw)),
                 nqp::while(           # number of elems in B >= A
@@ -918,9 +918,9 @@ my class Rakudo::QuantHash {
     # set difference of a Baggy and a QuantHash
     method DIFFERENCE-BAGGY-QUANTHASH(\a, \b) {
         nqp::if(
-          (my $araw := a.raw_hash) && nqp::elems($araw),
+          (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
-            (my $braw := b.raw_hash) && nqp::elems($braw),
+            (my $braw := b.RAW-HASH) && nqp::elems($braw),
             nqp::create(Bag).SET-SELF(
               nqp::if(
                 nqp::istype(b,Setty),
@@ -1362,9 +1362,9 @@ my class Rakudo::QuantHash {
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
           True,                     # X is always a subset of itself
           nqp::if(
-            (my $araw := $a.raw_hash) && nqp::elems($araw),
+            (my $araw := $a.RAW-HASH) && nqp::elems($araw),
             nqp::if(                # elems in A
-              (my $braw := $b.raw_hash) && nqp::elems($braw),
+              (my $braw := $b.RAW-HASH) && nqp::elems($braw),
               nqp::stmts(           # elems in A and B
                 (my $iter := nqp::iterator($araw)),
                 nqp::while(         # check all values in A with B
@@ -1401,7 +1401,7 @@ my class Rakudo::QuantHash {
               Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
             ),
             nqp::if(
-              ($braw := $b.raw_hash) && nqp::elems($braw),
+              ($braw := $b.RAW-HASH) && nqp::elems($braw),
               # nothing in A, all elems in B should be >= 0
               Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
               False                 # nothing in A nor B
@@ -1476,9 +1476,9 @@ my class Rakudo::QuantHash {
     # set difference of a Mixy and a QuantHash
     method DIFFERENCE-MIXY-QUANTHASH(\a, \b) {
         nqp::if(
-          (my $araw := a.raw_hash) && nqp::elems($araw),
+          (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
-            (my $braw := b.raw_hash) && nqp::elems($braw),
+            (my $braw := b.RAW-HASH) && nqp::elems($braw),
             nqp::create(Mix).SET-SELF(
               self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
             ),
@@ -1488,7 +1488,7 @@ my class Rakudo::QuantHash {
             nqp::istype(b,Failure),
             b.throw,
             nqp::if(
-              ($braw := b.raw_hash) && nqp::elems($braw),
+              ($braw := b.RAW-HASH) && nqp::elems($braw),
               nqp::stmts(
                 (my $elems := nqp::clone($braw)),
                 (my $iter  := nqp::iterator($braw)),

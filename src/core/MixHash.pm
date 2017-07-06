@@ -1,13 +1,13 @@
 my class MixHash does Mixy {
 
 #--- interface methods
-    method total() { Rakudo::QuantHash.MIX-TOTAL(self.raw_hash) }
+    method total() { Rakudo::QuantHash.MIX-TOTAL(self.RAW-HASH) }
 
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
               nqp::if(
-                (my $raw := self.raw_hash)
+                (my $raw := self.RAW-HASH)
                   && nqp::existskey($raw,(my $which := k.WHICH)),
                 nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
                 0
@@ -18,7 +18,7 @@ my class MixHash does Mixy {
                 nqp::istype($value,Failure),   # RT 128927
                 $value.throw,
                 nqp::if(
-                  (my $raw := self.raw_hash),
+                  (my $raw := self.RAW-HASH),
                   nqp::if(                      # allocated hash
                     nqp::existskey($raw,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
@@ -60,7 +60,7 @@ my class MixHash does Mixy {
 #--- coercion methods
     multi method Mix(MixHash:D: :$view) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := self.RAW-HASH) && nqp::elems($raw),
           nqp::p6bindattrinvres(
             nqp::create(Mix),Mix,'%!elems',
             nqp::if($view,%!elems,%!elems.clone)
@@ -71,7 +71,7 @@ my class MixHash does Mixy {
     multi method MixHash(MixHash:D:) { self }
     method clone() {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := self.RAW-HASH) && nqp::elems($raw),
           nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
           nqp::create(MixHash)
         )

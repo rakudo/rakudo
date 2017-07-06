@@ -12,9 +12,9 @@ multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -45,9 +45,9 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -100,9 +100,9 @@ multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { infix:<(^)>($a, $b.Mix) }
 multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { infix:<(^)>($a.Mix, $b) }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),

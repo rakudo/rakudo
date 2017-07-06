@@ -34,7 +34,7 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
-          $!total := Rakudo::QuantHash.MIX-TOTAL(self.raw_hash)
+          $!total := Rakudo::QuantHash.MIX-TOTAL(self.RAW-HASH)
         )
     }
 
@@ -59,14 +59,14 @@ my class Mix does Mixy {
     multi method Mix(Mix:D:) { self }
     multi method MixHash(Mix:D) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := self.RAW-HASH) && nqp::elems($raw),
           nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
           nqp::create(MixHash)
         )
     }
     method clone() {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
+          (my $raw := self.RAW-HASH) && nqp::elems($raw),
           nqp::clone(self),
           mix()
         )

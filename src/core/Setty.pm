@@ -111,7 +111,7 @@ my role Setty does QuantHash {
             nqp::if(                                # not same object
               $!elems,
               nqp::if(                              # something on left
-                (my $oraw := other.raw_hash),
+                (my $oraw := other.RAW-HASH),
                 nqp::if(                            # something on both sides
                   nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
                   nqp::stmts(                       # same size
@@ -129,7 +129,7 @@ my role Setty does QuantHash {
               ),
               # true -> both empty
               nqp::isfalse(
-                ($oraw := other.raw_hash) && nqp::elems($oraw)
+                ($oraw := other.RAW-HASH) && nqp::elems($oraw)
               )
             )
           )
@@ -275,7 +275,7 @@ my role Setty does QuantHash {
         )
     }
 
-    method raw_hash() is raw { $!elems }
+    method RAW-HASH() is raw { $!elems }
     method hll_hash() is raw {
         nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$!elems)
     }

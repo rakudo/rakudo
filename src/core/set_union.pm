@@ -12,9 +12,9 @@ multi sub infix:<(|)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                               # second has elems
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -31,7 +31,7 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
         $a.Set                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.raw_hash) && nqp::elems($braw),
+        ($braw := $b.RAW-HASH) && nqp::elems($braw),
         $b.Set,                                   # but second
         set()                                     # both empty
       )
@@ -40,9 +40,9 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
 
 multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                               # second has elems
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -68,7 +68,7 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
         $a.Mix                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.raw_hash) && nqp::elems($braw),
+        ($braw := $b.RAW-HASH) && nqp::elems($braw),
         $b.Mix,                                   # but second
         mix()                                     # both empty
       )
@@ -79,9 +79,9 @@ multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { infix:<(|)>($a, $b.Mix) }
 multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { infix:<(|)>($a.Mix, $b) }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                               # second has elems
           (my $elems := nqp::clone($araw)),
           (my $iter := nqp::iterator($braw)),
@@ -109,7 +109,7 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
         $a.Bag                                    # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.raw_hash) && nqp::elems($braw),
+        ($braw := $b.RAW-HASH) && nqp::elems($braw),
         $b.Bag,                                   # but second
         bag()                                     # both empty
       )

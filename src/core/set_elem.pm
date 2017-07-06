@@ -61,7 +61,7 @@ multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
 }
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
     nqp::p6bool(
-      (my $elems := $b.raw_hash) && nqp::existskey($elems,$a.WHICH)
+      (my $elems := $b.RAW-HASH) && nqp::existskey($elems,$a.WHICH)
     )
 }
 multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {

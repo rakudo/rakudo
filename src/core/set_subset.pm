@@ -30,10 +30,10 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       nqp::unless(
         nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
         nqp::if(
-          (my $araw := $a.raw_hash)
+          (my $araw := $a.RAW-HASH)
             && nqp::elems($araw),
           nqp::if(                # number of elems in B *always* >= A
-            (my $braw := $b.raw_hash)
+            (my $braw := $b.RAW-HASH)
               && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
               && (my $iter := nqp::iterator($araw)),
             nqp::while(           # number of elems in B >= A

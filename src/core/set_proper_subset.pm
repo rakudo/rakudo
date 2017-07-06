@@ -12,9 +12,9 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X is never a true subset of itself
       nqp::if(
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::if(
-          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          (my $araw := $a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
               && (my $iter := nqp::iterator($araw)),
@@ -47,9 +47,9 @@ multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       False,                    # X is never a true subset of itself
       nqp::if(
-        (my $araw := $a.raw_hash) && nqp::elems($araw),
+        (my $araw := $a.RAW-HASH) && nqp::elems($araw),
         nqp::if(                # elems in A
-          (my $braw := $b.raw_hash) && nqp::elems($braw),
+          (my $braw := $b.RAW-HASH) && nqp::elems($braw),
           nqp::stmts(           # elems in A and B
             (my $iter := nqp::iterator($araw)),
             nqp::while(         # check all values in A with B
@@ -94,7 +94,7 @@ multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
           Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
         ),
         nqp::if(                # nothing in A
-          ($braw := $b.raw_hash) && nqp::elems($braw),
+          ($braw := $b.RAW-HASH) && nqp::elems($braw),
           # something in B, all elems in B should be > 0
           Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
           False                 # nothing in A nor B
@@ -107,9 +107,9 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       nqp::eqaddr($a,$b),
       False,                    # X is never a true subset of itself
       nqp::if(
-        (my $braw := $b.raw_hash) && nqp::elems($braw),
+        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::if(
-          (my $araw := $a.raw_hash) && nqp::elems($araw),
+          (my $araw := $a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
               && (my $iter := nqp::iterator($araw)),

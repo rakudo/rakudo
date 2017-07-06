@@ -16,9 +16,9 @@ proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {
 }
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.raw_hash),
+      (my $a := a.RAW-HASH),
       nqp::if(
-        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
@@ -34,9 +34,9 @@ multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.raw_hash),
+      (my $a := a.RAW-HASH),
       nqp::if(
-        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(
@@ -60,9 +60,9 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.raw_hash),
+      (my $a := a.RAW-HASH),
       nqp::if(
-        (my $b := b.raw_hash) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
         nqp::stmts(
           (my $iter := nqp::iterator($a)),
           nqp::while(

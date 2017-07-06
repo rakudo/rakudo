@@ -18,7 +18,7 @@ my role Mixy does Baggy  {
     multi method roll(Mixy:D:) {
         nqp::if(
           (my $total :=
-            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.RAW-HASH)),
           nqp::getattr(
             nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
             Pair,
@@ -30,7 +30,7 @@ my role Mixy does Baggy  {
     multi method roll(Mixy:D: Whatever) { self.roll(Inf) }
     multi method roll(Mixy:D: Callable:D $calculate) {
       nqp::if(
-        (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.raw_hash)),
+        (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.RAW-HASH)),
         self.roll($calculate($total)),
         Seq.new(Rakudo::Iterator.Empty)
       )
@@ -38,7 +38,7 @@ my role Mixy does Baggy  {
     multi method roll(Mixy:D: $count) {
         Seq.new(nqp::if(
           (my $total :=
-            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.raw_hash)),
+            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.RAW-HASH)),
           nqp::stmts(
             (my $done = 0),
             Rakudo::Iterator.Callable( {
@@ -73,7 +73,7 @@ my role Mixy does Baggy  {
 #--- coercion methods
    sub SETIFY(\mixy, \type) {
         nqp::if(
-          (my $raw := mixy.raw_hash) && nqp::elems($raw),
+          (my $raw := mixy.RAW-HASH) && nqp::elems($raw),
           nqp::stmts(
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),
@@ -107,7 +107,7 @@ my role Mixy does Baggy  {
 
     sub BAGGIFY(\mixy, \type) {
         nqp::if(
-          (my $raw := mixy.raw_hash) && nqp::elems($raw),
+          (my $raw := mixy.RAW-HASH) && nqp::elems($raw),
           nqp::stmts(                               # something to coerce
             (my $elems := nqp::clone($raw)),
             (my $iter := nqp::iterator($elems)),

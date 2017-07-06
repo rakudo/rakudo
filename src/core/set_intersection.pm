@@ -12,8 +12,8 @@ multi sub infix:<(&)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.raw_hash) && nqp::elems($araw)
-        && (my $braw := $b.raw_hash) && nqp::elems($braw),
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw)
+        && (my $braw := $b.RAW-HASH) && nqp::elems($braw),
       nqp::stmts(                              # both have elems
         nqp::if(
           nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),

@@ -5,6 +5,31 @@ my class Rakudo::QuantHash {
     # a Pair with the value 0
     my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
 
+    # QuantHash counterpart of Rakudo::Iterator::Mappy
+    our role Quanty does Iterator {
+        has $!elems;
+        has $!iter;
+
+        method SET-SELF(\elems) {
+            nqp::stmts(
+              ($!elems := elems),
+              ($!iter  := nqp::iterator(elems)),
+              self
+            )
+        }
+        method new(\quanthash) {
+            nqp::if(
+              (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
+              nqp::create(self).SET-SELF($elems),
+              Rakudo::Iterator.Empty   # nothing to iterate
+            )
+        }
+        method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
+        method count-only() { nqp::elems($!elems) }
+        method bool-only(--> True) { }
+        method sink-all(--> IterationEnd) { $!iter := nqp::null }
+    }
+
     our role Pairs does Iterator {
         has $!elems;
         has $!picked;

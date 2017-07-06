@@ -77,7 +77,10 @@ my role Baggy does QuantHash {
                   )
                 )
               ),
-              nqp::isfalse(other.raw_hash),  # true -> both empty
+              # true -> both empty
+              nqp::isfalse(
+                ($braw := other.raw_hash) && nqp::elems($braw)
+              )
             )
           )
         )

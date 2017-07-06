@@ -1,7 +1,6 @@
 my class MixHash does Mixy {
 
 #--- interface methods
-    multi method WHICH(MixHash:D:) { self.Mu::WHICH }
     method total() { Rakudo::QuantHash.MIX-TOTAL(self.raw_hash) }
 
     multi method AT-KEY(MixHash:D: \k) is raw {

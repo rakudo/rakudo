@@ -1,7 +1,6 @@
 my class BagHash does Baggy {
 
 #--- interface methods
-    multi method WHICH(BagHash:D:) { self.Mu::WHICH }
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

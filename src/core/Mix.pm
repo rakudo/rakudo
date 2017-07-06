@@ -23,7 +23,7 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!WHICH'),
           $!WHICH,
-          $!WHICH := self!WHICH
+          $!WHICH := 'Mix|' ~ self.sha1
         )
     }
     method total(Mix:D: --> Real:D) {

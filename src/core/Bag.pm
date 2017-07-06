@@ -7,7 +7,7 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := self!WHICH
+          $!WHICH := 'Bag!' ~ self.sha1
         )
     }
     method total(Bag:D: --> Int:D) {

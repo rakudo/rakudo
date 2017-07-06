@@ -281,9 +281,10 @@ MAIN: {
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
         unless ($win) {
-            $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-            $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)';
+            $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
+            $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
             $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "$(PERL6_LANG_DIR)/runtime" "lldb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
         }
 

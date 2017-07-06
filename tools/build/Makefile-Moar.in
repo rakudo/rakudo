@@ -66,6 +66,7 @@ M_CORE_D_SOURCES = \
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
 M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
 M_GDB_RUNNER = perl6-gdb-m@runner_suffix@
+M_LLDB_RUNNER = perl6-lldb-m@runner_suffix@
 M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
 
 M_CLEANUPS = \
@@ -96,7 +97,7 @@ M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 
-$(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) 
+$(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(M_INCPATH)/libatomic_ops \
 	    -I$(M_INCPATH)/dyncall -I$(M_INCPATH)/moar \
 	    -I$(M_INCPATH)/sha1 -I$(M_INCPATH)/tinymt  -I$(M_INCPATH)/libtommath \
@@ -197,6 +198,11 @@ $(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
 	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
+
+$(M_LLDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
+	$(RM_F) $(M_LLDB_RUNNER)
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-lldb-m . "lldb" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	-$(CHMOD) 755 $(M_LLDB_RUNNER)
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_VALGRIND_RUNNER)

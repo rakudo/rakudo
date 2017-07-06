@@ -50,39 +50,45 @@ my role Baggy does QuantHash {
           self
         )
     }
-    multi method ACCEPTS(Baggy:U: $other) {
-        $other.^does(self)
+    multi method ACCEPTS(Baggy:U: \other --> Bool:D) {
+        other.^does(self)
     }
-    multi method ACCEPTS(Baggy:D: Mu $other) {
-        $other (<+) self && self (<+) $other
-    }
-    multi method ACCEPTS(Baggy:D: Baggy:D $other --> Bool:D) {
+    multi method ACCEPTS(Baggy:D: Baggy:D \other --> Bool:D) {
         nqp::p6bool(
           nqp::unless(
-            nqp::eqaddr(self,$other),
-            nqp::if(
-              (%!elems.elems
-                == nqp::getattr($other,$other.WHAT,'%!elems').elems),
-              nqp::stmts(
-                (my $iter := nqp::iterator(
-                  nqp::getattr(%!elems,Map,'$!storage'))),
-                (my $oelems := nqp::getattr(
-                  nqp::getattr($other,$other.WHAT,'%!elems'),Map,'$!storage')),
-                nqp::while(
-                  $iter,
-                  nqp::unless(
-                    (nqp::existskey($oelems,nqp::iterkey_s(nqp::shift($iter)))
-                      && nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                      == nqp::getattr(nqp::atkey(
-                           $oelems,nqp::iterkey_s($iter)),Pair,'$!value')),
-                    return False
+            nqp::eqaddr(self,other),
+            nqp::if(                         # not same object
+              (my $araw := self.raw_hash),
+              nqp::if(                       # something on left
+                (my $braw := other.raw_hash),
+                nqp::if(                     # something on both sides
+                  nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
+                  nqp::stmts(                # same size
+                    (my $iter := nqp::iterator($araw)),
+                    nqp::while(
+                      $iter,
+                      nqp::unless(
+                        nqp::getattr(
+                          nqp::ifnull(
+                            nqp::atkey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                            BEGIN nqp::p6bindattrinvres(  # virtual Pair with 0
+                              nqp::create(Pair),Pair,'$!value',0)
+                          ),Pair,'$!value')
+                          == nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                        return False         # missing/different: we're done
+                      )
+                    ),
+                    True                     # all keys identical/same value
                   )
-                ),
-                1
-              )
+                )
+              ),
+              nqp::isfalse(other.raw_hash),  # true -> both empty
             )
           )
         )
+    }
+    multi method ACCEPTS(Baggy:D: Mu \other --> Bool:D) {
+        self.ACCEPTS(other.Bag)
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
@@ -651,39 +657,7 @@ my role Baggy does QuantHash {
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::p6bool(
-      nqp::unless(
-        nqp::eqaddr(a,b),
-        nqp::if(                           # not same object
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(                         # same type
-            (my $araw := a.raw_hash),
-            nqp::if(                       # something on left
-              (my $braw := b.raw_hash),
-              nqp::if(                     # something on both sides
-                nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
-                nqp::stmts(                # same size
-                  (my $iter := nqp::iterator($araw)),
-                  nqp::while(
-                    $iter,
-                    nqp::unless(
-                      nqp::getattr(
-                        nqp::ifnull(
-                          nqp::atkey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                          BEGIN nqp::p6bindattrinvres(    # virtual Pair with 0
-                            nqp::create(Pair),Pair,'$!value',0)
-                        ),Pair,'$!value')
-                        == nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
-                      return False         # missing/different: we're done
-                    )
-                  ),
-                  True                     # all keys identical/same value
-                )
-              )
-            ),
-            nqp::isfalse(b.raw_hash),      # true -> both empty
-          )
-        )
-      )
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
 # vim: ft=perl6 expandtab sw=4

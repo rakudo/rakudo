@@ -58,7 +58,7 @@ my role Setty does QuantHash {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
     multi method antipairs(Setty:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
+        Seq.new(class :: does Rakudo::QuantHash::Quanty {
             method pull-one() {
               nqp::if(
                 $!iter,
@@ -66,7 +66,7 @@ my role Setty does QuantHash {
                 IterationEnd
               )
             }
-        }.new(self.hll_hash))
+        }.new(self))
     }
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }

@@ -36,7 +36,7 @@ my class Set does Setty {
     }
 
     method iterator(Set:D:) {
-        class :: does Rakudo::Iterator::Mappy {
+        class :: does Rakudo::QuantHash::Quanty {
             method pull-one() {
               nqp::if(
                 $!iter,
@@ -44,11 +44,11 @@ my class Set does Setty {
                 IterationEnd
               )
             }
-        }.new(self.hll_hash)
+        }.new(self)
     }
 
     multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
+        Seq.new(class :: does Rakudo::QuantHash::Quanty {
             has int $!on-value;
             method pull-one() is raw {
                 nqp::if(
@@ -81,11 +81,9 @@ my class Set does Setty {
                 )
             }
             method count-only() {
-                nqp::p6box_i(
-                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
-                )
+                nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
             }
-        }.new(self.hll_hash))
+        }.new(self))
     }
     multi method values(Set:D:) { True xx self.total }
 

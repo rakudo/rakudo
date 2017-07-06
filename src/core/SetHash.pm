@@ -80,7 +80,7 @@ my class SetHash does Setty {
 
 #--- iterator methods
 
-    sub proxy(Mu \iter,Mu \storage) is raw {
+    sub proxy(Mu \iter,Mu \elems) is raw {
         # We are only sure that the key exists when the Proxy
         # is made, but we cannot be sure of its existence when
         # either the FETCH or STORE block is executed.  So we
@@ -95,14 +95,14 @@ my class SetHash does Setty {
 
           Proxy.new(
             FETCH => {
-                nqp::p6bool(nqp::existskey(storage,nqp::iterkey_s(iter)))
+                nqp::p6bool(nqp::existskey(elems,nqp::iterkey_s(iter)))
             },
             STORE => -> $, $value {
                 nqp::stmts(
                   nqp::if(
                     $value,
-                    nqp::bindkey(storage,nqp::iterkey_s(iter),$object),
-                    nqp::deletekey(storage,nqp::iterkey_s(iter))
+                    nqp::bindkey(elems,nqp::iterkey_s(iter),$object),
+                    nqp::deletekey(elems,nqp::iterkey_s(iter))
                   ),
                   $value.Bool
                 )
@@ -112,18 +112,18 @@ my class SetHash does Setty {
     }
 
     method iterator(SetHash:D:) {
-        class :: does Rakudo::Iterator::Mappy {
+        class :: does Rakudo::QuantHash::Quanty {
             method pull-one() {
               nqp::if(
                 $!iter,
                 Pair.new(
                   nqp::iterval(nqp::shift($!iter)),
-                  proxy($!iter,$!storage)
+                  proxy($!iter,$!elems)
                 ),
                 IterationEnd
               )
             }
-        }.new(self.hll_hash)
+        }.new(self)
     }
 
     multi method kv(SetHash:D:) {
@@ -157,15 +157,15 @@ my class SetHash does Setty {
         }.new(self.hll_hash))
     }
     multi method values(SetHash:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
+        Seq.new(class :: does Rakudo::QuantHash::Quanty {
             method pull-one() {
               nqp::if(
                 $!iter,
-                proxy(nqp::shift($!iter),$!storage),
+                proxy(nqp::shift($!iter),$!elems),
                 IterationEnd
               )
             }
-        }.new(self.hll_hash))
+        }.new(self))
     }
 
 #--- coercion methods

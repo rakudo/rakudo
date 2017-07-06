@@ -216,7 +216,7 @@ my role Setty does QuantHash {
             && $!elems
             && (my int $elems = nqp::elems($!elems)),
           nqp::stmts(
-            (my $keys := self.raw_keys),
+            (my $keys := Rakudo::QuantHash.RAW-KEYS(self)),
             nqp::if(
               $todo == Inf,
               Rakudo::Iterator.Callable(

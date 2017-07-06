@@ -28,7 +28,9 @@ my class Set does Setty {
             'Set|',
             nqp::concat(self.^name,'|')
           ) ~ nqp::sha1(
-               nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys))
+                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                  Rakudo::QuantHash.RAW-KEYS(self)
+                ))
             )
         )
     }

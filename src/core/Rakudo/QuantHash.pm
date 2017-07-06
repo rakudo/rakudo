@@ -87,6 +87,28 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Return an nqp::list_s of all keys of a QuantHash
+    method RAW-KEYS(\quanthash) is raw {
+        nqp::if(
+          (my $elems := quanthash.raw_hash),
+          nqp::stmts(
+            (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s(
+                $keys,
+                ($i = nqp::add_i($i,1)),
+                nqp::iterkey_s(nqp::shift($iter))
+              )
+            ),
+            $keys
+          ),
+          nqp::list_s
+        )
+    }
+
     # Create intersection of 2 Baggies, default to given empty type
     method INTERSECT-BAGGIES(\a,\b,\empty) {
         nqp::if(

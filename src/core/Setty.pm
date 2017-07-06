@@ -70,8 +70,8 @@ my role Setty does QuantHash {
     }
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }
-    multi method Bool(Setty:D:) {
-        nqp::p6bool(nqp::istrue($!elems) && nqp::elems($!elems))
+    multi method Bool(Setty:D: --> Bool:D) {
+        nqp::p6bool($!elems && nqp::elems($!elems))
     }
 
     method HASHIFY(\type) {

@@ -679,12 +679,6 @@ my role Baggy does QuantHash {
           nqp::list_s
         )
     }
-
-    method sha1() {
-        nqp::sha1(
-          nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys_values))
-        )
-    }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {

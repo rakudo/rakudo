@@ -3391,7 +3391,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
                 <?[(]> <?{ $is_type }>
                 '(' <.ws> [
-                    || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || <accept=.maybe_typename> <!{ nqp::isconcrete($<accept>.ast) }>
                     || $<accept_any>=<?>
                 ] <.ws> ')'
             ]?
@@ -3633,6 +3633,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    method maybe_typename() {
+        return self.typename();
+        CATCH { return self.'!cursor_start_cur'() }
+    }
 
     token quotepair($*purpose = 'quoteadverb') {
         :my $*key;

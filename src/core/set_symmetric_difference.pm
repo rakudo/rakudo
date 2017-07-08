@@ -42,6 +42,10 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
       nqp::if(nqp::istype($b,Set),$b,$b.Set)   # $a empty, so $b
     )
 }
+multi sub infix:<(^)>(Setty:D $a, Mixy:D $b) { $a.Mix (^) $b }
+multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
+multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Bag (^) $b }
+multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
@@ -214,48 +218,30 @@ multi sub infix:<(^)>(Iterable:D $a, Iterable:D $b) {
       )
     )
 }
+multi sub infix:<(^)>(Any $a, Any $b) {
+    $a.Set (^) $b.Set
+}
 
 multi sub infix:<(^)>(**@p) is pure {
-    my $chain = @p.elems;
-
-    if $chain == 1 {
-        return @p[0];
-    } elsif $chain == 2 {
-        my ($a, $b) = @p;
-        my $mixy-or-baggy = False;
-        if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
-            ($a, $b) = $a.MixHash, $b.MixHash;
-            $mixy-or-baggy = True;
-        } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
-            ($a, $b) = $a.BagHash, $b.BagHash;
-            $mixy-or-baggy = True;
-        }
-        return  $mixy-or-baggy
-                    # the set formula is not symmetric for bag/mix. this is.
-                    ?? ($a (-) $b) (+) ($b (-) $a)
-                    # set formula for the two-arg set.
-                    !! ($a (|) $b) (-) ($b (&) $a);
-    } else {
-        if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
-            my $head;
-            while (@p) {
-                my ($a, $b);
-                if $head.defined {
-                    ($a, $b) = $head, @p.shift;
-                } else {
-                    ($a, $b) = @p.shift, @p.shift;
-                }
-                if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
-                    ($a, $b) = $a.MixHash, $b.MixHash;
-                } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
-                    ($a, $b) = $a.BagHash, $b.BagHash;
-                }
-                $head = ($a (-) $b) (+) ($b (-) $a);
+    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
+        my $head;
+        while (@p) {
+            my ($a, $b);
+            if $head.defined {
+                ($a, $b) = $head, @p.shift;
+            } else {
+                ($a, $b) = @p.shift, @p.shift;
             }
-            return $head;
-        } else {
-            return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
+            if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
+                ($a, $b) = $a.MixHash, $b.MixHash;
+            } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
+                ($a, $b) = $a.BagHash, $b.BagHash;
+            }
+            $head = ($a (-) $b) (+) ($b (-) $a);
         }
+        return $head;
+    } else {
+        return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
     }
 }
 # U+2296 CIRCLED MINUS

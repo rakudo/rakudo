@@ -37,7 +37,7 @@ my class Exception {
         if nqp::isconcrete($!ex) {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message)
-                ?? "Died with {self.^name}"
+                ?? (try self.?message) // "Died with {self.^name}"
                 !! nqp::p6box_s($message);
             $str ~= "\n";
             try $str ~= self.backtrace
@@ -54,12 +54,6 @@ my class Exception {
         $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
         $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
-        my $msg := try self.?message;
-        if defined($msg) {
-            $msg := try ~$msg;
-        }
-        $msg := $msg // "{self.^name} exception produced no message";
-        nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {

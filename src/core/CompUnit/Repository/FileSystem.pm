@@ -45,6 +45,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 for @extensions -> $extension {
                     my $path = ($base ~ $extension).IO;
                     $found = $path if $path.f;
+                    last if $found;
                 }
             }
 

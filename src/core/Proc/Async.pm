@@ -121,7 +121,8 @@ my class Proc::Async {
     has @!close-after-exit;
 
     proto method new(|) { * }
-    multi method new(*@ ($path, *@args), *%_) {
+    multi method new(*@args where .so) {
+        my $path = @args.shift;
         self.bless(:$path, :@args, |%_)
     }
 

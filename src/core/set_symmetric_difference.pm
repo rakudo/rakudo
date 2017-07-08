@@ -223,22 +223,9 @@ multi sub infix:<(^)>(Any $a, Any $b) { $a.Set (^) $b.Set }
 
 multi sub infix:<(^)>(**@p) is pure {
     if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
-        my $head;
-        while (@p) {
-            my ($a, $b);
-            if $head.defined {
-                ($a, $b) = $head, @p.shift;
-            } else {
-                ($a, $b) = @p.shift, @p.shift;
-            }
-            if nqp::istype($a, Mixy) || nqp::istype($b, Mixy) {
-                ($a, $b) = $a.MixHash, $b.MixHash;
-            } elsif nqp::istype($a, Baggy) || nqp::istype($b, Baggy) {
-                ($a, $b) = $a.BagHash, $b.BagHash;
-            }
-            $head = ($a (-) $b) (+) ($b (-) $a);
-        }
-        return $head;
+        my $result = @p.shift;
+        $result = $result (^) @p.shift while @p;
+        $result
     } else {
         return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
     }

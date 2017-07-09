@@ -199,13 +199,158 @@ multi sub infix:<(^)>(Map:D $a, Map:D $b) {
 multi sub infix:<(^)>(Any $a, Any $b) { $a.Set (^) $b.Set }
 
 multi sub infix:<(^)>(**@p) is pure {
-    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
-        my $result = @p.shift;
-        $result = $result (^) @p.shift while @p;
-        $result
-    } else {
-        return ([(+)] @p>>.Bag).grep(*.value == 1).Set;
-    }
+    nqp::if(
+      (my $params := @p.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'))),  # bye bye
+
+      nqp::stmts(                                 # fixed list of things to diff
+        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        (my $type  := Set),
+        (my $initial-minmax := nqp::setelems(nqp::create(IterationBuffer),2)),
+        nqp::bindpos($initial-minmax,1,1),
+
+        nqp::until(
+          nqp::eqaddr((my $p := $params.pull-one),IterationEnd),
+
+          nqp::if(                              # not done parsing
+            nqp::istype($p,Baggy),
+
+            nqp::stmts(                         # Mixy/Baggy semantics apply
+              nqp::unless(
+                nqp::istype($type,Mix),
+                ($type := nqp::if(nqp::istype($p,Mixy),Mix,Bag))
+              ),
+              nqp::if(
+                (my $raw := $p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
+                nqp::while(                     # something to process
+                  $iter,
+                  nqp::if(
+                    nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+                    nqp::if(                    # seen this element before
+                      (my $value := nqp::getattr(
+                        nqp::iterval($iter),
+                        Pair,
+                        '$!value'
+                      )) > nqp::atpos(
+                        (my $minmax := nqp::getattr(
+                          nqp::atkey($elems,nqp::iterkey_s($iter)),
+                          Pair,
+                          '$!value'
+                        )),1
+                      ),
+                      nqp::stmts(               # higher than highest
+                        nqp::bindpos($minmax,0,nqp::atpos($minmax,1)),
+                        nqp::bindpos($minmax,1,1)
+                      ),
+                      nqp::if(
+                        nqp::not_i(nqp::defined(nqp::atpos($minmax,0)))
+                          || $value > nqp::atpos($minmax,0),
+                        nqp::bindpos($minmax,0,$value) # higher than lowest
+                      )
+                    ),
+
+                    nqp::stmts(                 # new element
+                      ($minmax :=
+                        nqp::setelems(nqp::create(IterationBuffer),2)),
+                      nqp::bindpos($minmax,1,nqp::getattr(
+                        nqp::iterval($iter),Pair,'$!value'
+                      )),
+                      nqp::bindkey(
+                        $elems,
+                        nqp::iterkey_s($iter),
+                        nqp::p6bindattrinvres(
+                          nqp::clone(nqp::iterval($iter)),
+                          Pair,'$!value',$minmax
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+
+            nqp::stmts(                           # not a Baggy/Mixy, assume Set
+              ($raw := $p.Set.RAW-HASH) && ($iter := nqp::iterator($raw)),
+              nqp::while(                         # something to process
+                $iter,
+                nqp::if(
+                  nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::if(                        # seen this element before
+                    nqp::atpos(
+                      ($minmax := nqp::getattr(
+                        nqp::atkey($elems,nqp::iterkey_s($iter)),
+                        Pair,
+                        '$!value'
+                      )),1
+                    ) < 1,
+                    nqp::stmts(                   # higher than highest
+                      nqp::bindpos($minmax,0,nqp::atpos($minmax,1)),
+                      nqp::bindpos($minmax,1,1)
+                    ),
+                    nqp::if(
+                      nqp::not_i(nqp::defined(nqp::atpos($minmax,0)))
+                        || nqp::atpos($minmax,0) < 1,
+                      nqp::bindpos($minmax,0,1)   # higher than lowest
+                    )
+                  ),
+                  nqp::bindkey(                   # new element
+                    $elems,
+                    nqp::iterkey_s($iter),
+                    Pair.new(nqp::iterval($iter),nqp::clone($initial-minmax))
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        ($iter := nqp::iterator($elems)),        # start post-processing
+        nqp::if(
+          nqp::istype($type,Set),
+          nqp::while(                            # need to create a Set
+            $iter,
+            nqp::if(
+              nqp::ifnull(
+                nqp::atpos(
+                  (nqp::getattr(
+                    nqp::iterval(nqp::shift($iter)),
+                    Pair,
+                    '$!value'
+                  )),0
+                ),0
+              ) == 1,
+              nqp::deletekey($elems,nqp::iterkey_s($iter)),    # seen > 1
+              nqp::bindkey(                                    # only once
+                $elems,                                        # convert to
+                nqp::iterkey_s($iter),                         # Setty format
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+              )
+            )
+          ),
+          nqp::while(                            # need to create a Baggy/Mixy
+            $iter,
+            nqp::if(
+              nqp::ifnull(
+                nqp::atpos(
+                  ($minmax := nqp::getattr(
+                    nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                  )),0
+                ),
+                0
+              ) == nqp::atpos($minmax,1),
+              nqp::deletekey($elems,nqp::iterkey_s($iter)),    # top 2 same
+              nqp::bindattr(                                   # there's a
+                nqp::iterval($iter),                           # difference
+                Pair,                                          # so convert to
+                '$!value',                                     # Baggy semantics
+                nqp::atpos($minmax,1) - nqp::ifnull(nqp::atpos($minmax,0),0)
+              )
+            )
+          )
+        ),
+        nqp::create($type).SET-SELF($elems)
+      )
+    )
 }
 # U+2296 CIRCLED MINUS
 only sub infix:<⊖>($a, $b) is pure {

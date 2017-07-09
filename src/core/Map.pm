@@ -299,10 +299,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     proto method STORE_AT_KEY(|) { * }
     multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key), value)
+        nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
     }
     multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
+        nqp::bindkey($!storage, nqp::unbox_s(key.Str), nqp::decont(value))
     }
 
     method Capture(Map:D:) {

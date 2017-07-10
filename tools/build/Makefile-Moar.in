@@ -280,28 +280,30 @@ m-sometests: m-all
 	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
 
 m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist.pl $(SETTING_MOAR)
-	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
-	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
-	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
-	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
-	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)
-	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/vendor
-	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(M_RUNNER) tools/build/install-core-dist.pl $(DESTDIR)$(PERL6_LANG_DIR)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)
+	touch $(PREFIX)/m-install-timestamp
+	$(MKPATH) $(PREFIX)/bin
+	$(MKPATH) $(M_LIBPATH)/Perl6
+	$(CP) $(M_PERL6_LANG_OUTPUT) $(M_LIBPATH)/Perl6
+	$(MKPATH) $(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(PERL6_LANG_DIR)/runtime
+	$(MKPATH) $(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) $(M_PERL6_OPS_DLL) $(PERL6_LANG_DIR)/runtime/dynext
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(PERL6_LANG_DIR)
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(PERL6_LANG_DIR)/vendor
+	.@slash@$(M_RUNNER) tools/build/upgrade-repository.pl $(PERL6_LANG_DIR)/site
+	.@slash@$(M_RUNNER) tools/build/install-core-dist.pl $(PERL6_LANG_DIR)
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm $(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(CHMOD) 755 $(PREFIX)/bin/perl6-m$(M_BAT)
 @m_install@
 
 m-runner-default-install: m-install
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
+	touch $(PREFIX)/m-runner-default-install-timestamp
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(CP) $(PREFIX)/bin/perl6-m$(M_BAT) $(PREFIX)/bin/perl6$(M_BAT)
+	$(CHMOD) 755 $(PREFIX)/bin/perl6$(M_BAT)
 
 manifest:
 	echo MANIFEST >MANIFEST

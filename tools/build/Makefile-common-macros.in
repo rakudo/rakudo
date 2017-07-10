@@ -9,9 +9,10 @@ RM_RF   = @rm_rf@
 TEST_F  = @test_f@
 SHELL   = @shell@
 
-SYSROOT= @sysroot@
-SDKROOT= @sdkroot@
-PREFIX = @prefix@
+SYSROOT = @sysroot@
+SDKROOT = @sdkroot@
+PREFIX  = @prefix@
+INSTDIR = @instdir@
 PERL6_LANG_DIR = $(PREFIX)/share/perl6
 
 BOOTSTRAP_SOURCES = \

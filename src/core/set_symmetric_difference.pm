@@ -240,7 +240,7 @@ multi sub infix:<(^)>(**@p) is pure {
                       ),
                       nqp::stmts(               # higher than highest
                         nqp::bindpos($minmax,0,nqp::atpos($minmax,1)),
-                        nqp::bindpos($minmax,1,1)
+                        nqp::bindpos($minmax,1,$value)
                       ),
                       nqp::if(
                         nqp::not_i(nqp::defined(nqp::atpos($minmax,0)))

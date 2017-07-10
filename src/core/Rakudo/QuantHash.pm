@@ -1476,6 +1476,61 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Return whether first Baggy is a proper subset of the second Baggy,
+    # using Mixy semantics
+    method MIX-IS-PROPER-SUBSET($a,$b) {
+        nqp::if(
+          nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+          False,                    # X is never a true subset of itself
+          nqp::if(
+            (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+            nqp::if(                # elems in A
+              (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+              nqp::stmts(           # elems in A and B
+                (my $iter := nqp::iterator($araw)),
+                nqp::while(         # check all values in A with B
+                  $iter,
+                  nqp::unless(
+                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                      <             # value in A should be less than (virtual) B
+                    nqp::getattr(
+                      nqp::ifnull(nqp::atkey($braw,nqp::iterkey_s($iter)),$p0),
+                      Pair,
+                      '$!value'
+                    ),
+                    return False
+                  )
+                ),
+
+                ($iter := nqp::iterator($braw)),
+                nqp::while(         # check all values in B with A
+                  $iter,
+                  nqp::unless(
+                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                      >             # value in B should be more than (virtual) A
+                    nqp::getattr(
+                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                      Pair,
+                      '$!value'
+                    ),
+                    return False
+                  )
+                ),
+                True                # all checks worked out, so ok
+              ),
+              # nothing in B, all elems in A should be < 0
+              Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
+            ),
+            nqp::if(                # nothing in A
+              ($braw := $b.RAW-HASH) && nqp::elems($braw),
+              # something in B, all elems in B should be > 0
+              Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
+              False                 # nothing in A nor B
+            )
+          )
+        )
+    }
+
     # set difference QuantHash IterSet from Mix IterSet, both assumed to have
     # elems.  3rd parameter is 1 for Setty, 0 for Baggy semantics
     method SUB-QUANTHASH-FROM-MIX(\aelems, \belems, \issetty) {

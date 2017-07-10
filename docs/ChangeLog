@@ -29,7 +29,7 @@ New in 2017.07:
     + Fixed SEGV in Proc::Async.new [f6d4fbd2]
     + Fixed a few edge cases of (^) wrt QuantHash type permutations [b3916926]
     + Fixed regression in Map intialized with `<...>` having writable containers [4894a75d]
-    + Fixed overflop in uniprop lookups [4f5a1e20]
+    + Fixed overflow in uniprop lookups [4f5a1e20]
     + Made improvements to segmentation of Emoji w/ GCB=Other [4f5a1e20]
     + Fixed break after ZWJ for Emoji=True + GCB=Other [4f5a1e20]
     + Removed faulty Iterable (^) Iterable candidate [4c91b522]

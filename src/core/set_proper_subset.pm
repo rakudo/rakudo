@@ -104,22 +104,27 @@ multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
 }
 multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr($a,$b),
-      False,                    # X is never a true subset of itself
-      nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
-        nqp::if(
-          (my $araw := $a.RAW-HASH) && nqp::elems($araw),
-          nqp::if(
-            nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
-              && (my $iter := nqp::iterator($araw)),
-            nqp::stmts(         # A has fewer elems than B
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # never proper subset of self
+
+      nqp::if(                  # different objects
+        (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
+        nqp::if(                # elements on left
+          (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+          nqp::if(              # elements on both sides
+            nqp::isle_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::stmts(         # equal number of elements on either side
+              (my int $less = 0),
               nqp::while(
                 $iter,
-                nqp::unless(
-                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                   <
-                  nqp::getattr(
+                nqp::if(
+                  (my $left := nqp::getattr(
+                    nqp::iterval(nqp::shift($iter)),
+                    Pair,
+                    '$!value'
+                  ))
+                   >
+                  (my $right := nqp::getattr(
                     nqp::ifnull(
                       nqp::atkey($braw,nqp::iterkey_s($iter)),
                       BEGIN nqp::p6bindattrinvres(     # virtual 0
@@ -127,17 +132,22 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
                     ),
                     Pair,
                     '$!value'
-                  ),
-                  return False  # elem in A not in B or same or more in B
+                  )),
+                  (return False), # too many on left, we're done
+                  nqp::unless($less,$less = $left < $right)
                 )
               ),
-              True              # all elems in A exist in B and are less
+              nqp::p6bool(      # ok so far, must have lower total or fewer keys
+                $less || nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+              )
             ),
-            False               # number of elems in B smaller or equal to A
+            False               # more keys on left
           ),
-          True                  # elems in B, no elems in A
+          False                 # keys on left, no keys on right
         ),
-        False                   # can never have fewer elems in A than in B
+        nqp::p6bool(            # no keys on left
+          ($braw := $b.RAW-HASH) && nqp::elems($braw)
+        )
       )
     )
 }

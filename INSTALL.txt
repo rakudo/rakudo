@@ -74,11 +74,11 @@
     into local "nqp/" and "moar/" subdirectories, install NQP and MoarVM
     into the "install/" subdirectory, and use them for building Rakudo.
     It's okay to use the "--gen-moar" option on later invocations of
-    Configure.pl; the configure system will re-build NQP and/or MoarVM 
-    only if a newer version is needed for whatever version of Rakudo 
+    Configure.pl; the configure system will re-build NQP and/or MoarVM
+    only if a newer version is needed for whatever version of Rakudo
     you're working with.
 
-    If you already have MoarVM installed, you can use 
+    If you already have MoarVM installed, you can use
     "--with-moar=/path/to/bin/moar" to use it instead of
     building a new one.  This installed MoarVM must include its
     development environment.  Similarly, if you already have NQP
@@ -89,7 +89,7 @@
     The versions of any already installed NQP or MoarVM binaries must
     satify a minimum specified by the Rakudo being built -- Configure.pl
     and "make" will verify this for you.  Released versions of Rakudo
-    generally build against the latest release of MoarVM; checkouts of 
+    generally build against the latest release of MoarVM; checkouts of
     Rakudo's HEAD revision from Github often require a version of MoarVM
     that is newer than the most recent MoarVM monthly release.
 
@@ -161,9 +161,9 @@
     recent version of the Perl 5 module Test::Harness (3.16 works for sure).
 
   Spectest smolder requirements (Windows)
-    You need recent version of either Strawberry Perl or ActiveState Perl.
+    You need a recent version of either Strawberry Perl or ActiveState Perl.
 
-    If you are working with ActiveState Perl you need the Mingw gcc compiler.
+    If you are working with ActiveState Perl, you need the Mingw gcc compiler.
 
     You need msys git installed and you need "\Program Files\Git\cmd" on your
     execution path and NOT "\Program Files\Git\bin".

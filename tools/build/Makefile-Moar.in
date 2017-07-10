@@ -280,6 +280,7 @@ m-sometests: m-all
 	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
 
 m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist.pl $(SETTING_MOAR)
+	touch $(PREFIX)/m-install-timestamp
 	$(MKPATH) $(PREFIX)/bin
 	$(MKPATH) $(M_LIBPATH)/Perl6
 	$(CP) $(M_PERL6_LANG_OUTPUT) $(M_LIBPATH)/Perl6
@@ -299,6 +300,7 @@ m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist
 @m_install@
 
 m-runner-default-install: m-install
+	touch $(PREFIX)/m-runner-default-install-timestamp
 	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" "$(M_LIBPATH)" "$(NQP_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CP) $(PREFIX)/bin/perl6-m$(M_BAT) $(PREFIX)/bin/perl6$(M_BAT)
 	$(CHMOD) 755 $(PREFIX)/bin/perl6$(M_BAT)

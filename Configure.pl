@@ -51,13 +51,32 @@ MAIN: {
         exit(0);
     }
 
-    unless (defined $options{prefix}) {
+    #unless (defined ;$options{prefix}) {
+    # the value of instdir remains false unless --prefix is used
+    my $instdir = '';
+    if (defined $options{prefix}) {
+        # save the value in another var: $INSTDIR (instdir)
+        $options{instdir} = $options{prefix};
+        $instdir = $options{instdir};
+        my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
+        $options{prefix} = $default;
+
+        print "ATTENTION: --prefix supplied, building locally and installing to $instdir\n";
+
+    }
+    else {
         my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
         print "ATTENTION: no --prefix supplied, building and installing to $default\n";
-        $options{prefix} = $default;
+        $options{prefix}  = $default;
+        # keep the value of instdir false for proper Makefile generation
     }
-    $options{prefix} = File::Spec->rel2abs($options{prefix});
-    my $prefix         = $options{'prefix'};
+
+    # don't use abs dirs--makes installation not portable
+    #$options{prefix}  = File::Spec->rel2abs($options{prefix});
+    #$options{instdir} = File::Spec->rel2abs($options{instdir}) if $instdir;
+
+    my $prefix        = $options{'prefix'};
+    $instdir          = $options{'instdir'};
     my @known_backends = qw/moar jvm/;
     my %known_backends = map { $_, 1; } @known_backends;
     my %letter_to_backend;
@@ -128,7 +147,8 @@ MAIN: {
         close($CONFIG_STATUS);
     }
 
-    $config{prefix} = $prefix;
+    $config{prefix}  = $prefix;
+    $config{instdir} = $instdir;
     $config{sdkroot} = $options{sdkroot} || '';
     $config{sysroot} = $options{sysroot} || '';
     $config{slash}  = $slash;
@@ -146,7 +166,20 @@ MAIN: {
         $make = 'gmake';
     }
 
+    # need a system install program if using --prefix
+    my $install = 'install';
+    if ($instdir && !$win) {
+        if (not -X '/usr/bin/install') {
+            die "FATAL: The system program 'install' is required to use the '--prefix' option.\n" .
+                "       Please install it before using this option.";
+        }
+    }
+
+
     if ($win) {
+	if ($instdir) {
+	    die "FATAL: You need an equivalent to the *nix system 'install' program.";
+        }
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
@@ -202,10 +235,28 @@ MAIN: {
     my @prefixes = map substr($_, 0, 1), @backends;
 
     my $launcher = substr($default_backend, 0, 1) . '-runner-default';
-    print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
+    print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n\n";
+
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
 
-    print $MAKEFILE "clean: ", join(' ', map "$_-clean", @prefixes), "\n";
+    # need to modify the install target if instdir has a value
+    if ($instdir) {
+	my $user = %ENV{USER};
+	# copy all from ./install/* to the installation dir
+	# creates the dir if it doesn't exist?
+	print $MAKEFILE "\tmkdir -p $instdir\n";
+        print $MAKEFILE "\tfor file in ${prefix}/\* ; do \\\n";
+        print $MAKEFILE "\t  echo \"working file '\$\$file'\" ; \\\n";
+        print $MAKEFILE "\t  chown root.root \$\$file ; \\\n";
+        print $MAKEFILE "\t  cp -rfp \$\$file ${instdir} ; \\\n";
+        print $MAKEFILE "\tdone\n";
+	# change ownership of install dir back to user
+	print $MAKEFILE "\tchown -R ${user}.${user} ${prefix}\n";
+
+
+    }
+
+    print $MAKEFILE "\nclean: ", join(' ', map "$_-clean", @prefixes), "\n";
     print $MAKEFILE "\t\$(RM_F) perl6", $config{'runner_suffix'},"\n\n";
 
     for my $t (qw/test spectest coretest localtest stresstest/) {

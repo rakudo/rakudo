@@ -1291,8 +1291,11 @@ class Perl6::Optimizer {
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
-        # a p6bool if there's already an integer result behind it.
-        elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+        # a p6bool if there's already an integer result behind it. For if/unless,
+        # we can only do that when we have the `else` branch, since otherwise we
+        # might return the no-longer-Bool value from the conditional.
+        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
             while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {

@@ -270,7 +270,8 @@ multi sub infix:<(^)>(**@p) is pure {
             ),
 
             nqp::stmts(                           # not a Baggy/Mixy, assume Set
-              ($raw := $p.Set.RAW-HASH) && ($iter := nqp::iterator($raw)),
+              ($raw := nqp::if(nqp::istype($p,Setty),$p,$p.Set).RAW-HASH)
+                && ($iter := nqp::iterator($raw)),
               nqp::while(                         # something to process
                 $iter,
                 nqp::if(

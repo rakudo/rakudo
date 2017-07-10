@@ -158,42 +158,48 @@ multi sub infix:<(^)>(Baggy:D $a, Any $b) { $a (^) $b.Bag }
 
 multi sub infix:<(^)>(Map:D $a, Map:D $b) {
     nqp::if(
-      nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
-      nqp::if(                                    # both ordinary Str hashes
-        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-          && nqp::elems($araw),
-        nqp::if(                                  # $a has elems
-          (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && nqp::elems($braw),
-          nqp::stmts(                             # $b also, need to check both
-            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-            (my $iter := nqp::iterator($araw)),
-            nqp::while(                           # check $a's keys in $b
+      nqp::elems((my $elems := Rakudo::QuantHash.COERCE-MAP-TO-SET($a))),
+      nqp::if(                                    # $a has elems
+        (my $raw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+          && (my $iter := nqp::iterator($raw)),
+        nqp::stmts(
+          nqp::if(                                # both have elems
+            nqp::eqaddr($b.keyof,Str(Any)),
+            nqp::while(                           # ordinary hash
               $iter,
-              nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::bindkey(
-                  $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter)
+              nqp::if(
+                nqp::iterval(nqp::shift($iter)),
+                nqp::if(                          # should be checked
+                  nqp::existskey(
+                    $elems,
+                    (my $which := nqp::iterkey_s($iter).WHICH)
+                  ),
+                  nqp::deletekey($elems,$which),  # remove existing
+                  nqp::bindkey($elems,$which,nqp::iterkey_s($iter)) # add new
                 )
               )
             ),
-            ($iter := nqp::iterator($braw)),
-            nqp::while(                           # check $b's keys in $a
+            nqp::while(                           # object hash
               $iter,
-              nqp::unless(
-                nqp::existskey($araw,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::bindkey(
-                  $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter)
+              nqp::if(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                nqp::if(                          # should be checked
+                  nqp::existskey($elems,nqp::iterkey_s($iter)),
+                  nqp::deletekey($elems,nqp::iterkey_s($iter)),# remove existing
+                  nqp::bindkey(                   # add new
+                    $elems,
+                    nqp::iterkey_s($iter),
+                    nqp::getattr(nqp::iterval($iter),Pair,'$key')
+                  )
                 )
               )
-            ),
-            nqp::create(Set).SET-SELF($elems)
+            )
           ),
-          $a.Set                                  # no $b, so $a
+          nqp::create(Set).SET-SELF($elems)       # done
         ),
-        $b.Set                                    # no $a, so $b
+        nqp::create(Set).SET-SELF($elems)         # nothing right, so make left
       ),
-      $a.Set (^) $b.Set                           # object hash(es), coerce!
+      $b.Set                                      # nothing left, coerce right
     )
 }
 multi sub infix:<(^)>(Any $a, Any $b) { $a.Set (^) $b.Set }

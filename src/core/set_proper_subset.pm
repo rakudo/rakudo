@@ -36,12 +36,18 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       )
     )
 }
-multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D $b --> Bool:D) {
+multi sub infix:<<(<)>>(Setty:D $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b }
+multi sub infix:<<(<)>>(Setty:D $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b }
+multi sub infix:<<(<)>>(Setty:D $a, Any     $b --> Bool:D) { $a (<) $b.Set }
+
+multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
     Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
 }
 multi sub infix:<<(<)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
     Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
 }
+multi sub infix:<<(<)>>(Mixy:D $a, Any     $b --> Bool:D) { $a (<) $b.Mix }
+
 multi sub infix:<<(<)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
     Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
 }
@@ -94,6 +100,8 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       )
     )
 }
+multi sub infix:<<(<)>>(Baggy:D $a, Any $b --> Bool:D) { $a (<) $b.Bag }
+
 multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
@@ -141,21 +149,14 @@ multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
       )
     )
 }
-multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
-    nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      False,                    # X (<) X is always False
-      nqp::if(
-        nqp::istype((my $aset := $a.Set(:view)),Set),
-        nqp::if(
-          nqp::istype((my $bset := $b.Set(:view)),Set),
-          $aset (<) $bset,
-          $bset.throw
-        ),
-        $aset.throw
-      )
-    )
-}
+
+multi sub infix:<<(<)>>(Any $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b     }
+multi sub infix:<<(<)>>(Any $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b     }
+multi sub infix:<<(<)>>(Any $a, Any     $b --> Bool:D) { $a.Set (<) $b.Set }
+
+multi sub infix:<<(<)>>(Failure $a, Any     $b) { $a.throw }
+multi sub infix:<<(<)>>(Any     $a, Failure $b) { $b.throw }
+
 # U+2282 SUBSET OF
 only sub infix:<⊂>($a, $b --> Bool:D) is pure {
     $a (<) $b;

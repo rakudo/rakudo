@@ -13,10 +13,6 @@ multi sub print(**@args is raw) {
     $*OUT.print($str);
 }
 
-# Once we have an nqp::say that looks at the *output* line separator of the
-# PIO, then we can stop concatenating .nl-out to each string before .print, but
-# instead call nqp::say directly.
-
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {

@@ -1482,40 +1482,51 @@ my class Rakudo::QuantHash {
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
           False,                    # X is never a true subset of itself
           nqp::if(
-            (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+            (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
             nqp::if(                # elems in A
               (my $braw := $b.RAW-HASH) && nqp::elems($braw),
               nqp::stmts(           # elems in A and B
-                (my $iter := nqp::iterator($araw)),
+                (my int $less),
                 nqp::while(         # check all values in A with B
                   $iter,
-                  nqp::unless(
-                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                      <             # value in A should be less than (virtual) B
-                    nqp::getattr(
+                  nqp::if(
+                    (my $left := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),
+                      Pair,
+                      '$!value'
+                    ))
+                      >             # value in A should be <= than B
+                    (my $right := nqp::getattr(
                       nqp::ifnull(nqp::atkey($braw,nqp::iterkey_s($iter)),$p0),
                       Pair,
                       '$!value'
-                    ),
-                    return False
+                    )),
+                    (return False), # too many on left, we're done
+                    nqp::unless($less,$less = $left < $right)
                   )
                 ),
 
                 ($iter := nqp::iterator($braw)),
                 nqp::while(         # check all values in B with A
                   $iter,
-                  nqp::unless(
-                    nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-                      >             # value in B should be more than (virtual) A
-                    nqp::getattr(
-                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                  nqp::if(
+                    ($left := nqp::getattr(
+                      nqp::ifnull(
+                        nqp::atkey($araw,nqp::iterkey_s(nqp::shift($iter))),
+                        $p0
+                      ),
                       Pair,
                       '$!value'
-                    ),
-                    return False
+                    ))
+                      >             # value in A should be <= than B 
+                    ($right := nqp::getattr(
+                      nqp::iterval($iter),Pair,'$!value'
+                    )),
+                    (return False),
+                    nqp::unless($less,$less = $left < $right)
                   )
                 ),
-                True                # all checks worked out, so ok
+                nqp::p6bool($less)  # all checks worked out so far
               ),
               # nothing in B, all elems in A should be < 0
               Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)

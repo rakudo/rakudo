@@ -57,6 +57,7 @@ perl6-j
 perl6-j.bat
 perl6-debug-j
 perl6-debug-j.bat
+/perl6-lldb-m
 perl6-m
 perl6-m.bat
 perl6-debug-m
@@ -100,3 +101,4 @@ perl6-valgrind-m
 *.rakudo.jvm
 **/.precomp
 t/03-jvm/*.class
+/zef

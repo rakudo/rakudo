@@ -134,7 +134,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $RMD("Could not find $dependency.spec()") if $RMD;
                     return False;
                 }
-            return False unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve));
+            unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve)) {
+                $dependency-precomp.close;
+                return False;
+            }
 
             @dependencies.push: $dependency-precomp;
         }

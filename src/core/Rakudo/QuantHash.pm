@@ -1428,11 +1428,10 @@ my class Rakudo::QuantHash {
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
           True,                     # X is always a subset of itself
           nqp::if(
-            (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+            (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
             nqp::if(                # elems in A
               (my $braw := $b.RAW-HASH) && nqp::elems($braw),
               nqp::stmts(           # elems in A and B
-                (my $iter := nqp::iterator($araw)),
                 nqp::while(         # check all values in A with B
                   $iter,
                   nqp::unless(

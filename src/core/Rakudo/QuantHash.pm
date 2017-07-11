@@ -296,32 +296,6 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method SET-IS-SUBSET($a,$b --> Bool:D) {
-        nqp::stmts(
-          nqp::unless(
-            nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-            nqp::if(
-              (my $araw := $a.RAW-HASH)
-                && nqp::elems($araw),
-              nqp::if(                # number of elems in B *always* >= A
-                (my $braw := $b.RAW-HASH)
-                  && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-                  && (my $iter := nqp::iterator($araw)),
-                nqp::while(           # number of elems in B >= A
-                  $iter,
-                  nqp::unless(
-                    nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                    return False      # elem in A doesn't exist in B
-                  )
-                ),
-                return False          # number of elems in B smaller than A
-              )
-            )
-          ),
-          True
-        )
-    }
-
     # add to given IterationSet with setty semantics the values of iterator
     method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(

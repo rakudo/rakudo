@@ -593,7 +593,7 @@ my class IO::Handle {
         self.put(@list.join);
     }
 
-    multi method say(IO::Handle:D: Str $x --> True) {
+    multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
         self.write-internal($!encoder.encode-chars(
             nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))));

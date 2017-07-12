@@ -42,6 +42,7 @@ multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
 multi sub infix:<<(<=)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
     Rakudo::QuantHash.MIX-IS-SUBSET($a,$b)
 }
+multi sub infix:<<(<=)>>(Mixy:D $a, Setty:D $b --> Bool:D) { $a (<=) $b.Mix }
 multi sub infix:<<(<=)>>(Mixy:D $a, Any     $b --> Bool:D) { $a (<=) $b.Mix }
 
 multi sub infix:<<(<=)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
@@ -82,7 +83,8 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       True
     )
 }
-multi sub infix:<<(<=)>>(Baggy:D $a, Any $b --> Bool:D) { $a (<=) $b.Bag }
+multi sub infix:<<(<=)>>(Baggy:D $a, Setty:D $b --> Bool:D) { $a (<=) $b.Bag }
+multi sub infix:<<(<=)>>(Baggy:D $a, Any     $b --> Bool:D) { $a (<=) $b.Bag }
 
 multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
     nqp::if(

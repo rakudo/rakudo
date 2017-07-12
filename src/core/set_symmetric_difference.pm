@@ -191,7 +191,7 @@ multi sub infix:<(^)>(Map:D $a, Map:D $b) {
                   nqp::bindkey(                   # add new
                     $elems,
                     nqp::iterkey_s($iter),
-                    nqp::getattr(nqp::iterval($iter),Pair,'$key')
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!key')
                   )
                 )
               )

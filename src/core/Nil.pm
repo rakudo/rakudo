@@ -30,6 +30,14 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method chomp() { self.Str.chomp }
 
     method iterator() { self.list.iterator }
+
+    # QuantHash coercions
+    method Set()     { Set.new(Nil)     }
+    method SetHash() { SetHash.new(Nil) }
+    method Bag()     { Bag.new(Nil)     }
+    method BagHash() { BagHash.new(Nil) }
+    method Mix()     { Mix.new(Nil)     }
+    method MixHash() { MixHash.new(Nil) }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -364,9 +364,8 @@ multi sub infix:<(^)>(**@p) is pure {
       )
     )
 }
+
 # U+2296 CIRCLED MINUS
-only sub infix:<⊖>($a, $b) is pure {
-    $a (^) $b;
-}
+my constant &infix:<⊖> := &infix:<(^)>;
 
 # vim: ft=perl6 expandtab sw=4

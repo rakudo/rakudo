@@ -99,7 +99,8 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     )
 }
 multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { $a (^) $b.Mix }
-multi sub infix:<(^)>(Mixy:D  $a, Any $b)    { $a (^) $b.Mix }
+multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
+multi sub infix:<(^)>(Mixy:D $a, Any     $b) { $a (^) $b.Mix }
 
 multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { $a.Mix (^) $b }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
@@ -154,7 +155,8 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
       nqp::if(nqp::istype($b,Bag),$b,$b.Bag)   # $a empty, so $b
     )
 }
-multi sub infix:<(^)>(Baggy:D $a, Any $b) { $a (^) $b.Bag }
+multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
+multi sub infix:<(^)>(Baggy:D $a, Any     $b) { $a (^) $b.Bag }
 
 multi sub infix:<(^)>(Map:D $a, Map:D $b) {
     nqp::if(
@@ -202,7 +204,10 @@ multi sub infix:<(^)>(Map:D $a, Map:D $b) {
       $b.Set                                      # nothing left, coerce right
     )
 }
-multi sub infix:<(^)>(Any $a, Any $b) { $a.Set (^) $b.Set }
+multi sub infix:<(^)>(Any $a, Setty:D $b) { $a.Set (^) $b     }
+multi sub infix:<(^)>(Any $a, Mixy:D  $b) { $a.Mix (^) $b     }
+multi sub infix:<(^)>(Any $a, Baggy:D $b) { $a.Bag (^) $b     }
+multi sub infix:<(^)>(Any $a, Any     $b) { $a.Set (^) $b.Set }
 
 multi sub infix:<(^)>(**@p) is pure {
     nqp::if(

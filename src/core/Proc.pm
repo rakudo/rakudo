@@ -50,7 +50,7 @@ my class Proc {
         if $merge {
             my $chan = Channel.new;
             $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                :on-read({ (try $chan.receive) // buf8.new }),
+                :on-read({ (try $chan.receive) // buf8 }),
                 :on-close({ self!await-if-last-handle }));
             $!active-handles++;
             @!pre-spawn.push({

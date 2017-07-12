@@ -1443,7 +1443,7 @@ my class Rakudo::QuantHash {
               ($braw := $b.RAW-HASH) && nqp::elems($braw),
               # nothing in A, all elems in B should be >= 0
               Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
-              False                 # nothing in A nor B
+              True                  # nothing in A nor B
             )
           )
         )

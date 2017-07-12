@@ -1412,7 +1412,7 @@ my class Rakudo::QuantHash {
                     nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
                       <=            # value in A should be less or equal than B
                     nqp::getattr(
-                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                      nqp::ifnull(nqp::atkey($braw,nqp::iterkey_s($iter)),$p0),
                       Pair,
                       '$!value'
                     ),

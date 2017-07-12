@@ -102,57 +102,15 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
 }
 multi sub infix:<<(<)>>(Baggy:D $a, Any $b --> Bool:D) { $a (<) $b.Bag }
 
-multi sub infix:<<(<)>>(Map:D $a, Map:D $b --> Bool:D) {
-    nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      False,                      # X is never a true subset of itself
-      nqp::if(                    # A and B are different
-        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-          && nqp::elems($araw),
-        nqp::if(                  # something in A
-          nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
-          nqp::if(                # both are normal Maps
-            (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-              && nqp::elems($braw)
-              && (my $iter := nqp::iterator($araw)),
-            nqp::stmts(           # something to check for in B
-              nqp::while(
-                $iter,
-                nqp::if(
-                  nqp::iterval(nqp::shift($iter))
-                    || nqp::isfalse(nqp::atkey($braw,nqp::iterkey_s($iter))),
-                  return False    # valid elem in A or invalid elem in B
-                )
-              ),
-              True                # no valids in A, valids in B
-            ),
-            False                 # something in A, nothing in B
-          ),
-          $a.Set (<) $b.Set       # either is objectHash, so coerce
-        ),
-        nqp::if(                  # nothing in A
-          ($braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && nqp::elems($braw)
-            && ($iter := nqp::iterator($braw)),
-          nqp::stmts(             # something in B
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::iterval(nqp::shift($iter)),
-                return True       # found valid elem in B
-              )
-            ),
-            False                 # no valid elem in B
-          ),
-          False                   # nothing in B (nor A)
-        )
-      )
-    )
-}
-
 multi sub infix:<<(<)>>(Any $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b     }
 multi sub infix:<<(<)>>(Any $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b     }
-multi sub infix:<<(<)>>(Any $a, Any     $b --> Bool:D) { $a.Set (<) $b.Set }
+multi sub infix:<<(<)>>(Any $a, Any     $b --> Bool:D) {
+    nqp::if(
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      False,                    # X is never a true subset of itself
+      $a.Set (<) $b.Set
+    )
+}
 
 multi sub infix:<<(<)>>(Failure $a, Any     $b) { $a.throw }
 multi sub infix:<<(<)>>(Any     $a, Failure $b) { $b.throw }

@@ -255,6 +255,7 @@ S03-operators/set_intersection.t
 S03-operators/set_multiply.t
 S03-operators/set_proper_subset.t
 S03-operators/set_subset.t
+S03-operators/set_symmetric_difference.t
 S03-operators/set_union.t
 S03-operators/short-circuit.t
 S03-operators/so.t

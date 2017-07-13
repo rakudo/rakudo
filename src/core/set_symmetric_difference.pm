@@ -65,7 +65,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
           ),
           nqp::while(
             $iter,
-            nqp::if(                           # remove if in both
+            nqp::if(
               nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
               nqp::if(
                 (my $diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
@@ -93,9 +93,17 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
           ),
           nqp::create(Mix).SET-SELF($elems)
         ),
-        nqp::if(nqp::istype($a,Mix),$a,$a.Mix) # $b empty, so $a
+        nqp::create(Mix).SET-SELF(             # $b empty, so $a
+          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($araw)
+        )
       ),
-      nqp::if(nqp::istype($b,Mix),$b,$b.Mix)   # $a empty, so $b
+      nqp::if(
+        ($braw := $b.RAW-HASH) && nqp::elems($braw),
+        nqp::create(Mix).SET-SELF(             # $a empty, so $b
+          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($braw)
+        ),
+        mix()
+      )
     )
 }
 multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { $a (^) $b.Mix }

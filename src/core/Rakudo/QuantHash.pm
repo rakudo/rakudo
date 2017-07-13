@@ -1370,6 +1370,28 @@ my class Rakudo::QuantHash {
           )
         )
     }
+    method MIX-CLONE-ALL-POSITIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(my $clone := nqp::clone(elems))),
+          nqp::while(
+            $iter,
+            nqp::stmts(
+              nqp::shift($iter),
+              nqp::bindkey(
+                $clone,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  abs(nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                )
+              )
+            )
+          ),
+          $clone
+        )
+    }
     method MIX-ALL-POSITIVE(\elems) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),

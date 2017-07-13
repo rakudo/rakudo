@@ -139,9 +139,8 @@ multi sub infix:<<(<=)>>(Failure $a, Any     $b) { $a.throw }
 multi sub infix:<<(<=)>>(Any     $a, Failure $b) { $b.throw }
 
 # U+2286 SUBSET OF OR EQUAL TO
-only sub infix:<⊆>($a, $b --> Bool:D) is pure {
-    $a (<=) $b;
-}
+my constant &infix:<⊆> := &infix:<<(<=)>>;
+
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
 only sub infix:<⊈>($a, $b --> Bool:D) is pure {
     not $a (<=) $b;

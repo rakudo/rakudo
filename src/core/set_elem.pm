@@ -67,10 +67,10 @@ multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
 multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
     $a (elem) $b.Set(:view);
 }
+
 # U+2208 ELEMENT OF
-only sub infix:<∈>($a, $b --> Bool:D) is pure {
-    $a (elem) $b;
-}
+my constant &infix:<∈> := &infix:<(elem)>;
+
 # U+2209 NOT AN ELEMENT OF
 only sub infix:<∉>($a, $b --> Bool:D) is pure {
     not $a (elem) $b;

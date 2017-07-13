@@ -74,8 +74,6 @@ multi sub infix:<(.)>(**@p) is pure {
     }
 }
 # U+228D MULTISET MULTIPLICATION
-only sub infix:<⊍>(|p) is pure {
-    infix:<(.)>(|p);
-}
+my constant &infix:<⊍> := &infix:<(.)>;
 
 # vim: ft=perl6 expandtab sw=4

@@ -157,9 +157,8 @@ multi sub infix:<(+)>(**@p) is pure {
         $baghash.Bag(:view);
     }
 }
+
 # U+228E MULTISET UNION
-only sub infix:<⊎>(|p) is pure {
-    infix:<(+)>(|p);
-}
+my constant &infix:<⊎> := &infix:<(+)>;
 
 # vim: ft=perl6 expandtab sw=4

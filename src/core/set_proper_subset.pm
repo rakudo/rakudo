@@ -116,9 +116,8 @@ multi sub infix:<<(<)>>(Failure $a, Any     $b) { $a.throw }
 multi sub infix:<<(<)>>(Any     $a, Failure $b) { $b.throw }
 
 # U+2282 SUBSET OF
-only sub infix:<⊂>($a, $b --> Bool:D) is pure {
-    $a (<) $b;
-}
+my constant &infix:<⊂> := &infix:<<(<)>>;
+
 # U+2284 NOT A SUBSET OF
 only sub infix:<⊄>($a, $b --> Bool:D) is pure {
     not $a (<) $b;

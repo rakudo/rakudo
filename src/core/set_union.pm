@@ -169,8 +169,6 @@ multi sub infix:<(|)>(**@p) {
     }
 }
 # U+222A UNION
-only sub infix:<∪>(|p) is pure {
-    infix:<(|)>(|p);
-}
+my constant &infix:<∪> := &infix:<(|)>;
 
 # vim: ft=perl6 expandtab sw=4

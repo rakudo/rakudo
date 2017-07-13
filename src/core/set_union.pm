@@ -156,31 +156,9 @@ multi sub infix:<(|)>(Any $a, Baggy:D $b) { $a.Bag (|) $b     }
 multi sub infix:<(|)>(Any $a, Any     $b) { $a.Set (|) $b.Set }
 
 multi sub infix:<(|)>(**@p) {
-    if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
-        my $mixhash = nqp::istype(@p[0], MixHash)
-            ?? MixHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
-            for $mix.keys {
-                # Handle negative weights: don't take max for keys that are zero
-                $mixhash{$_} ?? ($mixhash{$_} max= $mix{$_})
-                             !!  $mixhash{$_}    = $mix{$_}
-            }
-        }
-        $mixhash.Mix(:view);
-    }
-    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p, Baggy) {
-        my $baghash = nqp::istype(@p[0], BagHash)
-            ?? BagHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
-            $baghash{$_} max= $bag{$_} for $bag.keys;
-        }
-        $baghash.Bag(:view);
-    }
-    else {
-        Set.new( @p.map(*.Set(:view).keys.Slip) );
-    }
+    my $result = @p.shift;
+    $result = $result (|) @p.shift while @p;
+    $result
 }
 # U+222A UNION
 my constant &infix:<∪> := &infix:<(|)>;

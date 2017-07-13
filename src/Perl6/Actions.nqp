@@ -7594,22 +7594,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $parti := nqp::mul_I($parti, $partf[1], $Int);
             $parti := nqp::add_I($parti, $partf[0], $Int);
 
-            $partf := nqp::tonum_I($partf[1]);
+            $partf := $partf[1];
         } else {
-            $partf := 1.0;
+            $partf := nqp::box_i(1, $Int);
         }
 
         if $<escale> { # wants a Num
-            $parti := nqp::tonum_I($parti);
-
-            $parti := nqp::div_n($parti, $partf);
+            $parti := nqp::div_In($parti, $partf);
             if $parti != 0.0 {
                 $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
             }
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
         } else { # wants a Rat
-            my $ast := $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
+            my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);
             make $ast;
         }

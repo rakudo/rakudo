@@ -345,6 +345,7 @@ class CompUnit::RepositoryRegistry {
 
         # something we understand
         if $spec ~~ /^
+          <before .>
           [
             $<type>=[ <.ident>+ % '::' ]
             [ '#' $<n>=\w+

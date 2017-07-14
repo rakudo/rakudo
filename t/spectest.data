@@ -252,6 +252,7 @@ S03-operators/set_difference.t
 S03-operators/set_elem.t
 S03-operators/set_intersection.t
 S03-operators/set_multiply.t
+S03-operators/set_precedes.t
 S03-operators/set_proper_subset.t
 S03-operators/set_subset.t
 S03-operators/set_symmetric_difference.t

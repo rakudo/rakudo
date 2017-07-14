@@ -397,7 +397,7 @@ my class Binder {
         # If it's not got attributive binding, we'll go about binding it into the
         # lex pad.
         my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
-        unless $is_attributive || !$has_varname {
+        unless $is_attributive {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
@@ -414,7 +414,7 @@ my class Binder {
             # Otherwise it's some objecty case.
             elsif $is_rw {
                 if nqp::isrwcont($oval) {
-                    nqp::bindkey($lexpad, $varname, $oval);
+                    nqp::bindkey($lexpad, $varname, $oval) if $has_varname;
                 }
                 else {
                     if nqp::defined($error) {
@@ -429,47 +429,49 @@ my class Binder {
                     return $BIND_RESULT_FAIL;
                 }
             }
-            elsif $flags +& $SIG_ELEM_IS_RAW {
-                # Just bind the thing as is into the lexpad.
-                nqp::bindkey($lexpad, $varname, $oval);
-            }
-            else {
-                # If it's an array, copy means make a new one and store,
-                # and a normal bind is a straightforward binding.
-                if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
-                        # XXX GLR
-                        nqp::die('replace this Array is copy logic');
-                        # my $bindee := nqp::create(Array);
-                        # $bindee.STORE(nqp::decont($oval));
-                        # nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
+            elsif $has_varname {
+                if $flags +& $SIG_ELEM_IS_RAW {
+                    # Just bind the thing as is into the lexpad.
+                    nqp::bindkey($lexpad, $varname, $oval);
                 }
-
-                # If it's a hash, similar approach to array.
-                elsif $flags +& $SIG_ELEM_HASH_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Hash);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
-                }
-
-                # If it's a scalar, we always need to wrap it into a new
-                # container and store it, for copy or ro case (the rw bit
-                # in the container descriptor takes care of the rest).
                 else {
-                    my $new_cont := nqp::create(Scalar);
-                    nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                        nqp::getattr($param, Parameter, '$!container_descriptor'));
-                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
-                    nqp::bindkey($lexpad, $varname, $new_cont);
+                    # If it's an array, copy means make a new one and store,
+                    # and a normal bind is a straightforward binding.
+                    if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                        if $flags +& $SIG_ELEM_IS_COPY {
+                            # XXX GLR
+                            nqp::die('replace this Array is copy logic');
+                            # my $bindee := nqp::create(Array);
+                            # $bindee.STORE(nqp::decont($oval));
+                            # nqp::bindkey($lexpad, $varname, $bindee);
+                        }
+                        else {
+                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                        }
+                    }
+
+                    # If it's a hash, similar approach to array.
+                    elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                        if $flags +& $SIG_ELEM_IS_COPY {
+                            my $bindee := nqp::create(Hash);
+                            $bindee.STORE(nqp::decont($oval));
+                            nqp::bindkey($lexpad, $varname, $bindee);
+                        }
+                        else {
+                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                        }
+                    }
+
+                    # If it's a scalar, we always need to wrap it into a new
+                    # container and store it, for copy or ro case (the rw bit
+                    # in the container descriptor takes care of the rest).
+                    else {
+                        my $new_cont := nqp::create(Scalar);
+                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
+                            nqp::getattr($param, Parameter, '$!container_descriptor'));
+                        nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $new_cont);
+                    }
                 }
             }
         }

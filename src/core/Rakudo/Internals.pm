@@ -1542,6 +1542,6 @@ Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     }
 }
 
-sub exit($status = 0) { &*EXIT($status) }
+sub exit(Int(Any) $status = 0) { &*EXIT($status) }
 
 # vim: ft=perl6 expandtab sw=4

@@ -12,7 +12,7 @@ my class IO::Handle {
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
 
-    submethod TWEAK (:$encoding, :$bin) {
+    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         nqp::if(
           $bin,
           nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,

@@ -218,105 +218,120 @@ multi sub infix:<(^)>(Any $a, Baggy:D $b) { $a.Bag (^) $b     }
 multi sub infix:<(^)>(Any $a, Any     $b) { $a.Set (^) $b.Set }
 
 multi sub infix:<(^)>(**@p) is pure {
+
+    # positions / size in minmax info
+    my constant COUNT   = 0;
+    my constant LOWEST  = 1;
+    my constant HIGHEST = 2;
+    my constant SIZE    = 3;
+
+    # basic minmax for new keys
+    my $init-minmax := nqp::setelems(nqp::create(IterationBuffer),SIZE);
+    nqp::bindpos($init-minmax,COUNT,1);
+
+    # handle key that has been seen before for given value
+    sub handle-existing(Mu \elems, Mu \iter, \value --> Nil) {
+        nqp::stmts(
+          (my $minmax := nqp::getattr(
+            nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value')
+          ),
+          nqp::bindpos($minmax,COUNT,nqp::add_i(nqp::atpos($minmax,COUNT),1)),
+          nqp::if(
+            value > nqp::atpos($minmax,HIGHEST),
+            nqp::stmts(
+              nqp::bindpos($minmax,LOWEST,nqp::atpos($minmax,HIGHEST)),
+              nqp::bindpos($minmax,HIGHEST,value)
+            ),
+            nqp::if(
+              nqp::not_i(nqp::defined(nqp::atpos($minmax,LOWEST)))
+                || value > nqp::atpos($minmax,LOWEST),
+              nqp::bindpos($minmax,LOWEST,value)
+            )
+          )
+        )
+    }
+
+    # handle key that has not yet been seen
+    sub handle-new(Mu \elems, Mu \iter, \pair, \value) {
+        nqp::stmts(
+          (my $minmax := nqp::clone($init-minmax)),
+          nqp::bindpos($minmax,HIGHEST,value),
+          nqp::bindkey(
+            elems,
+            nqp::iterkey_s(iter),
+            nqp::p6bindattrinvres(pair,Pair,'$!value',$minmax)
+          )
+        )
+    }
+
     nqp::if(
       (my $params := @p.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'))),  # bye bye
 
-      nqp::stmts(                                 # fixed list of things to diff
+      nqp::stmts(                                # fixed list of things to diff
         (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
         (my $type  := Set),
-        (my $initial-minmax := nqp::setelems(nqp::create(IterationBuffer),2)),
-        nqp::bindpos($initial-minmax,1,1),
+        (my int $pseen = 0),
 
         nqp::until(
           nqp::eqaddr((my $p := $params.pull-one),IterationEnd),
 
-          nqp::if(                              # not done parsing
-            nqp::istype($p,Baggy),
+          nqp::stmts(                            # not done parsing
+            ($pseen = nqp::add_i($pseen,1)),
+            nqp::if(
+              nqp::istype($p,Baggy),
 
-            nqp::stmts(                         # Mixy/Baggy semantics apply
-              nqp::unless(
-                nqp::istype($type,Mix),
-                ($type := nqp::if(nqp::istype($p,Mixy),Mix,Bag))
-              ),
-              nqp::if(
-                (my $raw := $p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
-                nqp::while(                     # something to process
-                  $iter,
-                  nqp::if(
-                    nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
-                    nqp::if(                    # seen this element before
-                      (my $value := nqp::getattr(
-                        nqp::iterval($iter),
-                        Pair,
-                        '$!value'
-                      )) > nqp::atpos(
-                        (my $minmax := nqp::getattr(
-                          nqp::atkey($elems,nqp::iterkey_s($iter)),
-                          Pair,
-                          '$!value'
-                        )),1
-                      ),
-                      nqp::stmts(               # higher than highest
-                        nqp::bindpos($minmax,0,nqp::atpos($minmax,1)),
-                        nqp::bindpos($minmax,1,$value)
-                      ),
+              nqp::stmts(                        # Mixy/Baggy semantics apply
+                nqp::unless(
+                  nqp::istype($type,Mix),
+                  ($type := nqp::if(nqp::istype($p,Mixy),Mix,Bag))
+                ),
+                nqp::if(
+                  (my $raw := $p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
+                  nqp::stmts(                    # something to process
+                    nqp::while(
+                      $iter,
                       nqp::if(
-                        nqp::not_i(nqp::defined(nqp::atpos($minmax,0)))
-                          || $value > nqp::atpos($minmax,0),
-                        nqp::bindpos($minmax,0,$value) # higher than lowest
-                      )
-                    ),
-
-                    nqp::stmts(                 # new element
-                      ($minmax :=
-                        nqp::setelems(nqp::create(IterationBuffer),2)),
-                      nqp::bindpos($minmax,1,nqp::getattr(
-                        nqp::iterval($iter),Pair,'$!value'
-                      )),
-                      nqp::bindkey(
-                        $elems,
-                        nqp::iterkey_s($iter),
-                        nqp::p6bindattrinvres(
+                        nqp::existskey(
+                          $elems,
+                          nqp::iterkey_s(nqp::shift($iter))
+                        ),
+                        handle-existing(         # seen this element before
+                          $elems,
+                          $iter,
+                          nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                        ),
+                        handle-new(              # new element
+                          $elems,
+                          $iter,
                           nqp::clone(nqp::iterval($iter)),
-                          Pair,'$!value',$minmax
+                          nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                         )
                       )
                     )
                   )
                 )
-              )
-            ),
+              ),
 
-            nqp::stmts(                           # not a Baggy/Mixy, assume Set
-              ($raw := nqp::if(nqp::istype($p,Setty),$p,$p.Set).RAW-HASH)
-                && ($iter := nqp::iterator($raw)),
-              nqp::while(                         # something to process
-                $iter,
-                nqp::if(
-                  nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
-                  nqp::if(                        # seen this element before
-                    nqp::atpos(
-                      ($minmax := nqp::getattr(
-                        nqp::atkey($elems,nqp::iterkey_s($iter)),
-                        Pair,
-                        '$!value'
-                      )),1
-                    ) < 1,
-                    nqp::stmts(                   # higher than highest
-                      nqp::bindpos($minmax,0,nqp::atpos($minmax,1)),
-                      nqp::bindpos($minmax,1,1)
+              nqp::stmts(                        # not a Baggy/Mixy, assume Set
+                ($raw := nqp::if(nqp::istype($p,Setty),$p,$p.Set).RAW-HASH)
+                  && ($iter := nqp::iterator($raw)),
+                nqp::while(                      # something to process
+                  $iter,
+                  nqp::if(
+                    nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+                    handle-existing(             # seen this element before
+                      $elems,
+                      $iter,
+                      nqp::istrue(nqp::iterval($iter))
                     ),
-                    nqp::if(
-                      nqp::not_i(nqp::defined(nqp::atpos($minmax,0)))
-                        || nqp::atpos($minmax,0) < 1,
-                      nqp::bindpos($minmax,0,1)   # higher than lowest
+                    handle-new(                  # new element
+                      $elems,
+                      $iter,
+                      nqp::p6bindattrinvres(
+                        nqp::create(Pair),Pair,'$!key',nqp::iterval($iter)),
+                      nqp::istrue(nqp::iterval($iter))
                     )
-                  ),
-                  nqp::bindkey(                   # new element
-                    $elems,
-                    nqp::iterkey_s($iter),
-                    Pair.new(nqp::iterval($iter),nqp::clone($initial-minmax))
                   )
                 )
               )
@@ -332,12 +347,10 @@ multi sub infix:<(^)>(**@p) is pure {
             nqp::if(
               nqp::ifnull(
                 nqp::atpos(
-                  (nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),
-                    Pair,
-                    '$!value'
-                  )),0
-                ),0
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                  LOWEST
+                ),
+                0
               ) == 1,
               nqp::deletekey($elems,nqp::iterkey_s($iter)),    # seen > 1
               nqp::bindkey(                                    # only once
@@ -347,23 +360,50 @@ multi sub infix:<(^)>(**@p) is pure {
               )
             )
           ),
-          nqp::while(                            # need to create a Baggy/Mixy
-            $iter,
-            nqp::if(
-              nqp::ifnull(
-                nqp::atpos(
-                  ($minmax := nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),Pair,'$!value'
-                  )),0
+          nqp::if(
+            nqp::istype($type,Mix),
+            nqp::while(                          # convert to Mixy semantics
+              $iter,
+              nqp::stmts(
+                (my $minmax :=
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
+                nqp::if(
+                  nqp::islt_i(nqp::atpos($minmax,COUNT),$pseen),
+                  handle-existing($elems,$iter,0)  # absentee == value 0 seen
                 ),
-                0
-              ) == nqp::atpos($minmax,1),
-              nqp::deletekey($elems,nqp::iterkey_s($iter)),    # top 2 same
-              nqp::bindattr(                                   # there's a
-                nqp::iterval($iter),                           # difference
-                Pair,                                          # so convert to
-                '$!value',                                     # Baggy semantics
-                nqp::atpos($minmax,1) - nqp::ifnull(nqp::atpos($minmax,0),0)
+                nqp::if(
+                  nqp::ifnull(nqp::atpos($minmax,LOWEST),0)
+                   == nqp::atpos($minmax,HIGHEST),
+                  nqp::deletekey($elems,nqp::iterkey_s($iter)),  # top 2 same
+                  nqp::bindattr(                                 # there's a
+                    nqp::iterval($iter),                         # difference
+                    Pair,                                        # so convert
+                    '$!value',
+                    nqp::atpos($minmax,HIGHEST)
+                      - nqp::ifnull(nqp::atpos($minmax,LOWEST),0)
+                  )
+                )
+              )
+            ),
+            nqp::while(                          # convert to Baggy semantics
+              $iter,
+              nqp::if(
+                nqp::ifnull(
+                  nqp::atpos(
+                    ($minmax := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
+                    LOWEST
+                  ),
+                  0
+                ) == nqp::atpos($minmax,HIGHEST),
+                nqp::deletekey($elems,nqp::iterkey_s($iter)),    # top 2 same
+                nqp::bindattr(                                   # there's a
+                  nqp::iterval($iter),                           # difference
+                  Pair,                                          # so convert
+                  '$!value',
+                  nqp::atpos($minmax,HIGHEST)
+                    - nqp::ifnull(nqp::atpos($minmax,LOWEST),0)
+                )
               )
             )
           )

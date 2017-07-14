@@ -160,6 +160,7 @@ multi sub infix:<(|)>(**@p) {
     $result = $result (|) @p.shift while @p;
     $result
 }
+
 # U+222A UNION
 my constant &infix:<∪> := &infix:<(|)>;
 

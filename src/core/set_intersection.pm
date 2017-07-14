@@ -136,40 +136,11 @@ multi sub infix:<(&)>(Any:D $a, Any:D $b) {
     )
 }
 multi sub infix:<(&)>(**@p) {
-    if Rakudo::Internals.ANY_DEFINED_TYPE(@p, Mixy) {
-        my $mixhash = nqp::istype(@p[0], MixHash)
-            ?? MixHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
-            $mix{$_}
-              ?? ($mixhash{$_} min= $mix{$_})
-              !! $mixhash.DELETE-KEY($_)
-              for $mixhash.keys;
-        }
-        $mixhash.Mix(:view);
-    }
-    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
-        my $baghash = nqp::istype(@p[0], BagHash)
-            ?? BagHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
-            $bag{$_}
-              ?? ($baghash{$_} min= $bag{$_})
-              !! $baghash.DELETE-KEY($_)
-              for $baghash.keys;
-        }
-        $baghash.Bag(:view);
-    }
-    else {
-        my $sethash = nqp::istype(@p[0], SetHash)
-          ?? SetHash.new(@p.shift.keys)
-          !! @p.shift.SetHash;
-        for @p.map(*.Set(:view)) -> $set {
-            $set{$_} || $sethash.DELETE-KEY($_) for $sethash.keys;
-        }
-        $sethash.Set(:view);
-    }
+    my $result = @p.shift;
+    $result = $result (&) @p.shift while @p;
+    $result
 }
+
 # U+2229 INTERSECTION
 my constant &infix:<∩> := &infix:<(&)>;
 

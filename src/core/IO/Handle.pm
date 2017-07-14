@@ -476,7 +476,7 @@ my class IO::Handle {
                     last if nqp::isconcrete($result);
                 }
                 else {
-                    $result := $!decoder.consume-all-chars();
+                    $result := $!decoder.consume-exactly-chars($chars, :eof);
                     last;
                 }
             }

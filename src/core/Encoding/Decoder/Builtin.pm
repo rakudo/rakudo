@@ -16,8 +16,10 @@ my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
         nqp::decodertakeallchars(self)
     }
 
-    method consume-exactly-chars(int $chars --> Str) {
-        my str $result = nqp::decodertakechars(self, $chars);
+    method consume-exactly-chars(int $chars, Bool:D :$eof = False --> Str) {
+        my str $result = $eof
+            ?? nqp::decodertakecharseof(self, $chars)
+            !! nqp::decodertakechars(self, $chars);
         nqp::isnull_s($result) ?? Str !! $result
     }
 

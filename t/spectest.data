@@ -720,16 +720,16 @@ S15-nfg/mass-roundtrip-nfd.t    # moar
 S15-nfg/mass-roundtrip-nfkc.t   # moar
 S15-nfg/mass-roundtrip-nfkd.t   # moar
 S15-nfg/regex.t                 # moar
-S15-normalization/nfc-0.t       # moar stress slow
-S15-normalization/nfc-1.t       # moar stress slow
-S15-normalization/nfc-2.t       # moar stress slow
-S15-normalization/nfc-3.t       # moar stress slow
-S15-normalization/nfc-4.t       # moar stress slow
-S15-normalization/nfc-5.t       # moar stress slow
-S15-normalization/nfc-6.t       # moar stress slow
-S15-normalization/nfc-7.t       # moar stress slow
-S15-normalization/nfc-8.t       # moar stress slow
-S15-normalization/nfc-9.t       # moar stress slow
+S15-normalization/nfc-0.t       # moar stress
+S15-normalization/nfc-1.t       # moar stress
+S15-normalization/nfc-2.t       # moar stress
+S15-normalization/nfc-3.t       # moar stress
+S15-normalization/nfc-4.t       # moar stress
+S15-normalization/nfc-5.t       # moar stress
+S15-normalization/nfc-6.t       # moar stress
+S15-normalization/nfc-7.t       # moar stress
+S15-normalization/nfc-8.t       # moar stress
+S15-normalization/nfc-9.t       # moar stress
 S15-normalization/nfc-sanity.t  # moar
 S15-normalization/nfd-0.t       # moar stress
 S15-normalization/nfd-1.t       # moar stress

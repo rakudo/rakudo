@@ -246,12 +246,7 @@ my class IO::Handle {
 
     method getc(IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<getc>);
-        $!decoder.consume-exactly-chars(1) || self!getc-slow-path()
-    }
-
-    method !getc-slow-path() {
-        $!decoder.add-bytes(self.read-internal(0x100000));
-        $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars() || Nil
+        $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type

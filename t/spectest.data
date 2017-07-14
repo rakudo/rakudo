@@ -720,6 +720,7 @@ S15-nfg/mass-roundtrip-nfd.t    # moar
 S15-nfg/mass-roundtrip-nfkc.t   # moar
 S15-nfg/mass-roundtrip-nfkd.t   # moar
 S15-nfg/regex.t                 # moar
+S15-nfg/concat-stable.t         # moar
 S15-normalization/nfc-0.t       # moar stress
 S15-normalization/nfc-1.t       # moar stress
 S15-normalization/nfc-2.t       # moar stress

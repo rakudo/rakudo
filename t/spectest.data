@@ -204,6 +204,7 @@ S03-operators/assign.t
 S03-operators/autoincrement-range.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
+S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
@@ -231,6 +232,7 @@ S03-operators/lcm.t
 S03-operators/list-quote-junction.t
 S03-operators/minmax.t
 S03-operators/misc.t
+S03-operators/mix.t
 S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
@@ -245,6 +247,7 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
+S03-operators/set.t
 S03-operators/set_addition.t
 S03-operators/set_difference.t
 S03-operators/set_elem.t
@@ -315,6 +318,7 @@ S04-phasers/check.t
 S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
+S04-phasers/eval-in-begin.t
 S04-phasers/first.t
 S04-phasers/init.t
 S04-phasers/in-eval.t

@@ -54,6 +54,7 @@ my class Exception {
         $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
         $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
+        nqp::setmessage($!ex, self.message) if nqp::existskey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'll-exception');
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {

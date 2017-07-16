@@ -13,7 +13,7 @@ my class IO::Path is Cool does IO {
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
-        nqp::unless($!path,
+        nqp::unless(nqp::chars($!path), # could be an IntStr, so check chars
             die "Must specify something as a path: did you mean '.' for the current directory?"
         );
         nqp::if(

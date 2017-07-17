@@ -12,7 +12,8 @@ static MVMCallsiteEntry tc_flags[] = { MVM_CALLSITE_ARG_OBJ,
 static MVMCallsite     tc_callsite = { tc_flags, 3, 3, 3, 0 };
 
 static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
-    res->o = ((Rakudo_Scalar *)cont)->value;
+    MVMObject *value = ((Rakudo_Scalar *)cont)->value;
+    res->o = value ? value : tc->instance->VMNull;
 }
 
 static void rakudo_scalar_fetch_i(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {

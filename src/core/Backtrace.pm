@@ -141,7 +141,6 @@ my class Backtrace {
                 $file := $path.absolute;
             }
 
-            # now *that's* an evil hack
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');

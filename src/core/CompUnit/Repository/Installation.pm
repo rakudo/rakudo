@@ -315,7 +315,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 }
                 note("Precompiling $id ($source-name)") if $verbose;
                 $precomp.precompile(
-                    $source.IO,
+                    $source,
                     CompUnit::PrecompilationId.new($id),
                     :source-name("$source-file ($source-name)"),
                 );

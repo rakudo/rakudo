@@ -94,37 +94,127 @@ multi sub infix:<(-)>(Any:D $a, Iterable:D $b) { infix:<(-)>($a.Set, $b) }
 multi sub infix:<(-)>(Any:D $a, Any:D $b)      { infix:<(-)>($a.Set, $b.Set) }
 
 multi sub infix:<(-)>(**@p) {
-    if Rakudo::Internals.ANY_DEFINED_TYPE(@p,Mixy) {
-        my $mixhash = nqp::istype(@p[0], MixHash)
-            ?? MixHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.MixHash;
-        for @p.map(*.Mix(:view)) -> $mix {
-            ($mixhash{$_} -= $mix{$_}) for $mix.keys;
-        }
-        $mixhash.DELETE-KEY($_) unless $mixhash.AT-KEY($_) for $mixhash.keys;
-        $mixhash.Mix(:view);
+
+    sub subtract(Mu \elems, Mu \iter, \clone, \value --> Nil) {
+        nqp::stmts(
+          (my $pair := nqp::ifnull(
+            nqp::atkey(elems, nqp::iterkey_s(iter)),
+            nqp::bindkey(
+              elems,
+              nqp::iterkey_s(iter),
+              nqp::if(
+                clone,
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval(iter)),
+                  Pair,
+                  '$!value',
+                  0
+                ),
+                Pair.new(nqp::iterval(iter),0)
+              )
+            )
+          )),
+          nqp::bindattr($pair,Pair,'$!value',
+            nqp::getattr($pair,Pair,'$!value') - value
+          )
+        )
     }
-    elsif Rakudo::Internals.ANY_DEFINED_TYPE(@p,Baggy) {
-        my $baghash = nqp::istype(@p[0], BagHash)
-            ?? BagHash.new-from-pairs(@p.shift.pairs)
-            !! @p.shift.BagHash;
-        for @p.map(*.Bag(:view)) -> $bag {
-            $bag{$_} < $baghash{$_}
-              ?? ($baghash{$_} -= $bag{$_})
-              !! $baghash.DELETE-KEY($_)
-              for $baghash.keys;
-        }
-        $baghash.Bag(:view);
-    }
-    else {
-        my $sethash = nqp::istype(@p[0],SetHash)
-          ?? SetHash.new(@p.shift.keys)
-          !! @p.shift.SetHash;
-        for @p.map(*.Set(:view)) -> $set {
-            $set{$_} && $sethash.DELETE-KEY($_) for $sethash.keys;
-        }
-        $sethash.Set(:view);
-    }
+
+    nqp::if(
+      (my $params := @p.iterator).is-lazy,
+      Failure.new(X::Cannot::Lazy.new(:action('difference'))),  # bye bye
+
+      nqp::stmts(                                # fixed list of things to diff
+        (my $type := nqp::if(
+          nqp::istype((my $p := $params.pull-one),Mixy),
+          Mix,
+          nqp::if(nqp::istype($p,Baggy),Bag,Set)
+        )),
+        (my $elems := nqp::if(
+          nqp::istype($p,Baggy),
+          nqp::if(                               # already have a Baggy, clone
+            (my $raw := $p.RAW-HASH),
+            Rakudo::QuantHash.BAGGY-CLONE($raw),
+            nqp::create(Rakudo::Internals::IterationSet)
+          ),
+          nqp::unless(                           # something else, Mix it!
+            $p.Mix.RAW-HASH,
+            nqp::create(Rakudo::Internals::IterationSet)
+          )
+        )),
+
+        nqp::until(
+          nqp::eqaddr(($p := $params.pull-one),IterationEnd),
+
+          nqp::if(                               # not done parsing
+            nqp::istype($p,Baggy),
+
+            nqp::stmts(                          # Mixy/Baggy semantics apply
+              nqp::unless(                       # upgrade type if needed
+                nqp::istype($type,Mix),
+                ($type := nqp::if(nqp::istype($p,Mixy),Mix,Bag))
+              ),
+              nqp::if(
+                ($raw := $p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
+                nqp::while(                      # something to process
+                  $iter,
+                  subtract(
+                    $elems,
+                    nqp::shift($iter),
+                    1,
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  )
+                )
+              )
+            ),
+
+            nqp::stmts(                          # not a Baggy/Mixy, assume Set
+              ($raw := nqp::if(nqp::istype($p,Setty),$p,$p.Set).RAW-HASH)
+                && ($iter := nqp::iterator($raw)),
+              nqp::while(                        # something to process
+                $iter,
+                subtract($elems, nqp::shift($iter), 0, 1)
+              )
+            )
+          )
+        ),
+
+        ($iter := nqp::iterator($elems)),        # start post-processing
+        nqp::if(
+          nqp::istype($type,Set),
+          nqp::while(                            # need to create a Set
+            $iter,
+            nqp::if(
+              nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') > 0,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+              ),
+              nqp::deletekey($elems,nqp::iterkey_s($iter))
+            )
+          ),
+          nqp::if(
+            nqp::istype($type,Mix),
+            nqp::while(                          # convert to Mix semantics
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                nqp::deletekey($elems,nqp::iterkey_s($iter))  # not valid in Mix
+              )
+            ),
+            nqp::while(                          # convert to Bag semantics
+              $iter,
+              nqp::unless(
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value') >0,
+                nqp::deletekey($elems,nqp::iterkey_s($iter))  # not valid in Bag
+              )
+            )
+          )
+        ),
+        nqp::create($type).SET-SELF($elems)
+      )
+    )
 }
 
 # U+2216 SET MINUS

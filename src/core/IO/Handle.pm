@@ -738,8 +738,11 @@ my class IO::Handle {
     }
 
     submethod DESTROY(IO::Handle:D:) {
+        # Close handles with any file descriptor larger than 2. Those below
+        # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
+        # implicitly via DESTROY, since you can't get them back again.
         nqp::if(
-          nqp::defined($!PIO),
+          nqp::defined($!PIO) && nqp::isgt_i(nqp::filenofh($!PIO), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
             $!PIO := nqp::null

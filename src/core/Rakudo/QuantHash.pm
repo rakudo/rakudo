@@ -31,7 +31,7 @@ my class Rakudo::QuantHash {
     }
 
     # Specialized role for .kv methods on QuantHashes: copied methods
-    # from Quanty because of visibiity issues wrt to $!elems and $!iter :-(
+    # from Quanty because of visibility issues wrt to $!elems and $!iter :-(
     our role Quanty-kv does Iterator {
         has $!elems;
         has $!iter;

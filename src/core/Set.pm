@@ -36,7 +36,7 @@ my class Set does Setty {
     }
 
     method iterator(Set:D:) {
-        class :: does Rakudo::QuantHash::Quanty {
+        class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
@@ -44,7 +44,7 @@ my class Set does Setty {
                 IterationEnd
               )
             }
-        }.new(self)
+        }.new($!elems)
     }
 
     multi method kv(Set:D:) {

@@ -112,18 +112,18 @@ my class SetHash does Setty {
     }
 
     method iterator(SetHash:D:) {
-        class :: does Rakudo::QuantHash::Quanty {
+        class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
                 Pair.new(
                   nqp::iterval(nqp::shift($!iter)),
-                  proxy($!iter,$!elems)
+                  proxy($!iter,$!hash)
                 ),
                 IterationEnd
               )
             }
-        }.new(self)
+        }.new($!elems)
     }
 
     multi method kv(SetHash:D:) {
@@ -157,15 +157,15 @@ my class SetHash does Setty {
         }.new(self))
     }
     multi method values(SetHash:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
-                proxy(nqp::shift($!iter),$!elems),
+                proxy(nqp::shift($!iter),$!hash),
                 IterationEnd
               )
             }
-        }.new(self))
+        }.new($!elems))
     }
 
 #--- coercion methods

@@ -63,20 +63,17 @@ class Rakudo::Iterator {
         has $!iter;
 
         method SET-SELF(\hash) {
-            nqp::stmts(
-              ($!storage := nqp::getattr(hash,Map,'$!storage')),
-              ($!iter := nqp::iterator($!storage)),
-              self
-            )
-        }
-        method new(\hash) {
             nqp::if(
-              nqp::getattr(hash,Map,'$!storage')
-                && nqp::elems(nqp::getattr(hash,Map,'$!storage')),
-              nqp::create(self).SET-SELF(hash),
+              ($!storage := nqp::if(
+                nqp::istype(hash,Rakudo::Internals::IterationSet),
+                hash,
+                nqp::getattr(hash,Map,'$!storage')
+              )) && ($!iter := nqp::iterator($!storage)),
+              self,
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
+        method new(\hash) { nqp::create(self).SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
         method bool-only(--> True) { }
@@ -93,20 +90,17 @@ class Rakudo::Iterator {
         has $!on;
 
         method SET-SELF(\hash) {
-            nqp::stmts(
-              ($!storage := nqp::getattr(hash,Map,'$!storage')),
-              ($!iter := nqp::iterator($!storage)),
-              self
-            )
-        }
-        method new(\hash) {
             nqp::if(
-              nqp::getattr(hash,Map,'$!storage')
-                && nqp::elems(nqp::getattr(hash,Map,'$!storage')),
-              nqp::create(self).SET-SELF(hash),
+              ($!storage := nqp::if(
+                nqp::istype(hash,Rakudo::Internals::IterationSet),
+                hash,
+                nqp::getattr(hash,Map,'$!storage')
+              )) && ($!iter := nqp::iterator($!storage)),
+              self,
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
+        method new(\hash) { nqp::create(self).SET-SELF(hash) }
 
         method pull-one() is raw {
             nqp::if(

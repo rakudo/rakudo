@@ -48,7 +48,7 @@ my role Setty does QuantHash {
     method default(--> False) { }
 
     multi method keys(Setty:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-values(self.hll_hash))
+        Seq.new(Rakudo::Iterator.Mappy-values($!elems))
     }
 
     method elems(Setty:D: --> Int:D) {

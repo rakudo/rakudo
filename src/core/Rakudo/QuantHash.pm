@@ -156,11 +156,11 @@ my class Rakudo::QuantHash {
     # Return an nqp::list_s of all keys of a QuantHash
     method RAW-KEYS(\quanthash) is raw {
         nqp::if(
-          (my $elems := quanthash.RAW-HASH),
+          (my $elems := quanthash.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
             (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
             (my int $i = -1),
-            (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
               nqp::bindpos_s(
@@ -179,11 +179,11 @@ my class Rakudo::QuantHash {
     # joined with a null-byte inbetween.
     method BAGGY-RAW-KEY-VALUES(\baggy) is raw {
         nqp::if(
-          (my $elems := baggy.RAW-HASH) && nqp::elems($elems),
+          (my $elems := baggy.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
             (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
             (my int $i = -1),
-            (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
               nqp::stmts(

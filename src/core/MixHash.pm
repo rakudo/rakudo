@@ -143,7 +143,7 @@ my class MixHash does Mixy {
                     nqp::clone(nqp::iterval(nqp::shift($!iter))),
                     Pair,
                     '$!value',
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!hash)
                   ),
                   IterationEnd
                 )
@@ -162,7 +162,7 @@ my class MixHash does Mixy {
             method pull-one() is raw {
                 nqp::if(
                   $!iter,
-                  proxy(nqp::shift($!iter),$!storage),
+                  proxy(nqp::shift($!iter),$!hash),
                   IterationEnd
                 )
             }
@@ -185,7 +185,7 @@ my class MixHash does Mixy {
                   $!on,
                   nqp::stmts(
                     ($!on = 0),
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!hash)
                   ),
                   nqp::if(
                     $!iter,

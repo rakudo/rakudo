@@ -59,23 +59,23 @@ class Rakudo::Iterator {
     # at least provide your own .pull-one.  Takes a Map / Hash
     # as the only parameter to .new.
     our role Mappy does Iterator {
-        has $!storage;
+        has $!hash;
         has $!iter;
 
         method SET-SELF(\hash) {
             nqp::if(
-              ($!storage := nqp::if(
+              ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
                 hash,
                 nqp::getattr(hash,Map,'$!storage')
-              )) && ($!iter := nqp::iterator($!storage)),
+              )) && ($!iter := nqp::iterator($!hash)),
               self,
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
         method new(\hash) { nqp::create(self).SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
-        method count-only() { nqp::p6box_i(nqp::elems($!storage)) }
+        method count-only() { nqp::elems($!hash) }
         method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
@@ -85,17 +85,17 @@ class Rakudo::Iterator {
     # .pull-one and .push-all is provided.  Takes a Map / Hash as
     # the only parameter to .new.
     our role Mappy-kv-from-pairs does Iterator {
-        has $!storage;
+        has $!hash;
         has $!iter;
         has $!on;
 
         method SET-SELF(\hash) {
             nqp::if(
-              ($!storage := nqp::if(
+              ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
                 hash,
                 nqp::getattr(hash,Map,'$!storage')
-              )) && ($!iter := nqp::iterator($!storage)),
+              )) && ($!iter := nqp::iterator($!hash)),
               self,
               Rakudo::Iterator.Empty   # nothing to iterate
             )
@@ -142,11 +142,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method count-only() {
-            nqp::p6box_i(
-              nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
-            )
-        }
+        method count-only() { nqp::mul_i(nqp::elems($!hash),2) }
         method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }

@@ -150,6 +150,28 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Return an nqp::list_s of all values of a QuantHash, mapped to a str
+    method RAW-VALUES-MAP(\quanthash, &mapper) is raw {
+        nqp::if(
+          (my $elems := quanthash.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
+          nqp::stmts(
+            (my $values := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s(
+                $values,
+                ($i = nqp::add_i($i,1)),
+                mapper(nqp::iterval(nqp::shift($iter)))
+              )
+            ),
+            $values
+          ),
+          nqp::list_s
+        )
+    }
+
     # Return an nqp::list_s of all keys in a Baggy with the weight
     # joined with a null-byte inbetween.
     method BAGGY-RAW-KEY-VALUES(\baggy) is raw {

@@ -1,5 +1,5 @@
 my role Setty does QuantHash {
-    has $!elems; # key.WHICH => key
+    has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
     # helper sub to create Set from iterator, check for laziness
     sub create-from-iterator(\type, \iterator --> Setty:D) {

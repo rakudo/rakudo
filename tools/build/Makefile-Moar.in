@@ -95,6 +95,8 @@ M_HARNESS5_WITH_FUDGE = $(M_HARNESS5) --fudge --moar --keep-exit-code
 M_HARNESS6 = .@slash@$(M_RUNNER) -Ilib t/harness6
 M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
+M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e 'for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ "/" ~ .IO.basename.Str) { say "rm -f " ~ .Str; .IO.unlink if .IO.e } }'
+
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
@@ -282,9 +284,12 @@ m-sometests: m-all
 m-install: m-all tools/build/create-moar-runner.pl tools/build/install-core-dist.pl $(SETTING_MOAR)
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
+	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)/$(M_LIBPATH)/Perl6
 	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(M_RUN_CLEAN_TARGET_FILES) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(M_RUN_CLEAN_TARGET_FILES) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext

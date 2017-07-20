@@ -11,29 +11,6 @@ my role Baggy does QuantHash {
 # mutable and immutable aspects of Mix/MixHash need to live in Mixy.
 # Immutables aspects of Bag/Mix, need to live to Bag/Mix respectively.
 
-#--- private methods
-    method !LISTIFY(&formatter, str $joiner) {
-        nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::stmts(
-            (my $list := nqp::setelems(nqp::list_s,nqp::elems($raw))),
-            (my $iter := nqp::iterator($raw)),
-            (my int $i = -1),
-            nqp::while(
-              $iter,
-              nqp::bindpos_s($list,($i = nqp::add_i($i,1)),
-                formatter(
-                  (my $pair := nqp::iterval(nqp::shift($iter))).key,
-                  $pair.value
-                )
-              )
-            ),
-            nqp::p6box_s(nqp::join($joiner,$list))
-          ),
-          ""
-        )
-    }
-
 #--- interface methods
     method SET-SELF(Baggy:D: \elems) {
         nqp::stmts(
@@ -327,28 +304,58 @@ my role Baggy does QuantHash {
     method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {
-        self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ' ')
+        nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+            nqp::if(
+              (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+              nqp::getattr($_,Pair,'$!key').gist,
+              "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+            )
+        }))
     }
     multi method gist(Baggy:D: --> Str:D) {
-        my str $name = nqp::unbox_s(self.^name);
-        ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
-        ~ '('
-        ~ self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}, ', ')
-        ~ ')'
+        nqp::concat(
+          nqp::concat(
+            nqp::concat(self.^name,'('),
+            nqp::join(', ',
+              Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                    nqp::if(
+                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+                      nqp::getattr($_,Pair,'$!key').gist,
+                      "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+                    )
+                })
+              )
+            )
+          ),
+          ')',
+        )
     }
     multi method perl(Baggy:D: --> Str:D) {
         nqp::if(
           (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          '('
-            ~ self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"}, ',')
-            ~ ").{self.^name}",
+          nqp::concat(
+            nqp::concat(
+              '(',
+              nqp::join(',',
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                    nqp::if(
+                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+                      nqp::getattr($_,Pair,'$!key').perl,
+                      "{nqp::getattr($_,Pair,'$!key').perl}=>$value"
+                    )
+                })
+              )
+            ),
+            nqp::concat(').',self.^name)
+          ),
           nqp::if(
             nqp::istype(self,Bag),
             'bag()',
             nqp::if(
               nqp::istype(self,Mix),
               'mix()',
-              '().' ~ self.^name
+              nqp::concat('().',self.^name)
             )
           )
         )

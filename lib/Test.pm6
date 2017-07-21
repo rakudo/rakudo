@@ -21,7 +21,9 @@ my $num_of_tests_planned;
 my int $no_plan;
 my num $time_before;
 my num $time_after;
-my int $subtest_level = 0;
+my int $subtest_level;
+my $subtest_todo_reason;
+my int $pseudo_fails; # number of untodoed failed tests inside a todoed subtest
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
 my $output;
@@ -390,8 +392,10 @@ sub skip-rest($reason = '<unknown>') is export {
 multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
 multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
 multi sub subtest(&subtests, $desc = '') is export {
+    my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
     _init_vars();
+    $subtest_todo_reason   = $parent_todo;
     $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
@@ -400,8 +404,9 @@ multi sub subtest(&subtests, $desc = '') is export {
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<--> does not die here
     $subtest_level -= 1;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
-    my $status =
-      $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
+    my $status = $num_of_tests_failed == 0
+        && $num_of_tests_planned == $num_of_tests_run
+        && $pseudo_fails == 0;
     _pop_vars;
     $indents .= chop(4);
     proclaim($status,$desc) or ($die_on_fail and die-on-fail);
@@ -416,7 +421,8 @@ sub diag(Mu $message) is export {
 
 sub _diag(Mu $message, :$force-stderr) {
     _init_io() unless $output;
-    my $is_todo = !$force-stderr && $num_of_tests_run <= $todo_upto_test_num;
+    my $is_todo = !$force-stderr
+        && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
@@ -671,8 +677,11 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
+
         $num_of_tests_failed = $num_of_tests_failed + 1
-          unless  $num_of_tests_run <= $todo_upto_test_num;
+            unless $num_of_tests_run <= $todo_upto_test_num;
+
+        $pseudo_fails = $pseudo_fails + 1 if $subtest_todo_reason;
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
@@ -687,7 +696,9 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
         ?? "ok $num_of_tests_run - $desc$todo_reason"
-        !! "ok $num_of_tests_run - $desc";
+        !! (! $cond && $subtest_todo_reason)
+            ?? "ok $num_of_tests_run - $desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $desc";
 
     $output.say: $tap;
     $output.say: $indents
@@ -735,7 +746,8 @@ sub done-testing() is export {
 
     _diag("Looks like you failed $num_of_tests_failed test{
         $num_of_tests_failed == 1 ?? '' !! 's'
-    } of $num_of_tests_run") if $num_of_tests_failed;
+    } of $num_of_tests_run")
+    if $num_of_tests_failed && ! $subtest_todo_reason;
 }
 
 sub _init_vars {
@@ -749,6 +761,8 @@ sub _init_vars {
     $time_before          = NaN;
     $time_after           = NaN;
     $done_testing_has_been_run = 0;
+    $pseudo_fails         = 0;
+    $subtest_todo_reason  = '';
 }
 
 sub _push_vars {
@@ -763,6 +777,8 @@ sub _push_vars {
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ];
 }
 
@@ -778,6 +794,8 @@ sub _pop_vars {
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ) = @(@vars.pop);
 }
 

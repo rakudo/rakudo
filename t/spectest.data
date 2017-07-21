@@ -906,6 +906,7 @@ S24-testing/9-is_deeply.t
 S24-testing/10-is-approx.t
 S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
+S24-testing/12-subtest-todo.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t

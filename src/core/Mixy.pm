@@ -17,7 +17,7 @@ my role Mixy does Baggy  {
 
     multi method roll(Mixy:D:) {
         nqp::if(
-          (my $total := self.total),
+          (my $total := self.total-positive),
           nqp::getattr(
             nqp::iterval(Rakudo::QuantHash.MIX-ROLL(self.RAW-HASH, $total)),
             Pair,

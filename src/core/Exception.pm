@@ -2392,7 +2392,7 @@ my class X::Numeric::DivideByZero is Exception {
     method message() {
         "Attempt to divide{$.numerator ?? " $.numerator" !! ''} by zero"
           ~ ( $.using ?? " using $.using" !! '' )
-          ~ ( $_ with $.details );
+          ~ ( " $_" with $.details );
     }
 }
 

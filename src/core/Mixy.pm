@@ -17,44 +17,61 @@ my role Mixy does Baggy  {
 
     multi method roll(Mixy:D:) {
         nqp::if(
-          (my $total :=
-            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.RAW-HASH)),
+          (my $total := self.total),
           nqp::getattr(
-            nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
+            nqp::iterval(Rakudo::QuantHash.MIX-ROLL(self.RAW-HASH, $total)),
             Pair,
             '$!key'
           ),
           Nil
         )
     }
-    multi method roll(Mixy:D: Whatever) { self.roll(Inf) }
+    multi method roll(Mixy:D: Whatever) {
+        Seq.new(nqp::if(
+          (my $raw := self.RAW-HASH) && (my $total := self.total-positive),
+          Rakudo::Iterator.Callable( {
+              nqp::getattr(
+                nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw, $total)),
+                Pair,
+                '$!key'
+              )
+          }, True ),
+          Rakudo::Iterator.Empty
+        ))
+    }
     multi method roll(Mixy:D: Callable:D $calculate) {
       nqp::if(
-        (my $total := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.RAW-HASH)),
+        (my $total := self.total-positive),
         self.roll($calculate($total)),
         Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method roll(Mixy:D: $count) {
-        Seq.new(nqp::if(
-          (my $total :=
-            Rakudo::QuantHash.MIX-TOTAL-POSITIVE(my $raw := self.RAW-HASH)),
-          nqp::stmts(
-            (my $done = 0),
-            Rakudo::Iterator.Callable( {
-                nqp::if(
-                  $done++ < $count,
-                  nqp::getattr(
-                    nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw,$total)),
-                    Pair,
-                    '$!key'
-                  ),
-                  IterationEnd
-                )
-            })
-          ),
-          Rakudo::Iterator.Empty
-        ))
+        nqp::if(
+          $count == Inf,
+          self.roll(*),                         # let Whatever handle it
+          Seq.new(nqp::if(                      # something else as count
+            (my $todo = $count.Int) < 1, # also handles NaN
+            Rakudo::Iterator.Empty,             # nothing to do
+            nqp::if(
+              (my $raw := self.RAW-HASH)
+                && (my $total := self.total-positive)
+                && ++$todo,
+              Rakudo::Iterator.Callable( {      # need to do a number of times
+                  nqp::if(
+                    --$todo,
+                    nqp::getattr(
+                      nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw, $total)),
+                      Pair,
+                      '$!key'
+                    ),
+                    IterationEnd
+                  )
+              }),
+              Rakudo::Iterator.Empty            # nothing to roll for
+            )
+          ))
+        )
     }
 
 #--- object creation methods

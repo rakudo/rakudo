@@ -1,6 +1,7 @@
 my class Mix does Mixy {
     has $!WHICH;
     has Real $!total;
+    has Real $!total-positive;
 
 #--- interface methods
     method SET-SELF(Mix:D: \elems) {
@@ -35,6 +36,13 @@ my class Mix does Mixy {
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
           $!total := Rakudo::QuantHash.MIX-TOTAL(self.RAW-HASH)
+        )
+    }
+    method total-positive(Mix:D: --> Real:D) {
+        nqp::if(
+          nqp::attrinited(self,Mix,'$!total-positive'),
+          $!total-positive,
+          $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.RAW-HASH)
         )
     }
 

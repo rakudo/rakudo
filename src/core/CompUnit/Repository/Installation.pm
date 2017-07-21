@@ -439,7 +439,9 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                             })
                     ).grep({
                         $_.value<auth> ~~ $spec.auth-matcher
-                        and $_.value<ver> ~~ $spec.version-matcher
+                        and $_.value<ver> ~~ (($spec.version-matcher ~~ Bool)
+                            ?? $spec.version-matcher # fast path for matching Version.new(*)
+                            !! Version.new($spec.version-matcher))
                     });
                 for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
                     return ($dist-id, $dist);

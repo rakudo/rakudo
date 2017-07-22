@@ -439,25 +439,109 @@ my role Baggy does QuantHash {
     multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
     multi method pick(Baggy:D: $count) {
         Seq.new(nqp::if(
-          (my $todo = Rakudo::QuantHash.TODO($count))
-            && (my $raw := self.RAW-HASH)
-            && (my int $elems = nqp::elems($raw)),
-          nqp::stmts(
-            (my $pairs := nqp::setelems(nqp::list,$elems)),
-            (my $iter := nqp::iterator($raw)),
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($pairs,$i,Pair.new(
-                nqp::getattr(
-                  (my $pair := nqp::iterval(nqp::shift($iter))),Pair,'$!key'),
-                nqp::assign(nqp::p6scalarfromdesc(nqp::null),
-                  nqp::getattr($pair,Pair,'$!value'))
-              ))
-            ),
-            self!ROLLPICKGRABN(nqp::if($todo == Inf,self.total,$todo),$pairs)
-          ),
-          Rakudo::Iterator.Empty
+          (my $todo = nqp::if(
+            $count == Inf,
+            (my $total := self.total),
+            $count.Int                          # also handles NaN
+          )) < 1,
+          Rakudo::Iterator.Empty,               # nothing to do
+          class :: does Iterator {
+              has $!raw;      # the IterationSet of the Baggy
+              has $!weights;  # clone of raw, but with just the weights
+              has $!todo;     # number of draws to do
+              has $!total;    # total number of draws possible
+
+              # Return the .WHICH key of a randomly picked object.  Updates
+              # the weight of the picked object and the total number of draws
+              # still possible.
+              method BAG-PICK() {
+                  nqp::stmts(
+                    (my Int $rand := $!total.rand.Int),
+                    (my Int $seen := 0),
+                    (my $iter := nqp::iterator($!weights)),
+                    nqp::while(
+                      $iter && nqp::isle_I(
+                        ($seen := nqp::add_I(
+                          $seen,
+                          nqp::iterval(nqp::shift($iter)),
+                          Int
+                        )),
+                        $rand
+                      ),
+                      nqp::null
+                    ),
+                    nqp::bindkey(                # $iter now contains picked one
+                      $!weights,
+                      nqp::iterkey_s($iter),
+                      nqp::sub_I(nqp::iterval($iter),1,Int)
+                    ),
+                    ($!total := nqp::sub_I($!total,1,Int)),
+                    nqp::iterkey_s($iter)
+                  )
+              }
+
+              method SET-SELF(\raw, \todo, \total) {
+                  nqp::stmts(
+                    ($!weights := nqp::clone($!raw := raw)),
+                    (my $iter := nqp::iterator($!weights)),
+                    nqp::while(
+                      $iter,
+                      nqp::bindkey(
+                        $!weights,
+                        nqp::iterkey_s(nqp::shift($iter)),
+                        nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                      )
+                    ),
+                    ($!todo := nqp::if(todo > total,total,todo)),
+                    ($!total := total),
+                    self
+                  )
+              }
+              method new(\raw, \todo, \total) {
+                  nqp::create(self).SET-SELF(raw, todo, total)
+              }
+
+              method pull-one() is raw {
+                  nqp::if(
+                    $!todo,
+                    nqp::stmts(
+                      ($!todo := nqp::sub_I($!todo,1,Int)),
+                      nqp::getattr(nqp::atkey($!raw,self.BAG-PICK),Pair,'$!key')
+                    ),
+                    IterationEnd
+                  )
+              }
+              method skip-one() {
+                  nqp::if(
+                    $!todo,
+                    nqp::stmts(
+                      ($!todo := nqp::sub_I($!todo,1,Int)),
+                      self.BAG-PICK
+                    )
+                  )
+              }
+              method push-all($target --> IterationEnd) {
+                  nqp::stmts(
+                    (my $todo = $!todo),
+                    nqp::while(
+                      $todo,
+                      nqp::stmts(
+                        --$todo,
+                        $target.push(nqp::getattr(
+                          nqp::atkey($!raw,self.BAG-PICK),
+                          Pair,
+                          '$!key'
+                        ))
+                      )
+                    ),
+                    ($!todo := nqp::decont($todo))
+                  )
+              }
+              method count-only() { $!todo - 1 }
+              method bool-only(--> True) { }
+              method sink-all() { $!todo := 0 }
+
+          }.new(self.RAW-HASH, $todo, nqp::ifnull($total,self.total))
         ))
     }
 
@@ -519,55 +603,6 @@ my role Baggy does QuantHash {
             )
           ))
         )
-    }
-
-    method !ROLLPICKGRABN(Int() $count, @pairs, :$keep) { # N times
-        class :: does Iterator {
-            has Int $!total;
-            has int $!elems;
-            has $!pairs;
-            has int $!todo;
-            has int $!keep;
-
-            method !SET-SELF($!total, \pairs, \keep, \todo) {
-                $!elems  = pairs.elems;  # reifies
-                $!pairs := nqp::getattr(pairs,List,'$!reified');
-                $!todo   = todo;
-                $!keep   = +?keep;
-                self
-            }
-            method new(\total,\pairs,\keep,\count) {
-                nqp::create(self)!SET-SELF(
-                  total, pairs, keep, keep ?? count !! (total min count))
-            }
-
-            method pull-one() {
-                if $!todo {
-                    $!todo = nqp::sub_i($!todo,1);
-                    my Int $rand = $!total.rand.Int;
-                    my Int $seen = 0;
-                    my int $i    = -1;
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$!elems),
-                      ($seen = $seen + nqp::atpos($!pairs,$i).value),
-                      nqp::if(
-                        $seen > $rand,
-                        nqp::stmts(
-                          nqp::unless(
-                            $!keep,
-                            nqp::stmts(
-                              --(nqp::atpos($!pairs,$i)).value,
-                              --$!total,
-                            )
-                          ),
-                          return nqp::atpos($!pairs,$i).key
-                        )
-                      )
-                    );
-                }
-                IterationEnd
-            }
-        }.new(self.total,@pairs,$keep,$count)
     }
 
 #--- classification method

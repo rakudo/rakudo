@@ -10,7 +10,8 @@ M_BUILD_DIR = gen/moar
 MOAR_PREFIX = @moar::prefix@
 MOAR   = @moar::bindir@@slash@moar@exe@
 M_NQP  = @m_nqp@
-M_LIBPATH = $(PREFIX)@slash@share@slash@nqp@slash@lib
+M_LIBDEFPATH = $(PREFIX)@slash@share@slash@nqp@slash@lib
+M_LIBPATH = $(LIBDIR)@slash@nqp@slash@lib
 M_INCPATH = $(MOAR_PREFIX)@slash@include
 NQP_LIBPATH = @nqp::libdir@
 
@@ -150,7 +151,7 @@ $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 	    src/Perl6/Compiler.nqp
 
 $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(PERL6_DP_MOAR)
-	$(PERL5) tools/build/gen-version.pl $(PREFIX) > $(M_BUILD_DIR)/main-version.nqp
+	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(M_BUILD_DIR)/main-version.nqp
 	$(M_NQP) $(M_GEN_CAT) src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_MOAR) \
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/main.nqp
@@ -198,7 +199,7 @@ $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR) $(SETTI
 
 $(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
 
 $(M_LLDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)

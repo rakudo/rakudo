@@ -32,7 +32,7 @@ MAIN: {
     my $exe = $NQP::Configure::exe;
 
     my %options;
-    GetOptions(\%options, 'help!', 'prefix=s',
+    GetOptions(\%options, 'help!', 'prefix=s', 'libdir=s',
                'sysroot=s', 'sdkroot=s',
                'backends=s', 'no-clean!',
                'with-nqp=s', 'gen-nqp:s',
@@ -57,6 +57,10 @@ MAIN: {
         $options{prefix} = $default;
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
+    unless (defined $options{libdir}) {
+        my $default = File::Spec->catdir($options{prefix}, 'share');
+        $options{libdir} = $default;
+    }
     my $prefix         = $options{'prefix'};
     my @known_backends = qw/moar jvm/;
     my %known_backends = map { $_, 1; } @known_backends;
@@ -129,6 +133,7 @@ MAIN: {
     }
 
     $config{prefix} = $prefix;
+    $config{libdir} = $options{libdir};
     $config{sdkroot} = $options{sdkroot} || '';
     $config{sysroot} = $options{sysroot} || '';
     $config{slash}  = $slash;
@@ -375,6 +380,7 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
+    --libdir=dir       Install architecture-specific files in dir; Perl6 modules included
     --sdkroot=dir      When given, use for searching build tools here, e.g.
                        nqp, java etc.
     --sysroot=dir      When given, use for searching runtime components here

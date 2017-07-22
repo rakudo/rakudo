@@ -1,16 +1,15 @@
 my class MixHash does Mixy {
 
 #--- interface methods
-    method total() { Rakudo::QuantHash.MIX-TOTAL(self.RAW-HASH) }
-    method total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.RAW-HASH) }
+    method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
+    method total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
               nqp::if(
-                (my $raw := self.RAW-HASH)
-                  && nqp::existskey($raw,(my $which := k.WHICH)),
-                nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
+                $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+                nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
                 0
               )
           },
@@ -19,17 +18,17 @@ my class MixHash does Mixy {
                 nqp::istype($value,Failure),   # RT 128927
                 $value.throw,
                 nqp::if(
-                  (my $raw := self.RAW-HASH),
+                  $!elems,
                   nqp::if(                      # allocated hash
-                    nqp::existskey($raw,(my $which := k.WHICH)),
+                    nqp::existskey($!elems,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       $value == 0,
                       nqp::stmts(
-                        nqp::deletekey($raw,$which),
+                        nqp::deletekey($!elems,$which),
                         0
                       ),
                       nqp::bindattr(
-                        nqp::atkey($raw,$which),
+                        nqp::atkey($!elems,$which),
                         Pair,
                         '$!value',
                         nqp::decont($value)
@@ -37,13 +36,13 @@ my class MixHash does Mixy {
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($raw,$which,Pair.new(k,nqp::decont($value)))
+                      nqp::bindkey($!elems,$which,Pair.new(k,nqp::decont($value)))
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
                     $value == 0,
                     nqp::bindkey(
-                      nqp::bindattr(%!elems,Map,'$!storage',
+                      nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
                       Pair.new(k,nqp::decont($value))
@@ -61,10 +60,10 @@ my class MixHash does Mixy {
 #--- coercion methods
     multi method Mix(MixHash:D: :$view) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
+          $!elems && nqp::elems($!elems),
           nqp::p6bindattrinvres(
-            nqp::create(Mix),Mix,'%!elems',
-            nqp::if($view,%!elems,%!elems.clone)
+            nqp::create(Mix),Mix,'$!elems',
+            nqp::if($view,$!elems,$!elems.clone)
           ),
           mix()
         )
@@ -72,8 +71,8 @@ my class MixHash does Mixy {
     multi method MixHash(MixHash:D:) { self }
     method clone() {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
           nqp::create(MixHash)
         )
     }
@@ -155,7 +154,7 @@ my class MixHash does Mixy {
                   $target.push(nqp::iterval(nqp::shift($!iter)))
                 )
             }
-        }.new(%!elems)
+        }.new($!elems)
     }
 
     multi method values(MixHash:D:) {
@@ -176,7 +175,7 @@ my class MixHash does Mixy {
                     nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
 
     multi method kv(MixHash:D:) {
@@ -199,7 +198,7 @@ my class MixHash does Mixy {
                   )
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
 }
 

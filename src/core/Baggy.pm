@@ -4,7 +4,7 @@ my role Baggy does QuantHash {
 # The keys of the hash, are the .WHICH strings of the original object key.
 # The values are Pairs containing the original object key and value.
 
-    has %!elems; # key.WHICH => (key,value)
+    has Rakudo::Internals::IterationSet $!elems; # key.WHICH => (key,value)
 
 # The Baggy role takes care of all mutable and immutable aspects that are
 # shared between Bag,BagHash,Mix,MixHash.  Any specific behaviour for
@@ -16,8 +16,7 @@ my role Baggy does QuantHash {
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
-            # need to have allocated %!elems
-            nqp::bindattr(%!elems,Map,'$!storage',elems),
+            nqp::bindattr(self,::?CLASS,'$!elems',elems)
           ),
           self
         )
@@ -30,7 +29,7 @@ my role Baggy does QuantHash {
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                         # not same object
-              (my $araw := self.RAW-HASH),
+              (my $araw := $!elems),
               nqp::if(                       # something on left
                 (my $braw := other.RAW-HASH),
                 nqp::if(                     # something on both sides
@@ -68,10 +67,10 @@ my role Baggy does QuantHash {
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         nqp::if(
-          (my $raw := self.RAW-HASH),
+          $!elems,
           nqp::getattr(
             nqp::ifnull(
-              nqp::atkey($raw,k.WHICH),
+              nqp::atkey($!elems,k.WHICH),
               BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
             ),
             Pair,
@@ -82,12 +81,11 @@ my role Baggy does QuantHash {
     }
     multi method DELETE-KEY(Baggy:D: \k) {
         nqp::if(
-          (my $raw := self.RAW-HASH)
-            && nqp::existskey($raw,(my $which := k.WHICH)),
+          $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
           nqp::stmts(
             (my $value :=
-              nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value')),
-            nqp::deletekey($raw,$which),
+              nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value')),
+            nqp::deletekey($!elems,$which),
             $value
           ),
           0
@@ -95,7 +93,7 @@ my role Baggy does QuantHash {
     }
     multi method EXISTS-KEY(Baggy:D: \k) {
         nqp::p6bool(
-          (my $raw := self.RAW-HASH) && nqp::existskey($raw,k.WHICH)
+          $!elems && nqp::existskey($!elems,k.WHICH)
         )
     }
 
@@ -147,7 +145,7 @@ my role Baggy does QuantHash {
 
 #--- iterator methods
     multi method iterator(Baggy:D:) {
-        Rakudo::Iterator.Mappy-values(%!elems)
+        Rakudo::Iterator.Mappy-values($!elems)
     }
     multi method keys(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -164,10 +162,10 @@ my role Baggy does QuantHash {
                   )
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs($!elems))
     }
     multi method values(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -190,7 +188,7 @@ my role Baggy does QuantHash {
                   )
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
     multi method antipairs(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
@@ -207,7 +205,7 @@ my role Baggy does QuantHash {
                   $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
     proto method kxxv(|) { * }
     multi method kxxv(Baggy:D:) {
@@ -259,24 +257,28 @@ my role Baggy does QuantHash {
                   )
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
     multi method invert(Baggy:D:) {
-        Seq.new(Rakudo::Iterator.Invert(%!elems.values.iterator))
+        Seq.new(Rakudo::Iterator.Invert(Rakudo::Iterator.Mappy-values($!elems)))
     }
 
 #--- introspection methods
-    multi method elems(Baggy:D: --> Int:D) { %!elems.elems }
-    multi method Bool(Baggy:D: --> Bool:D) { %!elems.Bool }
+    multi method elems(Baggy:D: --> Int:D) {
+        nqp::istrue($!elems) && nqp::elems($!elems)
+    }
+    multi method Bool(Baggy:D: --> Bool:D) {
+        nqp::p6bool($!elems && nqp::elems($!elems))
+    }
 
     method HASHIFY(\type) {
         nqp::stmts(
           (my $hash := Hash.^parameterize(type,Any).new),
           (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
           nqp::if(
-            (my $raw := self.RAW-HASH) && nqp::elems($raw),
+            $!elems && nqp::elems($!elems),
             nqp::stmts(
-              (my $storage := nqp::clone($raw)),
+              (my $storage := nqp::clone($!elems)),
               (my $iter := nqp::iterator($storage)),
               nqp::while(
                 $iter,
@@ -333,7 +335,7 @@ my role Baggy does QuantHash {
     }
     multi method perl(Baggy:D: --> Str:D) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
+          $!elems && nqp::elems($!elems),
           nqp::concat(
             nqp::concat(
               '(',
@@ -365,11 +367,11 @@ my role Baggy does QuantHash {
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
+          $!elems && nqp::elems($!elems),
           nqp::stmts(
-            (my $iter := Rakudo::QuantHash.ROLL($raw)),
+            (my $iter := Rakudo::QuantHash.ROLL($!elems)),
             (my $pair := nqp::iterval($iter)),
-            nqp::deletekey($raw,nqp::iterkey_s($iter)),
+            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
             $pair
           ),
           Nil
@@ -397,14 +399,14 @@ my role Baggy does QuantHash {
                   IterationEnd
                 )
             }
-        }.new(self.RAW-HASH, $count))
+        }.new($!elems, $count))
     }
 
     proto method pickpairs(|) { * }
     multi method pickpairs(Baggy:D:) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::iterval(Rakudo::QuantHash.ROLL($raw)),
+          $!elems && nqp::elems($!elems),
+          nqp::iterval(Rakudo::QuantHash.ROLL($!elems)),
           Nil
         )
     }
@@ -423,7 +425,7 @@ my role Baggy does QuantHash {
                   IterationEnd
                 )
             }
-        }.new(self.RAW-HASH, $count))
+        }.new($!elems, $count))
     }
 
     proto method grab(|) { * }
@@ -541,16 +543,16 @@ my role Baggy does QuantHash {
               method bool-only(--> True) { }
               method sink-all() { $!todo := 0 }
 
-          }.new(self.RAW-HASH, $todo, nqp::ifnull($total,self.total))
+          }.new($!elems, $todo, nqp::ifnull($total,self.total))
         ))
     }
 
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
         nqp::if(
-          (my $total := self.total),
+          $!elems && (my $total := self.total),
           nqp::getattr(
-            nqp::iterval(Rakudo::QuantHash.BAG-ROLL(self.RAW-HASH,$total)),
+            nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,$total)),
             Pair,
             '$!key'
           ),
@@ -559,10 +561,10 @@ my role Baggy does QuantHash {
     }
     multi method roll(Baggy:D: Whatever) {
         Seq.new(nqp::if(
-          (my $raw := self.RAW-HASH) && (my $total := self.total),
+          $!elems && (my $total := self.total),
           Rakudo::Iterator.Callable( {
               nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($raw, $total)),
+                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
                 Pair,
                 '$!key'
               )
@@ -585,14 +587,12 @@ my role Baggy does QuantHash {
             (my $todo = $count.Int) < 1, # also handles NaN
             Rakudo::Iterator.Empty,             # nothing to do
             nqp::if(
-              (my $raw := self.RAW-HASH)
-                && (my $total := self.total)
-                && ++$todo,
+              $!elems && (my $total := self.total) && ++$todo,
               Rakudo::Iterator.Callable( {      # need to do a number of times
                   nqp::if(
                     --$todo,
                     nqp::getattr(
-                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($raw, $total)),
+                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
                       Pair,
                       '$!key'
                     ),
@@ -687,11 +687,11 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-   sub SETIFY(\baggy, \type) {
+   sub SETIFY(\raw, \type) {
         nqp::if(
-          (my $raw := baggy.RAW-HASH) && nqp::elems($raw),
+          raw && nqp::elems(raw),
           nqp::stmts(
-            (my $elems := nqp::clone($raw)),
+            (my $elems := nqp::clone(raw)),
             (my $iter := nqp::iterator($elems)),
             nqp::while(
               $iter,
@@ -710,13 +710,13 @@ my role Baggy does QuantHash {
           )
         )
     }
-    multi method Set(Baggy:D:)     { SETIFY(self,Set)     }
-    multi method SetHash(Baggy:D:) { SETIFY(self,SetHash) }
+    multi method Set(Baggy:D:)     { SETIFY($!elems,Set)     }
+    multi method SetHash(Baggy:D:) { SETIFY($!elems,SetHash) }
 
-    sub MIXIFY(\baggy, \type) {
+    sub MIXIFY(\raw, \type) {
         nqp::if(
-          (my $raw := baggy.RAW-HASH) && nqp::elems($raw),
-          nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          raw && nqp::elems(raw),
+          nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE(raw)),
           nqp::if(
             nqp::istype(type,Mix),
             mix(),
@@ -725,10 +725,10 @@ my role Baggy does QuantHash {
         )
     }
 
-    multi method Mix(Baggy:D:)     { MIXIFY(self, Mix)     }
-    multi method MixHash(Baggy:D:) { MIXIFY(self, MixHash) }
+    multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
+    multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
 
-    method RAW-HASH() is raw { nqp::getattr(%!elems,Map,'$!storage') }
+    method RAW-HASH() is raw { $!elems }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {

@@ -7,8 +7,8 @@ my class Mix does Mixy {
     method SET-SELF(Mix:D: \elems) {
         nqp::if(
           nqp::elems(elems),
-          nqp::stmts(                 # need to have allocated %!elems
-            nqp::bindattr(%!elems,Map,'$!storage',elems),
+          nqp::stmts(
+            nqp::bindattr(self,::?CLASS,'$!elems',elems),
             self
           ),
           mix()
@@ -35,14 +35,14 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total'),
           $!total,
-          $!total := Rakudo::QuantHash.MIX-TOTAL(self.RAW-HASH)
+          $!total := Rakudo::QuantHash.MIX-TOTAL($!elems)
         )
     }
     method total-positive(Mix:D: --> Real:D) {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total-positive'),
           $!total-positive,
-          $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE(self.RAW-HASH)
+          $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems)
         )
     }
 
@@ -67,14 +67,14 @@ my class Mix does Mixy {
     multi method Mix(Mix:D:) { self }
     multi method MixHash(Mix:D) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
           nqp::create(MixHash)
         )
     }
     method clone() {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
+          $!elems && nqp::elems($!elems),
           nqp::clone(self),
           mix()
         )

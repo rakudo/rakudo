@@ -18,7 +18,7 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!total'),
           $!total,
-          $!total := Rakudo::QuantHash.BAG-TOTAL(self.RAW-HASH)
+          $!total := Rakudo::QuantHash.BAG-TOTAL($!elems)
         )
     }
 
@@ -35,8 +35,8 @@ my class Bag does Baggy {
     method SET-SELF(Bag:D: \elems) {
         nqp::if(
           nqp::elems(elems),
-          nqp::stmts(                 # need to have allocated %!elems
-            nqp::bindattr(%!elems,Map,'$!storage',elems),
+          nqp::stmts(
+            nqp::bindattr(self,::?CLASS,'$!elems',elems),
             self
           ),
           bag()
@@ -56,28 +56,28 @@ my class Bag does Baggy {
     multi method Bag(Bag:D:) { self }
     multi method BagHash(Bag:D) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          $!elems && nqp::elems($!elems),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
           nqp::create(BagHash)
         )
     }
     multi method Mix(Bag:D:) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::create(Mix).SET-SELF($raw),
+          $!elems && nqp::elems($!elems),
+          nqp::create(Mix).SET-SELF($!elems),
           mix()
         )
     }
     multi method MixHash(Bag:D) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($raw)),
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
           nqp::create(MixHash)
         )
     }
     method clone() {
         nqp::if(
-          (my $raw := self.RAW-HASH) && nqp::elems($raw),
+          $!elems && nqp::elems($!elems),
           nqp::clone(self),
           bag()
         )

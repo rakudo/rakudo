@@ -1005,8 +1005,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.roll from')).throw,
           Seq.new(nqp::if(
-            self.elems,
-            Rakudo::Iterator.Roller(self),
+            (my $elems := self.elems),
+            Rakudo::Iterator.Callable( {
+                nqp::atpos($!reified, $elems.rand.floor)
+            }, True ),
             Rakudo::Iterator.Empty
           ))
         )

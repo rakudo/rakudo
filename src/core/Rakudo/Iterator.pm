@@ -2681,13 +2681,6 @@ class Rakudo::Iterator {
         }.new(&body,&cond)
     }
 
-    # Return a lazy iterator that keeps calling .roll on the given object.
-    # Basically the functionality of List.roll(*), but could be on any
-    # object that has a .roll method.
-    method Roller(\source) {
-        Rakudo::Iterator.Callable( { source.roll }, True )
-    }
-
     # Return an iterator that rotorizes the given iterator with the
     # given cycle.  If the cycle is a Cool, then it is assumed to
     # be a single Int value to R:It.Batch with.  Otherwise it is

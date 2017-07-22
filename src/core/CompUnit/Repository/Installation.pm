@@ -504,7 +504,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     {
         my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
-            return %!loaded{~$spec} if %!loaded{~$spec}:exists;
             my $source-file-name = $dist<source>
                 // do {
                     my $provides = self!read-dist($dist-id)<provides>;
@@ -513,8 +512,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                     $provides{$spec.short-name}.values[0]<file>
                 };
             my $loader = $.prefix.add('sources').add($source-file-name);
-            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $id = $loader.basename;
+
+            $!lock.protect: {
+                return %!loaded{$id} if %!loaded{$id}:exists;
+            }
+
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my $repo-prefix = self!repo-prefix;
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
@@ -529,7 +533,6 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
 
-            # xxx: replace :distribution with meta6
             my $compunit = CompUnit.new(
                 :$handle,
                 :short-name($spec.short-name),
@@ -540,7 +543,10 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 :$precompiled,
                 :distribution(self!lazy-distribution($dist-id)),
             );
-            return %!loaded{~$spec} = $compunit;
+
+            $!lock.protect: {
+                return %!loaded{$id} = $compunit;
+            }
         }
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;

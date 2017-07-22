@@ -413,25 +413,59 @@ multi sub subtest(&subtests, $desc = '') is export {
 }
 
 sub diag(Mu $message) is export {
-    # Always send user-triggered diagnostics to STDERR. This prevents
+    # Always send user-triggered diagnostics to STDERR, by providing
+    # `$force-stderr` arg set to True. This prevents
     # cases of confusion of where diag() has to send its ouput when
     # we are in the middle of TODO tests
-    _diag $message, :force-stderr;
+    _diag $message.Str, True;
 }
 
-sub _diag(Mu $message, :$force-stderr) {
-    _init_io() unless $output;
-    my $is_todo = !$force-stderr
-        && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
-    my $out     = $is_todo ?? $todo_output !! $failure_output;
-
-    $time_after = nqp::time_n;
-    my $str-message = nqp::join(
-        "\n$indents# ", nqp::split("\n", "$indents# $message")
-    );
-    $str-message .= subst(rx/^^ "$indents#" \s+ $$/, '', :g);
-    $out.say: $str-message;
-    $time_before = nqp::time_n;
+sub _diag(Mu $message, int $force-stderr = 0) {
+    nqp::stmts(
+      nqp::unless($output, _init_io),
+      (my $fh := nqp::if(
+        nqp::isfalse($force-stderr)
+        && ($subtest_todo_reason
+          || nqp::isle_i($num_of_tests_run, $todo_upto_test_num)),
+        $todo_output,
+        $failure_output)),
+      ($time_after = nqp::time_n),
+      (my str $indent-hash = nqp::concat($indents, '# ')),
+      (my str $str-message = ''),
+      nqp::if(
+        # Is it a single-line message that has some non-whitespace chars?
+        # Then short-circuit and just stick $indents + `#` to it
+        # Otherwise, break it up into lines and add the same to every line
+        # with non-whitespace chars. For white-space only lines, trim them
+        nqp::iseq_i(nqp::index($message, "\n"), -1)
+        && nqp::isne_i(
+          nqp::chars($message),
+          nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
+            $message, 0, nqp::chars($message))),
+        ($str-message = nqp::concat($indent-hash, $message)),
+        nqp::stmts(
+          (my $lines := nqp::split("\n", $message)),
+          (my int $i = -1),
+          (my int $els = nqp::elems($lines)),
+          nqp::while(
+            nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+            nqp::stmts(
+              (my str $line = nqp::atpos($lines, $i)),
+              ($str-message = nqp::concat(
+                $str-message,
+                nqp::if(
+                  nqp::iseq_i(
+                    nqp::chars($line),
+                    nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
+                      $line, 0, nqp::chars($line))),
+                  "\n",
+                  nqp::concat($indent-hash, nqp::concat($line, "\n"))))))),
+          nqp::if( # trim extraneous trailing "\n" our while loop added
+            nqp::chars($str-message),
+            ($str-message = nqp::substr($str-message, 0,
+              nqp::sub_i(nqp::chars($str-message), 1)))))),
+      $fh.say($str-message),
+      ($time_before = nqp::time_n))
 }
 
 # In earlier Perls, this is spelled "sub fail"
@@ -546,7 +580,7 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
     try {
         $code();
     }
-    my $ok = proclaim((not defined $!), $reason) or _diag($!);
+    my $ok = proclaim((not defined $!), $reason) or _diag($!.Str);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -669,63 +703,71 @@ sub eval_exception($code) {
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
-sub proclaim(Bool(Mu) $cond, $desc is copy ) {
-    _init_io() unless $output;
-    # exclude the time spent in proclaim from the test time
-    $num_of_tests_run = $num_of_tests_run + 1;
-
-    my $tap = $indents;
-    unless $cond {
-        $tap ~= "not ";
-
-        $num_of_tests_failed = $num_of_tests_failed + 1
-            unless $num_of_tests_run <= $todo_upto_test_num;
-
-        $pseudo_fails = $pseudo_fails + 1 if $subtest_todo_reason;
-    }
-
-    # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-    # So, adding a ' \' before it.
-    $desc = $desc
-    ??  nqp::join(' \\#',
-            nqp::split('#',
-                $desc.Str
-            )
-        )
-    !! '';
-
-    $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
-        ?? "ok $num_of_tests_run - $desc$todo_reason"
-        !! (! $cond && $subtest_todo_reason)
-            ?? "ok $num_of_tests_run - $desc$subtest_todo_reason"
-            !! "ok $num_of_tests_run - $desc";
-
-    $output.say: $tap;
-    $output.say: $indents
-      ~ "# t="
-      ~ ceiling(($time_after-$time_before)*1_000_000)
-        if nqp::iseq_i($perl6_test_times,1);
-
-    unless $cond {
-        my $caller;
-        # sub proclaim is not called directly, so 2 is minimum level
-        my int $level = 2;
-
-        repeat until !$?FILE.ends-with($caller.file) {
-            $caller = callframe($level++);
-        }
-
-        _diag $desc
-          ?? "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}"
-          !! "\nFailed test at {$caller.file} line {$caller.line}";
-    }
-
-    # must clear this between tests
-    $todo_reason = ''
-        if $todo_upto_test_num == $num_of_tests_run
-            and nqp::iseq_i($die_on_fail,0);
-
-    $cond
+sub proclaim(Bool(Mu) $cond, Str() $desc is copy) {
+    nqp::stmts(
+      nqp::unless($output, _init_io),
+      ($num_of_tests_run = nqp::add_i($num_of_tests_run, 1)),
+      (my str $tap = $indents),
+      nqp::unless(
+        $cond,
+        nqp::stmts(
+          ($tap = nqp::concat($tap, "not ")),
+          nqp::unless(
+            nqp::isle_i($num_of_tests_run, $todo_upto_test_num),
+            $num_of_tests_failed = nqp::add_i($num_of_tests_failed, 1)),
+          nqp::if(
+            $subtest_todo_reason,
+            $pseudo_fails = nqp::add_i($pseudo_fails, 1)))),
+      ($desc = nqp::if(
+        $desc,
+        nqp::if( # escape `#` chars in description to avoid `# TODO`, etc.
+          nqp::isne_i(nqp::index($desc, '#'), -1), # cheaper to first check
+          nqp::join(｢ \#｣, nqp::split('#', $desc)),
+          $desc),
+        '')),
+      ($tap = nqp::concat(
+        $tap,
+        nqp::concat("ok ", nqp::concat($num_of_tests_run,
+          nqp::concat(" - ", nqp::concat($desc,
+            nqp::if(
+              $todo_reason
+              && nqp::isle_i($num_of_tests_run, $todo_upto_test_num),
+              $todo_reason,
+              nqp::if(
+                nqp::isfalse($cond) && $subtest_todo_reason,
+                $subtest_todo_reason,
+                '')))))))),
+      $output.say(
+        nqp::if(
+          $perl6_test_times,
+          nqp::concat($tap,
+            nqp::concat($indents,
+              nqp::concat("# t=",
+                ceiling(($time_after-$time_before)*1_000_000)))),
+          $tap)),
+      nqp::unless(
+        $cond,
+        nqp::stmts(
+          (my $caller),
+          (my int $level = 1),
+          nqp::repeat_while(
+            $?FILE.ends-with($caller.file),
+            $caller = callframe($level = nqp::add_i($level, 1))),
+          _diag(
+            nqp::concat(
+              ($desc
+                ?? nqp::concat("\nFailed test '", nqp::concat($desc, "'\nat "))
+                !! "\nFailed test at "),
+              nqp::concat(
+                $caller.file,
+                nqp::concat(
+                  " line ",
+                  $caller.line)))))),
+      nqp::if(
+          nqp::iseq_i($todo_upto_test_num, $num_of_tests_run)
+          && nqp::isfalse($die_on_fail),
+          $todo_reason = ''),
+      $cond)
 }
 
 sub done-testing() is export {

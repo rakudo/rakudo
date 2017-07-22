@@ -372,83 +372,68 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method script($file, :$name!, :$auth, :$ver) {
-        my $prefix = self.prefix;
-        my $lookup = $prefix.add('short').add(nqp::sha1($file));
-        return unless $lookup.e;
-
-        # Scripts using this interface could only have been installed long after the introduction of
-        # repo version 1, so we don't have to care about very old repos in this method.
-        my @dists = $lookup.dir.map({
-                my ($ver, $auth, $api, $resource-id) = $_.slurp.split("\n");
-                $resource-id ||= self!read-dist($_.basename)<files>{$file};
-                (id => $_.basename, ver => Version.new( $ver || 0 ), :$auth, :$api, :$resource-id).hash
-            }).grep({
-                $_.<auth> ~~ $auth
-                and $_.<ver> ~~ $ver
-            });
-        for @dists.sort(*.<ver>).reverse {
-            return self!resources-dir.add($_<resource-id>);
-        }
+        my $matching-scripts := self.files($file, :$name, :$auth, :$ver);
+        my $scripts = $matching-scripts.map: { .<files>{$file} }
+        return $scripts.head;
     }
 
     method files($file, :$name!, :$auth, :$ver) {
-        my @candi;
-        my $prefix = self.prefix;
-        my $lookup = $prefix.add('short').add(nqp::sha1($name));
-        if $lookup.e {
-            my $repo-version = self!repository-version;
-            my @dists = $repo-version < 1
-                ?? $lookup.lines.unique.map({
-                        self!read-dist($_)
-                    })
-                !! $lookup.dir.map({
-                        my ($ver, $auth, $api) = $_.slurp.split("\n");
-                        (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
-                    });
-            for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
-                $dist = self!read-dist($dist<id>) if $repo-version >= 1;
-                with $dist<files>{$file} {
-                    my $candi = %$dist;
-                    $candi<files>{$file} = self!resources-dir.add($candi<files>{$file});
-                    @candi.push: $candi;
-                }
+        my $spec = CompUnit::DependencySpecification.new(
+            :short-name($name),
+            :auth-matcher($auth || True),
+            :version-matcher($ver // '*'),
+        );
+
+        with self!matching-dist($spec) {
+            my $dist-ids       := $_.map: { .hash.keys[0] }
+            my $matches-spec   := $dist-ids.map: { self!read-dist($_) }
+            my $matches-file   := $matches-spec.grep: { .<files>{$file} }
+
+            $matches-file.map: -> $candi is copy {
+                # absolutify paths
+                $candi<files>{$_} = self!resources-dir.add($candi<files>{$_}) for $candi<files>.hash.keys;
+                $candi;
             }
         }
-        @candi
     }
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        if $spec.from eq 'Perl6' {
-            my $repo-version = self!repository-version;
-            my $lookup = $.prefix.add('short').add(nqp::sha1($spec.short-name));
-            if $lookup.e {
-                my @dists = (
-                        $repo-version < 1
-                        ?? $lookup.lines.unique.map({
-                                $_ => self!read-dist($_)
-                            })
-                        !! $lookup.dir.map({
-                                my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
-                                $_.basename => {
-                                    ver      => Version.new( $ver || 0 ),
-                                    auth     => $auth,
-                                    api      => $api,
-                                    source   => $source || Any,
-                                    checksum => $checksum || Str,
-                                }
-                            })
-                    ).grep({
-                        $_.value<auth> ~~ $spec.auth-matcher
-                        and $_.value<ver> ~~ (($spec.version-matcher ~~ Bool)
-                            ?? $spec.version-matcher # fast path for matching Version.new(*)
-                            !! Version.new($spec.version-matcher))
-                    });
-                for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return ($dist-id, $dist);
-                }
-            }
+        return Empty unless $spec.from eq 'Perl6';
+
+        my $lookup = $.prefix.add('short').add(nqp::sha1($spec.short-name));
+        return Empty unless $lookup.e;
+
+        my @dists = (
+                self!repository-version < 1
+                ?? $lookup.lines.unique.map({
+                        $_ => self!read-dist($_)
+                    })
+                !! $lookup.dir.map({
+                        my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
+                        $_.basename => {
+                            ver      => Version.new( $ver || 0 ),
+                            auth     => $auth,
+                            api      => Version.new( $api || 0 ),
+                            source   => $source || Any,
+                            checksum => $checksum || Str,
+                        }
+                    })
+            );
+
+        my $version-matcher = ($spec.version-matcher ~~ Bool)
+            ?? $spec.version-matcher # fast path for matching Version.new(*)
+            !! Version.new($spec.version-matcher);
+        my $api-matcher = ($spec.api-matcher ~~ Bool)
+            ?? $spec.api-matcher
+            !! Version.new($spec.api-matcher);
+
+        my $matching-dists := @dists.grep: {
+            $_.value<auth> ~~ $spec.auth-matcher
+            and $_.value<ver> ~~ $version-matcher
+            and $_.value<api> ~~ $api-matcher
         }
-        Nil
+
+        return $matching-dists.sort(*.value<ver>).reverse.map(*.kv);
     }
 
     method !lazy-distribution($dist-id) {
@@ -473,7 +458,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec);
+        my ($dist-id, $dist) = self!matching-dist($spec).head;
         if $dist-id {
             # xxx: replace :distribution with meta6
             return CompUnit.new(
@@ -502,7 +487,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec);
+        my ($dist-id, $dist) = self!matching-dist($spec).head;
         if $dist-id {
             return %!loaded{~$spec} if %!loaded{~$spec}:exists;
             my $source-file-name = $dist<source>

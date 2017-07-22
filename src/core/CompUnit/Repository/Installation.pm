@@ -372,9 +372,16 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method script($file, :$name!, :$auth, :$ver) {
-        my $matching-scripts := self.files($file, :$name, :$auth, :$ver);
-        my $scripts = $matching-scripts.map: { .<files>{$file} }
-        return $scripts.head;
+        my $spec = CompUnit::DependencySpecification.new(
+            :short-name($file),
+            :auth-matcher($auth || True),
+            :version-matcher($ver // '*'),
+        );
+
+        with self!matching-dists($spec) {
+            my $matches-file := $_.map: { self!resources-dir.add(.hash.values[0]<source>) }
+            return $matches-file.head;
+        }
     }
 
     method files($file, :$name!, :$auth, :$ver) {
@@ -384,12 +391,12 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             :version-matcher($ver // '*'),
         );
 
-        with self!matching-dist($spec) {
+        with self!matching-dists($spec) {
             my $dist-ids       := $_.map: { .hash.keys[0] }
             my $matches-spec   := $dist-ids.map: { self!read-dist($_) }
             my $matches-file   := $matches-spec.grep: { .<files>{$file} }
 
-            $matches-file.map: -> $candi is copy {
+            return $matches-file.map: -> $candi is copy {
                 # absolutify paths
                 $candi<files>{$_} = self!resources-dir.add($candi<files>{$_}) for $candi<files>.hash.keys;
                 $candi;
@@ -397,7 +404,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         }
     }
 
-    method !matching-dist(CompUnit::DependencySpecification $spec) {
+    method !matching-dists(CompUnit::DependencySpecification $spec) {
         return Empty unless $spec.from eq 'Perl6';
 
         my $lookup = $.prefix.add('short').add(nqp::sha1($spec.short-name));
@@ -458,7 +465,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec).head;
+        my ($dist-id, $dist) = self!matching-dists($spec).head;
         if $dist-id {
             # xxx: replace :distribution with meta6
             return CompUnit.new(
@@ -487,7 +494,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec).head;
+        my ($dist-id, $dist) = self!matching-dists($spec).head;
         if $dist-id {
             return %!loaded{~$spec} if %!loaded{~$spec}:exists;
             my $source-file-name = $dist<source>

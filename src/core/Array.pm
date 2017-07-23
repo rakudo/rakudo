@@ -262,6 +262,55 @@ my class Array { # declared in BOOTSTRAP
             nqp::decont($!descriptor))
     }
 
+    multi method Slip(Array:D:) {
+
+       # A Slip-With-Descriptor is a special kind of Slip that also has a
+       # descriptor to be able to generate containers for null elements that
+       # have type and default information.
+        my class Slip-With-Default is Slip {
+            has $.default;
+
+            method iterator() {
+                Rakudo::Iterator.ReifiedListWithDefault(self, $!default)
+            }
+            multi method AT-POS(Int:D $pos) {
+                nqp::ifnull(
+                  nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
+                  $!default,
+                )
+            }
+        }
+
+        nqp::if(
+          nqp::getattr(self,List,'$!todo').DEFINITE,
+          # We're not fully reified, and so have internal mutability still.
+          # The safe thing to do is to take an iterator of ourself and build
+          # the Slip out of that.
+          Slip.from-iterator(self.iterator),
+          # We're fully reified.  Make a Slip that shares our reified buffer
+          # but that will fill in default values for nulls.
+          nqp::if(
+            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(
+                nqp::create(Slip-With-Default),
+                Slip-With-Default,
+                '$!default',
+                nqp::if(
+                  nqp::isnull(nqp::getattr(self,Array,'$!descriptor')),
+                  Any,
+                  nqp::getattr(self,Array,'$!descriptor').default
+                )
+              ),
+              List,
+              '$!reified',
+              nqp::getattr(self,List,'$!reified')
+            ),
+            nqp::create(Slip)
+          )
+        )
+    }
+
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 

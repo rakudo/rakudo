@@ -2558,6 +2558,72 @@ class Rakudo::Iterator {
         }.new(list)
     }
 
+    # Return an iterator for a List that has been completely reified
+    # already.  Returns a the given default value for elements that
+    # don't exist before the end of the reified list.
+    method ReifiedListWithDefault(\list, Mu \default) {
+        class :: does Iterator {
+            has $!reified;
+            has $!default;
+            has int $!i;
+
+            method !SET-SELF(\list, Mu \default) {
+                nqp::stmts(
+                  ($!reified := nqp::if(
+                    nqp::istype(list,List),
+                    nqp::getattr(list,List,'$!reified'),
+                    list)),
+                  ($!default := default),
+                  ($!i = -1),
+                  self
+                )
+            }
+            method new(\list, Mu \default) {
+                nqp::create(self)!SET-SELF(list, default)
+            }
+
+            method pull-one() is raw {
+                nqp::ifnull(
+                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+                  nqp::if(
+                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                    $!default,                              # it's a hole
+                    IterationEnd                            # it's the end
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = $!i), # lexicals are faster than attributes
+                  nqp::while(  # doesn't sink
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(
+                      nqp::ifnull(nqp::atpos($!reified,$i),$!default)
+                    )
+                  ),
+                  ($!i = $i)
+                )
+            }
+            method skip-one() {
+                nqp::islt_i(
+                  ($!i = nqp::add_i($!i,1)),
+                  nqp::elems($!reified)
+                )
+            }
+            method skip-at-least(int $toskip) {
+                nqp::islt_i(
+                  ($!i =
+                    nqp::add_i($!i,nqp::if(nqp::isgt_i($toskip,0),$toskip,0))),
+                  nqp::elems($!reified)
+                )
+            }
+            method count-only() { nqp::elems($!reified) }
+            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
+        }.new(list, default)
+    }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator

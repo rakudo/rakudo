@@ -1172,7 +1172,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                 nqp::bindpos_s($strings,$i,nqp::if(
                   nqp::isnull(my $tmp := nqp::atpos($!reified,$i)),
-                  '',
+                  nqp::if(
+                    nqp::isconcrete(my $default),
+                    $default,
+                    ($default := nqp::if(
+                      nqp::can(self,'default')
+                        && nqp::isconcrete(self.default),
+                      self.default.Str,
+                      ''
+                    ))
+                  ),
                   nqp::if(
                     nqp::isconcrete($tmp) && nqp::istype($tmp,Str),
                     $tmp,

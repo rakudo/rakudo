@@ -2375,21 +2375,21 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    method ReifiedArray(\array, Mu \descriptor) {
+    method ReifiedArray(\array) {
         class :: does Iterator {
             has $!reified;
             has $!descriptor;
             has int $!i;
 
-            method !SET-SELF(\array, Mu \des) {
+            method !SET-SELF(\array) {
                 nqp::stmts(
                   ($!reified    := nqp::getattr(array, List,  '$!reified')),
-                  ($!descriptor := des),
+                  ($!descriptor := nqp::getattr(array, Array, '$!descriptor')),
                   ($!i = -1),
                   self
                 )
             }
-            method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
+            method new(\array) { nqp::create(self)!SET-SELF(array) }
 
             method pull-one() is raw {
                 nqp::ifnull(
@@ -2440,7 +2440,7 @@ class Rakudo::Iterator {
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
             method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
-        }.new(array, descriptor)
+        }.new(array)
     }
 
     # Return an iterator for a List that has been completely reified

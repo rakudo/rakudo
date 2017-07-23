@@ -142,10 +142,7 @@ my class Array { # declared in BOOTSTRAP
 
         # everything we need is already there
         elsif nqp::getattr(self,List,'$!reified').DEFINITE {
-            Rakudo::Iterator.ReifiedArray(
-              self,
-              nqp::getattr(self,Array,'$!descriptor')
-            )
+            Rakudo::Iterator.ReifiedArray(self)
         }
 
         # nothing now or in the future to iterate over
@@ -1052,10 +1049,7 @@ my class Array { # declared in BOOTSTRAP
               (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
                 && nqp::elems($reified),
               nqp::stmts(
-                (my $iterator := Rakudo::Iterator.ReifiedArray(
-                  self,
-                  nqp::getattr(self,Array,'$!descriptor')
-                )),
+                (my $iterator := Rakudo::Iterator.ReifiedArray(self)),
                 nqp::if(
                   nqp::istype($n,Callable)
                     && nqp::isgt_i((my $skip := -($n(0).Int)),0),

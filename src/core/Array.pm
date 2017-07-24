@@ -264,7 +264,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method Slip(Array:D:) {
 
-       # A Slip-With-Descriptor is a special kind of Slip that also has a
+       # A Slip-With-Default is a special kind of Slip that also has a
        # descriptor to be able to generate containers for null elements that
        # have type and default information.
         my class Slip-With-Default is Slip {
@@ -280,6 +280,7 @@ my class Array { # declared in BOOTSTRAP
                 )
             }
         }
+        BEGIN Slip-With-Default.^set_name("Slip");
 
         nqp::if(
           nqp::getattr(self,List,'$!todo').DEFINITE,

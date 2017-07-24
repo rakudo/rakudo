@@ -1557,33 +1557,31 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
             method pull-one() {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
-                    nqp::stmts(
-                      nqp::bindkey($!seen, $needle, 1),
-                      return $value
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
+                    nqp::unless(
+                      nqp::existskey($!seen,my $needle := &!as($value).WHICH),
+                      nqp::stmts(
+                        nqp::bindkey($!seen,$needle,1),
+                        return $value
+                      )
                     )
-                  )
-                );
-                IterationEnd
+                  ),
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
-                my Mu $value;
-                my str $needle;
                 nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
                   nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::existskey($!seen,my $needle := &!as($value).WHICH),
                     nqp::stmts(  # doesn't sink
-                      nqp::bindkey($!seen, $needle, 1),
+                      nqp::bindkey($!seen,$needle,1),
                       $target.push($value)
                     )
                   )
-                );
+                )
             }
         }.new(self, &as))
     }

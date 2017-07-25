@@ -1535,15 +1535,54 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self))
     }
     multi method unique( :&as!, :&with! ) {
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target = &as($_);
-            if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
-                take $_;
-            }
-        };
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.unique(:&as),
+          Seq.new(class :: does Iterator {
+              has Mu $!iter;
+              has &!as;
+              has &!with;
+              has $!seen;
+              method !SET-SELF(\list, &!as, &!with) {
+                  $!iter  = list.iterator;
+                  $!seen := nqp::list;
+                  self
+              }
+              method new(\list, \as, \with) {
+                  nqp::create(self)!SET-SELF(list, as, with)
+              }
+              method pull-one() {
+                  nqp::stmts(
+                    (my &as   := &!as),    # lexicals are faster than attributes
+                    (my &with := &!with),
+                    (my $seen := $!seen),
+                    nqp::until(
+                      nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
+                      nqp::stmts(
+                        (my int $i = -1),
+                        (my int $elems = nqp::elems($!seen)),
+                        (my $target := as($needle)),
+                        nqp::while(
+                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                            && nqp::isfalse(with($target,nqp::atpos($seen,$i))),
+                          nqp::null
+                        ),
+                        nqp::if(
+                          nqp::iseq_i($i,$elems),
+                          nqp::stmts(
+                            nqp::push($!seen,$target),
+                            (return $needle)
+                          )
+                        )
+                      )
+                    ),
+                    IterationEnd
+                  )
+              }
+              method is-lazy() { $!iter.is-lazy }
+              method sink-all(--> IterationEnd) { $!iter.sink-all }
+          }.new(self, &as, &with))
+        )
     }
     multi method unique( :&as! ) {
         Seq.new(class :: does Iterator {

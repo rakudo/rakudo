@@ -96,7 +96,7 @@ M_HARNESS5_WITH_FUDGE = $(M_HARNESS5) --fudge --moar --keep-exit-code
 M_HARNESS6 = .@slash@$(M_RUNNER) -Ilib t/harness6
 M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
-M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e 'for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ "/" ~ .IO.basename.Str) { say "rm -f " ~ .Str; .IO.unlink if .IO.e } }'
+M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '/' ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
 
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER) @m_all@
 

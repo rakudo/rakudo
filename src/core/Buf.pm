@@ -592,6 +592,17 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)
     }
+
+    method subbuf-rw($from = 0, $elems = self.elems - $from) is rw {
+        my Blob $subbuf = self.subbuf($from, $elems);
+        Proxy.new(
+            FETCH   => sub ($) { $subbuf },
+            STORE   => sub ($, Blob:D $new) {
+                nqp::splice(nqp::decont(self),nqp::decont($new),$from,$elems)
+            }
+        );
+    }
+
 }
 
 constant buf8 = Buf[uint8];
@@ -802,13 +813,7 @@ multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
 
 sub subbuf-rw(Buf:D \b, $from = 0, $elems = b.elems - $from) is rw {
-    my Blob $subbuf = b.subbuf($from, $elems);
-    Proxy.new(
-        FETCH   => sub ($) { $subbuf },
-        STORE   => sub ($, Blob:D $new) {
-            nqp::splice(nqp::decont(b),nqp::decont($new),$from,$elems)
-        }
-    );
+    b.subbuf-rw($from, $elems);
 }
 
 # vim: ft=perl6 expandtab sw=4

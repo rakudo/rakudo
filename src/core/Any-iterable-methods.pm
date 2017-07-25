@@ -1628,45 +1628,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::if(
           nqp::eqaddr(&with,&[===]), # use optimized version
           self.unique,
-          Seq.new(class :: does Iterator {
-              has Mu $!iter;
-              has &!with;
-              has $!seen;
-              method !SET-SELF(\list, &!with) {
-                  $!iter  = list.iterator;
-                  $!seen := nqp::list;
-                  self
-              }
-              method new(\list,&with) { nqp::create(self)!SET-SELF(list,&with) }
-              method pull-one() {
-                  nqp::stmts(
-                    (my &with := &!with),  # lexicals are faster than attributes
-                    (my $seen := $!seen),
-                    nqp::until(
-                      nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
-                      nqp::stmts(
-                        (my int $i = -1),
-                        (my int $elems = nqp::elems($!seen)),
-                        nqp::while(
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                            && nqp::isfalse(with($needle,nqp::atpos($seen,$i))),
-                          nqp::null
-                        ),
-                        nqp::if(
-                          nqp::iseq_i($i,$elems),
-                          nqp::stmts(
-                            nqp::push($!seen,$needle),
-                            (return $needle)
-                          )
-                        )
-                      )
-                    ),
-                    IterationEnd
-                  )
-              }
-              method is-lazy() { $!iter.is-lazy }
-              method sink-all(--> IterationEnd) { $!iter.sink-all }
-          }.new(self, &with))
+          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,1))
         )
     }
 
@@ -1751,16 +1713,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self, &as))
     }
     multi method repeated( :&with! ) {
-        nextwith() if &with === &[===]; # use optimized version
-
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target := $_;
-            first( { with($target,$_) }, @seen ) =:= Nil
-              ?? @seen.push($target)
-              !! take $_;
-        }
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.repeated,
+          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,0))
+        )
     }
 
     proto method squish(|) is nodal {*}

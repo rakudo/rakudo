@@ -3120,6 +3120,65 @@ class Rakudo::Iterator {
         }.new(value)
     }
 
+    # Return an iterator from a given iterator with a given compare
+    # callable, producing values either with unique or repeated semantics.
+    method UniqueRepeatedWith(\iterator, \with, \unique) {
+        class :: does Iterator {
+            has Mu $!iter;
+            has &!with;
+            has int $!unique;
+            has $!seen;
+            method !SET-SELF(\iterator, \with, \unique) {
+                nqp::stmts(
+                  ($!iter := iterator),
+                  (&!with := with),
+                  ($!unique = nqp::istrue(unique)),
+                  ($!seen := nqp::list),
+                  self
+                )
+            } 
+            method new( \iterator, \with, \union) {
+                nqp::create(self)!SET-SELF(iterator, with, union)
+            }
+            method pull-one() {
+                nqp::stmts(
+                  (my &with := &!with),  # lexicals are faster than attributes
+                  (my $seen := $!seen),
+                  nqp::until(
+                    nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
+                    nqp::stmts(
+                      (my int $i = -1),
+                      (my int $elems = nqp::elems($!seen)),
+                      nqp::until(
+                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                          || with($needle,nqp::atpos($seen,$i)),
+                        nqp::null
+                      ),
+                      nqp::if(                         # done searching
+                        $!unique,
+                        nqp::if(                       # need unique semantics
+                          nqp::iseq_i($i,$elems),
+                          nqp::stmts(                  # new, so add and produce
+                            nqp::push($!seen,$needle),
+                            (return $needle)
+                          )
+                        ),
+                        nqp::if(                       # need repeated semantics
+                          nqp::iseq_i($i,$elems),
+                          nqp::push($!seen,$needle),   # new, just add
+                          (return $needle)             # not new, produce
+                        )
+                      )
+                    )
+                  ),
+                  IterationEnd
+                )
+            }
+            method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
+        }.new(iterator, with, unique)
+    }
+
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another

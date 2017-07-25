@@ -177,7 +177,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method contains(Str:D: Cool:D $needle) {self.contains: $needle.Str}
     multi method contains(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::isne_i(
-          nqp::index($!value,nqp::getattr($needle,Str,'$!value'),0),-1
+          nqp::index(nqp::indexingoptimized($!value),nqp::getattr($needle,Str,'$!value'),0),-1
         ))
     }
     multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos) {self.contains: $needle.Str, $pos}
@@ -186,7 +186,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
             nqp::isne_i(
-              nqp::index($!value,nqp::getattr($needle,Str,'$!value'),$pos),-1)
+              nqp::index(nqp::indexingoptimized($!value),nqp::getattr($needle,Str,'$!value'),$pos),-1)
           )
         )
     }

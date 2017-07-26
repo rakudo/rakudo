@@ -270,20 +270,27 @@ my class Array { # declared in BOOTSTRAP
        # A Slip-With-Default is a special kind of Slip that also has a
        # descriptor to be able to generate containers for null elements that
        # have type and default information.
-        my class Slip-With-Default is Slip {
-            has $.default;
+        my class Slip-With-Descriptor is Slip {
+            has $!descriptor;
 
             method iterator() {
-                Rakudo::Iterator.ReifiedListWithDefault(self, $!default)
+                Rakudo::Iterator.ReifiedArray(self,$!descriptor)
             }
             multi method AT-POS(Int:D $pos) {
                 nqp::ifnull(
                   nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-                  $!default,
+                  nqp::p6bindattrinvres(
+                    (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
+                    Scalar,
+                    '$!whence',
+                    -> { nqp::bindpos(
+                           nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
+                  )
                 )
             }
+            method default() { $!descriptor.default }
         }
-        BEGIN Slip-With-Default.^set_name("Slip");
+        BEGIN Slip-With-Descriptor.^set_name("Slip");
 
         nqp::if(
           nqp::getattr(self,List,'$!todo').DEFINITE,
@@ -297,20 +304,50 @@ my class Array { # declared in BOOTSTRAP
             nqp::getattr(self,List,'$!reified').DEFINITE,
             nqp::p6bindattrinvres(
               nqp::p6bindattrinvres(
-                nqp::create(Slip-With-Default),
-                Slip-With-Default,
-                '$!default',
-                nqp::if(
-                  nqp::isnull(nqp::getattr(self,Array,'$!descriptor')),
-                  Any,
-                  nqp::getattr(self,Array,'$!descriptor').default
-                )
+                nqp::create(Slip-With-Descriptor),
+                Slip-With-Descriptor,
+                '$!descriptor',
+                $!descriptor
               ),
               List,
               '$!reified',
               nqp::getattr(self,List,'$!reified')
             ),
             nqp::create(Slip)
+          )
+        )
+    }
+
+    method FLATTENABLE_LIST() {
+        nqp::if(
+          nqp::getattr(self,List,'$!todo').DEFINITE,
+          nqp::stmts(
+            nqp::getattr(self,List,'$!todo').reify-all,
+            nqp::getattr(self,List,'$!reified')
+          ),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::stmts(
+              nqp::if(
+                (my int $elems = nqp::elems($reified)),
+                nqp::stmts(
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::if(
+                      nqp::isnull(nqp::atpos($reified,$i)),
+                      nqp::bindpos(
+                        $reified,
+                        $i,
+                        nqp::p6scalarfromdesc($!descriptor)
+                      )
+                    )
+                  )
+                )
+              ),
+              nqp::getattr(self,List,'$!reified')
+            ),
+            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
           )
         )
     }

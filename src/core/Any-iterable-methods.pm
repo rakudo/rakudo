@@ -1803,27 +1803,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method pairup(|) is nodal { * }
     multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
-        my \iter = nqp::istype(self, Iterable)
-            ?? self.iterator
-            !! self.list.iterator;
-        gather loop {
-            my $it := iter.pull-one;
-            if nqp::istype($it, Pair) {
-                take $it.key => $it.value
-            }
-            elsif nqp::istype($it, Map) and !nqp::iscont($it) {
-                take Slip.new(|$it.pairs)
-            }
-            elsif $it =:= IterationEnd {
-                last
-            }
-            else {
-                my $it-value := iter.pull-one;
-                if $it-value =:= IterationEnd {
-                    X::Pairup::OddNumber.new.throw;
-                }
-                take $it => $it-value;
-            }
+        my \iter := self.iterator;
+        gather {
+            nqp::until(
+              nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype($pulled,Pair),
+                (take nqp::p6bindattrinvres(
+                  nqp::clone($pulled),
+                  Pair,
+                  '$!value',
+                  nqp::clone(nqp::decont(nqp::getattr($pulled,Pair,'$!value')))
+                )),
+                nqp::if(
+                  nqp::istype($pulled,Map) && nqp::not_i(nqp::iscont($pulled)),
+                  (take Slip.from-iterator($pulled.iterator)),
+                  nqp::if(
+                    nqp::eqaddr((my $value := iter.pull-one),IterationEnd),
+                    X::Pairup::OddNumber.new.throw,
+                    take Pair.new($pulled,$value)
+                  )
+                )
+              )
+            )
         }
     }
 

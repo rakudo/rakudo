@@ -154,7 +154,6 @@ my class Channel does Awaitable {
         }.new(self)
     }
 
-    method Seq(Channel:D:)  { Seq.new(self.iterator) }
     method list(Channel:D:) { self.Seq.list }
 
     my class ChannelAwaitableHandle does Awaitable::Handle {

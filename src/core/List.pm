@@ -691,8 +691,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method list(List:D:) { self }
 
-    multi method Seq(List:D:) { Seq.new(self.iterator) }
-
     method sink(--> Nil) { }
 
     multi method values(List:D:) {

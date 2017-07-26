@@ -1,7 +1,6 @@
 my class DateTime { ... }
 my role  IO { ... }
 my class IO::Path { ... }
-my class Seq { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };

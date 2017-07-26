@@ -1,5 +1,6 @@
 my class Pair                   { ... }
 my class Range                  { ... }
+my class Seq                    { ... }
 my class X::Adverb              { ... }
 my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
@@ -66,7 +67,7 @@ my class Any { # declared in BOOTSTRAP
     proto method Array(|) is nodal { * }
     multi method Array() { self.list.Array }
     proto method Seq(|) is nodal { * }
-    multi method Seq() { self.list.Seq }
+    multi method Seq() { Seq.new(self.iterator) }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }

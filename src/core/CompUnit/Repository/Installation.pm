@@ -1,6 +1,7 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
-    has %!loaded;
+    has %!loaded; # cache compunit lookup
+    has %!seen;   # cache distribution lookup
     has $!precomp;
     has $!id;
     has Int $!version;
@@ -404,6 +405,21 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         }
     }
 
+    # If we're only interestested in matching a single item then we can use a cache...
+    method !matching-dist(CompUnit::DependencySpecification $spec) {
+        $!lock.protect: {
+            return %!seen{~$spec} if %!seen{~$spec}:exists;
+        }
+
+        my ($dist-id, $dist) = self!matching-dists($spec).head;
+
+        $!lock.protect: {
+            return %!seen{~$spec} = ($dist-id, $dist);
+        }
+    }
+
+    # ...but otherwise lets not cache every single match.
+    # (This method exists to support future methods that need *all* the matches)
     method !matching-dists(CompUnit::DependencySpecification $spec) {
         return Empty unless $spec.from eq 'Perl6';
 
@@ -440,7 +456,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             and $_.value<api> ~~ $api-matcher
         }
 
-        return $matching-dists.sort(*.value<ver>).reverse.map(*.kv);
+        return $matching-dists.sort(-*.value<ver>).map(*.kv);
     }
 
     method !lazy-distribution($dist-id) {
@@ -465,7 +481,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dists($spec).head;
+        my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             # xxx: replace :distribution with meta6
             return CompUnit.new(
@@ -494,7 +510,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dists($spec).head;
+        my ($dist-id, $dist) = self!matching-dist($spec);
         if $dist-id {
             return %!loaded{~$spec} if %!loaded{~$spec}:exists;
             my $source-file-name = $dist<source>

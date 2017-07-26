@@ -66,7 +66,7 @@ static void type_check_ret(MVMThreadContext *tc, void *sr_data) {
          Rakudo_assign_typecheck_failed(tc, cont, obj);
 }
 static void mark_sr_data(MVMThreadContext *tc, MVMFrame *frame, MVMGCWorklist *worklist) {
-    type_check_data *tcd = (type_check_data *)frame->special_return_data;
+    type_check_data *tcd = (type_check_data *)frame->extra->special_return_data;
     MVM_gc_worklist_add(tc, worklist, &tcd->cont);
     MVM_gc_worklist_add(tc, worklist, &tcd->obj);
 }
@@ -133,9 +133,8 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
                     tcd->obj     = obj;
                     tcd->res.i64 = 0;
                     MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
-                    tc->cur_frame->special_return           = type_check_ret;
-                    tc->cur_frame->special_return_data      = tcd;
-                    tc->cur_frame->mark_special_return_data = mark_sr_data;
+                    MVM_frame_special_return(tc, tc->cur_frame, type_check_ret, NULL,
+                        tcd, mark_sr_data);
                     tc->cur_frame->args[0].o = HOW;
                     tc->cur_frame->args[1].o = obj;
                     tc->cur_frame->args[2].o = rcd->of;
@@ -164,9 +163,8 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
                     tcd->obj     = obj;
                     tcd->res.i64 = 0;
                     MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
-                    tc->cur_frame->special_return           = type_check_ret;
-                    tc->cur_frame->special_return_data      = tcd;
-                    tc->cur_frame->mark_special_return_data = mark_sr_data;
+                    MVM_frame_special_return(tc, tc->cur_frame, type_check_ret, NULL,
+                        tcd, mark_sr_data);
                     tc->cur_frame->args[0].o = HOW;
                     tc->cur_frame->args[1].o = rcd->of;
                     tc->cur_frame->args[2].o = obj;

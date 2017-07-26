@@ -2212,13 +2212,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<BEGIN>($/) {
-        my $block := $<blorst>.ast.ann('past_block');
-        begin_time_lexical_fixup($block) if has_nested_blocks($block);
+        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
         make $*W.add_phaser($/, 'BEGIN', wanted($<blorst>.ast,'BEGIN').ann('code_object'));
     }
     method statement_prefix:sym<CHECK>($/) {
-        my $block := $<blorst>.ast.ann('past_block');
-        begin_time_lexical_fixup($block) if has_nested_blocks($block);
+        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
         make $*W.add_phaser($/, 'CHECK', wanted($<blorst>.ast,'CHECK').ann('code_object'));
     }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', unwanted($<blorst>.ast,'COMPOSE').ann('code_object')); }
@@ -2954,7 +2952,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block.blocktype('declaration_static');
 
             # Role bodies run at BEGIN time, so need fixup.
-            begin_time_lexical_fixup($block) if has_nested_blocks($block);
+            begin_time_lexical_fixup($block);
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric
@@ -3029,6 +3027,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # context. These survive serialization and thus point at what
     # has to be fixed up.
     sub begin_time_lexical_fixup($block) {
+        my $has_nested_blocks := 0;
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Block) {
+                $has_nested_blocks := 1;
+                last;
+            }
+        }
+        return 0 unless $has_nested_blocks;
+
         my $throwaway_block_past := QAST::Block.new(
             :blocktype('declaration'), :name('!LEXICAL_FIXUP'),
             WANTED(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),'btlf')
@@ -3045,17 +3052,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::WVal.new( :value($throwaway_block) )
                 )));
         $block[0].push($fixup);
-    }
-
-    sub has_nested_blocks($block) {
-        my $has_nested_blocks := 0;
-        for @($block[0]) {
-            if nqp::istype($_, QAST::Block) {
-                $has_nested_blocks := 1;
-                last;
-            }
-        }
-        return $has_nested_blocks;
     }
 
     method scope_declarator:sym<my>($/)      { make $<scoped>.ast; }
@@ -4820,7 +4816,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $con_block.push($value_ast);
-            begin_time_lexical_fixup($con_block);
             my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
             $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);

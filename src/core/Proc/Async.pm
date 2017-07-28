@@ -300,13 +300,13 @@ my class Proc::Async {
                 with $!stdout_descriptor_vow {
                     my $fd = nqp::atpos_i(handles, 0);
                     $fd < 0
-                        ?? .break("Desciptor not available")
+                        ?? .break("Descriptor not available")
                         !! .keep($fd)
                 }
                 with $!stderr_descriptor_vow {
                     my $fd = nqp::atpos_i(handles, 1);
                     $fd < 0
-                        ?? .break("Desciptor not available")
+                        ?? .break("Descriptor not available")
                         !! .keep($fd)
                 }
             }

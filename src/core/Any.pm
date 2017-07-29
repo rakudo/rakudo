@@ -605,7 +605,9 @@ sub dd(|) {
         }
     }
     else { # tell where we are
-        note .name ?? "{lc .^name} {.name}" !! "({lc .^name})"
+        note .name
+          ?? "{lc .^name} {.name}{.signature.gist}"
+          !! "{lc .^name} {.signature.gist}"
           with callframe(1).code;
     }
     return

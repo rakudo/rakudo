@@ -3077,7 +3077,7 @@ class Rakudo::Iterator {
             method new( \iterator, \as, \with, \union) {
                 nqp::create(self)!SET-SELF(iterator, as, with, union)
             }
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::stmts(
                   (my &as := &!as),      # lexicals are faster than attributes
                   (my &with := &!with),
@@ -3099,13 +3099,13 @@ class Rakudo::Iterator {
                           nqp::iseq_i($i,$elems),
                           nqp::stmts(                  # new, so add and produce
                             nqp::push($!seen,$target),
-                            (return $needle)
+                            (return-rw $needle)
                           )
                         ),
                         nqp::if(                       # need repeated semantics
                           nqp::iseq_i($i,$elems),
                           nqp::push($!seen,$target),   # new, just add
-                          (return $needle)             # not new, produce
+                          (return-rw $needle)          # not new, produce
                         )
                       )
                     )
@@ -3138,7 +3138,7 @@ class Rakudo::Iterator {
             method new( \iterator, \with, \union) {
                 nqp::create(self)!SET-SELF(iterator, with, union)
             }
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::stmts(
                   (my &with := &!with),  # lexicals are faster than attributes
                   (my $seen := $!seen),
@@ -3158,13 +3158,13 @@ class Rakudo::Iterator {
                           nqp::iseq_i($i,$elems),
                           nqp::stmts(                  # new, so add and produce
                             nqp::push($!seen,$needle),
-                            (return $needle)
+                            (return-rw $needle)
                           )
                         ),
                         nqp::if(                       # need repeated semantics
                           nqp::iseq_i($i,$elems),
                           nqp::push($!seen,$needle),   # new, just add
-                          (return $needle)             # not new, produce
+                          (return-rw $needle)          # not new, produce
                         )
                       )
                     )

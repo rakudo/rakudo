@@ -1505,7 +1505,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
                     nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
@@ -1554,7 +1554,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
                     nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
@@ -1562,7 +1562,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       nqp::existskey($!seen,my $needle := &!as($value).WHICH),
                       nqp::stmts(
                         nqp::bindkey($!seen,$needle,1),
-                        return $value
+                        return-rw $value
                       )
                     )
                   ),
@@ -1602,13 +1602,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
                 nqp::until(
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
-                    ?? return $value
+                    ?? return-rw $value
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
                 IterationEnd
@@ -1646,13 +1646,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
                 nqp::until(
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
-                    ?? return $value
+                    ?? return-rw $value
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
                 IterationEnd
@@ -1694,7 +1694,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method new(\list, &as, &with) {
                 nqp::create(self)!SET-SELF(list, &as, &with)
             }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $which := &!as($value);
@@ -1753,7 +1753,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     if $!first {

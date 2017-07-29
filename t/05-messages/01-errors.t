@@ -216,6 +216,15 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         'longer method names are suggested also';
 }
 
+subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
+    plan 3;
+    my $res = IO::Socket::INET.new: :listen;
+    isa-ok $res, Failure, 'got a Failure';
+    ok $res.handled.not, 'Failure is unhandled';
+    $res.so;
+    like $res.exception.message, /'Invalid port'/, 'error mentions port';
+}
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

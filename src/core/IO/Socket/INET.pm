@@ -40,8 +40,8 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        fail "Invalid port. Must be { PIO::MIN_PORT } .. { PIO::MAX_PORT }"
-            unless PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
+        fail "Invalid port $port.gist(). Must be {PIO::MIN_PORT}..{PIO::MAX_PORT}"
+            unless $port.defined and PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
 
         return ($host, $port);
     }
@@ -67,12 +67,9 @@ my class IO::Socket::INET does IO::Socket {
                *%rest,
         --> IO::Socket::INET:D) {
 
-        ($localhost, $localport) = split-host-port(
-            :host($localhost),
-            :port($localport),
-            :$family,
-        );
-
+        ($localhost, $localport) = (
+            split-host-port :host($localhost), :port($localport), :$family
+        orelse fail $_);
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(

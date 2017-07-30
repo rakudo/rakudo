@@ -2713,7 +2713,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method codes(|) { * }
     multi method codes(Str:D: --> Int:D) {
 #?if moar
-        self.NFC.codes
+        nqp::codes(self)
 #?endif
 #?if jvm
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))

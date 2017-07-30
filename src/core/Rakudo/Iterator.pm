@@ -2080,7 +2080,7 @@ class Rakudo::Iterator {
                             nqp::islt_i($!next,$index) && $!source.skip-one,
                             ($!next = nqp::add_i($!next,1))
                           ),
-                          (return nqp::if(
+                          (return-rw nqp::if(
                             nqp::iseq_i($!next,$index),
                             nqp::stmts(
                               ($!next = nqp::add_i($!next,1)),

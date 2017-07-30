@@ -1631,7 +1631,7 @@ class Rakudo::Iterator {
                   )
                 )
             }
-            method is-lazy() { $!source.is-lazy }
+            method is-lazy() { $!source.is-lazy && $!indexes.is-lazy }
         }.new(source,indexes,offset,&out)
     }
 

@@ -211,28 +211,28 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
-    method run-script($script, :$dist-name, :$name is copy, :$auth, :$ver) {
+    method run-script($script, :$name, :$auth, :$ver, :$api) {
         shift @*ARGS if $name;
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
-        $name //= $dist-name;
+
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @binaries = @installations.map({ .script("bin/$script", :$name, :$auth, :$ver) }).grep(*.defined);
-        unless +@binaries {
-            @binaries = flat @installations.map: { .script("bin/$script", :$name) };
-            if +@binaries {
+        my @candidates = @installations.map({ .files($script, :$name, :$auth, :$ver).head }).grep(*.defined);
+        unless +@candidates {
+            @candidates = flat @installations.map({ .files($script).Slip }).grep(*.defined);
+            if +@candidates {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"
                     ~ "Did you perhaps mean one of these?";
                 my %caps = :name(['Distribution', 12]), :auth(['Author(ity)', 11]), :ver(['Version', 7]);
-                for @binaries -> $dist {
+                for @candidates -> $dist {
                     for %caps.kv -> $caption, @opts {
-                        @opts[1] = max @opts[1], ($dist{$caption} // '').Str.chars
+                        @opts[1] = max @opts[1], ($dist.meta{$caption} // '').Str.chars
                     }
                 }
                 note '  ' ~ %caps.values.map({ sprintf('%-*s', .[1], .[0]) }).join(' | ');
-                for @binaries -> $dist {
-                    note '  ' ~ %caps.kv.map( -> $k, $v { sprintf('%-*s', $v.[1], $dist{$k} // '') } ).join(' | ')
+                for @candidates -> $dist {
+                    note '  ' ~ %caps.kv.map( -> $k, $v { sprintf('%-*s', $v.[1], $dist.meta{$k} // '') } ).join(' | ')
                 }
             }
             else {
@@ -241,7 +241,8 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $bin = @binaries[0];
+        my $candi = @candidates.sort(*.meta<ver>).reverse.head;
+        my $bin   = $candi.meta<source>;
         require "$bin";
     }
 

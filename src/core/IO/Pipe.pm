@@ -4,8 +4,8 @@ my class IO::Pipe is IO::Handle {
     has $!on-write;
     has $!on-close;
     has $!on-native-descriptor;
-    has $!eof = False;
-    has $!closed = False;
+    has $!eof is default(False);
+    has $!closed is default(False);
 
     method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write,
                  :$!on-native-descriptor --> Nil) {

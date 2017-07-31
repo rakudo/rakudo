@@ -100,9 +100,9 @@ my class Proc::Async {
     has $.path;
     has @.args;
     has $.w;
-    has $.enc = 'utf8';
-    has $.translate-nl = True;
-    has Bool $.started = False;
+    has $.enc          is default('utf8');
+    has $.translate-nl is default(True);
+    has Bool $.started is default(False);
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;

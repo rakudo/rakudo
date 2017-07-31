@@ -24,9 +24,9 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.localport;
     has Int $.backlog;
     has Bool $.listening;
-    has $.family = PIO::PF_INET;
-    has $.proto = PIO::PROTO_TCP;
-    has $.type = PIO::SOCK_STREAM;
+    has $.family is default(PIO::PF_INET);
+    has $.proto  is default(PIO::PROTO_TCP);
+    has $.type   is default(PIO::SOCK_STREAM);
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
         if ($host) {

@@ -99,7 +99,7 @@ multi sub trait_mod:<is>(Attribute $attr, :$required!) {
 }
 multi sub trait_mod:<is>(Attribute $attr, :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
-    $attr.container = nqp::decont($default) if nqp::eqaddr($attr.type,Mu)
+    $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();

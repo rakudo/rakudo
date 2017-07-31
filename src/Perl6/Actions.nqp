@@ -1964,7 +1964,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<import>($/) {
         # NB: Grammar already passed arglist directly to World, but this seems soon enough to want it.
-        if $<arglist> {
+        if $<arglist> && $<arglist><EXPR> {
             WANTED($<arglist><EXPR>.ast, 'import');
         }
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );

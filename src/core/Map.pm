@@ -105,6 +105,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         so self.keys.any.match($topic);
     }
 
+    multi method ACCEPTS(Map:D: Map:D \m --> Bool) {
+    	self eqv m;
+    }
+
     multi method EXISTS-KEY(Map:D: Str:D \key) {
         nqp::p6bool(
           nqp::defined($!storage) && nqp::existskey($!storage,key)

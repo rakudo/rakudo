@@ -1,6 +1,6 @@
 my class IO::CatHandle is IO::Handle {
     has $!handles;
-    has $!active-handle is default(Nil) = Nil;
+    has $!active-handle is default(Nil);
 
     has $.chomp is rw;
     has $.nl-in;

@@ -510,7 +510,7 @@ class Rakudo::Iterator {
             has $!iterator;
             has int $!size;
             has int $!complete;
-            has int $!is-exhausted = 0;
+            has int $!is-exhausted;
             method !SET-SELF(\iterator,\size,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),

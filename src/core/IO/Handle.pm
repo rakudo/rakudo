@@ -5,9 +5,9 @@ my class Proc { ... }
 my class IO::Handle {
     has $.path;
     has $!PIO;
-    has $.chomp is rw = Bool::True;
-    has $.nl-in = ["\x0A", "\r\n"];
-    has Str:D $.nl-out is rw = "\n";
+    has $.chomp is rw is default(True);
+    has $.nl-in is default(["\x0A", "\r\n"]);
+    has Str:D $.nl-out is rw is default("\n");
     has Str $.encoding;
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;

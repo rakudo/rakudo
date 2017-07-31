@@ -191,8 +191,8 @@ my class IO::Handle {
           },
           STORE => -> $, $nl-in {
             $!nl-in = $nl-in;
-            $!decoder && $!decoder.set-line-separators($nl-in.list);
-            $nl-in
+            $!decoder && $!decoder.set-line-separators($!nl-in.list);
+            $!nl-in
           }
         );
     }

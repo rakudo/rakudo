@@ -425,28 +425,35 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {
+
+    class NotEQV { }
+
     nqp::p6bool(
       nqp::unless(
         nqp::eqaddr(a,b),
-        nqp::if(
+        nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(
-            nqp::iseq_i((my int $elems = a.elems),b.elems),
-            nqp::unless(
-              nqp::iseq_i($elems,0),
-              nqp::stmts(
-                (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
-                (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+          nqp::if(                               # same types
+            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
+              && (my int $elems = nqp::elems($amap)),
+            nqp::if(                             # elems on left
+              (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::iseq_i($elems,nqp::elems($bmap)),
+              nqp::stmts(                        # same elems on right
                 (my $iter := nqp::iterator($amap)),
                 nqp::while(
-                  $iter
-                  && nqp::existskey($bmap,
-                    my str $key = nqp::iterkey_s(nqp::shift($iter)))
-                  && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key),
+                  $iter && infix:<eqv>(
+                    nqp::iterval(nqp::shift($iter)),
+                    nqp::ifnull(nqp::atkey($bmap,nqp::iterkey_s($iter)),NotEQV)
+                  ),
                   ($elems = nqp::sub_i($elems,1))
                 ),
-                nqp::iseq_i($elems,0)    # checked all, so ok
+                nqp::not_i($elems)               # ok if none left
               )
+            ),
+            nqp::isfalse(                        # nothing on left
+              ($bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::elems($bmap)             # something on right: fail
             )
           )
         )

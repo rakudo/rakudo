@@ -217,9 +217,10 @@ multi sub postcircumfix:<[ ]>(List:D \SELF, Range:D \range, *%_ ) is raw {
         nqp::elems(nqp::getattr(%_,Map,'$!storage')),
         postcircumfix:<[ ]>(SELF, range.list, |%_),             # named params
         nqp::if(                                 # no named params
-          nqp::getattr(SELF,List,'$!todo')
+          nqp::getattr(nqp::decont(SELF),List,'$!todo')
             || nqp::not_i(nqp::getattr(range,Range,'$!is-int'))
-            || nqp::isfalse(my $reified := nqp::getattr(SELF,List,'$!reified')),
+            || nqp::isfalse(
+                 my $list := nqp::getattr(nqp::decont(SELF),List,'$!reified')),
           POSITIONS(SELF, range).map({ SELF[$_] }).eager.list,  # too difficult
           nqp::stmts(                            # simple reified
             (range.int-bounds(my int $pos, my int $last)),
@@ -240,7 +241,7 @@ multi sub postcircumfix:<[ ]>(List:D \SELF, Range:D \range, *%_ ) is raw {
                     $buffer,
                     ($i = nqp::add_i($i,1)),
                     nqp::ifnull(
-                      nqp::atpos($reified,$pos),
+                      nqp::atpos($list,$pos),
                       SELF.AT-POS($pos)
                     )
                   )

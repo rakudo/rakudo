@@ -209,51 +209,6 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, :$v!, *%other ) is raw {
 }
 
 # @a[@i]
-multi sub postcircumfix:<[ ]>(List:D \SELF, Range:D \range, *%_ ) is raw {
-    nqp::if(
-      nqp::iscont(range),
-      SELF.AT-POS(range.Int),                    # don't iterate cause itemized
-      nqp::if(                                   # iterate
-        nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-        postcircumfix:<[ ]>(SELF, range.list, |%_),             # named params
-        nqp::if(                                 # no named params
-          nqp::getattr(SELF,List,'$!todo')
-            || nqp::not_i(nqp::getattr(range,Range,'$!is-int'))
-            || nqp::isfalse(my $reified := nqp::getattr(SELF,List,'$!reified')),
-          POSITIONS(SELF, range).map({ SELF[$_] }).eager.list,  # too difficult
-          nqp::stmts(                            # simple reified
-            (range.int-bounds(my int $pos, my int $last)),
-            nqp::if(
-              nqp::islt_i($pos,0),
-              Failure.new(X::OutOfRange.new(     # start out of range
-                :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
-              nqp::stmts(                        # start point ok
-                (my $buffer := nqp::setelems(
-                  nqp::create(IterationBuffer),
-                  nqp::add_i(nqp::sub_i($last,$pos),1)
-                )),
-                ($pos = nqp::sub_i($pos,1)),
-                (my int $i = -1),
-                nqp::while(                      # fill the buffer
-                  nqp::isle_i(($pos = nqp::add_i($pos,1)),$last),
-                  nqp::bindpos(
-                    $buffer,
-                    ($i = nqp::add_i($i,1)),
-                    nqp::ifnull(
-                      nqp::atpos($reified,$pos),
-                      SELF.AT-POS($pos)
-                    )
-                  )
-                ),
-                nqp::p6bindattrinvres(           # make it a List  
-                  nqp::create(List),List,'$!reified',$buffer)
-              )
-            )
-          )
-        )
-      )
-    )
-}
 multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)

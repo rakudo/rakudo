@@ -424,31 +424,23 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $result;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
                     ($redo = 0),
                     nqp::handle(
                       nqp::if(
-                        nqp::istype(($result := &!block($value)),Slip),
+                        nqp::istype((my $result := &!block($value)),Slip),
                         self.slip-all($result,$target),
                         $target.push($result)
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd),
+                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
@@ -456,21 +448,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
 
         method sink-all(--> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one()),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -480,14 +464,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       'LABELED', $!label,
                       'NEXT', nqp::null,  # need NEXT for next LABEL support
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd)
+                      'LAST', return
                     ),
                   :nohandler
                   )
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
     }
 
@@ -571,19 +554,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $value2;
-            my $result;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -591,17 +565,17 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::handle(
                       nqp::if(
                         nqp::eqaddr(
-                          ($value2 := $!source.pull-one),
+                          (my $value2 := $!source.pull-one),
                           IterationEnd
                         ),
                         nqp::stmts(
-                          ($result := &!block($value)),
+                          (my $result := &!block($value)),
                           nqp::if(
                             nqp::istype($result,Slip),
                             self.slip-all($result,$target),
                             $target.push($result)
                           ),
-                          (return IterationEnd)
+                          return
                         ),
                         nqp::if(
                           nqp::istype(
@@ -614,7 +588,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd),
+                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
@@ -622,22 +596,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
 
         method sink-all(--> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $value2;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one()),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -645,26 +610,25 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::handle(  # doesn't sink
                       nqp::if(
                         nqp::eqaddr(
-                          ($value2 := $!source.pull-one),
+                          (my $value2 := $!source.pull-one),
                           IterationEnd
                         ),
                         nqp::stmts(
                           (&!block($value)),
-                          (return IterationEnd)
+                          return
                         ),
                         (&!block($value,$value2))
                       ),
                       'LABELED', $!label,
                       'NEXT', nqp::null,  # need NEXT for next LABEL support
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd)
+                      'LAST', return
                     )
                   ),
                 :nohandler
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
     }
 

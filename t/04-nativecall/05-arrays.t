@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 39;
+plan 40;
 
 compile_test_lib('05-arrays');
 
@@ -157,6 +157,11 @@ compile_test_lib('05-arrays');
     my CArray[uint8] $a .= new(200 xx 16);
     todo "RT #130267";
     is $a[0], 200, 'unsigned uint8 value';
+}
+
+# RT #131830
+{
+    lives-ok { CArray[Str].new[my int $ = 1] }, 'native int as index to CArray does not crash'
 }
 
 # vim:ft=perl6

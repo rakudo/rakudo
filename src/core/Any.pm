@@ -404,10 +404,14 @@ my class Any { # declared in BOOTSTRAP
           my $scalar,
           Scalar,
           '$!whence',
+          # NOTE: even though the signature indicates a non-concrete SELF,
+          # by the time the below code is executed, it *may* have become
+          # concrete: and then we don't want the execution to reset it to
+          # an empty Hash.
           -> { nqp::if(
                  nqp::isconcrete(SELF),
                  SELF,
-                 (SELF = Hash.new)
+                 (SELF = nqp::create(Hash))
                ).BIND-KEY(key, $scalar)
              }
         )

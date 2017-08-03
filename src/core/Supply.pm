@@ -1742,6 +1742,7 @@ sub SUPPLY(&block) {
                             if @phasers {
                                 self!run-supply-code({ .() for @phasers }, $state)
                             }
+                            $tap.?close;
                             self!deactivate-one($state);
                         },
                         quit => -> \ex {
@@ -1753,6 +1754,7 @@ sub SUPPLY(&block) {
                                     $handled = $phaser(ex) === Nil;
                                 }
                                 if $handled {
+                                    $tap.?close;
                                     self!deactivate-one($state);
                                 }
                                 elsif $state.get-and-zero-active() {

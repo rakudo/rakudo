@@ -1802,8 +1802,9 @@ sub SUPPLY(&block) {
 
         method !teardown($state) {
             .close for $state.consume-active-taps;
-            while $state.close-phasers.pop() -> $close {
-                $close();
+            my @close-phasers := $state.close-phasers;
+            while @close-phasers {
+                @close-phasers.pop()();
             }
         }
 

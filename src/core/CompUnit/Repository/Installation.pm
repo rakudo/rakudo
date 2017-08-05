@@ -503,7 +503,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         --> CompUnit:D)
     {
-        with self.candidates($spec).head {
+        with self!matching-dist($spec) {
             return CompUnit.new(
                 :handle(CompUnit::Handle),
                 :short-name($spec.short-name),
@@ -530,7 +530,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        with self.candidates($spec).head {
+        with self!matching-dist($spec) {
             my $source-file-name = .meta<source>;
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
                 unless $source-file-name;

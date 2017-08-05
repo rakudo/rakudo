@@ -350,8 +350,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         unlink( $dist-dir.add($dist.id) )
     }
 
+    # Ideally this would return Distributions, but it'd break older bin/ scripts
     proto method files(|) {*}
     multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
+        # if we have to include :$name then we take the slow path
+
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
             auth-matcher    => $auth // True,
@@ -362,10 +365,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         with self.candidates($spec) {
             my $matches := $_.grep: { .meta<files>{$file}:exists }
 
-            return $matches.map: {
-                .meta<source> = self!resources-dir.add(.meta<source>);
-                .meta;
+            my $absolutified-metas := $matches.map: {
+                my %meta      = $_.meta;
+                %meta<source> = self!resources-dir.add(%meta<files>{$file});
+                %meta;
             }
+
+            return $absolutified-metas.grep(*.<source>.e);
         }
     }
     multi method files($file, :$auth, :$ver, :$api) {
@@ -378,8 +384,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             api-matcher     => $api  // True,
         );
 
-        return self.candidates($spec).grep: {
-            .meta<source> = self!resources-dir.add(.meta<source>)
+        with self.candidates($spec) {
+            my $absolutified-metas := $_.map: {
+                my %meta = $_.meta;
+                %meta<source> = self!resources-dir.add(%meta<source> || %meta<files>{$file});
+                %meta;
+            }
+
+            return $absolutified-metas.grep(*.<source>.e);
         }
     }
 

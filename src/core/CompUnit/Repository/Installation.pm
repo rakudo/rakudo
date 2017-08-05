@@ -52,7 +52,7 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
+sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
 
@@ -223,12 +223,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # bin/ scripts
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
+            my $name        = $name-path.subst(/^bin\//, '');
             my $id          = self!file-id(~$file, $dist-id);
             my $destination = $resources-dir.add($id); # wrappers are put in bin/; originals in resources/
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl_wrapper.subst('#name#', $name-path, :g).subst('#perl#', "perl6$be");
+                    $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);

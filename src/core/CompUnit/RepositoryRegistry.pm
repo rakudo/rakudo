@@ -217,9 +217,9 @@ class CompUnit::RepositoryRegistry {
         shift @*ARGS if $ver;
 
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @candidates = @installations.map({ .files($script, :$name, :$auth, :$ver).head }).grep(*.defined);
+        my @candidates = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver).head }).grep(*.defined);
         unless +@candidates {
-            @candidates = flat @installations.map({ .files($script).Slip }).grep(*.defined);
+            @candidates = flat @installations.map({ .files("bin/$script").Slip }).grep(*.defined);
             if +@candidates {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"

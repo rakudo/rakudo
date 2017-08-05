@@ -366,9 +366,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $matches := $_.grep: { .meta<files>{$file}:exists }
 
             my $absolutified-metas := $matches.map: {
-                my %meta      = $_.meta;
-                %meta<source> = self!resources-dir.add(%meta<files>{$file});
-                %meta;
+                my $meta      = $_.meta;
+                $meta<source> = self!resources-dir.add($meta<files>{$file});
+                $meta;
             }
 
             return $absolutified-metas.grep(*.<source>.e);
@@ -386,9 +386,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         with self.candidates($spec) {
             my $absolutified-metas := $_.map: {
-                my %meta = $_.meta;
-                %meta<source> = self!resources-dir.add(%meta<source> || %meta<files>{$file});
-                %meta;
+                my $meta      = $_.meta;
+                $meta<source> = self!resources-dir.add($meta<source> || $meta<files>{$file});
+                $meta;
             }
 
             return $absolutified-metas.grep(*.<source>.e);

@@ -296,6 +296,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     has Mu $!rettype;
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
+    has int $!arity;
 
     method !setup() {
         $setup-lock.protect: {
@@ -320,6 +321,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
                 $arg_info,
                 return_hash_for($r.signature, $r, :$!entry-point));
             $!rettype := nqp::decont(map_return_type($r.returns));
+            $!arity = $r.signature.arity;
             $!setup = 1;
         }
     }
@@ -328,7 +330,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
         self!setup unless $!setup;
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-        if nqp::elems($args) != $r.signature.arity {
+        if nqp::elems($args) != $!arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),
                 :arguments(args.list.map(*.^name))

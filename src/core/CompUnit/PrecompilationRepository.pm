@@ -288,7 +288,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my @result = $out.lines.unique;
         if $status {  # something wrong
             self.store.unlock;
-            $RMD("Precomping $path failed: $status") if $RMD;
+            $RMD("Precompiling $path failed: $status") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
             die $RMD ?? @result !! $err;
         }

@@ -323,11 +323,27 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
             $!rettype := nqp::decont(map_return_type($r.returns));
             $!arity = $r.signature.arity;
             $!setup = 1;
+            my $block := -> |args {
+                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
+                if nqp::elems($args) != $!arity {
+                    X::TypeCheck::Argument.new(
+                        :objname($.name),
+                        :arguments(args.list.map(*.^name))
+                        :signature(try $r.signature.gist),
+                    ).throw
+                }
+                nqp::nativecall($!rettype, self, $args);
+            };
+            nqp::bindattr(self, Code, '$!do', nqp::getattr($block, Code, '$!do'));
+            nqp::setinvokespec(self,
+                Code.HOW.invocation_attr_class(Code),
+                Code.HOW.invocation_attr_name(Code),
+                nqp::null());
         }
     }
 
     method CALL-ME(|args) {
-        self!setup unless $!setup;
+        self!setup();
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $!arity {

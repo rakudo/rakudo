@@ -198,7 +198,21 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Str(Junction:D:) {
-        self.perl
+        nqp::stmts(
+          (my $storage := nqp::bindattr(
+            (my $junction := nqp::clone(self)),
+            Junction,
+            '$!storage',
+            nqp::clone(nqp::getattr(self,Junction,'$!storage'))
+          )),
+          (my int $elems = nqp::elems($storage)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::bindpos($storage,$i,nqp::atpos($storage,$i).Str)
+          ),
+          $junction
+        )
     }
 
     multi method gist(Junction:D:) {

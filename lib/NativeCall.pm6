@@ -1,4 +1,5 @@
 use nqp;
+use QAST:from<NQP>;
 
 module NativeCall {
 
@@ -322,19 +323,74 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
                 return_hash_for($r.signature, $r, :$!entry-point));
             $!rettype := nqp::decont(map_return_type($r.returns));
             $!arity = $r.signature.arity;
+            my $params = $r.signature.params;
             $!setup = 1;
-            my $block := -> |args {
-                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-                if nqp::elems($args) != $!arity {
-                    X::TypeCheck::Argument.new(
-                        :objname($.name),
-                        :arguments(args.list.map(*.^name))
-                        :signature(try $r.signature.gist),
-                    ).throw
+        }
+    }
+
+    method !create-optimized-call() {
+        $setup-lock.protect: {
+            my $sc := nqp::createsc('NativeCallSub' ~ nqp::objectid(self));
+            nqp::setobjsc(self, $sc);
+            my int $idx = nqp::scobjcount($sc);
+            nqp::scsetobj($sc, $idx, self);
+            my $block := QAST::Block.new(:arity($!arity));
+            my $arglist := QAST::Op.new(:op<list>);
+            my $locals = 0;
+            for $r.signature.params {
+                my $name = $_.name || '__anonymous_param__' ~ $++;
+                if $_.rw and nqp::objprimspec($_.type) > 0 {
+                    $block.push: QAST::Var.new(
+                        :name($name),
+                        :scope<lexicalref>,
+                        :decl<var>,
+                        :returns($_.type),
+                    );
+                    my $lowered_name = '__lowered_param__' ~ $locals++;
+                    $block.push: QAST::Var.new(
+                        :name($lowered_name),
+                        :scope<local>,
+                        :decl<param>,
+                        QAST::Op.new(
+                            :op<bind>,
+                            QAST::Var.new(:scope<lexicalref>, :name($name)),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                        ),
+                    );
+                    $arglist.push: QAST::Var.new(:scope<lexicalref>, :name($name));
                 }
-                nqp::nativecall($!rettype, self, $args);
-            };
-            nqp::bindattr(self, Code, '$!do', nqp::getattr($block, Code, '$!do'));
+                else {
+                    $block.push: QAST::Var.new(
+                        :name($name),
+                        :scope<lexical>,
+                        :decl<param>,
+                        :slurpy($_.slurpy ?? 1 !! 0),
+                    );
+                    $arglist.push: nqp::objprimspec($_.type) == 0
+                        ?? QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new(:scope<lexical>, :name($name)),
+                            )
+                        !! QAST::Var.new(:scope<lexical> :name($name));
+                }
+            }
+            my $stmts := QAST::Stmts.new(
+                QAST::Op.new(
+                    :op<nativecallinvoke>,
+                    QAST::WVal.new(:value($!rettype)),
+                    QAST::WVal.new(:value(self)),
+                    $arglist,
+                ),
+            );
+            $block.push: $stmts;
+            my $comp := nqp::getcomp("QAST");
+            my $mast := $comp.to_mast($block);
+            my $assmblr := nqp::getcomp("MAST");
+            my $result := $assmblr.assemble_and_load($mast);
+            my $body := nqp::compunitmainline($result);
+
+            nqp::setcodename($body, $r.name);
+            nqp::bindattr(self, Code, '$!do', $body);
             nqp::setinvokespec(self,
                 Code.HOW.invocation_attr_class(Code),
                 Code.HOW.invocation_attr_name(Code),
@@ -344,6 +400,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
 
     method CALL-ME(|args) {
         self!setup();
+        self!create-optimized-call() unless $*W; # Avoid issues with compiling specialized version during BEGIN time
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $!arity {

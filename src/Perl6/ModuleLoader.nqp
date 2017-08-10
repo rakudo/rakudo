@@ -5,7 +5,7 @@ my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug,
 ?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);
 sub DEBUG(*@strs) {
     my $err := stderr();
-    $err.print("     " ~ nqp::getpid() ~ " RMD: ");
+    $err.print(" " ~ $rakudo-module-debug ~ nqp::x(" ", ($rakudo-module-debug - 1) * 4) ~ " RMD: ");
     for @strs { $err.print($_) };
     $err.print("\n");
     1;

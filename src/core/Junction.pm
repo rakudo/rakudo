@@ -326,6 +326,46 @@ sub infix:<|>(+values) is pure { values.any }
 sub infix:<&>(+values) is pure { values.all }
 sub infix:<^>(+values) is pure { values.one }
 
+multi sub infix:<~>(Str:D $a, Junction:D $b) {
+    nqp::stmts(
+      (my $storage := nqp::bindattr(
+        (my $junction := nqp::clone($b)),
+        Junction,
+        '$!storage',
+        nqp::clone(nqp::getattr($b,Junction,'$!storage'))
+      )),
+      (my int $elems = nqp::elems($storage)),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+        nqp::bindpos($storage,$i,
+          nqp::concat($a,nqp::atpos($storage,$i).Str)
+        )
+      ),
+      $junction
+    )
+}
+
+multi sub infix:<~>(Junction:D $a, Str:D $b) {
+    nqp::stmts(
+      (my $storage := nqp::bindattr(
+        (my $junction := nqp::clone($a)),
+        Junction,
+        '$!storage',
+        nqp::clone(nqp::getattr($a,Junction,'$!storage'))
+      )),
+      (my int $elems = nqp::elems($storage)),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+        nqp::bindpos($storage,$i,
+          nqp::concat(nqp::atpos($storage,$i).Str,$b)
+        )
+      ),
+      $junction
+    )
+}
+
 sub AUTOTHREAD(|c) {
     Junction.AUTOTHREAD(|c)
 }

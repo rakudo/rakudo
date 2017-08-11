@@ -1697,33 +1697,26 @@ sub SUPPLY(&block) {
 
         method run-operation(&op --> Nil) {
             if $!active {
-                my $run-now = False;
+                my $run-now;
                 $!lock.protect({
-                    if @!queued-operations {
-                        @!queued-operations.push({
-                            op();
-                            self!maybe-another();
-                        });
-                    }
-                    else {
-                        @!queued-operations.push(&op);
-                        $run-now = True;
-                    }
+                    $run-now = not @!queued-operations;
+                    @!queued-operations.push(&op);
                 });
-                if $run-now {
-                    op();
-                    self!maybe-another();
-                }
+                self!run-loop(&op) if $run-now;
             }
         }
 
-        method !maybe-another(--> Nil) {
-            my &another;
-            $!lock.protect({
-                @!queued-operations.shift;
-                &another = @!queued-operations[0] if $!active && @!queued-operations;
-            });
-            &another && another();
+        method !run-loop(&initial --> Nil) {
+            my &current = &initial;
+            while &current {
+                current();
+                $!lock.protect({
+                    @!queued-operations.shift;
+                    &current = $!active && @!queued-operations
+                        ?? @!queued-operations[0]
+                        !! Nil;
+                });
+            }
         }
     }
 

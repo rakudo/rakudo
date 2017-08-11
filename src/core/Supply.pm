@@ -96,11 +96,25 @@ my class Supply does Awaitable {
             submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
             method tap(&emit, &done, &quit) {
+                my int $closed = 0;
+                my $t = Tap.new({
+                    if &!closing {
+                        &!closing() unless $closed++;
+                    }
+                });
                 my $p = Supplier.new;
-                $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
+                $p.Supply.tap(&emit,
+                    done => {
+                        done();
+                        $t.close();
+                    },
+                    quit => -> \ex {
+                        quit(ex);
+                        $t.close();
+                    });
                 $!scheduler.cue({ &!producer($p) },
                     catch => -> \ex { $p.quit(ex) });
-                Tap.new(&!closing)
+                $t
             }
 
             method live(--> False) { }

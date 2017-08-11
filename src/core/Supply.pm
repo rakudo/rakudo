@@ -1651,8 +1651,8 @@ my class Supplier::Preserving is Supplier {
     }
 }
 
-sub SUPPLY(&block) {
-    my class SupplyBlockState {
+augment class Rakudo::Internals {
+    class SupplyBlockState {
         has &.emit;
         has &.done;
         has &.quit;
@@ -1679,11 +1679,15 @@ sub SUPPLY(&block) {
         }
 
         method add-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)} = $tap }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)} = $tap;
+            }
         }
 
         method delete-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)}:delete }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)}:delete;
+            }
         }
 
         method consume-active-taps() {
@@ -1720,13 +1724,13 @@ sub SUPPLY(&block) {
         }
     }
 
-    Supply.new(class :: does Tappable {
+    class SupplyBlockTappable does Tappable {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
-            my $state = SupplyBlockState.new(:&emit, :&done, :&quit);
+            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
             self!run-supply-code(&!block, $state);
             if nqp::istype(&!block,Block) {
                 $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
@@ -1818,7 +1822,11 @@ sub SUPPLY(&block) {
         method live(--> False) { }
         method sane(--> True) { }
         method serial(--> True) { }
-    }.new(:&block))
+    }
+}
+
+sub SUPPLY(&block) {
+    Supply.new(Rakudo::Internals::SupplyBlockTappable.new(:&block))
 }
 
 sub WHENEVER(Supply() $supply, &block) {

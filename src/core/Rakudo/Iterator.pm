@@ -3041,6 +3041,92 @@ class Rakudo::Iterator {
         }.new(shape)
     }
 
+    # Return an iterator that only will return the two given values.
+    method TwoValues(\val1, \val2) {
+        class :: does Iterator {
+            has Mu $!val1;
+            has Mu $!val2;
+            method new(\val1, \val2) {
+                nqp::p6bindattrinvres(
+                  nqp::p6bindattrinvres(nqp::create(self),self,'$!val1',val1),
+                  self,'$!val2',val2
+                )
+            }
+            method pull-one() is raw {
+                nqp::if(
+#?if jvm
+                  nqp::eqaddr($!val1,Mu),
+                  nqp::if(
+                    nqp::eqaddr($!val2,Mu),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my Mu $val2 := $!val2),
+                      ($!val2 := Mu),
+                      $val2
+                    )
+                  ),
+                  nqp::stmts(
+                    (my $val1 := $!val1),
+                    ($!val1 := Mu),
+#?endif
+#?if !jvm
+                  nqp::isnull($!val1),
+                  nqp::if(
+                    nqp::isnull($!val2),
+                    IterationEnd,
+                    nqp::stmts(
+                      (my Mu $val2 := $!val2),
+                      ($!val2 := nqp::null),
+                      $val2
+                    )
+                  ),
+                  nqp::stmts(
+                    (my $val1 := $!val1),
+                    ($!val1 := nqp::null),
+#?endif
+                    $val1
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+#?if jvm
+                  nqp::if(
+                    nqp::eqaddr($!val1,Mu),
+                    nqp::unless(nqp::eqaddr($!val2,Mu),$target.push($!val2)),
+                    nqp::stmts(
+                      $target.push($!val1),
+                      $target.push($!val2)
+                    )
+                  ),
+                  ($!val1 := $!val2 := Mu)
+#?endif
+#?if !jvm
+                  nqp::if(
+                    nqp::isnull($!val1),
+                    nqp::unless(nqp::isnull($!val2),$target.push($!val2)),
+                    nqp::stmts(
+                      $target.push($!val1),
+                      $target.push($!val2)
+                    )
+                  ),
+                  ($!val1 := $!val2 := nqp::null)
+#?endif
+                )
+            }
+            method sink-all(--> IterationEnd) {
+#?if jvm
+                $!val1 := $!val2 := Mu
+#?endif
+#?if !jvm
+                $!val1 := $!val2 := nqp::null
+#?endif
+            }
+            method count-only(--> 2) { }
+            method bool-only(--> True) { }
+        }.new(val1, val2)
+    }
+
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
     method UnendingValue(Mu \value) {

@@ -339,7 +339,14 @@ multi sub infix:<~>(Str:D $a, Junction:D $b) {
       nqp::while(
         nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
         nqp::bindpos($storage,$i,
-          nqp::concat($a,nqp::atpos($storage,$i).Str)
+          nqp::concat(
+            $a,
+            nqp::if(
+              nqp::istype((my $val := nqp::atpos($storage,$i)),Str),
+              $val,
+              $val.Str
+            )
+          )
         )
       ),
       $junction
@@ -359,7 +366,14 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
       nqp::while(
         nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
         nqp::bindpos($storage,$i,
-          nqp::concat(nqp::atpos($storage,$i).Str,$b)
+          nqp::concat(
+            nqp::if(
+              nqp::istype((my $val := nqp::atpos($storage,$i)),Str),
+              $val,
+              $val.Str
+            ),
+            $b
+          )
         )
       ),
       $junction

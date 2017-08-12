@@ -26,7 +26,7 @@ my class Pair does Associative {
     multi method WHICH(Pair:D:) {
         nqp::iscont($!value)
           ?? nextsame()
-          !! "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH
+          !! nqp::box_s("Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,ObjAt)
     }
 
     multi method ACCEPTS(Pair:D: %h) {

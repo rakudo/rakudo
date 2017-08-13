@@ -3133,6 +3133,25 @@ class Rakudo::Iterator {
 #?endif
                 )
             }
+            method skip-one() {
+                nqp::if(
+#?if jvm
+                  nqp::not_i(nqp::eqaddr($!val1,Mu)),
+                  nqp::isfalse($!val1 := Mu)),
+                  nqp::if(
+                    nqp::not_i(nqp::eqaddr($!val2,Mu)),
+                    nqp::isfalse($!val2 := Mu)
+#?endif
+#?if !jvm
+                  nqp::not_i(nqp::isnull($!val1)),
+                  nqp::isfalse($!val1 := nqp::null),
+                  nqp::if(
+                    nqp::not_i(nqp::isnull($!val2)),
+                    nqp::isfalse($!val2 := nqp::null)
+#?endif
+                  )
+                )
+            }
             method sink-all(--> IterationEnd) {
 #?if jvm
                 $!val1 := $!val2 := Mu

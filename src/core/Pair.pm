@@ -1,6 +1,7 @@
 my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
+    has Mu $!WHICH;
 
     proto method new(|) { * }
     # This candidate is needed because it currently JITS better
@@ -24,9 +25,17 @@ my class Pair does Associative {
     }
 
     multi method WHICH(Pair:D:) {
-        nqp::iscont($!value)
-          ?? nextsame()
-          !! nqp::box_s("Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,ObjAt)
+        nqp::unless(
+          $!WHICH,
+          ($!WHICH := nqp::if(
+            nqp::iscont($!value),
+            callsame,
+            nqp::box_s(
+              "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,
+              ObjAt
+            )
+          ))
+        )
     }
 
     multi method ACCEPTS(Pair:D: %h) {

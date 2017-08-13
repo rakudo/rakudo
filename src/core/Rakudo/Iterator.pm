@@ -2186,7 +2186,26 @@ class Rakudo::Iterator {
 #?endif
                 )
             }
-            method sink-all(--> IterationEnd) { $!value := nqp::null }
+            method skip-one() {
+                nqp::if(
+#?if jvm
+                  nqp::not_i(nqp::eqaddr($!value,Mu)),
+                  nqp::isfalse($!value := Mu))
+#?endif
+#?if !jvm
+                  nqp::not_i(nqp::isnull($!value)),
+                  nqp::isfalse($!value := nqp::null)
+#?endif
+                )
+            }
+            method sink-all(--> IterationEnd) {
+#?if jvm
+                $!value := Mu
+#?endif
+#?if !jvm
+                $!value := nqp::null
+#?endif
+            }
             method count-only(--> 1) { }
             method bool-only(--> True) { }
         }.new(value)

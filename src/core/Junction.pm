@@ -209,7 +209,10 @@ my class Junction { # declared in BOOTSTRAP
           (my int $i = -1),
           nqp::while(
             nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos($storage,$i,nqp::atpos($storage,$i).Str)
+            nqp::unless(
+              nqp::istype(nqp::atpos($storage,$i),Str),
+              nqp::bindpos($storage,$i,nqp::atpos($storage,$i).Str)
+            )
           ),
           $junction
         )

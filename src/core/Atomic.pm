@@ -4,8 +4,13 @@ multi sub cas($target is rw, $expected, $value) {
 }
 
 multi sub cas($target is rw, &code) {
-    # XXX Rewrite this to really use atomic compare and swap
-    $target = code($target)
+    my $current := nqp::atomicload($target);
+    loop {
+        my $updated := code($current);
+        my $seen := nqp::cas($target, $current, $updated);
+        return $updated if nqp::eqaddr($seen, $current);
+        $current := $seen;
+    }
 }
 #?endif
 

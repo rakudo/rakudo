@@ -398,7 +398,8 @@ static void rakudo_scalar_cas(MVMThreadContext *tc, MVMObject *cont,
 }
 
 static MVMObject * rakudo_scalar_atomic_load(MVMThreadContext *tc, MVMObject *cont) {
-    MVM_exception_throw_adhoc(tc, "Scalar atomic load NYI");
+    MVMObject *value = (MVMObject *)MVM_load(&(((Rakudo_Scalar *)cont)->value));
+    return value ? value : tc->instance->VMNull;
 }
 
 void rakudo_scalar_atomic_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *value) {

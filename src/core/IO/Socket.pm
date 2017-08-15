@@ -1,8 +1,8 @@
 my role IO::Socket {
     has $!PIO;
-    has Str $.encoding       is default('utf8');
-    has $.nl-in        is rw is default(["\n", "\r\n"]);
-    has Str:D $.nl-out is rw is default("\n");
+    has Str $.encoding = 'utf8';
+    has $.nl-in is rw = ["\n", "\r\n"];
+    has Str:D $.nl-out is rw = "\n";
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
 
@@ -55,8 +55,10 @@ my role IO::Socket {
             FETCH => { $!nl-in },
             STORE => -> $, $nl-in {
                 $!nl-in = $nl-in;
-                $!decoder && $!decoder.set-line-separators($!nl-in.list);
-                $!nl-in
+                with $!decoder {
+                    .set-line-separators($!nl-in.list);
+                }
+                $nl-in
             }
         )
     }

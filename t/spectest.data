@@ -817,7 +817,9 @@ S17-channel/basic.t
 S17-channel/stress.t     # stress slow
 S17-lowlevel/atomic.t    # moar
 S17-lowlevel/cas.t       # moar
+S17-lowlevel/cas-int.t   # moar
 S17-lowlevel/cas-loop.t  # moar
+S17-lowlevel/cas-loop-int.t # moar
 S17-lowlevel/lock.t      # slow
 S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t

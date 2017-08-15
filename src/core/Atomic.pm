@@ -45,6 +45,18 @@ multi sub cas($target is rw, $expected, $value) {
     nqp::cas($target, $expected, $value)
 }
 
+multi sub cas(atomicint $target is rw, int $expected, int $value) {
+    nqp::cas_i($target, $expected, $value)
+}
+
+multi sub cas(atomicint $target is rw, Int $expected, Int $value) {
+    nqp::cas_i($target, $expected, $value)
+}
+
+multi sub cas(atomicint $target is rw, $expected, $value) {
+    nqp::cas_i($target, $expected.Int, $value.Int)
+}
+
 multi sub cas($target is rw, &code) {
     my $current := nqp::atomicload($target);
     loop {

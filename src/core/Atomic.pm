@@ -1,4 +1,20 @@
 #?if moar
+my class Atomic is repr('Uninstantiable') {
+    proto method fetch($) {*}
+    multi method fetch($source is rw) {
+        nqp::atomicload($source)
+    }
+
+    proto method assign($, $) {*}
+    multi method assign($target is rw, $value) {
+        nqp::atomicstore($target, $value)
+    }
+
+    method full-barrier(--> Nil) {
+        nqp::barrierfull()
+    }
+}
+
 multi sub cas($target is rw, $expected, $value) {
     nqp::cas($target, $expected, $value)
 }

@@ -54,6 +54,16 @@ multi sub cas($target is rw, &code) {
         $current := $seen;
     }
 }
+
+multi sub cas(atomicint $target is rw, &code) {
+    my int $current = nqp::atomicload_i($target);
+    loop {
+        my int $updated = code($current);
+        my int $seen = nqp::cas_i($target, $current, $updated);
+        return $updated if $seen == $current;
+        $current = $seen;
+    }
+}
 #?endif
 
 #?if !moar

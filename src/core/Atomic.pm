@@ -1,4 +1,6 @@
 #?if moar
+my native atomicint is repr('P6int') is Int is ctype('atomic') { }
+
 my class Atomic is repr('Uninstantiable') {
     proto method fetch($) {*}
     multi method fetch($source is rw) {

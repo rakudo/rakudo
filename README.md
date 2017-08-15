@@ -16,7 +16,7 @@ Note that different backends implement slightly different sets of
 features. For a high-level overview of implemented and missing features,
 please visit [the features page on perl6.org](http://perl6.org/compilers/features).
 
-Recent changes and feature additions are documented in the `doc/ChangeLog`
+Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
 ## Building and Installing Rakudo

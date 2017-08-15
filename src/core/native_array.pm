@@ -1017,7 +1017,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-01-22T22:56:03+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1476,10 +1476,20 @@ my class array does Iterable {
 
     role shaped2intarray does shapedintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+#?if moar
+            nqp::multidimref_i(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_i(self,one,two)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+#?if moar
+            nqp::multidimref_i(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_i(self,one,two)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Int:D \value) {
@@ -1509,10 +1519,20 @@ my class array does Iterable {
 
     role shaped3intarray does shapedintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+#?if moar
+            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_i(self,one,two,three)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+#?if moar
+            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_i(self,one,two,three)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value) {
@@ -1547,7 +1567,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-01-22T22:56:03+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2006,10 +2026,20 @@ my class array does Iterable {
 
     role shaped2numarray does shapednumarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+#?if moar
+            nqp::multidimref_n(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_n(self,one,two)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+#?if moar
+            nqp::multidimref_n(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_n(self,one,two)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Num:D \value) {
@@ -2039,10 +2069,20 @@ my class array does Iterable {
 
     role shaped3numarray does shapednumarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+#?if moar
+            nqp::multidimref_n(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_n(self,one,two,three)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+#?if moar
+            nqp::multidimref_n(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_n(self,one,two,three)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value) {
@@ -2077,7 +2117,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-01-22T22:56:03+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2536,10 +2576,20 @@ my class array does Iterable {
 
     role shaped2strarray does shapedstrarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+#?if moar
+            nqp::multidimref_s(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_s(self,one,two)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+#?if moar
+            nqp::multidimref_s(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_s(self,one,two)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Str:D \value) {
@@ -2569,10 +2619,20 @@ my class array does Iterable {
 
     role shaped3strarray does shapedstrarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+#?if moar
+            nqp::multidimref_s(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_s(self,one,two,three)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+#?if moar
+            nqp::multidimref_s(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_s(self,one,two,three)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value) {

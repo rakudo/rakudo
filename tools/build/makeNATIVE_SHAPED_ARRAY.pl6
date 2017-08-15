@@ -71,7 +71,7 @@ for $*IN.lines -> $line {
                   needed-dimensions => $numdims
                 ).throw,
                 X::NYI.new(
-                  feature => "Partially dimensioned views of arrays"
+                  feature => "Partially dimensioned views of shaped arrays"
                 ).throw
               )
             )
@@ -498,10 +498,20 @@ for $*IN.lines -> $line {
 
     role shaped2#type#array does shaped#type#array {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+#?if moar
+            nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_#postfix#(self,one,two)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+#?if moar
+            nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
+#?endif
+#?if !moar
             nqp::atpos2d_#postfix#(self,one,two)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, #Type#:D \value) {
@@ -531,10 +541,20 @@ for $*IN.lines -> $line {
 
     role shaped3#type#array does shaped#type#array {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+#?if moar
+            nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_#postfix#(self,one,two,three)
+#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+#?if moar
+            nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
+#?endif
+#?if !moar
             nqp::atpos3d_#postfix#(self,one,two,three)
+#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value) {

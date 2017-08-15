@@ -300,6 +300,13 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     throw 'Could not find arguments for dispatcher';
   };
 
+  op.p6sink = function(ctx, obj) {
+    if (obj.typeObject_ || obj === Null) return;
+    if (obj.$$can(ctx, 'sink')) {
+      obj.sink(ctx, null, obj);
+    }
+  };
+
   function RakudoScalar(STable) {
     this.STable = STable;
   }

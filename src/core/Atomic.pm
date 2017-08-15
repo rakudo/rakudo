@@ -6,10 +6,34 @@ my class Atomic is repr('Uninstantiable') {
     multi method fetch($source is rw) {
         nqp::atomicload($source)
     }
+    multi method fetch(atomicint $source is rw) {
+        nqp::atomicload_i($source)
+    }
 
     proto method assign($, $) {*}
     multi method assign($target is rw, $value) {
         nqp::atomicstore($target, $value)
+    }
+    multi method assign(atomicint $target is rw, int $value) {
+        nqp::atomicstore_i($target, $value)
+    }
+    multi method assign(atomicint $target is rw, Int $value) {
+        nqp::atomicstore_i($target, $value)
+    }
+    multi method assign(atomicint $target is rw, $value) {
+        nqp::atomicstore_i($target, $value.Int)
+    }
+
+    method inc(atomicint $target is rw --> atomicint) {
+        nqp::atomicinc_i($target)
+    }
+
+    method dec(atomicint $target is rw --> atomicint) {
+        nqp::atomicdec_i($target)
+    }
+
+    method add(atomicint $target is rw, int $add --> atomicint) {
+        nqp::atomicadd_i($target, $add)
     }
 
     method full-barrier(--> Nil) {

@@ -982,7 +982,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :is_nested($*W.is_nested()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                $*W.is_null_setting ?? QAST::Op.new(:op<null>) !! QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
+                QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
             )),
 
             # If this unit is loaded as a module, we want it to automatically
@@ -6126,11 +6126,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
-        my class LackingPairClass {}
-        my $Pair := LackingPairClass;
-        try {
-            $Pair := $*W.find_symbol(['Pair']);
-        };
+        my $Pair := $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {

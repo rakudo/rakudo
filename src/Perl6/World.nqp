@@ -652,17 +652,12 @@ class Perl6::World is HLL::World {
     method mop_up_and_check($/) {
 
         # Install POD-related variables.
-        if $*W.is_null_setting {
-            $*POD_PAST := QAST::Op.new(:op<null>);
-        }
-        else {
-            $*POD_PAST := self.add_constant(
-                'Array', 'type_new', :nocache, |$*POD_BLOCKS
-            );
-            self.install_lexical_symbol(
-                $*UNIT, '$=pod', $*POD_PAST.compile_time_value
-            );
-        }
+        $*POD_PAST := self.add_constant(
+            'Array', 'type_new', :nocache, |$*POD_BLOCKS
+        );
+        self.install_lexical_symbol(
+            $*UNIT, '$=pod', $*POD_PAST.compile_time_value
+        );
 
         # Tag UNIT with a magical lexical. Also if we're compiling CORE,
         # give it such a tag too.
@@ -3831,10 +3826,6 @@ class Perl6::World is HLL::World {
         for self.stash_hash($*GLOBALish) {
             return 0 if $code($_.key, $_.value, 1, hash()) == 0;
         }
-    }
-
-    method is_null_setting() {
-        %*COMPILING<%?OPTIONS><setting> eq 'NULL';
     }
 
     # Finds a symbol that has a known value at compile time from the

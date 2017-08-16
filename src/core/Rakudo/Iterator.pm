@@ -2190,7 +2190,7 @@ class Rakudo::Iterator {
                 nqp::if(
 #?if jvm
                   nqp::not_i(nqp::eqaddr($!value,Mu)),
-                  nqp::isfalse($!value := Mu))
+                  nqp::isfalse($!value := Mu)
 #?endif
 #?if !jvm
                   nqp::not_i(nqp::isnull($!value)),
@@ -3137,7 +3137,7 @@ class Rakudo::Iterator {
                 nqp::if(
 #?if jvm
                   nqp::not_i(nqp::eqaddr($!val1,Mu)),
-                  nqp::isfalse($!val1 := Mu)),
+                  nqp::isfalse($!val1 := Mu),
                   nqp::if(
                     nqp::not_i(nqp::eqaddr($!val2,Mu)),
                     nqp::isfalse($!val2 := Mu)

@@ -36,9 +36,10 @@ my class Atomic is repr('Uninstantiable') {
         nqp::atomicadd_i($target, $add)
     }
 
-    method full-barrier(--> Nil) {
-        nqp::barrierfull()
-    }
+}
+
+sub full-barrier(--> Nil) {
+    nqp::barrierfull()
 }
 
 multi sub cas($target is rw, $expected, $value) {

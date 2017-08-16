@@ -1,5 +1,3 @@
-# $DEBUG is set to 1 for Truey numeric values of ENV 'RAKUDO_MODULE_DEBUG'
-# or for non-numeric strings. All other cases $DEBUG is set to 0
 my $rakudo-module-debug := nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
 my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0)),($debug-radix[2] != -1))
 ?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);

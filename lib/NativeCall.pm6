@@ -298,6 +298,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
+    has $!is-clone;
 
     method !setup() {
         $setup-lock.protect: {
@@ -403,9 +404,17 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
         }
     }
 
+    method clone() {
+        my $clone := callsame;
+        nqp::bindattr($clone, $?CLASS, '$!is-clone', 1);
+        $clone
+    }
+
     method CALL-ME(|args) {
         self!setup();
-        self!create-optimized-call() unless $*W; # Avoid issues with compiling specialized version during BEGIN time
+        self!create-optimized-call() unless
+            $!is-clone # Clones and original would share the invokespec but not the $!do attribute
+            or $*W;    # Avoid issues with compiling specialized version during BEGIN time
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $!arity {

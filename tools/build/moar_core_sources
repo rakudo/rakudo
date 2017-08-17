@@ -162,7 +162,7 @@ src/core/Promise.pm
 src/core/Channel.pm
 src/core/Supply.pm
 src/core/asyncops.pm
-src/core/Atomic.pm
+src/core/atomicops.pm
 src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm

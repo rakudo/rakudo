@@ -162,6 +162,7 @@ src/core/Supply.pm
 src/core/JVM/KeyReducer.pm
 src/core/JVM/IOAsyncFile.pm
 src/core/asyncops.pm
+src/core/atomicops.pm
 src/core/IO/Socket.pm
 src/core/IO/Socket/INET.pm
 src/core/IO/Socket/Async.pm

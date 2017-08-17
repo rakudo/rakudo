@@ -15,7 +15,7 @@ M_LIBPATH = $(LIBDIR)@slash@nqp@slash@lib
 M_INCPATH = $(MOAR_PREFIX)@slash@include
 NQP_LIBPATH = @nqp::libdir@
 
-M_RUN_PERL6 = $(MOAR) --libpath="$(M_LIBPATH)" --libpath="$(NQP_LIBPATH)" perl6.moarvm --nqp-lib=blib
+M_RUN_PERL6 = NQP_LIB=blib $(MOAR) --libpath="$(M_LIBPATH)" --libpath="$(NQP_LIBPATH)" perl6.moarvm --nqp-lib=blib
 
 M_BAT    = @runner_suffix@
 M_RUNNER = perl6-m@runner_suffix@
@@ -113,7 +113,7 @@ $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
 
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
 	$(M_NQP) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > $(M_BUILD_DIR)/ModuleLoader.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/ModuleLoader.nqp
 
 $(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
@@ -121,49 +121,49 @@ $(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
 	    src/vm/moar/Perl6/Ops.nqp
 
 $(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) $(PERL6_P_MOAR) src/Perl6/World.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_W_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_W_MOAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
 $(PERL6_P_MOAR): src/Perl6/Pod.nqp $(PERL6_DP_MOAR)
-	$(M_NQP) --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 
 $(PERL6_DP_MOAR): src/Perl6/DebugPod.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_DP_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_DP_MOAR) --encoding=utf8 \
 	    src/Perl6/DebugPod.nqp
 
 $(PERL6_A_MOAR): src/Perl6/Actions.nqp $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/Perl6/Actions.nqp > $(M_BUILD_DIR)/Perl6-Actions.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_A_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_A_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Perl6-Actions.nqp
 
 $(PERL6_G_MOAR): src/Perl6/Grammar.nqp $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P_MOAR)
-	$(M_NQP) --target=mbc --output=$(PERL6_G_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_G_MOAR) --encoding=utf8 \
 	    src/Perl6/Grammar.nqp
 
 $(PERL6_O_MOAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/Perl6/Optimizer.nqp > $(M_BUILD_DIR)/Perl6-Optimizer.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_O_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_O_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Perl6-Optimizer.nqp
 
 $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
-	$(M_NQP) --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 
 $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(PERL6_DP_MOAR)
 	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(M_BUILD_DIR)/main-version.nqp
 	$(M_NQP) $(M_GEN_CAT) src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_MOAR) \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/main.nqp
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) -f tools/build/common_bootstrap_sources > $(M_BUILD_DIR)/Metamodel.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Metamodel.nqp
 
 $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
 	$(M_NQP) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > $(M_BUILD_DIR)/BOOTSTRAP.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/BOOTSTRAP.nqp
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
@@ -191,7 +191,7 @@ m-runner-default: $(M_RUNNER)
 
 $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/perl6-debug.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/perl6-debug.nqp
-	$(M_NQP) --target=mbc --output=$(PERL6_DEBUG_MOAR) \
+	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_DEBUG_MOAR) \
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/perl6-debug.nqp
 
 $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)

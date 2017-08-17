@@ -9,6 +9,14 @@ multi sub atomic-fetch(atomicint $source is rw) {
     nqp::atomicload_i($source)
 }
 
+proto sub prefix:<⚛>($) {*}
+multi sub prefix:<⚛>($source is rw) {
+    nqp::atomicload($source)
+}
+multi sub prefix:<⚛>(atomicint $source is rw) {
+    nqp::atomicload_i($source)
+}
+
 proto sub atomic-assign($, $) {*}
 multi sub atomic-assign($target is rw, $value) {
     nqp::atomicstore($target, $value)
@@ -23,16 +31,50 @@ multi sub atomic-assign(atomicint $target is rw, $value) {
     nqp::atomicstore_i($target, $value.Int)
 }
 
+proto sub infix:<⚛=>($, $) {*}
+multi sub infix:<⚛=>($target is rw, $value) {
+    nqp::atomicstore($target, $value)
+}
+multi sub infix:<⚛=>(atomicint $target is rw, int $value) {
+    nqp::atomicstore_i($target, $value)
+}
+multi sub infix:<⚛=>(atomicint $target is rw, Int $value) {
+    nqp::atomicstore_i($target, $value)
+}
+multi sub infix:<⚛=>(atomicint $target is rw, $value) {
+    nqp::atomicstore_i($target, $value.Int)
+}
+
 sub atomic-inc(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
+}
+
+sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
+    nqp::atomicinc_i($target)
+}
+
+sub prefix:<⚛++>(atomicint $target is rw --> atomicint) {
+    nqp::atomicinc_i($target) + 1
 }
 
 sub atomic-dec(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
+sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
+    nqp::atomicdec_i($target)
+}
+
+sub prefix:<⚛-->(atomicint $target is rw --> atomicint) {
+    nqp::atomicdec_i($target) - 1
+}
+
 sub atomic-add(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
+}
+
+sub infix:<⚛+=>(atomicint $target is rw, int $add --> atomicint) {
+    nqp::atomicadd_i($target, $add) + $add
 }
 
 sub full-barrier(--> Nil) {

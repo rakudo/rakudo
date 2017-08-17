@@ -1,41 +1,38 @@
 #?if moar
 my native atomicint is repr('P6int') is Int is ctype('atomic') { }
 
-my class Atomic is repr('Uninstantiable') {
-    proto method fetch($) {*}
-    multi method fetch($source is rw) {
-        nqp::atomicload($source)
-    }
-    multi method fetch(atomicint $source is rw) {
-        nqp::atomicload_i($source)
-    }
+proto sub atomic-fetch($) {*}
+multi sub atomic-fetch($source is rw) {
+    nqp::atomicload($source)
+}
+multi sub atomic-fetch(atomicint $source is rw) {
+    nqp::atomicload_i($source)
+}
 
-    proto method assign($, $) {*}
-    multi method assign($target is rw, $value) {
-        nqp::atomicstore($target, $value)
-    }
-    multi method assign(atomicint $target is rw, int $value) {
-        nqp::atomicstore_i($target, $value)
-    }
-    multi method assign(atomicint $target is rw, Int $value) {
-        nqp::atomicstore_i($target, $value)
-    }
-    multi method assign(atomicint $target is rw, $value) {
-        nqp::atomicstore_i($target, $value.Int)
-    }
+proto sub atomic-assign($, $) {*}
+multi sub atomic-assign($target is rw, $value) {
+    nqp::atomicstore($target, $value)
+}
+multi sub atomic-assign(atomicint $target is rw, int $value) {
+    nqp::atomicstore_i($target, $value)
+}
+multi sub atomic-assign(atomicint $target is rw, Int $value) {
+    nqp::atomicstore_i($target, $value)
+}
+multi sub atomic-assign(atomicint $target is rw, $value) {
+    nqp::atomicstore_i($target, $value.Int)
+}
 
-    method inc(atomicint $target is rw --> atomicint) {
-        nqp::atomicinc_i($target)
-    }
+sub atomic-inc(atomicint $target is rw --> atomicint) {
+    nqp::atomicinc_i($target)
+}
 
-    method dec(atomicint $target is rw --> atomicint) {
-        nqp::atomicdec_i($target)
-    }
+sub atomic-dec(atomicint $target is rw --> atomicint) {
+    nqp::atomicdec_i($target)
+}
 
-    method add(atomicint $target is rw, int $add --> atomicint) {
-        nqp::atomicadd_i($target, $add)
-    }
-
+sub atomic-add(atomicint $target is rw, int $add --> atomicint) {
+    nqp::atomicadd_i($target, $add)
 }
 
 sub full-barrier(--> Nil) {

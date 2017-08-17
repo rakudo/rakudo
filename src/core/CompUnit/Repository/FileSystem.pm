@@ -31,7 +31,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my @parts =
                 grep { .defined }, (.id with self.next-repo), slip   # slip next repo id into hash parts to be hashed together
                 map  { nqp::sha1(slurp($_, :enc<iso-8859-1>)) },     # D8FEDAD3A05A68501ED829E21E5C8C80850910AB, 0BDE185BBAE51CE25E18A90B551A60AF27A9239C
-                map  { self!dist-prefix.child($_).absolute },        # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
+                map  { self!dist-prefix.child($_) },                 # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
                 self!distribution.meta<provides>.values.unique.sort; # lib/Foo/Bar.pm6, lib/Foo/Baz.pm6
             $!id = nqp::sha1(@parts.join(''));
         }
@@ -160,8 +160,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     proto method files(|) {*}
     multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
-        # if we have to include :$name then we take the slow path
-
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
             auth-matcher    => $auth // True,
@@ -201,12 +199,12 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !distribution {
-        $!prefix.add('META6.json').f
+        my $distribution := $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)
             !! Distribution::Hash.new({
                     name  => ~$!prefix,
-                    ver   => 0,
-                    api   => 0,
+                    ver   => '*',
+                    api   => '*',
                     auth  => '',
                     files => %((
                         (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('bin').absolute).map({ .IO.relative(self!dist-prefix) }).map({
@@ -221,7 +219,12 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     provides => Rakudo::Internals.DIR-RECURSE($!prefix.absolute).map({ .IO.relative(self!dist-prefix) }).map({
                         $_.subst(:g, /\/ | \\/, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_
                     }).hash,
-                }, :prefix(self!dist-prefix))
+                }, :prefix(self!dist-prefix));
+
+        $distribution.meta<ver> = Version.new($distribution.meta<ver version>.first(*.defined) // 0);
+        $distribution.meta<resources> //= $distribution.meta<files>.keys.grep(*.starts-with('resources/')).map(*.substr(10)).list;
+
+        return $distribution;
     }
 
     method resource($dist-id, $key) {

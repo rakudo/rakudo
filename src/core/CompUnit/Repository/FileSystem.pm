@@ -157,6 +157,48 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return ($!distribution,);
     }
 
+    proto method files(|) {*}
+    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
+        # if we have to include :$name then we take the slow path
+
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $name,
+            auth-matcher    => $auth // True,
+            version-matcher => $ver  // True,
+            api-matcher     => $api  // True,
+        );
+
+        with self.candidates($spec) {
+            my $matches := $_.grep: { .meta<files>{$file}:exists }
+
+            my $absolutified-metas := $matches.map: {
+                my $meta      = $_.meta;
+                $meta<source> = self!dist-prefix.add($meta<files>{$file});
+                $meta;
+            }
+
+            return $absolutified-metas.grep(*.<source>.e);
+        }
+    }
+    multi method files($file, :$auth, :$ver, :$api) {
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $file,
+            auth-matcher    => $auth // True,
+            version-matcher => $ver  // True,
+            api-matcher     => $api  // True,
+        );
+
+        with self.candidates($spec) {
+            my $absolutified-metas := $_.map: {
+                my $meta      = $_.meta;
+                $meta<source> = self!dist-prefix.add($meta<files>{$file});
+                $meta;
+            }
+
+            return $absolutified-metas.grep(*.<source>.e);
+        }
+    }
+
     method !distribution {
         $!distribution //= $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)

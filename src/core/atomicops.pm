@@ -54,7 +54,7 @@ sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
 }
 
 sub prefix:<⚛++>(atomicint $target is rw --> atomicint) {
-    nqp::atomicinc_i($target) + 1
+    my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
 sub atomic-dec(atomicint $target is rw --> atomicint) {
@@ -66,15 +66,30 @@ sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
 }
 
 sub prefix:<⚛-->(atomicint $target is rw --> atomicint) {
-    nqp::atomicdec_i($target) - 1
+    my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 
-sub atomic-add(atomicint $target is rw, int $add --> atomicint) {
+proto sub atomic-add($, $) {*}
+multi sub atomic-add(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
+multi sub atomic-add(atomicint $target is rw, Int $add --> atomicint) {
+    nqp::atomicadd_i($target, $add)
+}
+multi sub atomic-add(atomicint $target is rw, $add --> atomicint) {
+    nqp::atomicadd_i($target, $add.Int)
+}
 
-sub infix:<⚛+=>(atomicint $target is rw, int $add --> atomicint) {
-    nqp::atomicadd_i($target, $add) + $add
+proto sub infix:<⚛+=>($, $) {*}
+multi sub infix:<⚛+=>(atomicint $target is rw, int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, $add) + $add
+}
+multi sub infix:<⚛+=>(atomicint $target is rw, Int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, $add) + $add
+}
+multi sub infix:<⚛+=>(atomicint $target is rw, $add --> atomicint) {
+    my int $add-int = $add.Int;
+    my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 
 sub full-barrier(--> Nil) {

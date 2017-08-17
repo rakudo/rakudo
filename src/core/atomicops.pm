@@ -53,7 +53,7 @@ sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
-sub prefix:<⚛++>(atomicint $target is rw --> atomicint) {
+sub prefix:<++⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
@@ -65,7 +65,7 @@ sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
-sub prefix:<⚛-->(atomicint $target is rw --> atomicint) {
+sub prefix:<--⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 

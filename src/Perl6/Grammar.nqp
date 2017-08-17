@@ -4245,8 +4245,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
     token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
-    token prefix:sym<⚛++>  { <sym>  <O(|%autoincrement)> }
-    token prefix:sym<⚛-->  { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<--⚛> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<++> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }

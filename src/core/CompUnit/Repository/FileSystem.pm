@@ -3,7 +3,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
-    has $!distribution;
     has $!precomp-stores;
     has $!precomp-store;
 
@@ -28,13 +27,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        my $parts :=
-            grep { .defined }, self.next-repo.?id, slip          # slip next repo id into hash parts to be hashed together
-            map  { nqp::sha1(slurp($_, :enc<iso-8859-1>)) },     # D8FEDAD3A05A68501ED829E21E5C8C80850910AB, 0BDE185BBAE51CE25E18A90B551A60AF27A9239C
-            map  { self!dist-prefix.child($_).absolute },        # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
-            self!distribution.meta<provides>.values.unique.sort; # lib/Foo/Bar.pm6, lib/Foo/Baz.pm6
-
-        return nqp::sha1($parts.join(''));
+        once {
+            my @parts =
+                grep { .defined }, (.id with self.next-repo), slip   # slip next repo id into hash parts to be hashed together
+                map  { nqp::sha1(slurp($_, :enc<iso-8859-1>)) },     # D8FEDAD3A05A68501ED829E21E5C8C80850910AB, 0BDE185BBAE51CE25E18A90B551A60AF27A9239C
+                map  { self!dist-prefix.child($_).absolute },        # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
+                self!distribution.meta<provides>.values.unique.sort; # lib/Foo/Bar.pm6, lib/Foo/Baz.pm6
+            $!id = nqp::sha1(@parts.join(''));
+        }
+        return $!id;
     }
 
     method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D) {
@@ -154,7 +155,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             and Version.new($distribution.meta<ver> // 0) ~~ $version-matcher
             and Version.new($distribution.meta<api> // 0) ~~ $api-matcher;
 
-        return ($!distribution,);
+        return ($distribution,);
     }
 
     proto method files(|) {*}
@@ -200,7 +201,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !distribution {
-        $!distribution //= $!prefix.add('META6.json').f
+        $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)
             !! Distribution::Hash.new({
                     name  => ~$!prefix,
@@ -218,7 +219,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                         }).hash).Slip,
                     ).Slip),
                     provides => Rakudo::Internals.DIR-RECURSE($!prefix.absolute).map({ .IO.relative(self!dist-prefix) }).map({
-                        $_.subst(:g, /\//, '::').subst(:g, /\\/, '::').subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_
+                        $_.subst(:g, /\/ | \\/, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_
                     }).hash,
                 }, :prefix(self!dist-prefix))
     }
@@ -228,7 +229,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
         # but we also want to root any path request to the CUR's resources directory
 
-        my %meta = $!distribution.meta.hash;
+        my %meta = self!distribution.meta.hash;
         # When $.prefix points at a directory containing a meta file (eg. -I.)
         return $.prefix.add( %meta<files>{$key} )
             if %meta<files> && %meta<files>{$key};

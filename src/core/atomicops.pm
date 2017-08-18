@@ -18,8 +18,8 @@ multi sub prefix:<⚛>(atomicint $source is rw) {
 }
 
 proto sub atomic-assign($, $) {*}
-multi sub atomic-assign($target is rw, $value) {
-    nqp::atomicstore($target, $value)
+multi sub atomic-assign($target is rw, \value) {
+    nqp::atomicstore($target, value)
 }
 multi sub atomic-assign(atomicint $target is rw, int $value) {
     nqp::atomicstore_i($target, $value)
@@ -32,8 +32,8 @@ multi sub atomic-assign(atomicint $target is rw, $value) {
 }
 
 proto sub infix:<⚛=>($, $) {*}
-multi sub infix:<⚛=>($target is rw, $value) {
-    nqp::atomicstore($target, $value)
+multi sub infix:<⚛=>($target is rw, \value) {
+    nqp::atomicstore($target, value)
 }
 multi sub infix:<⚛=>(atomicint $target is rw, int $value) {
     nqp::atomicstore_i($target, $value)
@@ -96,8 +96,8 @@ sub full-barrier(--> Nil) {
     nqp::barrierfull()
 }
 
-multi sub cas($target is rw, $expected, $value) {
-    nqp::cas($target, $expected, $value)
+multi sub cas($target is rw, \expected, \value) {
+    nqp::cas($target, expected, value)
 }
 
 multi sub cas(atomicint $target is rw, int $expected, int $value) {

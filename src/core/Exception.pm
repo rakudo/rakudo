@@ -654,7 +654,7 @@ my role X::Comp is Exception {
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
-                for @.highexpect {
+                for flat @.highexpect».list {
                     $r ~= "\n        $_";
                 }
             }

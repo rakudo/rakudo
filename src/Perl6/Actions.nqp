@@ -8698,25 +8698,54 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             )));
                     }
                 }
+                elsif $flags +& $SIG_ELEM_IS_COPY {
+                    # Need to wrap it up in a new Scalar container we can
+                    # assign into.
+                    $var.push(QAST::Op.new(
+                        :op('bind'),
+                        WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
+                        QAST::Op.new(
+                            :op('assignunchecked'),
+                            QAST::Op.new(
+                                :op('p6scalarfromdesc'),
+                                QAST::WVal.new( :value(%info<container_descriptor>) )
+                            ),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                }
                 else {
                     # If the type means there's no way this could possible be
                     # Iterable, we know it can't flatten. This in turn means
                     # we need not wrap it in a read-only scalar.
-                    my $wrap := $flags +& $SIG_ELEM_IS_COPY;
-                    unless $wrap {
-                        $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
-                    }
+                    my $wrap := nqp::istype($nomtype, $Iterable) ||
+                        nqp::istype($Iterable, $nomtype);
                     if $wrap {
+                        # Emit a check against Iterable to see if we should wrap
+                        # it or not; spesh can strip it out and thus the wrapping,
+                        # whereas stripping out the unrequired container creation
+                        # is difficult to impossible in general.
                         $var.push(QAST::Op.new(
                             :op('bind'),
                             WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
                             QAST::Op.new(
-                                :op('assignunchecked'),
+                                :op('if'),
                                 QAST::Op.new(
-                                    :op('p6scalarfromdesc'),
-                                    QAST::WVal.new( :value(%info<container_descriptor>) )
+                                    :op('istype'),
+                                    QAST::Var.new( :name($name), :scope('local') ),
+                                    QAST::WVal.new( :value($Iterable) )
                                 ),
-                                QAST::Var.new( :name($name), :scope('local') )
+                                QAST::Op.new(
+                                    :op('assignunchecked'),
+                                    QAST::Op.new(
+                                        :op('p6scalarfromdesc'),
+                                        QAST::WVal.new( :value(%info<container_descriptor>) )
+                                    ),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                                ),
+                                QAST::Op.new(
+                                    :op('decont'),
+                                    QAST::Var.new( :name($name), :scope('local') )
+                                )
                             )));
                     }
                     else {

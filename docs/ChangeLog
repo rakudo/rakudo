@@ -29,6 +29,8 @@ New in 2017.08:
     + Fixed ignoremark issues [7b81f0f9][a3b95749]
     + Fixed bad assumption about methods being closures [231cb3f5]
     + Stopped hllizing and sinking the result of .+, .* and .= method calls [2b8115f0]
+    + Fixed native shaped array index to return l-value [61e1f4d5]
+    + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
     + Various improvements to produced messages [9b31d1f5][998535ed]
         [6d3ba60c][365a1d08]
  + Additions:
@@ -39,6 +41,8 @@ New in 2017.08:
     + Treat :ver<...> like a version instead of a string [247fc649]
     + Improved Version smart match with different lengths [01dbd874]
     + Added new peer/socket host/port values in async sockets [76af17a8]
+    + Added .Complex coercion method to Cool [c9de2184]
+    + Added atomic operations (⚛) [9b1e252a][92707fac][c67d7dd5]
  + Build system:
     + Added --libdir option to Configure.pl [e4d65ac9]
     + Fixed quotes for windows [90a0f2e0]
@@ -65,7 +69,7 @@ New in 2017.08:
     + Made Map eqv Map about 10% faster [15b2596e]
     + Decreased the cost of Supply block teardown [5d200f1e]
     + Saved 2 method calls per NativeCall call [aca4b941]
-    + Speeded up NativeCall by replacing the subroutine code in setup [46ef1b5b]
+    + Speeded up NativeCall by replacing the subroutine code in setup [46ef1b5b][9a0afcbc]
     + Speeded up NativeCall subs by compiling specialized subroutine body [cd7dc4ce]
  + Internal:
     + Introduced Mixy.total-positive [f49c49bb]
@@ -82,11 +86,8 @@ New in 2017.08:
     + Simplified the .Seq coercer [5d89cef9]
     + Changed Baggy to no longer use HLL hash internally [fb7ecb60]
     + Changed Supply implementation to use iteration, not recursion [ed87f998]
-    + Removed extra scopes [5f68c775]
     + Added tests for native int as index to CArray [6cc858a0]
     + Simplified Hash creation for auto-vivification [84d052a0]
-    + Removed a 3-year old hack [e86bdfca]
-    + Removed no longer needed workaround for +< +> ops [e4802f4a]
     + Various spesh, JIT, GC and other improvements [86cb1363][8bed4a67]
         [9658dd98][c1e41f9f][f590863e][4561c269]
     + Introduced R:I.TwoValues [20e93d89][50f0508f]

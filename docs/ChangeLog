@@ -1,4 +1,6 @@
 New in 2017.08:
+ + Security:
+    + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
  + Fixes:
     + Fixed IO::Path.new with 0 allomorph [45cd1a97]
     + Fixed erroneous closing of standard handles in DESTROY [0e578c4f]
@@ -30,7 +32,6 @@ New in 2017.08:
     + Fixed bad assumption about methods being closures [231cb3f5]
     + Stopped hllizing and sinking the result of .+, .* and .= method calls [2b8115f0]
     + Fixed native shaped array index to return l-value [61e1f4d5]
-    + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
     + Various improvements to produced messages [9b31d1f5][998535ed]
         [6d3ba60c][365a1d08]
  + Additions:

@@ -687,11 +687,10 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
     # So, adding a ' \' before it.
     $desc = $desc
-    ??  nqp::join(' \\#',
-            nqp::split('#',
-                $desc.Str
-            )
-        )
+    ??  nqp::join("\n$indents# ", # prefix newlines with `#`
+            nqp::split("\n",
+                nqp::join(' \\#', # escape `#`
+                    nqp::split('#', $desc.Str))))
     !! '';
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num

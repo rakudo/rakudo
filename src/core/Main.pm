@@ -212,7 +212,7 @@ my sub MAIN_HELPER($retval = 0) {
     # Let's display the default USAGE message
     if $n<help> {
         $*OUT.say($?USAGE);
-        exit 1;
+        exit 0;
     }
     else {
         $*ERR.say($?USAGE);

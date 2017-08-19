@@ -3,7 +3,7 @@ my class Grammar is Match {
     # (oughta be down in Match or even nqp really)
     method locprepost() {
         my $orig = self.orig;
-        my $marked = self.?MARKED('ws');
+        my $marked = try self.MARKED('ws');
         my $pos = $marked && index(" }])>»", substr($orig, self.pos, 1)) < 0 ?? $marked.from !! self.pos;
 
         my $prestart = $pos - 40;

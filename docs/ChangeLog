@@ -76,7 +76,7 @@ New in 2017.08:
     + Speeded up NativeCall by replacing the subroutine code in setup [46ef1b5b][9a0afcbc]
     + Speeded up NativeCall subs by compiling specialized subroutine body [cd7dc4ce]
  + Internal:
-    + Introduced Mixy.!total-positive [f49c49bb][ccf6da9e]
+    + Introduced Mixy!total-positive [f49c49bb][ccf6da9e]
     + Set debug_names of DefiniteHOW and CoercionHOW types [b22d189e][c040f1a6]
     + Simplified infix:<(+)>(**@p) and infix:<(.)>(**@p) [d82db18f][a0775e5e]
     + Ensured Scalar fetch can never return a NULL [2f5a6cd9]

@@ -1,6 +1,9 @@
 New in 2017.08:
  + Security:
     + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
+ + 6.d.PREVIEW changes:
+    + Changed Grammar.parse to return Failure on fail in 6.d [9501edae]
+        [e3e29c59][d2278b47]
  + Fixes:
     + Fixed IO::Path.new with 0 allomorph [45cd1a97]
     + Fixed erroneous closing of standard handles in DESTROY [0e578c4f]
@@ -32,6 +35,8 @@ New in 2017.08:
     + Fixed bad assumption about methods being closures [231cb3f5]
     + Stopped hllizing and sinking the result of .+, .* and .= method calls [2b8115f0]
     + Fixed native shaped array index to return l-value [61e1f4d5]
+    + Fixed handling of test descriptions with new lines [9303a6e4]
+    + Fixed wrongful escaping of `# SKIP` TAP instruction [eb529f14]
     + Various improvements to produced messages [9b31d1f5][998535ed]
         [6d3ba60c][365a1d08]
  + Additions:
@@ -71,7 +76,7 @@ New in 2017.08:
     + Speeded up NativeCall by replacing the subroutine code in setup [46ef1b5b][9a0afcbc]
     + Speeded up NativeCall subs by compiling specialized subroutine body [cd7dc4ce]
  + Internal:
-    + Introduced Mixy.total-positive [f49c49bb]
+    + Introduced Mixy.!total-positive [f49c49bb][ccf6da9e]
     + Set debug_names of DefiniteHOW and CoercionHOW types [b22d189e][c040f1a6]
     + Simplified infix:<(+)>(**@p) and infix:<(.)>(**@p) [d82db18f][a0775e5e]
     + Ensured Scalar fetch can never return a NULL [2f5a6cd9]
@@ -88,7 +93,7 @@ New in 2017.08:
     + Added tests for native int as index to CArray [6cc858a0]
     + Simplified Hash creation for auto-vivification [84d052a0]
     + Various spesh, JIT, GC and other improvements [86cb1363][8bed4a67]
-        [9658dd98][c1e41f9f][f590863e][4561c269]
+        [9658dd98][c1e41f9f][f590863e][4561c269][947376e2][1455a03b]
     + Introduced R:I.TwoValues [20e93d89][50f0508f]
     + Fixed some issues with R:I.OneValue [3ad33469]
     + Streamlined the standard Seq methods on Pair [30584dac]

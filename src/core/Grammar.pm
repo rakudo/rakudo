@@ -28,11 +28,11 @@ my class Grammar is Match {
                   ),
                   $match := ($cursor := $cursor.'!cursor_next'()).MATCH
                 ),
-                $match || ($grammar.^find_method('SETFAIL').name eq 'SETFAIL'
+                $match || (($grammar.^find_method('SETFAIL') andthen .name eq 'SETFAIL')
                            ?? $grammar.SETFAIL($match, :$filename)
                            !! Nil)
               ),
-              ($grammar.^find_method('SETFAIL').name eq 'SETFAIL'
+              (($grammar.^find_method('SETFAIL') andthen .name eq 'SETFAIL')
                ?? $grammar.SETFAIL($cursor, :$filename)
                !! Nil)
             )

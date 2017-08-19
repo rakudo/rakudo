@@ -17,7 +17,7 @@ my role Mixy does Baggy  {
 
     multi method roll(Mixy:D:) {
         nqp::if(
-          (my $raw := self.RAW-HASH) && (my $total := self.total-positive),
+          (my $raw := self.RAW-HASH) && (my $total := self!total-positive),
           nqp::getattr(
             nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw, $total)),
             Pair,
@@ -28,7 +28,7 @@ my role Mixy does Baggy  {
     }
     multi method roll(Mixy:D: Whatever) {
         Seq.new(nqp::if(
-          (my $raw := self.RAW-HASH) && (my $total := self.total-positive),
+          (my $raw := self.RAW-HASH) && (my $total := self!total-positive),
           Rakudo::Iterator.Callable( {
               nqp::getattr(
                 nqp::iterval(Rakudo::QuantHash.MIX-ROLL($raw, $total)),
@@ -41,7 +41,7 @@ my role Mixy does Baggy  {
     }
     multi method roll(Mixy:D: Callable:D $calculate) {
       nqp::if(
-        (my $total := self.total-positive),
+        (my $total := self!total-positive),
         self.roll($calculate($total)),
         Seq.new(Rakudo::Iterator.Empty)
       )
@@ -55,7 +55,7 @@ my role Mixy does Baggy  {
             Rakudo::Iterator.Empty,             # nothing to do
             nqp::if(
               (my $raw := self.RAW-HASH)
-                && (my $total := self.total-positive)
+                && (my $total := self!total-positive)
                 && ++$todo,
               Rakudo::Iterator.Callable( {      # need to do a number of times
                   nqp::if(

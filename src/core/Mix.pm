@@ -38,7 +38,7 @@ my class Mix does Mixy {
           $!total := Rakudo::QuantHash.MIX-TOTAL($!elems)
         )
     }
-    method total-positive(Mix:D: --> Real:D) {
+    method !total-positive(Mix:D: --> Real:D) {
         nqp::if(
           nqp::attrinited(self,Mix,'$!total-positive'),
           $!total-positive,

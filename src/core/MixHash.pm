@@ -2,7 +2,7 @@ my class MixHash does Mixy {
 
 #--- interface methods
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
-    method total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
+    method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(

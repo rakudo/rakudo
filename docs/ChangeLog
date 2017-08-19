@@ -37,8 +37,6 @@ New in 2017.08:
  + Additions:
     + Added Buf subbuf-rw method [d7af4aeb]
     + Added ACCEPTS method to Map to compare Maps [45ca084e]
-    + Made Junction.Str do the right thing [1761f953][5e8d4613][93a5eff7]
-        [bd4094e2][a3c71e7d]
     + Treat :ver<...> like a version instead of a string [247fc649]
     + Improved Version smart match with different lengths [01dbd874]
     + Added new peer/socket host/port values in async sockets [76af17a8]

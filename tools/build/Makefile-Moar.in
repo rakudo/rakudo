@@ -15,7 +15,7 @@ M_LIBPATH = $(LIBDIR)@slash@nqp@slash@lib
 M_INCPATH = $(MOAR_PREFIX)@slash@include
 NQP_LIBPATH = @nqp::libdir@
 
-M_RUN_PERL6 = NQP_LIB=blib $(MOAR) --libpath="$(M_LIBPATH)" --libpath="$(NQP_LIBPATH)" perl6.moarvm --nqp-lib=blib
+M_RUN_PERL6 = @nqp_blib@ $(MOAR) --libpath="$(M_LIBPATH)" --libpath="$(NQP_LIBPATH)" perl6.moarvm --nqp-lib=blib
 
 M_BAT    = @runner_suffix@
 M_RUNNER = perl6-m@runner_suffix@

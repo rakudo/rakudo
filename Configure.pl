@@ -142,6 +142,7 @@ MAIN: {
     $config{'cpsep'} = $win ? ';' : ':';
     $config{'shell'} = $win ? 'cmd' : 'sh';
     $config{'runner_suffix'} = $win ? '.bat' : '';
+    $config{'nqp_blib'} = $win ? 'SET NQP_LIB=blib ;' : 'NQP_LIB=blib';
 
     my $make = 'make';
     if ($^O eq 'solaris') {

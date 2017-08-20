@@ -2381,7 +2381,7 @@ my class X::Numeric::Real is Exception {
     has $.source;
 
     method message() {
-        "Can not convert $.source to {$.target.^name}: $.reason";
+        "Cannot convert $.source to {$.target.^name}: $.reason";
     }
 }
 

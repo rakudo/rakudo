@@ -9,7 +9,7 @@ class Perl does Systemic {
       --> Nil
     ) { }
 
-    method VMnames { <moar jvm > }
+    method VMnames { <moar jvm js> }
 
     method DISTROnames {
         (

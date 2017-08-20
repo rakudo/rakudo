@@ -1,6 +1,7 @@
 #?if moar
 my native atomicint is repr('P6int') is Int is ctype('atomic') { }
 
+#-- fetching a value atomically
 proto sub atomic-fetch($) {*}
 multi sub atomic-fetch($source is rw) {
     nqp::atomicload($source)
@@ -17,6 +18,7 @@ multi sub prefix:<⚛>(atomicint $source is rw) {
     nqp::atomicload_i($source)
 }
 
+#-- assigning a value atomically
 proto sub atomic-assign($, $) {*}
 multi sub atomic-assign($target is rw, \value) {
     nqp::atomicstore($target, value)
@@ -45,7 +47,8 @@ multi sub infix:<⚛=>(atomicint $target is rw, $value) {
     nqp::atomicstore_i($target, $value.Int)
 }
 
-sub atomic-inc(atomicint $target is rw --> atomicint) {
+#-- post-increment a native int atomically
+sub atomic-postfix-inc(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
@@ -53,11 +56,16 @@ sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
+#-- pre-increment a native int atomically
+sub atomic-prefix-inc(atomicint $target is rw --> atomicint) {
+    my atomicint $ = nqp::atomicinc_i($target) + 1
+}
 sub prefix:<++⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
-sub atomic-dec(atomicint $target is rw --> atomicint) {
+#-- post-decrement a native int atomically
+sub atomic-postfix-dec(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
@@ -65,19 +73,37 @@ sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
+#-- pre-decrement a native int atomically
+sub atomic-prefix-dec(atomicint $target is rw --> atomicint) {
+    my atomicint $ = nqp::atomicdec_i($target) - 1
+}
 sub prefix:<--⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 
-proto sub atomic-add($, $) {*}
-multi sub atomic-add(atomicint $target is rw, int $add --> atomicint) {
+#-- add to a native int atomically, return result before
+proto sub atomic-postfix-add($, $) {*}
+multi sub atomic-postfix-add(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
-multi sub atomic-add(atomicint $target is rw, Int $add --> atomicint) {
+multi sub atomic-postfix-add(atomicint $target is rw, Int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
-multi sub atomic-add(atomicint $target is rw, $add --> atomicint) {
+multi sub atomic-postfix-add(atomicint $target is rw, $add --> atomicint) {
     nqp::atomicadd_i($target, $add.Int)
+}
+
+#-- add to a native int atomically, return result after
+proto sub atomic-prefix-add($, $) {*}
+multi sub atomic-prefix-add(atomicint $target is rw, int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, $add) + $add
+}
+multi sub atomic-prefix-add(atomicint $target is rw, Int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, $add) + $add
+}
+multi sub atomic-prefix-add(atomicint $target is rw, $add --> atomicint) {
+    my int $add-int = $add.Int;
+    my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 
 proto sub infix:<⚛+=>($, $) {*}
@@ -92,10 +118,51 @@ multi sub infix:<⚛+=>(atomicint $target is rw, $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 
+#-- subtract from a native int atomically, return result before
+proto sub atomic-postfix-sub($, $) {*}
+multi sub atomic-postfix-sub(atomicint $target is rw, int $add --> atomicint) {
+    nqp::atomicadd_i($target, nqp::neg_i($add))
+}
+multi sub atomic-postfix-sub(atomicint $target is rw, Int $add --> atomicint) {
+    nqp::atomicadd_i($target, nqp::neg_i($add))
+}
+multi sub atomic-postfix-sub(atomicint $target is rw, $add --> atomicint) {
+    nqp::atomicadd_i($target, nqp::neg_i($add.Int))
+}
+
+#-- subtract from a native int atomically, return result after
+proto sub atomic-prefix-sub($, $) {*}
+multi sub atomic-prefix-sub(atomicint $target is rw, int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
+}
+multi sub atomic-prefix-sub(atomicint $target is rw, Int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
+}
+multi sub atomic-prefix-sub(atomicint $target is rw, $add --> atomicint) {
+    my int $add-int = nqp::neg_i($add.Int);
+    my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
+}
+
+proto sub infix:<⚛-=>($, $) {*}
+multi sub infix:<⚛-=>(atomicint $target is rw, int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
+}
+multi sub infix:<⚛-=>(atomicint $target is rw, Int $add --> atomicint) {
+    my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
+}
+multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
+    my int $add-int = nqp::neg_i($add.Int);
+    my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
+}
+my constant &infix:<⚛−=> := &infix:<⚛-=>;
+
+#-- provide full barrier semantics
 sub full-barrier(--> Nil) {
     nqp::barrierfull()
 }
 
+#-- atomic compare and swap
+proto sub cas(|) {*}
 multi sub cas($target is rw, \expected, \value) {
     nqp::cas($target, expected, value)
 }

@@ -4549,6 +4549,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<⚛=> { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1), :pasttype<if>)> }
     token infix:sym<andthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }

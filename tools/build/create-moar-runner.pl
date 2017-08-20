@@ -6,7 +6,6 @@ my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, @libpaths) = @*AR
 
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
 $blib = ' ' ~ $blib if $blib;
-my $NQP_LIB = $blib ?? "export NQP_LIB=blib" !! '';
 my $libpaths = '--libpath="%s"'.sprintf: @libpaths.join('" --libpath="');
 my $libpath-line = '%s %s/%s%s'.sprintf: $libpaths, $p6_mbc_path, $mbc, $blib;
 if $*DISTRO eq 'mswin32' {
@@ -23,9 +22,8 @@ elsif $toolchain eq any('gdb','lldb') {
                !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$0" %s "$@"'.sprintf($moar, $libpath-line) !! die;
     my $debugger-name = $toolchain eq 'gdb'  ?? 'GNU'
                      !! $toolchain eq 'lldb' ?? 'LLVM' !! die;
-    $fh.print(sprintf(q:to/EOS/, $NQP_LIB, $moar, $libpath-line, $debugger-name, $cmdline));
+    $fh.print(sprintf(q:to/EOS/, $moar, $libpath-line, $debugger-name, $cmdline));
     #!/bin/sh
-    %s
     %s --execname="$0" %s -e '
     say "=" x 96;
 
@@ -46,9 +44,8 @@ elsif $toolchain eq any('gdb','lldb') {
 }
 elsif ($toolchain eq 'valgrind') {
     my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, $NQP_LIB, ($moar, $libpath-line) xx 2));
+    $fh.print(sprintf(q:to/EOS/, ($moar, $libpath-line) xx 2));
     #!/bin/sh
-    %s
     %s --execname="$0" %s -e '
     say "=" x 96;
 
@@ -65,9 +62,8 @@ elsif ($toolchain eq 'valgrind') {
 }
 else {
     my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, $NQP_LIB, $moar, $libpath-line));
+    $fh.print(sprintf(q:to/EOS/, $moar, $libpath-line));
     #!/bin/sh
-    %s
     exec %s  --execname="$0" %s "$@"
     EOS
     $fh.close;

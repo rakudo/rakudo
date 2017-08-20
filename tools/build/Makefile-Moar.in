@@ -181,7 +181,7 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR
 
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" . blib
 	-$(CHMOD) 755 $(M_RUNNER)
 
 m-runner-default: $(M_RUNNER)
@@ -195,11 +195,11 @@ $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/perl6-debug.nqp
 
 $(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" . blib
 
 $(M_GDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)" "$(NQP_LIBPATH)" . blib
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
 
 $(M_LLDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
@@ -209,7 +209,7 @@ $(M_LLDB_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_VALGRIND_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" .
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" . blib
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 ##  testing targets

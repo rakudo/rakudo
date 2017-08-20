@@ -162,7 +162,11 @@ you find any steps that are missing.
 =item 6.
 
 Ensure that a monthly MoarVM release has been completed. Those
-releases are typically handled by a separate team.
+releases are typically handled by a separate team. Since you are going
+to perform smoke testing of the ecosystem, it is likely that MoarVM
+release team will wait for your confirmation before cutting a
+release. Make sure that MoarVM builds on Windows (see AppVeyor
+status). It is also a good idea to look for JVM issues at this point.
 
 =item 7.
 

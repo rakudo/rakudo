@@ -22,8 +22,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2017-08-19   Rakudo #114 (AlexDaniel)
-  2017-09-16   Rakudo #115
+  2017-09-16   Rakudo #115 (AlexDaniel)
   2017-10-21   Rakudo #116
   2017-11-18   Rakudo #117
   2017-12-16   Rakudo #118
@@ -446,7 +445,8 @@ Previous releases were bundled as part of monthly Parrot releases.
   2017-05-20   Rakudo #111 "2017.05"           (Zoffix + NeuralAnomaly)
   2017-06-17   Rakudo #112 "2017.06"           (Zoffix + NeuralAnomaly)
   2017-07-15   Rakudo #113 "2017.07"           (Zoffix + NeuralAnomaly)
-  
+  2017-08-21   Rakudo #114 "2017.08"           (AlexDaniel + Releasable)
+
 =head1 COPYRIGHT
 
 Copyright (C) 2009-2017, The Perl Foundation.

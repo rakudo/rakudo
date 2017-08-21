@@ -54,7 +54,7 @@ New in 2017.08:
     + Fixed quotes for windows [90a0f2e0]
     + Added 'install' test target on appveyor [9c0d40ab]
  + Efficiency:
-    + Made $s (-) $s (-) $s on a 26 elem set about 1.5x faster [d7fcb314]
+    + Made `$s (-) $s (-) $s` on a 26 elem set about 1.5x faster [d7fcb314]
     + Made .Str and .perl 2x faster, .gist 1.4x faster (on a ^100 .Set) [5b6cd406]
     + Made .Str 30% faster, .perl 2x faster (on a ^100 .Bag) [21b9a720]
     + Made string concatenation more efficient [1f7fa683]
@@ -70,7 +70,7 @@ New in 2017.08:
     + Made .repeated(:as,:with) about 12x faster [a3a3d1a9][32ce4afd]
     + Made .pairup about 1.5x faster [8f73d77b]
     + Made .codes 350% faster for short strings [3c6277c7][e051dd2d][4eff4919]
-    + Various improvements made by using "is default" on attributes [08f705b9]
+    + Various improvements made by using `is default` on attributes [08f705b9]
         [d0419a0f][9f5686ec][c8c5c712][40d5b27d][fb5db592][413b7116][fbdbe6fb]
     + Made Map eqv Map about 10% faster [15b2596e]
     + Decreased the cost of Supply block teardown [5d200f1e]
@@ -80,7 +80,7 @@ New in 2017.08:
  + Internal:
     + Introduced Mixy!total-positive [f49c49bb][ccf6da9e]
     + Set debug_names of DefiniteHOW and CoercionHOW types [b22d189e][c040f1a6]
-    + Simplified infix:<(+)>(**@p) and infix:<(.)>(**@p) [d82db18f][a0775e5e]
+    + Simplified `infix:<(+)>(**@p)` and `infix:<(.)>(**@p)` [d82db18f][a0775e5e]
     + Ensured Scalar fetch can never return a NULL [2f5a6cd9]
     + Changed RAW-KEYS to create iterator early [710fa800]
     + Made sure Setty at least has a R:I:IterationSet type object [2dd5963c]

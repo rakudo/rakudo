@@ -312,17 +312,13 @@ sub infix:<|>(+values) is pure { values.any }
 sub infix:<&>(+values) is pure { values.all }
 sub infix:<^>(+values) is pure { values.one }
 
-sub AUTOTHREAD(|c) {
+nqp::p6setautothreader( -> |c {
     Junction.AUTOTHREAD(|c)
-}
-
-sub AUTOTHREAD_METHOD($name, |c) {
+} );
+Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
     Junction.AUTOTHREAD(
         -> \obj, |c { obj."$name"(|c) },
         |c);
-}
-
-nqp::p6setautothreader(&AUTOTHREAD);
-Mu.HOW.setup_junction_fallback(Junction, &AUTOTHREAD_METHOD);
+} );
 
 # vim: ft=perl6 expandtab sw=4

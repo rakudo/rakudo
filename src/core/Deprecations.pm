@@ -68,11 +68,12 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
       $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
 
     if $up ~~ Whatever {
-        $index = $bt.next-interesting-index($index, :noproto);
+        $index = $_ with $bt.next-interesting-index($index, :noproto);
     }
     else {
-        $index = $bt.next-interesting-index($index, :noproto, :setting)
-            for ^$up;
+        $index = $_
+          with $bt.next-interesting-index($index, :noproto, :setting)
+          for ^$up;
     }
     my $callsite = $bt[$index];
 

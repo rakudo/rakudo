@@ -2,9 +2,6 @@ New in 2017.08:
  + Security:
     + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
         [a331c804][1eeb9434]
- + 6.d.PREVIEW changes:
-    + Changed Grammar.parse to return Failure on fail in 6.d [9501edae]
-        [e3e29c59][d2278b47][c5cb74ab]
  + Fixes:
     + Fixed IO::Path.new with 0 allomorph [45cd1a97]
     + Fixed erroneous closing of standard handles in DESTROY [0e578c4f]

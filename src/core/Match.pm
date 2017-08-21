@@ -3,6 +3,9 @@ my class Match is Capture is Cool does NQPMatchRole {
     my Mu $NO_CAPS    := nqp::hash();
     my Mu $DID_MATCH  := nqp::create(NQPdidMATCH);
 
+    method ast()  { nqp::if(nqp::isconcrete($!made),$!made,Nil) }
+    method made() { nqp::if(nqp::isconcrete($!made),$!made,Nil) }
+
     method STR() {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),

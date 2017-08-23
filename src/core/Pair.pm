@@ -1,6 +1,7 @@
 my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
+    has Mu $!WHICH;
 
     proto method new(|) { * }
     # This candidate is needed because it currently JITS better
@@ -24,9 +25,17 @@ my class Pair does Associative {
     }
 
     multi method WHICH(Pair:D:) {
-        nqp::iscont($!value)
-          ?? nextsame()
-          !! "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH
+        nqp::unless(
+          $!WHICH,
+          ($!WHICH := nqp::if(
+            nqp::iscont($!value),
+            callsame,
+            nqp::box_s(
+              "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,
+              ObjAt
+            )
+          ))
+        )
     }
 
     multi method ACCEPTS(Pair:D: %h) {
@@ -43,11 +52,24 @@ my class Pair does Associative {
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 
-    multi method keys(Pair:D:)      { ($!key,) }
-    multi method kv(Pair:D:)        { $!key, $!value }
-    multi method values(Pair:D:)    { ($!value,) }
-    multi method pairs(Pair:D:)     { (self,) }
-    multi method antipairs(Pair:D:) { (self.new($!value,$!key),) }
+    method iterator(Pair:D:) {
+        Rakudo::Iterator.OneValue(self)
+    }
+    multi method keys(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue($!key))
+    }
+    multi method kv(Pair:D:) {
+        Seq.new(Rakudo::Iterator.TwoValues($!key,$!value))
+    }
+    multi method values(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue($!value))
+    }
+    multi method pairs(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue(self))
+    }
+    multi method antipairs(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue(self.new($!value,$!key)))
+    }
     multi method invert(Pair:D:) {
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }

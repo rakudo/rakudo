@@ -96,11 +96,25 @@ my class Supply does Awaitable {
             submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
             method tap(&emit, &done, &quit) {
+                my int $closed = 0;
+                my $t = Tap.new({
+                    if &!closing {
+                        &!closing() unless $closed++;
+                    }
+                });
                 my $p = Supplier.new;
-                $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
+                $p.Supply.tap(&emit,
+                    done => {
+                        done();
+                        $t.close();
+                    },
+                    quit => -> \ex {
+                        quit(ex);
+                        $t.close();
+                    });
                 $!scheduler.cue({ &!producer($p) },
                     catch => -> \ex { $p.quit(ex) });
-                Tap.new(&!closing)
+                $t
             }
 
             method live(--> False) { }
@@ -1637,8 +1651,8 @@ my class Supplier::Preserving is Supplier {
     }
 }
 
-sub SUPPLY(&block) {
-    my class SupplyBlockState {
+augment class Rakudo::Internals {
+    class SupplyBlockState {
         has &.emit;
         has &.done;
         has &.quit;
@@ -1665,11 +1679,15 @@ sub SUPPLY(&block) {
         }
 
         method add-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)} = $tap }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)} = $tap;
+            }
         }
 
         method delete-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)}:delete }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)}:delete;
+            }
         }
 
         method consume-active-taps() {
@@ -1683,43 +1701,36 @@ sub SUPPLY(&block) {
 
         method run-operation(&op --> Nil) {
             if $!active {
-                my $run-now = False;
+                my $run-now;
                 $!lock.protect({
-                    if @!queued-operations {
-                        @!queued-operations.push({
-                            op();
-                            self!maybe-another();
-                        });
-                    }
-                    else {
-                        @!queued-operations.push(&op);
-                        $run-now = True;
-                    }
+                    $run-now = not @!queued-operations;
+                    @!queued-operations.push(&op);
                 });
-                if $run-now {
-                    op();
-                    self!maybe-another();
-                }
+                self!run-loop(&op) if $run-now;
             }
         }
 
-        method !maybe-another(--> Nil) {
-            my &another;
-            $!lock.protect({
-                @!queued-operations.shift;
-                &another = @!queued-operations[0] if $!active && @!queued-operations;
-            });
-            &another && another();
+        method !run-loop(&initial --> Nil) {
+            my &current = &initial;
+            while &current {
+                current();
+                $!lock.protect({
+                    @!queued-operations.shift;
+                    &current = $!active && @!queued-operations
+                        ?? @!queued-operations[0]
+                        !! Nil;
+                });
+            }
         }
     }
 
-    Supply.new(class :: does Tappable {
+    class SupplyBlockTappable does Tappable {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
-            my $state = SupplyBlockState.new(:&emit, :&done, :&quit);
+            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
             self!run-supply-code(&!block, $state);
             if nqp::istype(&!block,Block) {
                 $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
@@ -1811,7 +1822,11 @@ sub SUPPLY(&block) {
         method live(--> False) { }
         method sane(--> True) { }
         method serial(--> True) { }
-    }.new(:&block))
+    }
+}
+
+sub SUPPLY(&block) {
+    Supply.new(Rakudo::Internals::SupplyBlockTappable.new(:&block))
 }
 
 sub WHENEVER(Supply() $supply, &block) {

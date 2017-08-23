@@ -370,14 +370,14 @@ multi sub todo($reason, $count = 1) is export {
 
 multi sub skip() {
     $time_after = nqp::time_n;
-    proclaim(1, "# SKIP");
+    proclaim(1, '', "# SKIP");
     $time_before = nqp::time_n;
 }
 multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
-    while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
+    while $i <= $count { proclaim(1, $reason, "# SKIP "); $i = $i + 1; }
     $time_before = nqp::time_n;
 }
 
@@ -669,7 +669,7 @@ sub eval_exception($code) {
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
-sub proclaim(Bool(Mu) $cond, $desc is copy ) {
+sub proclaim(Bool(Mu) $cond, $desc is copy, $uenscaped-prefix = '') {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -687,18 +687,17 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
     # So, adding a ' \' before it.
     $desc = $desc
-    ??  nqp::join(' \\#',
-            nqp::split('#',
-                $desc.Str
-            )
-        )
+    ??  nqp::join("\n$indents# ", # prefix newlines with `#`
+            nqp::split("\n",
+                nqp::join(' \\#', # escape `#`
+                    nqp::split('#', $desc.Str))))
     !! '';
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
-        ?? "ok $num_of_tests_run - $desc$todo_reason"
+        ?? "ok $num_of_tests_run - $uenscaped-prefix$desc$todo_reason"
         !! (! $cond && $subtest_todo_reason)
-            ?? "ok $num_of_tests_run - $desc$subtest_todo_reason"
-            !! "ok $num_of_tests_run - $desc";
+            ?? "ok $num_of_tests_run - $uenscaped-prefix$desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $uenscaped-prefix$desc";
 
     $output.say: $tap;
     $output.say: $indents

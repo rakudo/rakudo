@@ -4245,8 +4245,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
     token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<--⚛> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<++> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<ⁿ> { <sign=[⁻⁺¯]>? <dig=[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ <O(|%autoincrement)> }
 
     # TODO: report the correct bracket in error message
@@ -4277,6 +4281,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym>  <O(|%symbolic_unary)>
         <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
+    token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
 
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
@@ -4541,6 +4546,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         { $*LEFTSIGIL := '' }
     }
+
+    token infix:sym<⚛=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1), :pasttype<if>)> }
     token infix:sym<andthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }

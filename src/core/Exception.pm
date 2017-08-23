@@ -654,7 +654,7 @@ my role X::Comp is Exception {
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
-                for @.highexpect {
+                for flat @.highexpect».list {
                     $r ~= "\n        $_";
                 }
             }
@@ -2381,7 +2381,7 @@ my class X::Numeric::Real is Exception {
     has $.source;
 
     method message() {
-        "Can not convert $.source to {$.target.^name}: $.reason";
+        "Cannot convert $.source to {$.target.^name}: $.reason";
     }
 }
 

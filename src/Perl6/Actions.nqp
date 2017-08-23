@@ -6601,7 +6601,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
-                $return_map := 1;
+                unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
+                    $return_map := 1
+                }
             }
         }
         elsif $past.ann('thunky') {

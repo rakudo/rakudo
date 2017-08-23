@@ -20,6 +20,10 @@
 N: ab5tract
 E: john.haltiwanger@gmail.com
 
+N: Adrian White
+U: snarkyboojum
+E: snarkyboojum@gmail.com
+
 N: Ahmad M. Zawawi
 U: azawawi
 E: ahmad.zawawi@gmail.com
@@ -30,6 +34,10 @@ U: ambs
 E: ambs@cpan.org
 S: Braga, Portugal
 W: http://alfarrabio.di.uminho.pt/~albie/
+
+N: Aleks-Daniel Jakimenko-Aleksejev
+U: AlexDaniel
+E: alex.jakimenko@gmail.com
 
 N: Alex Elsayed
 U: eternaleye
@@ -723,9 +731,6 @@ E: smash@cpan.org
 
 N: smls
 E: smls75@gmail.com
-
-N: snarkyboojum
-E: snarkyboojum@gmail.com
 
 N: Solomon Foster
 U: colomon

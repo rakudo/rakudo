@@ -89,6 +89,9 @@ class Perl6::Metamodel::NativeHOW
         elsif $ctype eq 'size_t' {
             $!nativesize := nqp::const::C_TYPE_SIZE_T;
         }
+        elsif $ctype eq 'atomic' {
+            $!nativesize := nqp::const::C_TYPE_ATOMIC_INT;
+        }
         else {
             nqp::die("Unhandled C type '$ctype'")
         }

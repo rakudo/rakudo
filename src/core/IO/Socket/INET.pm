@@ -24,6 +24,7 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.localport;
     has Int $.backlog;
     has Bool $.listening;
+    has Str $.source-address;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
@@ -89,6 +90,7 @@ my class IO::Socket::INET does IO::Socket {
                $family == PIO::PF_INET
             || $family == PIO::PF_INET6
         } = PIO::PF_INET,
+        Str :$source-address is copy = "".Str,
               *%rest,
         --> IO::Socket::INET:D) {
 
@@ -103,6 +105,7 @@ my class IO::Socket::INET does IO::Socket {
             :$host,
             :$port,
             :$family,
+            :$source-address,
             |%rest,
         )!initialize()
     }
@@ -129,15 +132,15 @@ my class IO::Socket::INET does IO::Socket {
 #?endif
         }
         elsif $.type == PIO::SOCK_STREAM {
-            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
+            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port), nqp::unbox_s($.source-address));
         }
 
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
         self;
     }
 
-    method connect(IO::Socket::INET:U: Str() $host, Int() $port) {
-        self.new(:$host, :$port)
+    method connect(IO::Socket::INET:U: Str() $host, Int() $port, :$source-address) {
+        self.new(:$host, :$port, $source-address)
     }
 
     method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport) {

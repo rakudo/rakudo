@@ -429,7 +429,6 @@ sub _diag(Mu $message, :$force-stderr) {
     my $str-message = nqp::join(
         "\n$indents# ", nqp::split("\n", "$indents# $message")
     );
-    $str-message .= subst(rx/^^ "$indents#" \s+ $$/, '', :g);
     $out.say: $str-message;
     $time_before = nqp::time_n;
 }
@@ -715,8 +714,8 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $uenscaped-prefix = '') {
         }
 
         _diag $desc
-          ?? "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}"
-          !! "\nFailed test at {$caller.file} line {$caller.line}";
+          ?? "Failed test '$desc'\nat {$caller.file} line {$caller.line}"
+          !! "Failed test at {$caller.file} line {$caller.line}";
     }
 
     # must clear this between tests

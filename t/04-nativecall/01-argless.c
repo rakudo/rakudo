@@ -17,6 +17,16 @@ DLLEXPORT int Argless()
     return 2;
 }
 
+DLLEXPORT char ArglessChar()
+{
+    return 2;
+}
+
+DLLEXPORT long long ArglessLongLong()
+{
+    return 2;
+}
+
 DLLEXPORT int long_and_complicated_name()
 {
     return 3;

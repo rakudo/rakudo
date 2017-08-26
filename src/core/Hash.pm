@@ -641,6 +641,37 @@ my class Hash { # declared in BOOTSTRAP
               TValue
             )
         }
+
+        method FLATTENABLE_HASH() {
+            nqp::stmts(
+              (my $flattened := nqp::hash),
+              nqp::if(
+                (my $raw := nqp::getattr(self,Map,'$!storage'))
+                 && (my $iter := nqp::iterator($raw)),
+                nqp::while(
+                  $iter,
+                  nqp::bindkey(
+                    $flattened,
+                    nqp::if(
+                      nqp::istype(
+                        (my $key := nqp::getattr(
+                          nqp::iterval(nqp::shift($iter)),
+                          Pair,
+                          '$!key'
+                        )),
+                        Str,
+                      ),
+                      $key,
+                      $key.Str
+                    ),
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                  )
+                )
+              ),
+              $flattened
+            )
+        }
+
         method IterationBuffer() {
             nqp::stmts(
               (my $buffer := nqp::create(IterationBuffer)),

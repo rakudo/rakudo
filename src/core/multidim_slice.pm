@@ -1,5 +1,6 @@
-# all sub postcircumfix [;] candidates here please
+# all sub postcircumfix [; ] and sub postcircumfix {; } candidates here please
 proto sub postcircumfix:<[; ]>(|) is nodal { * }
+proto sub postcircumfix:<{; }>(|) is nodal { * }
 
 sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw {
     my int $next-dim = $dim + 1;
@@ -46,11 +47,54 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
         }
     }
 }
+
+sub MD-HASH-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
+    my int $next-dim = $dim + 1;
+    if $next-dim < indices.elems {
+        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+            for idx {
+                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+            }
+        }
+        elsif nqp::istype(idx, Str) {
+            MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for SELF.keys {
+                MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY($_), indices, indices.AT-POS($next-dim), $next-dim, target)
+            }
+        }
+        else  {
+            MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx), indices, indices.AT-POS($next-dim), $next-dim, target)
+        }
+    }
+    else {
+        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+            for idx {
+                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
+            }
+        }
+        elsif nqp::istype(idx, Str) {
+            nqp::push(target, SELF.AT-KEY(idx))
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for SELF.keys {
+                nqp::push(target, SELF.AT-KEY($_))
+            }
+        }
+        else {
+            nqp::push(target, SELF.AT-KEY(idx))
+        }
+    }
+}
+
 sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
     my \target = IterationBuffer.new;
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
+
+#--- Fetching
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     nqp::stmts(
@@ -84,6 +128,14 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
       )
     )
 }
+
+multi sub postcircumfix:<{; }>(\SELF, @indices) {
+    my \target = IterationBuffer.new;
+    MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
+}
+
+#--- Assigning
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     nqp::stmts(
@@ -120,6 +172,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     )
 }
 
+#--- Binding
+
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
     nqp::stmts(
       (my int $elems = @indices.elems),   # reifies
@@ -154,6 +208,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
       )
     )
 }
+
+#--- :delete adverb
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     nqp::if(
@@ -193,6 +249,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
     )
 }
 
+#--- :exists adverb
+
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
     nqp::if(
       $exists,
@@ -230,6 +288,38 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
       postcircumfix:<[; ]>(SELF, @indices)
     )
 }
+
+
+multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
+    sub recurse-at-key(\SELF, \indices) {
+        my \idx     := indices[0];
+        my \exists  := SELF.EXISTS-KEY(idx);
+        nqp::if(
+            nqp::istype(idx, Iterable),
+            idx.map({ |recurse-at-key(SELF, ($_, |indices.skip.cache)) }).List,
+            nqp::if(
+                nqp::iseq_I(indices.elems, 1),
+                exists,
+                nqp::if(
+                    exists,
+                    recurse-at-key(SELF{idx}, indices.skip.cache),
+                    nqp::stmts(
+                        (my \times := indices.map({ .elems }).reduce(&[*])),
+                        nqp::if(
+                            nqp::iseq_I(times, 1),
+                            False,
+                            (False xx times).List
+                        )
+                    ).head
+                )
+            )
+        );
+    }
+
+    recurse-at-key(SELF, @indices)
+}
+
+#--- :kv adverb
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
     nqp::if(
@@ -288,6 +378,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
     )
 }
 
+#--- :p adverb
+
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
     nqp::if(
       $p,
@@ -345,6 +437,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
     )
 }
 
+#--- :k adverb
+
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
     nqp::if(
       $k,
@@ -394,6 +488,8 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
       postcircumfix:<[; ]>(SELF, @indices)
     )
 }
+
+#--- :v adverb
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
     nqp::if(

@@ -27,6 +27,12 @@ DLLEXPORT long long ArglessLongLong()
     return 2;
 }
 
+int my_int = 2;
+DLLEXPORT int* ArglessPointer()
+{
+    return &my_int;
+}
+
 DLLEXPORT int long_and_complicated_name()
 {
     return 3;

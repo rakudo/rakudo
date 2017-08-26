@@ -33,6 +33,12 @@ DLLEXPORT int* ArglessPointer()
     return &my_int;
 }
 
+char *my_str = "Just a string";
+DLLEXPORT int* ArglessUTF8String()
+{
+    return my_str;
+}
+
 DLLEXPORT int long_and_complicated_name()
 {
     return 3;

@@ -49,13 +49,17 @@ elsif ($toolchain eq 'valgrind') {
     %s --execname="$0" %s -e '
     say "=" x 96;
 
-    say "This is Rakudo Perl 6 running in valgrind, a tool for debugging and profiling programs.\nRunning a program in valgrind usually takes *a lot* more time than running it directly,\nso please be patient.";
-
+    say qq:to/END/;
+    This is Rakudo Perl 6 running in valgrind, a tool for debugging and profiling programs.
+    Running a program in valgrind usually takes *a lot* more time than running it directly,
+    so please be patient.
+    Valgrind options can be added with MVM_VALGRIND_OPTS environment variable.
+    END
     say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*VM.version(),";
     say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 
     say "-" x 96;'
-    valgrind %s --full-cleanup --execname="$0" %s "$@"
+    valgrind ${MVM_VALGRIND_OPTS} %s --execname="$0" %s "$@"
     EOS
     $fh.close;
     chmod(0o755, $install_to);

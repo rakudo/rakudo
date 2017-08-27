@@ -2798,6 +2798,12 @@ multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<~>(str $a, str $b --> str) { nqp::concat($a, $b) }
+multi sub infix:<~>(Any:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Stringy), nqp::unbox_s(b)))
+}
+multi sub infix:<~>(Str:D \a, Any:D \b) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)))
+}
 multi sub infix:<~>(*@args) { @args.join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {

@@ -30,6 +30,7 @@ GetOptions(
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
+    'no-merge'             => \my $no_merge,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -119,7 +120,7 @@ if (eval "require $tap_harness_class;") {
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
-        merge       => 1,
+        merge       => ($no_merge ? 0 : 1),
         $TAP::Harness::VERSION gt 3.21 ? (trap => 1) : (),
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),

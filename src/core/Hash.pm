@@ -533,7 +533,19 @@ my class Hash { # declared in BOOTSTRAP
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         method keyof () { TKey }
-        method AT-KEY(::?CLASS:D: TKey \key) is raw {
+        
+        # We override the `Hash` candidate of this method, but dispatch to
+        # the `Any` candidates for multidim subscript handling.
+        proto method AT-KEY(|) is nodal { * }
+        multi method AT-KEY(::?CLASS:D: **@keys) is raw {
+            nqp::if(
+              nqp::isgt_i(@keys.elems, 1),
+              self.Any::AT-KEY(|@keys),
+              X::TypeCheck.new(operation => "AT-KEY",
+                got => @keys[0], expected => TKey).throw
+            )
+        }
+        multi method AT-KEY(::?CLASS:D: TKey \key) is raw {
             nqp::if(
               nqp::getattr(self,Map,'$!storage').DEFINITE,
               nqp::if(

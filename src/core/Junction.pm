@@ -393,6 +393,10 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
     )
 }
 
+multi sub infix:<~>(Junction:D $a, Junction:D $b) {
+    X::NYI.new(feature => "Junction ~ Junction").throw
+}
+
 nqp::p6setautothreader( -> |c {
     Junction.AUTOTHREAD(|c)
 } );

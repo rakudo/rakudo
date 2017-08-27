@@ -94,6 +94,12 @@ sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
 }
 
+sub MD-HASH-SLICE(\SELF, @indices) is raw {
+    my \target = IterationBuffer.new;
+    MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
+}
+
 #--- Fetching
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
@@ -129,10 +135,37 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     )
 }
 
-multi sub postcircumfix:<{; }>(\SELF, @indices) {
-    my \target = IterationBuffer.new;
-    MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
+multi sub postcircumfix:<{; }>(\SELF, @indices) is raw {
+    nqp::stmts(
+      (my $indices := nqp::getattr(@indices,List,'$!reified')),
+      (my int $elems = nqp::elems($indices)),
+      (my int $i = -1),
+      nqp::while(
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          && nqp::istype(nqp::atpos($indices,$i),Str),
+        nqp::null
+      ),
+      nqp::if(
+        nqp::islt_i($i,$elems),
+        MD-HASH-SLICE(SELF,@indices),
+        nqp::if(
+          nqp::iseq_i($elems,2),
+          SELF.AT-KEY(
+            nqp::atpos($indices,0),
+            nqp::atpos($indices,1)
+          ),
+          nqp::if(
+            nqp::iseq_i($elems,3),
+            SELF.AT-KEY(
+              nqp::atpos($indices,0),
+              nqp::atpos($indices,1),
+              nqp::atpos($indices,2)
+            ),
+            SELF.AT-KEY(|@indices)
+          )
+        )
+      )
+    )
 }
 
 #--- Assigning

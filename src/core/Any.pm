@@ -24,11 +24,31 @@ my class Any { # declared in BOOTSTRAP
     proto method EXISTS-KEY(|) is nodal { * }
     multi method EXISTS-KEY(Any:U: $ --> False) { }
     multi method EXISTS-KEY(Any:D: $ --> False) { }
+    multi method EXISTS-KEY(Any:D: \one, \two) is raw {
+        self.AT-KEY(one).EXISTS-KEY(two)
+    }
+    multi method EXISTS-KEY(Any:D: \one, \two,\three) is raw {
+        self.AT-KEY(one).AT-KEY(two).EXISTS-KEY(three)
+    }
+    multi method EXISTS-KEY(Any:D: **@indices) {
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-KEY(self,@indices).EXISTS-KEY($final)
+    }
 
     proto method DELETE-KEY(|) is nodal { * }
     multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
         Failure.new("Can not remove values from a {self.^name}")
+    }
+    multi method DELETE-KEY(Any:D: \one, \two) is raw {
+        self.AT-KEY(one).DELETE-KEY(two)
+    }
+    multi method DELETE-KEY(Any:D: \one, \two, \three) is raw {
+        self.AT-KEY(one).AT-KEY(two).DELETE-KEY(three)
+    }
+    multi method DELETE-KEY(Any:D: **@indices) {
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-KEY(self,@indices).DELETE-KEY($final)
     }
 
     proto method DELETE-POS(|) is nodal { * }
@@ -416,6 +436,16 @@ my class Any { # declared in BOOTSTRAP
              }
         )
     }
+    multi method AT-KEY(Any:D: \one, \two) is raw {
+        self.AT-KEY(one).AT-KEY(two)
+    }
+    multi method AT-KEY(Any:D: \one, \two, \three) is raw {
+        self.AT-KEY(one).AT-KEY(two).AT-KEY(three)
+    }
+    multi method AT-KEY(Any:D: **@indices) is raw {
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-KEY(self,@indices).AT-KEY($final)
+    }
 
     proto method BIND-KEY(|) is nodal { * }
     multi method BIND-KEY(Any:D: \k, \v) is raw {
@@ -426,10 +456,32 @@ my class Any { # declared in BOOTSTRAP
         SELF.BIND-KEY($key, $BIND);
         $BIND
     }
+    multi method BIND-KEY(Any:D: **@indices is raw) is raw {
+        my int $elems = @indices.elems;   # reifies
+        my \value  := @indices.AT-POS(--$elems);
+        my $final  := @indices.AT-POS(--$elems);
+        my $target := self;
+        my int $i = -1;
+        $target := $target.AT-KEY(@indices.AT-POS($i))
+          while nqp::islt_i(++$i,$elems);
+        X::Bind.new.throw if $target =:= self;
+        $target.BIND-KEY($final, value)
+    }
 
     proto method ASSIGN-KEY(|) is nodal { * }
     multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) is raw {
         SELF.AT-KEY(key) = assignee;
+    }
+    multi method ASSIGN-KEY(Any:D: \one, \two, Mu \assignee) is raw {
+        self.AT-KEY(one).ASSIGN-KEY(two, assignee)
+    }
+    multi method ASSIGN-KEY(Any:D: \one, \two, \three, Mu \assignee) is raw {
+        self.AT-KEY(one).AT-KEY(two).ASSIGN-KEY(three, assignee)
+    }
+    multi method ASSIGN-KEY(Any:D: **@indices) {
+        my \value := @indices.pop;
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-KEY(self,@indices).ASSIGN-KEY($final,value)
     }
 
     # XXX GLR review these

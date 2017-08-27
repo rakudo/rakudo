@@ -307,6 +307,11 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     }
   };
 
+  op.p6staticouter = function(ctx, codeRef) {
+    if (!(codeRef instanceof CodeRef)) throw new nqp.NQPException("p6staticouter must be used on a CodeRef");
+    return codeRef.staticCode.outerCodeRef;
+  };
+
   function RakudoScalar(STable) {
     this.STable = STable;
   }

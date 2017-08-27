@@ -106,15 +106,26 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     nqp::stmts(
       (my $indices := nqp::getattr(@indices,List,'$!reified')),
       (my int $elems = nqp::elems($indices)),
+
+      # Check if a slice was requested at any dimension:
       (my int $i = -1),
       nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos($indices,$i),Int),
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems) &&
+        !nqp::stmts(
+          (my $idx := nqp::atpos($indices,$i)),
+             nqp::istype($idx, Iterable)
+          || nqp::istype($idx, Whatever)
+          || nqp::istype($idx, HyperWhatever),
+        ),
         nqp::null
       ),
       nqp::if(
         nqp::islt_i($i,$elems),
+
+        # Return a slice:
         MD-ARRAY-SLICE(SELF,@indices),
+
+        # Return a singular element:
         nqp::if(
           nqp::iseq_i($elems,2),
           SELF.AT-POS(
@@ -139,15 +150,26 @@ multi sub postcircumfix:<{; }>(\SELF, @indices) is raw {
     nqp::stmts(
       (my $indices := nqp::getattr(@indices,List,'$!reified')),
       (my int $elems = nqp::elems($indices)),
+
+      # Check if a slice was requested at any dimension:
       (my int $i = -1),
       nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos($indices,$i),Str),
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems) &&
+        !nqp::stmts(
+          (my $idx := nqp::atpos($indices,$i)),
+             nqp::istype($idx, Iterable)
+          || nqp::istype($idx, Whatever)
+          || nqp::istype($idx, HyperWhatever),
+        ),
         nqp::null
       ),
       nqp::if(
         nqp::islt_i($i,$elems),
+
+        # Return a slice:
         MD-HASH-SLICE(SELF,@indices),
+
+        # Return a singular element:
         nqp::if(
           nqp::iseq_i($elems,2),
           SELF.AT-KEY(

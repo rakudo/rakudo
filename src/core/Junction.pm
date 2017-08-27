@@ -394,7 +394,67 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
 }
 
 multi sub infix:<~>(Junction:D $a, Junction:D $b) {
-    X::NYI.new(feature => "Junction ~ Junction").throw
+    nqp::if(
+      nqp::iseq_s(
+        nqp::getattr($a,Junction,'$!type'),
+        nqp::getattr($b,Junction,'$!type')
+      ),
+      nqp::stmts(                                # fast-track same types
+        (my $astor := nqp::getattr($a,Junction,'$!storage')),
+        (my $bstor := nqp::getattr($b,Junction,'$!storage')),
+        (my int $aelems = nqp::elems($astor)),
+        (my int $belems = nqp::elems($bstor)),
+        (my $seen := nqp::hash),
+        (my int $i = -1),
+        (my $storage := nqp::bindattr(           # new object setup
+          (my $junction := nqp::clone($a)),
+          Junction,
+          '$!storage',
+          nqp::setelems(nqp::list,nqp::elems($seen))
+        )),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
+          nqp::stmts(                            # outer loop
+            (my $aval := nqp::if(
+              nqp::istype(nqp::atpos($astor,$i),Str),
+              nqp::atpos($astor,$i),
+              nqp::atpos($astor,$i).Str
+            )),
+            (my int $j = -1),
+            nqp::while(
+              nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+              nqp::unless(                       # inner loop
+                nqp::existskey(
+                  $seen,
+                  (my $concat := nqp::concat(
+                    $aval,
+                    nqp::if(
+                      nqp::istype((my $bval := nqp::atpos($bstor,$j)),Str),
+                      $bval,
+                      $bval.Str
+                    )
+                  ))
+                ),
+                nqp::bindkey(                    # new one, remember
+                  $seen,
+                  nqp::push($storage,$concat),
+                  1
+                )
+              )
+            )
+          )
+        ),
+        $junction
+      ),
+      X::NYI.new(
+        feature => nqp::join("",nqp::list(
+          nqp::getattr($a,Junction,'$!type'),
+          '() ~ ',
+          nqp::getattr($b,Junction,'$!type'),
+          '()'
+        )
+      )).throw
+    )
 }
 
 nqp::p6setautothreader( -> |c {

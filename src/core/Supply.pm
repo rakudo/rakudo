@@ -851,14 +851,15 @@ my class Supply does Awaitable {
 
     method batch(Supply:D $self: Int(Cool) :$elems = 0, :$seconds) {
         supply {
-            my @batched;
+            my int $max = $elems >= 0 ?? $elems !! 0;
+            my $batched := nqp::list;
             my $last_time;
             sub flush(--> Nil) {
-                emit([@batched]);
-                @batched = ();
+                emit($batched);
+                $batched := nqp::list;
             }
             sub final-flush(--> Nil) {
-                flush if @batched;
+                flush if nqp::elems($batched);
             }
 
             if $seconds {
@@ -866,15 +867,15 @@ my class Supply does Awaitable {
 
                 if $elems > 0 { # and $seconds
                     whenever self -> \val {
-                      my $this_time = time div $seconds;
-                      if $this_time != $last_time {
-                          flush if @batched;
-                          $last_time = $this_time;
-                          @batched.push: val;
+                        my $this_time = time div $seconds;
+                        if $this_time != $last_time {
+                            flush if nqp::elems($batched);
+                            $last_time = $this_time;
+                            nqp::push($batched,val);
                         }
                         else {
-                            @batched.push: val;
-                            flush if @batched.elems == $elems;
+                            nqp::push($batched,val);
+                            flush if nqp::iseq_i(nqp::elems($batched),$max);
                         }
                         LAST { final-flush; }
                     }
@@ -883,18 +884,18 @@ my class Supply does Awaitable {
                     whenever self -> \val {
                         my $this_time = time div $seconds;
                         if $this_time != $last_time {
-                            flush if @batched;
+                            flush if nqp::elems($batched);
                             $last_time = $this_time;
                         }
-                        @batched.push: val;
+                        nqp::push($batched,val);
                         LAST { final-flush; }
                     }
                 }
             }
             else { # just $elems
                 whenever self -> \val {
-                    @batched.push: val;
-                    flush if @batched.elems >= $elems;
+                    nqp::push($batched,val);
+                    flush if nqp::isge_i(nqp::elems($batched),$max);
                     LAST { final-flush; }
                 }
             }

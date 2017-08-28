@@ -35,8 +35,7 @@ environment:
 #    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
 
 # Allow failures from certain build configuration
-matrix:
-  fast_finish: true
+#matrix:
 #  allow_failures:
 #    - platform: x64
 #      RAKUDO_OPTIONS: --backends=jvm  --gen-nqp

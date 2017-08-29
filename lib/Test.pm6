@@ -170,8 +170,8 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                    eq $expected.Str.subst(/\s/, '', :g)
             {
                 # only white space differs, so better show it to the user
-                _diag "expected: {$expected.perl}\n"
-                    ~ "     got: {$got.perl}";
+                _diag "expected: $expected.perl()\n"
+                    ~ "     got: $got.perl()";
             }
             else {
                 _diag "expected: '$expected'\n"
@@ -242,8 +242,8 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            _diag "expected: '{$expected // $expected.^name}'\n"
-                ~ " matcher: '{$matcher.?name || $matcher.^name}'\n"
+            _diag "expected: '" ~ ($expected // $expected.^name)     ~ "'\n"
+                ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
                 ~ "     got: '$got'";
         }
     }
@@ -618,7 +618,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             default {
                 pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
-                ok $type_ok , "right exception type ({$ex_type.^name})";
+                ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
                         my $got is default(Nil) = $_."$k"();
@@ -630,14 +630,14 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         }
                     }
                 } else {
-                    _diag "Expected: {$ex_type.^name}\n"
-                        ~ "Got:      {$_.^name}\n"
+                    _diag "Expected: $ex_type.^name()\n"
+                        ~ "Got:      $_.^name()\n"
                         ~ "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }
         }
-    }, $reason // "did we throws-like {$ex_type.^name}?";
+    }, $reason // "did we throws-like $ex_type.^name()?";
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {
@@ -714,8 +714,8 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         }
 
         _diag $desc
-          ?? "Failed test '$desc'\nat {$caller.file} line {$caller.line}"
-          !! "Failed test at {$caller.file} line {$caller.line}";
+          ?? "Failed test '$desc'\nat $caller.file() line $caller.line()"
+          !! "Failed test at $caller.file() line $caller.line()";
     }
 
     # must clear this between tests
@@ -736,16 +736,15 @@ sub done-testing() is export {
     }
 
     # Wrong quantity of tests
-    _diag("Looks like you planned $num_of_tests_planned test{
-        $num_of_tests_planned == 1 ?? '' !! 's'
-    }, but ran $num_of_tests_run")
-      if ($num_of_tests_planned or $num_of_tests_run)
-      && ($num_of_tests_planned != $num_of_tests_run);
+    _diag("Looks like you planned $num_of_tests_planned test"
+        ~ ($num_of_tests_planned == 1 ?? '' !! 's')
+        ~ ", but ran $num_of_tests_run"
+    ) if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run);
 
-    _diag("Looks like you failed $num_of_tests_failed test{
-        $num_of_tests_failed == 1 ?? '' !! 's'
-    } of $num_of_tests_run")
-    if $num_of_tests_failed && ! $subtest_todo_reason;
+    _diag("Looks like you failed $num_of_tests_failed test"
+        ~ ($num_of_tests_failed == 1 ?? '' !! 's')
+        ~ " of $num_of_tests_run"
+    ) if $num_of_tests_failed && ! $subtest_todo_reason;
 }
 
 sub _init_vars {

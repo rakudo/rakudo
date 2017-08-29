@@ -415,21 +415,18 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
     )
 }
 
-multi sub infix:<~>(Junction:D $a, Junction:D $b) {
+multi sub infix:<~>(Junction:D \a, Junction:D \b) {
     nqp::if(
-      nqp::iseq_s(
-        nqp::getattr($a,Junction,'$!type'),
-        nqp::getattr($b,Junction,'$!type')
-      ),
+      Junction.INFIX-TWO(my $a = a, my $b = b),
       nqp::stmts(                                # fast-track same types
-        (my $astor := nqp::getattr($a,Junction,'$!storage')),
-        (my $bstor := nqp::getattr($b,Junction,'$!storage')),
+        (my $astor := nqp::getattr(nqp::decont($a),Junction,'$!storage')),
+        (my $bstor := nqp::getattr(nqp::decont($b),Junction,'$!storage')),
         (my int $aelems = nqp::elems($astor)),
         (my int $belems = nqp::elems($bstor)),
         (my $seen := nqp::hash),
         (my int $i = -1),
         (my $storage := nqp::bindattr(           # new object setup
-          (my $junction := nqp::clone($a)),
+          (my $junction := nqp::clone(nqp::decont($a))),
           Junction,
           '$!storage',
           nqp::setelems(nqp::list,nqp::elems($seen))

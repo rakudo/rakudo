@@ -24,6 +24,28 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
+    # Swap 2 Junctions in place if they need to be for an infix operation
+    # on the two Junctions.  Returns a truthy (0|1)value if the Junctions
+    # were of the same type.
+    method INFIX-TWO(Junction:U: Junction:D \a, Junction:D \b) {
+        nqp::unless(
+          nqp::iseq_s(
+            (my $atype := nqp::getattr(nqp::decont(a),Junction,'$!type')),
+            (my $btype := nqp::getattr(nqp::decont(b),Junction,'$!type'))
+          ),
+          nqp::if(                               # not same
+            (nqp::iseq_s($btype,"all") || nqp::iseq_s($btype,"none"))
+              && (nqp::iseq_s($atype,"any") || nqp::iseq_s($atype,"one")),
+            nqp::stmts(                          # need to be swapped
+              (my $tmp := nqp::decont(a)),
+              (a = b),
+              (b = $tmp),
+              0                                  # not same, now swapped
+            )
+          )
+        )
+    }
+
     proto method new(|) { * }
     multi method new(Junction: \values, Str :$type!) {
         nqp::create(Junction)!SET-SELF($type,values)

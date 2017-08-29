@@ -84,6 +84,9 @@ multi sub plan (Cool:D :skip-all($reason)!) {
 # It is also the default if nobody calls plan at all
 multi sub plan($number_of_tests) is export {
     _init_io() unless $output;
+
+    my str $str-message;
+
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -91,7 +94,7 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        $output.say: $indents ~ '1..' ~ $number_of_tests;
+        $str-message ~= $indents ~ '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -100,10 +103,11 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::time_n.
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
-    $output.say: $indents
-      ~ '# between two timestamps '
-      ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+    $str-message ~= "$indents\n# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
         if nqp::iseq_i($perl6_test_times,1);
+
+    $output.say: $str-message;
+
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::time_n;
 }
@@ -698,11 +702,10 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
             ?? "ok $num_of_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
             !! "ok $num_of_tests_run - $unescaped-prefix$desc";
 
-    $output.say: $tap;
-    $output.say: $indents
-      ~ "# t="
-      ~ ceiling(($time_after-$time_before)*1_000_000)
+    $tap ~= ("\n$indents# t=" ~ ceiling(($time_after - $time_before)*1_000_000))
         if nqp::iseq_i($perl6_test_times,1);
+
+    $output.say: $tap;
 
     unless $cond {
         my $caller;

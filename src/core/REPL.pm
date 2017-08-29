@@ -246,16 +246,7 @@ do {
             $self but FallbackBehavior
         }
 
-        method !handle-bare-REPL-eval(Mu \compiler, %adverbs) {
-            my $editor := %*ENV<RAKUDO_LINE_EDITOR> // '';
-            return unless (not $*IN.t and not $editor) or $editor eq 'bare';
-            compiler.eval($*IN.slurp, |%adverbs);
-            exit;
-        }
-
         method new(Mu \compiler, Mu \adverbs) {
-            self!handle-bare-REPL-eval(compiler, adverbs);
-
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);

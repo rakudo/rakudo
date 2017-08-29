@@ -613,7 +613,11 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
             nqp::if(
               GLOBAL::.EXISTS-KEY($first),
               GLOBAL::.AT-KEY($first),
-              X::NoSuchSymbol.new(symbol => $name).fail
+              nqp::if(
+		nqp::iseq_s($first, 'GLOBAL'),
+		GLOBAL,
+                X::NoSuchSymbol.new(symbol => $name).fail
+              )
             )
           ))),
         nqp::while(

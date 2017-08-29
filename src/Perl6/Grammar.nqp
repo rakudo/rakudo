@@ -4164,7 +4164,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token methodop {
         [
-        | <longname>
+        | <longname> { if $<longname> eq '::' { self.malformed("class-qualified postfix call") } }
         | <?[$@&]> <variable> { self.check_variable($<variable>) }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."

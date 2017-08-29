@@ -10,7 +10,7 @@ class Kernel does Systemic {
     has Int $!bits;
 
     sub uname($opt) {
-        state $has_uname = "/bin/uname".IO.s || "/usr/bin/uname".IO.s;
+        state $has_uname = "/bin/uname".IO.x || "/usr/bin/uname".IO.x;
         $has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
     }
 

@@ -668,7 +668,7 @@ sub eval_exception($code) {
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
-sub proclaim(Bool(Mu) $cond, $desc is copy, $uenscaped-prefix = '') {
+sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -693,10 +693,10 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $uenscaped-prefix = '') {
     !! '';
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
-        ?? "ok $num_of_tests_run - $uenscaped-prefix$desc$todo_reason"
+        ?? "ok $num_of_tests_run - $unescaped-prefix$desc$todo_reason"
         !! (! $cond && $subtest_todo_reason)
-            ?? "ok $num_of_tests_run - $uenscaped-prefix$desc$subtest_todo_reason"
-            !! "ok $num_of_tests_run - $uenscaped-prefix$desc";
+            ?? "ok $num_of_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $unescaped-prefix$desc";
 
     $output.say: $tap;
     $output.say: $indents

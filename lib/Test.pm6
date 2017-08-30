@@ -675,16 +675,16 @@ sub eval_exception($code) {
 sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
-    my $current_tests_run = cas $num_of_tests_run, -> $i { $i + 1 };
+    $num_of_tests_run = $num_of_tests_run + 1;
 
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
 
-        cas( $num_of_tests_failed, -> $i { $i + 1 } )
-            unless $current_tests_run <= $todo_upto_test_num;
+        $num_of_tests_failed = $num_of_tests_failed + 1
+            unless $num_of_tests_run <= $todo_upto_test_num;
 
-        cas( $pseudo_fails, -> $i { $i + 1 } ) if $subtest_todo_reason;
+        $pseudo_fails = $pseudo_fails + 1 if $subtest_todo_reason;
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
@@ -696,11 +696,11 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
                     nqp::split('#', $desc.Str))))
     !! '';
 
-    $tap ~= $todo_reason && $current_tests_run <= $todo_upto_test_num
-        ?? "ok $current_tests_run - $unescaped-prefix$desc$todo_reason"
+    $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
+        ?? "ok $num_of_tests_run - $unescaped-prefix$desc$todo_reason"
         !! (! $cond && $subtest_todo_reason)
-            ?? "ok $current_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
-            !! "ok $current_tests_run - $unescaped-prefix$desc";
+            ?? "ok $num_of_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $unescaped-prefix$desc";
 
     $tap ~= ("\n$indents# t=" ~ ceiling(($time_after - $time_before)*1_000_000))
         if nqp::iseq_i($perl6_test_times,1);

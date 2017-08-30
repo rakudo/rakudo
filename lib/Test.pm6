@@ -103,7 +103,7 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::time_n.
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
-    $str-message ~= "$indents\n# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+    $str-message ~= "\n$indents# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
         if nqp::iseq_i($perl6_test_times,1);
 
     $output.say: $str-message;

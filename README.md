@@ -21,7 +21,7 @@ text file.
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/moritz/rakudo/branch/nom)
+[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/nom)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.

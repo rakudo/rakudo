@@ -195,6 +195,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     # it will increment $pos and try again. Therefor it is important to only match
     # against the current position.
     # $i is case insensitive flag
+    # $m is ignore accent marks flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
     method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a = 0, $context = PseudoStash) {

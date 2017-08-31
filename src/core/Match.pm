@@ -326,22 +326,22 @@ my class Match is Capture is Cool does NQPMatchRole {
 
                 # no modifier, match literally
                 elsif $nomod {
-                    $match = nqp::eqat($tgt, $topic_str, $pos)
+                    $match = nqp::eqat($tgt, $topic_str, $pos);
                 }
 
                 # ignoremark+ignorecase
                 elsif $m && $i {
-                    $match = nqp::indexicim($tgt, $topic_str, $pos) >= 0;
+                    $match = nqp::eqaticim($tgt, $topic_str, $pos);
                 }
 
                 # ignoremark
                 elsif $m {
-                    $match = nqp::indexim($tgt, $topic_str, $pos) >= 0;
+                    $match = nqp::eqatim($tgt, $topic_str, $pos);
                 }
 
                 # ignorecase
                 elsif $i {
-                    $match = nqp::indexic($tgt, $topic_str, $pos) >= 0;
+                    $match = nqp::eqatic($tgt, $topic_str, $pos);
                 }
 
                 if $match

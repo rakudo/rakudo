@@ -417,63 +417,83 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
 }
 
 multi sub infix:<~>(Junction:D \a, Junction:D \b) {
-    nqp::if(
-      Junction.INFIX-TWO(my $a = a, my $b = b),
-      nqp::stmts(                                # fast-track same types
-        (my $astor := nqp::getattr(nqp::decont($a),Junction,'$!storage')),
-        (my $bstor := nqp::getattr(nqp::decont($b),Junction,'$!storage')),
-        (my int $aelems = nqp::elems($astor)),
-        (my int $belems = nqp::elems($bstor)),
-        (my $seen := nqp::hash),
-        (my int $i = -1),
-        (my $storage := nqp::bindattr(           # new object setup
-          (my $junction := nqp::clone(nqp::decont($a))),
-          Junction,
-          '$!storage',
-          nqp::setelems(nqp::list,nqp::elems($seen))
-        )),
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
-          nqp::stmts(                            # outer loop
-            (my $aval := nqp::if(
-              nqp::istype(nqp::atpos($astor,$i),Str),
-              nqp::atpos($astor,$i),
-              nqp::atpos($astor,$i).Str
-            )),
-            (my int $j = -1),
-            nqp::while(
+    nqp::stmts(                                  # basic setup
+      (my int $mergable = Junction.INFIX-TWO(my $a = a, my $b = b)),
+      (my $astor := nqp::getattr(nqp::decont($a),Junction,'$!storage')),
+      (my $bstor := nqp::getattr(nqp::decont($b),Junction,'$!storage')),
+      (my int $aelems = nqp::elems($astor)),
+      (my int $belems = nqp::elems($bstor)),
+      (my int $i = -1),
+      (my $seen := nqp::hash),
+      (my $outer := nqp::bindattr(               # outer eigenstates
+        (my $junction := nqp::clone(nqp::decont($a))),
+        Junction,
+        '$!storage',
+        nqp::if(
+          $mergable,
+          nqp::list,
+          nqp::setelems(nqp::list,$aelems)
+        )
+      )),
+      nqp::while(                                # outer loop
+        nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
+        nqp::stmts(
+          (my $aval := nqp::if(
+            nqp::istype(nqp::atpos($astor,$i),Str),
+            nqp::atpos($astor,$i),
+            nqp::atpos($astor,$i).Str
+          )),
+          (my int $j = -1),
+          nqp::if(
+            $mergable,
+            nqp::while(                          # merge eigenstates
               nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
-              nqp::unless(                       # inner loop
+              nqp::unless(
                 nqp::existskey(
                   $seen,
                   (my $concat := nqp::concat(
                     $aval,
                     nqp::if(
-                      nqp::istype((my $bval := nqp::atpos($bstor,$j)),Str),
-                      $bval,
-                      $bval.Str
+                      nqp::istype(nqp::atpos($bstor,$j),Str),
+                      nqp::atpos($bstor,$j),
+                      nqp::atpos($bstor,$j).Str,
                     )
                   ))
                 ),
                 nqp::bindkey(                    # new one, remember
                   $seen,
-                  nqp::push($storage,$concat),
+                  nqp::push($outer,$concat),
                   1
+                )
+              )
+            ),
+            nqp::stmts(                          # cannot merge eigenstates
+              (my $inner := nqp::bindattr(
+                nqp::bindpos($outer,$i,nqp::clone(nqp::decont($b))),
+                Junction,
+                '$!storage',
+                nqp::setelems(nqp::list,$belems)
+              )),
+              nqp::while(
+                nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+                nqp::bindpos(
+                  $inner,
+                  $j,
+                  nqp::concat(
+                    $aval,
+                    nqp::if(
+                      nqp::istype(nqp::atpos($bstor,$j),Str),
+                      nqp::atpos($bstor,$j),
+                      nqp::atpos($bstor,$j).Str,
+                    )
+                  )
                 )
               )
             )
           )
-        ),
-        $junction
-      ),
-      X::NYI.new(
-        feature => nqp::join("",nqp::list(
-          nqp::getattr($a,Junction,'$!type'),
-          '() ~ ',
-          nqp::getattr($b,Junction,'$!type'),
-          '()'
         )
-      )).throw
+      ),
+      $junction
     )
 }
 

@@ -328,39 +328,19 @@ my class Match is Capture is Cool does NQPMatchRole {
                     $match = nqp::eqat($tgt, $topic_str, $pos)
                 }
 
-                # ignoremark(+ignorecase?)
+                # ignoremark+ignorecase
+                elsif $m && $i {
+                    $match = nqp::indexicim($tgt, $topic_str, $pos) >= 0;
+                }
+
+                # ignoremark
                 elsif $m {
-                    my int $k = -1;
-
-                    # ignorecase+ignoremark
-                    if $i {
-                        my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
-                        my str $topic_fc = nqp::fc($topic_str);
-                        Nil while nqp::islt_i(++$k,$len)
-                          && nqp::iseq_i(
-                            nqp::ordbaseat($tgt_fc, nqp::add_i($pos,$k)),
-                            nqp::ordbaseat($topic_fc, $k)
-                          );
-                    }
-
-                    # ignoremark
-                    else {
-                        Nil while nqp::islt_i(++$k, $len)
-                          && nqp::iseq_i(
-                            nqp::ordbaseat($tgt, nqp::add_i($pos,$k)),
-                            nqp::ordbaseat($topic_str, $k)
-                          );
-                    }
-
-                    $match = nqp::iseq_i($k,$len); # match if completed
+                    $match = nqp::indexim($tgt, $topic_str, $pos) >= 0;
                 }
 
                 # ignorecase
-                else {
-                    $match = nqp::iseq_s(
-                      nqp::fc(nqp::substr($tgt, $pos, $len)),
-                      nqp::fc($topic_str)
-                    )
+                elsif $i {
+                    $match = nqp::indexic($tgt, $topic_str, $pos) >= 0;
                 }
 
                 if $match

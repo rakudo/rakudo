@@ -25,6 +25,7 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.backlog;
     has Bool $.listening;
     has Str $.source-address;
+    has Int $.source-port;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
@@ -91,6 +92,7 @@ my class IO::Socket::INET does IO::Socket {
             || $family == PIO::PF_INET6
         } = PIO::PF_INET,
         Str :$source-address is copy = "".Str,
+        Int :$source-port is copy = 0;
               *%rest,
         --> IO::Socket::INET:D) {
 
@@ -106,6 +108,7 @@ my class IO::Socket::INET does IO::Socket {
             :$port,
             :$family,
             :$source-address,
+            :$source-port,
             |%rest,
         )!initialize()
     }
@@ -132,7 +135,7 @@ my class IO::Socket::INET does IO::Socket {
 #?endif
         }
         elsif $.type == PIO::SOCK_STREAM {
-            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port), nqp::unbox_s($.source-address));
+            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port), nqp::unbox_s($.source-address), nqp::unbox_i($.source-port));
         }
 
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);

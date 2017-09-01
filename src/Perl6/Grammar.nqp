@@ -239,10 +239,23 @@ role STD {
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
     method FAILGOAL($goal, $dba?) {
+        my $stopper;
         unless $dba {
             $dba := nqp::getcodename(nqp::callercode());
+            # Handle special case to conceal variable name leaked by core grammar
+            if ~$goal eq '$stopper ' {
+                my $ch := $dba ~~ /[post]?circumfix\:sym[\<|\«]\S+\s+(\S+)[\>|\»]/;
+                $ch := ~$ch[0];
+                if nqp::chars($ch) {
+                    $stopper := "'" ~ $ch ~ "'";
+                }
+            }
         }
-        self.typed_panic('X::Comp::FailGoal', :$dba, :$goal);
+        # core grammar also has a penchant for sending us trailing .ws contents
+        $stopper := $stopper // $goal;
+        $stopper := $stopper ~~ /(.*<!before \s>.)\s*/;
+        $stopper := ~$stopper[0];
+        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper));
     }
 
     method panic(*@args) {

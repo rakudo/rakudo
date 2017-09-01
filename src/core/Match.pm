@@ -198,7 +198,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     # $m is ignore accent marks flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a = 0, $context = PseudoStash) {
+    method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a, $context) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);

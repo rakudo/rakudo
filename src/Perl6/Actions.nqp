@@ -10059,23 +10059,25 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),
-                ),
+                 ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method p5metachar:sym<var>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    wanted($<var>.ast, 'p5var'),
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(0) ),
-                                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*INTERPOLATION) ),
-                                    QAST::Op.new( :op<callmethod>, :name<new>,
-                                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
-                                    ), ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new(
+                 QAST::NodeList.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    wanted($<var>.ast, 'p5var'),
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(0) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::Op.new( :op<callmethod>, :name<new>,
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                    ),
+                 ),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

@@ -5,7 +5,15 @@ Rakudo::Internals.REGISTER-DYNAMIC: '@*ARGS', {
     PROCESS::<@ARGS> := @ARGS;
 }
 Rakudo::Internals.REGISTER-DYNAMIC: '$*ARGFILES', {
-    PROCESS::<$ARGFILES> = IO::ArgFiles.new(:args(@*ARGS));
+    # Here, we use $*IN's attributes to init the arg files because
+    # the $*ARGFILES won't get instantiated until first access and by that
+    # time the user may have already modified $*IN's attributes to their liking
+    PROCESS::<$ARGFILES> = @*ARGS
+      ?? IO::ArgFiles.new(@*ARGS)
+      !! IO::ArgFiles.new:
+          (my $in := $*IN),
+          :nl-in($in.nl-in),       :chomp($in.chomp),
+          :encoding($in.encoding), :bin(nqp::isfalse($in.encoding));
 }
 
 # vim: ft=perl6 expandtab sw=4

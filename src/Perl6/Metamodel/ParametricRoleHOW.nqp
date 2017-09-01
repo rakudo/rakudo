@@ -69,8 +69,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     method group($obj) {
         $!in_group ?? $!group !! $obj
     }
-    
-    method compose($obj) {
+
+    method compose($obj, :$compiler_services) {
         my @rtl;
         if $!in_group {
             @rtl.push($!group);
@@ -139,7 +139,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # things we are composing.
         $!specialize_lock.protect({
             # Run the body block to get the type environment (we know
-            # the role in this csae).
+            # the role in this case).
             my $type_env;
             my $error;
             try {

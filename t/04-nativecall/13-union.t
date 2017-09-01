@@ -1,6 +1,7 @@
-use lib 't/04-nativecall';
+use v6;
+
+use lib <lib t/04-nativecall>;
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 
@@ -24,7 +25,7 @@ class MyStruct is repr('CStruct') {
     HAS Onion $.onion;
     has num32 $.float;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;
@@ -42,20 +43,19 @@ sub SetCharMyStruct(MyStruct)           is native('./13-union') { * }
 is nativesizeof(MyStruct), SizeofMyStruct(), 'sizeof(MyStruct)';
 # Perl-side tests:
 my MyStruct $obj .= new;
-$obj.init;
 
 is $obj.long,         42,     'getting long';
-is_approx $obj.num,  -3.7e0,  'getting num';
+is-approx $obj.num,  -3.7e0,  'getting num';
 is $obj.byte,         7,      'getting int8';
-is_approx $obj.float, 3.14e0, 'getting num32';
+is-approx $obj.float, 3.14e0, 'getting num32';
 
 # C-side tests:
 my $cobj = ReturnMyStruct;
 
 is $cobj.long,          17,     'getting long from C-created struct';
-is_approx $cobj.num,    4.2e0,  'getting num from C-created struct';
+is-approx $cobj.num,    4.2e0,  'getting num from C-created struct';
 is $cobj.byte,          13,     'getting int8 from C-created struct';
-is_approx $cobj.float, -6.28e0, 'getting num32 from C-created struct';
+is-approx $cobj.float, -6.28e0, 'getting num32 from C-created struct';
 
 SetLongMyStruct($cobj);
 is $cobj.onion.l, 1 +< 30, 'long in union';
@@ -76,7 +76,7 @@ class MyStruct2 is repr('CStruct') {
     has Onion $.onion;
     has num32 $.float;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;
@@ -97,9 +97,9 @@ is nativesizeof(MyStruct2), SizeofMyStruct2(), 'sizeof(MyStruct2)';
 my $cobj2 = ReturnMyStruct2;
 
 is $cobj2.long,          17,     'getting long from C-created struct';
-is_approx $cobj2.num,    4.2e0,  'getting num from C-created struct';
+is-approx $cobj2.num,    4.2e0,  'getting num from C-created struct';
 is $cobj2.byte,          13,     'getting int8 from C-created struct';
-is_approx $cobj2.float, -6.28e0, 'getting num32 from C-created struct';
+is-approx $cobj2.float, -6.28e0, 'getting num32 from C-created struct';
 
 my $onion = $cobj2.onion;
 

@@ -2,8 +2,7 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
         if $spec.from eq 'Perl5' {
             require Inline::Perl5;
@@ -12,13 +11,14 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
             if $*RAKUDO_MODULE_DEBUG -> $RMD {
                 $RMD("Loading {$spec.short-name} via Inline::Perl5");
             }
-            $perl5.require(
+            my $handle := $perl5.require(
                 $spec.short-name,
                 $spec.version-matcher !== True ?? $spec.version-matcher.Num !! Num,
+                :handle
             );
             return CompUnit.new(
                 :short-name($spec.short-name),
-                :handle(CompUnit::Handle.from-unit(::($spec.short-name).WHO)),
+                :$handle,
                 :repo(self),
                 :repo-id($spec.short-name),
                 :from($spec.from),

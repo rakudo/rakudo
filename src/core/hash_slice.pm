@@ -12,38 +12,39 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, :$SINK!, *%other ) is raw {
-    SLICE_ONE_HASH( SELF, key, (:$SINK), %other );
-}
 multi sub postcircumfix:<{ }>( \SELF, \key, :$delete!, *%other ) is raw {
-    $delete && !%other
-      ?? SELF.DELETE-KEY(key)
-      !! SLICE_ONE_HASH( SELF, key, (:$delete), %other );
+    nqp::if(
+      $delete && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage'))),
+      SELF.DELETE-KEY(key),
+      SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
+    )
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$exists!, *%other ) is raw {
-    $exists && !%other
-      ?? SELF.EXISTS-KEY(key)
-      !! SLICE_ONE_HASH( SELF, key, (:$exists), %other );
+    nqp::if(
+      $exists && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage'))),
+      SELF.EXISTS-KEY(key),
+      SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )
+    )
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$kv!, *%other ) is raw {
-    $kv && !%other
+    $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? (key,SELF.AT-KEY(key)) !! ())
-      !! SLICE_ONE_HASH( SELF, key, (:$kv), %other );
+      !! SLICE_ONE_HASH( SELF, key, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$p!, *%other ) is raw {
-    $p && !%other
+    $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? Pair.new(key,SELF.AT-KEY(key)) !! ())
-      !! SLICE_ONE_HASH( SELF, key, (:$p), %other );
+      !! SLICE_ONE_HASH( SELF, key, 'p', $p, %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$k!, *%other ) is raw {
-    $k && !%other
+    $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? key !! ())
-      !! SLICE_ONE_HASH( SELF, key, (:$k), %other );
+      !! SLICE_ONE_HASH( SELF, key, 'k', $k, %other );
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, :$v!, *%other ) is raw {
-    $v && !%other
+    $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? nqp::decont(SELF.AT-KEY(key)) !! ())
-      !! SLICE_ONE_HASH( SELF, key, (:$v), %other );
+      !! SLICE_ONE_HASH( SELF, key, 'v', $v, %other );
 }
 
 # %h<a b c>
@@ -60,40 +61,35 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$SINK!,*%other) is raw {
-    nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$SINK), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$SINK), %other )
-}
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$delete!,*%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$delete), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$delete), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'delete', $delete, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, :$exists!,*%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$exists), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$exists), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'exists', $exists, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'exists', $exists, %other )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$kv!, *%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$kv), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$kv), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'kv', $kv, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'kv', $kv, %other )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$p!, *%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$p), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$p), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'p', $p, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'p', $p, %other )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$k!, *%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$k), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$k), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'k', $k, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'k', $k, %other )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$v!, *%other) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH( SELF, key, (:$v), %other )
-        !! SLICE_MORE_HASH( SELF, key, (:$v), %other )
+        ?? SLICE_ONE_HASH(  SELF, key, 'v', $v, %other )
+        !! SLICE_MORE_HASH( SELF, key, 'v', $v, %other )
 }
 
 # %h{*}
@@ -106,30 +102,27 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, Mu \ASSIGN) is raw {
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$SINK), %other );
-}
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$delete), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$exists!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$exists), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$kv!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$kv), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'p', $p, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$k!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$k), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'k', $k, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'p', $p, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
-    %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, (:$v), %other )
+    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, 'v', $v, %other )
       !! SELF{SELF.keys.list};
 }
 
@@ -137,30 +130,27 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$v!, *%other) is raw {
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$SINK), %other );
-}
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$delete), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$exists!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$exists), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'exists', $exists, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$kv!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$kv), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'kv', $kv, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'p', $p, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$k), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'k', $k, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is raw {
-    SLICE_MORE_HASH( SELF, SELF.keys.list, (:$p), %other );
+    SLICE_MORE_HASH( SELF, SELF.keys.list, 'p', $p, %other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$v!, *%other) is raw {
-    %other
-      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, (:$v), %other )
+    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
+      ?? SLICE_MORE_HASH( SELF, SELF.keys.list, 'v', $v, %other )
       !! SELF{SELF.keys.list};
 }
 multi sub postcircumfix:<{ }>( \SELF, *%other ) is raw {
@@ -214,6 +204,35 @@ multi sub postcircumfix:<{; }>(\SELF, @indices) {
     my \target = IterationBuffer.new;
     MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
     nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
+}
+
+multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
+    sub recurse-at-key(\SELF, \indices) {
+        my \idx     := indices[0];
+        my \exists  := SELF.EXISTS-KEY(idx);
+        nqp::if(
+            nqp::istype(idx, Iterable),
+            idx.map({ |recurse-at-key(SELF, ($_, |indices.skip.cache)) }).List,
+            nqp::if(
+                nqp::iseq_I(indices.elems, 1),
+                exists,
+                nqp::if(
+                    exists,
+                    recurse-at-key(SELF{idx}, indices.skip.cache),
+                    nqp::stmts(
+                        (my \times := indices.map({ .elems }).reduce(&[*])),
+                        nqp::if(
+                            nqp::iseq_I(times, 1),
+                            False,
+                            (False xx times).List
+                        )
+                    ).head
+                )
+            )
+        );
+    }
+
+    recurse-at-key(SELF, @indices)
 }
 
 # vim: ft=perl6 expandtab sw=4

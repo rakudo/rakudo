@@ -20,6 +20,10 @@
 N: ab5tract
 E: john.haltiwanger@gmail.com
 
+N: Adrian White
+U: snarkyboojum
+E: snarkyboojum@gmail.com
+
 N: Ahmad M. Zawawi
 U: azawawi
 E: ahmad.zawawi@gmail.com
@@ -30,6 +34,10 @@ U: ambs
 E: ambs@cpan.org
 S: Braga, Portugal
 W: http://alfarrabio.di.uminho.pt/~albie/
+
+N: Aleks-Daniel Jakimenko-Aleksejev
+U: AlexDaniel
+E: alex.jakimenko@gmail.com
 
 N: Alex Elsayed
 U: eternaleye
@@ -79,6 +87,11 @@ D: Pugs, a Perl6->Parrot implementation.
 N: bacek
 E: bacek@illusion.dev.optusnet.com.au
 
+N: Bahtiar `kalkin-` Gadimov
+U: kalkin
+E: bahtiar@gadimov.de
+W: https://bahtiar.gadimov.de/
+
 N: Bart Wiegmans
 U: bdw
 U: brrt
@@ -106,6 +119,9 @@ E: bslaabs@gmail.com
 
 N: Brian Gernhardt
 E: benji@silverinsanity.com
+
+N: Brian S. Julin
+U: skids
 
 N: Bruce Gray
 U: util
@@ -169,6 +185,15 @@ E: christoph@mksig.org
 N: Christopher J. Madsen
 E: perl@cjmweb.net
 
+N: Claudio Ramirez
+U: nxadm
+U: El_Che
+E: pub.claudio@gmail.com
+
+N: Clifton Wood
+U: Xliff
+E: clifton.wood@gmail.com
+
 N: Colin Kuskie
 U: colink
 E: ckuskie@sterling.net
@@ -205,11 +230,19 @@ E: dagurval@pvv.ntnu.no
 N: dagurval
 E: dagurval@pvv.ntnu.no
 
+N: Dan Miller
+E: danielcliffordmiller@gmail.com
+U: danielcliffordmiller
+
 N: Dan Sugalski
 U: dan
 D: Architect emeritus (0.0.1-0.1.1)
 E: dan@sidhe.org
 W: http://www.sidhe.org/~dan/blog/
+
+N: Daniel Green
+U: MasterDuke17
+E: ddgreen@gmail.com
 
 N: Dave Rolsky
 U: autarch
@@ -244,7 +277,7 @@ E: rightfold@gmail.com
 
 N: Elizabeth Mattijsen
 U: lizmat
-E: liz@dijkmat.nl
+E: liz@wenzperl.nl
 
 N: Erik Johansen
 E: perl6-git@uniejo.dk
@@ -257,6 +290,11 @@ E: felix@herrmann-koenigsberg.de
 
 N: Fernando Brito
 E: email@fernandobrito.com
+
+N: Fernando Corrêa de Oliveira
+U: FCO
+E: fco@cpan.org
+S: Rio de Janeiro, RJ, Brazil
 
 N: Filip Sergot
 E: filip@sergot.pl
@@ -278,6 +316,11 @@ N: François Perrad
 E: francois.perrad@gadz.org
 W: http://fperrad.googlepages.com/home
 U: fperrad
+
+N: M. Faiz Zakwan Zamzuri
+E: skelic3@gmail.com
+U: faraco
+W: https://faracosite.wordpress.com
 
 N: Gabor Szabo
 E: szabgab@gmail.com
@@ -319,6 +362,10 @@ W: http://ingy.net/
 S: Seattle, WA, USA
 D: Make is() work like Perl 5; add .pm6 to extensions searched.
 
+N: Itsuki Toyota
+U: titsuki
+E: titsuki@cpan.org
+
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
 U: jkeenan
@@ -327,6 +374,10 @@ S: Brooklyn, NY, USA
 
 N: Jan Ingvoldstad
 E: jani+perl6-2010@ifi.uio.no
+
+N: Jan-Olof Hendig
+U: dogbert17
+E: jan-olof.hendig@bredband.net
 
 N: japhb
 E: gjb@sonic.net
@@ -393,6 +444,7 @@ U: RabidGravy
 N: Jonathan Worthington
 U: jnthn
 E: jnthn@jnthn.net
+D: Perl 6 (Rakudo Perl) lead developer, current pumpking
 W: http://www.jnthn.net/
 
 N: Joshua Gatcomb
@@ -484,6 +536,10 @@ S: South Lake Tahoe, CA, USA
 N: Mark Grimes
 E: mgrimes@cpan.org
 
+N: Mark Rushing
+E: seatek@gmail.com
+U: adaptiveoptics
+
 N: Mark Shoulson
 E: mark@kli.org
 
@@ -534,15 +590,12 @@ N: Mikhail Khorkov
 E: m.s.khorkov@gmail.com
 
 N: Moritz Lenz
-E: moritz@faui2k3.org
+E: moritz.lenz@gmail.com
 U: moritz
 D: Test infrastructure, tests, general Rakudo hacking
 
 N: Mouq
 E: alexmoquin@gmail.com
-
-N: Nami-Doc
-E: vendethiel@hotmail.fr
 
 N: Nicholas Clark
 U: nicholas
@@ -557,9 +610,6 @@ E: nlogan@gmail.com
 
 N: Nick Wellnhofer
 E: wellnhofer@aevum.de
-
-N: niner
-E: nine@detonation.org
 
 N: Notfound
 E: julian.notfound@gmail.com
@@ -577,7 +627,7 @@ E: patrick.abisalloum@gmail.com
 
 N: Patrick R. Michaud
 U: pmichaud
-D: Perl 6 (Rakudo Perl) lead developer, pumpking
+D: Perl 6 (Rakudo Perl) lead developer, initial pumpking
 E: pmichaud@pobox.com
 
 N: Paul Cochrane
@@ -585,6 +635,7 @@ U: paultcochrane
 E: paul@liekut.de
 
 N: Pawel Murias
+U: pmurias
 E: pawelmurias@gmail.com
 
 N: Pepe Schwarz
@@ -644,6 +695,11 @@ E: ruz@bestpractical.com
 N: Salve J. Nilsen
 E: sjn+gnurf@kaizendo.org
 
+N: Samantha McVey
+E: samantham@posteo.net
+W: cry.nu
+U: samcv
+
 N: sergot
 E: filip@sergot.pl
 
@@ -676,9 +732,6 @@ E: smash@cpan.org
 N: smls
 E: smls75@gmail.com
 
-N: snarkyboojum
-E: snarkyboojum@gmail.com
-
 N: Solomon Foster
 U: colomon
 E: colomon@gmail.com
@@ -688,6 +741,7 @@ U: sorear
 E: stefanor@cox.net
 
 N: Stefan Seifert
+U: niner
 E: nine@detonation.org
 
 N: Stephane cognominal Payrard
@@ -772,6 +826,10 @@ E: thecrux@gmail.com
 N: Vyacheslav Matjukhin
 E: mmcleric@yandex-team.ru
 
+N: Wenzel P. P. Peppmeyer
+E: wenzel.peppmeyer@gmx.de
+U: gfldex
+
 N: Will "Coke" Coleda
 U: coke
 E: will@coleda.com
@@ -786,6 +844,10 @@ N: Zach Morgan
 E: zpmorgan@gmail.com
 D: Rakudo patch
 
+N: Zoffix Znet
+E: cpan@zoffix.com
+W: perl6.party
+
 N: Zohar Kelrich
 E: lumimies@gmail.com
 
@@ -796,5 +858,13 @@ N: Вячеслав Матюхин
 U: mmcleric
 E: me@berekuk.ru
 D: Whatever-currying, colonpair fixes
+
+N: eater
+U: the-eater
+E: perl6@eaterofco.de
+
+N: Oleksii Varianyk
+U: cono
+E: q@cono.org.ua
 
 =cut

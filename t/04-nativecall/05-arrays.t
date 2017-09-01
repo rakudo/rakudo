@@ -1,25 +1,26 @@
-use lib 't/04-nativecall';
+use v6;
+
+use lib <lib t/04-nativecall>;
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 33;
+plan 40;
 
 compile_test_lib('05-arrays');
 
 {
     sub ReturnADoubleArray() returns CArray[num64] is native("./05-arrays") { * }
     my @rarr := ReturnADoubleArray();
-    is_approx @rarr[0], 23.45e0, 'returning double array (1)';
-    is_approx @rarr[1], -99.87e0, 'returning double array (2)';
-    is_approx @rarr[2], 0.25e0, 'returning double array (3)';
+    is-approx @rarr[0], 23.45e0, 'returning double array (1)';
+    is-approx @rarr[1], -99.87e0, 'returning double array (2)';
+    is-approx @rarr[2], 0.25e0, 'returning double array (3)';
 
     sub TakeADoubleArrayAndAddElements(CArray[num64]) returns num64 is native("./05-arrays") { * }
     my @parr := CArray[num].new();
     @parr[0] = 9.5e0;
     @parr[1] = 32.5e0;
-    is_approx TakeADoubleArrayAndAddElements(@parr), 42e0, 'passing double array';
+    is-approx TakeADoubleArrayAndAddElements(@parr), 42e0, 'passing double array';
 }
 
 {
@@ -27,7 +28,7 @@ compile_test_lib('05-arrays');
     my @rarr := ReturnAStringArray();
     is @rarr[0], 'La Trappe', 'returning string array (1)';
     is @rarr[1], 'Leffe', 'returning string array (2)';
-    
+
     sub TakeAStringArrayAndReturnTotalLength(CArray[Str]) returns int32 is native("./05-arrays") { * }
     my @parr := CArray[Str].new();
     @parr[0] = "OMG";
@@ -93,6 +94,11 @@ compile_test_lib('05-arrays');
     is-deeply @arr[100], Struct, 'out-of-bounds access on managed array';
 
     is TakeAStructArray(@arr), 14, 'struct in position 0..2, C-side';
+
+    sub TakeAStructArrayWithANull(CArray[Struct] $obj) returns int32 is native("./05-arrays") { * }
+    @arr[1] = Struct;
+    is TakeAStructArrayWithANull(@arr), 1,
+        'Setting a type object in the array passes a NULL to the C side';
 }
 
 {
@@ -109,7 +115,7 @@ compile_test_lib('05-arrays');
     @parr[2] = 30;
     is TakeAByteArray(@parr), 18, 'byte in position 0..2, C-side';
 }
-    
+
 {
     sub TakeAByteArray(Buf) returns int32 is native("./05-arrays") { * }
     my $buf = buf8.new;
@@ -122,15 +128,40 @@ compile_test_lib('05-arrays');
 {
     sub ReturnsAFloatArray() returns CArray[num32] is native("./05-arrays") { * }
     my @rarr := ReturnsAFloatArray();
-    is_approx @rarr[0], 1.23e0, 'float in element 0';
-    is_approx @rarr[1], 4.56e0, 'float in element 1';
-    is_approx @rarr[2], 7.89e0, 'float in element 2';
+    is-approx @rarr[0], 1.23e0, 'float in element 0';
+    is-approx @rarr[1], 4.56e0, 'float in element 1';
+    is-approx @rarr[2], 7.89e0, 'float in element 2';
 
     sub SumAFloatArray(CArray[num32]) returns num32 is native("./05-arrays") { * }
     my @parr := CArray[num32].new;
     @parr[0] = 12.3e0;
     @parr[1] = 45.6e0;
-    is_approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+    is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+}
+
+# RT #129256
+{
+    is CArray[uint8].new.elems, 0, 'creating CArray with no arguments works';
+    is CArray[uint8].new(()).elems, 0,
+        'creating CArray with () as argument does not hang';
+    is-deeply CArray[uint8].new(1, 2, 3)[^3], (1, 2, 3),
+        'creating CArray with several positionals works';
+
+    my @arg = 1..3;
+    is-deeply CArray[uint8].new(@arg)[^3], (1, 2, 3),
+        'creating CArray with one Positional positional works';
+}
+
+# RT #130267
+{
+    my CArray[uint8] $a .= new(200 xx 16);
+    todo "RT #130267";
+    is $a[0], 200, 'unsigned uint8 value';
+}
+
+# RT #131830
+{
+    lives-ok { CArray[Str].new[my int $ = 1] }, 'native int as index to CArray does not crash'
 }
 
 # vim:ft=perl6

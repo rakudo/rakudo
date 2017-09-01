@@ -65,21 +65,21 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     }
 
     multi method AT-POS(Uni:D: int \pos) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
-        nqp::atpos_i(self, pos);
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),
+               :got(pos),
+               :range("0..{nqp::elems(self)-1}")))
+          !! nqp::atpos_i(self, pos)
     }
     multi method AT-POS(Uni:D: Int:D \pos) {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
-        nqp::atpos_i(self,$pos);
+        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),
+               :got(pos),
+               :range("0..{nqp::elems(self)-1}")))
+          !! nqp::atpos_i(self,$pos)
     }
 
     multi method gist(Uni:D:) {
@@ -102,7 +102,7 @@ my class NFD is Uni {
 
 my class NFC is Uni {
     method new(|) {
-        die "Cannot create an NFD directly"; # XXX typed, better message
+        die "Cannot create an NFC directly"; # XXX typed, better message
     }
 
     method NFC() { self }
@@ -110,7 +110,7 @@ my class NFC is Uni {
 
 my class NFKD is Uni {
     method new(|) {
-        die "Cannot create an NFD directly"; # XXX typed, better message
+        die "Cannot create an NFKD directly"; # XXX typed, better message
     }
 
     method NFKD() { self }
@@ -120,6 +120,6 @@ my class NFKC is Uni {
     method NFKC() { self }
 
     method new(|) {
-        die "Cannot create an NFD directly"; # XXX typed, better message
+        die "Cannot create an NFKC directly"; # XXX typed, better message
     }
 }

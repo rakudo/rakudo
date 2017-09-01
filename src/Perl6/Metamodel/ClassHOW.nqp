@@ -66,7 +66,7 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
@@ -112,18 +112,18 @@ class Perl6::Metamodel::ClassHOW
         self.setup_finalization($obj);
 
         # Compose attributes.
-        self.compose_attributes($obj);
-        
+        self.compose_attributes($obj, :$compiler_services);
+
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.
         unless self.get_boolification_mode($obj) != 0 {
             my $i := 0;
             my @mro := self.mro($obj);
             while $i < +@mro {
-                my %meths := @mro[$i].HOW.method_table(@mro[$i]);
-                if nqp::existskey(%meths, 'Bool') {
-                    last;
-                }
+                my $ptype := @mro[$i];
+                last if nqp::existskey($ptype.HOW.method_table($ptype), 'Bool');
+                last if nqp::can($ptype.HOW, 'submethod_table') &&
+                    nqp::existskey($ptype.HOW.submethod_table($ptype), 'Bool');
                 $i := $i + 1;
             }
             if $i + 1 == +@mro {

@@ -1,15 +1,15 @@
 my class Parameter { # declared in BOOTSTRAP
-    # class Parameter is Any {
+    # class Parameter is Any
     #     has str $!variable_name
-    #     has Mu $!named_names
-    #     has Mu $!type_captures
+    #     has @!named_names
+    #     has @!type_captures
     #     has int $!flags
     #     has Mu $!nominal_type
-    #     has Mu $!post_constraints
+    #     has @!post_constraints
     #     has Mu $!coerce_type
     #     has str $!coerce_method
-    #     has Mu $!sub_signature
-    #     has Mu $!default_value
+    #     has Signature $!sub_signature
+    #     has Code $!default_value
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
     #     has Mu $!why;
@@ -32,170 +32,290 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 65536;
     my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;
+    my constant $SIG_ELEM_CODE_SIGIL         = 33554432;
+
+    my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
+                                           +| $SIG_ELEM_SLURPY_NAMED
+                                           +| $SIG_ELEM_IS_CAPTURE;
+    my constant $SIG_ELEM_IS_SLURPY = $SIG_ELEM_SLURPY_POS
+                                   +| $SIG_ELEM_SLURPY_NAMED
+                                   +| $SIG_ELEM_SLURPY_LOL
+                                   +| $SIG_ELEM_SLURPY_ONEARG;
+    my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
+                                         +| $SIG_ELEM_IS_COPY
+                                         +| $SIG_ELEM_IS_RAW;
 
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
+    method usage-name() {
+        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+          ?? $!variable_name
+          !! nqp::substr($!variable_name,1)
+    }
 
     method sigil() {
-        my $sigil = '';
-        my $name = $.name;
-        if $name {
-            $sigil = substr($name,0,1);
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $sigil = '\\' without '@$%&'.index($sigil);
-            }
-        } else {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $sigil = '|';
-            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-                $sigil = '@';
-            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-                $sigil = '%';
-            } elsif $!nominal_type.^name ~~ /^^ Callable >> / {
-                $sigil = '&';
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $sigil = '\\';
-            } else {
-                $sigil = '$';
-            }
-        }
-        $sigil;
+        nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)
+          ?? '|'
+          !! nqp::isnull_s($!variable_name)
+            ?? nqp::bitand_i($!flags,$SIG_ELEM_ARRAY_SIGIL)
+              ?? '@'
+              !!  nqp::bitand_i($!flags,$SIG_ELEM_HASH_SIGIL)
+                ?? '%'
+                !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
+                  ?? '&'
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
+                    ?? '\\'
+                    !! '$'
+            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
+                 nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+              ?? '\\'
+              !! nqp::substr($!variable_name,0,1)
     }
 
     method twigil() {
-        my $twigil = '';
-        if ($!flags +& $SIG_ELEM_BIND_PUBLIC_ATTR) {
-            $twigil = '.';
-        } elsif ($!flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
-            $twigil = '!';
-        }
-        $twigil;
+        nqp::bitand_i($!flags,$SIG_ELEM_BIND_PUBLIC_ATTR)
+          ?? '.'
+          !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
+            ?? '!'
+            !! ''
+    }
+    method modifier() {
+        nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
+          ?? ':D'
+          !! nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY)
+            ?? ':U'
+            !! ''
     }
 
     method constraint_list() {
-        nqp::isnull($!post_constraints) ?? () !!
-            nqp::hllize($!post_constraints)
+        nqp::isnull(@!post_constraints) ?? () !!
+            nqp::hllize(@!post_constraints)
     }
 
     method constraints() {
-        all(nqp::isnull($!post_constraints) ?? () !!
-            nqp::hllize($!post_constraints))
+        all(nqp::isnull(@!post_constraints) ?? () !!
+            nqp::hllize(@!post_constraints))
     }
 
-    method type() {
-        $!nominal_type
-    }
-
-    method named() {
-        !nqp::p6bool(nqp::isnull($!named_names)) ||
-            nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
-    }
-
+    method type() { $!nominal_type }
     method named_names() {
-        if !nqp::isnull($!named_names) {
-            my Int $count = nqp::p6box_i(nqp::elems($!named_names));
-            my Int $i = 0;
-            my @res;
-            while $i < $count {
-                @res.push: nqp::p6box_s(nqp::atpos($!named_names, nqp::unbox_i($i)));
-                $i++;
-            }
-            @res;
-        } else {
-            ().list
-        }
+        nqp::if(
+          @!named_names && (my int $elems = nqp::elems(@!named_names)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
+    }
+    method named() {
+        nqp::p6bool(
+          @!named_names || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
+        )
     }
 
     method positional() {
         nqp::p6bool(
-            ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE)) == 0 &&
-            nqp::isnull($!named_names)
-         )
-    }
-
-    method slurpy() {
-        nqp::p6bool(
-            $!flags +& ($SIG_ELEM_SLURPY_POS
-                        +| $SIG_ELEM_SLURPY_NAMED
-                        +| $SIG_ELEM_SLURPY_LOL
-                        +| $SIG_ELEM_SLURPY_ONEARG)
+          nqp::isnull(@!named_names)
+          && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0)
         )
     }
 
+    method slurpy() {
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
+    }
     method optional() {
-        ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
     }
-
     method raw() {
-        ?($!flags +& $SIG_ELEM_IS_RAW)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
     }
-
     method capture() {
-        ?($!flags +& $SIG_ELEM_IS_CAPTURE)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
     }
-
     method rw() {
-        ?($!flags +& $SIG_ELEM_IS_RW)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
     }
-
     method onearg() {
-        ?($!flags +& $SIG_ELEM_SLURPY_ONEARG)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
     }
-
     method copy() {
-        ?($!flags +& $SIG_ELEM_IS_COPY)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
     }
-
     method readonly() {
-        !($.rw || $.copy || $.raw)
+        nqp::p6bool(
+          nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0)
+        )
     }
-
     method invocant() {
-        ?($!flags +& $SIG_ELEM_INVOCANT)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
     }
-
     method multi-invocant() {
-        ?($!flags +& $SIG_ELEM_MULTI_INVOCANT)
+        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
-
     method default() {
-        nqp::isnull($!default_value) ?? Any !!
-            $!default_value ~~ Code ?? $!default_value !! { $!default_value }
+        nqp::isnull($!default_value)
+          ?? Any
+          !! nqp::istype($!default_value,Code)
+            ?? $!default_value
+            !! { $!default_value }
     }
-
     method type_captures() {
-        if !nqp::isnull($!type_captures) {
-            my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
-            my Int $i = 0;
-            my @res;
-            while $i < $count {
-                @res.push: nqp::p6box_s(nqp::atpos($!type_captures, nqp::unbox_i($i)));
-                $i++;
-            }
-            @res;
-        } else {
-            ().list
-        }
+        nqp::if(
+          @!type_captures && (my int $elems = nqp::elems(@!type_captures)),
+          nqp::stmts(
+            (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
+            ),
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+          ),
+          nqp::create(List)
+        )
     }
 
     method !flags() { $!flags }
 
-    multi method ACCEPTS(Parameter:D: Parameter:D $other) {
-        return False unless $other.type ~~ $.type;
-        return False unless
-            $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
-            and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <=
-                $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
-        if $.sub_signature {
-            return False unless $other.sub_signature ~~ $.sub_signature;
+    multi method ACCEPTS(Parameter:D: Parameter:D \other) {
+
+        # we're us
+        my \o := nqp::decont(other);
+        return True if self =:= o;
+
+        # nominal type is acceptable
+        if $!nominal_type.ACCEPTS(nqp::getattr(o,Parameter,'$!nominal_type')) {
+            my $oflags := nqp::getattr(o,Parameter,'$!flags');
+
+            # flags are not same, so we need to look more in depth
+            if nqp::isne_i($!flags,$oflags) {
+
+                # here not defined only, or both defined only
+                return False
+                  unless nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
+                    nqp::bitand_i($oflags,$SIG_ELEM_DEFINED_ONLY))
+
+                # here not undefined only, or both undefined only
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
+                    nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY))
+
+                # here is rw, or both is rw
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
+                    nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
+
+                # other is optional, or both are optional
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_IS_OPTIONAL),
+                    nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+
+                # other is slurpy positional, or both are slurpy positional
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_POS),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
+
+                # other is slurpy named, or both are slurpy named
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_NAMED),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
+
+                # other is slurpy one arg, or both are slurpy one arg
+                  && nqp::isle_i(
+                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_ONEARG),
+                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+
+                # here is part of MMD, or both are part of MMD
+                  && nqp::isle_i(
+                    nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
+                    nqp::bitand_i($oflags,$SIG_ELEM_MULTI_INVOCANT));
+            }
         }
-        if $.named {
-            return False unless $other.named;
-            return False unless Set($other.named_names) (<=) Set($.named_names);
+
+        # nominal type not same
+        else {
+            return False;
         }
+
+        # have nameds here
+        my $onamed_names := nqp::getattr(o,Parameter,'@!named_names');
+        if @!named_names {
+
+            # nameds there
+            if $onamed_names {
+
+                # too many nameds there, can never be subset
+                my int $elems = nqp::elems(@!named_names);
+                return False
+                  if nqp::isgt_i(nqp::elems($onamed_names),$elems);
+
+                # set up lookup hash
+                my $lookup := nqp::hash;
+                my int $i   = -1;
+                nqp::bindkey($lookup,nqp::atpos_s(@!named_names,$i),1)
+                  while nqp::islt_i(++$i,$elems);
+
+                # make sure the other nameds are all here
+                $elems = nqp::elems($onamed_names);
+                $i     = -1;
+                return False unless
+                  nqp::existskey($lookup,nqp::atpos_s($onamed_names,$i))
+                  while nqp::islt_i(++$i,$elems);
+            }
+        }
+
+        # no nameds here, but we do there (implies not a subset)
+        elsif $onamed_names {
+            return False;
+        }
+
+        # we have sub sig and not the same
+        my $osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
+        if $!sub_signature {
+            return False
+              unless $osub_signature
+              && $!sub_signature.ACCEPTS($osub_signature);
+        }
+
+        # no sub sig, but other has one
+        elsif $osub_signature {
+            return False;
+        }
+
+        # we have a post constraint
+        if nqp::islist(@!post_constraints) {
+
+            # callable means runtime check, so no match
+            return False
+              if nqp::istype(nqp::atpos(@!post_constraints,0),Callable);
+
+            # other doesn't have a post constraint
+            my Mu $opc := nqp::getattr(o,Parameter,'@!post_constraints');
+            return False unless nqp::islist($opc);
+
+            # other post constraint is a Callable, so runtime check, so no match
+            return False if nqp::istype(nqp::atpos($opc,0),Callable);
+
+            # not same literal value
+            return False
+              unless nqp::atpos(@!post_constraints,0).ACCEPTS(
+                nqp::atpos($opc,0));
+        }
+
+        # we don't, other *does* have a post constraint
+        elsif nqp::islist(nqp::getattr(o,Parameter,'@!post_constraints')) {
+            return False;
+        }
+
+        # it's a match!
         True;
     }
 
@@ -203,15 +323,12 @@ my class Parameter { # declared in BOOTSTRAP
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
-        my $modifier = $!flags +& $SIG_ELEM_DEFINED_ONLY
-          ?? ':D' !! $!flags +& $SIG_ELEM_UNDEFINED_ONLY
-            ?? ':U' !! '';
+        my $modifier = self.modifier;
 
         $perl ~= "::$_ " for @($.type_captures);
-        # XXX Need a CODE_SIGIL too?
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
-            $type ~~ /^^ Callable >> / {
+            $!flags +& $SIG_ELEM_CODE_SIGIL {
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $perl ~= $/ ~ $modifier if $/;
         }
@@ -233,7 +350,7 @@ my class Parameter { # declared in BOOTSTRAP
                 $name = '@';
             } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
                 $name = '%';
-            } elsif $type ~~ /^^ Callable >> / {
+            } elsif $!flags +& $SIG_ELEM_CODE_SIGIL {
                 $name = '&';
             } else {
                 $name = '$';
@@ -262,14 +379,6 @@ my class Parameter { # declared in BOOTSTRAP
         if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            if     not $.name
-               and $name eq '$'
-               and not $rest
-               and nqp::isnull($!post_constraints)
-               and not $default
-               and nqp::isnull($!sub_signature) {
-                    $name = '\\';
-            }
             $rest ~= ' is raw' unless $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
@@ -277,12 +386,12 @@ my class Parameter { # declared in BOOTSTRAP
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
-        unless nqp::isnull($!post_constraints) {
+        unless nqp::isnull(@!post_constraints) {
             my $where = &where(self);
             return Nil without $where;
             $rest ~= " $where";
         }
-        $rest ~= ' = { ... }' if $default;
+        $rest ~= " = $!default_value.perl()" if $default;
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }
@@ -293,9 +402,91 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
     }
+
+    method set_default(Code:D $default --> Nil) {
+        $!default_value := $default;
+    }
+}
+
+multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
+
+    # we're us
+    return True if a =:= b;
+
+    # different container type
+    return False unless a.WHAT =:= b.WHAT;
+
+    # different nominal or coerce type
+    my $acoerce := nqp::getattr(a,Parameter,'$!coerce_type');
+    my $bcoerce := nqp::getattr(b,Parameter,'$!coerce_type');
+    return False
+      unless nqp::iseq_s(
+          nqp::getattr(a,Parameter,'$!nominal_type').^name,
+          nqp::getattr(b,Parameter,'$!nominal_type').^name
+        )
+      && nqp::iseq_s(
+          nqp::isnull($acoerce) ?? "" !! $acoerce.^name,
+          nqp::isnull($bcoerce) ?? "" !! $bcoerce.^name
+        );
+
+    # different flags
+    return False
+      if nqp::isne_i(
+        nqp::getattr(a,Parameter,'$!flags'),
+        nqp::getattr(b,Parameter,'$!flags')
+      );
+
+    # first is named
+    if a.named {
+
+        # other is not named
+        return False unless b.named;
+
+        # not both actually have a name (e.g. *%_ doesn't)
+        my $anames := nqp::getattr(a.named_names,List,'$!reified');
+        my $bnames := nqp::getattr(b.named_names,List,'$!reified');
+        my int $adefined = nqp::defined($anames);
+        return False if nqp::isne_i($adefined,nqp::defined($bnames));
+
+        # not same basic name
+        return False
+          if $adefined
+          && nqp::isne_s(nqp::atpos($anames,0),nqp::atpos($bnames,0));
+    }
+
+    # unnamed vs named
+    elsif b.named {
+        return False;
+    }
+
+    # first has a post constraint
+    my Mu $pca := nqp::getattr(a,Parameter,'@!post_constraints');
+    if nqp::islist($pca) {
+
+        # callable means runtime check, so no match
+        return False if nqp::istype(nqp::atpos($pca,0),Callable);
+
+        # second doesn't have a post constraint
+        my Mu $pcb := nqp::getattr(b,Parameter,'@!post_constraints');
+        return False unless nqp::islist($pcb);
+
+        # second is a Callable, so runtime check, so no match
+        return False if nqp::istype(nqp::atpos($pcb,0),Callable);
+
+        # not same literal value
+        return False unless nqp::atpos($pca,0) eqv nqp::atpos($pcb,0);
+    }
+
+    # first doesn't, second *does* have a post constraint
+    elsif nqp::islist(nqp::getattr(b,Parameter,'@!post_constraints')) {
+        return False;
+    }
+
+    # it's a match
+    True
 }
 
 # vim: ft=perl6 expandtab sw=4

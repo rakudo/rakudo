@@ -22,7 +22,7 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
-        my $metaclass := self.new(:nativesize(0));
+        my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver) if $ver;
@@ -30,11 +30,11 @@ class Perl6::Metamodel::NativeHOW
         self.add_stash($obj);
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
-        if !$!composed && $!nativesize {
+        if !$!composed && ($!nativesize || $!unsigned) {
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
             $info<integer><unsigned> := 1 if $!unsigned;
@@ -44,8 +44,10 @@ class Perl6::Metamodel::NativeHOW
                 $info<float><bits>   := $!nativesize;
             }
             else {
-                $info<integer><bits> := nqp::unbox_i($!nativesize);
-                $info<float><bits>   := nqp::unbox_i($!nativesize);
+                if $!nativesize {
+                    $info<integer><bits> := nqp::unbox_i($!nativesize);
+                    $info<float><bits>   := nqp::unbox_i($!nativesize);
+                }
             }
             nqp::composetype($obj, $info);
         }
@@ -86,6 +88,9 @@ class Perl6::Metamodel::NativeHOW
         }
         elsif $ctype eq 'size_t' {
             $!nativesize := nqp::const::C_TYPE_SIZE_T;
+        }
+        elsif $ctype eq 'atomic' {
+            $!nativesize := nqp::const::C_TYPE_ATOMIC_INT;
         }
         else {
             nqp::die("Unhandled C type '$ctype'")

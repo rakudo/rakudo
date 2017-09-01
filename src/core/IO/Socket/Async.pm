@@ -2,6 +2,17 @@ my class IO::Socket::Async {
     my class SocketCancellation is repr('AsyncTask') { }
 
     has $!VMIO;
+    has int $!udp;
+    has $.enc;
+    has $!encoder;
+    has $!close-promise;
+    has $!close-vow;
+
+    has Str $.peer-host;
+    has Int $.peer-port;
+
+    has Str $.socket-host;
+    has Int $.socket-port;
 
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
@@ -10,21 +21,7 @@ my class IO::Socket::Async {
     }
 
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritestr(
-            $!VMIO,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::unbox_s($str), SocketCancellation);
-        $p
+        self.write($!encoder.encode-chars($str))
     }
 
     method write(IO::Socket::Async:D: Blob $b, :$scheduler = $*SCHEDULER) {
@@ -53,45 +50,62 @@ my class IO::Socket::Async {
         -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
     }
 
-    method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$scheduler = $*SCHEDULER) {
-        my $cancellation;
-        Supply.on-demand:
-            -> $supply {
-                $cancellation := $bin
-                    ?? nqp::asyncreadbytes(
-                        $!VMIO,
-                        $scheduler.queue,
-                        capture($supply),
-                        nqp::decont($buf),
-                        SocketCancellation)
-                    !! nqp::asyncreadchars(
-                        $!VMIO,
-                        $scheduler.queue,
-                        capture($supply),
-                        SocketCancellation)
-          },
-          closing => {
-              $cancellation && nqp::cancel($cancellation)
-          }
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
+        if $bin {
+            my $cancellation;
+            Supply.on-demand:
+                -> $supply {
+                    $cancellation := nqp::asyncreadbytes($!VMIO, $scheduler.queue,
+                        capture($supply), nqp::decont($buf), SocketCancellation);
+                    $!close-promise.then({ $supply.done });
+                },
+                closing => {
+                    $cancellation && nqp::cancel($cancellation)
+                }
+        }
+        else {
+            my $bin-supply = self.Supply(:bin);
+            if $!udp {
+                supply {
+                    whenever $bin-supply {
+                        emit .decode($enc // $!enc);
+                    }
+                }
+            }
+            else {
+                Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc)
+            }
+        }
     }
 
     method close(IO::Socket::Async:D: --> True) {
         nqp::closefh($!VMIO);
+        $!close-vow.keep(True);
     }
 
     method connect(IO::Socket::Async:U: Str() $host, Int() $port,
-                   :$scheduler = $*SCHEDULER) {
+                   :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
+        my $encoding = Encoding::Registry.find($enc);
         nqp::asyncconnect(
             $scheduler.queue,
-            -> Mu \socket, Mu \err {
+            -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                 if err {
                     $v.break(err);
                 }
                 else {
                     my $client_socket := nqp::create(self);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
+                        $encoding.encoder());
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-host', peer-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+
+                    setup-close($client_socket);
                     $v.keep($client_socket);
                 }
             },
@@ -100,31 +114,54 @@ my class IO::Socket::Async {
     }
 
     method listen(IO::Socket::Async:U: Str() $host, Int() $port, Int() $backlog = 128,
-                  :$scheduler = $*SCHEDULER) {
+                  :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $cancellation;
+        my $encoding = Encoding::Registry.find($enc);
         Supply.on-demand(-> $s {
             $cancellation := nqp::asynclisten(
                 $scheduler.queue,
-                -> Mu \socket, Mu \err {
+                -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                     if err {
                         $s.quit(err);
                     }
                     else {
                         my $client_socket := nqp::create(self);
                         nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!enc',
+                            $encoding.name);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
+                            $encoding.encoder());
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-host', peer-host);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+
+                        setup-close($client_socket);
                         $s.emit($client_socket);
                     }
                 },
                 $host, $port, $backlog, SocketCancellation);
         },
         closing => {
-            $cancellation && nqp::cancel($cancellation)
+            if $cancellation {
+                my $p = Promise.new;
+                my $v = $p.vow;
+                nqp::cancelnotify($cancellation, $scheduler.queue, { $v.keep(True); });
+                $p
+            }
         });
     }
 
+    sub setup-close(\socket --> Nil) {
+        my $p := Promise.new;
+        nqp::bindattr(socket, IO::Socket::Async, '$!close-promise', $p);
+        nqp::bindattr(socket, IO::Socket::Async, '$!close-vow', $p.vow);
+    }
+
 #?if moar
-    method udp(IO::Socket::Async:U: :$broadcast, :$scheduler = $*SCHEDULER) {
+    method udp(IO::Socket::Async:U: :$broadcast, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
+        my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
             $scheduler.queue,
             -> Mu \socket, Mu \err {
@@ -134,6 +171,11 @@ my class IO::Socket::Async {
                 else {
                     my $client_socket := nqp::create(self);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr_i($client_socket, IO::Socket::Async, '$!udp', 1);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
+                        $encoding.encoder());
+                    setup-close($client_socket);
                     $p.keep($client_socket);
                 }
             },
@@ -143,8 +185,9 @@ my class IO::Socket::Async {
     }
 
     method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port, :$broadcast,
-                    :$scheduler = $*SCHEDULER) {
+                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
+        my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
             $scheduler.queue,
             -> Mu \socket, Mu \err {
@@ -154,6 +197,11 @@ my class IO::Socket::Async {
                 else {
                     my $client_socket := nqp::create(self);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr_i($client_socket, IO::Socket::Async, '$!udp', 1);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
+                        $encoding.encoder());
+                    setup-close($client_socket);
                     $p.keep($client_socket);
                 }
             },
@@ -163,22 +211,7 @@ my class IO::Socket::Async {
     }
 
     method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritestrto(
-            $!VMIO,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::unbox_s($str), SocketCancellation,
-            nqp::unbox_s($host), nqp::unbox_i($port));
-        $p
+        self.write-to($host, $port, $!encoder.encode-chars($str))
     }
 
     method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b, :$scheduler = $*SCHEDULER) {

@@ -74,6 +74,11 @@ role Perl6::Metamodel::Mixins {
         my $new_name := self.name($obj) ~ '+{' ~
             nqp::join(',', @role_names) ~ '}';
 
+        my @role_shortnames;
+        for @roles { my $cur := $_; @role_shortnames.push(~$_.HOW.shortname($_)); }
+        my $new_shortname := $obj.HOW.shortname($obj) ~ '+{' ~
+            nqp::join(',', @role_shortnames) ~ '}';
+
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
         my $new_type := self.new_type(:name($new_name), :repr($obj.REPR));
@@ -83,9 +88,13 @@ role Perl6::Metamodel::Mixins {
             $new_type.HOW.add_role($new_type, $_);
         }
         $new_type.HOW.compose($new_type);
+        $new_type.HOW.set_shortname($new_type, $new_shortname);
         $new_type.HOW.set_boolification_mode($new_type,
-            nqp::existskey($new_type.HOW.method_table($new_type), 'Bool') ?? 0 !!
-                self.get_boolification_mode($obj));
+            nqp::existskey($new_type.HOW.method_table($new_type), 'Bool')
+            || nqp::can($new_type.HOW, 'submethod_table')
+                && nqp::existskey($new_type.HOW.submethod_table($new_type), 'Bool')
+                ?? 0
+                !! self.get_boolification_mode($obj));
         $new_type.HOW.publish_boolification_spec($new_type);
 
         # Locate an attribute that can serve as the initialization attribute,

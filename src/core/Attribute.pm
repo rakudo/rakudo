@@ -1,5 +1,5 @@
 my class Attribute { # declared in BOOTSTRAP
-    # class Attribute is Any {
+    # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
@@ -15,7 +15,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has int $!required;
     #     has Mu $!container_initializer;
 
-    method compose(Mu $package) {
+    method compose(Mu $package, :$compiler_services) {
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
@@ -24,7 +24,15 @@ my class Attribute { # declared in BOOTSTRAP
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
-                if self.rw {
+
+                # Get the compiler to generate us an accessor when possible.
+                if $compiler_services.DEFINITE {
+                    $meth := $compiler_services.generate_accessor($meth_name,
+                        $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
+                }
+
+                # No compiler services available, so do it as a closure.
+                elsif self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
                         method (Mu:D \fles:) is raw {
@@ -46,6 +54,7 @@ my class Attribute { # declared in BOOTSTRAP
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
                         }
+                    $meth.set_name($meth_name);
                 } else {
                     # ro accessor
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
@@ -75,8 +84,8 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
+                    $meth.set_name($meth_name);
                 }
-                $meth.set_name($meth_name);
                 $package.^add_method($meth_name, $meth);
             }
         }
@@ -90,26 +99,49 @@ my class Attribute { # declared in BOOTSTRAP
     }
 
     method get_value(Mu $obj) {
-        my $decont := nqp::decont($obj);
-        given nqp::p6box_i(nqp::objprimspec($!type)) {
-            when 0 { nqp::getattr($decont, $!package, $!name) }
-            when 1 { nqp::p6box_i(nqp::getattr_i($decont, $!package, $!name)) }
-            when 2 { nqp::p6box_n(nqp::getattr_n($decont, $!package, $!name)) }
-            when 3 { nqp::p6box_s(nqp::getattr_s($decont, $!package, $!name)) }
-        }
+        nqp::if(
+          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
+          nqp::getattr(nqp::decont($obj),$!package,$!name),
+          nqp::if(
+            nqp::iseq_i($t,1),
+            nqp::p6box_i(nqp::getattr_i(nqp::decont($obj),$!package,$!name)),
+            nqp::if(
+              nqp::iseq_i($t,2),
+              nqp::p6box_n(nqp::getattr_n(nqp::decont($obj),
+                $!package,$!name)),
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::getattr_s(nqp::decont($obj),
+                  $!package,$!name))
+              )
+            )
+          )
+        )
     }
 
     method set_value(Mu $obj, Mu \value) {
-        my $decont := nqp::decont($obj);
-        given nqp::p6box_i(nqp::objprimspec($!type)) {
-            when 0 { nqp::bindattr($decont, $!package, $!name, value) }
-            when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, value)) }
-            when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, value)) }
-            when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, value)) }
-        }
+        nqp::if(
+          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
+          nqp::bindattr(nqp::decont($obj),$!package,$!name,value),
+          nqp::if(
+            nqp::iseq_i($t,1),
+            nqp::p6box_i(nqp::bindattr_i(nqp::decont($obj),
+              $!package,$!name,value)),
+            nqp::if(
+              nqp::iseq_i($t,2),
+              nqp::p6box_n(nqp::bindattr_n(nqp::decont($obj),
+                $!package,$!name,value)),
+              nqp::if(
+                nqp::iseq_i($t,3),
+                nqp::p6box_s(nqp::bindattr_s(nqp::decont($obj),
+                  $!package,$!name,value))
+              )
+            )
+          )
+        )
     }
 
-    method container() is raw { nqp::isnull($!auto_viv_container) ?? Nil !! $!auto_viv_container }
+    method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }
     method readonly() { !self.rw }
     method package() { $!package }
     method inlined() { $!inlined }
@@ -118,7 +150,7 @@ my class Attribute { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Nil
+            nextsame
         } else {
             $!why.set_docee(self);
             $!why

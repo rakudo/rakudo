@@ -1,8 +1,6 @@
 use v6;
 
 # Checking that testing is sane: if
-
-
 say '1..9';
 
 my $x = '0';

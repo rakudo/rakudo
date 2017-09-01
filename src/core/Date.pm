@@ -23,12 +23,14 @@ my class Date does Dateish {
     proto method new(|) {*}
     multi method new(Date: Int() $year, Int() $month, Int() $day, :&formatter, *%_) {
         (1..12).in-range($month,'Month');
-        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
     multi method new(Date: Int() :$year!, Int() :$month = 1, Int() :$day = 1, :&formatter, *%_) {
+        (1..12).in-range($month,'Month');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
@@ -38,7 +40,7 @@ my class Date does Dateish {
           invalid-str => $date,
           target      => 'Date',
           format      => 'yyyy-mm-dd',
-        ).throw unless $date ~~ /^
+        ).throw unless $date.codes == $date.chars and $date ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month
@@ -72,12 +74,16 @@ my class Date does Dateish {
 
     multi method WHICH(Date:D:) {
         nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::unbox_i(self.daycount)
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Date),
+              'Date|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            nqp::unbox_i(self.daycount)
+          ),
+          ObjAt
+        )
     }
 
     method truncated-to(Cool $unit) {
@@ -98,7 +104,7 @@ my class Date does Dateish {
             self.new-from-daycount(self.daycount + $multiplier * $amount )
         }
         elsif $unit.starts-with('month') {
-            my Int $month = $!month;  # cannot be native because of RT #127168
+            my int $month = $!month;
             my int $year  = $!year;
             $month += $amount;
             $year += floor(($month - 1) / 12);
@@ -106,13 +112,13 @@ my class Date does Dateish {
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$month)
+              ?? $!day min self.DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
+              ?? $!day min self.DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
     }
@@ -123,7 +129,8 @@ my class Date does Dateish {
           nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
           nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
           nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
-          :&!formatter,
+          formatter => nqp::existskey($h,'formatter')
+            ?? nqp::atkey($h,'formatter') !! &!formatter,
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
@@ -149,6 +156,11 @@ my class Date does Dateish {
     multi method ACCEPTS(Date:D: DateTime:D $dt) {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
+
+    proto method DateTime()  { * }
+    multi method DateTime(Date:D:) { DateTime.new(:$!year, :$!month, :$!day) }
+    multi method DateTime(Date:U:) { DateTime }
+    method Date() { self }
 }
 
 multi sub infix:<+>(Date:D $d, Int:D $x) {
@@ -185,20 +197,24 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
-    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset();
-}
-
 sub sleep($seconds = Inf --> Nil) {
+    # 1e9 seconds is a large enough value that still makes VMs sleep
+    # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)
     if $seconds == Inf || nqp::istype($seconds,Whatever) {
-        nqp::sleep(1e16) while True;
+        nqp::sleep(1e9) while True;
+    }
+    elsif $seconds > 1e9 {
+        nqp::sleep($_) for gather {
+            1e9.take xx ($seconds / 1e9);
+            take $seconds - 1e9 * ($seconds / 1e9).Int;
+        }
     }
     elsif $seconds > 0 {
         nqp::sleep($seconds.Num);
     }
 }
 
-sub sleep-timer(Real() $seconds = Inf --> Duration) {
+sub sleep-timer(Real() $seconds = Inf --> Duration:D) {
     if $seconds <= 0 {
         Duration.new(0);
     }
@@ -209,7 +225,7 @@ sub sleep-timer(Real() $seconds = Inf --> Duration) {
     }
 }
 
-sub sleep-until(Instant() $until --> Bool) {
+sub sleep-until(Instant() $until --> Bool:D) {
     my $seconds = $until - now;
     return False if $seconds < 0;
 

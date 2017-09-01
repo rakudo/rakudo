@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqpprefix, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -36,7 +36,9 @@ my $perl6jars = join( $cpsep,
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
     File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar'));
 
+my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
+$NQP_LIB
 : \${NQP_DIR:=\"$nqpdir\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"$perl6dir\"}
@@ -59,18 +61,21 @@ sub install {
     chmod 0755, $install_to if $^O ne 'MSWin32';
 }
 
-my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
-my $jopts = '-noverify -Xms100m -Xbootclasspath/a:' . $perl6jars 
+my $classpath = join($cpsep, ($perl6jars, $jardir, $libdir, $nqplibdir));
+my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . $prefix
           . ' -Djna.library.path=' . $sharedir
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
+my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address=' 
+            . ($^O eq 'MSWin32' ? '8000' : '${RAKUDO_JDB_PORT:=8000}') 
+            . ',server=y,suspend=y';
 
 if ($debugger) {
     install "perl6-debug-j", "java $jopts perl6-debug";
 }
 else {
-    install "perl6-j", "java $jopts perl6";
-    install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y $jopts perl6";
+    install "perl6-j", "java $jopts perl6 $blib";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
     install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
 }

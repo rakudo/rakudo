@@ -14,16 +14,16 @@ my class Lock {
         method signal_all() { nqp::condsignalall(self) }
     }
 
+    method new() { nqp::create(self) }
+
     method lock(Lock:D:) { nqp::lock(self) }
 
     method unlock(Lock:D:) { nqp::unlock(self) }
 
     method protect(Lock:D: &code) {
         nqp::lock(self);
-        my \res := code();
-        nqp::unlock(self);
-        CATCH { nqp::unlock(self); }
-        res
+        LEAVE nqp::unlock(self);
+        code()
     }
 
     method condition(Lock:D:) {

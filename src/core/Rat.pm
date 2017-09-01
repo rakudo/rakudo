@@ -2,16 +2,24 @@
 my class Rat is Cool does Rational[Int, Int] {
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
-    method Range(Rat:U:) { Range.new(-Inf,Inf) }
     multi method perl(Rat:D:) {
-        my $d = $!denominator;
-        return $!numerator ~ '.0' if $d == 1;
-        unless $d == 0 {
-            $d div= 5 while $d %% 5;
-            $d div= 2 while $d %% 2;
-            self.REDUCE-ME;
+        if $!denominator == 1 {
+            $!numerator ~ '.0'
         }
-        ($d == 1) ?? self.base(10,*) !! '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>';
+        else {
+            my $d = $!denominator;
+            unless $d == 0 {
+                $d = $d div 5 while $d %% 5;
+                $d = $d div 2 while $d %% 2;
+                self.REDUCE-ME;
+            }
+            if $d == 1 and (my $b := self.base(10,*)).Numeric === self {
+                $b;
+            }
+            else {
+                '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
+            }
+        }
     }
 }
 
@@ -19,8 +27,8 @@ my class FatRat is Cool does Rational[Int, Int] {
     method FatRat(FatRat:D: Real $?) { self }
     method Rat   (FatRat:D: Real $?) {
         $!denominator < $UINT64_UPPER
-            ?? Rat.new($!numerator, $!denominator)
-            !! fail "Cannot convert from FatRat to Rat because denominator is too big";
+          ?? Rat.new($!numerator, $!denominator)
+          !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
     multi method perl(FatRat:D:) {
         "FatRat.new($!numerator, $!denominator)";
@@ -216,7 +224,9 @@ multi sub infix:<**>(Rational \a, Int \b) {
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator == b.numerator * a.denominator
+    nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
+        ?? a.Num == b.Num
+        !! a.numerator * b.denominator == b.numerator * a.denominator
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {
     a.REDUCE-ME;
@@ -226,8 +236,14 @@ multi sub infix:<==>(Int:D \a, Rational:D \b) {
     b.REDUCE-ME;
     a == b.numerator && b.denominator == 1;
 }
-multi sub infix:<===>(Rational:D \a, Rational:D \b) returns Bool:D {
-    a.WHAT =:= b.WHAT && a == b
+multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
+    # Check whether we have 0-denominator rationals as well. Those can
+    # be `==` but have different numerator values and so should not `===` True.
+    # Since we're already checking equality first, we only need to check the
+    # zeroeness of the denominator of just one parameter
+    a.WHAT =:= b.WHAT
+        && (a == b || (a.isNaN && b.isNaN))
+        && (a.denominator.Bool || a.numerator == b.numerator)
 }
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b) {

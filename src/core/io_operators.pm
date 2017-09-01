@@ -13,67 +13,60 @@ multi sub print(**@args is raw) {
     $*OUT.print($str);
 }
 
-# Once we have an nqp::say that looks at the *output* line separator of the
-# PIO, then we can stop concatenating .nl-out to each string before .print, but
-# instead call nqp::say directly.
-
 proto sub say(|) { * }
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub say(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.gist),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
 }
 multi sub say(**@args is raw) {
-    my $out := $*OUT;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    my $iter := @args.iterator;
+    nqp::until(
+      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
+      $str = nqp::concat($str, nqp::unbox_s(.gist)));
+    my $out := $*OUT;
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub put(|) { * }
 multi sub put() { $*OUT.print-nl }
 multi sub put(Str:D \x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
 }
 multi sub put(\x) {
     my $out := $*OUT;
-    my str $str = nqp::concat(nqp::unbox_s(x.Str),$out.nl-out);
-    $out.print($str);
+    $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
 }
 multi sub put(**@args is raw) {
-    my $out := $*OUT;
     my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
-    $str = nqp::concat($str,$out.nl-out);
-    $out.print($str);
+    my $iter := @args.iterator;
+    nqp::until(
+      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
+      $str = nqp::concat($str, nqp::unbox_s(.Str)));
+    my $out := $*OUT;
+    $out.print(nqp::concat($str,$out.nl-out));
 }
 
 proto sub note(|) { * }
 multi sub note() {
     my $err := $*ERR;
-    my str $str = nqp::concat("Noted",$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat("Noted",$err.nl-out));
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;
-    my str $str = nqp::concat(nqp::unbox_s(x),$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat(nqp::unbox_s(x),$err.nl-out));
 }
 multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;
     $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $str = nqp::concat($str,$err.nl-out);
-    $err.print($str);
+    $err.print(nqp::concat($str,$err.nl-out));
 }
 
 sub gist(|) {
@@ -83,7 +76,10 @@ sub gist(|) {
         !! nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', args).gist
 }
 
-sub prompt($msg) {
+multi sub prompt() {
+    $*IN.get
+}
+multi sub prompt($msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();
@@ -91,193 +87,114 @@ sub prompt($msg) {
 }
 
 proto sub dir(|) { * }
-multi sub dir(*%_) {
-    $*SPEC.curdir.IO.dir(:!absolute, |%_)
-}
-multi sub dir(IO::Path:D $path, |c) {
-    $path.dir(|c)
-}
-multi sub dir(Cool $path, |c) {
-    $path.IO.dir(|c)
-}
+multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
+multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
+multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 
 proto sub open(|) { * }
-multi sub open($path, :$chomp = True, :$enc = 'utf8', |c) {
-    my $handle = IO::Handle.new(:path($path.IO));
-    $handle // $handle.throw;
-    $handle.open(:$chomp,:$enc,|c);
-}
+multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
 proto sub lines(|) { * }
-multi sub lines($what = $*ARGFILES, $limit = Inf, *%named) {
-    nqp::istype($limit,Whatever) || $limit == Inf
-      ?? $what.lines(|%named)
-      !! $what.lines($limit, |%named);
-}
+multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
 
 proto sub words(|) { * }
-multi sub words($what, $limit = Inf, *%named) {
-    nqp::istype($limit,Whatever) || $limit == Inf
-      ?? $what.words(|%named)
-      !! $what.words($limit, |%named);
-}
+multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
-proto sub get(|) { * }
-multi sub get($fh = $*ARGFILES) {
-    $fh.get()
-}
+proto sub get  (|) { * }
+multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
 
-proto sub getc(|) { * }
-multi sub getc($fh = $*ARGFILES) {
-    $fh.getc()
-}
+proto sub getc (|) { * }
+multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 
 proto sub close(|) { * }
-multi sub close($fh) {
-    $fh.close()
-}
+multi sub close(IO::Handle:D $fh) { $fh.close }
 
 proto sub slurp(|) { * }
-multi sub slurp(IO::ArgFiles:D $io = $*ARGFILES, :$bin, :$enc = 'utf8', |c) {
-    my $result := $io.slurp(:$bin, :$enc, |c);
-    $result // $result.throw;
-}
-multi sub slurp(Cool:D $path, :$bin = False, :$enc = 'utf8', |c) {
-    my $result := $path.IO.slurp(:$bin, :$enc, |c);
-    $result // $result.throw;
-}
+multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
+multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
-sub spurt(Cool $path, $contents, :$enc = 'utf8', |c) {
-    my $result := $path.IO.spurt($contents, :$enc, |c);
-    $result // $result.throw;
-}
+proto sub spurt(|) { * }
+multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
+multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 
 {
-    sub chdir(Str() $path) {
-        nqp::chdir(nqp::unbox_s($path));
-        $*CWD = IO::Path.new(nqp::cwd());
-        return True;
+    sub chdir(IO() $path) {
         CATCH {
             default {
-                X::IO::Chdir.new(
-                    :$path,
-                    os-error => .Str,
-                ).throw;
+                return Failure.new: X::IO::Chdir.new: :$path, :os-error(.Str);
             }
         }
+        nqp::chdir(nqp::unbox_s($path.absolute));
+        $*CWD = IO::Path.new(nqp::cwd());
     }
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir(Str() $path, :$test = 'r') {
+sub chdir(|c) {
+    nqp::if(nqp::istype(($_ := $*CWD.chdir(|c)), Failure), $_, $*CWD = $_)
+}
 
-    if !nqp::istype($*CWD,IO::Path) {   # canary until 2014.10
-        warn "\$*CWD is a {$*CWD.^name}, not an IO::Path!!!";
-        $*CWD = $*CWD.IO;
+proto sub indir(|) {*}
+multi sub indir(IO() $path, &what, :$test!) {
+    DEPRECATED(
+        :what<:$test argument>,
+        'individual named parameters (e.g. :r, :w, :x)',
+        "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
+    );
+    indir $path, &what, |$test.words.map(* => True).Hash;
+}
+multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
+    {   # NOTE: we need this extra block so that the IO() coercer doesn't
+        # use our (empty at the time) $*CWD when making the IO::Path object
+        nqp::stmts(
+          $d && nqp::isfalse($path.d) && X::IO::Chdir.new(
+            :$path, :os-error(
+              $path.e ?? 'is not a directory' !! 'does not exist')).fail,
+          $r && nqp::isfalse($path.r) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :r test")).fail,
+          $w && nqp::isfalse($path.w) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :w test")).fail,
+          $x && nqp::isfalse($path.x) && X::IO::Chdir.new(
+            :$path, :os-error("did not pass :x test")).fail,
+          # $*CWD gets stringified with .Str in IO::Path.new, so we need to
+          # ensure it's set to an absolute path
+          my $*CWD = $path.WHAT.new: $path.absolute,
+            :SPEC($path.SPEC), :CWD($path.SPEC.rootdir))
+        && what
     }
-
-    my $newCWD := $*CWD.chdir($path,:$test);
-    $newCWD // $newCWD.throw;
-
-    $*CWD = $newCWD;
-}
-
-sub indir(Str() $path, $what, :$test = <r w>) {
-    my $newCWD := $*CWD.chdir($path,:$test);
-    $newCWD // $newCWD.throw;
-
-    {
-        my $*CWD = $newCWD;  # temp doesn't work in core settings :-(
-        $what();
-    }
-}
-
-sub tmpdir(Str() $path, :$test = <r w x>) {
-    my $newTMPDIR := $*TMPDIR.chdir($path,:$test);
-    $newTMPDIR // $newTMPDIR.throw;
-
-    $*TMPDIR = $newTMPDIR;
-}
-
-sub homedir(Str() $path, :$test = <r w x>) {
-    my $newHOME := $*HOME.chdir($path,:$test);
-    $newHOME // $newHOME.throw;
-
-    $*HOME = $newHOME;
 }
 
 PROCESS::<$IN> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDIN>  >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDIN>'))).open;
 PROCESS::<$OUT> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDOUT> >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDOUT>'))).open;
 PROCESS::<$ERR> =
-  IO::Handle.new(:path(IO::Special.new(:what(<< <STDERR> >>)))).open;
+  IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
 
-sub chmod($mode, *@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub chmod($mode, *@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).chmod($mode);
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).chmod($mode) ).eager;
 }
-sub unlink(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD)       {
+sub unlink(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).unlink;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).unlink ).eager;
 }
-sub rmdir(*@filenames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+sub rmdir(*@filenames) {
     my @ok;
-    for @filenames -> $file {
-        @ok.push($file) if $file.IO(:$SPEC,:$CWD).rmdir;
-    }
+    for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
     @ok;
-#    @filenames.grep( *.IO(:$SPEC,:$CWD).rmdir ).eager;
 }
+sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 
-proto sub mkdir(|) { * }
-multi sub mkdir(Int $mode, *@dirnames, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    @dirnames.grep( *.IO(:$SPEC,:$CWD).mkdir($mode) ).eager;
+sub rename(IO() $from, IO() $to, :$createonly) {
+    $from.rename($to, :$createonly)
 }
-multi sub mkdir($path, $mode = 0o777, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    $path.IO(:$SPEC,:$CWD).mkdir($mode) ?? ($path,) !! ();
-}
+sub copy(IO() $from, IO() $to, :$createonly) { $from.copy($to, :$createonly) }
+sub move(IO() $from, IO() $to, :$createonly) { $from.move($to, :$createonly) }
 
-sub rename($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).rename($to,:$SPEC,:$CWD,:$createonly);
-    $result // $result.throw;
-}
-sub copy($from, $to, :$SPEC = $*SPEC, :$CWD = $*CWD, :$createonly) {
-    my $result := $from.IO(:$SPEC,:$CWD).copy($to,:$SPEC,:$CWD, :$createonly);
-    $result // $result.throw;
-}
-sub move($from, $to, :$createonly) {
-    try {
-        copy($from, $to, :$createonly);
-        unlink($from);
-        return True;
-
-        CATCH {
-            when X::IO::Copy|X::IO::Unlink {
-                fail X::IO::Move.new(
-                    :from(.from),
-                    :to(.to),
-                    :os-error(.os-error),
-                );
-            }
-        }
-    }
-}
-sub symlink($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).symlink($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
-sub link($target, $name, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-    my $result := $target.IO(:$SPEC,:$CWD).link($name,:$SPEC,:$CWD);
-    $result // $result.throw;
-}
+sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
+sub    link(IO() $target, IO() $name) { $target   .link($name) }
 
 # vim: ft=perl6 expandtab sw=4

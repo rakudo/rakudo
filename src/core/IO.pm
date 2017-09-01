@@ -1,7 +1,6 @@
-my class Instant  { ... }
-
 my role IO {
-    method umask { state $ = :8( qx/umask/.chomp ) }
+    # This role is empty and exists so that IO() coercers
+    # that coerce to IO::Path type check the result values OK
 }
 
 enum SeekType (

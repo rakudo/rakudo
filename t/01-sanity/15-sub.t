@@ -1,8 +1,6 @@
 use v6;
 
 # Checking that testing is sane: subroutines
-
-
 say '1..4';
 
 sub ok($num) {

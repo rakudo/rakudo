@@ -57,12 +57,15 @@ perl6-j
 perl6-j.bat
 perl6-debug-j
 perl6-debug-j.bat
+/perl6-lldb-m
 perl6-m
 perl6-m.bat
 perl6-debug-m
 perl6-debug-m.bat
 t/localtest.data
 t/spec
+t/packages
+/panda
 perl6.c
 perl6.o
 MANIFEST
@@ -97,3 +100,5 @@ perl6-valgrind-m
 *.rakudo.moar
 *.rakudo.jvm
 **/.precomp
+t/03-jvm/*.class
+/zef

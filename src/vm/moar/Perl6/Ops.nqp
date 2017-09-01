@@ -69,9 +69,6 @@ MAST::ExtOpRegistry.register_extop('p6setfirstflag',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6takefirstflag',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
-MAST::ExtOpRegistry.register_extop('p6routinereturn',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -87,10 +84,6 @@ MAST::ExtOpRegistry.register_extop('p6argsfordispatcher',
 MAST::ExtOpRegistry.register_extop('p6decodelocaltime',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6sort',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6staticouter',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -227,7 +220,6 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('return_o'), $value_res.result_reg ));
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6routinereturn', 'p6routinereturn');
 $ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
@@ -280,86 +272,11 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
-#$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
-proto sub p6sort(@input_data, &comparator) {
-    # using the "bottom-up" mergesort implementation as shown in the english
-    # wikipedia article
-
-    # for some extra (hopefully measurable) benefit, we plop our indices
-    # into native integer lists before going on.
-
-    my @b_list := nqp::list_i();
-    my @data := nqp::list_i();
-    nqp::setelems(@b_list, +@input_data);
-    nqp::setelems(@b_list, 0);
-    nqp::setelems(@data, +@input_data);
-    nqp::setelems(@data, 0);
-
-    my int $copy_idx;
-    for @input_data {
-        nqp::bindpos_i(@data, $copy_idx++, $_);
-    }
-
-    my int $n := +@data;
-
-    my int $run_w := 1; # the width of each of the runs we are looking at
-    while $run_w < $n {
-        my int $i;
-
-        while $i < $n {
-            my int $left  := $i;
-            my int $right := $i + $run_w;
-            $right        := $n if $n < $right;
-
-            my int $end   := $i + 2 * $run_w;
-            $end          := $n if $n < $end;
-
-            my int $i0    := $left;
-            my int $i1    := $right;
-            my int $j     := $i0;
-
-            while $j < $end {
-                if $i0 < $right && ($i1 >= $end || -1 == comparator(nqp::atpos_i(@data, $i0), nqp::atpos_i(@data, $i1))) {
-                    nqp::bindpos_i(@b_list, $j, nqp::atpos_i(@data, $i0));
-                    $i0 := $i0 + 1;
-                } else {
-                    nqp::bindpos_i(@b_list, $j, nqp::atpos_i(@data, $i1));
-                    $i1 := $i1 + 1;
-                }
-                $j := $j + 1;
-            }
-
-            $i := $i + 2 * $run_w;
-        }
-
-        {
-            my $t := @b_list;
-            @b_list := @data;
-            @data := $t;
-        }
-
-        $run_w := $run_w * 2;
-    }
-
-    $copy_idx := 0;
-    for @data {
-        nqp::bindpos(@input_data, $copy_idx++, $_);
-    }
-}
-my $p6sort := -> $qastcomp, $op {
-    $qastcomp.as_mast(QAST::Op.new(
-        :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&p6sort)) ),
-        $op[0],
-        $op[1]
-    ));
-};
-$ops.add_hll_op('perl6', 'p6sort', :!inlinable, $p6sort);
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
 my $p6bool := -> $qastcomp, $op {
-    # Compile instructions.
+    # We never want a container here, so mark as decont context.
     my @ops;
-    my $exprres := $qastcomp.as_mast($op[0]);
+    my $exprres := $qastcomp.as_mast($op[0], :want-decont);
     push_ilist(@ops, $exprres);
 
     # Go by result kind.
@@ -593,6 +510,14 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             $qastcomp.as_mast($op[0])
         }
         else {
+            my $target_type;
+
+            # emit a typecheck for the constraint type, the coercion will be
+            # performed later on
+            if $type.HOW.archetypes.coercive {
+                $target_type := $type.HOW.target_type($type);
+                $type := $type.HOW.constraint_type($type);
+            }
 
             # if the type we want to check against is a definite type
             # like Int:D, we can generate much more efficient code by
@@ -616,7 +541,6 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my $decont := $*REGALLOC.fresh_o();
             my $istype := $*REGALLOC.fresh_i();
             my $isdefinite;
-            my $str_failure := $*REGALLOC.fresh_s();
             my $failure_o := $niltype_res.result_reg;
 
             unless $emit_definite_check == -1 {
@@ -646,7 +570,6 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
             $*REGALLOC.release_register($decont, $MVM_reg_obj);
             $*REGALLOC.release_register($istype, $MVM_reg_int64);
-            $*REGALLOC.release_register($str_failure, $MVM_reg_str);
             $*REGALLOC.release_register($failure_o, $MVM_reg_obj);
 
             unless $emit_definite_check == -1 {
@@ -675,6 +598,42 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             nqp::push(@ops, $lbl_done);
             $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
 
+            unless $target_type =:= NQPMu || $target_type =:= $type {
+                my $coerce_method := $target_type.HOW.name($target_type);
+                my $lbl_no_error := MAST::Label.new();
+
+                my $can := $*REGALLOC.fresh_i();
+                nqp::push(@ops,
+                    MAST::Op.new(:op('can'), $can, $value_res.result_reg, MAST::SVal.new(:value($coerce_method))));
+                nqp::push(@ops,
+                    MAST::Op.new(:op('if_i'), $can, $lbl_no_error));
+                $*REGALLOC.release_register($can, $MVM_reg_int64);
+
+                # inform the user that the coercion cannot be done
+                my $errstr_reg := $*REGALLOC.fresh_s();
+                my $dieret_reg := $*REGALLOC.fresh_o();
+                my $errstr := "Unable to coerce the return value from "
+                    ~ $type.HOW.name($type) ~ " to " ~ $target_type.HOW.name($type)
+                    ~ "; no coercion method defined";
+                nqp::push(@ops,
+                    MAST::Op.new(:op('const_s'), $errstr_reg, MAST::SVal.new(:value($errstr))));
+                nqp::push(@ops,
+                    MAST::Op.new(:op('die'), $dieret_reg, $errstr_reg));
+                $*REGALLOC.release_register($errstr_reg, $MVM_reg_str);
+                $*REGALLOC.release_register($dieret_reg, $MVM_reg_obj);
+
+                nqp::push(@ops,
+                    $lbl_no_error);
+
+                # perform the type conversion directly into the value_res register
+                my $meth := $*REGALLOC.fresh_o();
+                nqp::push(@ops,
+                    MAST::Op.new(:op('findmeth'), $meth, $value_res.result_reg, MAST::SVal.new(:value($coerce_method))));
+                nqp::push(@ops,
+                    MAST::Call.new(:target($meth), :result($value_res.result_reg), :flags([$Arg::obj]), $value_res.result_reg));
+                $*REGALLOC.release_register($meth, $MVM_reg_obj);
+            }
+
             MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
         }
     }
@@ -702,7 +661,7 @@ $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
         }
         else {
             my @ops;
-            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj), :want-decont);
             push_ilist(@ops, $value_res);
             nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($qastcomp.mast_compunit),
                 $value_res.result_reg, $value_res.result_reg ));

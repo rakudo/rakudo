@@ -90,6 +90,7 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
 });
 $ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
+$ops.map_classlib_hll_op('perl6', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6typecheckrv', $TYPE_P6OPS, 'p6typecheckrv', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
@@ -121,9 +122,7 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('return') ));
     $ops.result($il, $RT_OBJ);
 });
-$ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
-$ops.map_classlib_hll_op('perl6', 'p6captureouters', $TYPE_P6OPS, 'p6captureouters', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my $il := JAST::InstructionList.new();
     $il.append(JAST::Instruction.new( :op('aload_1') ));
@@ -217,10 +216,12 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $past {
 $ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.map_classlib_hll_op('nqp', 'p6init', $TYPE_P6OPS, 'p6init', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('nqp', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'jvmrakudointerop', $TYPE_P6OPS, 'jvmrakudointerop', [], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'jvmrakudointerop', $TYPE_P6OPS, 'jvmrakudointerop', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6captureouters2', $TYPE_P6OPS, 'p6captureouters2', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 
 # Override defor to call defined method.

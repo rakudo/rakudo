@@ -26,7 +26,7 @@ my class CurrentThreadScheduler does Scheduler {
         class { method cancel() {} }
     }
 
-    method loads() { 0 }
+    method loads(--> 0) { }
 }
 
 # vim: ft=perl6 expandtab sw=4

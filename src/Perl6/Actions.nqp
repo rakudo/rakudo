@@ -7,6 +7,8 @@ use QAST;
 
 my $wantwant := Mu;
 
+my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
+
 sub block_closure($code) {
     my $closure := QAST::Op.new(
         :op('callmethod'), :name('clone'),
@@ -55,15 +57,15 @@ sub wanted($ast,$by) {
     my $byby := $wantwant ?? $by ~ ' u' !! $by;
     return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
-    return $ast if $ast.ann('WANTED');  # already marked from here down
-    return $ast if $ast.ann('context'); # already marked from here down
+    return $ast if $ast.wanted;  # already marked from here down
+    return $ast if $ast.sunk; # already marked from here down
     note('wanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
-#    if $ast.ann('context') {
+#    if $ast.sunk {
 #        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
-#        $ast.annotate('context','');
+#        $ast.sunk(0);
 #    }
     my $e := +@($ast) - 1;
-    $ast.annotate('BY',$byby);
+    $ast.annotate('BY',$byby) if $wantwant;
 
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
         my $resultchild := $ast.resultchild // $e;
@@ -72,7 +74,7 @@ sub wanted($ast,$by) {
             $ast[$i] := $i == $resultchild ?? wanted($ast[$i], $byby) !! unwanted($ast[$i], $byby);
             ++$i;
         }
-        $ast.annotate('WANTED',1);
+        $ast.wanted(1);
     }
     elsif nqp::istype($ast,QAST::Block) {
         my int $i := 1;
@@ -81,29 +83,37 @@ sub wanted($ast,$by) {
             $ast[$i] := WANTED($ast[$i], $byby);
             ++$i;
         }
-        $ast.annotate('WANTED',1);
+        $ast.wanted(1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && (!$ast.name || $ast.name eq '&infix:<,>') {
+        if $ast.op eq 'call' && (
+                !$ast.name ||
+                $ast.name eq '&infix:<,>' ||
+                $ast.name eq '&infix:<andthen>' ||
+                $ast.name eq '&infix:<orelse>' ||
+                $ast.name eq '&infix:<notandthen>' ||
+                $ast.name eq '&infix:<xx>') {
+            WANTALL($ast,$byby);
+        }
+        elsif $ast.op eq 'callmethod' {
             WANTALL($ast,$byby);
         }
         elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
-            $ast.annotate('WANTED',1);
+            $ast.wanted(1);
         }
         elsif $ast.op eq 'call' ||
               $ast.op eq 'callstatic' ||
-              $ast.op eq 'callmethod' ||
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' {
+              $ast.op eq 'handlepayload' {
             $ast[0] := WANTED($ast[0], $byby) if +@($ast);
-            $ast.annotate('WANTED',1);
+            $ast.wanted(1);
         }
         elsif $ast.op eq 'p6decontrv' {
             $ast[1] := WANTED($ast[1], $byby) if +@($ast);
-            $ast.annotate('WANTED',1);
+            $ast.wanted(1);
         }
         elsif $ast.op eq 'while' ||
               $ast.op eq 'until' ||
@@ -142,7 +152,7 @@ sub wanted($ast,$by) {
             }
 
             $ast := $past;
-            $ast.annotate('WANTED',1);
+            $ast.wanted(1);
         }
         elsif $ast.op eq 'if' ||
               $ast.op eq 'unless' ||
@@ -150,23 +160,26 @@ sub wanted($ast,$by) {
               $ast.op eq 'without' {
             $ast[1] := WANTED($ast[1], $byby);
             $ast[2] := WANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
-            $ast.annotate('WANTED',1);
+            $ast.wanted(1);
         }
     }
     elsif nqp::istype($ast,QAST::Want) {
-        $ast.annotate('WANTED',1);
+        $ast.wanted(1);
         my $node := $ast[0];
         if nqp::istype($node,QAST::Op) {
-            if $node.op eq 'call' && !$node.name {
+            if $node.op eq 'call' && (!$node.name || $node.name eq '&infix:<xx>') {
                 $node := $node[0];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
                 }
             }
-            elsif $node.op eq 'callstatic' {
+            elsif $node.op eq 'call' {
+                $ast[0] := WANTED($node,$byby);
+            }
+            elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }
-            elsif $node.op eq 'p6for' {
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
@@ -178,7 +191,7 @@ sub wanted($ast,$by) {
                   $node.op eq 'repeat_until' {
                 return WANTED($node,$byby) if !$*COMPILING_CORE_SETTING;
                 $node[1] := WANTED($node[1], $byby);
-                $node.annotate('WANTED',1);
+                $node.wanted(1);
             }
             elsif $node.op eq 'if' ||
                   $node.op eq 'unless' ||
@@ -186,7 +199,7 @@ sub wanted($ast,$by) {
                   $node.op eq 'without' {
                 $node[1] := WANTED($node[1], $byby);
                 $node[2] := WANTED($node[2], $byby) if +@($node) > 2 && nqp::istype($node[2],QAST::Node);
-                $node.annotate('WANTED',1);
+                $node.wanted(1);
             }
         }
     }
@@ -196,7 +209,7 @@ sub wanted($ast,$by) {
 sub WANTED($ast, $by) {
     if nqp::istype($ast, QAST::Node) {
         $ast := wanted($ast, $by ~ ' W');
-        $ast.annotate('WANTED',1);  # force in case it's just a thunk
+        $ast.wanted(1);  # force in case it's just a thunk
     }
     else {
         note("Non ast passed to WANTED: " ~ $ast.HOW.name($ast));
@@ -204,13 +217,15 @@ sub WANTED($ast, $by) {
     $ast;
 }
 
+my %nosink := nqp::hash('sink',1,'push',1,'append',1,'unshift',1,'prepend',1,'splice',1);
+
 sub unwanted($ast, $by) {
     my $byby := $by ~ ' u';
     return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
-    return $ast if $ast.ann('context');
-    return $ast if $ast.ann('WANTED');  # probably a loose thunk just stashed somewhere random
-    $ast.annotate('BY',$byby);
+    return $ast if $ast.sunk;
+    return $ast if $ast.wanted;  # probably a loose thunk just stashed somewhere random
+    $ast.annotate('BY',$byby) if $wantwant;
     my $e := +@($ast) - 1;
     note('unwanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
@@ -221,7 +236,7 @@ sub unwanted($ast, $by) {
             $ast[$i] := unwanted($ast[$i], $byby);
             ++$i;
         }
-        $ast.annotate('context','sink');
+        $ast.sunk(1);
         $ast.push(QAST::WVal.new( :value($*W.find_symbol(['True'])) ))
             if $e >= 0 && nqp::istype($ast[$e],QAST::Op) && $ast[$e].op eq 'bind';
     }
@@ -232,31 +247,59 @@ sub unwanted($ast, $by) {
             $ast[$i] := UNWANTED($ast[$i], $byby);
             ++$i;
         }
-        $ast.annotate('context','sink');
+        $ast.sunk(1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && $ast.name eq '&infix:<,>' {
-            UNWANTALL($ast,$byby);
-            $ast.annotate('context','sink');
+        if $ast.op eq 'call' {
+            if $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>' {
+                UNWANTALL($ast,$byby);
+            }
+            elsif $ast.name eq '&term:<now>' {
+                $ast.node.worry("Useless use of 'now' in sink context");
+            }
+            else {
+                $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            }
+            $ast.sunk(1);
         }
         elsif $ast.op eq 'p6capturelex' {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
         }
-        elsif $ast.op eq 'call' ||
-              $ast.op eq 'callstatic' ||
-              $ast.op eq 'callmethod' ||
+        elsif $ast.op eq 'callstatic' ||
               $ast.op eq 'handle' ||
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'lexotic' ||
+              $ast.op eq 'handlepayload' ||
               $ast.op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
+        }
+        elsif $ast.op eq 'hllize' {
+            my $node := $ast[0];
+            if $node.op eq 'callmethod' && !$ast.nosink {
+                if !$node.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$node.name} {
+                    $ast.sunk(1);
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                    $ast.sunk(1);
+                    return $ast;
+                }
+            }
+            $ast.sunk(1);
+        }
+        elsif $ast.op eq 'callmethod' {
+            if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
+                $ast.sunk(1);
+                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                $ast.sunk(1);
+                return $ast;
+            }
+            $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            $ast.sunk(1);
         }
         elsif $ast.op eq 'p6decontrv' {
             $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
         }
         elsif $ast.op eq 'while' ||
               $ast.op eq 'until' ||
@@ -265,11 +308,11 @@ sub unwanted($ast, $by) {
             # Do we need to force loop to produce return values for internal reasons?
             if !$*COMPILING_CORE_SETTING && $ast[1].ann('WANTMEPLEASE') {
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($ast, $byby));
-                $ast.annotate('context','sink');
+                $ast.sunk(1);
                 return $ast;
             }
             $ast[1] := UNWANTED($ast[1], $byby);
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
         }
         elsif $ast.op eq 'if' ||
               $ast.op eq 'unless' ||
@@ -277,61 +320,112 @@ sub unwanted($ast, $by) {
               $ast.op eq 'without' {
             $ast[1] := UNWANTED($ast[1], $byby);
             $ast[2] := UNWANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
         }
         elsif $ast.op eq 'bind' {
-            $ast.annotate('context','sink');
+            $ast.sunk(1);
         }
     }
     elsif nqp::istype($ast,QAST::Want) {
-        $ast.annotate('context','sink');
+        $ast.sunk(1);
         my $node := $ast[0];
-        if nqp::istype($node,QAST::Op) && $node.op eq 'call' && !$node.name {
-            $node := $node[0];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
-            }
+
+        if nqp::istype($node,QAST::WVal) {
+            $node.sunk(1);
+            $ast[2].sunk(1);
         }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'call' {
-            $node.annotate('context','sink');
-            unwantall($node, $byby) if $node.name eq '&infix:<,>';
-        }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'p6for' {
-            $node := $node[1];
-            if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
-            }
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'while' || $node.op eq 'until') {
-            if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
-                $ast.annotate('context','sink');
-                return $ast;
-            }
-            $node[1] := UNWANTED($node[1], $byby);
-            $node.annotate('context','sink');
-        }
-        elsif nqp::istype($node,QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without') {
-            for 1,2 {
-                if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
-                    if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
-                        $node[$_] := QAST::Stmts.new(
-                                        $node[$_],
-                                        QAST::WVal.new( :value($*W.find_symbol(['True']))));
+        elsif nqp::istype($node,QAST::Op) {
+            if $node.op eq 'call' {
+                $node.sunk(1);
+                if !$node.name {
+                    my $node0 := $node[0];
+                    unwanted($node0, $byby);
+                    if nqp::istype($node0,QAST::Op) && $node0.op eq 'call' && nqp::eqat($node0.name, '&META', 0) {
+                        my $op := $node.node.Str;
+                        my $t := nqp::index($op,' ');
+                        $op := nqp::substr($op, 0, $t) if $t > 0;
+                        my $purity := 0;
+                        if $node0[0].ann('is_pure') {
+                            $purity := 1;
+                        }
+                        else {
+                            my $subname := $node0[0].name;
+                            my $subfun := try $*W.find_symbol([$subname]);
+                            if $subfun {
+                                if nqp::index($node0.name, 'ASSIGN') < 0 && nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE {
+                                    $purity := 1;
+                                }
+                            }
+                            else {
+                                $purity := 1;  # "can't happen" except in setting, so assume will be pure
+                            }
+                        }
+                        $node.node.PRECURSOR.worry("Useless use of $op in sink context") if $purity;
                     }
-                    $node[$_] := UNWANTED($node[$_], $byby);
+                }
+                else {
+                    my $infix := $node.node<infix>;
+                    if $infix {
+                        my $sym := $infix<sym>;
+                        if $sym eq ',' || $sym eq 'xx' { unwantall($node, $byby) }
+                        elsif $sym eq '...' ||
+                              $sym eq '...^' ||
+                              $sym eq '…' ||
+                              $sym eq '…^'
+                        {
+                            $node.annotate('useless', $sym);
+                            $node.node.worry("Useless use of $sym in sink context");
+                        }
+                    }
+                    elsif $node.name eq '&term:<now>' {
+                        $node.annotate('useless', "'now'");
+                        $node.node.worry("Useless use of 'now' in sink context");
+                    }
                 }
             }
-            $node.annotate('context','sink');
+            elsif $node.op eq 'hllize' {
+                $ast[0] := UNWANTED($node,$byby);
+            }
+            elsif $node.op eq 'callmethod' {
+                if !$node.nosink && !%nosink{$node.name} {
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
+                    $ast.sunk(1);
+                    return $ast;
+                }
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
+                $node := $node[1];
+                if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                    $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                }
+            }
+            elsif $node.op eq 'while' || $node.op eq 'until' {
+                if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
+                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
+                    $ast.sunk(1);
+                    return $ast;
+                }
+                $node[1] := UNWANTED($node[1], $byby);
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without' {
+                for 1,2 {
+                    if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
+                        if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
+                            $node[$_] := QAST::Stmts.new(
+                                            $node[$_],
+                                            QAST::WVal.new( :value($*W.find_symbol(['True']))));
+                        }
+                        $node[$_] := UNWANTED($node[$_], $byby);
+                    }
+                }
+                $node.sunk(1);
+            }
+            elsif $node.op eq 'callmethod' && $node.name eq 'new' {
+                $node.sunk(1);
+            }
         }
-        elsif nqp::istype($node,QAST::Op) && $node.op eq 'callmethod' && $node.name eq 'new' {
-            $node.annotate('context','sink');
-        }
-        elsif nqp::istype($node,QAST::WVal) {
-            $node.annotate('context','sink');
-            $ast[2].annotate('context','sink');
-        }
-
     }
     $ast;
 }
@@ -339,7 +433,7 @@ sub unwanted($ast, $by) {
 sub UNWANTED($ast, $by) {
     if nqp::istype($ast, QAST::Node) {
         $ast := unwanted($ast, $by ~ ' U');
-        $ast.annotate('context','sink');  # force in case it's just a thunk
+        $ast.sunk(1);
     }
     else {
         note("Non ast passed to UNWANTED: " ~ $ast.HOW.name($ast));
@@ -411,13 +505,103 @@ register_op_desugar('p6for', -> $qast {
     );
     QAST::Stmts.new(
         $bind,
-        QAST::Op.new( :op<callmethod>, :name($qast.ann('context')), $call )
+        QAST::Op.new( :op<callmethod>, :name($qast.sunk ?? 'sink' !! 'eager'), $call )
     );
 });
+register_op_desugar('p6forstmt', -> $qast {
+    my $for-target-name := QAST::Node.unique('for_target');
+    my $for-target := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($for-target-name), :scope('local'), :decl('var') ),
+        $qast[0]
+    );
 
-sub monkey_see_no_eval() {
-    nqp::existskey(%*PRAGMAS,'MONKEY-SEE-NO-EVAL')
-        ?? %*PRAGMAS<MONKEY-SEE-NO-EVAL>   # prevails if defined, can be either 1 or 0
+    my $iterator-name := QAST::Node.unique('for_iterator');
+    my $iterator := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($iterator-name), :scope('local'), :decl('var') ),
+        QAST::Op.new(
+            :op('callmethod'), :name('iterator'),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('iscont'),
+                    QAST::Var.new( :name($for-target-name), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('callstatic'), :name('&infix:<,>'),
+                    QAST::Var.new( :name($for-target-name), :scope('local') )
+                ),
+                QAST::Var.new( :name($for-target-name), :scope('local') )
+            )));
+
+    my $iteration-end-name := QAST::Node.unique('for_iterationend');
+    my $iteration-end := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($iteration-end-name), :scope('local'), :decl('var') ),
+        QAST::WVal.new( :value($qast.ann('IterationEnd')) )
+    );
+
+    my $block-name := QAST::Node.unique('for_block');
+    my $block := QAST::Op.new(
+        :op('bind'),
+        QAST::Var.new( :name($block-name), :scope('local'), :decl('var') ),
+        $qast[1]
+    );
+
+    my $iter-val-name := QAST::Node.unique('for_iterval');
+    my $loop := QAST::Op.new(
+        :op('until'),
+        QAST::Op.new(
+            :op('eqaddr'),
+            QAST::Op.new(
+                :op('decont'),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($iter-val-name), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('pull-one'),
+                        QAST::Var.new( :name($iterator-name), :scope('local') )
+                    )
+                )
+            ),
+            QAST::Var.new( :name($iteration-end-name), :scope('local') )
+        ),
+        QAST::Op.new(
+            :op('call'),
+            QAST::Var.new( :name($block-name), :scope('local') ),
+            QAST::Var.new( :name($iter-val-name), :scope('local') )
+        ));
+    if $qast[2] {
+        $loop.push($qast[2]);
+    }
+
+    QAST::Stmts.new(
+        $for-target,
+        $iterator,
+        $iteration-end,
+        $block,
+        $loop,
+        QAST::WVal.new( :value($qast.ann('Nil')) )
+    )
+});
+
+sub can-use-p6forstmt($block) {
+    my $past_block := $block.ann('past_block');
+    my $count := $past_block.ann('count');
+    return 0 unless nqp::isconcrete($count) && $count == 1;
+    my $code := $block.ann('code_object');
+    my $block_type := $*W.find_symbol(['Block'], :setting-only);
+    return 1 unless nqp::istype($code, $block_type);
+    my $p := nqp::getattr($code, $block_type, '$!phasers');
+    nqp::isnull($p) ||
+        !(nqp::existskey($p, 'FIRST') || nqp::existskey($p, 'LAST') || nqp::existskey($p, 'NEXT'))
+}
+
+sub monkey_see_no_eval($/) {
+    my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
+    nqp::defined($msne)
+        ?? $msne   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING ||
            try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() } ||
            nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
@@ -428,7 +612,7 @@ role STDActions {
         make $<nibble>.ast;
     }
 
-    method trim_heredoc($doc, $stop, $origast) {
+    method trim_heredoc($/, $doc, $stop, $origast) {
         $origast.pop();
         $origast.pop();
 
@@ -491,6 +675,15 @@ role STDActions {
 
             $origast.push(descend($docast))
         }
+
+        CONTROL {
+            if nqp::getextype($_) == nqp::const::CONTROL_WARN {
+                $/.worry(nqp::getmessage($_));
+                nqp::resume($_);
+            }
+            nqp::rethrow($_);
+        }
+
         $origast;
     }
 }
@@ -534,7 +727,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'hllize',       1,
     );
     sub autosink($past) {
-        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && $*statement_level && !$past.ann('nosink')
+        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && $*statement_level && !$past.nosink
             ?? sink($past)
             !! $past;
     }
@@ -551,10 +744,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    sub string_to_bigint($src, $base) {
+    sub string_to_int($src, int $base, int $chars) {
+        my $res := nqp::radix($base, ~$src, 0, 2);
+        $src.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::atpos($res, 2), $chars);
+        nqp::box_i(nqp::atpos($res, 0), $*W.find_symbol(['Int']));
+    }
+
+    sub string_to_bigint($src, int $base, int $chars) {
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
-        $src.CURSOR.panic("'$src' is not a valid number")
-            unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($src));
+        $src.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), $chars);
         nqp::atpos($res, 0);
     }
 
@@ -702,13 +902,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*POD_PAST,
             statementlist_with_handlers($/)
         );
+
+        # Errors/warnings in sinking pass should ignore highwater mark.
+        $/.'!clear_highwater'();
+
         unless $*NEED_RESULT {
             # Evaluate last statement in sink context, by pushing another
             # statement after it, unless we need the result.
             unwantall($mainline, 'comp_unit');
             $mainline.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
-        fatalize($mainline) if %*PRAGMAS<fatal>;
+        fatalize($mainline) if $*FATAL;
+
+        # Emit any worries.  Note that unwanting $mainline can produce worries.
+        if @*WORRIES {
+            stderr().print($*W.group_exception().gist());
+        }
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
             $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));
@@ -773,6 +982,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :compilation_mode($*W.is_precompilation_mode()),
             :pre_deserialize($*W.load_dependency_tasks()),
             :post_deserialize($*W.fixup_tasks()),
+            :is_nested($*W.is_nested()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 QAST::WVal.new( :value($*W.find_symbol(['CompUnit', 'RepositoryRegistry'])) )
@@ -806,7 +1016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             my $renderer := "Pod::To::$doc";
 
-            my $module := $*W.load_module($/, $renderer, {}, $*GLOBALish);
+            my $module := $*W.load_module($/, $renderer, {}, $block);
 
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),
@@ -1005,7 +1215,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     @meta.push($*W.add_string_constant(~$_).compile_time_value);
                     #my $s := Perl6::Pod::str_from_entity(~$_);
                     #$s ?? @contents.push($s) && @meta.push(~$_)
-                    #   !! $/.CURSOR.worry("\"$_\" is not a valid HTML5 entity.");
+                    #   !! $/.worry("\"$_\" is not a valid HTML5 entity.");
                 } else {
                     my $n := $_<integer>
                           ?? $_<integer>.made
@@ -1014,7 +1224,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         @contents.push(nqp::chr($n));
                         @meta.push($n);
                     } else {
-                        $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
+                        $/.worry("\"$_\" is not a valid Unicode character name or code point.");
                     }
                 }
             }
@@ -1150,7 +1360,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         }
                     }
                     else {
-                        if nqp::istype($ast,QAST::Op) && ($ast.op eq 'while' || $ast.op eq 'until') {
+                        if nqp::istype($ast,QAST::Op) && ($ast.op eq 'while' || $ast.op eq 'until' || $ast.op eq 'repeat_while' || $ast.op eq 'repeat_until') {
                             $ast := UNWANTED($ast,'statementlist/loop');   # statement level loops never want return value
                         }
                         elsif $i == $e && $*ESCAPEBLOCK {
@@ -1171,11 +1381,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $pl := $past[+@($past) - 1];
-            if $pl.ann('context') eq 'sink' {
+            if $pl.sunk {
                 $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
             }
             else {
-                $pl.annotate('final', 1);
+                $pl.final(1);
                 $past.returns($pl.returns);
             }
         }
@@ -1189,13 +1399,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<statement> > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $<statement> {
-                    $l.push(wanted($_.ast,'semilist'));
+                    my $sast := $_.ast || QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
+                    $l.push(wanted($sast, 'semilist'));
                 }
                 $past.push($l);
                 $past.annotate('multislice', 1);
             }
             else {
-                $past.push($<statement>[0].ast);
+                $past.push($<statement>[0].ast || QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
             }
             make $past;
         }
@@ -1242,8 +1453,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := $mc_ast;
             }
             if $ml {
-                $past.annotate("okifnil",1);
-                $past[0].annotate("okifnil",1) if +@($past);
+                $past.okifnil(1);
+                $past[0].okifnil(1) if +@($past);
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
                     unless $past.ann('bare_block') {
@@ -1255,22 +1466,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     unless $past.ann('past_block') {
                         $past := make_topic_block_ref($/, $past, migrate_stmt_id => $*STATEMENT_ID);
                     }
+                    my $fornode := QAST::Op.new(
+                            :op<p6for>, :node($/),
+                            $cond,
+                            block_closure($past),
+                        );
                     $past := QAST::Want.new(
-                        QAST::Op.new(
-                            :op<p6for>, :node($/),
-                            $cond,
-                            block_closure($past),
-                        ),
-                        'v', QAST::Op.new(
-                            :op<p6for>, :node($/),
-                            $cond,
-                            block_closure($past),
-                        ),
+                        $fornode,
+                        'v', QAST::Op.new(:op<p6sink>, $fornode),
                     );
-                    $past[0].annotate('context', 'eager');
-                    $past[2].annotate('context', 'sink');
+                    $past[2].sunk(1);
                     my $sinkee := $past[0];
-                    $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
+                    $past.annotate('statement_level', -> {
+                        UNWANTED($sinkee, 'force for mod');
+                        $fornode.op('p6forstmt') if can-use-p6forstmt($fornode[1]);
+                        $fornode.annotate('IterationEnd', $*W.find_symbol(['IterationEnd']));
+                        $fornode.annotate('Nil', $*W.find_symbol(['Nil']));
+                    });
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1286,7 +1498,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.annotate('statement_id', $id);
 
             # only trace when running in source
-            if %*PRAGMAS<trace> && !$*W.is_precompilation_mode {
+            if $/.pragma('trace') && !$*W.is_precompilation_mode {
                 my $code := ~$/;
 
                 # don't bother putting ops for activating it
@@ -1301,9 +1513,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $code    := subst($code, /\s+$/, ''); # chomp!
                     $past := QAST::Stmts.new(:node($/),
                         QAST::Op.new(
-                            :op<sayfh>,
+                            :op<writefh>,
                             QAST::Op.new(:op<getstderr>),
-                            QAST::SVal.new(:value("$id ($file line $line)\n$code"))
+                            QAST::Op.new(
+                                :op('encode'),
+                                QAST::SVal.new(:value("$id ($file line $line)\n$code\n")),
+                                QAST::SVal.new(:value('utf8')),
+                                QAST::Op.new(
+                                    :op('callmethod'), :name('new'),
+                                    QAST::WVal.new( :value($*W.find_symbol(['Blob'])) )
+                                )
+                            )
                         ),
                         $past
                     );
@@ -1433,12 +1653,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK.annotate('handlers', %*HANDLERS) if %*HANDLERS;
-            fatalize($past) if %*PRAGMAS<fatal>;
+            fatalize($past) if $*FATAL;
             make $BLOCK;
         }
         else {
             if $*HAS_YOU_ARE_HERE {
-                $/.CURSOR.panic('{YOU_ARE_HERE} may only appear once in a setting');
+                $/.panic('{YOU_ARE_HERE} may only appear once in a setting');
             }
             $*HAS_YOU_ARE_HERE := 1;
             make $<you_are_here>.ast;
@@ -1604,11 +1824,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<unless>($/) {
-        my $past := $<sym> eq 'without'
-            ?? xblock_immediate_with( $<xblock>.ast )
-            !! xblock_immediate( $<xblock>.ast );
+        my $past := xblock_immediate( $<xblock>.ast );
         $past.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
-        $past.op(~$<sym>);
+        $past.op('unless');
+        make $past;
+    }
+
+    method statement_control:sym<without>($/) {
+        my $past := xblock_immediate_with( $<xblock>.ast );
+        $past.push(QAST::WVal.new( :value($*W.find_symbol(['Empty'])) ));
+        $past.op('without');
         make $past;
     }
 
@@ -1633,27 +1858,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<for>($/) {
         my $xblock := $<xblock>.ast;
+        my $fornode := QAST::Op.new(
+                :op<p6for>, :node($/),
+                $xblock[0],
+                block_closure($xblock[1]),
+            );
         my $past := QAST::Want.new(
-            QAST::Op.new(
-                :op<p6for>, :node($/),
-                $xblock[0],
-                block_closure($xblock[1]),
-            ),
-            'v', QAST::Op.new(
-                :op<p6for>, :node($/),
-                $xblock[0],
-                block_closure($xblock[1]),
-            ),
+            $fornode,
+            'v', QAST::Op.new(:op<p6sink>, $fornode),
         );
         if $*LABEL {
             my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );
             $past[0].push($label);
             $past[2].push($label);
         }
-        $past[0].annotate('context', 'eager');
-        $past[2].annotate('context', 'sink');
+        $past[2].sunk(1);
         my $sinkee := $past[0];
-        $past.annotate('statement_level', -> { $sinkee.annotate('context', 'sink') });
+        $past.annotate('statement_level', -> {
+            UNWANTED($sinkee,'force for');
+            if can-use-p6forstmt($fornode[1]) {
+                $fornode.op('p6forstmt');
+                $fornode.annotate('IterationEnd', $*W.find_symbol(['IterationEnd']));
+                $fornode.annotate('Nil', $*W.find_symbol(['Nil']));
+            }
+        });
         make $past;
     }
 
@@ -1676,6 +1904,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e1> {
             $loop := QAST::Stmts.new( UNWANTED($<e1>.ast, 'statement_control/e1'), $loop, :node($/) );
         }
+        my $sinkee := $loop[1];
+        $loop.annotate('statement_level', -> { UNWANTED($sinkee,'force loop') });
         make $loop;
     }
 
@@ -1733,6 +1963,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<import>($/) {
+        # NB: Grammar already passed arglist directly to World, but this seems soon enough to want it.
+        if $<arglist> && $<arglist><EXPR> {
+            WANTED($<arglist><EXPR>.ast, 'import');
+        }
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         make $past;
     }
@@ -1755,7 +1989,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 #                    last;
 #                } elsif $_ > @MAX_PERL_VERSION[$i] {
 #                    my $mpv := nqp::join('.', @MAX_PERL_VERSION);
-#                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
+#                    $/.panic("Perl $<version> required--this is only v$mpv")
 #                }
 #            }
         }
@@ -1768,6 +2002,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $target_package;
         my $has_file;
         my $longname;
+        my $*SCOPE := 'my';
         if $<module_name> {
             for $<module_name><longname><colonpair> -> $colonpair {
                 if ~$colonpair<identifier> eq 'file' {
@@ -1776,7 +2011,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             $longname := $*W.dissect_longname($<module_name><longname>);
-            $target_package := $*W.dissect_longname($<module_name><longname>).name_past;
+            $target_package := $longname.name_past;
         }
         if $<module_name> && nqp::defined($has_file) == 0 {
             my $short_name := nqp::clone($target_package);
@@ -1809,18 +2044,68 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
             );
         }
-        my $require_past := QAST::Op.new(:node($/), :op<call>,
+        my $lexpad := $*W.cur_lexpad();
+        my $block := $lexpad.ann('code_object');
+        $block := $*W.blocks[+$*W.blocks - 2] if $block.HOW.name($block) eq 'Code';
+        if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
+            declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
+        }
+        my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,
                                         $compunit_past,
-                                        );
+                                        ),'require');
+
+        # An list of the components of the pre-existing outer symbols name (if any)
+        my $existing_path := $*W.symbol_lookup(['Any'], $/);
+        # The top level package object of the  pre-existing outer package (if any)
+        my $top-existing := $*W.symbol_lookup(['Any'], $/);
+        # The name of the lexical stub we insert (if any)
+        my $lexical_stub;
+        if $target_package && !$longname.contains_indirect_lookup() {
+            my $current;
+            my @components := nqp::clone($longname.components);
+            my $top := @components.shift;
+            $existing_path := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+            my $existing := try $*W.find_symbol([$top]);
+
+            if $existing =:= NQPMu {
+                my $stub := $*W.pkg_create_mo($/, $/.how('package'), :name($top));
+                $*W.pkg_compose($/, $stub);
+                $*W.install_lexical_symbol($lexpad,$top,$stub);
+                $current := nqp::who($stub);
+                $lexical_stub := QAST::SVal.new(:value($top));
+            }
+            else {
+                $top-existing := QAST::WVal.new(:value($existing));
+                $current := nqp::who($existing);
+                $existing_path.push: QAST::SVal.new(:value($top));
+            }
+
+            for @components -> $component {
+                if nqp::existskey($current,$component) {
+                    $current := nqp::who($current{$component});
+                    $existing_path.push: QAST::SVal.new(:value($component));
+                }
+                else {
+                    $lexical_stub := QAST::SVal.new(:value($component)) unless $lexical_stub;
+                    my $stub := $*W.pkg_create_mo($/, $/.how('package'), :name($component));
+                    $*W.pkg_compose($/, $stub);
+                    $current{$component} := $stub;
+                    $current := nqp::who($stub);
+                }
+            }
+        }
+
+        $require_past.push($existing_path);
+        $require_past.push($top-existing);
+        $require_past.push($lexical_stub // $*W.symbol_lookup(['Any'], $/));
+
         if $<EXPR> {
-            my $p6_argiter   := $*W.compile_time_evaluate($/, $<EXPR>.ast).eager.iterator;
+            my $p6_argiter   := $*W.compile_time_evaluate($/, WANTED($<EXPR>.ast,'require')).eager.iterator;
             my $IterationEnd := $*W.find_symbol(['IterationEnd']);
-            my $lexpad      := $*W.cur_lexpad();
-            my $*SCOPE      := 'my';
 
             while !((my $arg := $p6_argiter.pull-one) =:= $IterationEnd) {
-                my $symbol := nqp::unbox_s($arg.Str());
+                my str $symbol := nqp::unbox_s($arg.Str());
                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
                     if $lexpad.symbol($symbol);
                 declare_variable($/, $past,
@@ -1935,9 +2220,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $*W.add_phaser($/, 'CHECK', wanted($<blorst>.ast,'CHECK').ann('code_object'));
     }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', unwanted($<blorst>.ast,'COMPOSE').ann('code_object')); }
-    method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', $<blorst>.ast.ann('code_object'), ($<blorst>.ast).ann('past_block')); }
-    method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', $<blorst>.ast.ann('code_object')); }
-    method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', $<blorst>.ast.ann('code_object')); }
+    method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', wanted($<blorst>.ast,'INIT').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
+    method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', wanted($<blorst>.ast,'ENTER').ann('code_object')); }
+    method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', wanted($<blorst>.ast,'FIRST').ann('code_object')); }
 
     method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', unwanted($<blorst>.ast,'END').ann('code_object')); }
     method statement_prefix:sym<LEAVE>($/) { make $*W.add_phaser($/, 'LEAVE', unwanted($<blorst>.ast,'LEAVE').ann('code_object')); }
@@ -1963,19 +2248,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<gather>($/) {
-        my $past := block_closure(unwanted($<blorst>.ast,'gather'));
+        my $past := unwanted($<blorst>.ast,'gather');
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
     method statement_prefix:sym<supply>($/) {
-        my $past := block_closure($<blorst>.ast);
+        my $past := $<blorst>.ast;
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
     }
 
     method statement_prefix:sym<react>($/) {
-        my $past := block_closure($<blorst>.ast);
+        my $past := $<blorst>.ast;
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&REACT'), $past );
     }
@@ -2013,6 +2298,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<start>($/) {
+        my $block := $<blorst>.ast.ann('past_block');
+        unless $block.symbol('$/') {
+            $*W.install_lexical_magical($block, '$/');
+        }
+        unless $block.symbol('$!') {
+            $*W.install_lexical_magical($block, '$!');
+        }
         make QAST::Op.new(
             :op('callmethod'),
             :name('start'),
@@ -2053,7 +2345,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<sink>($/) {
         make QAST::Stmts.new(
             QAST::Op.new(
-                :op('callmethod'), :name('eager'),
+                :op('callmethod'), :name('sink'),
                 QAST::Op.new( :op('call'), $<blorst>.ast )
             ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),
@@ -2208,7 +2500,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $<num> {
                 make make_pair($/,$*key, $*W.add_numeric_constant($/, 'Int', $*value));
             }
-            elsif $*value ~~ NQPMatch {
+            elsif $*value ~~ NQPCapture {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];
@@ -2246,11 +2538,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_pair($/,$key_str, $value) {
         my $key := $*W.add_string_constant($key_str);
-        QAST::Op.new(
+        my $pair := QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
             WANTED(QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),'make_pair'),
             $key, WANTED($value, 'make_pair')
-        )
+        );
+        $pair.nosink(1);
+        $pair;
     }
 
     method desigilname($/) {
@@ -2266,7 +2560,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('call'),
                 :name('&postcircumfix:<[ ]>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
-                $*W.add_constant('Int', 'int', +$<index>),
+                $*W.add_constant('Int', 'int', nqp::radix(10, $<index>, 0, 0)[0]),
             );
             if $<sigil> eq '@' || $<sigil> eq '%' {
                 my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
@@ -2324,7 +2618,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $*OFTYPE;  # should default to Mu/Mu/Any
                     $past := QAST::Var.new( :node($/) );
                     $past := declare_variable($/, $past, $name, '', '', []);
-                    $past.annotate('nosink', 1);
+                    $past.nosink(1);
                 }
                 else {
                     $past := make_variable($/, [$name]);
@@ -2332,7 +2626,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if $*IN_DECL eq 'variable' {
-            $past.annotate('sink_ok', 1);
+            $past.sinkok(1);
         }
 
         make $past;
@@ -2436,17 +2730,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :named($twigil eq ':'), :full_name($name));
         }
         elsif $twigil eq '~' {
-            my $actionsname := $desigilname ~ '-actions';
             $past := QAST::Op.new(
                 :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
                 QAST::Var.new( :name<Slang>, :scope<lexical> ));
-            if nqp::existskey(%*LANG, $desigilname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$desigilname}) );
+            my $g := $/.slang_grammar($desigilname);
+            $*W.add_object($g);
+            my $a := $/.slang_actions($desigilname);
+            if !nqp::isnull($g) {
+                my $wval := QAST::WVal.new( :value($g) );
                 $wval.named('grammar');
                 $past.push($wval);
-            }
-            if nqp::existskey(%*LANG, $actionsname) {
-                my $wval := QAST::WVal.new( :value(%*LANG{$actionsname}) );
+                $wval := QAST::WVal.new( :value($a) );
                 $wval.named('actions');
                 $past.push($wval);
             }
@@ -2473,14 +2767,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :full_name($name));
             }
         }
-        elsif $name eq '$?LINE' || $name eq '$?FILE' {
+        elsif $name eq '$?LANG' || $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
                   twigil => '?',
                   scope  => $*SCOPE,
                 );
             }
-            if $name eq '$?LINE' {
+            if $name eq '$?LANG' {
+                my $cursor := $/;
+                $*W.add_object($cursor);
+                $past := QAST::WVal.new(:value($cursor));
+            }
+            elsif $name eq '$?LINE' {
                 $past := $*W.add_constant('Int', 'int', $*W.current_line($/));
             }
             else {
@@ -2593,7 +2892,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
 
     method package_declarator:sym<trusts>($/) {
-        $*W.apply_trait($/, '&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
+        $*W.apply_trait($/, '&trait_mod:<trusts>', $/.package, $<typename>.ast);
     }
 
     method package_declarator:sym<also>($/) {
@@ -2601,6 +2900,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method package_def($/) {
+        my $*LEAF := $/;
+        my $package := $*LEAF.package;
         # Get the body block AST.
         my $block;
         if $<blockoid> {
@@ -2627,12 +2928,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
-        if nqp::eqat($<blockoid><statementlist><statement>[0], '...', 0) {
+        if is_yada($/) {
             unless $*PKGDECL eq 'role' {
-                $*W.add_stub_to_check($*PACKAGE);
+                $*W.add_stub_to_check($package);
             }
             $block.blocktype('declaration');
-            make QAST::Stmts.new( $block, QAST::WVal.new( :value($*PACKAGE) ) );
+            make QAST::Stmts.new( $block, QAST::WVal.new( :value($package) ) );
             return 1;
         }
 
@@ -2644,7 +2945,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,
-                type_captures     => ['$?CLASS', '::?CLASS']
+                type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
             my $sig := $*W.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
@@ -2659,7 +2960,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # we won't know).
             $block[1].push(QAST::Op.new(
                 :op('list'),
-                QAST::WVal.new( :value($*PACKAGE) ),
+                QAST::WVal.new( :value($package) ),
                 QAST::Op.new( :op('curlexpad') )));
 
             # Finish code object and add it as the role's body block.
@@ -2667,21 +2968,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.attach_signature($code, $sig);
             $*W.finish_code_object($code, $block, 0);
             $*W.add_phasers_handling_code($code, $block);
-            $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
+            $*W.pkg_set_role_body_block($/, $package, $code, $block);
 
             # Compose before we add the role to the group, so the group sees
             # it composed.
-            $*W.pkg_compose($/, $*PACKAGE);
+            $*W.pkg_compose($/, $package);
 
             # Add this role to the group if needed.
-            my $group := $*PACKAGE.HOW.group($*PACKAGE);
-            unless $group =:= $*PACKAGE {
-                $*W.pkg_add_role_group_possibility($/, $group, $*PACKAGE);
+            my $group := $package.HOW.group($package);
+            unless $group =:= $package {
+                $*W.pkg_add_role_group_possibility($/, $group, $package);
             }
         }
         else {
             # Compose.
-            $*W.pkg_compose($/, $*PACKAGE);
+            $*W.pkg_compose($/, $package);
+
+            # If we have a grammar on our hands, precompute some NFAs
+            if $*PKGDECL eq 'grammar' {
+                if nqp::can($package, '!precompute_nfas') {
+                    $package.'!precompute_nfas'();
+                }
+            }
 
             # Finish code object for the block.
             my $code := $*CODE_OBJECT;
@@ -2702,13 +3010,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Document
-        Perl6::Pod::document($/, $*PACKAGE, $*POD_BLOCK, :leading);
+        Perl6::Pod::document($/, $package, $*POD_BLOCK, :leading);
         if ~$*POD_BLOCK ne '' {
-            $*POD_BLOCK.set_docee($*PACKAGE);
+            $*POD_BLOCK.set_docee($package);
         }
 
         make QAST::Stmts.new(
-            $block, QAST::WVal.new( :value($*PACKAGE) )
+            $block, QAST::WVal.new( :value($package) )
         );
     }
 
@@ -2716,7 +3024,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # blocks, we need to ensure we get lexical outers fixed up
     # properly when deserializing after pre-comp. To do this we
     # make a list of closures, which each point to the outer
-    # context. These surive serialization and thus point at what
+    # context. These survive serialization and thus point at what
     # has to be fixed up.
     sub begin_time_lexical_fixup($block) {
         my $has_nested_blocks := 0;
@@ -2753,6 +3061,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
     method scope_declarator:sym<unit>($/)    { make $<scoped>.ast; }
+    method scope_declarator:sym<HAS>($/)     {
+        my $scoped := $<scoped>.ast;
+        my $attr   := $scoped.ann('metaattr');
+        if $attr.package.REPR ne 'CStruct'
+        && $attr.package.REPR ne 'CPPStruct'
+        && $attr.package.REPR ne 'CUnion' {
+            $*W.throw($/, ['X', 'Attribute', 'Scope', 'Package'], :scope<HAS>,
+                :allowed('classes with CStruct, CPPStruct and CUnion representation are supported'),
+                :disallowed('package with ' ~ $attr.package.REPR ~ ' representation'));
+        }
+        if nqp::objprimspec($attr.type) != 0 {
+            $/.worry('Useless use of HAS scope on ' ~ $attr.type.HOW.name($attr.type) ~ ' typed attribute.');
+        }
+        # Mark $attr as inlined, that's why we do all this.
+        nqp::bindattr_i($attr, $attr.WHAT, '$!inlined', 1);
+        make $scoped;
+    }
 
     method declarator($/) {
         if    $<routine_declarator>  { make $<routine_declarator>.ast  }
@@ -2770,7 +3095,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $initast, $*ATTR_INIT_BLOCK);
                     }
                     elsif $<initializer><sym> eq '.=' {
-                        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+                        my $type := $*W.find_symbol(
+                            nqp::split('::', $*OFTYPE // 'Any')
+                        );
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -2779,7 +3106,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $dot_equals, $*ATTR_INIT_BLOCK);
                     }
                     else {
-                        $/.CURSOR.panic("Cannot use " ~ $<initializer><sym> ~
+                        $/.panic("Cannot use " ~ $<initializer><sym> ~
                             " to initialize an attribute");
                     }
                 }
@@ -2801,7 +3128,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new( :op('p6stateinit') ),
                         $past,
                         $orig_past);
-                    $past.annotate('nosink', 1);
+                    $past.nosink(1);
                 }
             }
             # No initializer, check that the (specified) type accepts the default value.
@@ -2829,7 +3156,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $*OFTYPE := $common_of;
                 if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
                     if $common_of {
-                        ($_<node> // $<signature>).CURSOR.typed_sorry(
+                        ($_<node> // $<signature>).typed_sorry(
                             'X::Syntax::Variable::ConflictingTypes',
                             outer => $common_of.ast, inner => $_<of_type>);
                     }
@@ -2862,7 +3189,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $orig_list := $list;
                 my $initast := $<initializer>.ast;
                 if $<initializer><sym> eq '=' {
-                    $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
+                    $/.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
                     $list := assign_op($/, $list, $initast);
                     if @nosigil {
@@ -2879,7 +3206,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $<initializer><sym> eq '.=' {
-                    $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
+                    $/.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
                     my %sig_info := $<signature>.ast;
@@ -2900,7 +3227,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             elsif @nosigil {
-                $/.CURSOR.typed_panic('X::Syntax::Term::MissingInitializer');
+                $/.typed_panic('X::Syntax::Term::MissingInitializer');
             }
 
             make $list;
@@ -2931,7 +3258,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         else {
-            $/.CURSOR.panic('Unknown declarator type');
+            $/.panic('Unknown declarator type');
         }
     }
 
@@ -2939,8 +3266,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless nqp::istype($descriptor.default, $bind_constraint) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
-                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs><D> && !$*OFTYPE<colonpairs><U>
-                         ?? ':' ~ %*PRAGMAS{$what} ~ ' by pragma'
+                implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
+                         ?? ':' ~ $/.pragma($what) ~ ' by pragma'
                          !! 0
             );
         }
@@ -2975,19 +3302,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
             if $lex.symbol($name) {
-                $/.CURSOR.typed_worry('X::Redeclaration', symbol => $name);
+                $/.typed_worry('X::Redeclaration', symbol => $name);
             }
             elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
                 if ~$twigil eq '*' {
-                    $/.CURSOR.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
+                    $/.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
                 }
                 else {
-                    $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+                    $/.typed_sorry('X::Redeclaration::Outer', symbol => $name);
                 }
             }
         }
         if nqp::elems($<semilist>) > 1 {
-            $/.CURSOR.panic('Multiple shapes not yet understood');
+            $/.panic('Multiple shapes not yet understood');
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
     }
@@ -2995,6 +3322,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
+        my $package := $/.package;
 
         my int $have_of_type;
         my $of_type;
@@ -3007,7 +3335,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes;
             unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite {
-                $*OFTYPE.CURSOR.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
+                $*OFTYPE.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
             }
         }
 
@@ -3021,7 +3349,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $mod eq '&trait_mod:<of>' {
                     my $type := $trait.args[0];
                     if $have_of_type {
-                        $_.CURSOR.typed_sorry(
+                        $_.typed_sorry(
                             'X::Syntax::Variable::ConflictingTypes',
                             outer => $of_type, inner => $type)
                     }
@@ -3043,7 +3371,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
-            unless nqp::can($*PACKAGE.HOW, 'add_attribute') {
+            unless nqp::can($package.HOW, 'add_attribute') {
                 if $*PKGDECL {
                     $*W.throw($/, ['X', 'Attribute', 'Package'],
                         package-kind => $*PKGDECL,
@@ -3056,7 +3384,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Create container descriptor and decide on any default value.
             if $desigilname eq '' {
-                $/.CURSOR.panic("Cannot declare an anonymous attribute");
+                $/.panic("Cannot declare an anonymous attribute");
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := $*W.container_type_info($/, $sigil,
@@ -3078,7 +3406,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %config<container_initializer> := $*W.create_thunk($/,
                     %cont_info<build_ast>);
             }
-            my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($/, $package, $metaattr,
                 %config, %cont_info, $descriptor);
 
             # Document it
@@ -3107,15 +3435,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $varname;
             if $*SCOPE eq 'our' {
                 if $have_of_type || @post {
-                    $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
+                    $/.panic("Cannot put a type constraint on an 'our'-scoped variable");
                 }
                 elsif $shape {
-                    $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
+                    $/.panic("Cannot put a shape on an 'our'-scoped variable");
                 }
                 elsif $desigilname eq '' {
-                    $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
+                    $/.panic("Cannot have an anonymous 'our'-scoped variable");
                 }
-                if nqp::can($*PACKAGE.HOW, 'archetypes') && $*PACKAGE.HOW.archetypes.parametric {
+                if nqp::can($package.HOW, 'archetypes') && $package.HOW.archetypes.parametric {
                     $*W.throw($/, 'X::Declaration::OurScopeInRole',
                         declaration => 'variable'
                     );
@@ -3123,7 +3451,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $desigilname eq '' {
                 if $twigil {
-                    $/.CURSOR.panic("Cannot have an anonymous variable with a twigil");
+                    $/.panic("Cannot have an anonymous variable with a twigil");
                 }
                 $name    := QAST::Node.unique($sigil ~ 'ANON_VAR_');
                 $varname := $sigil;
@@ -3140,7 +3468,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
-                :scope($*SCOPE), :package($*PACKAGE));
+                :scope($*SCOPE), :package($package));
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type or create a fresh container.
@@ -3331,7 +3659,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $code.name,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
                 );
@@ -3403,30 +3731,34 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install the candidate.
                 $*W.add_dispatchee_to_proto($proto, $code);
             }
+            elsif $*SCOPE eq 'anon' {
+                # don't install anything
+            }
             else {
-                # Install.
+                # Always install in lexpad unless predeclared.
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
-                    unless nqp::getattr_i($predeclared<value>, $*W.find_symbol(['Routine'], :setting-only), '$!yada') {
+                    my $Routine := $*W.find_symbol(['Routine'], :setting-only);
+                    unless nqp::istype(   $predeclared<value>, $Routine)
+                        && nqp::getattr_i($predeclared<value>, $Routine, '$!yada') {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
                                 what   => 'routine',
                         );
                     }
                 }
-                if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                }
-                elsif $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
-                    # Install in lexpad and in package, and set up code to
+                $*W.install_lexical_symbol($outer, $name, $code, :$clone);
+
+                if $*SCOPE eq 'our' || $*SCOPE eq 'unit' {
+                    # Also install in package, and set up code to
                     # re-bind it per invocation of its outer.
                     $*W.install_lexical_symbol($outer, $name, $code, :$clone);
-                    my $package := $*PACKAGE;
+                    my $package := $/.package;
                     if nqp::existskey($package.WHO, $name) {
                         $*W.throw($/, ['X', 'Redeclaration'],
                             symbol  => ~$<deflongname>.ast,
                             what    => 'routine',
-                            postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                            postfix => '(already defined in package ' ~ $package.HOW.name($package) ~ ')'
                         );
                     }
                     $*W.install_package_symbol($/, $package, $name, $code, 'sub');
@@ -3437,13 +3769,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
                 }
-                elsif $*SCOPE eq 'anon' {
-                    # don't do anything
-                }
-                else {
+                elsif $*SCOPE ne '' && $*SCOPE ne 'my' {
                     $*W.throw($/, 'X::Declaration::Scope',
-                            scope       => $*SCOPE,
-                            declaration => 'sub',
+                        scope       => $*SCOPE,
+                        declaration => 'sub',
                     );
                 }
             }
@@ -3466,15 +3795,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if %*PRAGMAS<soft> {
+            if $/.pragma('soft') {
                 $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine'], :setting-only));
             }
-            elsif !nqp::can($code, 'CALL-ME') {
-                my $phasers :=
-                  nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
-                if nqp::isnull($phasers) || !nqp::p6bool($phasers) {
-                    self.add_inlining_info_if_possible($/, $code, $signature, $block, @params);
-                }
+            else {
+                self.maybe_add_inlining_info($/, $code, $signature, $block, @params);
             }
         }
 
@@ -3525,26 +3850,40 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $code
     }
 
+    # There are two kinds of inlining that happen: that done by the virtual
+    # machine we run on, and that done by Rakudo. The VM can do it based on
+    # discovered hot paths, and in far more situations than we can here. At
+    # the same time, we can generate much better code as a starting point
+    # for the VM if we inline various operators on natively typed things. So,
+    # that is our distinction: if all of the arguments of the sub are native
+    # types, we figure there's a good chance it's a high-value inline and we
+    # can try to do it at compile time, so we generate inlining info here. In
+    # any other cases, we will not.
     my $SIG_ELEM_IS_COPY := 512;
-    method add_inlining_info_if_possible($/, $code, $sig, $past, @params) {
+    method maybe_add_inlining_info($/, $code, $sig, $past, @params) {
+        # Cannot inline things with custom invocation handler or phasers.
+        return 0 if nqp::can($code, 'CALL-ME');
+        my $phasers := nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
+        return 0 unless nqp::isnull($phasers) || !nqp::p6bool($phasers);
+
         # Make sure the block has the common structure we expect
         # (decls then statements).
         return 0 unless +@($past) == 2;
 
-        # Ensure all parameters are simple and build placeholders for
-        # them.
+        # Ensure all parameters are native, simple, and build placeholders for
+        # them. No parameters also means no inlining.
+        return 0 unless @params;
         my $Param  := $*W.find_symbol(['Parameter'], :setting-only);
-        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '$!params');
+        my @p_objs := nqp::getattr($sig, $*W.find_symbol(['Signature'], :setting-only), '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         my %arg_placeholders;
         while $i < $n {
-            my %info      := @params[$i];
+            my %info := @params[$i];
+            return 0 unless nqp::objprimspec(%info<nominal_type>); # non-native
+            return 0 if %info<optional> || %info<post_constraints> ||  %info<bind_attr> ||
+                %info<bind_accessor> || %info<named_names> || %info<type_captures>;
             my $param_obj := @p_objs[$i];
-            return 0 if %info<optional> || %info<is_capture> || %info<pos_slurpy> ||
-                %info<named_slurpy> || %info<pos_lol> || %info<pos_onearg> || %info<bind_attr> ||
-                %info<bind_accessor> || %info<nominal_generic> || %info<named_names> ||
-                %info<type_captures> || %info<post_constraints>;
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if $flags +& $SIG_ELEM_IS_COPY;
             %arg_placeholders{%info<variable_name>} :=
@@ -3674,11 +4013,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<onlystar>.ast;
         }
         else {
-            $past := $<blockoid>.ast;
+            $past := WANTED($<blockoid>.ast,'method_def');
             if $past.ann('placeholder_sig') {
                 $/.PRECURSOR.panic('Placeholder variables cannot be used in a method');
             }
-            $past[1] := wrap_return_handler($past[1]);
+            if is_clearly_returnless($past) {
+                $past[1] := QAST::Op.new(
+                    :op('p6decontrv'),
+                    QAST::WVal.new( :value($*DECLARAND) ),
+                    $past[1]);
+                $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
+            }
+            else {
+                $past[1] := wrap_return_handler($past[1]);
+            }
         }
         $past.blocktype('declaration_static');
 
@@ -3745,7 +4093,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $code.name,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
                 );
@@ -3852,7 +4200,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install in lexpad and in package, and set up code to
                 # re-bind it per invocation of its outer.
                 $*W.install_lexical_symbol($outer, $name, $code);
-                $*W.install_package_symbol($/, $*PACKAGE, $name, $code, 'macro');
+                $*W.install_package_symbol($/, $/.package, $name, $code, 'macro');
                 $outer[0].push(QAST::Op.new(
                     :op('bind'),
                     $*W.symbol_lookup([$name], $/, :package_only(1)),
@@ -3877,6 +4225,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
+        my $*LEAF := $/;
         # Add signature binding code.
         add_signature_binding_code($past, $signature, %sig_info<parameters>);
 
@@ -3902,6 +4251,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Installs a method into the various places it needs to go.
     sub install_method($/, $name, $scope, $code, $outer, :$private, :$meta, :$gen-accessor) {
         my $meta_meth;
+        my $package := $/.package;
         if $private {
             if $*MULTINESS { $/.PRECURSOR.panic("Private multi-methods are not supported"); }
             $meta_meth := 'add_private_method';
@@ -3916,8 +4266,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $scope eq '' || $scope eq 'has' {
             # Ensure that current package supports methods, and if so
             # add the method.
-            if nqp::can($*PACKAGE.HOW, $meta_meth) {
-                $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
+            if nqp::can($package.HOW, $meta_meth) {
+                $*W.pkg_add_method($/, $package, $meta_meth, $name, $code);
             }
             elsif $gen-accessor {
                 $/.PRECURSOR.worry("Useless generation of accessor method in " ~
@@ -3943,12 +4293,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, ['X', 'Redeclaration'], symbol => $name, what => 'method');
             }
             $*W.install_lexical_symbol($outer, $mang-name, $code, :clone(1));
-            my $package := $*PACKAGE;
             if nqp::existskey($package.WHO, $name) {
                 $*W.throw($/, ['X', 'Redeclaration'],
                     symbol  => $name,
                     what    => 'method',
-                    postfix => ' (already defined in package ' ~ $package.HOW.name($package) ~ ')'
+                    postfix => '(already defined in package ' ~ $package.HOW.name($package) ~ ')'
                 );
             }
             $*W.install_package_symbol($/, $package, '&' ~ $name, $code, 'method');
@@ -3960,7 +4309,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 unless
                 # It's a simple operation.
                 nqp::istype($past, QAST::Op)
+                    && $past.op ne 'callmethod' # May be .return or similar
                     && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
+                # A QAST::Stmt node
+                nqp::istype($past, QAST::Stmt) ||
                 # Just a variable lookup.
                 nqp::istype($past, QAST::Var) ||
                 # Just a QAST::Want
@@ -3980,27 +4332,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             1;
         }
 
-        # Only analyse things with a single simple statement.
-        if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
-            # Ensure there's no nested blocks.
-            for @($block[0]) {
-                if nqp::istype($_, QAST::Block) { return 0; }
-                if nqp::istype($_, QAST::Stmts) {
-                    for @($_) {
-                        if nqp::istype($_, QAST::Block) { return 0; }
-                    }
+        # Ensure second node is QAST::Stmts.
+        return 0 unless nqp::istype($block[1], QAST::Stmts);
+
+        # Ensure there's no nested blocks.
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Block) { return 0; }
+            if nqp::istype($_, QAST::Stmts) {
+                for @($_) {
+                    if nqp::istype($_, QAST::Block) { return 0; }
                 }
             }
+        }
 
-            # Ensure that the PAST is whitelisted things.
-            returnless_past($block[1][0][0])
+        # Check the block content.
+        for @($block[1]) {
+            return 0 unless returnless_past($_);
         }
-        elsif +$block[1].list == 1 && nqp::istype($block[1][0], QAST::WVal) {
-            1
-        }
-        else {
-            0
-        }
+        return 1;
     }
 
     sub is_yada($/) {
@@ -4088,7 +4437,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
         else {
-            $/.CURSOR.typed_panic("X::Syntax::Regex::NullRegex");
+            $/.typed_panic("X::Syntax::Regex::NullRegex");
         }
 
         # Document it
@@ -4121,8 +4470,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.install_lexical_magical($block, '$/');
             }
             $past := %*RX<P5>
-                ?? %*LANG<P5Regex-actions>.qbuildsub($qast, $block, code_obj => $code)
-                !! %*LANG<Regex-actions>.qbuildsub($qast, $block, code_obj => $code);
+                ?? $/.slang_actions('P5Regex').qbuildsub($qast, $block, code_obj => $code)
+                !! $/.slang_actions('Regex').qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
         $past.blocktype("declaration_static");
@@ -4162,13 +4511,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Bind original source to $!source
         my $Regex  := $*W.find_symbol(['Regex'], :setting-only);
-        my $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
+        my str $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
         my $match  := $source ~~ /\s+$/;
 
         if $match {
             $source := nqp::substr($source, 0, $match.from());
         }
-        nqp::bindattr($code, $Regex, '$!source', $source);
+        nqp::bindattr_s($code, $Regex, '$!source', $source);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);
@@ -4180,6 +4529,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $longname   := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $name       := $<longname> ?? $longname.name() !! $<variable><desigilname> || '';
         my @name_parts := $<longname> ?? $longname.type_name_parts('enum name', :decl(1)) !! [];
+        my $package := $/.package;
 
         my $type_obj;
         my sub make_type_obj($base_type) {
@@ -4213,7 +4563,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Get list of either values or pairs; fail if we can't.
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
-        my $term_ast := $<term>.ast;
+        my $term_ast := WANTED($<term>.ast,'enum');
 
         # remove val call on a single item
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
@@ -4268,7 +4618,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
                 if $has_base_type {
                     unless istype($cur_value, $base_type) {
-                        $/.CURSOR.panic("Type error in enum. Got '"
+                        $/.panic("Type error in enum. Got '"
                                 ~ $cur_value.HOW.name($cur_value)
                                 ~ "' Expected: '"
                                 ~ $base_type.HOW.name($base_type)
@@ -4325,20 +4675,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.install_lexical_symbol($block, $cur_key, $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*W.install_package_symbol_unchecked($*PACKAGE, $cur_key, $val_obj);
+                $*W.install_package_symbol_unchecked($package, $cur_key, $val_obj);
             }
         }
 
         if +@redecl -> $amount {
             if $amount > 2 {
                 @redecl[$amount - 2] := @redecl[$amount - 2] ~ ' and ' ~ nqp::pop(@redecl);
-                $/.CURSOR.typed_worry('X::Redeclaration', symbol => nqp::join(', ', @redecl));
+                $/.typed_worry('X::Redeclaration', symbol => nqp::join(', ', @redecl));
             }
             elsif $amount > 1 {
-                $/.CURSOR.typed_worry('X::Redeclaration', symbol => nqp::join(' and ', @redecl));
+                $/.typed_worry('X::Redeclaration', symbol => nqp::join(' and ', @redecl));
             }
             else {
-                $/.CURSOR.typed_worry('X::Redeclaration', symbol => @redecl[0]);
+                $/.typed_worry('X::Redeclaration', symbol => @redecl[0]);
             }
         }
 
@@ -4347,7 +4697,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
         $*W.install_package($/, @name_parts,
-            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $block, $type_obj);
+            ($*SCOPE || 'our'), 'enum', $package, $block, $type_obj);
 
         # Compose the added enum values.
         $type_obj.HOW.compose_values($type_obj);
@@ -4382,7 +4732,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if @name {
             my $target_package := $longname.is_declared_in_global()
                 ?? $*GLOBALish
-                !! $*PACKAGE;
+                !! $/.package;
             my $fullname := $longname.fully_qualified_with($target_package);
             $subset := $*W.create_subset($*W.resolve_mo($/, 'subset'), $refinee, $refinement,
                 :name($fullname));
@@ -4486,7 +4836,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
-                'constant', $*PACKAGE, $cur_pad, $value);
+                'constant', $/.package, $cur_pad, $value);
         }
         for $<trait> {
             $_.ast.apply($value, :SYMBOL($name)) if $_.ast;
@@ -4530,6 +4880,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fakesignature($/) {
         my $fake_pad := $*W.pop_lexpad();
+        for <$/ $! $_> {
+            unless $fake_pad.symbol($_) {
+                $*W.install_lexical_magical($fake_pad, $_);
+            }
+        }
         my $sig := $*W.create_signature_and_params($/, $<signature>.ast,
             $fake_pad, 'Mu', :no_attr_check(1));
 
@@ -4576,25 +4931,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method parameter($/) {
-        # If it's a defterm, need to do parameter setup here.
-        if $<defterm> {
-            my $name := $<defterm>.ast;
-            %*PARAM_INFO<variable_name> := $name;
-            %*PARAM_INFO<desigilname>   := $name;
-            %*PARAM_INFO<sigil>         := '';
-            self.declare_param($/, $name);
-        }
-
         # Sanity checks.
         my $quant := $<quant>;
         if $<default_value> {
             my $name := %*PARAM_INFO<variable_name> // '';
-            if $quant eq '*' {
-                $/.CURSOR.typed_sorry('X::Parameter::Default', how => 'slurpy',
+            if $quant eq '*' || $quant eq '|' {
+                $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
                             parameter => $name);
             }
             if $quant eq '!' {
-                $/.CURSOR.typed_sorry('X::Parameter::Default', how => 'required',
+                $/.typed_sorry('X::Parameter::Default', how => 'required',
                             parameter => $name);
             }
             my $val := WANTED($<default_value>[0].ast, 'parameter/def');
@@ -4629,18 +4975,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $<type_constraint> {
             if %*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg> {
-                $/.CURSOR.typed_sorry('X::Parameter::TypedSlurpy', kind => 'positional');
+                $/.typed_sorry('X::Parameter::TypedSlurpy', kind => 'positional');
             }
             elsif %*PARAM_INFO<named_slurpy> {
-                $/.CURSOR.typed_sorry('X::Parameter::TypedSlurpy', kind => 'named');
+                $/.typed_sorry('X::Parameter::TypedSlurpy', kind => 'named');
             }
             elsif %*PARAM_INFO<sigil> eq '&' && nqp::existskey(%*PARAM_INFO, 'subsig_returns')
                     && !(%*PARAM_INFO<subsig_returns> =:= $*W.find_symbol(["Mu"])) {
-                $/.CURSOR.'!fresh_highexpect'();
+                $/.'!fresh_highexpect'();
                 $*W.throw($/, 'X::Redeclaration',
                     what    => 'return type for',
                     symbol  => $<param_var>.Str,
-                    postfix => " (previous return type was "
+                    postfix => "(previous return type was "
                                 ~ $<type_constraint>[0].Str
                                 ~ ')',
                 );
@@ -4662,7 +5008,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $got_comp := try $value.HOW.is_composed($value);
                     my $exp_comp := try $expected.HOW.is_composed($expected);
                     if $got_comp && $exp_comp {
-                        $<default_value>[0].CURSOR.typed_sorry(
+                        $<default_value>[0].typed_sorry(
                             'X::Parameter::Default::TypeCheck',
                             got => $value,
                             expected => %*PARAM_INFO<nominal_type>);
@@ -4675,7 +5021,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method param_var($/) {
         if $<signature> {
             if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
-                $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+                $/.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if nqp::eqat(~$/, '[', 0) {
@@ -4743,7 +5089,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 unless $succ {
-                    $/.CURSOR.panic('cannot use a $! parameter in a signature where no $?CLASS is available');
+                    $/.panic('cannot use a $! parameter in a signature where no $?CLASS is available');
                 }
             }
             elsif $twigil eq '.' {
@@ -4760,18 +5106,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %*PARAM_INFO<variable_name> := ~$<name>;
                 }
                 else {
-                    $/.CURSOR.panic("Cannot declare $. parameter in signature without an accessor name");
+                    $/.panic("Cannot declare $. parameter in signature without an accessor name");
                 }
             }
             else {
                 if $twigil eq ':' {
-                    $/.CURSOR.typed_sorry('X::Parameter::Placeholder',
+                    $/.typed_sorry('X::Parameter::Placeholder',
                         parameter => ~$/,
                         right     => ':' ~ $<sigil> ~ ~$<name>,
                     );
                 }
                 else {
-                    $/.CURSOR.typed_sorry('X::Parameter::Twigil',
+                    $/.typed_sorry('X::Parameter::Twigil',
                         parameter => ~$/,
                         twigil    => $twigil,
                     );
@@ -4831,6 +5177,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    method param_term($/) {
+        if $<defterm> {
+            my $name := $<defterm>.ast;
+            %*PARAM_INFO<variable_name> := $name;
+            %*PARAM_INFO<desigilname>   := $name;
+            %*PARAM_INFO<sigil>         := '';
+            self.declare_param($/, $name);
+        }
+    }
+
     method declare_param($/, $name) {
         my $cur_pad := $*W.cur_lexpad();
         if $cur_pad.symbol($name) {
@@ -4850,10 +5206,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method named_param($/) {
-        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
-        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>); }
-        else                     { %*PARAM_INFO<named_names>.push(''); }
+        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || nqp::list_s();
+        if $<name>               { nqp::push_s(%*PARAM_INFO<named_names>, ~$<name>); }
+        elsif $<param_var><name> { nqp::push_s(%*PARAM_INFO<named_names>, ~$<param_var><name>); }
+        else                     { nqp::push_s(%*PARAM_INFO<named_names>, ''); }
     }
 
     method default_value($/) {
@@ -4865,11 +5221,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my str $typename := ~$<typename>;
             if nqp::eqat($typename, '::', 0) && !nqp::eqat($typename, '?', 2) {
                 # Set up signature so it will find the typename.
-                my $desigilname := nqp::substr($typename, 2);
+                my str $desigilname := nqp::substr($typename, 2);
                 unless %*PARAM_INFO<type_captures> {
-                    %*PARAM_INFO<type_captures> := []
+                    %*PARAM_INFO<type_captures> := nqp::list_s()
                 }
-                %*PARAM_INFO<type_captures>.push($desigilname);
+                nqp::push_s(%*PARAM_INFO<type_captures>, $desigilname);
 
                 # Install type variable in the static lexpad. Of course,
                 # we'll find the real thing at runtime, but in the static
@@ -4883,44 +5239,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                     );
                 }
-                my $type := $<typename>.ast;
-                if nqp::isconcrete($type) {
-                    # Actual a value that parses type-ish.
-                    %*PARAM_INFO<nominal_type> := $type.WHAT;
-                    unless %*PARAM_INFO<post_constraints> {
-                        %*PARAM_INFO<post_constraints> := [];
-                    }
-                    %*PARAM_INFO<post_constraints>.push($type);
-                }
-                elsif $type.HOW.archetypes.nominal {
-                    %*PARAM_INFO<nominal_type> := $type;
-                }
-                elsif $type.HOW.archetypes.coercive {
-                    %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
-                    %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
-                }
-                elsif $type.HOW.archetypes.definite {
-                    %*PARAM_INFO<nominal_type> := $type.HOW.base_type($type);
-                }
-                elsif $type.HOW.archetypes.generic {
-                    %*PARAM_INFO<nominal_type> := $type;
-                    %*PARAM_INFO<nominal_generic> := 1;
-                }
-                elsif $type.HOW.archetypes.nominalizable {
-                    my $nom := $type.HOW.nominalize($type);
-                    %*PARAM_INFO<nominal_type> := $nom;
-                    unless %*PARAM_INFO<post_constraints> {
-                        %*PARAM_INFO<post_constraints> := [];
-                    }
-                    %*PARAM_INFO<post_constraints>.push($type);
-                }
-                else {
-                    $<typename>.CURSOR.typed_sorry('X::Parameter::BadType', :$type);
-                }
-                %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
-                %*PARAM_INFO<of_type_match> := $<typename>;
-                %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs><D>;
-                %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs><U>;
+                dissect_type_into_parameter($/, $<typename>.ast);
             }
         }
         elsif $<value> {
@@ -4929,15 +5248,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                 );
             }
-            my $ast := wanted($<value>.ast, 'type_constraint');
-            my $val;
-            if nqp::can($ast,'has_compile_time_value') && $ast.has_compile_time_value {
-                $val := $ast.compile_time_value;
+
+            my $val := wanted(
+                $<value>.ast, 'type_constraint'
+            ).compile_time_value;
+
+            if $*NEGATE_VALUE {
+                my $neg-op := $*W.find_symbol(['&prefix:<->']);
+                $val := $neg-op($val);
+                $*W.add_object($val);
             }
-            else {  # for negatives
-                my $i  := $*W.add_numeric_constant(NQPMu, 'Int', +$<value>.Str);
-                $val := $i.compile_time_value;
-            }
+
             %*PARAM_INFO<nominal_type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
@@ -4945,15 +5266,65 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*PARAM_INFO<post_constraints>.push($val);
         }
         else {
-            $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
+            $/.panic('Cannot do non-typename cases of type_constraint yet');
         }
+    }
+
+    sub dissect_type_into_parameter($/, $type) {
+        if nqp::isconcrete($type) {
+            if nqp::istype($type, $*W.find_symbol(['Bool'])) {
+                my $val := $type.gist;
+                $/.worry(
+                    "Literal values in signatures are smartmatched against and "
+                    ~ "smartmatch with `$val` will always "
+                    ~ ($val eq 'True' ?? 'succeed' !! 'fail')
+                    ~ ". Use the `where` clause instead."
+                );
+            }
+
+            # Actual a value that parses type-ish.
+            %*PARAM_INFO<nominal_type> := $type.WHAT;
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push($type);
+        }
+        elsif $type.HOW.archetypes.nominal {
+            %*PARAM_INFO<nominal_type> := $type;
+        }
+        elsif $type.HOW.archetypes.coercive {
+            %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
+            %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
+        }
+        elsif $type.HOW.archetypes.definite {
+            dissect_type_into_parameter($/, $type.HOW.base_type($type));
+        }
+        elsif $type.HOW.archetypes.generic {
+            %*PARAM_INFO<nominal_type> := $type;
+            %*PARAM_INFO<nominal_generic> := 1;
+        }
+        elsif $type.HOW.archetypes.nominalizable {
+            my $nom := $type.HOW.nominalize($type);
+            %*PARAM_INFO<nominal_type> := $nom;
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push($type);
+        }
+        else {
+            $<typename>.typed_sorry('X::Parameter::BadType', :$type);
+        }
+        %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
+        %*PARAM_INFO<of_type_match> := $<typename>;
+        %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
+        %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
     }
 
     method post_constraint($/) {
         if $*CONSTRAINT_USAGE eq 'param' {
             if $<signature> {
                 if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
-                    $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
+                    $/.panic('Cannot have more than one sub-signature for a parameter');
                 }
                 %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
                 if nqp::eqat(~$/, '[', 0) {
@@ -4969,7 +5340,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             if $<signature> {
-                $/.CURSOR.NYI('Signatures as constraints on variables');
+                $/.NYI('Signatures as constraints on variables');
             }
             else {
                 make make_where_block($<EXPR>, $<EXPR>.ast);
@@ -5016,7 +5387,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             else {
-                $/.CURSOR.panic("is repr(...) trait needs a parameter");
+                $/.panic("is repr(...) trait needs a parameter");
             }
         }
         else
@@ -5091,12 +5462,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    method revO($/) {
+        my $O := nqp::clone($*FROM);
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        make $O;
+    }
+
     method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
     method dotty:sym<.*>($/) {
         my $past := $<dottyop>.ast;
         unless $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
-            $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
+            $/.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
         if $<sym> eq '.^' {
             $past.op('p6callmethodhow');
@@ -5105,6 +5483,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.unshift($*W.add_string_constant($past.name))
                 if $past.name ne '';
             $past.name('dispatch' ~ $*W.canonicalize_pair('', ~$<sym>));
+            $past.nosink(1);
         }
         make $past;
     }
@@ -5139,33 +5518,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # XXX Attribute accesses? Again, maybe for the optimizer, since it
         # runs after CHECK time.
         my $past := $<methodop>.ast;
+        my $package := $/.package;
         if $<methodop><longname> {
             my @parts   := $*W.dissect_longname($<methodop><longname>).components();
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
-                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
+                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $package) {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
                         :method(         $name),
                         :source-package( $methpkg.HOW.name($methpkg)),
-                        :calling-package( $*PACKAGE.HOW.name($*PACKAGE)),
+                        :calling-package( $package.HOW.name($package)),
                     );
                 }
                 $past[1].returns($methpkg);
             }
             else {
-                my $pkg := $*PACKAGE;
-                unless nqp::can($pkg.HOW, 'find_private_method') {
+                unless nqp::can($package.HOW, 'find_private_method') {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
                         :method($name),
                     );
                 }
-                if $pkg.HOW.archetypes.parametric {
+                if $package.HOW.archetypes.parametric {
                     $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
                 }
                 else {
-                    $past.unshift(QAST::WVal.new( :value($pkg) ));
-                    $past[0].returns($pkg);
+                    $past.unshift(QAST::WVal.new( :value($package) ));
+                    $past[0].returns($package);
                 }
                 $past.unshift($*W.add_string_constant($name));
             }
@@ -5173,18 +5552,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<methodop><quote> {
             my $name := $past.shift;
-            my $pkg  := $*PACKAGE;
-            if $pkg.HOW.archetypes.parametric {
+            if $package.HOW.archetypes.parametric {
                 $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
             }
             else {
-                $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
+                $past.unshift(QAST::WVal.new( :value($package) ));
             }
             $past.unshift($name);
             $past.name('dispatch:<!>');
         }
         else {
-            $/.CURSOR.panic("Cannot use this form of method call with a private method");
+            $/.panic("Cannot use this form of method call with a private method");
         }
         make $past;
     }
@@ -5273,7 +5651,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method term:sym<self>($/) {
-        make QAST::Var.new( :name('self'), :scope('lexical'), :returns($*PACKAGE), :node($/) );
+        make QAST::Var.new( :name('self'), :scope('lexical'), :returns($/.package), :node($/) );
     }
 
     method term:sym<now>($/) {
@@ -5452,13 +5830,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past;
         if $*longname.contains_indirect_lookup() {
             if $<args> {
-                $/.CURSOR.panic("Combination of indirect name lookup and call not supported");
+                $/.panic("Combination of indirect name lookup and call not supported");
             }
             elsif $<arglist> {
-                $/.CURSOR.panic("Combination of indirect name lookup and type arguments not supported");
+                $/.panic("Combination of indirect name lookup and type arguments not supported");
             }
             elsif $<accept> || $<accept_any> {
-                $/.CURSOR.panic("Combination of indirect name lookup and coercion type construction not supported");
+                $/.panic("Combination of indirect name lookup and coercion type construction not supported");
             }
             $past := self.make_indirect_lookup($*longname.components())
         }
@@ -5499,14 +5877,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := capture_or_raw($/,$<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
-                    $/.CURSOR.add_mystery(@name[0], $<args>.from, 'termish');
+                    $/.add_mystery(@name[0], $<args>.from, 'termish');
                     if +$past.list == 1 && %commatrap{@name[0]} {
                         my $prelen := $<longname>.from;
                         $prelen := 100 if $prelen > 100;
                         my $pre := nqp::substr($/.orig, $<longname>.from - $prelen, $prelen);
                         my $post := nqp::substr($/.orig, $<args>.to, 100);
                         if nqp::index($pre, "==>") < 0 && nqp::index($post, "<==") < 0 && $<args>.Str ~~ /^\s*['{'|'->'|'<->']/ {
-                            $/.CURSOR.missing("comma after block argument to " ~ nqp::substr(@name[0],1));
+                            $/.missing("comma after block argument to " ~ nqp::substr(@name[0],1));
                         }
                     }
                     check_smartmatch($<args>,$past[0]) if %commatrap{@name[0]} == 2;
@@ -5581,16 +5959,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs><D> {
+            if $<colonpairs> && $<colonpairs>.ast<D> {
                 unless nqp::istype($past, QAST::WVal) {
-                    $/.CURSOR.panic("Type too complex to form a definite type");
+                    $/.panic("Type too complex to form a definite type");
                 }
                 my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
                 $past    := QAST::WVal.new( :value($type) );
             }
-            elsif $<colonpairs><U> {
+            elsif $<colonpairs> && $<colonpairs>.ast<U> {
                 unless nqp::istype($past, QAST::WVal) {
-                    $/.CURSOR.panic("Type too complex to form a definite type");
+                    $/.panic("Type too complex to form a definite type");
                 }
                 my $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $past.value, 0);
                 $past    := QAST::WVal.new( :value($type) );
@@ -5606,7 +5984,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $value := $past.compile_time_value;
                 }
                 else {
-                    $/.CURSOR.panic("Target type too complex to form a coercion type");
+                    $/.panic("Target type too complex to form a coercion type");
                 }
 
                 my $type := $*W.create_coercion_type($/, $value,
@@ -5624,12 +6002,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my str $op := ~$<op>;
 
         # using nqp::op outside of setting
-        unless %*PRAGMAS<MONKEY-GUTS> || %*PRAGMAS<nqp> || $*COMPILING_CORE_SETTING {
-            $/.CURSOR.typed_panic('X::NQP::NotFound', op => $op);
+        unless $/.pragma('MONKEY-GUTS') || $/.pragma('nqp') || $*COMPILING_CORE_SETTING {
+            $/.typed_panic('X::NQP::NotFound', op => $op);
         }
 
         my $past := QAST::Op.new( :$op, |@args );
-        if $op eq 'want' || $op eq 'handle' {
+        if $op eq 'handle' || $op eq 'handlepayload' {
             my int $i := 1;
             my int $n := nqp::elems($past.list);
             while $i < $n {
@@ -5939,12 +6317,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $elem := $elem[0];
             }
             $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
-            if $elem ~~ QAST::Op && $elem.op eq 'p6capturelex' {
-                my $subelem := $elem[0];
+            my $subelem := $elem;
+            while $subelem ~~ QAST::Op && ($subelem.op eq 'p6capturelex' || $subelem.op eq 'if' || $subelem.op eq 'unless') {
+                $subelem := $subelem[0];
                 if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
                     if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'], :setting-only)) {
-                        $/.CURSOR.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
+                        $/.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
                     }
                 }
             }
@@ -5965,7 +6344,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $elem ~~ QAST::Op && $elem.name eq '&DYNAMIC' &&
                     $elem[0] ~~ QAST::Want && $elem[0][1] eq 'Ss' &&
-                    $elem[0][2] ~~ QAST::SVal && nqp::substr($elem[0][2].value, 0, 1) eq '%' {
+                    $elem[0][2] ~~ QAST::SVal && nqp::eqat($elem[0][2].value, '%', 0) {
                 # first item is a hash (%*foo)
                 $is_hash := 1;
             }
@@ -5984,7 +6363,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('call'),
                 :name(
-                    $/.from && nqp::substr($/.orig, $/.from - 1, 1) eq ':' ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
+                    $/.from && nqp::eqat($/.orig, ':', $/.from - 1) ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>'
                 ),
                 :node($/)
             );
@@ -5992,7 +6371,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 for @children {
                     if nqp::istype($_, QAST::Stmt) {
                         # Mustn't use QAST::Stmt here, as it will cause register
-                        # re-use within a statemnet, which is a problem.
+                        # re-use within a statement, which is a problem.
                         $_ := QAST::Stmts.new( |$_.list );
                     }
                     $past.push($_);
@@ -6095,8 +6474,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $key := nqp::lc($KEY // 'infix');
         $key := 'infix' if $key eq 'list';
         my $sym := ~$/{$key}<sym>;
-        my $O := $/{$key}<O>;
-        my $thunky := $O<thunky>;
+        my $thunky := $/{$key} ?? $/{$key}<O>.made<thunky> !! 0;
         my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
@@ -6107,8 +6485,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         elsif $past && nqp::eqat($past.name, '&METAOP_TEST_ASSIGN', 0) {
-            $past.push(WANTED($/[0].ast, 'EXPR/META'));
-            $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
+            my $test_type;
+            if $past.name eq '&METAOP_TEST_ASSIGN:<||>' { $test_type := 'unless' }
+            elsif $past.name eq '&METAOP_TEST_ASSIGN:<//>' { $test_type := 'defor' }
+            elsif $past.name eq '&METAOP_TEST_ASSIGN:<&&>' { $test_type := 'if' }
+            if $test_type {
+                my $sym := QAST::Node.unique('meta_op_test');
+                $past := QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($sym), :scope('local'), :decl('var') ),
+                        WANTED($/[0].ast, 'EXPR/META')
+                    ),
+                    QAST::Op.new(
+                        :op($test_type),
+                        QAST::Var.new( :name($sym), :scope('local') ),
+                        QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new( :name($sym), :scope('local') ),
+                            WANTED($/[1].ast, 'EXPR/META')
+                        )
+                    ));
+            }
+            else {
+                $past.push(WANTED($/[0].ast, 'EXPR/META'));
+                $past.push(block_closure(make_thunk_ref(WANTED($/[1].ast, 'EXPR/META'), $/)));
+            }
             make $past;
             return 1;
         }
@@ -6123,7 +6525,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make mixin_op($/, $sym);
             return 1;
         }
-        elsif !$past && $thunky && ($sym eq 'xx' || $sym eq 'andthen' || $sym eq 'orelse') {
+        elsif !$past && $thunky && (
+               $sym eq 'xx'     || $sym eq 'andthen'
+            || $sym eq 'orelse' || $sym eq 'notandthen'
+        ) {
             $past := thunkity_thunk($/, $thunky,
                 QAST::Op.new( :op('call'), :name("&infix" ~ $*W.canonicalize_pair('', $sym))),
                 $/.list);
@@ -6131,8 +6536,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 1;
         }
         unless $past {
-            if $<OPER><O><pasttype> {
-                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
+            if $<OPER><O>.made<pasttype> {
+                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O>.made<pasttype> ) );
             }
             else {
                 $past := QAST::Op.new( :node($/), :op('call') );
@@ -6166,10 +6571,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
                     if nqp::can($target, 'name') {
-                        $/.CURSOR.typed_panic('X::Syntax::Adverb', what => $target.name);
+                        $/.typed_panic('X::Syntax::Adverb', what => $target.name);
                     }
                     else {
-                        $/.CURSOR.typed_panic('X::Syntax::Adverb', what => ~$/[0]);
+                        $/.typed_panic('X::Syntax::Adverb', what => ~$/[0]);
                     }
                 }
                 my $cpast := $<colonpair>.ast;
@@ -6187,11 +6592,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return 1;
             }
 
+            # To allow currying, we must note that postfix:<ⁿ> is really infix:<**>
+            # in disguise, with arity 2.
+            $key := 'infix'
+                if nqp::istype($past, QAST::Op) && $past.op eq 'call' && $past.name eq '&postfix:<ⁿ>';
+
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
-                $return_map := 1;
+                unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
+                    $return_map := 1
+                }
             }
         }
         elsif $past.ann('thunky') {
@@ -6202,6 +6614,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for $/.list { if $_.ast { $past.push($_.ast); ++$arity; } }
             make $past;
             return 1;
+        }
+        elsif $thunky {
+            for $/.list { if $_.ast { WANTED($_.ast, "EXPR/thunky") if nqp::eqat($thunky,'.',$arity); $past.push($_.ast); ++$arity; } }
         }
         else {
             for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
@@ -6227,10 +6642,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Assemble into list of AST of each step in the pipeline.
         my @stages;
         if $/<infix><sym> eq '==>' {
-            for @($/) { @stages.push(WANTED($_.ast,'==>')); }
+            for @($/) { @stages.push($_); }
         }
         elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift(WANTED($_.ast,'<==')); }
+            for @($/) { @stages.unshift($_); }
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
@@ -6243,7 +6658,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # will be passed in as var-arg parts to other things. The
         # first thing is just considered the result.
         my $result := @stages.shift;
+        $result    := WANTED($result.ast, $/<infix><sym>);
         for @stages {
+            my $stage := WANTED($_.ast, $/<infix><sym>);
             # Wrap current result in a block, so it's thunked and can be
             # called at the right point.
             $result := QAST::Block.new( $result );
@@ -6251,17 +6668,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if $_.isa(QAST::Op) && $_.op eq 'call' {
+            if $stage.isa(QAST::Op) && $stage.op eq 'call' {
                 # It's a call. Stick a call to the current supplier in
                 # as its last argument.
-                $_.push(QAST::Op.new( :op('call'), $result ));
+                $stage.push(QAST::Op.new( :op('call'), $result ));
             }
-            elsif $_ ~~ QAST::Var {
+            elsif $stage ~~ QAST::Var {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
                 my $tmp := QAST::Node.unique('feed_tmp');
-                $_ := QAST::Stmts.new(
+                $stage := QAST::Stmts.new(
                     QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
@@ -6272,26 +6689,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('append'),
-                        $_,
+                        $stage,
                         QAST::Var.new( :scope('local'), :name($tmp) )
                     ),
                     QAST::Var.new( :scope('local'), :name($tmp) )
                 );
-                $_ := QAST::Op.new( :op('locallifetime'), $_, $tmp );
+                $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                $/.CURSOR.panic('Sorry, do not know how to handle this case of a feed operator yet.');
+                my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
+                if $stage.isa(QAST::Op) && $stage.op eq 'ifnull' && $stage[0].isa(QAST::Var) && nqp::eqat($stage[0].name, '&', 0) {
+                    $error := "A feed may not sink values into a code object. Did you mean a call like '"
+                            ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
+                }
+                $_.PRECURSOR.panic($error);
             }
-            $result := $_;
+            $result := $stage;
         }
 
-        WANTED($result,'make_feed');
+        # WANTED($result,'make_feed');
         $result
     }
 
     sub check_smartmatch($/,$pat) {
         if nqp::can($pat,'ann') && $pat.ann('is_S') {
-            $/.PRECURSOR.worry('Smartmatch with S/// can never succeed because the string it returns will fail to match. You can use given instead of ~~.');
+            $/.PRECURSOR.worry('Smartmatch with S/// is not useful. You can use given instead: S/// given $foo');
         }
 
         if $pat ~~ QAST::WVal && istype($pat.returns, $*W.find_symbol(['Bool'])) && nqp::isconcrete($pat.value) {
@@ -6306,8 +6728,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_smartmatch($/, $negated) {
-        my $lhs := wanted($/[0].ast,'smarmatch/lhs');
-        my $rhs := wanted($/[1].ast,'smarmatch/rhs');
+        my $lhs := wanted($/[0].ast,'smartmatch/lhs');
+        my $rhs := wanted($/[1].ast,'smartmatch/rhs');
         check_smartmatch($/[1],$rhs);
         # autoprime only on Whatever with explicit *
         return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
@@ -6393,8 +6815,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Source needs type check.
                 my $type;
                 try {
-                    $type := $*PACKAGE.HOW.get_attribute_for_usage(
-                        $*PACKAGE, $target.name
+                    my $package := $/.package;
+                    $type := $package.HOW.get_attribute_for_usage(
+                        $package, $target.name
                     ).type;
                 }
                 unless $type =:= $*W.find_symbol(['Mu']) {
@@ -6430,7 +6853,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                  $target[0].name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target[0].push($source);
-            $target.annotate('nosink', 1);
+            $target.nosink(1);
             make $target;
         }
         elsif $target.isa(QAST::Op) && $target.op eq 'call' &&
@@ -6439,7 +6862,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                $target.name eq '&postcircumfix:<[; ]>') {
             $source.named('BIND');
             $target.push($source);
-            $target.annotate('nosink', 1);
+            $target.nosink(1);
             make $target;
         }
         elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'], :setting-only)) {
@@ -6460,7 +6883,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $contextual := QAST::VarWithFallback.new(
                 :name($target[0][2].value), :scope('contextual'), :fallback($complain) );
             my $dynbind := QAST::Op.new( :op('bind'), $contextual, $source);
-            $dynbind.annotate('nosink', 1);
+            $dynbind.nosink(1);
             make $dynbind;
         }
         # XXX Several more cases to do...
@@ -6481,7 +6904,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::can($rhs_ast,'name') {
                     my $name := $rhs_ast.name;
                     if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
-                        $/.CURSOR.worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
+                        $/.worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
                     }
                 }
             }
@@ -6489,10 +6912,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {
             # Native assignment is only possible to a reference; complain now
-            # rather than at runtime since we'll innevitably fail.
+            # rather than at runtime since we'll inevitably fail.
             my $scope := $lhs_ast.scope;
             if $scope ne 'lexicalref' && $scope ne 'attributeref' {
-                $lhs_ast.node.CURSOR.typed_sorry('X::Assignment::RO::Comp',
+                $lhs_ast.node.typed_sorry('X::Assignment::RO::Comp',
                     variable => $lhs_ast.name);
             }
             $past := QAST::Op.new(
@@ -6506,7 +6929,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
-            $past.annotate('nosink', 1);
+            $past.nosink(1);
         }
         elsif $var_sigil eq '$' {
             # If it's a $ scalar, we can assume it's some kind of scalar
@@ -6521,7 +6944,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 +@($lhs_ast) == 2 { # no adverbs
             $lhs_ast.push($rhs_ast);
             $past := $lhs_ast;
-            $past.annotate('nosink', 1);
+            $past.nosink(1);
         }
         elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'hllize' &&
                 $lhs_ast[0].isa(QAST::Op) && $lhs_ast[0].op eq 'call' &&
@@ -6529,7 +6952,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 +@($lhs_ast[0]) == 2 { # no adverbs
             $lhs_ast[0].push($rhs_ast);
             $past := $lhs_ast;
-            $past.annotate('nosink', 1);
+            $past.nosink(1);
         }
         else {
             $past := QAST::Op.new( :node($/), :op('p6store'),
@@ -6540,9 +6963,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub mixin_op($/, $sym) {
         my $rhs  := $/[1].ast;
+        my $lhs  := $/[0].ast;
+        $lhs := WANTED($lhs,'mixin_op') if $sym eq 'does';
         my $past := QAST::Op.new(
             :op('call'), :name('&infix' ~ $*W.canonicalize_pair('', $sym)),
-            $/[0].ast);
+            $lhs);
         if $rhs.isa(QAST::Op) && $rhs.op eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {
@@ -6581,7 +7006,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $type := nqp::substr($thunky,0,1);
         while $i < $e {
             my $ast := @clause[$i];
-            $ast := WANTED($ast.ast, 'thunkity') if nqp::can($ast,'ast');  # reduce already passes ast...
+            $ast := $ast.ast if nqp::can($ast,'ast');  # reduce already passes ast...
 
             if $type eq 'T' || $type eq 'B' || $type eq 'A' {
                 my $argast := $ast;
@@ -6611,6 +7036,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             if $type eq '.' || $type eq 'T' || $type eq 'B' || $type eq 'A' || nqp::istype($ast,QAST::SpecialArg) {
+                $ast := WANTED($ast, 'thunkity') if $type eq '.';
                 $past.push($ast);
             }
             elsif $type eq 't' {  # thunk anything that might need (re)calculation
@@ -6631,7 +7057,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.push(block_closure(make_thunk_ref($ast, $/)));
             }
             else {
-                $/.CURSOR.panic("Unknown thunk spec '$type'");
+                $/.panic("Unknown thunk spec '$type'");
             }
             $type := nqp::substr($thunky,$i,1) if ++$i < $te;  # repeat last thunk spec as necessary
         }
@@ -6815,7 +7241,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                                :scope<lexical>);
-            my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+            my $purity := 0;
+            if nqp::istype($basepast, QAST::Var) {
+                my $subfun := try $*W.find_symbol([$basepast.name]);
+                if $subfun {
+                    $purity := 1 if nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE;
+                }
+                else {
+                    $purity := 1;   # assume will be defined pure
+                }
+            }
+            else {
+                $purity := 1 if $basepast.ann('is_pure');
+            }
+            my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
@@ -6823,10 +7262,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
 
             my $metapast := QAST::Op.new( :op<call>, :name($helper), WANTED($basepast,'infixish') );
-            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>.made)),
                                          :scope<lexical>))
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
+            $metapast.annotate('is_pure', $purity) if $purity;
             $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
             $ast.annotate('thunky', $t) if $t;
         }
@@ -6844,7 +7284,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $basesym := '';
             }
-            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' || $basesym eq 'orelse' || $basesym eq 'andthen' {
+            if $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
+            || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
+            || $basesym eq 'andthen' || $basesym eq 'notandthen' {
                 $ast := WANTED(QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN' ~ $*W.canonicalize_pair('', $basesym)) ),'infixish');
             }
@@ -6865,16 +7307,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $base<OPER><sym>)),
                                            :scope<lexical>);
-        my $metaop   := baseop_reduce($base<OPER><O>);
+        my $metaop   := baseop_reduce($base<OPER><O>.made);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), WANTED($basepast,'reduce'));
-        my $t        := $basepast.ann('thunky') || $base<OPER><O><thunky>;
+        my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
         if $<triangle> {
             $metapast.push($*W.add_constant('Int', 'int', 1));
         }
         my $args := $<args>.ast;
         # one-arg rule?
         if +$args.list == 1 && !$args[0].flat && !$args[0].named {
-            make QAST::Op.new(:node($/), :op<call>, $metapast, $args[0]);
+            make QAST::Op.new(:node($/), :op<call>, WANTED($metapast,'reduce/meta'), WANTED($args[0],'reduce/meta'));
         }
         else {
             if $t {
@@ -6926,12 +7368,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method postfix:sym<ⁿ>($/) {
-        my int $power := 0;
+        my $Int := $*W.find_symbol(['Int']);
+        my $power := nqp::box_i(0, $Int);
         for $<dig> {
-            $power := $power * 10 + nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_);
+            $power := nqp::add_I(
+                nqp::mul_I($power, nqp::box_i(10, $Int), $Int),
+                nqp::box_i(nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_), $Int),
+                $Int);
         }
-        $power := -$power if $<sign> eq '⁻' || $<sign> eq '¯';
-        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_constant('Int', 'int', $power));
+
+        $power := nqp::neg_I($power, $Int) if $<sign> eq '⁻' || $<sign> eq '¯';
+        make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_numeric_constant($/, 'Int', $power));
     }
 
     method postfixish($/) {
@@ -6956,6 +7403,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.name('&METAOP_HYPER_POSTFIX_ARGS');
                 }
             }
+
+            # Check if we are inside «...» quoters and complain if the hyper creates
+            # ambiguity with the quoters, since user may not wanted to have a hyper
+            if ($/.pragma("STOPPER") // '')
+                eq (my $sym := $<postfix_prefix_meta_operator>[0]<sym>)
+            {
+                $/.worry(
+                    "Ambiguous use of $sym; use "
+                    ~ ($sym eq '>>' ?? '»' !! '>>')
+                    ~ " instead to mean hyper, or insert whitespace before"
+                    ~ " $sym to mean a quote terminator (or use different delimiters?)"
+                )
+            }
+
             make $past;
         }
     }
@@ -6963,7 +7424,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
         if $<semilist> {
-            my $c := $/.CURSOR;
+            my $c := $/;
             my $ast := $<semilist>.ast;
             $past.push($ast) if nqp::istype($ast, QAST::Stmts);
             if $ast.ann('multislice') {
@@ -7039,10 +7500,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::WVal.new( :value($v) );
     }
 
-    method decint($/) { make string_to_bigint( $/, 10); }
-    method hexint($/) { make string_to_bigint( $/, 16); }
-    method octint($/) { make string_to_bigint( $/, 8 ); }
-    method binint($/) { make string_to_bigint( $/, 2 ); }
+    method decint($/) {
+        my int $chars := nqp::chars($/);
+        make $chars > ($?BITS == 64 ?? 16 !! 9)
+          ?? string_to_bigint($/, 10, $chars)
+          !! string_to_int($/, 10, $chars);
+    }
+    method hexint($/) {
+        my int $chars := nqp::chars($/);
+        make $chars > ($?BITS == 64 ?? 14 !! 7)
+          ?? string_to_bigint($/, 16, $chars)
+          !! string_to_int($/, 16, $chars);
+    }
+    method octint($/) {
+        my int $chars := nqp::chars($/);
+        make $chars > ($?BITS == 64 ?? 20 !! 10)
+          ?? string_to_bigint($/, 8, $chars)
+          !! string_to_int($/, 8, $chars);
+    }
+    method binint($/) {
+        my int $chars := nqp::chars($/);
+        make $chars > ($?BITS == 64 ?? 62 !! 30)
+          ?? string_to_bigint($/, 2, $chars)
+          !! string_to_int($/, 2, $chars);
+    }
 
     method number:sym<numish>($/) {
         make $<numish>.ast;
@@ -7050,17 +7531,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method signed-integer($/) {
         make $*W.add_numeric_constant($/, 'Int',
-            $<sign> eq '-' ?? -$<integer>.ast !! $<integer>.ast);
+            $<sign> eq '-' || $<sign> eq '−'
+                ?? -$<integer>.ast !! $<integer>.ast
+        );
     }
 
     method signed-number($/) {
         my $qast := $<number>.ast;
-        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast) if $<sign> eq '-';
+        $qast := QAST::Op.new( :op('call'), :name('&infix:<->'), $qast)
+            if $<sign> eq '-' || $<sign> eq '−';
         make $qast;
     }
-
-    my $nuprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueNumerator") !! '';
-    my $deprop := nqp::existskey(nqp::backendconfig(), 'moarlib') ?? nqp::unipropcode("NumericValueDenominator") !! '';
 
     method numish($/) {
         if $<integer> {
@@ -7072,9 +7553,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $<complex_number> { make $<complex_number>.ast; }
         elsif $<unum> {
             my $code := nqp::ord($/.Str);
-            my int $nu := +nqp::getuniprop_str($code, $nuprop);
-            my int $de := +nqp::getuniprop_str($code, $deprop);
-            if !$de || $de == '1' {
+            my int $nu := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Numerator"));
+            my int $de := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Denominator"));
+            if !$de || $de == 1 {
                 make $*W.add_numeric_constant($/, 'Int', +$nu)
             }
             else {
@@ -7083,13 +7564,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 make $ast;
             }
         }
+        elsif $<uinf> {
+            make $*W.add_numeric_constant($/, 'Num', nqp::inf);
+        }
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
     }
 
     method escale($/) {
-        make $<sign> eq '-'
+        make $<sign> eq '-' || $<sign> eq '−'
             ??  nqp::neg_I($<decint>.ast, $<decint>.ast)
             !! $<decint>.ast;
     }
@@ -7112,29 +7596,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $parti := nqp::mul_I($parti, $partf[1], $Int);
             $parti := nqp::add_I($parti, $partf[0], $Int);
 
-            $partf := nqp::tonum_I($partf[1]);
+            $partf := $partf[1];
         } else {
-            $partf := 1.0;
+            $partf := nqp::box_i(1, $Int);
         }
 
         if $<escale> { # wants a Num
-            $parti := nqp::tonum_I($parti);
-
+            $parti := nqp::div_In($parti, $partf);
             if $parti != 0.0 {
                 $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
             }
-            $parti := nqp::div_n($parti, $partf);
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
         } else { # wants a Rat
-            my $ast := $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
+            my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);
             make $ast;
         }
     }
 
     method rad_number($/) {
-        my $radix    := +($<radix>.Str);
+        my $radix    := nqp::radix(10, $<radix>, 0, 0)[0];
 
         if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),
@@ -7160,7 +7642,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 } elsif $ohradstr eq "0b" {
                     $radix := 2;
                 } else {
-                    $/.CURSOR.panic("Unknown radix prefix '$ohradstr'.");
+                    $/.panic("Unknown radix prefix '$ohradstr'.");
                 }
             }
 
@@ -7169,8 +7651,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
             my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
 
-            if $ipart[2] < nqp::chars($<intpart>.Str) || $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $/.CURSOR.panic("Couldn't process entire number: {$ipart[2]}/{nqp::chars($<intpart>.Str)} int chars, {$fpart[2]}/{nqp::chars($<fracpart>.Str) - 1} fractional chars");
+            if $ipart[2] < nqp::chars($<intpart>.Str) {
+                $*W.throw($/, 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :pos($ipart[2] < 0 ?? 0 !! $ipart[2]),
+                    :reason("malformed base-$radix number"),
+                );
+            }
+            if $fpart[2] < nqp::chars($<fracpart>.Str) {
+                $*W.throw($/, 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :reason("malformed base-$radix number"),
+                    :pos( # the -1 dance is due to nqp::radix returning -1 for
+                        # failure to parse the first char, instead of 0;
+                        # we return `1` to cover the decimal dot in that case
+                        $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
+                    ),
+                );
             }
 
             $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);
@@ -7208,11 +7705,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method bare_complex_number($/) {
-        my $re := $*W.add_constant('Num', 'num', +$<re>.Str);
-        my $im := $*W.add_constant('Num', 'num', +$<im>.Str);
-        my $rv := $re.compile_time_value;
-        my $iv := $im.compile_time_value;
-        my $ast := $*W.add_constant('Complex', 'type_new', $rv, $iv, :nocache(1));
+        my $re := $*W.add_constant('Num', 'num',
+            ($<re><sign> eq '-' || $<re><sign> eq '−'
+                ?? -$<re><number>.Str !! +$<re><number>.Str)
+        );
+        my $im := $*W.add_constant('Num', 'num',
+            ($<im><sign> eq '-' || $<im><sign> eq '−'
+                ?? -$<im><number>.Str !! +$<im><number>.Str)
+        );
+        my $ast := $*W.add_constant('Complex', 'type_new',
+            $re.compile_time_value,
+            $im.compile_time_value,
+            :nocache(1)
+        );
         $ast.node($/);
         make $ast;
     }
@@ -7237,16 +7742,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
 
-                if $<colonpairs><D> {
+                if $<colonpairs> && $<colonpairs>.ast<D> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 1);
                 }
-                elsif $<colonpairs><U> {
+                elsif $<colonpairs> && $<colonpairs>.ast<U> {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 
                 if $<accept> || $<accept_any> {
                     if $<typename> {
-                        $/.CURSOR.panic("Cannot put 'of' constraint on a coercion type");
+                        $/.panic("Cannot put 'of' constraint on a coercion type");
                     }
                     $type := $*W.create_coercion_type($/, $type,
                         $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
@@ -7259,13 +7764,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 if $<arglist> || $<typename> {
-                    $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                    $/.panic("Cannot put type parameters on a type capture");
                 }
                 if $<accepts> || $<accepts_any> {
-                    $/.CURSOR.panic("Cannot base a coercion type on a type capture");
+                    $/.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {
-                    $/.CURSOR.panic("Cannot use :: as a type name");
+                    $/.panic("Cannot use :: as a type name");
                 }
                 if $*W.cur_lexpad.symbol(nqp::substr($str_longname, 2)) {
                     $*W.throw($/, ['X', 'Redeclaration'],
@@ -7367,7 +7872,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method rx_adverbs($/) {
         my @pairs;
         for $<quotepair> {
-            nqp::push(@pairs, $_.ast);
+            nqp::push(@pairs, wanted($_.ast,'rx_adverbs'));
         }
         make @pairs;
     }
@@ -7534,7 +8039,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # a temporary variable etc.
 
         # Build the regex.
-        my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
+        my $rx_block := $*SUBST_LHS_BLOCK;
+        $rx_block.push(QAST::Stmts.new);
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
@@ -7554,7 +8060,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ));
             $right.push(WANTED($<sibble><right>.ast,'quote:s'));
         }
-        my $closure := block_closure(make_thunk_ref($right, $<sibble><right>));
+        my $rep_block := $*SUBST_RHS_BLOCK;
+        $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
+        $*W.cur_lexpad()[0].push($rep_block);
+        my $closure := block_closure(reference_to_code_object(
+            $*W.create_simple_code_object($rep_block, 'Code'),
+            $rep_block));
 
         # self.match($rx_coderef, |%options);
         my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),
@@ -7570,16 +8081,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sigspace := $samespace;
         my $samecase := 0;
         my $samemark := 0;
-        my $global   := 0;
         for $<rx_adverbs>.ast {
             if $_.named eq 'samecase' || $_.named eq 'ii' {
                 $samecase := 1;
             }
             elsif $_.named eq 'samemark' || $_.named eq 'mm' {
                 $samemark := 1;
-            }
-            elsif $_.named eq 'global' || $_.named eq 'g' {
-                $global := 1;
             }
             elsif $_.named eq 'samespace' || $_.named eq 'ss' {
                 $samespace := 1;
@@ -7590,9 +8097,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-        my $result        := $past.unique('subst_result');
-        my $global_result := $past.unique('subst_global_result');
-        my $List          := $*W.find_symbol(['List']);
+        my $S_result    := $past.unique('subst_S_result');
+        my $result      := $past.unique('subst_result');
+        my $list_result := $past.unique('subst_list_result');
+        my $List        := $*W.find_symbol(['List']);
 
         my $apply_matches := QAST::Op.new( :op('callmethod'), :name('dispatch:<!>'),
             QAST::Op.new( :op('callmethod'),  :name('Str'),
@@ -7611,6 +8119,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
+                # var for final result string of S///
+                $<sym> eq 'S' ?? QAST::Var.new(
+                    :name($S_result), :scope('local'), :decl('var')
+                ) !! QAST::Stmt.new(),
 
                 # my $result;
                 QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
@@ -7621,11 +8133,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past
                 ),
 
-                # ($/,) = $result - We do this so the replacement closure can close
-                # over the current match.
                 QAST::Op.new( :op('p6store'),
-                    QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                        QAST::Var.new( :name('$/'), :scope('lexical') ) ),
+                    QAST::Var.new( :name('$/'), :scope('lexical') ),
                     QAST::Var.new( :name($result), :scope('local') ),
                 ),
 
@@ -7647,35 +8156,40 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )
                     ),
 
-                    QAST::Op.new( :op('call'), :name('&infix:<=>'),
-                        WANTED(QAST::Var.new( :name($<sym> eq 's' ?? '$_' !! '$/'), :scope('lexical') ),'s/assign'),
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        WANTED(QAST::Var.new( :name($S_result), :scope('local') ),'s/assign'),
+                        $apply_matches
+                    ) !! QAST::Op.new( :op('call'), :name('&infix:<=>'),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s/assign'),
                         $apply_matches
                     ),
-                    ( $<sym> eq 'S'
-                        ?? QAST::Op.new( :op('p6store'),
-                                QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                                    QAST::Var.new( :name('$/'), :scope('lexical') ) ),
-                                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
-                           )
-                        !! QAST::Stmt.new()
-                    ),
+
+                    $<sym> eq 'S'
+                    ?? QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :name($S_result), :scope('local') ),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
+                    ) !! QAST::Stmt.new(),
                 ),
 
-                # It will return a list of matches when we match globally, and a single
-                # match otherwise.
-                $<sym> eq 's' ?? (
-                    $global ??
+                # If we have a list of matches, then put them into $/,
+                # otherwise, $/ already has the Match object we want it to have
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('istype'),
+                        QAST::Var.new( :name($result), :scope('local') ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Positional'])) )
+                    ),
                     QAST::Op.new( :op('p6store'),
                         QAST::Var.new( :name('$/'), :scope('lexical') ),
                         QAST::Stmts.new(
                             QAST::Op.new( :op('bind'),
-                                QAST::Var.new( :name($global_result), :scope('local'), :decl('var') ),
+                                QAST::Var.new( :name($list_result), :scope('local'), :decl('var') ),
                                 QAST::Op.new( :op('callmethod'), :name('CREATE'),
                                     QAST::WVal.new( :value($List) )
                                 )
                             ),
                             QAST::Op.new( :op('bindattr'),
-                                QAST::Var.new( :name($global_result), :scope('local') ),
+                                QAST::Var.new( :name($list_result), :scope('local') ),
                                 QAST::WVal.new( :value($List) ),
                                 QAST::SVal.new( :value('$!reified') ),
                                 QAST::Op.new( :op('getattr'),
@@ -7684,18 +8198,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     QAST::SVal.new( :value('$!reified') )
                                 )
                             ),
-                            QAST::Var.new( :name($global_result), :scope('local') )
+                            QAST::Var.new( :name($list_result), :scope('local') )
                         )
-                    ) !!
-                    QAST::Op.new( :op('p6store'),
-                        QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                            QAST::Var.new( :name('$/'), :scope('lexical') ) ),
-                        QAST::Var.new( :name($result), :scope('local') )
-                    )
-                ) !! QAST::Stmt.new(),
+                    ),
+                ),
 
                 # The result of this operation.
-                QAST::Var.new( :name('$/'), :scope('lexical') )
+                $<sym> eq 's'
+                ?? QAST::Var.new( :name('$/'), :scope('lexical') )
+                !! QAST::Var.new( :name($S_result), :scope('local') ),
             ),
         );
         $past.annotate('is_S', $<sym> eq 'S');
@@ -7726,12 +8237,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
         my int $arity := 0;
+        my int $count := 0;
         for @params {
-            last if $_<optional> || $_<named_names> ||
-               $_<pos_slurpy> || $_<pos_onearg> ||  $_<named_slurpy>;
-            $arity := $arity + 1;
+            last if $_<named_names> || $_<pos_slurpy> || $_<pos_onearg> || $_<named_slurpy>;
+            $arity := $arity + 1 unless $_<optional>;
+            $count := $count + 1;
         }
         $block.arity($arity);
+        $block.annotate('count', $count);
 
         # Consider using the VM binder on backends where it will work out
         # (e.g. we can get the same errors).
@@ -7794,7 +8307,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                  && !nqp::existskey($only, 'sub_signature')
                                  && !nqp::existskey($only, 'post_constraints') {
                 if !nqp::istype($*W.find_symbol(['Capture']), $only<nominal_type>) {
-                    $only<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
+                    $only<node>.panic("Capture parameter must have a type accepting a Capture");
                 }
                 else {
                     return 1;
@@ -7825,7 +8338,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Sig      := $*W.find_symbol(['Signature'], :setting-only);
         my $Param    := $*W.find_symbol(['Parameter'], :setting-only);
         my $Iterable := $*W.find_symbol(['Iterable']);
-        my @p_objs := nqp::getattr($sig, $Sig, '$!params');
+        my @p_objs := nqp::getattr($sig, $Sig, '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
         while $i < $n {
@@ -7847,7 +8360,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return 0 unless $i + 1 == $n ||
                                 $i + 2 == $n && @params[$i + 1]<named_slurpy>;
                 if !nqp::istype($*W.find_symbol(['Capture']), %info<nominal_type>) {
-                    %info<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
+                    %info<node>.panic("Capture parameter must have a type accepting a Capture");
                 }
                 $var.slurpy(1);
                 my $hash_name := $name ~ '_hash';
@@ -7867,11 +8380,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op('p6bindattrinvres'),
                                 QAST::Op.new( :op('create'), $Capture ),
                                 $Capture,
-                                QAST::SVal.new( :value('$!list') ),
+                                QAST::SVal.new( :value('@!list') ),
                                 QAST::Var.new( :name($name), :scope('local') )
                             ),
                             $Capture,
-                            QAST::SVal.new( :value('$!hash') ),
+                            QAST::SVal.new( :value('%!hash') ),
                             QAST::Var.new( :name($hash_name), :scope('local') )
                         )));
                 }
@@ -7879,10 +8392,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
                 if nqp::elems(@names) == 1 {
-                    $var.named(@names[0]);
+                    $var.named(nqp::atpos_s(@names, 0));
                 }
                 elsif nqp::elems(@names) == 2 {
-                    $var.named(@names);
+                    my @names_copy;
+                    @names_copy[0] := nqp::atpos_s(@names, 0);
+                    @names_copy[1] := nqp::atpos_s(@names, 1);
+                    $var.named(@names_copy);
                 }
                 else {
                     return 0;
@@ -8050,17 +8566,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    if %info<sigil> eq '@' {
+                    if (my $is-array := %info<sigil> eq '@') || %info<sigil> eq '%' {
+
+                        my $role      := $is-array ?? 'Positional' !! 'Associative';
+                        my $base-type := $is-array ?? 'Array'      !! 'Hash';
+
                         $var.default(
-                                QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Array'])) )
-                            ));
-                    }
-                    elsif %info<sigil> eq '%' {
-                        $var.default(
-                                QAST::Op.new( :op<create>,
-                                              QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
-                            ));
+                            QAST::Op.new(
+                                :op<create>,
+                                QAST::WVal.new(
+                                    value => nqp::istype($nomtype, $*W.find_symbol([$role])) && nqp::can($nomtype.HOW, 'role_arguments')
+                                               ?? $*W.parameterize_type_with_args($/, $*W.find_symbol([$base-type]), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
+                                               !! $*W.find_symbol([$base-type])
+                            )));
                     }
                     else {
                         if $spec == 1 {
@@ -8086,10 +8604,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # In theory, we could bind a local with the result of the WHAT
             # operation, but I'm not convinced it's sufficiently expensive.
             if %info<type_captures> {
-                for %info<type_captures> {
+                my $iter := nqp::iterator(%info<type_captures>);
+                while $iter {
                     $var.push( QAST::Op.new(
                         :op<bind>,
-                        QAST::Var.new( :name($_), :scope<lexical> ),
+                        QAST::Var.new( :name(nqp::shift($iter)), :scope<lexical> ),
                         QAST::Op.new( :op<what>,
                             QAST::Var.new( :name($name), :scope<local> ) )
                         )
@@ -8261,17 +8780,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )));
                 }
                 else {
-                    $var.push(QAST::Op.new(
-                        :op('p6store'),
-                        QAST::Var.new(
-                            :name(%info<variable_name>), :scope('attribute'),
-                            QAST::Var.new( :name('self'), :scope('lexical') ),
-                            QAST::WVal.new( :value(%info<attr_package>) )
-                        ),
-                        QAST::Op.new(
-                            :op('decont'),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        )));
+                    my $attr_package := %info<attr_package>;
+                    my $attr_name := %info<variable_name>;
+                    my $attr_type := try $attr_package.HOW.get_attribute_for_usage($attr_package, $attr_name).type;
+                    if nqp::objprimspec($attr_type) {
+                         $var.push(QAST::Op.new(
+                             :op('bind'),
+                             QAST::Var.new(
+                                 :name($attr_name), :scope('attribute'), :returns($attr_type),
+                                 QAST::Var.new( :name('self'), :scope('lexical') ),
+                                 QAST::WVal.new( :value($attr_package) )
+                             ),
+                             QAST::Var.new( :name($name), :scope('local') )));
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new(
+                                :name($attr_name), :scope('attribute'),
+                                QAST::Var.new( :name('self'), :scope('lexical') ),
+                                QAST::WVal.new( :value($attr_package) )
+                            ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
                 }
             }
 
@@ -8356,7 +8890,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If it's named, just shove it on the end, but before any slurpies.
         elsif $named {
-            %param_info<named_names> := [$ident];
+            %param_info<named_names> := nqp::list_s($ident);
             my @popped;
             while @params
                     && (@params[+@params - 1]<pos_slurpy> || @params[+@params - 1]<named_slurpy>) {
@@ -8383,7 +8917,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if +%existing && !%existing<placeholder_parameter> {
             $*W.throw($/, ['X', 'Redeclaration'],
                 symbol  => ~$/,
-                postfix => ' as a placeholder parameter',
+                postfix => 'as a placeholder parameter',
             );
         }
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
@@ -8400,8 +8934,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     our sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
-        fatalize($to_thunk) if %*PRAGMAS<fatal>;
-        $block.push(QAST::Stmts.new(autosink($to_thunk)));
+        $block.blocktype('declaration_static');
+        if !$*SUPPOSING {  # don't actually copy the thunk if inside <?before>
+            fatalize($to_thunk) if $*FATAL || (nqp::can($/,'CURSOR') ?? $/.pragma('fatal') !! $*LANG.pragma('fatal'));
+            $block.push(QAST::Stmts.new(autosink($to_thunk)));
+        }
         $*W.pop_lexpad();
         reference_to_code_object(
             $*W.create_simple_code_object($block, 'Code'),
@@ -8509,6 +9046,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $call.unshift(WANTED($target,'make_dot_equals'));
         $call.name('dispatch:<.=>');
         $call.op('callmethod');
+        $call.nosink(1);
         wantall($call, 'make_dot_equals');
         $call;
     }
@@ -8597,7 +9135,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::Op.new(
-                :op('p6invokehandler'),
+                :op('call'),
                 QAST::Var.new( :name($handler_lex_name), :scope('lexical') ),
                 $ex
             ),
@@ -8616,7 +9154,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         my @params := [
-            hash( is_invocant => 1, nominal_type => $*PACKAGE),
+            hash( is_invocant => 1, nominal_type => $/.package),
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
@@ -8669,7 +9207,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $all_literal := 0 unless nqp::istype($_,QAST::SpecialArg) ||
                     nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
             }
-            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval();
+            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
         }
         WANTALL($args, 'capture_or_raw');
         $args;
@@ -8879,18 +9417,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub wrap_return_handler($past) {
         wrap_return_type_check(
-            QAST::Stmts.new(
-                :resultchild(0),
-                QAST::Op.new(
-                    :op<lexotic>, :name<RETURN>,
-                    # If we fall off the bottom, decontainerize if
-                    # rw not set.
-                    QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past )
-                ),
-                QAST::Op.new(
-                    :op<bind>,
-                    QAST::Var.new(:name<RETURN>, :scope<lexical>),
-                    QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+            QAST::Op.new(
+                :op<handlepayload>,
+                # If we fall off the bottom, decontainerize if
+                # rw not set.
+                QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past ),
+                'RETURN',
+                QAST::Op.new( :op<lastexpayload> )
             ),
             $*DECLARAND
         )
@@ -8906,7 +9439,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past;
-        if $is_generic || nqp::isnull(nqp::getobjsc($type)) {
+        if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $*W.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }
@@ -8936,6 +9469,41 @@ class Perl6::Actions is HLL::Actions does STDActions {
 }
 
 class Perl6::QActions is HLL::Actions does STDActions {
+    # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
+    method charname-panic($/) { $/.panic("Unrecognized character name [$/]") }
+    method charname($/) {
+        my $codepoint := $<integer>
+                         ?? nqp::chr($<integer>.made)
+                         !! nqp::getstrfromname(~$/);
+        $codepoint := self.charname-notfound($/) if $codepoint eq '';
+        make $codepoint;
+    }
+    method charname-notfound($/) {
+        my @worry-text := ( "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL",
+                            "FORM FEED or FF",
+                            "CARRIAGE RETURN or CR",
+                            "NEXT LINE or NEL" );
+        my $text := "Deprecated character name [%s] in lookup of Unicode character by name.\n" ~
+                    "Unicode 1 names are deprecated.\nPlease use %s";
+        if ~$/ eq "LINE FEED (LF)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
+            return nqp::getstrfromname("LINE FEED");
+        }
+        if ~$/ eq "FORM FEED (FF)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
+            return nqp::getstrfromname("FORM FEED");
+        }
+        if ~$/ eq "CARRIAGE RETURN (CR)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
+            return nqp::getstrfromname("CARRIAGE RETURN");
+        }
+        if ~$/ eq "NEXT LINE (NEL)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
+            return nqp::getstrfromname("NEXT LINE");
+        }
+
+        self.charname-panic($/);
+    }
     method nibbler($/) {
         my @asts;
         my $lastlit := '';
@@ -8968,8 +9536,8 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
 
-        if nqp::can($/.CURSOR, 'postprocessors') {
-            for $/.CURSOR.postprocessors -> $pp {
+        if nqp::can($/, 'postprocessors') {
+            for $/.postprocessors -> $pp {
                 $past := self."postprocess_$pp"($/, $past);
             }
         }
@@ -9093,7 +9661,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:sym<f>($/) { make "\c[12]" }
     method backslash:sym<n>($/) {
         my str $nl := nqp::unbox_s($*W.find_symbol(['$?NL']));
-        if nqp::can($/.CURSOR, 'parsing_heredoc') {
+        if nqp::can($/, 'parsing_heredoc') {
             # In heredocs, we spit out a QAST::SVal here to prevent newlines
             # being taken literally and affecting the dedent.
             make QAST::SVal.new( :value($nl) );
@@ -9104,17 +9672,17 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
     method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
     method backslash:sym<r>($/) {
-        make nqp::can($/.CURSOR, 'parsing_heredoc')
+        make nqp::can($/, 'parsing_heredoc')
             ?? QAST::SVal.new( :value("\r") )
             !! "\r";
     }
     method backslash:sym<rn>($/) {
-        make nqp::can($/.CURSOR, 'parsing_heredoc')
+        make nqp::can($/, 'parsing_heredoc')
             ?? QAST::SVal.new( :value("\r\n") )
             !! "\r\n";
     }
     method backslash:sym<t>($/) {
-        make nqp::can($/.CURSOR, 'parsing_heredoc')
+        make nqp::can($/, 'parsing_heredoc')
             ?? QAST::SVal.new( :value("\t") )
             !! "\t";
     }
@@ -9142,10 +9710,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method escape:sym<%>($/) { make $<EXPR>.ast; }
     method escape:sym<&>($/) { make $<EXPR>.ast; }
 
-    method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<‘ ’>($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<“ ”>($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<'>($/) { make mark_ww_atom($<quote>.ast); }
     method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
     sub mark_ww_atom($ast) {
         $ast.annotate('ww_atom', 1);
@@ -9171,7 +9736,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my @nibs := +@($nib) ?? @($nib) !! [$nib];
         for @nibs {
             unless $_.has_compile_time_value {
-                $/.CURSOR.panic("Quote words construct too complex to use in a regex");
+                $/.panic("Quote words construct too complex to use in a regex");
             }
             $qast.push(%*RX<i>
                 ?? QAST::Regex.new( $_.compile_time_value, :rxtype<literal>, :subtype<ignorecase> )
@@ -9233,7 +9798,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 if $<upto> eq '^' {
                     $max--;
                 }
-                $/.CURSOR.panic("Empty range") if $min > $max;
+                $/.panic("Empty range") if $min > $max;
             }
             $qast := QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), :node($/) );
         }
@@ -9252,7 +9817,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         if nqp::istype($varast, QAST::Var) {
             # See if it's a constant Scalar, in which case we can turn it to
             # a Str and use the value as a literal, so we get LTM.
-            if nqp::substr($varast.name, 0, 1) eq '$' {
+            if nqp::eqat($varast.name, '$', 0) {
                 my $constant;
                 try {
                     my $found := $*W.find_symbol([$varast.name]);
@@ -9285,11 +9850,12 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 $varast,
                 QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                 QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                QAST::IVal.new( :value(monkey_see_no_eval()) ),
-                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) )
-            ),
-            QAST::Op.new( :op<callmethod>, :name<new>,
-                QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                QAST::IVal.new( :value(0) ),
+                QAST::Op.new( :op<callmethod>, :name<new>,
+                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                )
             ),
             :rxtype<subrule>, :subtype<method>, :node($/));
     }
@@ -9301,7 +9867,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9340,7 +9906,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(%*RX<m> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -9362,7 +9928,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         else {
             my @parts := $lng.components();
             my $name  := @parts.pop();
-            my $c     := $/.CURSOR;
+            my $c     := $/;
             if $<assertion> {
                 if +@parts {
                     $c.panic("Can only alias to a short name (without '::')");
@@ -9379,8 +9945,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             elsif !@parts && $name eq 'sym' {
                 my str $fullrxname := %*RX<name>;
                 my int $loc := nqp::index($fullrxname, ':sym<');
-                $loc := nqp::index($fullrxname, ':sym«')
-                    if $loc < 0;
+                if $loc < 0 {
+                    $c.panic('Can only use <sym> token in a proto regex')
+                        if ($loc := nqp::index($fullrxname, ':sym«')) < 0;
+                }
                 my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
                 $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
                     QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
@@ -9416,7 +9984,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     my $nibbled := $name eq 'after'
                         ?? self.flip_ast($<nibbler>.ast)
                         !! $<nibbler>.ast;
-                    my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
+                    my $sub := $/.slang_actions('Regex').qbuildsub($nibbled, :anon(1), :addself(1));
                     $qast[0].push($sub);
                 }
             }
@@ -9426,10 +9994,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method assertion:sym<~~>($/) {
         if $<num> {
-            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         elsif $<desigilname> {
-            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
@@ -9438,21 +10006,18 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method codeblock($/) {
-        my $blockref := $<block>.ast;
-        my $past :=
-            QAST::Stmts.new(
+        make QAST::Stmts.new(
+            QAST::Op.new(
+                :op('p6store'),
+                QAST::Var.new( :name('$/'), :scope<lexical> ),
                 QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name('$/'), :scope<lexical> ),
-                    QAST::Op.new(
-                        QAST::Var.new( :name('$¢'), :scope<lexical> ),
-                        :name('MATCH'),
-                        :op('callmethod')
-                    )
-                ),
-                QAST::Op.new( :op<call>, QAST::Op.new( :op('p6capturelex'), $blockref ) )
-            );
-        make $past;
+                    QAST::Var.new( :name('$¢'), :scope<lexical> ),
+                    :name('MATCH'),
+                    :op('callmethod')
+                )
+            ),
+            QAST::Op.new( :op<call>, block_closure($<block>.ast) )
+        );
     }
 
     method arglist($/) {
@@ -9489,7 +10054,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
@@ -9504,7 +10069,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                                     wanted($<var>.ast, 'p5var'),
                                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                                     QAST::IVal.new( :value(0) ),
-                                    QAST::IVal.new( :value(monkey_see_no_eval()) ),
+                                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                                     QAST::IVal.new( :value($*INTERPOLATION) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));

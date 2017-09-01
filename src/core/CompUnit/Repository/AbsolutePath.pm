@@ -2,14 +2,14 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
     has %!loaded;
 
     method need(CompUnit::DependencySpecification $spec,
-                CompUnit::PrecompilationRepository $precomp = self.precomp-repository())
-        returns CompUnit:D
+                CompUnit::PrecompilationRepository $precomp = self.precomp-repository()
+        --> CompUnit:D)
     {
         return self.next-repo.need($spec, $precomp) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
-    method load(IO::Path:D $file) returns CompUnit:D {
+    method load(IO::Path:D $file --> CompUnit:D) {
         if $file.is-absolute {
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
@@ -35,7 +35,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
         die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
     }
 
-    method loaded() returns Iterable {
+    method loaded(--> Iterable:D) {
         return %!loaded.values;
     }
 

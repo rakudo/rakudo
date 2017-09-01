@@ -15,10 +15,19 @@ my class X::Promise::Vowed is Exception {
     has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
-my class Promise {
+my role X::Promise::Broken {
+    has $.result-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "Tried to get the result of a broken Promise\n" ~
+            ((try $!result-backtrace ~ "\n") // '') ~
+            "Original exception:\n" ~
+            callsame().indent(4)
+    }
+}
+my class Promise does Awaitable {
     has $.scheduler;
     has $.status;
-    has $!result;
+    has $!result is default(Nil);
     has int $!vow_taken;
     has $!lock;
     has $!cond;
@@ -38,7 +47,7 @@ my class Promise {
     trusts Vow;
     my class Vow {
         has $.promise;
-        method keep(\result) {
+        method keep(Mu \result) {
             $!promise!Promise::keep(result)
         }
         method break(\exception) {
@@ -62,18 +71,17 @@ my class Promise {
     multi method keep(Promise:D:) {
         self.vow.keep(True)
     }
-    multi method keep(Promise:D: \result) {
+    multi method keep(Promise:D: Mu \result) {
         self.vow.keep(result)
     }
 
-    method !keep(\result) {
+    method !keep(Mu \result --> Nil) {
         $!lock.protect({
             $!result := result;
             $!status = Kept;
             self!schedule_thens();
             $!cond.signal_all;
         });
-        Nil
     }
 
     proto method break(|) { * }
@@ -84,7 +92,7 @@ my class Promise {
         self.vow.break(result)
     }
 
-    method !break(\result) {
+    method !break(\result --> Nil) {
         $!lock.protect({
             $!result = nqp::istype(result, Exception)
                 ?? result
@@ -93,10 +101,9 @@ my class Promise {
             self!schedule_thens();
             $!cond.signal_all;
         });
-        Nil
     }
 
-    method !schedule_thens() {
+    method !schedule_thens(--> Nil) {
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
@@ -105,8 +112,9 @@ my class Promise {
     method result(Promise:D:) {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
-        # thing that is blocking on it.
-        if $!status == Planned {
+        # thing that is blocking on it. (Note the while loop is there to cope
+        # with spurious wake-ups).
+        while $!status == Planned {
             $!lock.protect({
                 # Re-check planned to avoid data race.
                 $!cond.wait() if $!status == Planned;
@@ -116,12 +124,12 @@ my class Promise {
             $!result
         }
         elsif $!status == Broken {
-            $!result.throw
+            ($!result but X::Promise::Broken(Backtrace.new)).rethrow
         }
     }
 
     multi method Bool(Promise:D:) {
-        so $!status == any(Broken, Kept)
+        so $!status == Broken || $!status == Kept
     }
 
     method cause(Promise:D:) {
@@ -141,24 +149,68 @@ my class Promise {
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            Promise.start( { code(self) }, :$!scheduler);
+            self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
             # Create a Promise, and push 2 entries to @!thens: something that
             # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
-            my $then_promise = Promise.new(:$!scheduler);
-            my $vow = $then_promise.vow;
-            @!thens.push({ $vow.keep(code(self)) });
+            my $then-p := self.new(:$!scheduler);
+            nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
+            my $vow = $then-p.vow;
+            @!thens.push({ my $*PROMISE := $then-p; $vow.keep(code(self)) });
             @!thens.push(-> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
-            $then_promise
+            $then-p
+        }
+    }
+
+    my class PromiseAwaitableHandle does Awaitable::Handle {
+        has &!add-subscriber;
+
+        method not-ready(&add-subscriber) {
+            nqp::create(self)!not-ready(&add-subscriber)
+        }
+        method !not-ready(&add-subscriber) {
+            $!already = False;
+            &!add-subscriber := &add-subscriber;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            &!add-subscriber(&subscriber);
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle:D) {
+        if $!status == Broken {
+            PromiseAwaitableHandle.already-failure($!result)
+        }
+        elsif $!status == Kept {
+            PromiseAwaitableHandle.already-success($!result)
+        }
+        else {
+            PromiseAwaitableHandle.not-ready: -> &on-ready {
+                nqp::lock($!lock);
+                if $!status == Broken || $!status == Kept {
+                    # Already have the result, call on-ready immediately.
+                    nqp::unlock($!lock);
+                    on-ready($!status == Kept, $!result)
+                }
+                else {
+                    # Push 2 entries to @!thens (only need the first one in
+                    # this case; second we push 'cus .then uses it).
+                    @!thens.push({ on-ready($!status == Kept, $!result) });
+                    @!thens.push(Callable);
+                    nqp::unlock($!lock);
+                }
+            }
         }
     }
 
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
-        my $p := Promise.new(:$scheduler);
+        my $p := self.new(:$scheduler);
         nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
         my $vow = $p.vow;
         $scheduler.cue(
@@ -168,7 +220,7 @@ my class Promise {
     }
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
-        my $p   = Promise.new(:$scheduler);
+        my $p   = self.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
@@ -181,14 +233,14 @@ my class Promise {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int $N, Str $combinator) {
-        X::Promise::Combinator.new(:$combinator).throw
-          if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@promises, Promise);
-
-        my $p = Promise.new;
+        my $p = self.new;
         unless @promises {
             $p.keep;
             return $p
         }
+
+        X::Promise::Combinator.new(:$combinator).throw
+          unless Rakudo::Internals.ALL_DEFINED_TYPE(@promises, Promise);
 
         my int $n  = $N;
         my int $c  = $n;
@@ -204,7 +256,7 @@ my class Promise {
         $p
     }
 
-    method Supply(Promise:D:) {
+    multi method Supply(Promise:D:) {
         Supply.on-demand: -> $s {
             self.then({
                 if self.status == Kept {
@@ -217,14 +269,12 @@ my class Promise {
             });
         }
     }
-
-    # experimental
-    method Str(Promise:D:)     { self.result.Str     }
-    method Numeric(Promise:D:) { self.result.Numeric }
 }
 
-multi sub infix:<eqv>(Promise:D $a, Promise:D $b) {
-    infix:<eqv>($a.result, $b.result);
+multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || a.result eqv b.result
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

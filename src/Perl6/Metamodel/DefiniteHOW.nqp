@@ -33,6 +33,7 @@ class Perl6::Metamodel::DefiniteHOW
     method new_type(:$base_type!, :$definite!) {
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
             [$base_type, $definite]);
+        nqp::setdebugtypename($root, self.name($root));
     }
 
     method name($definite_type) {
@@ -43,6 +44,17 @@ class Perl6::Metamodel::DefiniteHOW
             my $base_type := nqp::typeparameterat($definite_type, 0);
             my $definite  := nqp::typeparameterat($definite_type, 1);
             $base_type.HOW.name($base_type) ~ ':' ~ ($definite ?? 'D' !! 'U')
+        }
+    }
+
+    method shortname($definite_type) {
+        if nqp::isnull(nqp::typeparameterized($definite_type)) {
+            '?:?'
+        }
+        else {
+            my $base_type := nqp::typeparameterat($definite_type, 0);
+            my $definite  := nqp::typeparameterat($definite_type, 1);
+            $base_type.HOW.shortname($base_type) ~ ':' ~ ($definite ?? 'D' !! 'U')
         }
     }
 

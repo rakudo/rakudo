@@ -4,8 +4,10 @@ my class X::Numeric::DivideByZero { ... }
 my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
-    multi method ACCEPTS(Numeric:D: \a) {
-        self.isNaN ?? a.defined && a.isNaN !! a == self;
+    multi method ACCEPTS(Numeric:D: Any:D \a) {
+        (try my \numeric = a.Numeric).defined
+                ?? (self.isNaN && numeric.isNaN or numeric == self)
+                !! False
     }
 
     proto method log(|) {*}
@@ -20,6 +22,7 @@ my role Numeric {
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
 
+    method FatRat(Numeric:D:) { self.Rat.FatRat }
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
@@ -29,8 +32,12 @@ my role Numeric {
     method pred() { self - 1 }
 }
 
-multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
+    nqp::p6bool( # RT #127951
+        nqp::eqaddr(a,b) || (
+            nqp::eqaddr(a.WHAT,b.WHAT)
+            && nqp::if(nqp::istype(a, Num), (a === b), (a == b))
+    )) # for Nums use === to properly handle signed zeros and NaNs
 }
 
 ## arithmetic operators
@@ -40,8 +47,6 @@ multi sub prefix:<+>(\a) { a.Numeric }
 
 proto sub prefix:<->($?) is pure { * }
 multi sub prefix:<->(\a) { -a.Numeric }
-
-sub prefix:<−>($n) is pure { prefix:<->($n) }
 
 proto sub abs($) is pure { * }
 multi sub abs(\a) { abs a.Numeric }
@@ -189,10 +194,6 @@ proto sub infix:<->(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<->($x = 0)      { -$x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
-proto sub infix:<−>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<−>($x = 0)    { -$x.Numeric }
-multi sub infix:<−>(\a, \b) is pure { a.Numeric - b.Numeric }
-
 proto sub infix:<*>(Mu $?, Mu $?) is pure   { * }
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
@@ -200,7 +201,7 @@ multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 sub infix:<×>(|c) is pure { infix:<*>(|c) }
 
 proto sub infix:</>(Mu $?, Mu $?) is pure { * }
-multi sub infix:</>()            { fail "No zero-arg meaning for infix:</>" }
+multi sub infix:</>() { Failure.new("No zero-arg meaning for infix:</>") }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 
@@ -210,18 +211,40 @@ proto sub infix:<div>(Mu $?, Mu $?) is pure  { * }
 # rest of infix:<div> is in Int.pm
 
 proto sub infix:<%>(Mu $?, Mu $?) is pure   { * }
-multi sub infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
+multi sub infix:<%>() { Failure.new("No zero-arg meaning for infix:<%>") }
 multi sub infix:<%>($x)          { $x }
 multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 
 proto sub infix:<%%>(Mu $?, Mu $?) is pure  { * }
-multi sub infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
+multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
-multi sub infix:<%%>(\a, \b)   {
-    fail X::Numeric::DivideByZero.new(
-      using => 'infix:<%%>', numerator => a
-    ) unless b;
-    a.Real % b.Real == 0;
+multi sub infix:<%%>(Int:D \a, Int:D \b) {
+    nqp::if(
+      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
+      nqp::if(
+        b,
+        nqp::p6bool(nqp::not_i(nqp::mod_I(nqp::decont(a),nqp::decont(b),Int))),
+        Failure.new(
+          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+        )
+      ),
+      nqp::if(
+        nqp::isne_i(b,0),
+        nqp::p6bool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
+        Failure.new(
+          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+        )
+      )
+    )
+}
+multi sub infix:<%%>(\a, \b) {
+    nqp::if(
+      b,
+      (a.Real % b.Real == 0),
+      Failure.new(
+        X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+      )
+    )
 }
 
 proto sub infix:<lcm>(Mu $?, Mu $?) is pure  { * }
@@ -229,7 +252,7 @@ multi sub infix:<lcm>(Int $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>(Mu $?, Mu $?) is pure { * }
-multi sub infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
+multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
 multi sub infix:<gcd>(Int $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
@@ -250,14 +273,12 @@ multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
 proto sub infix:<≅>(Mu $?, Mu $?, *%) { * }  # note, can't be pure due to dynvar
-multi sub infix:<≅>($?)        { Bool::True }
+multi sub infix:<≅>($?) { Bool::True }
 multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
     # If operands are non-0, scale the tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.
     if b && a && $tolerance {
-        my $a = a.abs;
-        my $b = b.abs;
-        abs($a - $b) < ($a max $b) * $tolerance;
+        abs(a - b) < (a.abs max b.abs) * $tolerance;
     }
     else {  # interpret tolerance as absolute
         abs(a.Num - b.Num) < $tolerance;
@@ -265,25 +286,34 @@ multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
 }
 sub infix:<=~=>(|c) { infix:<≅>(|c) }
 
-proto sub infix:<!=>(Mu $?, Mu $?) is pure  { * }
-multi sub infix:<!=>($?)        { Bool::True }
-multi sub infix:<!=>(Mu \a, Mu \b)   { not a == b }
+proto sub infix:<!=>(Mu $?, Mu $?) is pure { * }
+multi sub infix:<!=>($? --> True)  { }
+multi sub infix:<!=>(Mu \a, Mu \b) { not a == b }
+proto sub infix:<≠>(Mu $?, Mu $?) is pure  { * }  # should be alias, RT 131626
+multi sub infix:<≠>($? --> True)  { }
+multi sub infix:<≠>(Mu \a, Mu \b) { not a == b }
 
-proto sub infix:«<»(Mu $?, Mu $?) is pure   { * }
-multi sub infix:«<»($?)         { Bool::True }
-multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
+proto sub infix:«<»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«<»($? --> True)  { }
+multi sub infix:«<»(\a, \b) { a.Real < b.Real }
 
-proto sub infix:«<=»(Mu $?, Mu $?) is pure  { * }
-multi sub infix:«<=»($?)        { Bool::True }
-multi sub infix:«<=»(\a, \b)   { a.Real <= b.Real }
+proto sub infix:«<=»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«<=»($? --> True)  { }
+multi sub infix:«<=»(\a, \b) { a.Real <= b.Real }
+proto sub infix:«≤»(Mu $?, Mu $?) is pure { * }  # should be alias, RT 131626
+multi sub infix:«≤»($? --> True)   { }
+multi sub infix:«≤»(\a, \b) { a.Real <= b.Real }
 
-proto sub infix:«>»(Mu $?, Mu $?) is pure   { * }
-multi sub infix:«>»($?)         { Bool::True }
-multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
+proto sub infix:«>»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«>»($? --> True)  { }
+multi sub infix:«>»(\a, \b) { a.Real > b.Real }
 
-proto sub infix:«>=»(Mu $?, Mu $?) is pure  { * }
-multi sub infix:«>=»($?)        { Bool::True }
-multi sub infix:«>=»(\a, \b)   { a.Real >= b.Real }
+proto sub infix:«>=»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«>=»($? --> True)  { }
+multi sub infix:«>=»(\a, \b) { a.Real >= b.Real }
+proto sub infix:«≥»(Mu $?, Mu $?) is pure { * }  # should be alias, RT 131626
+multi sub infix:«≥»($? --> True)  { }
+multi sub infix:«≥»(\a, \b) { a.Real >= b.Real }
 
 ## bitwise operators
 
@@ -303,12 +333,12 @@ multi sub infix:<+^>($x)         { $x }
 multi sub infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
 
 proto sub infix:«+<»(Mu $?, Mu $?) is pure { * }
-multi sub infix:«+<»()           { fail "No zero-arg meaning for infix:«+<»"; }
+multi sub infix:«+<»() { Failure.new("No zero-arg meaning for infix:«+<»") }
 multi sub infix:«+<»($x)         { $x }
 multi sub infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
 
 proto sub infix:«+>»(Mu $?, Mu $?) is pure { * }
-multi sub infix:«+>»()           { fail "No zero-arg meaning for infix:«+>»"; }
+multi sub infix:«+>»() { Failure.new("No zero-arg meaning for infix:«+>»") }
 multi sub infix:«+>»($x)         { $x }
 multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 

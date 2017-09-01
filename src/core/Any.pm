@@ -1,5 +1,6 @@
 my class Pair                   { ... }
 my class Range                  { ... }
+my class Seq                    { ... }
 my class X::Adverb              { ... }
 my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
@@ -11,40 +12,39 @@ my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
 
-# We use a sentinel value to mark the end of an iteration.
-my constant IterationEnd = nqp::create(Mu);
-
 my class Any { # declared in BOOTSTRAP
-    # my class Any is Mu {
+    # my class Any is Mu
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U \a) { False }
+    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
     multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
         nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
     proto method EXISTS-KEY(|) is nodal { * }
-    multi method EXISTS-KEY(Any:U: $) { False }
-    multi method EXISTS-KEY(Any:D: $) { False }
+    multi method EXISTS-KEY(Any:U: $ --> False) { }
+    multi method EXISTS-KEY(Any:D: $ --> False) { }
 
     proto method DELETE-KEY(|) is nodal { * }
-    multi method DELETE-KEY(Any:U: $) { Nil }
+    multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
-        fail "Can not remove values from a {self.^name}";
+        Failure.new("Can not remove values from a {self.^name}")
     }
 
     proto method DELETE-POS(|) is nodal { * }
-    multi method DELETE-POS(Any:U: $pos) { Nil }
+    multi method DELETE-POS(Any:U: $pos --> Nil) { }
     multi method DELETE-POS(Any:D: $pos) {
-        fail "Can not remove elements from a {self.^name}";
+        Failure.new("Can not remove elements from a {self.^name}")
     }
-    multi method DELETE-POS(**@indices) {
+    multi method DELETE-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).DELETE-POS(two)
+    }
+    multi method DELETE-POS(Any:D: \one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).DELETE-POS(three)
+    }
+    multi method DELETE-POS(Any:D: **@indices) {
         my $final := @indices.pop;
-        my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
-        $target.DELETE-POS($final);
+        Rakudo::Internals.WALK-AT-POS(self,@indices).DELETE-POS($final)
     }
 
     method cache() { self.list }
@@ -66,6 +66,8 @@ my class Any { # declared in BOOTSTRAP
     multi method Slip() { self.list.Slip }
     proto method Array(|) is nodal { * }
     multi method Array() { self.list.Array }
+    proto method Seq(|) is nodal { * }
+    multi method Seq() { Seq.new(self.iterator) }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }
@@ -75,12 +77,15 @@ my class Any { # declared in BOOTSTRAP
     proto method Hash(|) is nodal { * }
     multi method Hash() { self.hash.Hash }
 
+    proto method Map(|) is nodal { * }
+    multi method Map() { self.hash.Map }
+
     proto method elems(|) is nodal { * }
-    multi method elems(Any:U:) { 1 }
+    multi method elems(Any:U: --> 1) { }
     multi method elems(Any:D:) { self.list.elems }
 
     proto method end(|) is nodal { * }
-    multi method end(Any:U:) { 0 }
+    multi method end(Any:U: --> 0) { }
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal { * }
@@ -104,6 +109,8 @@ my class Any { # declared in BOOTSTRAP
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal { * }
+    multi method invert(Any:U:) { () }
+    multi method invert(Any:D:) { self.list.invert }
 
     proto method pick(|) is nodal { * }
     multi method pick()   { self.list.pick     }
@@ -113,8 +120,9 @@ my class Any { # declared in BOOTSTRAP
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
-    proto method iterator(|) { * }
     multi method iterator(Any:) { self.list.iterator }
+
+    method match(Any:U: |) { self.Str; nqp::getlexcaller('$/') = Nil }
 
     proto method classify(|) is nodal { * }
     multi method classify() {
@@ -144,7 +152,6 @@ my class Any { # declared in BOOTSTRAP
         Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
     }
 
-    method rotor(|c) is nodal { self.list.rotor(|c) }
     method reverse() is nodal { self.list.reverse }
     method combinations(|c) is nodal { self.list.combinations(|c) }
     method permutations(|c) is nodal { self.list.permutations(|c) }
@@ -169,7 +176,8 @@ my class Any { # declared in BOOTSTRAP
             ?? self.map({ .tree($count - 1) }).item
             !! self
     }
-    multi method tree(Any:D: *@ [&first, *@rest]) {
+    multi method tree(Any:D: @ [&first, *@rest]) { self.tree(&first, |@rest); }
+    multi method tree(Any:D: &first, *@rest) {
         nqp::istype(self, Iterable)
             ?? @rest ?? first(self.map({ .tree(|@rest) }))
                      !! first(self)
@@ -202,7 +210,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method EXISTS-POS(|) is nodal { * }
-    multi method EXISTS-POS(Any:U: Any:D $) { False }
+    multi method EXISTS-POS(Any:U: Any:D $ --> False) { }
     multi method EXISTS-POS(Any:U: Any:U $pos) {
         die "Cannot use '{$pos.^name}' as an index";
     }
@@ -225,53 +233,69 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method EXISTS-POS(**@indices) {
+    multi method EXISTS-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).EXISTS-POS(two)
+    }
+    multi method EXISTS-POS(Any:D: \one, \two,\three) is raw {
+        self.AT-POS(one).AT-POS(two).EXISTS-POS(three)
+    }
+    multi method EXISTS-POS(Any:D: **@indices) {
         my $final := @indices.pop;
-        my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
-        $target.EXISTS-POS($final);
+        Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
     }
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(pos, $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(pos, $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Array.new);
-                 SELF.BIND-POS(nqp::unbox_i(pos), $v) });
-        $v
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = Array.new)
+               ).BIND-POS(pos, $scalar)
+             }
+        )
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int));
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:U: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
     multi method AT-POS(Any:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
-            unless nqp::not_i(pos);
-        self;
+        pos
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
+          !! self
     }
     multi method AT-POS(Any:D: Int:D \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'), :got(pos), :range<0..0>)
-            if pos != 0;
-        self;
+        pos
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
+          !! self
     }
     multi method AT-POS(Any:D: Num:D \pos) is raw {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int));
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:D: Any:D \pos) is raw {
         self.AT-POS(nqp::unbox_i(pos.Int));
@@ -279,31 +303,34 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:   Any:U \pos) is raw {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method AT-POS(**@indices) is raw {
-        my $result := self;
-        for @indices {
-            $result := $result.AT-POS($_);
-        }
-        $result
+    multi method AT-POS(Any:D: \one, \two) is raw {
+        self.AT-POS(one).AT-POS(two)
+    }
+    multi method AT-POS(Any:D: \one, \two, \three) is raw {
+        self.AT-POS(one).AT-POS(two).AT-POS(three)
+    }
+    multi method AT-POS(Any:D: **@indices) is raw {
+        my $final := @indices.pop;
+        Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
 
     proto method ZEN-POS(|) { * }
     multi method ZEN-POS(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb.new(
+          ?? Failure.new(X::Adverb.new(
                :what('[] slice'),
                :source(try { self.VAR.name } // self.WHAT.perl),
-               :unexpected(%unexpected.keys))
+               :unexpected(%unexpected.keys)))
           !! self
     }
 
     proto method ZEN-KEY(|) { * }
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
-          ?? fail X::Adverb.new(
+          ?? Failure.new(X::Adverb.new(
                :what('{} slice'),
                :source(try { self.VAR.name } // self.WHAT.perl),
-               :unexpected(%unexpected.keys))
+               :unexpected(%unexpected.keys)))
           !! self
     }
 
@@ -319,9 +346,9 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(pos) = assignee;                    # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
-        fail X::Item.new(aggregate => self, index => pos)
-          if nqp::isnanorinf(pos);
-        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+        nqp::isnanorinf(pos)
+          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          !! self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
         self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
@@ -329,55 +356,70 @@ my class Any { # declared in BOOTSTRAP
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method ASSIGN-POS(**@indices) {
+    multi method ASSIGN-POS(Any:D: \one, \two, Mu \assignee) is raw {
+        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    }
+    multi method ASSIGN-POS(Any:D: \one, \two, \three, Mu \assignee) is raw {
+        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    }
+    multi method ASSIGN-POS(Any:D: **@indices) {
         my \value := @indices.pop;
         my $final := @indices.pop;
-        my $target := self;
-        for @indices {
-            $target := $target.AT-POS($_);
-        }
-        $target.ASSIGN-POS($final, value)
+        Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
     }
 
     proto method BIND-POS(|) { * }
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
-        my int $elems = @indices.elems;
-        my \value := @indices.AT-POS($elems - 1);
-        my $final := @indices.AT-POS($elems - 2);
+# looks like Array.pop doesn't really return a bindable container
+#        my \value := @indices.pop;
+#        my $final := @indices.pop;
+#        Rakudo::Internals.WALK-AT-POS(self,@indices).BIND-POS($final,value)
+
+        my int $elems = @indices.elems;   # reifies
+        my \value  := @indices.AT-POS(--$elems);
+        my $final  := @indices.AT-POS(--$elems);
         my $target := self;
-        my int $i = 0;
-        while $i < $elems - 2 {
-            $target := $target.AT-POS(@indices.AT-POS($i));
-            $i = $i + 1;
-        }
+        my int $i = -1;
+        $target := $target.AT-POS(@indices.AT-POS($i))
+          while nqp::islt_i(++$i,$elems);
+        X::Bind.new.throw if $target =:= self;
         $target.BIND-POS($final, value)
     }
 
-    method all() is nodal { Junction.new(self.list, :type<all>) }
-    method any() is nodal { Junction.new(self.list, :type<any>) }
-    method one() is nodal { Junction.new(self.list, :type<one>) }
-    method none() is nodal { Junction.new(self.list, :type<none>) }
+    method all()  is nodal { Junction.new("all", self) }
+    method any()  is nodal { Junction.new("any", self) }
+    method one()  is nodal { Junction.new("one", self) }
+    method none() is nodal { Junction.new("none",self) }
 
     # internals
     proto method AT-KEY(|) is nodal { * }
     multi method AT-KEY(Any:D: $key) is raw {
-        if self ~~ Associative {
-            fail "Associative indexing implementation missing from type {self.WHAT.perl}";
-        }
-        else {
-            fail "Type {self.WHAT.perl} does not support associative indexing.";
-        }
+        Failure.new( self ~~ Associative
+          ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
+          !! "Type {self.WHAT.perl} does not support associative indexing."
+        )
     }
-    multi method AT-KEY(Any:U \SELF: $key) is raw {
-        nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || (SELF = Hash.new);
-                 SELF.BIND-KEY($key, $v) });
-        $v
+    multi method AT-KEY(Any:U \SELF: \key) is raw {
+        nqp::p6bindattrinvres(
+          my $scalar,
+          Scalar,
+          '$!whence',
+          # NOTE: even though the signature indicates a non-concrete SELF,
+          # by the time the below code is executed, it *may* have become
+          # concrete: and then we don't want the execution to reset it to
+          # an empty Hash.
+          -> { nqp::if(
+                 nqp::isconcrete(SELF),
+                 SELF,
+                 (SELF = nqp::create(Hash))
+               ).BIND-KEY(key, $scalar)
+             }
+        )
     }
 
     proto method BIND-KEY(|) is nodal { * }
     multi method BIND-KEY(Any:D: \k, \v) is raw {
-        fail X::Bind.new(target => self.^name);
+        Failure.new(X::Bind.new(target => self.^name))
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
         SELF = Hash.new;
@@ -397,26 +439,41 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
-    # XXX GLR do these really need to force a list?
-    method Set()     is nodal {     Set.new-from-pairs(self.list) }
-    method SetHash() is nodal { SetHash.new-from-pairs(self.list) }
-    method Bag()     is nodal {     Bag.new-from-pairs(self.list) }
-    method BagHash() is nodal { BagHash.new-from-pairs(self.list) }
-    method Mix()     is nodal {     Mix.new-from-pairs(self.list) }
-    method MixHash() is nodal { MixHash.new-from-pairs(self.list) }
-    method Supply() is nodal { self.list.Supply }
+    proto method Set(|) is nodal { * }
+    multi method Set(Any:) { Set.new-from-pairs(self.list) }
+
+    proto method SetHash(|) is nodal { * }
+    multi method SetHash(Any:) { SetHash.new-from-pairs(self.list) }
+
+    proto method Bag(|) is nodal { * }
+    multi method Bag(Any:) { Bag.new-from-pairs(self.list) }
+
+    proto method BagHash(|) is nodal { * }
+    multi method BagHash(Any:) { BagHash.new-from-pairs(self.list) }
+
+    proto method Mix(|) is nodal { * }
+    multi method Mix(Any:) { Mix.new-from-pairs(self.list) }
+
+    proto method MixHash(|) is nodal { * }
+    multi method MixHash() { MixHash.new-from-pairs(self.list) }
+
+    # XXX GLR does this really need to force a list?
+    proto method Supply(|) is nodal { * }
+    multi method Supply() { self.list.Supply }
 
     method nl-out() { "\n" }
     method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
 
-    method sum() {
+    method sum() is nodal {
         my \iter = self.iterator;
         my $sum = 0;
         my Mu $value;
-        $sum = $sum + $value
-          until ($value := iter.pull-one) =:= IterationEnd;
+        nqp::until(
+          nqp::eqaddr(($value := iter.pull-one),IterationEnd),
+          ($sum = $sum + $value)
+        );
         $sum;
     }
 }
@@ -425,8 +482,12 @@ Metamodel::ClassHOW.exclude_parent(Any);
 # builtin ops
 proto sub infix:<===>(Mu $?, Mu $?) is pure { * }
 multi sub infix:<===>($?)    { Bool::True }
-multi sub infix:<===>($a, $b) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
+multi sub infix:<===>(\a, \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+      || (nqp::eqaddr(a.WHAT,b.WHAT)
+           && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
+    )
 }
 
 proto sub infix:<before>(Mu $?, Mu $?)  is pure { * }
@@ -514,23 +575,24 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
         }
     }
 
-    fail X::Adverb.new(
+    Failure.new(X::Adverb.new(
       :what<slice>,
       :source(try { SELF.VAR.name } // SELF.WHAT.perl),
       :unexpected(%d.keys),
       :nogo(@nogo),
-    );
+    ))
 } #SLICE_HUH
 
 sub DELETEKEY(Mu \d, str $key) {
-    if nqp::existskey(d,$key) {
-        my Mu $value := nqp::atkey(d,$key);
-        nqp::deletekey(d,$key);
-        $value;
-    }
-    else {
-        Nil;
-    }
+    nqp::if(
+      nqp::existskey(d,$key),
+      nqp::stmts(
+        (my Mu $value := nqp::atkey(d,$key)),
+        (nqp::deletekey(d,$key)),
+        $value
+      ),
+      Nil
+    )
 } #DELETEKEY
 
 sub dd(|) {
@@ -538,16 +600,18 @@ sub dd(|) {
     if nqp::elems($args) {
         while $args {
             my $var  := nqp::shift($args);
-            my $name := $var.VAR.?name;
+            my $name := try $var.VAR.?name;
             my $type := $var.WHAT.^name;
             my $what := $var.?is-lazy
-              ?? $var[^10].perl.chop ~ "...Inf)"
+              ?? $var[^10].perl.chop ~ "... lazy list)"
               !! $var.perl;
             note $name ?? "$type $name = $what" !! $what;
         }
     }
     else { # tell where we are
-        note .name ?? "{lc .^name} {.name}" !! "({lc .^name})"
+        note .name
+          ?? "{lc .^name} {.name}{.signature.gist}"
+          !! "{lc .^name} {.signature.gist}"
           with callframe(1).code;
     }
     return

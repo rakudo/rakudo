@@ -33,6 +33,7 @@ my class Symbols {
     has $!Routine;
     has $!Nil;
     has $!Failure;
+    has $!Seq;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -59,6 +60,7 @@ my class Symbols {
         $!Routine     := self.find_lexical('Routine');
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
+        $!Seq         := self.find_lexical('Seq');
         nqp::pop(@!block_stack);
     }
 
@@ -100,6 +102,7 @@ my class Symbols {
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
+    method Seq()         { $!Seq }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -388,18 +391,18 @@ my class Problems {
 
         # We didn't die from any Exception, so we print warnings now.
         if +%!worrying {
-            my $err := nqp::getstderr();
-            nqp::sayfh($err, "WARNINGS for " ~ $*W.current_file ~ ":");
+            my $err := stderr();
+            $err.say("WARNINGS for " ~ $*W.current_file ~ ":");
             my @fails;
             for %!worrying {
-                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                $err.print($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
                     join(', ', $_.value) ~ ")\n");
             }
         }
     }
 }
 
-# Implements analsyis related to variable declarations within a block, which
+# Implements analysis related to variable declarations within a block, which
 # includes lexical to local handling and deciding when immediate blocks may
 # be flattened into their surrounding block.
 my class BlockVarOptimizer {
@@ -723,7 +726,7 @@ my class JunctionOptimizer {
         }
         if $found == 1 {
             my $signature := $!symbols.find_in_setting("Signature");
-            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
+            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '@!params'));
             while $iter {
                 my $p := nqp::shift($iter);
                 unless nqp::istype($p.type, $!symbols.Any) {
@@ -936,9 +939,11 @@ class Perl6::Optimizer {
 
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
-        $vars_info.delete_unused_magicals($block);
-        $vars_info.delete_unused_autoslurpy();
-        $vars_info.simplify_takedispatcher();
+        if $!level >= 1 {
+            $vars_info.delete_unused_magicals($block);
+            $vars_info.delete_unused_autoslurpy();
+            $vars_info.simplify_takedispatcher();
+        }
 
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
@@ -976,7 +981,9 @@ class Perl6::Optimizer {
         }
 
         # Do any possible lexical => local lowering.
-        $vars_info.lexical_vars_to_locals($block);
+        if $!level >= 2 {
+            $vars_info.lexical_vars_to_locals($block);
+        }
 
         # Incorporate this block's info into outer block's info.
         @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)
@@ -1050,7 +1057,7 @@ class Perl6::Optimizer {
         note("method visit_op $!void_context\n" ~ $op.dump) if $!debug;
         # If it's a QAST::Op of type handle, needs some special attention.
         my str $optype := $op.op;
-        if $optype eq 'handle' {
+        if $optype eq 'handle' || $optype eq 'handlepayload' {
             return self.visit_handle($op);
         }
         elsif $optype eq 'locallifetime' {
@@ -1059,7 +1066,7 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
-        if $optype eq 'p6for' && $op.ann('context') eq 'sink' && @($op) == 2 {
+        if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && @($op) == 2 {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
@@ -1258,7 +1265,7 @@ class Perl6::Optimizer {
                     $op.shift; # The QAST::WVal of the routine
                     return $op;
                 }
-                if nqp::eqat($last_op, '_i', -2) || 
+                if nqp::eqat($last_op, '_i', -2) ||
                       nqp::eqat($last_op, '_n', -2) ||
                       nqp::eqat($last_op, '_s', -2) {
                     return $value;
@@ -1284,8 +1291,11 @@ class Perl6::Optimizer {
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
-        # a p6bool if there's already an integer result behind it.
-        elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+        # a p6bool if there's already an integer result behind it. For if/unless,
+        # we can only do that when we have the `else` branch, since otherwise we
+        # might return the no-longer-Bool value from the conditional.
+        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
             while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {
@@ -1376,10 +1386,10 @@ class Perl6::Optimizer {
                 if $op.name eq '&infix:<,>' {
                     if +@($op) {
                         # keep void setting to distribute sink warnings
-                        try self.visit_children($op);
+                        try self.visit_children($op, :void_default($!void_context));
                     }
                     elsif $!void_context {
-                        my $suggest := ($op.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($op.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         my $warning := qq[Useless use of () in sink context$suggest];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);
@@ -1408,7 +1418,20 @@ class Perl6::Optimizer {
                         last;
                     }
                 }
-                
+
+                # Don't constant fold the 'x' operator if the resulting string would be too big.
+                # 1024 is just a heuristic, measuring might show a bigger value would be fine.
+                if $all_args_known && $op.name eq '&infix:<x>' && $!symbols.is_from_core('&infix:<x>') {
+                    my int $survived := 0;
+                    my int $size;
+                    try {
+                        $size := @args[0].chars * @args[1];
+                        $survived := 1;
+                    }
+
+                    return $op if $survived && $size > 1024;
+                }
+
                 # If so, attempt to constant fold.
                 if $all_args_known {
                     my int $survived := 0;
@@ -1420,7 +1443,7 @@ class Perl6::Optimizer {
                             $survived := 0;
                         }
                     }
-                    if $survived && !nqp::istype($ret_value, $!symbols.Failure) {
+                    if $survived && self.constant_foldable_type($ret_value) {
                         return $NULL if $!void_context && !$!in_declaration;
                         $*W.add_object($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
@@ -1449,6 +1472,9 @@ class Perl6::Optimizer {
                             return $want;
                         }
                         return $wval;
+                    } elsif $survived && nqp::istype($ret_value, $!symbols.Failure) {
+                        # Disarm the failure so it doesn't output its warning during GC.
+                        $ret_value.Bool();
                     }
                 }
             }
@@ -1552,12 +1578,19 @@ class Perl6::Optimizer {
         return NQPMu;
     }
 
+    method constant_foldable_type($value) {
+        !(
+            nqp::istype($value, $!symbols.Seq) ||
+            nqp::istype($value, $!symbols.Failure)
+        )
+    }
+
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
         if +@($op) > 0 {
             # if we know we're directly calling the result, we can be smarter
             # about METAOPs
-            my $is_var := 0;
+            my int $is_var := 0;
             if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
                 if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
                     if nqp::istype($metaop[0], QAST::Var) {
@@ -1567,15 +1600,18 @@ class Perl6::Optimizer {
                             || (nqp::istype($op[1], QAST::Op)
                                 && ($op[1].op eq 'callmethod'
                                     || ($op[1].op eq 'hllize'
-                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod'))) {
+                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod')
+                                    || $op[1].op eq 'call' || $op[1].op eq 'callstatic')) {
                             my str $assignop;
                             my $assignee;
                             my $assignee_var;
+                            my int $is-always-definite;
                             if $is_var {
                                 my str $sigil := nqp::substr($op[1].name, 0, 1);
 
                                 if nqp::objprimspec($op[1].returns) -> $spec {
                                     $assignop := @native_assign_ops[$spec];
+                                    $is-always-definite := 1;
                                 } elsif $sigil eq '$' {
                                     $assignop := 'assign';
                                 } else {
@@ -1611,12 +1647,31 @@ class Perl6::Optimizer {
                             $op.pop;
 
                             $op.push($assignee);
-                            $op.push(QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                QAST::Op.new( :op('if'),
-                                    QAST::Op.new( :op('p6definite'), $assignee_var),
+
+                            my $call := 'call';
+                            my $obj;
+                            try {
+                                $obj := $!symbols.find_lexical($metaop[0].name);
+                            }
+                            if $obj {
+                                my $scopes := $!symbols.scopes_in($metaop[0].name);
+                                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                                    $call := 'callstatic';
+                                }
+                            }
+
+                            if ($is-always-definite) {
+                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
                                     $assignee_var,
-                                    QAST::Op.new( :op('call'), :name($metaop[0].name) ) ),
-                                $operand));
+                                    $operand));
+                            } else {
+                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
+                                    QAST::Op.new( :op('if'),
+                                        QAST::Op.new( :op('p6definite'), $assignee_var),
+                                        $assignee_var,
+                                        QAST::Op.new( :op($call), :name($metaop[0].name) ) ),
+                                    $operand));
+                            }
 
                             if $assignop ne 'assign' && nqp::objprimspec($assignee.returns) {
                                 $op.returns($assignee.returns);
@@ -1630,7 +1685,7 @@ class Perl6::Optimizer {
                                 $op[1],
                                 $op[2]) );
                 } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+                    return NQPMu unless nqp::istype($metaop[0], QAST::Var) && +@($op) == 3;
                     return QAST::Op.new( :op('call'), :name($metaop[0].name),
                                 $op[2],
                                 $op[1]);
@@ -1660,7 +1715,7 @@ class Perl6::Optimizer {
             else {
                 $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
                     :private(nqp::p6bool(1)), :method($name),
-                    :typename($pkg.HOW.name($pkg)));
+                    :typename($pkg.HOW.name($pkg)), :invocant($pkg));
             }
         }
     }
@@ -1677,7 +1732,6 @@ class Perl6::Optimizer {
             my $callee_var := QAST::Node.unique('range_callee_');
             $op.shift while $op.list;
             $op.op('stmts');
-            $op.annotate('range_optimized', 1);
             $op.push(QAST::Stmts.new(
                 QAST::Op.new(
                     :op('bind'),
@@ -1732,9 +1786,13 @@ class Perl6::Optimizer {
         # If it's the sink context void node, then only visit the first
         # child. Otherwise, see all.
         if +@($want) == 3 && $want[1] eq 'v' {
+            my $sinker := $want[2];
+            my int $tweak_sinkee := nqp::istype($sinker, QAST::Op)
+                && $sinker.op eq 'p6sink'
+                && $sinker[0] =:= $want[0];
             self.visit_children($want, :first);
-            if $want[0].ann('range_optimized') {
-                $want[2] := $want[0];
+            if $tweak_sinkee {
+                $want[2][0] := $want[0];
             }
         }
         else {
@@ -1763,7 +1821,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
-                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.ann('okifnil');
+                $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);
             }
@@ -1799,14 +1857,14 @@ class Perl6::Optimizer {
         }
 
         # Warn about usage of variable in void context.
-        if $!void_context && !$decl && $var.name && !$var.ann('sink_ok') {
+        if $!void_context && !$decl && $var.name && !$var.sinkok {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $name  := try $!symbols.find_lexical_symbol($var.name)<descriptor>.name;
             $name         := $var.name unless $name;
             my str $sigil := nqp::substr($name, 0, 1);
             if $name ne "Nil" && $name ne 'ctxsave' {  # (comes from nqp, which doesn't know about wanted)
-                my $suggest := ($var.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                my $suggest := ($var.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                 my $warning := nqp::index(' $@%&', $sigil) < 1
                     ?? "Useless use of $name symbol in sink context$suggest"
                     !! $sigil eq $name
@@ -1855,7 +1913,7 @@ class Perl6::Optimizer {
             try $ok_type := nqp::istype($type, $!symbols.Mu) &&
                 $type.HOW.archetypes.nominal();
             unless $ok_type {
-                # nqp::ops end up labeled with nqp primtive types; we swap
+                # nqp::ops end up labeled with nqp primitive types; we swap
                 # those out for their Perl 6 equivalents.
                 my int $ps := nqp::objprimspec($type);
                 if $ps >= 1 && $ps <= 3 {
@@ -1944,15 +2002,15 @@ class Perl6::Optimizer {
                 $!in_declaration := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::can($visit,'ann') {
-                    if $visit.ann('WANTED') { $!void_context := 0 }
-                    elsif $visit.ann('context') eq 'sink' { $!void_context := 1 }
-                    elsif $visit.ann('final') {
+                    if $visit.wanted { $!void_context := 0 }
+                    elsif $visit.sunk { $!void_context := 1 }
+                    elsif $visit.final {
                         note("Undecided final " ~ $node.HOW.name($node)) if $!debug;
                         $!void_context := 0;  # assume wanted
                     }
                 }
                 else {
-                    note("Non-QAST node visited " ~ $visit.HOW.name($visit));
+                    note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -1974,15 +2032,17 @@ class Perl6::Optimizer {
                     my int $resultchild := $visit.resultchild // +@($visit) - 1;
                     if $resultchild >= 0 {
                         self.visit_children($visit, :$resultchild,:void_default);
-                        if !nqp::can($visit,'returns') { note("Child can't returns! " ~ $visit.HOW.name($visit)); next }
-                        if !nqp::can($visit[$resultchild],'returns') { note("Resultchild $resultchild can't returns! " ~ $visit[$resultchild].HOW.name($visit[$resultchild]) ~ "\n" ~ $node.dump); next; }
-                        $visit.returns($visit[$resultchild].returns);
-                        if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
-                            if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
-                                # Lexotic in something making no calls, which
-                                # means there's no way to use it.
-                                $node[$i] := $visit[0][0];
-                            }
+                        if !nqp::can($visit,'returns') {
+                            note("Child can't returns! " ~ $visit.HOW.name($visit)) if $!debug;
+                        }
+                        elsif !nqp::can($visit[$resultchild],'returns') {
+                            note("Resultchild $resultchild can't returns! " ~
+                                $visit[$resultchild].HOW.name($visit[$resultchild]) ~
+                                "\n" ~ $node.dump)
+                                if $!debug;
+                        }
+                        else {
+                            $visit.returns($visit[$resultchild].returns);
                         }
                     }
                 }
@@ -1994,7 +2054,7 @@ class Perl6::Optimizer {
                     if $!void_context && $visit.has_compile_time_value && $visit.node {
                         my $value := ~$visit.node;
                         $value := '""' if $value eq '';
-                        my $suggest := ($visit.ann('okifnil') ?? ' (use Nil instead to suppress this warning)' !! '');
+                        my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                         unless $value eq 'Nil' {
                             my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
                             note($warning) if $!debug;
@@ -2012,7 +2072,7 @@ class Perl6::Optimizer {
                       nqp::istype($visit, QAST::VM)
                 { }
                 else {
-                    note("Weird node visited: " ~ $visit.HOW.name($visit));
+                    note("Weird node visited: " ~ $visit.HOW.name($visit)) if $!debug;
                 }
             }
             $i               := $first ?? $n !! $i + 1;
@@ -2120,7 +2180,7 @@ class Perl6::Optimizer {
         }
         $inlined.node($call.node);
 
-        # Do an optimzation pass over the inlined code.
+        # Do an optimization pass over the inlined code.
         $!symbols.faking_top_routine($code_obj,
             { self.visit_children($inlined) });
 
@@ -2145,7 +2205,7 @@ class Perl6::Optimizer {
                     $call.unshift(QAST::Op.new(
                         :op('atpos'),
                         QAST::Var.new(
-                            :name('$!dispatchees'), :scope('attribute'),
+                            :name('@!dispatchees'), :scope('attribute'),
                             QAST::Var.new( :name($call.name), :scope('lexical') ),
                             QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
                         ),
@@ -2186,7 +2246,7 @@ class Perl6::Optimizer {
                         my int $aref  := $scope eq 'attributeref';
                         if $lref || $aref {
                             my $Signature := $!symbols.find_in_setting("Signature");
-                            my $param := nqp::getattr($sig, $Signature, '$!params')[$p];
+                            my $param := nqp::getattr($sig, $Signature, '@!params')[$p];
                             if nqp::can($param, 'rw') {
                                 unless $param.rw {
                                     $arg.scope($lref ?? 'lexical' !! 'attribute');

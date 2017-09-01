@@ -1,12 +1,14 @@
 my class Duration is Cool does Real {
-    has Rat $.tai = 0;
+    has Rat $.tai is default(0.0);
       # A linear count of seconds.
 
-    method new($tai) { self.bless: tai => $tai.Rat }
+    method new($tai) {
+        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$tai.Rat)
+    }
 
-    method Bridge(Duration:D:) { $!tai.Num }
-    method Rat(Duration:D:)    { $!tai     }
-    method Num(Duration:D:)    { $!tai.Num }
+    method Bridge(Duration:D:) { $!tai.Num    }
+    method Num   (Duration:D:) { $!tai.Num    }
+    method Rat   (Duration:D:) { $!tai        }
     method narrow(Duration:D:) { $!tai.narrow }
 
     multi method Str(Duration:D:) { ~$.tai }

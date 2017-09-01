@@ -1,3 +1,1811 @@
+New in 2017.08:
+ + Security:
+    + Removed '.' and 'blib' from nqp's default module search paths [7e403724]
+        [a331c804][1eeb9434]
+ + Fixes:
+    + Fixed IO::Path.new with 0 allomorph [45cd1a97]
+    + Fixed erroneous closing of standard handles in DESTROY [0e578c4f]
+    + Fixed handling of already existing .moarvm files during install [02667bd8]
+    + Fixed --ll-exception [559c9255]
+    + Fixed native callbacks called from other threads [b81597bd][1d941643]
+    + Fixes concat with combining codepoints and repetitions [1f7fa683]
+    + Fixed TODO test handling inside TODOed subtests [5b77a8aa]
+    + Fixed formatting of X::Numeric::DivideByZero [3f99d1d0]
+    + Fixed potential concat issue [3028466c]
+    + Fixed null handling in List.join [9b5cce0a]
+    + Fixed handling of default values in Array [12d7d5b4][2fb8c725]
+        [0970ba33][ccaa0665]
+    + Fixed error message for postcircumfix [ ] called with a type object [1a74a8c3]
+    + Made .unique|repeated|squish return containers if applicable [51e59eeb]
+    + Fixed string comparison issues [0564891e]
+    + Fixed is-lazy of iterators created with R:I.FromIndexes [4db23064]
+    + Fixed pull-one of iterators created with R:I.MonotonicIndexes [0c19f549]
+    + Fixed compiler explosion with import statement [3e078d4d]
+    + Fixed is default() trait on Attributes [a7d2ad1d][148ba7f2]
+    + Made sure to stop socket reader on close [21359560]
+    + Fixed missing tap closes in `whenever` [59f4123e]
+    + Fixed missing tap closes in Supply [c59b9867]
+    + Fixed potential memory leak of supply/react [5fcce673]
+    + Fixed Mix.roll with fractional weights [a91ad2da]
+    + Fixed reproducibility of RAKUDO_MODULE_DEBUG output [ec7bc25c]
+    + Fixed Pair.WHICH [4f1322d0][c229022c]
+    + Fixed ignoremark issues [7b81f0f9][a3b95749]
+    + Fixed bad assumption about methods being closures [231cb3f5]
+    + Stopped hllizing and sinking the result of .+, .* and .= method calls [2b8115f0]
+    + Fixed native shaped array index to return l-value [61e1f4d5]
+    + Fixed handling of test descriptions with new lines [9303a6e4]
+    + Fixed wrongful escaping of `# SKIP` TAP instruction [eb529f14]
+    + Fixed returned exit code when running a MAIN script with --help [fcf61f7b]
+    + Various improvements to produced messages [9b31d1f5][998535ed]
+        [6d3ba60c][365a1d08][cff51ea1]
+ + Additions:
+    + Added Buf subbuf-rw method [d7af4aeb]
+    + Added ACCEPTS method to Map to compare Maps [45ca084e]
+    + Treat :ver<...> like a version instead of a string [247fc649]
+    + Improved Version smart match with different lengths [01dbd874]
+    + Added new peer/socket host/port values in async sockets [76af17a8]
+    + Added .Complex coercion method to Cool [c9de2184]
+    + Added atomic operations (⚛) [9b1e252a][92707fac][c67d7dd5][ca8aafc1]
+ + Build system:
+    + Added --libdir option to Configure.pl [e4d65ac9]
+    + Fixed quotes for windows [90a0f2e0]
+    + Added 'install' test target on appveyor [9c0d40ab]
+ + Efficiency:
+    + Made `$s (-) $s (-) $s` on a 26 elem set about 1.5x faster [d7fcb314]
+    + Made .Str and .perl 2x faster, .gist 1.4x faster (on a ^100 .Set) [5b6cd406]
+    + Made .Str 30% faster, .perl 2x faster (on a ^100 .Bag) [21b9a720]
+    + Made string concatenation more efficient [1f7fa683]
+    + Made Mixy.roll up to 2x faster [d3f260c9][e2ca1ffa]
+    + Made Baggy.roll up to 1.5 faster [e548b743]
+    + Made Baggy.roll(N) about 1.5x faster [752a3265]
+    + Made List.roll(*) about 1.5x faster [b147217e]
+    + Made .unique(:as) 3% faster [a636fa8f]
+    + Made .unique(:with) about 4x faster [47d9bd9b]
+    + Made .unique(:with(&[===])) about 20% faster [26789cc7]
+    + Made .unique(:as,:with) about 12x faster [acf9f90d]
+    + Made .repeated(:with) about 4x faster [d9056207][c3851aee]
+    + Made .repeated(:as,:with) about 12x faster [a3a3d1a9][32ce4afd]
+    + Made .pairup about 1.5x faster [8f73d77b]
+    + Made .codes 350% faster for short strings [3c6277c7][e051dd2d][4eff4919]
+    + Various improvements made by using `is default` on attributes [08f705b9]
+        [d0419a0f][9f5686ec][c8c5c712][40d5b27d][fb5db592][413b7116][fbdbe6fb]
+    + Made Map eqv Map about 10% faster [15b2596e]
+    + Decreased the cost of Supply block teardown [5d200f1e]
+    + Saved 2 method calls per NativeCall call [aca4b941]
+    + Speeded up NativeCall by replacing the subroutine code in setup [46ef1b5b][9a0afcbc]
+    + Speeded up NativeCall subs by compiling specialized subroutine body [cd7dc4ce]
+ + Internal:
+    + Introduced Mixy!total-positive [f49c49bb][ccf6da9e]
+    + Set debug_names of DefiniteHOW and CoercionHOW types [b22d189e][c040f1a6]
+    + Simplified `infix:<(+)>(**@p)` and `infix:<(.)>(**@p)` [d82db18f][a0775e5e]
+    + Ensured Scalar fetch can never return a NULL [2f5a6cd9]
+    + Changed RAW-KEYS to create iterator early [710fa800]
+    + Made sure Setty at least has a R:I:IterationSet type object [2dd5963c]
+    + Made R:I:Mappy roles also take IterationSets [ab08bd04]
+    + Made Setty.values use R:I.Mappy-values directly [250ae102]
+    + Made R:I:Mappy* roles use a more abstract name for low-level hash [b7953d0d]
+    + Retired R:Q:Quanty in favor of R:I:Mappy [d9055e80]
+    + Introduced R:Q.RAW-VALUES-MAP [923c32e6]
+    + Simplified the .Seq coercer [5d89cef9]
+    + Changed Baggy to no longer use HLL hash internally [fb7ecb60]
+    + Changed Supply implementation to use iteration, not recursion [ed87f998]
+    + Added tests for native int as index to CArray [6cc858a0]
+    + Simplified Hash creation for auto-vivification [84d052a0]
+    + Various spesh, JIT, GC and other improvements [86cb1363][8bed4a67]
+        [9658dd98][c1e41f9f][f590863e][4561c269][947376e2][1455a03b]
+    + Introduced R:I.TwoValues [20e93d89][50f0508f]
+    + Fixed some issues with R:I.OneValue [3ad33469]
+    + Streamlined the standard Seq methods on Pair [30584dac]
+
+New in 2017.07:
+ + Deprecations:
+    + Deprecate `(<+)` ≼ `(>+)` ≽ in favor of `(<=)` ⊆ `(>=)` ⊇ [35cc7c0e]
+ + Fixes:
+    + Fixed perl6-debug-m debugger [6d4691fb]
+    + Fixed finding proper %?RESOURCES for non-lib CURFS [71ffb164]
+    + Fixed Mixy (-) Mixy behaviour for missing keys [4a37de7b]
+    + Fixed Mixy.Setty coercion [b31b159c]
+    + Fixed .perl of empty Bag and Mix [f72c97cb]
+    + Fixed crash on dotless version literals given to `use` [fe7ea124]
+    + Fixed various coercion related issues with (-) [19a1caa3]
+    + Fixed Baggy/Mixy (-) Any/Iterable [a2133dbc]
+    + Made sure we catch lazy lists on right of (-) and (|) [62d54c75][c16334e5]
+    + Fixed mix() (-) `<a b c>.Mix` [c727462c]
+    + Fixed multi-dispatch with numeric literals and native types [1c0ed61a]
+    + Fixed enum.Real coercion [ad9ed1cb][c226b71a]
+    + Fixed (:e).Bag|Mix coercion using a Bool as a weight instead of just Int [d765f186]
+    + Fixed outstanding issues with coercions done by (+) [c7922f14]
+    + Fixed a data race in Proc::Async [2a8d1e7c]
+    + Fixed `(&)`'s handling of lazy lists [cb06ebac]
+    + Made set ops properly handle lazy lists [04746490][3058ba0d]
+    + Made sure unhandled failures don't coerce QuantHashy [43fc751b]
+    + Fixed sprintf octal format with precision [d7e10466]
+    + Fixed 'is export' on constants assigned to routines [d067abf4]
+    + Fixed Deprecation.report case where "removed" is set and "from" isn't [1b6d048b][e20817fb]
+    + Fixed crash in coercers used with sigilless vars [c76d9324]
+    + Made sure IO::Socket passes a list to set-line-separators [a2090821]
+    + Prioritized .pm6 extension over .pm when files with both extensions exist [e1e9091f]
+    + Fixed SEGV in Proc::Async.new [f6d4fbd2]
+    + Fixed a few edge cases of (^) wrt QuantHash type permutations [b3916926]
+    + Fixed regression in Map intialized with `<...>` having writable containers [4894a75d]
+    + Fixed overflow in uniprop lookups [4f5a1e20]
+    + Made improvements to segmentation of Emoji w/ GCB=Other [4f5a1e20]
+    + Fixed break after ZWJ for Emoji=True + GCB=Other [4f5a1e20]
+    + Removed faulty Iterable (^) Iterable candidate [4c91b522]
+    + Fixed faulty Map (^) Map candidate [8afbfe6f]
+    + Fixed inconsistent semantics in `<a b>.Bag (<) <a b b>.Bag` [4b8bc617]
+    + Fixed unwanted de-Bool during optimization of some constructs [83e15701]
+    + Fixed handling of actions in .refine_slang [c40a2122]
+    + Fixed baggy semantics of Mix `(<)` Mix [a526d839]
+    + Fixed semantics of `mix() (^) (a=>-42).Mix` [8d5f3324]
+    + Fixed precomp deps left open when up-to-date check failed [37250ed5]
+    + Properly implemented Baggy semantics for `(<=)` and `(<)` [4101581d][c6cc1a7a]
+    + Fixed handling of `[(^)]` with absentee keys and Mixies correctly [0c02f93e]
+    + Fixed faulty dynamic cache invalidation in continuations [d74ebd82]
+    + Fixed issues with calling `infix:<⊖>` with more than 2 params [aee4a46c]
+    + Fixed Proc :merge [c86090e3]
+    + Made sure we call done/quit on all taps [32b72cda]
+    + Ensured empty string PERL6LIB var does not get interpreted as `.` [075ddefa]
+    + Fixed floating point noise in denominator of Rat literals [f6e25b54]
+    + Fixed .getc and .readchars reading too much at EOF [80bbfcdd][49f555a2][f6279c34]
+    + Fixed SEGV and memory leak in MoarVM that impacted parameter destructuring [f6279c34]
+    + Made `exit()` coerce its argument to Int [caa9ef81]
+    + Made IO::Handle.new coerce `:path` to IO [fec90956]
+    + Various improvements to warnings and error reporting [bde28209][06379113][d5d3bd27]
+        [d39f7b9a][1dda8622][d74ebd82][88acdbb7]
+ + Additions:
+    + Added full Unicode 9.0 and Emoji 4.0 text segmentation support [c40a2122]
+    + Implemented tentative API for custom user encoder support [d0995f68][5ab4036e]
+    + Implemented experimental buffering support in IO::Handle [86e7b2bd]
+    + Collation object updated to work with new unicmp_s semantics [4da85879][47678077]
+    + Allow getting native descriptor in Proc::Async [82301128]
+    + Re-worked Proc so :in($p1.out) will plumb file descriptors [6dae179a][abfd7d95]
+    + Added plumbing stdout/stderr to stdin in Proc::Async [11b02d2c]
+    + Allow for "does Rational" and "does Rational[foo]" [41ed2c03]
+    + Added `%*SUB-MAIN-OPTS` [40b0169d][da6c6584]
+    + Implemented baggy semantics of `(<)` and `(<=)` [75797af3]
+    + Added perl6-lldb-m for debugging MoarVM on the LLVM debugger [00dc4947]
+ + Efficiency:
+    + Made Baggy (-) Baggy about 100x faster [2a88c20c]
+    + Made [(^)] Set, Set, Set about 35x times faster [0cdd6c25]
+    + Made Setty (-) Setty at least 20x faster [10f840fc]
+    + Made .BUILD/.TWEAK calls 15x faster when ther are no args to .new [43c1767b]
+    + Made (Bag|Mix).WHICH about 8x faster [b2d2bf59][c585f370][d8c94353]
+    + Made Map (+) Map between 3x and 6x faster [495fb5f8]
+    + Made Baggy eqv Baggy upto 3.5x faster [49b1b03b]
+    + Made Setty.ACCEPTS(Setty) about 3.5x faster [93d81d61][48c18f58][1ab4fd80]
+    + Made Map.(Bag|Mix) 2.5x to 5x faster [72e5d614]
+    + Made Setty eqv Setty between 2x and 3.5x faster [25047984]
+    + Made Setty (-) Map between 2x and 3x faster [9936a3be]
+    + Made Setty (-) Iterable about 3.5x faster [b66d8783]
+    + Made Str.subst(Str,Str) upto 3x faster [327c8409]
+    + Made Setty (+) Map about 2.5x faster [201a0bfb]
+    + Made Any (-) Map|Iterable about 2x faster [e4f3358f]
+    + Made Mix (+) Mix about 1.5x faster [d1838461]
+    + Made Baggy (-) Baggy about 1.5x faster [36823ab1]
+    + Made starting of installed scripts 46% faster [92f8abe0][4693ec86]
+    + Made Baggy.keys about 40% faster [c65652d8]
+    + Made Iterable (+) Iterable about 20% faster [38509227]
+    + Made Setty (-) Setty about 20% faster [bacaa051]
+    + Made internal nqp::index op used by many string operations 16% faster [4f5a1e20]
+    + Made Setty.(Bag|Mix) about 5% faster [ae4c04ce]
+    + Made Str:D (elem) Map 3%-10% faster [099a84b4]
+    + Made Stash.AT-KEY a few percent faster [2ce5b678]
+    + Gave Nil methods a much more efficient "take any args" signature [9a2127f2]
+    + Made Exception messages created only when gisting [1a4d9493]
+    + Made Any.tail() use iterator's .count-only if available [9c04dfc4]
+    + Reduced cases when string concatenation needs renormalization [c40a2122]
+    + Improve the speed of Unicode normalization [c40a2122]
+    + Made all non-Texas set operators aliases where possible [f6025eb9]
+    + Simplified `infix:<(|)>(**@)` candidate [46e009bf]
+    + Fixed various VM errors in CallFrame. [e2ec7bdf]
+    + Improved speed of `try` when exceptions are caught [1a4d9493]
+    + Assorted internal improvements to CPU/memory use [3d2a521c][5a80412c][c4e14731][19be8722]
+        [f03a176c][fff43337][f71cbed4][79ce1a99][640404fc][b4561229][30619e8d][9d14a724][a2a0d5c6]
+        [66aef589][a95c70bd][d7e10466][73c3bcc6][7f109ed7][80b3e89b][05c255c1][2fb109f1][c0eeebde]
+
+New in 2017.06:
+ + Fixes:
+    + Fixed incorrect auto-boxing to native candidates in multi dispatch [ccfa5e51]
+    + `^Inf .elems` now fails instead of returning Inf [20310d7d]
+    + Made IO::Handle.print/.put signature consistent [613bdcf8]
+    + Made sure that Setty:U is treated like any type object [ad8fa552]
+    + Fixed behaviour of set() `(<)` X.Set [e6506bfd]
+    + Made sure VM.osname always returns lowercase string [122aca1c]
+    + Fixed List.Capture with non-Str-key Pairs [5b25836f]
+    + Fixed inconsistency in .Int on zero-denominator Rats [6dbe85ed]
+    + Fixed crash in smartmatch of non-Numerics with Numeric [43b03fc6]
+    + Fixed occasional Windows file permission issues with installation of modules [8ec4dc5b]
+    + Fixed crash in `X` operator used with empty List [9494cbd3]
+    + Fixed spurious warnings/crash with certain `=para` Pod blocks [5e339345][807d30c2]
+    + Fixed output of `CArray[Pointer].^shortname` [1ed284e2]
+    + Fixed crash in Test.pm6's bail-out when used before tests [cb827606]
+    + Fixed object Hash -> Set coercion failing to consider values [160de7e6]
+    + Fixed Seq.perl for containerized Seqs [b22383fe]
+    + Fixed Proc::Async.new not slurping first positional [92c187d2]
+    + Fixed Proc::Async.kill failing to kill sometimes [99421d4c]
+    + Fixed hang in deepmap with Iterable type objects [252dbf3a]
+    + Fixed crash when Junctioning empty array after .elems'ing it [aa368421]
+    + Fixed crashes/LTA errors in Junction.new w/wrong args [61ecfd51]
+    + Fixed `infix:<orelse>` calling .defined one too many times [77d3c546]
+    + Made `fail` re-arm handled Failures given as arguments [64e898f9]
+    + Fixed output of IO::Special.perl [7344a3d2]
+    + Made IO::Handle.open with path '-'.IO properly handle non-default `$*OUT`/`$*ERR` [3755c0e7]
+    + Fixed Promise.then to not lose dynamic variables [36bc4102]
+    + Fixed allomorph smartmatching with Str values [8a0b7460]
+    + Fixed IO::Path.extension with Range `:parts` when endpoints were excluded [8efffb1d]
+    + Made coercion of lazy Iterable to Setty fail [211063c7]
+    + Made Mixy/Baggy.new-from-pairs with a lazy Iterable fail [c9dfa840][e5719d6a]
+    + Fixed byte.Range returning an incorrect range [af85d538]
+    + Fixed edge-cases (e.g. Nan/Inf) in Mixy.roll [fb9e1a87]
+    + Made sure that Mixy types only take Real values [7fa85682]
+    + Fixed incorrect results in ignorecase+ignoremark regex matches [1ac7996a]
+    + Fixed issues with `$*CWD` inside &indir when using relative paths [9151ebaa][326faed6]
+    + Fixed crash with Seq:U.List [5c56e9e7]
+    + Fixed various issues with Map `(<=)` Map [e1563a76]
+    + Fixed various issues with Map `(<)` Map [b03d8044]
+    + Fixed 4 cases of crashes with labeled `next` [3b67b4ac]
+    + Made Proc.status/Numeric/Bool/exitcode/sink wait for Proc to be done [e4468c61]
+    + Fixed Pair.perl with type-object components [c6b03c45]
+    + Fixed bad shell quoting in Proc::Async on Windows [e9b30933]
+    + Fixed crash when RAKUDO_MODULE_DEBUG was set to a non-numeric value [96e6b338]
+    + Fixed Kernel.signals on OpenBSD [9435c14e]
+    + Various improvements to warnings and error reporting [1c16bf2e][85bef661][e22508d4]
+        [b6694bd0][ec51e73f][f2fca0c8][f9403b3b][86fe766a][c81b7a4b][7cf01296][fb7dd8a4]
+        [7783fcab][9bf3ea3a][02614f64][e538cbc5][86c3d7aa][c2497234][b0a1b6c3][97298aca]
+        [69b1b6c8][5e037736][e824266f]
+ + Additions:
+    + Implemented IO::CatHandle [5227828a]
+    + Implemented support for merged STDOUT/ERR output Proc and Proc::Async [ac31c5df][05d8b883]
+    + Implemented Complex.cis [a243063c]
+    + Implemented Failure.self [0a100825]
+    + Implemented Any.Seq [5c56e9e7]
+    + Improved consistently to have .Supply on a type object it as Supply [52d39576]
+    + Slightly changed IO::Handle.encoding; Nil now means 'bin'
+        [95b4e5d5][27f09e9d][9c0362cb][51c73ba0]
+    + Gave `(<=)` Baggy and Mixy semantics for Bags/Mixes [b1d83f9d]
+    + Makde `use lib` accept IO::Path objects [3ff29d42]
+    + Added IO::Socket.nl-out attribute [12d31e36]
+    + Added Setty.pickpairs [e3695b16]
+    + Added Str type constraints to IO::Spec::Win32 .join and .catpath [232cf190]
+    + Made it possible to call &prompt with no args [0646d3fa]
+    + Made IO::Socket::INET update localport if it binds on port 0 [bc98e671]
+    + Improved support for Unicode properties `Prepend` and `Regional Indicator` [56e71d59]
+    + Gave IO::Handle.read default value for size arg [b7150ae1][aa9516be]
+    + Added default output for Mu.WHY [23d6d42d][cc4d9091]
+    + Added support for binding to standard handles in Proc::Async [6b2967d7]
+    + [JVM] Implemented Proc::Async [5154b620]
+ + Removals:
+    + Removed TAP.pm6 from core. Available as `TAP::Harness` in the ecosystem [ae891f93]
+    + Removed all methods from IO::ArgFiles and made it a subclass of IO::CatHandle [f539a624]
+    + Removed IO::Socket::INET.ins [75693b0b]
+    + Removed NYI IO::Socket.poll method [cb404c43]
+ + Efficiency:
+    + Made Any (elem) Iterable:D between 1.3x and 110x faster [e65800a8]
+    + Made `(<=)` and `(>=)` about 50x faster [32eb285f]
+    + Made IO::Spec::Win32.catpath 47x faster [7d6fa739]
+    + Made `(<)` and `(>)` about 40x faster [431ed4e3]
+    + Made IO::Spec::Win32.join 26x faster [494659a1]
+    + Made IO::Spec::Win32.splitdir 25x faster [2816ef71]
+    + Made Map `(<=)` Map about 15x faster [0cb4df44]
+    + Made Map `(<)` Map about 15x faster [f6f54dcf]
+    + Made Str.subst(Str) without :g 14x faster [0331fb9d]
+    + Made Setty.roll about 11x faster [e6192ca8]
+    + Made IO::Spec::Unix.splitdir 7.7x faster [6ca702fa]
+    + Made invocation of Proc.spawn and &run 4.6x faster [93524fb9]
+    + Made SetHash.grab(N) about 3.5x faster [67292a1e]
+    + Made SetHash.grabpairs(N) about 3.5x faster [0e9ee0d1]
+    + Made invocation of Blob.decode() 2.7x faster [222b4083]
+    + Made Baggy/Mixy.(hash|Hash) about 2.5x as fast (on a 26 elem Bag/Mix) [06cd0bc3]
+    + Made Setty.roll(N) about 2x faster [18dd0741]
+    + Made Setty.pick about 2x faster [10e9c8ba]
+    + Made Set.new(@a) about 2x faster [b55a0f16]
+    + Made Baggy.new(@a) about 2x faster [11f27a30]
+    + Made SetHash.grab about 1.8x faster [d28540be]
+    + Made Str:D (elem) Map:D 1.3x faster [b43303f2]
+    + Made `$*KERNEL.signal` 64% faster, overall [79b8ab9d][01d948d2]
+    + Made Iterable.Bag about 60% faster [f2876281]
+    + Made Iterable.Mix(|Hash) about 40% faster [bba6de5f]
+    + Made Setty.pick(N) about 30% faster [071c88cb]
+    + Made StrDistance 25% faster [2e041b06][9185fa2c]
+    + Made (Bag|Mix).AT-KEY about 10% faster [b43db636]
+    + Made `infix:<∉>` about 10% faster [abfb52be]
+    + Made Str.starts-with 8% faster [7ecb59dc]
+    + Made .Set, .Bag, and .Mix coercers a few percent faster [8791b447][4139b96e][8c7e4e51]
+    + Fixed lost optimization of for ^N {}; now its 3x faster [46b11f54]
+    + Made &DYNAMIC about 1% faster [74242e55]
+    + Made ^Inf marginally faster [446dc190]
+    + Assorted internal improvements to CPU/memory use [2efd812c][07bff0e5][1369632f][2ac120ce]
+        [539415cf][5ebf307a][ed07b2c3][0104a439][a91a2e4d][bd292225][8ff980e7][7edf9da6][241d2925]
+        [7e8bac9b][3363c7b9][6f932687][e9b30933][51b63bf9][57553386][1171e67e]
+ + Internal:
+    + Refactored handle encoding. Non-binary read methods now throw when used
+        on handles in binary mode [41bb1372][b3cd299e]
+    + Refactored socket encoding [8ee383e3]
+    + Made syncronous IO to not use libuv [05f3e9a0]
+    + Made syncronous sockets to not use libuv [6f202fbe]
+    + Moved encoding and line ending bits to IO::Socket [d6fd2491]
+    + Moved get and lines to IO::Socket role [9cec9408]
+    + IO::Path.Int method removed; handled by Cool.Int now [d13d9c2e]
+    + Re-implemented Proc in terms of Proc::Async [ac31c5df]
+
+New in 2017.05:
+ + Fixes:
+    + Made Promise subclass-friendly [a61746fe][a7c23aa2]
+    + Fixed unwanted warnings on Windows with `$*HOME` [4ae7c697]
+    + Fixed handling of `<1` and NaN in Baggy.pick/.roll [40e4e132][e5d2c6f6]
+    + Fixed NaN and empty Baggy handling with Baggy.pick/.(pick|grab)pairs
+        [abc0509c][22ba2317][22ba2317][44c89ed9]
+    + Fixed SetHash.(iterator|values|kv) to have same semantics
+        as (Bag|Mix)Hashes [e5b5d346][e9ae0047]
+    + Fixed off-by-one in `lines` routines when `:close` is given [bf399380]
+    + Fixed `$*CWD` inside IO::Path.dir's :test Callable [b2a64a13]
+    + Fixed regression with IO::Handle.close's value sunked in .slurp [84eb3599]
+    + Made spaces and quotes escaped in MAIN() usage message [22bd2bbd]
+    + Fixed dispatch hang in Str.match: Nil [1c21974d]
+    + Made &slurp/&spurt/&get/&getc/&close `fail` instead of throwing [6fa4bbcb]
+    + Made &lines/&words/&slurp/&spurt/&get/&getc/&close pass all of the
+        given arguments to the methods they use [6fa4bbcb][34b58d1b]
+    + Fixed handling of 8 digit hex literals in 32-bit systems [01dd2138]
+    + Fixed $?BITS on 32-bit systems [d057efdb]
+    + Fixed time stamp check interfering with packaging modules [ff4a034d]
+    + Made perl6 usage message print to STDERR instead of STDOUT when an
+      invalid cmd line option is used [2a6d3d1e]
+    + Made sure Setty (^) Setty always returns a Set [4e37e7c5]
+    + Fixed typed optional Array and Hash parameters [9f5c8e94][6231ecb0]
+    + Made `$*HOME` default to Nil, not Any [7412184f]
+    + Fixed crash on ^D to `$*IN` when reading with IO::ArgFiles [4b8fd4a4]
+    + Fixed REPL crash when `$*HOME` is not set [1b0e41f9]
+    + Fixed Test.pm6's &like crash when a non-Str is passed [ba3cf4e5]
+    + Fixed Seq.perl for cached Seqs [54f50956]
+    + Fixed crash in `eqv`, .iterator, .Slip, .join, .List, .list, .eager, .Array, .is-lazy,
+        and .sink on cached Seqs [400f4ec8][c13d89b3]
+    + Fixed role mixins with native attrs with defaults [6179ab34]
+    + Fixed `andthen`-`orelse` chaining [37316f82][e1994d94][1ed76a90]
+    + Fixed issues when `Empty` passed as arg to `andthen`/`notandthen` or postfix `with`/`without`
+        [3c8822e8][e1994d94][1ed76a90][fdb2b2ab]
+    + Fixed error in Iterable (+) Iterable if the Iterable contained Pairs [3d99321f]
+    + Fixed .perl for IO::Path and subclasses [134efd83]
+    + Fixed .IO on :U of IO::Path subclasses [69320e7f]
+    + Fixed SetHash retaining the containers [551b8a69]
+    + Fixed (Bag|Mix)Hash.values/.iterator/.pairs/.kv failing to check validity of assigned
+        values [c1bd844e][0e0ac2fb][0338ce46][14e09532][c61c7f88]
+    + Fixed 'ambiguous call' error in `eqv` and `cmp` with mixed allomorphs [e5870c11]
+    + Fixed IO::Path.copy/move when source/target are same [08a8075f]
+    + Fixed premature deletion of bin wrappers [c7aef59a]
+    + Fixed ghost elements remaining when popping off an Array [c776c087]
+    + Fixed rotate on empty list [b5c14bd1]
+    + Fixed hang in .join/.gist in certain cases of flat slurpy positional arg [5e6b3878]
+    + Fixed Str.comb(Int, $limit) for `<1` combers [a9959666]
+    + Fixed Str.comb with empty-string comber [aa711c14]
+    + Fixed unwanted split on read-chunk-size boundaries in IO::Handle.comb/.split by
+        making them .slurp the entire file [973338a6]
+    + Fixed crash in BagHash.pickpairs when given negative arguments [08b5c101]
+    + Fixed incorrect results in `+>` for large negative numbers [ef29bb9f][66e8e72c]
+    + Fixed is-deeply for Junction args [1c4d8451][dc5eece9]
+    + Fixed crash in is-deeply when Seq type objects are given [f3f99b3a]
+    + Fixed dispatch infiniloop in (elem) and (cont) [407bce1d]
+    + Fixed issues with combiners on `/` in IO::Spec::Unix.is-absolute [f4309de9]
+    + Fixed issues with combiners on `/` in IO::Spec::Win32.rel2abs [c96727aa]
+    + Fixed crash when setting .nl-in/.encoding on unopened IO::Handle [06d8800e][70038855]
+    + Made IO::Handle.open respect attribute values [95e49dcb]
+    + Made IO::Path.parts a Map instead of Hash [9021a486]
+    + Made IO::Spec::Unix.path consistently return a Seq in all cases [05479793]
+    + Fixed IO::Spec::Win32.path failing to flatten resultant Seq [8992af13][816b2d4b]
+    + Fixed IO::Handle.perl.EVAL round-trip [a282b8c8]
+    + Made IO::Path.resolve set CWD to $!SPEC.dir-sep [a4127884]
+    + Fixed unwanted padding Nils from Str.words($limit) [4bcf84a2]
+    + Various improvements to warnings and error reporting
+        [9962d2b6][9ed89d94][d87de586][6d28d788][8511081f][4f9fa6b0][12cec7a7][d1a81b30]
+        [85c54db8][fc5698bd][1cf7ccba][0bd39de2][12c50b63]
+ + Additions:
+    + Made user grammars work more like real classes [db42d62f]
+    + Loading deps no longer uses file timestamps [ca0a7439]
+    + Changed type constraint on &slurp/&dir from Cool:D to IO() [6fa4bbcb][d0cd1372]
+    + Added IO::Handle candidate for &spurt [6fa4bbcb]
+    + Added Pair.Pair method [bd9e5730]
+    + Added Seq.Capture method (makes it possible to unpack Seqs in signatures) [98e137b1]
+    + Added QuantHash.Capture [5e74017d]
+    + Made `(^)`, `(+)`, `(.)` multis [8b8f66c0][44893e6a][48ce8701]
+    + Added primary and foreign key constraints and renamed some fields in
+        profiler's SQL output [c776c087]
+    + Added WhateverCode candidates to Map.roll and (Bag|Mix)Hash.grabpairs [1e58925c][2bda2703]
+    + Made Baggy.roll/.pick/.grab Int-ify their $count arguments [31be5128]
+    + Added big int support for `+<` and `+>` ops [6409ee58][ef29bb9f][66e8e72c]
+    + Made Date.clone take a formatter [a9a161ae]
+    + Added `$*DISTRO` and `$*KERNEL` information to `perl6 -V` output [94c4e7bf][b6496eda]
+    + Made `perl6 -V` sort its output [85230d06]
+    + Added support for `$*KERNEL.archname` [0c46aff2]
+    + Added `$*PERL.compiler.verbose-config` [85230d06][c3b47280]
+    + Added typed exceptions to IO::Handle.flush [b43ed18f]
+    + Added support for building the dist in install-dist.pl [4298dd5e]
+    + Simplified getting osname from VM.config [7c8f8d3e][18706852]
+    + Added VM.osname as a rough equivalent to Perl 5's `$^O` [e79d7498][505ee33d]
+    + Now show `System::Info` information with -V if module is installed [5feb3906][541597b8]
+    + Made IO::Handle.encoding settable via .new [7e9496dd]
+    + Added Proc::Async.ready [d76206e7]
+    + Implemented $limit arg for IO::Handle.words [84502dc2]
+ + Removals:
+    + Removed IO::Handle.iterator that existed for a couple of releases [eb8d006e]
+    + Removed unspecced Seq.is-ready method [59f6f485]
+    + Removed broken Exception.resumable method [f2af3db1]
+    + Removed argument forwarding from Instant.DateTime coercer [6bb1b5b4]
+    + Removed IO::Path.dir's :absolute and :Str arguments [aa72bdef]
+    + Removed .tell info in IO::Handle.gist [276d4a7e]
+    + Removed `:directory` from Map returned by `IO::Spec::*.split` [6ed14ef6]
+ + Efficiency:
+    + Made Mixy (^) Mixy about 150x faster [9f0b1218][bea8ac68]
+    + Made Baggy (^) Baggy about 150x faster [ee459360]
+    + Made IO::Spec::Win32.is-absolute about 63x faster [c6fd7361]
+    + Made Map (^) Map about 50x faster [13924397]
+    + Made Setty (+) Setty about 45x faster [14568496]
+    + Made Baggy (+) Baggy about 50x faster [ab5cd11b]
+    + Made Mixy (+) Mixy about 45x faster [92df7d5c]
+    + Made Setty (.) Setty about 35x faster [1562da07]
+    + Made Baggy (.) Baggy about 35x faster [3f97831d]
+    + Made Mixy (.) Mixy about 35x faster [226cd8b6]
+    + Made IO::Spec::Win32.path 26x faster [8992af13][816b2d4b]
+    + Made IO::Spec::Cygwin.is-absolute 21x faster [48cf0e67]
+    + Made Setty (^) Setty about 20x faster [d92a2123]
+    + Made Iterable (+) Iterable about 18x faster [6de08933]
+    + Made Map.pick()/roll() about 7x faster [2fb6872b]
+    + Made Baggy.pickpairs about 5x faster [c0270c66]
+    + Made IO::Spec::Unix.path 4.6x faster [05479793]
+    + Made (Bag|Mix)Hash.grabpairs/.grabpairs(N) about 4x faster [911b43de][3670720a]
+    + Made Str.words/.lines with $limit arg lazy and up to 3.6x faster [4bcf84a2]
+    + Made Iterable (^) Iterable about 3.5x faster [b2332816]
+    + Made Map.roll(N) up to 3x faster [c74d37ba]
+    + Made Mixy.roll(N) about 3x faster [b9222061]
+    + Made IO::Spec::Unix.rel2abs 2.9x faster [277b6e5b]
+    + Made Map (+) Map about 2.5x faster [a85b654d]
+    + Made Map (.) Map about 2.5x faster [9c9ebd0b]
+    + Made Iterable (.) Iterable 2.5x faster [3d99321f]
+    + Made Mix.roll() about 2.5x faster [a2602b9c]
+    + Made `notandthen` and postfix `without` 2.5x faster [fdb2b2ab]
+    + Made `andthen` and postfix `with` 2.5x faster [3c8822e8]
+    + Made `orelse` 2.4x faster [37316f82]
+    + Made IO::Path.is-relative about 2.1x faster [ff23416b]
+    + Made Baggy.pickpairs(N) about 2x faster [0f21f511]
+    + Made 1-arg IO::Handle.say up to 2x faster [76af5367]
+    + Made BagHash.roll 1.7x faster [07feca67]
+    + Made MixHash.total 1.4x faster [5e459bce][4c813666]
+    + Made IO::Spec::Win32.split about 82% faster [894ba82d]
+    + Made IO::Path.is-absolute about 80% faster [74680d44]
+    + Made `&say(**@args)` up to 70% faster [204ea59b]
+    + Made `&put(**@args)` up to 70% faster [6d7fc8e6]
+    + Made `+>` about 55% faster [ef29bb9f]
+    + Made `<+` about 12% faster [6409ee58]
+    + Made IO::Spec::Unix.join about 40% faster [d2726676]
+    + Made IO::Handle.put($x) about 5%-35% faster [50429b13]
+    + Made BagHash.grab 30% faster [2df7060c]
+    + Made IO::Path.dir up to 23% faster [aa72bdef]
+    + Made Baggy.roll about 15% faster [9e7d0b36]
+    + Made BagHash.grab(N) about 10% faster [87a95fc1]
+    + Made Baggy.EXISTS-KEY about 8% faster [451a2380]
+    + Made List.AT-POS about 5% faster for common path [736be4d4]
+    + Made IO::Spec::Win32.rel2abs 6% faster [c96727aa]
+    + Made Hash.EXISTS-KEY about 1% faster [eb1ce414]
+    + Micro-optimized reg/init dynamic [1d6a0023]
+    + Speeded up module loading a bit by persisting source checksum [3829488f]
+    + Assorted internal improvements to CPU/memory use [89f2ae4f][3c7cd933][aa23a91f]
+        [7c531835][ccedd6b1][3dc08553][514124e3][146f3a39][9cb26c09][afd24a88][f2fc5674]
+        [6641df83][d6cf518c][f18d0dc0][1a920dcc][bdb5391b][b1fbd133][7404c706][762fd239]
+        [fec547a1][5ec8a464][8088f080][45305eca][e7087f29][f4017c32][3f7d1334][6ea2f12e]
+        [788e6de6][3fb3c27e][09506dc8]
+
+New in 2017.04.3:
+ + Fixes:
+    + Fix REPL history file failure with Linoise on [6c66c1b88c]
+    + Fix `)>` to work whenever .MATCH is called [2f143f476d][0150c7b8c5]
+    + Fixed issues with false positive case-insensitive regex matches
+        when only start of string and end of string match [f756b4b54f][25048824c8]
+
+New in 2017.04.2:
+ + Fixes:
+    + Fix "Cannot invoke this object (REPR: Null; VMNull)" [4a560aa]
+    + Improve relations between %?RESOURCES and Native trait [647abfe]
+    + Support all appropriate IO::Path methods on Distribution::Resources [f4f1c42]
+
+New in 2017.04.1:
+ + Fixes:
+    + Removed unwanted debugging output [c9ebfc20]
+    + Reverted 9d8e391 IO::Path.resolve fix for JVM, as it does not yet know
+        how to do utf8-c8 decode [88a6facc]
+
+New in 2017.04
+ + SPECIAL NOTES:
+    + There are two Upgrade Notifications for this release:
+        - Part 1: http://rakudo.org/2017/04/02/upgrade
+        - Part 2: http://rakudo.org/2017/04/03/part-2
+        - Part 3: http://rakudo.org/2017/04/17/final-notes
+    + Changes for Texas operators listed in this release also apply to their
+        fancy Unicode alternatives. https://docs.perl6.org/language/unicode_texas.html
+ + Fixes:
+    + Fixed infinite loop due to wrong args in many Cool methods [8c88b0c]
+    + Fixed failure to distinguish rw args in Capture.WHICH [4605d52]
+    + Fixed regression in .rotor with negative gaps [5917b81]
+    + Fixed a 1-arg-no-phasers path in .map stopping after 1 value [86dc997]
+    + Fixed containerization issues in listinfix metaops [16f950b]
+    + Fixed Inline::Perl5 detection in t/harness6 [b15cd20]
+    + Fixed incorrect number of tests run in t/harness6 [8766370]
+    + Fixed t/harness5 incorrectly failing NOTESTS runs [f28c515]
+    + Fixed crash in S/// and s/// for some combinations of adverbs [43e0902]
+    + Fixed crash when doing EVAL from multiple threads [218f8c4]
+    + Fixed errors in concatenations of Hangul script with \r\n in it [a123eb3]
+    + Fixed case insensitive string compare with synthetics in haystack [e87179d]
+    + Fixed case insensitive regex with synthetics [666ce35]
+    + Fixed issues with foreign lang cursor without a name [ffeb896]
+    + Fixed introspection of attributes with explicitly typed keys [a6ba994]
+    + Fixed spurious warnings in define_slang [666ce35]
+    + Fixed issues in :exists with multidimensional hash slice lookup [a758c0b]
+    + Fixed unwanted overflow when too-large values were *assigned* to native attributes [666ce35]
+    + Fixed failure to set $/ by matching routines when used in loops [a62b221]
+    + Fixed handling of Baggy (|) Mixy, Mixy (|) Baggy in dispatch [48619f8]
+    + Fixed Allocations tab in --profile output [c16cdb2c]
+    + Made `is equiv` to not propagate operator's `assoc` value [f9f0883]
+    + Made Code.ACCEPTS pass take its parameter `is raw` [c0eb9bd]
+    + Fixed SEGV in IO::Pipe.t [3e275dd]
+    + Made `dynamic` default to False instead of Nil on Scalar/Hash/Array [28a6e80]
+    + [IO] Fixed wrong results in IO::Path.resolve for paths with combiners on `/` [9d8e391]
+    + [IO] Fixed a crash when using Whatever limit in in IO::Pipe.lines [0c62815]
+    + [IO] Fixed crash in smartmatch of Cool ~~ IO::Path for some Cools [c360ac2]
+    + [IO] Made IO::Path:: subclasses instantiate a subclass, not IO::Path [a0b82ed]
+    + [IO] Fixed crash when very large files were read with IO::Path.slurp [d0924f1]
+    + [IO] Ensured IO::Handle.Str coerced .path to Str [1f689a9]
+    + [IO] Fixed crash when binary slurping large files with &slurp/IO::Path.slurp [756877e]
+    + [IO] Fixed occasional zero byte read when binary slurping files [756877e]
+    + [IO] IO::Handle.symlink/.link now take name of the link as argument;
+        the invocant is the target [8c09c84]
+    + Various improvements to warnings and error reporting [6a77cda][d90c6bf][f9968b3]
+        [27f5469][41ac4b4][75c3f29][87fe800][7ba2fc5][093bb89][d3c93ad][6ee71c2][490ffd1][7112a08]
+ + Additions:
+    + Gave `Thread` a numeric representation [e5528dd]
+    + Made Any.maxpairs/.minpairs use `cmp` and return Seq [5927186]
+    + Made `Parameter` object available in bind error [0f9f000]
+    + Added typed exception for parameter constraint failure [f1cd8e3]
+    + Allowed nativesize to be unset in NativeHOW, but still compose [af4aae2][932b59f]
+    + Made sure that Baggy and Setty handle bare objects [7433947][e660a57]
+    + Added experimental coverage reporter tool with MoarVM backend (so far works with
+        reports for core code; more work needed to expand for wider use) [932b59f][d0924f1]
+    + Made it possible to assign to system dynamic vars on initialization [1b9d53c]
+    + Broadened acceptance in `(<+)`/`(>+)`: all Quanthashes can be considered Settys
+        and all Baggys can be considered Mixys [1ebeeb3]
+    + Implemented `skip-all` option in &plan in Test.pm [14b6d5f]
+    + Made it possible to use `.head(*-N)` (all but last N) [1fea495]
+    + Made it possible to use `.tail(*-N)` (all but first N) [188b7b1]
+    + Allowed `*` and `Inf` args to Array|List.tail [1b34ea6]
+    + Made .Set, .SetHash, .Mix, .MixHash, .Bag, and .BagHash nodal [189615c][3e412b9][7025050]
+    + Made `infix:<(&)>` a multi and added basic candidates [e8cb9a2]
+    + Made `(-)` a multi [495f970]
+    + Added default descriptions for Test.pm's `like`, `unlike`, and `use-ok` [4b915f7]
+    + Made `is rw` on optional params throw a typed exception instead of generic one [8370675]
+    + Made it possible to pass IO::Path to `is native` trait [9984080]
+    + Implemented bypass of dependency resolution in the Staging repo
+        via RAKUDO_RERESOLVE_DEPENDENCIES env var [5b862a3][d4d6a99][2a0a2d3]
+    + Merged Cursor into Match; in preparation of for future removal of Cursor [b7c036c][cdd625b]
+    + [IO] Added more powerful features to IO::Path.extension [b1e7a01][15a25da]
+    + [IO] Added IO::Path.add [40217ed][0b5a41b]
+    + [IO] Implemented IO::Path.sibling [8bacad8]
+    + [IO] Implemented IO::Handle.lock [214198b]
+    + [IO] Made IO::Path throw when path contains NUL byte [e681498]
+    + [IO] Implemented `:completely` param in IO::Path.resolve [6a8d63d][51e4629]
+    + [IO] Implemented IO::Handle.slurp [f1b4af7]
+    + [IO] Made IO::Path.dir a `multi` method [fbe7ace]
+    + [IO] `$*TMPDIR` now has a container, so it's possible to `temp` it [b62d1a7]
+    + [IO] Allowed IO::Path.z to be called on directories, to mirror .s [b6838ee]
+    + [IO] Implemented IO::Handle.spurt [a5800a1]
+    + [IO] Implemented &indir [a0ef2ed][ca1acb7]
+    + [IO] Implemented IO::Path.concat-with [966a7e3]
+    + [IO] Made `&*chdir` return new `$*CWD` [5464b82]
+    + [IO] Expanded accepted arguments from Cool to IO() in &spurt [099512b]
+    + [IO] Implemented :parent in IO::Spec::Cygwin.canonpath [0c8bef5]
+    + [IO] Made IO::Path.lines lazy again (reversal from last release) [90da80f]
+    + [IO] Re-added :close param to IO::Handle.lines (reversal from last release) [90da80f]
+    + [IO] IO::Handle.lines($limit, :close) now closes the handle when $limit is reached [90da80f]
+    + [IO] Added IO::Pipe.path and .IO methods to return an IO::Path type object [d46e8df]
+    + [IO] Made IO::Path.mkdir return invocant on success [c01ebea]
+    + [IO] IO::Path now `does` role `IO`. This exists solely as a future compatibility feature with
+        `IO()` coercer type check and provides no new methods [87987c2][c95c4a7][fd503f8]
+    + [IO] &chdir and IO::Path.chdir now support :r, :w, :d, :x args for
+        file tests and default to :d test only [a0ef2ed]
+    + [IO] Changed coercers from Str() to IO() in `&*chdir`, &chdir, IO::Path.chdir, &rename, &move,
+        &copy to avoid limitations of IO::Path.Str and race conditions with `$*CWD`
+        [2483d68][a0ef2ed][ff97083]
+    + [IO] Changed a Capture of remaining args to be passed to the delegate IO::Handle
+        methods, instead of the internal .open call in IO::Path .lines, .words, .comb,
+        .spurt, and .split [099512b][90da80f]
+    + [IO] The following now return Failures instead of throwing: &chdir, `&*chdir`, &spurt,
+        IO::Path.spurt, IO::Handle.spurt, IO::Path.slurp, &symlink, &link, &rename, &move, &copy
+        [a0ef2ed][2483d68][5464b82][c13480c][da1dea2][ff97083]
+ + Removals:
+    + Removed unused $.pid from Proc [5b8d4c2]
+    + [IO] Removed &mkdir candidate that creates multiple dirs [0d9ecae]
+    + [IO] Removed IO::Path.abspath [cb323d5][a432b3d]
+    + [IO] Made IO::Path.new-from-absolute-path a private method [7f73f92]
+    + [IO] Removed vestigial IO::Path.pipe [a01d679]
+    + [IO] Removed unused Capture in signatures of some .IO coercers [0c7e4a0]
+    + [IO] Removed IO.umask method [87987c2][fd503f8][c95c4a7]
+    + [IO] Removed :bin argument in IO::Handle.Supply; now uses handle's mode instead [184d499]
+    + [IO] IO::Handle and IO::Socket no longer `does` role `IO` [87987c2]
+    + [IO] Removed .chmod, .e, .d, .f, .s, .l, .r, .w, .x, .modifies, .accessed,
+         .changed, .mode, and .watch methods from IO::Handle [36ad92a][50aea2b]
+    + [IO] Removed &tmpdir and &homedir
+    + [IO] :$test param on &chdir and IO::Path.chdir is now deprecated
+        and will be removed in 6.d language [a0ef2ed]
+ + Efficiency:
+    + Made .Set/.SetHash.clone about 250x faster [d673ea7]
+    + Make Baggy (&) Baggy about 80x faster [e9a3075]
+    + Made Mixy (&) Mixy about 60x faster [03ef4be]
+    + Made Str (elem) Map / Map (cont) Str 50x faster [a8c6eca]
+    + Made Setty (&) Setty about 40x faster [89b5d65]
+    + Made Setty (-) Setty about 40x faster [49c0ab6]
+    + Made Baggy (|) Baggy at least 40x faster [4facf10]
+    + Made Mix.BagHash and Mix.Bag coercions about 28x faster [2d8ac1e][af50e06]
+    + Made Setty `(<+)`/`(>+)` Setty at least 25x faster [224e40f]
+    + Made Mix.MixHash coercion about 25x faster [de983bc]
+    + Made Map (|) Map 15x to 20x faster [9470d1c]
+    + Made Setty (|) Setty about 25x faster [49807eb]
+    + Made Object Hash.Set(Hash) coercion 12x faster [fb5d726]
+    + Made .invert about 10x faster [7ea0f66]
+    + Made Baggy coercion to Set|SetHash 10x faster [f947a19]
+    + Made @a.first(Foo) 6x-10x faster (also affects many set operators) [9671ffe]
+    + Made Iterable (|) Iterable about 9x faster [80062b0]
+    + Made Set.WHICH about 8x faster for 50 elem Sets [167a0ed]
+    + Made Set.SetHash coercion 12x faster [2731087]
+    + Made coercion of Map to Set(|Hash) about 8x faster [4683e83]
+    + Made Setty coercion to (Bag|Mix)Hash 7x faster [6686abb]
+    + Made Map (&) Map about 7x faster [605e9e9]
+    + Made Baggy `(<+)`/`(>+)` Baggy at least 6x faster [928a406][0672082]
+    + Made Mixy `(<+)`/`(>+)` Mixy at least 5x faster [38b341a][0672082]
+    + Made (cont)/(elem) 25% to 5x faster for QuantHashes [5b7ef3e]
+    + Made Setty.hash about 4x faster [10fe02a]
+    + Made Setty.pick/SetHash.(grab|grabpairs) 4x faster [6c9f31b]
+    + Made Iterable.Set(|Hash) about 4x faster [f849df3]
+    + Made m:i// regex matching 1.8x-3.3x faster [3e275dd]
+    + Made Enum.ACCEPTS(Enum) 2.9x faster [17d34cd]
+    + Made Iterable (&) Iterable about 2x faster [0fc3751]
+    + Made internal nqp::index 2x faster, affecting many methods that work with strings [f1fc879]
+    + Made case-insensitive regex 2x faster [822566f]
+    + Made Baggy.new-from-pairs 1.5x faster and use less memory [ff52b74]
+    + Made concatenation with control chars at end 30% faster [027aa54]
+    + Made Baggy.new, bag(), and mix() about 25% faster [ae3ff5c]
+    + Made Iterable.flat about 20% faster (also affects `*@foo` slurpy params) [f532f81]
+    + Made Numeric.ACCEPTS(Any) about 15% faster [89457f8][e0e0800]
+    + Made Hash.Bag about 15% faster [e7e97c7]
+    + Made generic handling of `(<+)` and `(>+)` about 15% faster [5ae4549]
+    + Made Set.new(42) about 8% faster and use less memory [fb60621][1471527]
+    + Made Set.new-from-pairs about 4% faster for Pairs [213a72c]
+    + Made Any.unique a few percent faster [6060bd3]
+    + Streamlined tai/epoch conversion / leap-second check [dcebce4]
+    + Added fastpath for `infix:<(|)>` with empty list of args [e24980f]
+    + Made multiple memory use reductions in internals in MoarVM [d0924f1]
+    + Made Grammars pre-compute their NFAs during precompilation [064b585]
+    + Improved FSA which gives better multithreading performance [20af51f]
+    + [IO] Made IO::Spec::Unix.split 36x faster [4fdebc9]
+    + [IO] Made IO::Spec::Unix.catpath 9x faster [55abc6d]
+    + [IO] Made IO::Spec::Unix.join 8.5x faster [55abc6d]
+    + [IO] Made IO::Spec::Unix.is-absolute about 4.4x faster [4eef6db]
+    + [IO] Made IO::Spec::Unix.catdir 3.9x Faster [0111f10]
+    + [IO] Made IO::Pipe.lines 3.2x faster [0c62815]
+    + [IO] Made IO::Spec::Win32!canon-cat 2.3x faster [0e36bb2]
+    + [IO] Made IO::Path.child 2.1x faster on `*nix` [55abc6d]
+    + [IO] Made .IO.slurp about 2x as fast [b4d80c0]
+    + [IO] Made IO::Handle.open 75% faster [4032953]
+    + [IO] Made IO::Spec::Unix.rel2abs 35% faster [dcf1bb2]
+    + [IO] Made IO::Path.slurp 12%-35% faster (for small files) [c13480c]
+    + [IO] Made IO::Path.new 7% faster when creating from Str [ae5e510]
+    + Assorted internal improvements to CPU/memory use [1132b1a][a123eb3][1bacc61][c3c849e]
+        [fa9aa47][666ce35][e7e97c7][213a72c][fab9f87][9671ffe][08a9735][8a4df162][b64f210][1277fb5]
+        [463898a][3f36508][65037c3][e408e47][6ef7b59][a4b30dc][7875eaf][d793e21][bf63719][9a2446c]
+        [0dbe451][1867099][2694f5d]
+
+New in 2017.03
+ + Fixes:
+    + Made IO::Path.lines non-lazy so it can always close the file handle [0083c4f]
+    + Fixed unwanted container re-use in `infix:<x>` [5b7b7fb]
+    + Made Emoji_Modifier_Base return Bool instead of int with uniprop [2125d4d]
+    + Fixed JIT rounding bug for negatives in nqp::div_i [deac603][f73d984]
+    + Fixed failure in `\c[]` with non-ASCII names [deac603]
+    + Fixed issues in `infix:<div>` optimization [deac603]
+    + Fixed .split(...:skip-empty) not skipping with empty strings [fc86084]
+    + Fixed duplicated .done/.quit on Channels in Proc::Async on exit [c4a4c84]
+    + Fixed error handling when Proc::Async process failed to spawn [f73d984]
+    + Made sure `infix:<xx>` always returns a Seq [1eb7b1f]
+    + Partially fixed `infix:<xx>` being non-lazy [f190f24]
+    + Fixed SC collision when loading identical modules from
+        different dists [254f76a]
+    + Fixed CURI loading of modules with identical short-names [c1a0fa7]
+    + Fixed SEGV in exception handler resolution in sub/INIT/return [b2eb115]
+    + Fixed SEGV on `xx` with a huge repeat values [1cafc67]
+    + Fixed SEGV on chars with a huge number of combiners [1cafc67]
+    + Fixed SEGV when `Scalar` type object is processed by `unique` [cfe0e04]
+    + Fixed .comb(Int) failing to work on Cool [a08e953]
+    + Fixed hang in dispatch of .lines/.words when given wrong args [7425737]
+    + Fixed cases of lack of panic upon with quantifiers in regexes [91a4ac5]
+    + Fixed broken thunking of infix:<notandthen> [5e6f30a]
+    + Fixed failure to thunk RHS on `or=`, `and=`, and `notandthen=` [3e88c41]
+    + Fixed precision loss with `cmp` involving Rationals/Int [9e8ecb7]
+    + Fixed crash in .Bool, .so, .not, .hash, and .elems on Baggy:U [e8af855]
+    + Fixed crash in .Str on Bool:U [3de5fb2]
+    + Fixed crash in IO::Special .WHICH/.Str [dd4dfb1]
+    + Fixed install wrapper when no binaries are found [796b6a8]
+    + Fixed crash when calling .sort on reified empty Array [8e250db][75e070f]
+    + Fixed `Nil` being displayed as `Mu` in REPL [a274bdd][cd47e2a]
+    + Fixed previous output silencing exceptions in REPL
+        [db70a1f][61a65ce][7f9235c]
+    + Fixed loss of data when using a hash in assignment to itself [ae7bcf1]
+    + Fixed IO::Path.e failing to detect changes on the filesystem [76f7187]
+    + Fixed `infix:<eqv>` with Seq/List containing same elements [f9eb811]
+    + Fixed CArray to pass NULL when for type object elements [26e6993]
+    + Fixed GC deadlock when event loop worker thread was spawned [26e6993]
+    + Fixed `:i` in regexes using lowercase instead of fold case [26e6993]
+    + Fixed parsing issue with detached methods in `[…]` metaop [e1ebb50]
+    + Fixed unwanted list flattening in triangle reduce [10f5f74]
+    + Fixed Range.int-bounds for NaN and Inf end points [79f2681][16ef21c]
+    + JVM backend fixes [b1def95][2f6d2c6][dc19892][cef41b2]
+    + Various improvements to error reporting
+        [dc5fb20][d66c382][b11dc88][6cb9be2][3bf734f][26e6993]
+        [20fa14b][127338a][1934a56][27dc7b1][1e24666]
+ + Additions:
+    + Made symbol imports of `require`d modules lexical. For more information,
+        see http://rakudo.org/2017/03/18/lexical-require-upgrade-info/
+        [63cf5ca][3e86d0f][5b98caa][6771dee][9da6de4][4fce405][030c4c5]
+    + Added ≤, ≥, ≠ as Unicode versions of <=, >=, and != [5c68ea6]
+    + Made it possible to hyper ops that return a Seq [e2db7b8]
+    + Made `infix:<∘>` keep RHS's .count and .arity and LHS's .of [032b283][cb149a8]
+    + Made purity propagate up through meta-meta ASTs [68a40f7]
+    + Made Proc::Async default to translating newlines [05add43][2973ccd]
+    + Implemented Str.parse-names [5c1761a]
+    + Added `$epsilon` argument to Complex.Rat/.FatRat [a4af702]
+    + Fixed loss of precision in Instant.Rat [a4af702]
+    + Implemented .FatRat coercer in Cool and Numeric [a4af702]
+    + Added Mu candidate for `infix:<xx>` [e270a15]
+    + Implemented Mu.iterator [81fcd1b]
+    + Made sure Str.split always returns a Seq [f595733][8301a30]
+    + Made List.reverse return a Seq [beda576]
+    + [EXPERIMENTAL] Added support for Parameter.set_default [d6c95ea]
+    + Implemented new internal braids API to make future optimizations easier.
+        This affects any slang modules that access `%*LANG`, `%*PRAGMAS`, and
+        `$*ACTIONS` internals using unofficial API.
+ + Removals:
+    + Removed IO::Path.Bridge [212cc8a]
+    + Removed support for IO::Handle.lines(:close) agument [76a59cf]
+ + Efficiency:
+    + Made min/max/min=/max= about 3x faster [a9c5196]
+    + Made .WHICH of numerous types about 1.8x faster [79bb179][65b0040]
+    + Made case-insensitive regex match 20%-30% faster [5b6e0fb][f73d984]
+    + Made triangle reduce right op with 2 params 2x faster [e114d52]
+    + Made triangle reduce right op with 2+ params 1.5x faster [d04c47f]
+    + Made IO::Handle.lines about 10% faster [9019a5b]
+    + Made IO::Handle.getc about 3% faster [9019a5b]
+    + Made reduce chain op about 5% faster [9cec31a]
+    + Made IO::Handle.lines about 10% faster [9da50e3]
+    + Made List.reverse 0%–30% faster and reduced memory pressure by up to 70%
+        [beda576]
+    + Made loops/maps with NEXT phaser about 5% faster [80e0bce]
+    + Made `infix:<%%>` about 14x faster for Int,Int case [755e25b]
+    + Made `infix:<%>` about 8x faster for Int,Int case [5ec2517]
+    + Made Junction creation about 20% faster [fafe663]
+    + Made callframe() about 20% faster [7966dad][9a74cd0]
+    + Made meta reduce with right-assoc. op 30%–200% faster [60a8f9e][2cf9b53]
+    + REMOVED caching of IO::Path.e results to fix unwanted behaviour [76f7187]
+    + Assorted internal improvements to CPU/memory use
+        [b2e0ac0][25a3cc5][b61b3c7][829762a][45b3af8][7010ae9][556db9d][9e9a4ad]
+        [8e8cd14][7556498][adb6f87][9a109c9][3de7b08][b283e52][0be7247][74573d0]
+        [79d5670][313e7b2][e723e00][5843ee6][7c279c3][318f8ee][4ef1e69][9d497e9]
+        [b597398][4bc826d][9da50e3][2a2e460][0633f03][d444f65][f94a2c7]
+
+New in 2017.02
+ + 6.d.PREVIEW changes:
+    + It is now possible to use different language versions in different comp units.
+        Pragma `use v6.d.PREVIEW;` loads PREVIEW version of 6.d language [9044fca]
+    + Made `await` non-blocking (i.e. not using a thread for waiting) [dd1cb5f]
+    + Made `react` non-blocking [4aa8d70]
+    + Various improvements to error reporting [ee7c1bb][a2d69a0][f22170f]
+ + Fixes:
+    + Fixed data race in NFA cache [8f53a6f]
+    + Fixed handling of Unicode characters on Windows command line [8f53a6f]
+    + Fixed overflow during full GC collection on 32-bit systems [8f53a6f]
+    + Fixed GC problem in string repeat op [8f53a6f]
+    + Fixed .perl.EVAL roundtripping for circular Arrays and
+         Hashes [67aeefa][673f06b]
+    + Fixed instantiation of subclasses of classes that do Rational [7f245f7]
+    + Fixed incorrect handling of precision flag in sprintf '%d' [a1c7d01]
+    + Fixed `infix:<xx>(..., *)` for empty Slips [4e49ec1]
+    + Fixed .pairs, .values, and .kv with native shaped arrays not having values
+        in writable containers [0fdb9e4][1181afe][e195e5f]
+    + Changed Pair.AT-KEY on non-existent key to return Nil [9728c4a]
+    + Fixed Slip.List not returning a Slip instead of a List [4d4822a]
+    + Made Map.List and Hash.List always return  a List [6dd542f]
+    + Fixed crash when using `.=` to initialize attributes [700a077]
+    + Fixed leak of asynchronous task handles [483e4fd]
+    + Fixed issues in .skip-one in internal Mappy iterator [3a77cb5][e7ea4c2]
+    + Fixed count-only on all Hash based .kv methods reporting only half of
+        actual value [aecbb3e]
+    + Fixed crash in internal iterator used by .rotor and .batch [bcd902a]
+    + Fixed LAST phaser called twice in sunk do for {} loops [3424465]
+    + Fixed various discrepancies as a result of inlining non-native types [f8b3469]
+    + Fixed leaks and an invalid read in synchronous sockets on errors [9ed4449]
+    + Fixed NFA generation for the constructs `x ** 1..2` and `:i <[A..Z]>`,
+        and hardened NFA processing in MoarVM so as to not read out of bounds [9ed4449]
+    + Fixed memory leaks on startup and module load with augmented types [9ed4449]
+    + Fixed smartmatch of Complex against Ranges [f2894d3]
+    + Fixed premature overflow of `div` on native int types [c98b3a5]
+    + Fixed flat()/Iterable.flat not propagating `is-lazy` [51b0aba][ca102c5]
+    + Fixed hang with `*@` slurpies when given infinite list [51b0aba]
+    + Fixed abs() failing with negative zeros [f85978b]
+    + Fixed List.perl of containerized empty lists [a148c70]
+    + Fixed at-times incorrect result of Rational.ceiling [6372417][79553d0]
+    + Fixed Rational.norm failing to normalize the Rational [aac9efc]
+    + Fixed issues with close() and read() on closed async sockes [f16cf37]
+    + Fixed occasional disordering of messages in Supplier::Preserving [cabf6fb]
+    + Fixed a data race in NFA caching causing SEGV [62bd30b]
+    + Fixed data races and over-sharing of %*ENV in precompilation [bab1c02]
+    + Fixed data races in CompUnit::PrecompilationStore::File
+        [accc156][39c517e][917d473][a88da2e][6c374d5][2b1eb64]
+    + Various improvements to error reporting [10bcec2][5822605][f230224][b51a550]
+        [8733aa5][483e4fd][f0b9234][e922275][51ebfb1][acae345][1b99196][301bcf9]
+ + Additions:
+    + Implemented Array.clone [dc69daf]
+    + Implemented Mu:U.clone [11d005e][4b85db6]
+    + Added experimental `infix:<unicmp>` [6f6f0cf][5870ef9][eb3356c][6990133]
+    + Added experimental `infix:<coll>`, `Any.collate`, and `$*COLLATION`
+        [2061485][4efcc29][46313fa][1923878][5611425][6990133][f85978b]
+    + Implemented Any.skip [8a6bfc6]
+    + Implemented Supply.skip [d71bf1e][15753fd]
+    + Implemented Any.batch [e0201f1][f6531d3]
+    + Added Supply.rotor($batch) candidate [5694727]
+    + Added support for all Nd characers in sprintf format strings [483e4fd]
+    + Added support for more named Unicode sequences [3a77406]
+    + Made named Unicode lookups (e.g. "\c[...]") case insensitive [3a77406]
+    + Added support for Support East_Asian_Width Unicode property [9ed4449]
+    + Made CompUnitHandle.globalish-package return the actual Stash [960a789]
+    + Made Test.pm6's skip() only accept Int test counts [ae9d517]
+    + Numerious fixes related to colonpair-extended names on subroutines [48abeee]
+    + Made merging of Perl 5 symbols use the same mechanism as for Perl 6 [4e7ab20]
+    + Included try-load in CompUnit::PrecompilationRepository's interface [d932355]
+    + Made S/// set $/ to Match objects made during substitution and avoid
+        returning the result in $/ causing container-reuse in loops [97359ae]
+    + Made CompUnit::Repository::Installation sort binaries by version [7c39bbf]
+    + Made it possible to call IO::Path.s on a directory [25fd1ca]
+    + Gave fakesignature a $/, $_, and $! to avoid unintended sharing [71a1283]
+    + Implemented smartmatch of character Ranges [8477f3b]
+    + Str ~~ Numeric no longer throws if Str cannot be coerced to Numeric [1615c83]
+ + Efficiency:
+    + Made SetHash.iterator|pairs|antipairs|kv|values about 20x faster [a2fbe20]
+    + Made Int.WHICH about 1.7x faster [9841313]
+    + Made Baggy.kv about 15% faster [e995107]
+    + Made Baggy.kxxv about 30% faster [5db0b29]
+    + Made Baggy.antipairs about 25% faster [2922ec4]
+    + Sped up postincrement and postdecrement by about 5% [fd74c91]
+    + Internal improvements for 1%+ faster parsing [dd514da][9493ffb][951a441]
+    + Made `<ws>` parsing 5%+ faster [0bb7c20][d5262e6]
+    + Generalized sink branch optimize logic improving performance for
+        sunk post increment [5401a1a]
+    + Improved radix operations (50% faster with non-ASCII digits) [9ed4449][c98b3a5]
+    + Made uniprop/unival/unimatch 1.1x to 2.1x faster [411782e]
+    + Fixed performance loss on `infix:<x>` with very large number [8878af8]
+    + Made Map.sort about 1.5x faster (also affecting its .perl/.gist/.Str) [0ee3b7d]
+    + Made an improvement in candidate selection order of &sort [b7c6e73]
+    + Made .skip of internal mappy iterator about 15% faster [54f647d]
+    + Made List.keys on lazy lists a bit faster [0ad05ce]
+    + Made Seq.InfiniteLoopIter about 6% faster [00e60d9]
+    + Made do repeat while about 3%-11% faster [a832944][af49026]
+    + Made `do while foo { bar }` loops about 20% faster [4932112]
+    + Made `do repeat while foo { bar }` about 20% faster [3888b42]
+    + Made `do loop ( init; while; next ) { }` loops about 6% faster [c2eb7fb]
+    + Made `.map: -> $_ --> non-Slippy-Foo { ... }` maps about 2x faster [fdcf462]
+    + Made firing of phasers about 25% faster [7e98504]
+    + Made `my @a = do for @b { ...; PHASER foo }` about 1.5x faster [031efe0][3424465]
+    + Made `for @b { ...; PHASER foo }` about 15% faster [031efe0]
+    + Made `@b = @a.map: { }` 10% and `@b = do for @a { }` 20% faster [3e28b1e]
+    + Made `for @a { ... }` about 1% faster [d69f375]
+    + Made `my @b = @a.map: -> \a,\b { }` about 15% faster [9f15a4d]
+    + Made `for @a -> \a, \b { }` about 2% faster [7384939]
+    + Made .tail on reified List/Array about 8x as fast as `[*-1]` and .tail(N)
+        about 16x as fast as `[*-N .. *-1] [*-N .. *-1]` [833fe43]
+    + Made improvements and refactoring of various internal iterators
+        [f2b97b0][18e6f0d][87f61d9][c069f45][ad90806][4ef37cf][54f647d][49e2d40a]
+        [7c26985][4d8fc05][b1afc13][072d959][9d5c3fd][6b6a0b4][b31c591][b9d9279]
+        [f799a03][98f9d8a]
+    + Made improvements to performance of internals [ed4ef3b][f85978b]
+
+New in 2017.01
+ + Fixes:
+    + Fixed importing globals nested in imported packages [85d8b14]
+    + Fixed "Object of type A in QAST::Var value, but not in SC" [43d20eb]
+    + Fixed use Foo::Bar; class Foo {my Foo::Bar $bar} not finding Foo::Bar [5c4db5e]
+    + Fixed class Foo { use Foo::Bar; my Foo $foo; } not finding Foo [226cb36]
+    + Fixed our scoped nested package swallowed by lexically scoped parent [85b9d8a]
+    + Fixed imported nested enum colliding with symbols from outer scope [a962928]
+    + Multiple methods that return listy things now throw instead of failing to
+        avoid accidental Failure silencing through 1-elem lists [99e33fc][bd4e1f4]
+    + Made List.roll always return a Seq [bd4e1f4]
+    + Fixed SEGVs and GC panics in certain deep recursions [58c79e2]
+    + Fixed detection of runtime errors in threads [b8df3a6]
+    + Made sure .sort on shaped arrays uses the leaves [a4bc51a]
+    + Made U+2212 infix:<−> and prefix:<−> same as regular `-` for all types [91af128]
+    + Made sub MAIN usage ignore anon *% param [38ec79c]
+    + Fixed lack of warning on unitilized values in infix:<x> [c498d5b]
+    + Fixed Distribution::Path bin/resources file format [393afcf]
+    + Fixed spurious warnings in List.reduce [1ee24cc]
+    + Sorting uninitialized List now returns a new list [005166e]
+    + Made .sort always return a .Seq [434bf75]
+    + Fixed combinations() incorrectly returning 1-item list in some cases [d86c419]
+    + Made combinations() always return a Seq on succcess [db1836a]
+    + Fixed useless "useless use" warnings in hypered ++ and -- [7193df1]
+    + Fixed numerous bugs with $limit in lines() [19df358]
+    + Fixed regression with mutability of .pairs on shaped arrays [dc7b688]
+    + Fixed regression with infinite lists assignment to shaped arrays [aa35065]
+    + Fixed regression with looping over uninitialized shaped array [696b1f4]
+    + Fixed regression with regex match against NFC [8d35951]
+    + Fixed infix:<cmp> with 0-denominator rationals [a567eb4]
+    + Fixed crashes in X::OutOfRange reporting with 0-denominator rationals [b2332c2]
+    + Fixed &infix:<==> on 0-denominator rationals [73182d4]
+    + Fixed &infix:<===> on 0-denominator rationals [cb2476f]
+    + Fixed incorrect .isNaN result for 0/0 rationals [7434a8f]
+    + Fixed IO::Socket::INET.new not parsing IPv6 URLs
+        correctly [cb9ec03][df20d8b][fbd061b][8751f05]
+    + Made IO::Socket::INET.new fail when invalid port or family is given [cb9ec03]
+    + Fixed Range.AT-POS on int ranges failing for too-high indexes [c5e54ef]
+    + Fixed (^) set operator on Baggies to take weights into account [a687d95]
+    + Fixed incorrect dispatch in some cases of multi subs with where clauses [0c0dd82]
+    + Fixed unwanted role punning due to attached Pod [d487657]
+    + Made Routine.prec(key) return '' rather than Nil on fail [d7d76b7]
+    + Moved .prec from Routine to Code [a7ccfc6]
+    + Fixed an occasional heap profiler crash, and prevent heap profiler
+        from greatly reducing the number of full GC collections [e182deb]
+    + Fixed specializer log slots keeping alive, and so leaking,
+        objects once specialized code has been produced [e182deb]
+    + Fixed build under some versions of MSVC [e182deb]
+    + Fixed code-gen bug in dispatch:<hyper> [3d86286][ba8a284]
+    + Fixed `1,*,3 Z~ <a b c>` case using Whatever value for the rest of list [471f4ba]
+    + Fixed threading issues in ||=, //=, and &&= [d1c2e76]
+    + Fixed GC in spesh triggered by managed mutex use [25615c7]
+    + Fixed bugs in interaction between inlining, GC, and threads [25615c7]
+    + Fixed endpoint-exclusion on string ranges with non-alphanumeric chars [daf7e51]
+    + Fixed fatality of Nil.chomp/chop (back to just a warning) [7c81bec]
+    + Fixed infix:<eqv> on NaN and signed zeros [3f80e13]
+    + Fixed crash in infix:<cmp> when comparing Real and RatStr [8ec54ba]
+    + [TEST] Test.pm tests no longer backslash every backslash in descriptions [b183cab]
+    + [TEST] Fixed TAP::Harness parsing of single backslashes in test descriptions [b120ac4]
+    + [TEST] Fixed TAP::Harness failing to parse full-file skip directive [aee7af3]
+    + [UNI] Fixed `ISO_Comment` property in uniprop [4ff2fb2]
+    + [UNI] Fixed uniname() on "\x[80]", "\0" and other controls [8163113]
+    + [UNI] Made unival() use full Unicode names for Numeric_Value_* [dbbf9dd]
+    + [UNI] Fixed several aliases for Unicode characters [5ba982a][644cd34]
+    + [UNI] Fixed number of characters reported for hundreds of Unicode Emoji [823f0f7]
+    + [UNI] Fixed compilation of /:ignoremark \"/ to actually ignore marks [6188771]
+    + [UNI] Fixed mismatched closers on U+298D/U+2990/U+298E/U+298F brackets [76283f6]
+    + [UNI] Fixed return value of uniprop Bidi_Mirroring_Glyph if no BMG [48e8ccc]
+    + [UNI] Fixed breaking after Prepend characters [7c8b705]
+    + [JVM] Fixed build issues [7bba13a][adcfb8b][e6ccb47][29f487e]
+        [fb4f161][4320fdc][39bf63f]
+    + Assorted improvements in error reporting
+ + Additions:
+    + Made importing globals from loaded modules lexical [4b529c8]
+    + Added degenerate Any.match [3fe5893][cc0f836]
+    + Added infix +/- for DateTime/Duration [6b850ba]
+    + parse-base() now allows for omitted whole part [3282813]
+    + Using a Bool:D literal as type constraint in signatures now warns [b01dfcd]
+    + Made Bool.ACCEPTS work with Junctions [9fc616f]
+    + Made Proc::Async sub-class friendly [a2cc58a][1dc0c01]
+    + Implemented .clone for SetHash, BagHash, and MixHash [1ee9c82]
+    + Implemented .List on shaped arrays [8568dd1]
+    + Added own .perl method to Empty [ec0258a]
+    + Made Inf and Whatever work as part of rotor()'s cycle [7ddc5f7]
+    + Made it possible to use Inf and Whatever in .head and .tail [93b0ffa]
+    + Implemented `next` in `whenever` blocks [f97d5c2]
+    + [TEST] Test::is() now handles Mu types [268dc92]
+    + [UNI] uniprop now handles Emoji properties [3baffe7]
+    + [UNI] Implemented Bidi_Mirroring_Glyph as an integer property [7c8b705]
+    + [UNI] Implemented Emoji grapheme breaking and other combined codes [7c8b705]
+    + [UNI] Added Emoji Unicode properties [7c8b705]
+    + [UNI] Added secondary and tertiary Unicode collation support [ee38721]
+    + [UNI] Re-implemented UTF8-C8 streaming decode [7c8b705][ee38721][e182deb]
+    + [UNI] Made all Nd chars accepted in ${} special variables [eba3fe0]
+    + [UNI] Made all Nd chars accepted as regex quantifiers [e40a129]
+ + Removals:
+    + [UNI] Unicode 1 character names are now deprecated and issue a warning [e7c1d51]
+    + Removed IO::Path:U.chdir candidate on account of it being a footgun [94df18c]
+ + Efficiency:
+    + [UNI] Made unival() slightly faster for repeated lookups [dbbf9dd]
+    + [UNI] Made decoding UTF-8 text 14% faster [528ec53]
+    + Made compilation of custom operators about 1.5x faster [c99fbc6]
+    + Made improvements to memory management of various aspects of invocation records
+        (aka call frames), greatly reducing memory pressure in a number of cases,
+        especially in applications that produce and store a large number of closures.
+        Up to 20% improvement to CORE.setting build time and ~10% peak memory use
+        reduction observed [e182deb]
+    + Made I/O memory buffers properly contribute to full collection criteria,
+        reducing memory overhead required [e182deb]
+    + Made @a[*-1] 13% faster [b39c0d8][ab26b58]
+    + Removed unnecessary caching on .elems in core code [ab26b58]
+    + perl6 -ne '' <large file> is now about 40% faster [541d127]
+    + Made IO::ArgFiles.lines about 10% faster [73797b7]
+    + Made List.sort() about 4x faster [8d33b89]
+    + Made native @a.sort() about 12x faster [4b2cea0]
+    + Made Str.split(<a b c>) about 3x faster [f0398fb] and then 10%-40% faster
+        on top of that, based on length of string [2496963]
+    + Made Any.sort(&by) about 40% faster [1374fcf][def5262]
+    + Made List.sort(&by) about 5% faster on reified List/Array [1e54371]
+    + Made .sort on 0- and 1-element lists 10%-40% faster [340bc90]
+    + Made .sort on 2-element lists about 50% faster [4724bd6]
+    + Made Supply.sort a multi for faster dispatch [54cc06b]
+    + Made Cursor.MATCH about 10-15% faster [9eef565]
+    + Made QuantHash.AT-POS and Baggy.new about 5%-8% faster [c13e67b]
+    + Made is nodal check a bit faster [0f25d83][996ab6a]
+    + Made Capture.Bool about 3x faster [516e527]
+    + Made sorting of 0,1,2 element native arrays about 30% faster [4038c6c]
+    + Made generating iterator after List.eager does not reify again [7a759d7]
+    + Added Seq.join that's 25% faster than List.join [3c52aa0]
+    + Make @a Z @a 5x faster [4ab020f][3d1d699]
+    + Made slow-path in grep 10% faster [362f674]
+    + Made fast-path in grep about 1.4x slower as a result of a bug fix [362f674]
+    + Made internal improvements with Empty and SlippyIterator [ebe9147]
+    + Streamlined .prec on operators [caba0d3]
+    + Made zip(@a,@b,:with(&[+|~]) about 12x faster [62f7027]
+    + Made zip(@a,@b,:with(&op)) about 7x faster [62f7027]
+    + Made zip with generic listinfix ops (e.g. zip(@a,@a,:with(&[minmax]))
+        about 2x as fast [5c685f2]
+    + Made zip(@a,@a,:with(&[=>])) about 5x faster [46cdf16]
+    + Made generic right-assoc zip ops in zip(@a,@a,:with(...)) form
+        at least 2x faster [6703b4c]
+    + Made Zop handling (except for non-LHS-thunky ops) 13x faster [f66d4b3]
+    + Made List.from-iterator about 10% faster [8f3476d]
+    + Streamlined Array.from-iterator, making it 30% faster in some cases [fab1a14]
+    + Improved ||=, //=, and &&= by avoiding thunking and invocation [d1c2e76]
+    + Made List.combinations(N) about 20% faster [1a54bba] and on top of that
+        made List.combinations() 1.5x, List.combinations(3..5) 2x faster [502fc77]
+    + Made permutations() 2x to 24x faster [78edbbb][b5293c2][c64aeb3]
+    + Made roundrobin() about 4x faster [73d0cec]
+    + Made X and cross(...,:with) about 5x faster [8a3ff7b]
+    + Made Xop about 7x faster [a26f513]
+    + Made 1 X foo about 20% faster [d4a5b69]
+    + Made List.rotor between 15x and 20x faster [d7b8214]
+    + Made Range.excludes-(min|max|infinite|is-int) 2.5x as fast [99b186b]
+    + Made reified List.Array about 3x faster [c9a9bc8]
+    + Made List/Array.sum about 30% faster [017c6cf]
+    + Made List/Array.fmt with no args about 60x faster [22e589a]
+    + Made List/Array.fmt("%s") about 60x faster [7ef3682]
+    + Made List/Array.join about 20% faster [ed482ec]
+
+New in 2016.12
+ + Fixes:
+    + Fixed inability to autocurry superscript exponents properly [c35d562]
+    + Fixed Match.prematch and Match.postmatch for zero-width matches [c04b8b5]
+    + Fixed Match objects being erroneously treated as value types [7f26e8b]
+    + Made U+2212 minus work in places it didn't [cb9df2b][01775b7][6cd2144]
+    + prefix:<~> now calls .Str on Str types (helps with allomorphs) [e0a415f]
+    + Fixed errors in `$*ARGFILES.lines` limit counter [bd42363]
+    + Fixed bug with add history for Readline module in REPL [f544e4c]
+    + sum and [+] metaop now correctly work on Junctions [8d04bec]
+    + Fixed various scoping bugs with NEXT/LAST/QUIT [6bb8823]
+    + Fixed issues in QUIT handlers running asynchronously [c027e6a]
+    + Fixed occassional hangs in Proc::Async [e4d78c6]
+    + Fixed operations still running after supply deactivation [f928a20]
+    + Fixed Iterator.flat occasionally skipping inner iterables [61a18c0]
+    + Fixed slurp not propagating :bin and :enc args on `$*ARGFILES` [15f51a5]
+    + Fixed negative zero handling in many places
+        [f1263ab][e2587cd][a9654c0][085145f]
+    + Synthetics in numbers in colonpairs in :42foo format now throw [4663d43]
+    + Fixed hang in .subst with no arguments [0a874fb]
+    + Fixed sleep() with huge values failing to sleep
+        [c797d3f][7c5ea31][2f72fa0]
+    + Fixed attributive binding not looking outward for `self` [843a6be]
+    + Fixed sprintf($format) without args issuing spurious warnings [35183f3]
+    + Fixed infix:<===> failing when both sides are allomorphs [4a59ab4]
+    + Fixed data race in Supply.interval [47ffdea]
+    + Fixed data races in supply/whenever [33f7456]
+    + Fixed memory corruption in Proc::Async [74eb6b9]
+    + Fixed handling of time resolutions below 1ms in Supply.interval [c38f1ad]
+    + Fixed issues with `-Inf` being a single term [ae614f9]
+    + Fixed Signature.gist stripping sigils from anon typeless scalars [219f527]
+    + Made permutations/combinations/grep die instead
+        of fail()ing [ab3a59c][bc13bb5]
+    + Fixed spurious warnings on .trans with regex pair complements [2e1b82c]
+    + Fixed premature frees in async sockets when errors occur [b2ac4e4]
+    + Fixed handling of superscript powers larger than int [0428b79]
+    + Fixed Proc::Async sending empty string to taps on program exit [7532297]
+    + Fixed wrong results for .first on Numerics [8cb3e1b]
+    + Fixed matcher-less .first not respecting its adverbs [ababb24]
+    + Fixed `sink` statement prefix failing to explode Failures [345f6a7]
+    + Fixed regression in S:g/// not returning original string [5476d60]
+    + Reverted .match/.comb to return empty List instead of Empty when failing
+        to match [5476d60]
+    + Fixed Mu.clone incorrectly marking all attributes as initialized [9a161fa]
+    + Fixed cloned Baggy having an undefined .WHICH [9a161fa]
+    + Fixed smartmatching against UInt type object [f9d34a9]
+    + Fixed some Date constructors accepting invalid dates [aa27d5c]
+    + Fixed .rotor on empty list returning an internal iterator object [5558710]
+    + Fixed unimatch to check canonical short/alternate unicode props [b456471]
+    + Fixed uniprop to return correct values for na, uc, tc, lc properties
+        [2a8ec40]
+    + Fixed uniprop for 'Numeric_Value' not returning a numeric value [9ff5b7e]
+    + Fixed crash with Rat Ranges constructed with Range ops [1d46004]
+    + Fixed crash with tapping supplies supplied by thunked block [a980eb1]
+    + Fixed .perl on parametarized Hashes with no items in them [003e654]
+    + Fixed .perl for itemized Slips [8eef234]
+    + Fixed chained `andthen`/`orelse` operators returning internals [287af6a]
+    + Fixed ThreadPoolScheduler.cue not applying delays to all cues [b286048]
+    + Fixed control exception propagation when thrown from within statements
+        handled by `without`, `with`, `andthen`, or `noandthen [9a3c350]
+    + Fixed Rand.rand generating value equal to excluded end point [334d134]
+    + Fixed `last` not working inside .grep's block [7021861][f775474]
+    + Fixed .head not always returning a .Seq [69d808f]
+    + Various fixes and improvements in error reporting
+ + Additions:
+    + Bare \b, \B, and \K in regexes now throw [08589d3][ee14067]
+    + Added SQL as an output option for --profile-filename [f20b8b6]
+    + Implemented native str Arrays [014d4cf][6d726f8]
+    + sub MAIN now allows Enums as type constraints [546dbd9]
+    + Count in .pick/pickpairs/grab/grabpairs can now be a Callable [e9487d6]
+    + REPL with Readline module now loads `inputrc` files [573ed59]
+    + REPL with Readline module now saves history [9043f58]
+    + perl6 --doc=Text now shows signature parameter pod [6ea6563]
+    + Generated sub MAIN usage message now shows original program name [b597b7c]
+    + Added arity-1 infix:<~> for Blobs [77e9d4b]
+    + Added IO::Handle.printf [8774f24][3c4ac3c]
+    + Added ability to negate all numeric literals in signatures [5baa064]
+    + Added .reverse/.rotate/.sum to shaped 1-dimmed arrays [a2ede36][4f4737d]
+    + Added Mu.emit [4e76827]
+    + Added --with-nqp Configure option for having NQP in
+        a different prefix [6f6e6db]
+    + Added .gist, .perl, and .Str to BOOTSTRAPATTR [3dd2916]
+    + Made .sum nodal [4fd6e94]
+    + Implemented uniprops [f55ff82][0328422][05db996]
+    + Added 5 new sets of matching brackets for available delimiters [8965145]
+ + Removals:
+    + Removed X::Syntax::Number::InvalidCharacter exception [a8ff3b9]
+ + Efficiency:
+    + Made indirect type lookup 3x as fast [939d273]
+    + Made shaped(int|num|str)array.AT-POS at least 15% faster [bfe89a5]
+    + Made shaped(int|num|str)array.ASSIGN-POS at least 10% faster [ecc202e]
+    + Made shaped(int|num|str)array.EXISTS-POS at least 20% faster [bbbb2b6]
+    + Made 1-dimmed native arrays at least 3x faster [4a711bc]
+    + Made native shaped array creation about 1.5x faster [1b840f1]
+    + Made native 1-dimmed array init at least 11x faster [b6de5e8]
+    + Made native 1-dimmed array copying at least 25x faster [b6de5e8]
+    + Made use of native 2-dimmed arrays 2.5x–4x faster [172898e]
+    + Made use of native 3-dimmed arrays 2.5x–4x faster [64343d7]
+    + Made copying 1+ dimmed native arrays up to 9x faster [e0c0ae5][331c2e2]
+    + Made copying intX[2;2] to intY[2;2] native array just as fast as
+        copying intX[2;2] to intX[2;2] [79090b2]
+    + Made native shaped array initialization 4x–6x faster [d704820]
+    + Made iteration of 1-dimmed native arrays 17x faster [947422b]
+    + Made iteration of >1 dimmed native arrays 11x faster [3e93ddd]
+    + Made .(anti)pairs for native shaped arrays 7x faster [39261e7][471cea2]
+    + Made .kv for native shaped arrays 16x faster [965fa4d][c1a3a3c]
+    + Made native array.reverse|rotate about 20x faster [0ee6bc0]
+    + Made @a[2;2] about 40% faster [b9e2ffa]
+    + Optimized Int->int coercion [b2ac4e4]
+    + Made infix:<..> on Nums 13x faster [a8ba26b]
+    + Made uniprop with the default lookup 5x faster and other lookups 15% faster. [474ea33]
+    + Made print, say and note 25% faster to stderr and stdout [e9ce28a]
+
+New in 2016.11
+ + Fixes:
+    + Various improvements to warning/error-reporting
+    + Fixed assigning values to shaped arrays through iterators [839c762]
+    + Fixed Str.Int not failing on numerics with combining characters [d540fc8]
+    + [JVM] Fixed <a b c>.antipairs breakage [dd7b055]
+    + defined routine now correctly authothreads with Junctions [189cb23]
+    + Fixed poor randomness when .pick()ing on ranges with >32-bit numbers [34e515d]
+    + Fixed infix:<x> silencing Failures [2dd0ddb]
+    + Fixed edge case in is-approx that triggers DivByZero exception [f7770ed]
+    + (Windows) Fixed returning of an error even when succeeding in mkdir [208a4c2]
+    + (Windows) Fixed precomp unable to rename a newly compiled file [44a4c75]
+    + (Test.pm) Fixed indent of multi-line diag() and test failure messages [43dbc96]
+    + Fixed a callframe crash due to boxing of NULL filenames [200364a]
+    + ∞ ≅ ∞ now gives True [4f3681b]
+    + Fixed oversharing with grammars used by multiple threads [7a456ff]
+    + Fixed incorrect calculations performed by acotan(num) [8e9fd0a]
+    + Fixed incorrect calculations performed by asinh(num)/acosh(num) [a7e801f]
+    + Fixed acosh return values for large negative numbers [5fe8cf7]
+    + asinh(-∞) now returns -∞ instead of NaN [74d0e36]
+    + atanh(1) now returns ∞ instead of throwing [906719c][66726e8]
+    + Fixed missing close in IO::Path.slurp(:bin) [697a0ae]
+    + :U QuantHashes now auto-vivify to their correct type and not Hash [79bb867]
+    + Mix/MixHash.Bag/BagHash coersion now ignores negative weights [87bba04]
+    + arity-0 infix:<Z> now returns a Seq instead of a List [3fdae43]
+    + Fix augment of a nested package [87880ca]
+    + Smartmatch with Regex variable now returns a Match instead of Bool [5ac593e]
+    + Empty ()[0] now returns Nil instead of False [f50e39b]
+    + Failed IO::Socket::Async connection no longer produces unexpected crash [f50e39b]
+    + Quitting Supplies with no QUIT phasers no longer unexpectedly crash [f50e39b]
+    + Fixed NativeCall issues on big endian machines [627a77e]
+    + Fixed broken handling of $/ in some uses of `.match` [ba152bd]
+    + Fixed Lock.protect not releasing the lock on control exceptions [48c2af6]
+    + MoarVM now builds on any version of macOS [b4dfed2]
+    + Fixed concurrency crashes due to garbage collection [6dc5074]
+    + Fixed race condition in EmptyIterator [ed2631c]
+    + Fixed hang with multi-threaded long-running NativeCall calls [f99d958]
+    + Made my @a[10] = ^Inf work [aedb8e7]
+    + Fixed [;]:delete [3b9c4c9]
+    + Fixed incorrect handling of negative weights in ∪ operator [e10f767]
+    + duckmap now preserves types of Iterables [43cb55f]
+    + Fixed premature overflow to Inf with large Num literals [729d7e3]
+    + Fixed race condition in NativeCall callsite used by multiple threads [49fd825]
+    + Fixed instabilities in programs launching many threads at startup [0134132]
+    + Fixed crash when reporting X::Composition::NotComposable or
+        X::Inheritance::Unsupported exceptions [a822bcf]
+    + Fixed clock_gettime issue on macOS [ee8ae92]
+    + Fixed SEGV in multi-threaded programs with strings-as-strands [395f369]
+    + `regex` TOP Grammar rule will now backtrack if needed [4ccb2f3]
+    + Fixed .rotate/.reverse on 1-dimmed arrays assigning to self [2d56751]
+    + Fixed exponentiation involving zeros for Complex numbers [7f32243]
+    + Fixed Label.gist [29db214][53d7b72]
+    + Fixed certain edge cases of incorrect stringification of Rationals
+        with .Str, .perl, and .base [b5aa3c5]
+ + Additions:
+    + Added TWEAK submethod for object construction [fdc90a2][9409d68]
+    + Added DateTime.hh-mm-ss [bf51eca]
+    + Added parse-base routine [7e21a24]
+    + is-approx with no explicit tolerances now uses more complex algorithm to
+        choose a tolerance to use (same as old is_approx) [82432a4]
+    + on failure, is-approx now displays actual values received [b4fe680]
+    + Added Iterator.skip-one to skip a single value [71a01e9]
+    + Added Iterator.skip-at-least to skip several values [8d357af]
+    + Re-imagined Str.match [b7201a8]:
+        + the family of :nth is now lazy will return whatever can find
+        + non-monotonically increasing :nth iterator values will now die
+    + Str.match/subst/subst-mutate now have :as adverb [1b95636][c9a24d9][aaec517]
+    + &infix:<eqv> now works with Setty objects [d92e1ad]
+    + :ov and :ex adverbs are now illegal in Str.subst [b90c741]
+    + Made nextwith/samewith/nextsame/callwith to be real subroutines [70a367d]
+    + Added CX::Emit and CX::Done control exceptions [07eeea8]
+    + Setty.Mix/.MixHash coercers now use Int weights instead of Bool [7ba7eb4]
+    + Implemented :kv,:p,:k,:v on 1-element multidim [;] [764cfcd]
+    + .chrs can now also accepts codepoint numbers as Str [4ae3f23]
+    + Added support for compilation of Rakudo on Solaris [a43b0c1]
+    + IterationEnd.perl/gist/Str now returns text "IterationEnd" [59bb1b1]
+    + Added X::Syntax::Number::InvalidCharacter exception [2faa55b]
+    + .reverse/rotate on 1-dimmed arrays are now nodal [cd765e6]
+    + .line and .file on core Code now references original source files [b068e3a]
+    + .rethrow now works on unthrown exceptions [58a4826]
+    + All Reals now accept `Whatever` as the second argument to .base() [c1d2599]
+    + sub MAIN usage message shows possible Enum values if param is
+        named and is an Enum [a3be654]
+ + Efficiency:
+    + Made slip(@a) about 1.2x faster [37d0e46]
+    + Made initialization of 2+dimmed array 10x to 16x faster [dfb58d4]
+    + Str.match is now about 5% faster [4fc17df]
+    + Str.match with :nth feature is now about 2x faster [41e2572]
+    + my @a = Str.match(...) is now about 5% faster [e472420]
+    + Str.comb(Regex) is now about 7x faster [1794328]
+    + Simple Str.subst/subst-mutate is now about 30% faster [364e67b]
+    + Match.Str|prematch|postmatch is now about 2x faster [e65d931]
+    + Match.Bool is now about 1% faster (not much, but used a lot) [1fce095]
+    + Made ~~ /foo/ faster: 2% for successful/6% for failed matches [05b65d0]
+    + Made <foo bar baz> ~~ /foo/ about 2x faster [e4dc8b6]
+    + Made %h ~~ /foo/ about 2x faster [33eeb32]
+    + Frequent accesses of multiple adverbs (e.g. %h<a>:p:exists)
+        is now 2x faster [f22f894]
+    + Made infix:<eqv> faster: Str: 14x, type: 10x, Range: 3.5x,
+        Int|Seq|Hash: 1.5x, Array: 1.2x [bc7fcc6]
+    + IO::Spec::Unix.canonpath is now 7x to 50x faster [f3f00fb]
+    + Baggy.roll/pick is now about 10% faster [fc47bbf]
+    + Made copying shaped arrays 10x to 20x faster [a1d8e93][0cf7b36][d27ecfa]
+    + Made setting up a shaped array 2x as fast [f06e4c3]
+    + Made creation of typed shaped arrays 15% faster [f5bf6c1]
+    + Made 2d/3d array accesses about 7x as fast [d3a0907]
+    + Made AT-POS on 1,2,3dim arrays about 20x faster [feb7bcb]
+    + Made creating a shaped array about 50% faster [1293188][576f3a1]
+    + Made .AT-POS on 3+ dimmed arrays 20% faster [1bb5aad]
+    + Made over-indexed .AT-POS on 1,2,3 dimmed arrays about 10% faster [1bb5aad]
+    + Made multi-dimmed ASSIGN-POS about 30% faster [5b2bdeb]
+    + Made .ASSIGN-POS for 1,2,3dimmed arrays about 40x faster [050cf72]
+    + Made n-dimmed .EXISTS-POS about 1.5x faster [006f008]
+    + Made .EXISTS-POS for 1,2,3dimmed arrays about 10x faster [b1c41b7]
+    + Made n-dimmed DELETE-POS about 1.3x faster [6ccecb1]
+    + Made .DELETE-POS for 1,2,3dimmed arrays about 20x faster [55b9e90]
+    + Made n-dimmed BIND-POS about 1.3x faster [2827edb]
+    + Made .BIND-POS for 1,2,3dimmed arrays about 20x faster [9f94525]
+    + Made @a[10].STORE at least as fast as @a.STORE [8064ff1]
+    + Made .kv on shaped Arrays about 4x faster [e42b68e]
+    + Made .pairs/.antipairs on shaped Arrays about 2.8x faster [0f2566a][f608a33]
+    + Made List.kv about 30% faster [7a2baf4]
+    + for loops on 1-dimmed arrays are now 3x faster [ed36e60]
+    + .kv on 1-dimmed arrays is now 7x faster [608de26]
+    + .pairs/.antipairs on 1-dimmed arrays is now 3x faster [b7d9537][1c425f9]
+    + postcircumfix[;] on 2/3 dimmed arrays is now 9x faster [0b97362]
+    + Assignment to [;] for 2/3 dimmed arrays is now 10x faster [ce85ba3]
+    + [;]:exists for 2/3 dimmed arrays is now 7x faster [e3e3fef]
+    + [;]:delete for 2/3 dimmed arrays is now 10x faster [3b9c4c9]
+    + [;] := foo for 2/3 dimmed arrays is now 10x faster [eaf4132]
+    + .iterator and .values on shaped arrays are now about 4x faster [736ab11]
+    + Fixed optimization of shaped arrays that gives 10% gain on simple `for`
+        loops and likely will give larger gains on bigger programs [b7e632e]
+    + Made starting MappyIterator faster, affecting all Hash/Map/Baggy iterator
+        methods. 2-elem Hash iteration is 1.6x faster [97fb6c2]
+    + Made starting a grepper faster: .grep on with no adverbs on 2-element list
+        is now 20% faster [077c8f0]
+    + Made Date/DateTime creation 20% faster [0e7f480]
+    + Hashes now use 4 (32-bit) or 8 (64-bit) bytes less memory per stored item  [395f369]
+    + Rational.Str is now about 40% faster [b5aa3c5]
+    + Rational.base is now about 30% faster [b5aa3c5]
+    + Various streamlining of code that's hard to measure the final impact of
+
+New in 2016.10
+ + Fixes:
+    + Many fixes and additions improving JVM backend support
+    + Several improvements to error messages
+    + Fixed .tree([&first]) incorrectly calling .tree($count) candidate
+    + Fixed unwanted errors when smartmatching objects against IO::Path
+    + Fixed is-deeply with Seqs showing Seq.new-consumed() in failure text
+    + Fixed concurrency race when setting up NativeCall routines
+    + Fixed Match.list treating inner unmatched captures as end of list
+    + .first now correctly handles Junction matchers
+    + Fixed GLOBAL symbol clash re-compiling due to a repo change
+    + Fixed Backtrace.map candidate being uncallable
+    + Fixed multiple bugs in Hash/Baggy.classify-list/categorize-list
+    + Fixed PERL6_TEST_DIE_ON_FAIL not exiting on failed subtests
+    + Fixed autovification using Junctions as keys
+    + Fixed infix:<^^>(Mu, Callable) candidate being uncallable
+    + Fixed IO.l for dangling symlinks
+    + Fixed infinite recursion in duckmap when mapper returned Any
+    + Fixed .subst/.subst-mutate treating incorrect arguments as failed matches
+    + Fixed .subst-mutate not returning all matches with :x
+    + Fixed hang on smartmatching Promises against numerics
+    + Fixed failure to smartmatch Numeric:U against Numeric:D
+    + Fixed hang on incorrect .splice arguments
+    + Fixed hang on incorrect .split offset
+    + Fixed multi-argument WhateverCode not detected in double closures
+    + Fixed Baggy:U ~~ Baggy:D emitting gut-referencing warnings
+    + Fixed uncallable Dateish.IO
+    + Fixed Exceptions::JSON for exceptions with no `message` method
+    + Fixed Exceptions::JSON for exceptions with non-JSON-friendly attributes
+    + Proc::Async decoding exceptions are now catchable
+    + Prevented return handler being optimized out in `sub { 42.return }()`
+    + Fixed error reporting when trying to invoke a native parameter
+    + Fixed uncallable 0- and 1-arg candidates of infix:<xx>
+    + Fixed Cool.match not setting $/
+    + Fixed Cool:U.IO coercion emitting internal warnings
+    + Fixed Nil.chrs failing when called
+    + Num:U++ now returns a Num zero instead of an Int one
+ + Removals:
+   + Removed argument-taking Dateish candidates for is-leap-year,
+       days-in-month, and day-of-week [were never part of the spec]
+   + Cool.IO no longer accepts any arguments
+   + Overflow check has been removed from infix:<**>(int, int)
+ + Additions:
+    + Added basic Unicode 9 support (NFG changes for latest TR#29 still to do))
+    + X::Proc::Unsuccessful now includes command that was run
+    + IO::Handle.new now uses 'utf8' encoding by default
+    + Bare `put` now requires parentheses to call as sub
+    + .head/.tail with no arguments now return the item and not a 1-item List
+    + Added basic native attribute parameter binding
+    + Made nativecast and spurt multies
+    + Added .^elems metamodel method to enums
+    + Enums can now be used to declare array shapes
+    + Added X::Invalid::ComputedValue exception
+    + Throw when dereferencing a null pointer in NativeCall
+    + It's now possible to refer to sigiless parameters inside `where` clauses
+    + Added extra candidates to .splice to allow for all combinations of
+        Int|Whatever|Callable for both $start and $elems arguments
+    + Made enums able to typecheck against the roles they do
+    + Made Complex.new() return 0+0i
+    + Int.new can now handle any value that can .Int
+    + Added shortname() method to CurriedRoleHOW
+    + Proc::Async new, stdout, and stderr methods now take :enc
+    + IO::Socket::Async listen, connect, and Supply methods now take :enc
+    + .Date and .DateTime are now supported on :U/:D Date/DateTime
+    + Trailing empty cells can now be omitted in Pod tables
+    + Mix/MixHash with non-Int weights can now be coerced to .Bag/.BagHash
+ + Efficiency:
+    + Made List.reverse about 5% faster
+    + Made auto-threading about 10% faster
+    + Made huge improvement to CUR::Filesystem.id performance
+    + Made dir() about 20% faster
+    + Made Regex.Bool about 2x as fast
+    + Made Str.match about 3% faster
+
+New in 2016.09
+ + Fixes:
+    + Various improvements to the content of error messages
+    + Defaults on a slurpy params now throw instead of crashing at the VM level
+    + Distribution::Path now handles native libraries correctly
+    + Junctions now work in .classify
+    + Control statements (e.g. `next`) in toplevel REPL now show useful error
+    + IO::Handle.encoding now returns correct values
+    + .comb/.split on binary handles now throws X::NYI
+    + Fixed filehandle leak in precompilation
+    + Regex in .grep and .first on Pairs now works correctly
+    + Pod parser returns proper Bool instead of Int on passed config options
+    + Fixed PERL6_TEST_DIE_ON_FAIL=1 exiting the test suite too soon
+        or dieing on failing tests inside TODOed subtests
+    + Fixed failure to accept enums as types for optional arguments
+    + Fixed blocking bug when using socket accept and threads
+    + Fixed fatal bug when using Non-ASCII tokens in regex/grammars
+    + Fixed missing adverbs and candidates in Cool.split; made same as Str.split
+    + Fixed missing adverbs in Cool.trans; made same as Str.trans
+    + Fixed NativeCall CArray hanging when created from empty list
+    + Fixed various issues with reading chars from an async socket (uncatchable
+        exceptions on decode errors, and mis-handling of graphemes and multi-byte
+        sequences over packet boundaries)
+    + Fixed "%%foo @@bar" interpolation trying to find %foo and @bar variables
+    + Fixed mis-compilation and possible compiler crash when using a construct
+      like /$<cap>=@(1,2)/
+    + Fixed a memory leak involving EVAL
+    + Fixed a multi-dispatch cache unbounded growth bug involving calls
+        with many named arguments
+    + Fixed warnings emitted when using hyper operators on two hashes
+    + Channel.elems now returns a Failure rather than eating all values
+    + Fixed type error ion IO::Path.rw
+    + Fixed …, ???, and !!! yadas not working to stub classes
+    + Fixed tab-completion issues with non-identifiers in REPL
+ + Additions:
+    + Coercions now work in return types
+    + Added RAKUDO_EXCEPTIONS_HANDLER env var to control exceptions output
+    + IO::Handle.slurp-rest now has :close flag
+    + CompUnit::Repository::Installation now cleans up short-name
+        folders when empty
+    + Added support for very large numbers in :42foo colon pairs
+    + Added a .Map coercer for object hashes
+    + All Unicode quotes can now be used as quoters inside qqww/qww
+    + LEFT/RIGHT DOUBLE PARENTHESIS characters can now be used with q and others
+    + Unicode digits can now be used with Match variables ($١), quote
+        pairs (:۳<12>), negative numbers (-١), and radix bases (:۳("22"))
+ + Efficiency:
+    + Numerous improvements in CUR, offering up to 10x faster module loading
+    + Baggy.ACCEPTS(Baggy) is now about 25x faster
+    + Baggy eqv Baggy is now at least 10x faster
+    + Infix === now checks identicality, offering performance gains on large
+        objects, such as a Bag with 1000 elements
+    + Many metaops are now about 10% faster
+    + Made Junction.Bool|ACCEPTS about 2x faster
+    + Improvement in performance of IO::Path::child
+    + Made permutations() about 5x faster
+    + Made List.permutations about 40x faster
+    + Made combinations() about 1.8x faster
+    + Made List.combinations about 7x faster
+    + Made Unix's canonpath several times faster for simple paths
+    + Made Buf|Blob.reverse 1.5x faster
+    + Made .IO.lines about 10% faster on large files
+ + Changed APIs:
+    + The operator precedence configuration rule `O()` has been changed to be
+        more precompilation-friendly; rather than taking a string containing
+        colonpairs, it now takes named arguments directly. This is not
+        strictly a Perl 6 change, but rather a change in NQP, and thus only
+        applies if you're doing fairly involved hacking on the grammar. If the
+        sentences above made no sense to you, your code is not affected by
+        this change.
+
+New in 2016.08.1
+ + Fixes:
+    + Updated NQP version to avoid broken tag
+
+New in 2016.08
+ + Fixes:
+    + Numerous improvements to content of error messages and addition
+        of new previously-undetected warnings, such as on sinks and ... terms
+    + Removed redeclaration error for anon subs
+    + Concatenation/substr with strings constructed with repeat operator
+        no longer results in incorrect strings
+    + Fixed error for unknown symbol in parametric type
+    + Things that produce a Seq no longer get constant-folded, avoiding
+        bogus Seq exhaustion errors
+    + where {} clause on unit sub MAIN no longer produces bogus errors
+    + Fixed compilation and behaviour of :D on subsets
+    + Assigning Nil to a :D variable now fails (unless its default is :D)
+    + Fixed CURF's resolve generating the wrong repo-id
+    + Fixed precomp file for Staging repo containing build path
+    + Fixed merge global symbols failures when changing repositories
+    + Fixed -Ilib and friends not overriding installed dependencies
+    + Fixed <[a..z]> ranges breaking grapheme awareness
+    + Fixed a race condition in Channel.Supply
+    + Fixed an occasional deadlock when using the supply/react syntax
+    + Fixed a race condition involving tearing down listening async sockets
+    + start blocks now get their own fresh $! and $/
+    + .squish, .unique, .repeated, and .grep now correctly pass on .is-lazy
+    + Fixed segfault on "multi cross{}"
+    + .sort stored in a Callable no longer incorrectly returns BOOTArray
+    + Smartmatch with two signatures, only one of which has slurpy hash,
+        no longer produces spurious exception
+    + @a.splice now returns array with correct descriptor
+    + .rotor with negative gap that lands out of range now throws
+    + Range.rotor with Rat arguments no longer crashes
+    + .hash on Bag, Mix, BagHash, and MixHash types no longer stringifies keys
+    + .abspath on filenames starting with '-' no longer results in empty string
+    + generated setting file now has empty lines for those that were
+        skipped in the past, allowing to directly map the line in a setting
+        to the source code it was generated from
+    + loop and repeat now properly self-sink
+    + for { ... .map } now properly sinks
+    + Backtrace::Frame.is-(hidden|routine) now returns Bool
+    + Bool.Int now properly returns an Int
+    + Starting the REPL with a module loading error, will now just exit
+    + Names of phasers (such as BEGIN) will now be included in suggestions
+    + Fixed loading of modules when a FileSystem repo doesn't actually exist
+    + Fixed mis-scoping of blocks in s///
+    + Closure clones are no longer double code-generated
+    + Caller $/ is now propagated through deferral
+    + Fixed inconsistent coersions to Bool
+    + Fixed over-assuming optimization of R meta operator
+    + Fixed endless recursion in Any::BIND-POS under certain conditions
+ + Additions:
+    + Str.samemark('') now returns self instead of failing
+    + Test.pm now provides bail-out()
+    + Implemented $?MODULE and ::?MODULE
+    + Implemented CompUnit::Repository::Installation::installed
+    + InstalledDistribution now gets returned where appropriate
+    + returns in signatures of many builtins now marked as --> Nil
+    + .min/.max can now be called on Hashes
+    + Invocant marker (:) can now be used in bare signatures
+    + Added X::Syntax::NonListAssociative exception type
+    + Hash[Any].new.perl now roundtrips
+    + Buf.push|append|unshift|prepend also allow Blob:D
+    + .succ now increments additional 29 digit ranges, such as Thai digits
+    + List.sum is now marked as nodal
+    + Can now return Nil as a result of a Promise
+    + Implemented :exists on multi-dim assoc subscript literals
+    + Added PERL6_TEST_DIE_ON_FAIL env var in Test.pm6 to bail out of the
+        test suite on first failure
+ + Efficiency:
+    + Streamlined multiple internal code paths that may or may not
+      result in performance improvements in user code
+    + Improved dynamic variable lookup (2x as fast)
+    + Hash.AT-KEY is about 35% faster
+    + Hash.ASSIGN-KEY about 2x as fast
+    + Hash.DELETE-KEY about 2x as fast
+    + Hash[Any,Any].AT-KEY about 20% faster
+    + Hash[Any,Any].ASSIGN-KEY about 15% faster
+    + Hash[Any,Any].BIND-KEY about 15% faster
+    + Hash[Any,Any].EXISTS-KEY about 10% faster
+    + Hash[Any,Any].DELETE-KEY 10% faster
+    + Repeated calls on Bag.WHICH now 5x as fast
+    + Backtrace creation 25% faster
+    + .first/.first(:end) iteration is now about 10% faster
+        after testing 1000 elements
+    + .minmax about 25% faster
+    + .min/.max about 40% faster
+    + min/max/minmax on native arrays is between 15x and 25x faster than
+        non-native equivalent
+    + Array.splice() almost infinitely faster and is much easier on memory (no
+        longer copies anything but instead transplants internals)
+    + Array.splice(offset,size) is now 20x to 40x faster for
+        small offsets and sizes
+    + Array.splice(offset,size,@) is about 10x faster
+    + 10% improvement to .map/for in special cases of one-argument block that
+        has a return signature that excludes Slips,
+        such as -> Int $_ --> Str { .Str }
+    + Many Set/SetHash methods are now at least 5% faster
+    + Coercing a MixHash/BagHash to a Mix/Bag is now 300x faster
+    + Coercing a Bag/BagHash to Mix coercion is now 1000x faster
+    + Coercing a SetHash to a Set is now 80x faster
+
+New in 2016.07.1
+ + Fixes:
+   + `make DESTDIR` now correctly finds CompUnit::Repository::Staging
+   + .polymod with a lazy list no longer loses mods if the list runs out
+   + Output from Test.pm6's diag() is no longer lost in non-verbose prove output
+     when called at the start of the test file or during TODO tests
+   + Bitwise operators that return int/Int no longer fail with candidate error
+     when given a native int argument
+ + Additions:
+   + Improved error message when IO::Path.new is given incorrect arguments
+   + Improved error message when .polymod is given a zero as divisor
+ + Efficiency:
+   + Str.samecase is now 5x faster
+   + Str.indices is 10% faster
+   + Str.rindex is 30% faster
+   + Str.index is 30% faster
+
+New in 2016.07
+ + Fixes:
+   + Mu can now be the result of a Promise
+   + samewith() now also works on non-multi's
+   + Many fixes in the area of pre-compilation and installing modules
+   + Maps now correctly identify themselves as value objects
+   + BagHashes and MixHashes no longer identify themselves as value objects
+   + count-only and bool-only now are optional methods in Iterators
+     (only to be implemented if they can work without generating anything)
+   + Hash.Map now properly creates immutable Map
+   + IO::ArgFiles.slurp / IO::ArgFiles.eof are fixed
+   + Several wrapper file fixes
+   + If a file is unknown in an error report, it is no longer shown
+     (This typically happens in the REPL, or when doing an EVAL)
+   + REPL whitespace and error handling
+   + CompUnit::Repository::Installation no longer considers `bin/xxx` and
+     `resources/bin/xxx` the same content address
+   + Callable in a Signatures stringifies correctly
+   + BEGIN time EVAL no longer negatively affects MAIN_CTX
+   + Str.chop correctly works when given very large arguments
+   + min/max on Failures throw instead of returning ±Inf
+   + NativeCall's is mangled trait no longer ignored for CPPStruct
+ + Additions:
+   + The "is required" trait on Attributes can now take a Bool or a Str
+   + Support for new leap-second at 31-12-2016 added
+   + IO::[Path,Handle] gained a .mode method which returns the POSIX file permissions
+   + Fixed LTA error message with Str.samemark when no pattern present
+   + Distribution is now a role interface that enables encapsulating IO
+     used for distribution installation
+   + CompUnit::Repository::Installation now uses the new Distribution interface
+   + The original distribution META `provides` data is now preserved
+   + Custom repository implementations now supported, including precompilation
+   + List.BIND-POS now fails instead of throwing
+   + RAKUDO_JDB_PORT and RAKUDO_PRECOMP_NESTED_JDB debug environmental
+     variables
+   + Failures in Cool.Numeric and related coercers now get propagated
+   + Improved warning message for literals with leading zeros
+   + Improved error message for attempts to `use` core types
+ + Efficiency:
+   + The MMD cache accepts candidates with named parameters if it can.
+     (This made adverbed slices about 18x as fast)
+   + Str.samemark is 50x faster
+   + Str.contains is 6x faster
+   + Baggy.pick(N)/pick()/roll()/grab() are 6x faster
+   + Array.List is 5x faster
+   + List.elems is 4.5x faster
+   + for/map with 2 arguments is 4x faster (e.g. for @a.kv -> $i, $v { })
+   + Str.substr-eq is 4x faster
+   + List.Bool is 4x faster
+   + Str.chop is about 3.5x faster, Str.chop(N) 20% faster
+   + Map eqv Map is 3x faster
+   + Make "for List.pairs {}" 2.5x faster
+   + Array.pop is 2.5x faster
+   + List.AT-POS/EXISTS-POS are 2.5x faster
+   + Creating arrays with [] is 2.5x faster
+   + Array.AT-POS/ASSIGN-POS/BIND-POS at least 2x faster for unreified elements
+   + Array.DELETE-POS is 7x faster
+   + Str.starts-with is 2x faster
+   + Array.shift is 2x faster
+   + Baggy.roll(*) is 2x faster
+   + Blob/Buf.AT-POS is 2x faster (underlying method of e.g. "$buf[2]")
+   + List.STORE is 2x faster (e.g. "my ($a,$b,$c) = (1,2,3)")
+   + Make "for List.kv {}" 1.8x faster
+   + Array.push/append is 40% faster
+   + Str.comb 30% faster
+   + Map/Hash initializations are now 30% faster
+   + A slurpy taking a list is 30% faster ("sub a(*@a) { }; a(1,2,3,4)")
+   + Str.ends-with is 25% faster.
+   + Str.chomp is 20% faster
+   + single element for/map in sink context without phasers, is 20% faster
+   + Pair.new is 10% faster
+   + val() is 5% faster
+   + {}|[]:adverb is 2.5x faster
+   + foo xx Int is 10% faster
+   + Str.Int is 5% faster
+   + Code.arity|count are 2x faster
+
+New in 2016.06
+ + Fixes:
+   + Arrays with holes (e.g. from :delete) now correctly iterate/auto-vivify
+   + Hash.keyof now correctly returns Str(Any)
+   + Precompilation from a debug Perl 6 now uses "normal" Perl 6 executor
+   + Inf,NaN,-Inf now can be coerced to Rat, and back to Num
+   + Creating an Enum from a List/Range no longer warns
+   + Precompilation on file systems with coarse timestamps no longer fails
+   + An issue with reverse dependencies of installed modules was fixed
+   + Fixed issue with comparing v6 and v6.c Version objects
+   + Fixed ≅ ignoring the signs of compared numbers
+ + Additions:
+   + Add default for CompUnit::PrecompilationRepository.precompile(:source-name)
+   + The "is-approx" sub from Test now allows for relative/absolute tolerance
+   + The "cmp-ok" sub from Test now can take any infix as Str, even custom ones
+   + A fail in a custom BUILD will now be returned, rather than thrown
+   + use MONKEY-WRENCH and use MONKEY-BARS are now reserved names for future use
+ + Efficiency:
+   + .map between 10% and 30% faster
+   + .unique, .repeated and .squish 10% to 20% faster
+   + gather/take about 10% faster
+   + Basic object creation (using either .new or .bless) now up to 3x faster
+   + (+@a), (*@a) and (**@a) signature handling between 20% and 4x faster
+   + Iterating List/Array now uses less memory and is faster
+   + All routines now have less overhead, thanks to improved implementation of
+     return handlers (including those that do not use return)
+   + return, next, last, and redo are now all faster
+   + infix:<,> about 40% faster
+   + numerous other smaller or edge-case speed improvements
+ + Deprecations:
+   + The "is_approx" sub (note underscore) from Test
+
+New in 2016.05
+ + Fixes:
+   + Fix EVAL during precompilation
+   + .substr fixes
+   + many precompilation fixes
+   + clean up error messages
+   + Streamline some core classes
+   + Harden Mu.Str against moving GC
+   + JVM fixes
+   + Simplify $*USER/$*GROUP initialization
+ + Additions:
+   + Ability to use a customer debugger module
+   + $*MAIN-ALLOW-NAMED-ANYWHERE allows MAIN to be friendlier about where it accepts flags
+   + Add richer set of comparison operators for Versions
+   + Many improvements to precompilation - building OS packages with precomp'd code should now be possible!
+   + Introduce .Map coercer
+   + Implement alternate ways to call subtest
+ + Efficiency:
+   + Version comparisons are now 2x faster
+   + List.minmax is about 3.5x faster
+   + Num.perl is about 2.4x faster
+   + Int division/modulus is about 1.5x faster
+   + LoL accesses are about 3x faster
+   + autothreader is about 2-3x faster
+   + Make Any junction methods 14x faster
+   + Make Junctions faster
+   + Map.kv is about 10% faster
+
+New in 2016.04
+ + Fixes:
+   + .combinations cleanup
+   + "magic" inc/dec cleanup
+   + utf8-c8 encoding crashes that occurred on random data
+   + fix missing pre-comp store unlock
+   + missing module error mentions line number
+   + some JVM fixes
+ + Additions:
+   + Improved REPL
+   + Add :kv to .first
+   + Add provisional $*DEFAULT-READ-ELEMS
+ + Efficiency:
+   + Removed leaks associated with EVAL
+   + Speed up .minpairs/.maxpairs
+   + Speed up Object:D cmp Object:D
+   + Speed up sort 3-15%
+
+New in 2016.03
+ + Fixes:
+   + Buf.push|append|unshift|prepend now can take int arrays
+   + Better error messages when trying to put illegal values into Blob|Buf
+   + The REPL now allows statements spread over multiple lines
+   + No longer show compilation error twice when loading module with errors
+   + Only Bufs can now be specified as parameter to subbuf-rw
+   + Values in %*ENV now have allomorphic semantics
+   + Supply.Channel / Channel.Supply no longer lose exceptions
+   + Calling .prepend on a native array no longer infiniloops
+   + Blob.WHICH now indicates a value (immutable) type
+   + Better error reporting for problems with sprintf()
+   + Some obscure unicode codepoints causing segfaults no longer segfault
+   + Directory listings now handle wrongly encoded data using utf8-c8
+ + Additions:
+   + Native str arrays (my str @a)
+   + Buf.pop, Buf.shift and Buf.splice (similar to List.*)
+   + Blob|Buf.allocate($elems, @init-pattern)
+   + Buf.reallocate($elems) added
+   + &*EXIT can be set to handle exit() statements (for embedding Perl 6)
+ + Efficiency:
+   + Auto-generated accessors/mutators use less memory and are faster
+   + Most Blob|Buf related options use less memory and/or are (much) faster
+   + Same for much of the native array support and IO reading operations
+   + Many Parameter/Signature related options are much faster
+   + Punning a role is much faster
+   + Modules can now be shared between rakudo versions
+   + Reordering "use lib" statements made NativeCall tests 3x as fast
+
+New in 2016.02
+ + Fixes:
+   + Many memory leaks fixed in MoarVM
+   + Fix several issues with "require"
+   + .perl of an iterated Seq (RT #127492)
+   + Set.hash now returns an object hash (RT #127402)
+   + Use the order of arguments in usage display, rather than hash order
+   + Exception.fail now dies reliably outside of a routine
+   + fix problem with Str.split with multiple overlapping needles
+   + Map.Hash now correctly separates from the Map
+   + Fix roundtrip issues of Instants
+   + Specifying ::a now gives proper compile time error (RT #127504)
+   + Rakudo jars are now installed in the proper location
+   + Enums with a type object now fail with an NYI error
+   + .first(:end) on uncached iterators no longer fails
+ + Additions:
+   + Buf.unshift/Buf.prepend
+   + DateTime.new(y,mo,d,h,mi,s) fully positional candidate
+   + Can now uninstall distributions
+   + Date/DateTime now fully subclassable
+   + REPL now supports multi-line statements (experimental)
+ + Efficiency:
+   + Str.trans can now be up to 160x faster
+   + @a.chrs noq 3x faster, chrs(@a) now 9x faster
+   + Many Map/Hash related functions can be up to 2x as fast
+   + Magic increment/decrement on strings 2x as fast
+   + Some percentages improvement in object creation, phaser handling,
+     summing, creating failures.
+   + Object hashes re-implemented using 1 internal hash, instead of 2.
+     This results in about 10% less memory usage, and a few % less in CPU
+
 New in 2016.01
  + Fixes:
    + Chained .grep calls on Supply fixed (RT #127297)
@@ -208,7 +2016,7 @@ New in 2015.10:
     + The new .self method is the identity method on anything
     + Negative integers are now allowed in the parameter slot
     + List associative operators can now be autoprimed, including Xop and Zop
-  + Incompatible Changes
+ + Incompatible Changes
     + Array.push is now used for pushing one element (mostly); Array.append
       exists for pushing multiple values. Same for 'unshift'/'prepend'
     + Basic arithmetic operations ('+', '*', '-', '/') on Range objects
@@ -432,7 +2240,7 @@ New in 2015.05
    + Make List.pick about 3% faster, List.pick(*) about 7% faster
    + Implement new @*INC handling (about 30% faster startup time)
      (bare startup time is now below 100 ms on some machines)
-+ NativeCall:
+ + NativeCall:
    + Implemented CUnions which map to the union C type definition
    + Implemented HAS declarator for attributes to mark it embedded into the
      CStruct or CUnion

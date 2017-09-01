@@ -1,0 +1,40 @@
+=head1 REPL LINE EDITOR
+
+The read-eval-print-loop (aka. the REPL) has the abilty to load a line editor
+module if one is available.  This makes facilities such as line editing,
+persistent history, and symbol completion.
+
+If you don't have any line editing modules installed, you may use C<rlwrap> to
+provide much of the same functionality.
+
+=head2 AVAILABLE EDITORS
+
+Right now, there are new line editor modules available: C<Readline> and C<Linenoise>.
+They have roughly the same functionality, but C<Linenoise> provides tab completion,
+and C<Readline> has an easier time with multibyte input.
+
+=head2 ENVIRONMENT VARIABLES
+
+The line editor used by the REPL can be configured via various environment
+variables, listed here.
+
+=over 4
+
+=item RAKUDO_DISABLE_MULTILINE
+
+This disables multi-line input for the REPL if truthy.
+
+=item RAKUDO_HIST
+
+This specifies the location of the history file used by the line editor; the
+default is C<~/.perl6/rakudo-history>.
+
+=item RAKUDO_LINE_EDITOR
+
+This specifies the preferred line editor to use; valid values are C<Readline>,
+C<Linenoise>, and C<none>.  A value of C<none> is useful if you want to avoid
+the recommendation message upon REPL startup.
+
+=back
+
+=cut

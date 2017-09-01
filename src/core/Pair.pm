@@ -1,24 +1,41 @@
 my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
+    has Mu $!WHICH;
 
-    multi method new(Mu \key, Mu \value) {
-        my \p := nqp::create(self);
-        nqp::bindattr(p, Pair, '$!key', nqp::decont(key));
-        nqp::bindattr(p, Pair, '$!value', value);
+    proto method new(|) { * }
+    # This candidate is needed because it currently JITS better
+    multi method new(Pair: Cool:D \key, Mu \value) {
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',nqp::decont(key));
+        nqp::bindattr(p,Pair,'$!value',value);
         p
     }
-    multi method new(Mu :$key, Mu :$value) {
-        my \p := nqp::create(self);
-        nqp::bindattr(p, Pair, '$!key', $key);
-        nqp::bindattr(p, Pair, '$!value', $value);
+    multi method new(Pair: Mu \key, Mu \value) {
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',nqp::decont(key));
+        nqp::bindattr(p,Pair,'$!value',value);
+        p
+    }
+    multi method new(Pair: Mu :$key!, Mu :$value!) {
+        my \p := nqp::p6bindattrinvres(
+          nqp::create(self),Pair,'$!key',$key);
+        nqp::bindattr(p,Pair,'$!value',$value);
         p
     }
 
     multi method WHICH(Pair:D:) {
-        nqp::iscont($!value)
-          ?? nextsame()
-          !! "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH
+        nqp::unless(
+          $!WHICH,
+          ($!WHICH := nqp::if(
+            nqp::iscont($!value),
+            callsame,
+            nqp::box_s(
+              "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,
+              ObjAt
+            )
+          ))
+        )
     }
 
     multi method ACCEPTS(Pair:D: %h) {
@@ -31,15 +48,31 @@ my class Pair does Associative {
         $other."$!key"().Bool === $!value.Bool
     }
 
+    method Pair() { self }
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 
-    multi method keys(Pair:D:)      { ($!key,).list }
-    multi method kv(Pair:D:)        { $!key, $!value }
-    multi method values(Pair:D:)    { ($!value,).list }
-    multi method pairs(Pair:D:)     { (self,).list }
-    multi method antipairs(Pair:D:) { self.new(key => $!value, value => $!key) }
-    multi method invert(Pair:D:)    { $!value »=>» $!key }
+    method iterator(Pair:D:) {
+        Rakudo::Iterator.OneValue(self)
+    }
+    multi method keys(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue($!key))
+    }
+    multi method kv(Pair:D:) {
+        Seq.new(Rakudo::Iterator.TwoValues($!key,$!value))
+    }
+    multi method values(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue($!value))
+    }
+    multi method pairs(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue(self))
+    }
+    multi method antipairs(Pair:D:) {
+        Seq.new(Rakudo::Iterator.OneValue(self.new($!value,$!key)))
+    }
+    multi method invert(Pair:D:) {
+        Seq.new(Rakudo::Iterator.Invert(self.iterator))
+    }
 
     multi method Str(Pair:D:) { $!key ~ "\t" ~ $!value }
 
@@ -53,13 +86,14 @@ my class Pair does Associative {
 
     multi method perl(Pair:D: :$arglist) {
         self.perlseen('Pair', -> :$arglist {
-            nqp::istype($!key, Str)
+            nqp::istype($!key, Str) && nqp::isconcrete($!key)
               ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
-                ?? nqp::istype($!value,Bool)
+                ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
                    ?? ':' ~ '!' x !$!value ~ $!key
                    !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
                 !! $!key.perl ~ ' => ' ~ $!value.perl
               !! nqp::istype($!key, Numeric)
+                   && nqp::isconcrete($!key)
                    && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
                 ?? $!key.perl ~ ' => ' ~ $!value.perl
                 !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
@@ -70,15 +104,20 @@ my class Pair does Associative {
         sprintf($format, $!key, $!value);
     }
 
-    multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Mu }
+    multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Nil }
     multi method EXISTS-KEY(Pair:D: $key) { $key eq $!key }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() { nqp::hash($!key.Str, $!value) }
 }
 
-multi sub infix:<eqv>(Pair:D $a, Pair:D $b) {
-    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
+multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT)
+             && a.key   eqv b.key
+             && a.value eqv b.value)
+    )
 }
 
 multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {

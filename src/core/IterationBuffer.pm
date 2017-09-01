@@ -11,7 +11,7 @@
 # of Perl 6. Do NOT add any checks and validation to methods in here. They
 # need to remain trivially inlineable for performance reasons.
 my class IterationBuffer {
-    method clear(IterationBuffer:D:) {
+    method clear(IterationBuffer:D: --> Nil) {
         nqp::setelems(self, 0)
     }
 
@@ -36,5 +36,12 @@ my class IterationBuffer {
     }
     multi method BIND-POS(IterationBuffer:D: Int $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
+    }
+
+    # For core debugging purposes only: basically warp the IterationBuffer
+    # into a full-fledged List and .perl that.  We don't care that it will
+    # not round-trip.
+    multi method perl(IterationBuffer:D:) {
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self).perl
     }
 }

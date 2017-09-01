@@ -37,3 +37,6 @@ package EXPORT::smallnatives {
 package EXPORT::pack {
     OUR::<EXPERIMENTAL-PACK> := True;
 }
+package EXPORT::collation {
+    OUR::<EXPERIMENTAL-COLLATION> := True;
+}

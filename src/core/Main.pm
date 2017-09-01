@@ -13,31 +13,64 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
+    my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
+    my $no-named-after =
+      !(%SUB-MAIN-OPTS<named-anywhere> // $*MAIN-ALLOW-NAMED-ANYWHERE);
+
+    sub thevalue(\a) {
+        ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
+          ?? $type
+          !! val(a)
+    }
+
     # Convert raw command line args into positional and named args for MAIN
     my sub process-cmd-args(@args is copy) {
-        my (@positional-arguments, %named-arguments);
-        my $stopped = False;
-        while +@args {
-            my $passed-value = @args.shift;
-            $stopped = $passed-value eq '--';
-            if !$stopped && $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
-                my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
+        my $positional := nqp::create(IterationBuffer);
+        my %named;
 
-                with $arg.index('=') {
-                    my ($name, $value) = $arg.split('=', 2);
-                    $value = val($value);
-                    $value = $value but False if $negate;
-                    %named-arguments.push: $name => $value;
-                } else {
-                    %named-arguments.push: $arg => !$negate;
-                }
-            } else {
-                @args.unshift($passed-value) unless $passed-value eq '--';
-                @positional-arguments.append: @args.map: &val;
+        while ?@args {
+            my str $passed-value = @args.shift;
+
+            # rest considered to be non-parsed
+            if nqp::iseq_s($passed-value,'--') {
+                nqp::push($positional, thevalue($_)) for @args;
                 last;
             }
+
+            # no longer accepting nameds
+            elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
+                nqp::push($positional, thevalue($passed-value));
+            }
+
+            # named
+            elsif $passed-value
+              ~~ /^ [ '--' | '-' | ':' ] ('/'?) (<-[0..9\.]> .*) $/ {  # 'hlfix
+                my str $arg = $1.Str;
+                my $split  := nqp::split("=",$arg);
+
+                # explicit value
+                if nqp::isgt_i(nqp::elems($split),1) {
+                    my str $name = nqp::shift($split);
+                    %named.push: $name => $0.chars
+                      ?? thevalue(nqp::join("=",$split)) but False
+                      !! thevalue(nqp::join("=",$split));
+                }
+
+                # implicit value
+                else {
+                    %named.push: $arg => !($0.chars);
+                }
+            }
+
+            # positional
+            else {
+                nqp::push($positional, thevalue($passed-value));
+            }
         }
-        @positional-arguments, %named-arguments;
+
+        nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',$positional
+        ),%named;
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -60,23 +93,41 @@ my sub MAIN_HELPER($retval = 0) {
             $name;
         }
 
-        my $prog-name = $*PROGRAM-NAME eq '-e'
+        my $prog-name = %*ENV<PERL6_PROGRAM_NAME>:exists
+          ?? %*ENV<PERL6_PROGRAM_NAME>
+          !! $*PROGRAM-NAME;
+        $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
-          !! strip_path_prefix($*PROGRAM-NAME);
+          !! strip_path_prefix($prog-name);
         for $m.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
-            my (@required-named, @optional-named, @positional, $docs);
+
+            my @required-named;
+            my @optional-named;
+            my @positional;
+            my $docs;
+
             for $sub.signature.params -> $param {
                 my $argument;
                 if $param.named {
                     if $param.slurpy {
-                        $argument  = '--<' ~ substr($param.name,1) ~ '>=...';
-                        @optional-named.push("[$argument]");
+                        if $param.name { # ignore anon *%
+                            $argument  = "--<$param.usage-name()>=...";
+                            @optional-named.push("[$argument]");
+                        }
                     }
                     else {
                         my @names  = $param.named_names.reverse;
                         $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                        $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
+                        if $param.type !=== Bool {
+                            $argument ~= "=<{$param.type.^name}>";
+                            if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
+                                my $options = $param.type.^enum_values.keys.sort.Str;
+                                $argument ~= $options.chars > 50
+                                  ?? ' (' ~ substr($options,0,50) ~ '...'
+                                  !! " ($options)"
+                            }
+                        }
                         if $param.optional {
                             @optional-named.push("[$argument]");
                         }
@@ -88,12 +139,14 @@ my sub MAIN_HELPER($retval = 0) {
                 else {
                     my $constraints  = $param.constraint_list.map(*.gist).join(' ');
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
-                    $argument = $param.name   ?? '<' ~ substr($param.name,1) ~ '>' !!
+                    $argument = $param.name   ?? "<$param.usage-name()>" !!
                                 $simple-const ??       $constraints                !!
                                                  '<' ~ $param.type.^name     ~ '>' ;
 
-                    $argument = "[$argument ...]" if $param.slurpy;
-                    $argument = "[$argument]"     if $param.optional;
+                    $argument  = "[$argument ...]"          if $param.slurpy;
+                    $argument  = "[$argument]"              if $param.optional;
+                    $argument .= trans(["'"] => [q|'"'"'|]) if $argument.contains("'");
+                    $argument  = "'$argument'"              if $argument.contains(' ' | '"');
                     @positional.push($argument);
                 }
                 @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
@@ -159,7 +212,7 @@ my sub MAIN_HELPER($retval = 0) {
     # Let's display the default USAGE message
     if $n<help> {
         $*OUT.say($?USAGE);
-        exit 1;
+        exit 0;
     }
     else {
         $*ERR.say($?USAGE);

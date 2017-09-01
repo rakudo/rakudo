@@ -1,10 +1,11 @@
-use lib 't/04-nativecall';
+use v6;
+
+use lib <lib t/04-nativecall>;
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 
-plan 26;
+plan 28;
 
 compile_test_lib('06-struct');
 
@@ -15,7 +16,7 @@ class MyStruct is repr('CStruct') {
     has num32  $.float;
     has CArray $.arr;
 
-    method init() {
+    submethod TWEAK {
         $!long = 42;
         $!byte = 7;
         $!num = -3.7e0;
@@ -24,6 +25,10 @@ class MyStruct is repr('CStruct') {
         $arr[0] = 1;
         $arr[1] = 2;
         $!arr := $arr;
+    }
+
+    method clear-array() {
+        $!arr := CArray[long];
     }
 }
 
@@ -42,7 +47,7 @@ class IntStruct is repr('CStruct') {
     has long $.second;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!first  = 13;
         $!second = 17;
     }
@@ -53,7 +58,7 @@ class NumStruct is repr('CStruct') {
     has num64 $.second;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!first  = 0.9e0;
         $!second = 3.14e0;
     }
@@ -64,11 +69,9 @@ class StructStruct is repr('CStruct') {
     has NumStruct $.b;
 
     # Work around struct members not being containerized yet.
-    method init {
+    submethod TWEAK {
         $!a := IntStruct.new;
         $!b := NumStruct.new;
-        $!a.init;
-        $!b.init;
     }
 }
 
@@ -76,7 +79,7 @@ class StringStruct is repr('CStruct') {
     has Str $.first;
     has Str $.second;
 
-    method init {
+    submethod TWEAK {
         $!first  := 'Lorem';
         $!second := 'ipsum';
     }
@@ -98,6 +101,7 @@ class StructIntStruct is repr('CStruct') {
 
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
 sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
+sub TakeAStructWithNullCArray(MyStruct $arg) returns int32 is native('./06-struct') { * }
 
 sub ReturnAStructStruct()                returns StructStruct is native('./06-struct') { * }
 sub TakeAStructStruct(StructStruct $arg) returns int32        is native('./06-struct') { * }
@@ -111,21 +115,20 @@ sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { 
 
 # Perl-side tests:
 my MyStruct $obj .= new;
-$obj.init;
 
 is $obj.long,   42,     'getting long';
-is_approx $obj.num,   -3.7e0,  'getting num';
+is-approx $obj.num,   -3.7e0,  'getting num';
 is $obj.byte,   7,      'getting int8';
-is_approx $obj.float,  3.14e0, 'getting num32';
+is-approx $obj.float,  3.14e0, 'getting num32';
 is $obj.arr[1], 2,      'getting CArray and element';
 
 # C-side tests:
 my $cobj = ReturnAStruct;
 
 is $cobj.long,   17,      'getting long from C-created struct';
-is_approx $cobj.num,    4.2e0,   'getting num from C-created struct';
+is-approx $cobj.num,    4.2e0,   'getting num from C-created struct';
 is $cobj.byte,   13,      'getting int8 from C-created struct';
-is_approx $cobj.float,  -6.28e0, 'getting num32 from C-created struct';
+is-approx $cobj.float,  -6.28e0, 'getting num32 from C-created struct';
 is $cobj.arr[0], 2,       'C-created array member, elem 1';
 is $cobj.arr[1], 3,       'C-created array member, elem 2';
 is $cobj.arr[2], 5,       'C-created array member, elem 3';
@@ -134,8 +137,8 @@ my StructStruct $ss = ReturnAStructStruct();
 is $ss.a.first,   7, 'field 1 from struct 1 in struct';
 is $ss.a.second, 11, 'field 2 from struct 1 in struct';
 
-is_approx $ss.b.first,  3.7e0, 'field 1 from struct 2 in struct';
-is_approx $ss.b.second, 0.1e0, 'field 2 from struct 2 in struct';
+is-approx $ss.b.first,  3.7e0, 'field 1 from struct 2 in struct';
+is-approx $ss.b.second, 0.1e0, 'field 2 from struct 2 in struct';
 
 my PointerStruct $x = ReturnAPointerStruct();
 is $x.p.deref, 19, 'CPointer object in struct';
@@ -146,13 +149,16 @@ is $strstr.second, 'Strings!', 'second string in struct';
 
 is TakeAStruct($obj), 11, 'C-side values in struct';
 
+$obj.clear-array();
+is TakeAStructWithNullCArray($obj), 1,
+    'Setting a CArray struct element to type object passes a NULL to C';
+
 my StructStruct $ss2 .= new();
-$ss2.init;
 
 is TakeAStructStruct($ss2), 22, 'C-side values in struct struct';
 
 my StringStruct $strstr2 .= new();
-$strstr2.init;
+
 #$strstr2.first  := "Lorem";
 #$strstr2.second := "ipsum";
 is TakeAStringStruct($strstr2), 33, 'C-side strict values in struct';
@@ -169,6 +175,10 @@ is $sis.a.second, 77, 'nested second is 77';
     class AB is repr<CStruct> { HAS A $.a; HAS B $.b };
 
     is nativesizeof(AB), 2, 'struct with inlined structs has correct size';
+}
+
+{
+    throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no attributes'/ };
 }
 
 # vim:ft=perl6

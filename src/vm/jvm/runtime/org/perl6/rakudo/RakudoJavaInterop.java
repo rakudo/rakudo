@@ -8,9 +8,15 @@ import org.perl6.nqp.sixmodel.reprs.P6Opaque;
 import org.perl6.nqp.sixmodel.reprs.JavaObjectWrapper;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.net.URLClassLoader;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ArrayList;
 
 import org.perl6.rakudo.RakOps;
@@ -23,6 +29,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.InvocationTargetException;
 
 import org.perl6.nqp.sixmodel.reprs.NativeCall.ArgType;
 
@@ -76,7 +83,6 @@ public class RakudoJavaInterop extends BootJavaInterop {
             Object[] outArgs = new Object[inArgs.length - offset];
             int i = offset;
             for(; i < inArgs.length; ++i) {
-                // /* debug
                 if( Ops.islist( (SixModelObject) inArgs[i], tc ) == 1 ) {
                     outArgs[i - offset] = BootJavaInterop.marshalOutRecursive( (SixModelObject) inArgs[i], tc, null);
                 }
@@ -305,7 +311,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     }
                     break;
                 default:
-
+                    throw new ArrayIndexOutOfBoundsException(1);
             }
 
             return retVal;
@@ -341,6 +347,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
             CallFrame cf = (CallFrame) incf;
             CallSiteDescriptor csd = (CallSiteDescriptor) incsd;
             Object[] parsedArgs = parseArgArray(args);
+
+            Ops.debugnoop((SixModelObject) args[0], (ThreadContext) intc);
 
             /* debug
             for(int i = 0; i < parsedArgs.length; ++i ) {
@@ -427,31 +435,87 @@ public class RakudoJavaInterop extends BootJavaInterop {
         if( Ops.islist(in, tc) == 1 ) {
             return BootJavaInterop.marshalOutRecursive(in, tc, what);
         }
-        else if(Ops.istype(in, gcx.List, tc) == 1
-            || Ops.istype(in, gcx.Array, tc) == 1) {
-            SixModelObject list = null;
-            throw ExceptionHandling.dieInternal(tc, "List interop NYI after GLR");
-            //list = RakOps.p6listitems(Ops.decont(in, tc), tc);
-            //size = Ops.elems(list, tc);
-            //for( int i = 0; i < size; ++i ) {
-            //    Object cur = Ops.atpos(Ops.decont(list, tc), i, tc);
-            //    Object value = null;
-            //    if(Ops.islist((SixModelObject) cur, tc) == 1) {
-            //        ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
-            //    }
-            //    else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1
-            //        ||  Ops.istype((SixModelObject) cur, gcx.Array, tc) == 1) {
-            //        value = marshalOutRecursive((SixModelObject) cur, tc, what);
-            //    }
-            //    else {
-            //        value = parseSingleArg((SixModelObject) cur, tc);
-            //    }
-            //    if( out == null ) {
-            //        out = Array.newInstance(value.getClass(), (int)size);
-            //    }
-            //    Array.set(out, i, value);
-            //}
+        else if(Ops.istype(in, gcx.List, tc) == 1) {
+            SixModelObject p6list = Ops.decont(in, tc);
+            SixModelObject methElems = Ops.findmethod(p6list, "elems", tc);
+            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { p6list });
+            try {
+                size = Ops.result_i(tc.curFrame);
+            }
+            catch(Throwable t) {
+                ExceptionHandling.dieInternal(tc, "Cannot marshal a lazy list to Java");
+            }
+
+            // TODO get half the work of parseSingleArg() abstracted out of there
+            //      i.e. the type mapping between Java and Rakudo, so we
+            //      can actually do something with the "of" and thus
+            //      can dispatch to e.g. int[] instead of just Object[]
+            SixModelObject methOf = Ops.findmethod(p6list, "of", tc);
+            Ops.invokeDirect(tc, methOf, Ops.invocantCallSite, new Object[] { p6list });
+            SixModelObject ofType = Ops.result_o(tc.curFrame);
+            SixModelObject methAtPos = Ops.findmethod(p6list, "AT-POS", tc);
+            
+            for(int i = 0; i < size; i++) {
+                Ops.invokeDirect(tc, methAtPos, 
+                    Ops.storeCallSite,
+                    new Object[] { p6list, Ops.box_i((long)i, gcx.Int, tc) });
+                Object cur = Ops.result_o(tc.curFrame);
+                Object value = null;
+                if(Ops.islist((SixModelObject) cur, tc) == 1) {
+                    ((Object[]) out)[i] = BootJavaInterop.marshalOutRecursive(in, tc, what);
+                }
+                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1) {
+                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
+                }
+                else {
+                    value = parseSingleArg((SixModelObject) cur, tc);
+                }
+                if( out == null ) {
+                    out = Array.newInstance(Object.class, (int)size);
+                }
+                Array.set(out, i, value);
+            }
+            if (List.class.isAssignableFrom(what)) {
+                out = Arrays.asList((Object[]) out);
+            }
         }
+        else if(Ops.istype(in, gcx.Hash, tc) == 1) {
+            SixModelObject p6hash = Ops.decont(in, tc);
+            SixModelObject methElems = Ops.findmethod(p6hash, "elems", tc);
+            Ops.invokeDirect(tc, methElems, Ops.invocantCallSite, new Object[] { p6hash });
+            try {
+                size = Ops.result_i(tc.curFrame);
+            }
+            catch(Throwable t) {
+                ExceptionHandling.dieInternal(tc, "Cannot marshal a lazy hash to Java");
+            }
+            SixModelObject methKeys = Ops.findmethod(p6hash, "keys", tc);
+            Ops.invokeDirect(tc, methKeys, Ops.invocantCallSite, new Object[] { p6hash });
+            SixModelObject p6keyList = Ops.result_o(tc.curFrame);
+            SixModelObject methAtPos = Ops.findmethod(p6keyList, "AT-POS", tc);
+            SixModelObject methAtKey = Ops.findmethod(p6hash, "AT-KEY", tc);
+            
+            out = new HashMap<String, Object>();
+            for(int i = 0; i < size; i++) {
+                Ops.invokeDirect(tc, methAtPos, Ops.storeCallSite, new Object[] { p6keyList, Ops.box_i((long)i, gcx.Int, tc) });
+                SixModelObject p6key = Ops.result_o(tc.curFrame);
+                Ops.invokeDirect(tc, methAtKey, Ops.storeCallSite, new Object[] { p6hash, p6key });
+                Object cur = Ops.result_o(tc.curFrame);
+                Object value = null;
+                if(Ops.islist((SixModelObject) cur, tc) == 1) {
+                    value = BootJavaInterop.marshalOutRecursive(in, tc, what);
+                }
+                else if(Ops.istype((SixModelObject) cur, gcx.List, tc) == 1) {
+                    value = marshalOutRecursive((SixModelObject) cur, tc, what);
+                }
+                else {
+                    value = parseSingleArg((SixModelObject) cur, tc);
+                }
+                ((HashMap) out).put(Ops.unbox_s(p6key, tc), value);
+            }
+        }
+        // TODO associative types, which could for starters default to Map<Object> similar 
+        //      to how Positionals currently do, but we will want "of" checking there too
         return out;
     }
 
@@ -515,13 +579,16 @@ public class RakudoJavaInterop extends BootJavaInterop {
     protected void marshalOut(MethodContext c, Class<?> what, int ix) {
         MethodVisitor mv = c.mv;
 
-        if(what.getComponentType() != null) {
+        if(what.getComponentType() != null
+            || List.class.isAssignableFrom(what)
+            || Map.class.isAssignableFrom(what)) {
             emitGetFromNQP(c, ix, storageForType(what));
             mv.visitVarInsn(Opcodes.ALOAD, c.tcLoc);
             mv.visitLdcInsn(Type.getType(what));
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "marshalOutRecursive",
                 Type.getMethodDescriptor(Type.getType(Object.class), TYPE_SMO, TYPE_TC, Type.getType(Class.class)));
         }
+
         else {
             super.marshalOut(c, what, ix);
         }
@@ -823,6 +890,31 @@ public class RakudoJavaInterop extends BootJavaInterop {
         return cc;
     }
 
+    public void addToClassPath(String path) {
+        path = "file:" + path;
+        if (!path.endsWith("jar") && !path.endsWith("class"))
+            path = path + "/";
+        Class<?> klass;
+
+        try {
+            // ...but here's what we actually do:
+            Method meth_addURL = URLClassLoader.class.getDeclaredMethod("addURL", new Class<?>[] { URL.class });
+            meth_addURL.setAccessible(true);
+            meth_addURL.invoke(getClass().getClassLoader(), new URL(path));
+        }
+        catch (NoSuchMethodException nsme) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), nsme);
+        }
+        catch (InvocationTargetException ite) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), ite);
+        }
+        catch (IllegalAccessException iae) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), iae);
+        }
+        catch (MalformedURLException mue) {
+            throw ExceptionHandling.dieInternal(gc.getCurrentThreadContext(), mue);
+        }
+    }
 
     @Override
     protected SixModelObject computeInterop(ThreadContext tc, Class<?> klass) {
@@ -864,6 +956,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
             if( shorten.contains("mmd+") ) {
                 String shortmult = shorten.substring(shorten.indexOf("+") + 1);
                 mult.put(shortmult, cr);
+                // don't add multi candidates with mmd+ prefix
+                continue;
             }
             if( names.containsKey(shorten) ) {
                 names.put(shorten, null);
@@ -884,9 +978,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             names.put(ent.getKey(), ent.getValue());
         }
 
+        int pos = 0;
         for (Iterator<Map.Entry<String, SixModelObject>> it = names.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, SixModelObject> ent = it.next();
             if (ent.getValue() != null) {
+                method_order.bind_pos_boxed(tc, pos++, ent.getValue());
+                methods.bind_key_boxed(tc, ent.getKey(), ent.getValue());
                 hash.bind_key_boxed(tc, ent.getKey(), ent.getValue());
             }
             else
@@ -904,7 +1001,4 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         return hash;
     }
-
 }
-
-

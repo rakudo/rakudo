@@ -2,8 +2,8 @@
 # 6 one. Note that it doesn't have signature information we can know about.
 
 my class ForeignCode does Callable { # declared in BOOTSTRAP
-    # class ForeignCode {
-    #     has Mu $!do;                # Code object we delegate to
+    # class ForeignCode
+    #     has Code $!do;                # Code object we delegate to
 
     method arity() { self.signature.arity }
 

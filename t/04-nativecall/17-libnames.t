@@ -1,6 +1,8 @@
-use Test;
+use v6;
 
+use lib <lib>;
 use NativeCall :TEST;
+use Test;
 
 plan 16;
 

@@ -20,7 +20,6 @@ BEGIN {
     my Mu $tight_or         := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '.t');
     my Mu $tight_or_xor     := nqp::hash('prec', 'k=', 'assoc', 'list', 'thunky', '..t');
     my Mu $tight_or_minmax  := nqp::hash('prec', 'k=', 'assoc', 'list');
-    my Mu $conditional      := nqp::hash('prec', 'j=', 'assoc', 'right', 'iffy', 1, 'thunky', '.tt');
     my Mu $item_assignment  := nqp::hash('prec', 'i=', 'assoc', 'right');
     my Mu $loose_unary      := nqp::hash('prec', 'h=');
     my Mu $comma            := nqp::hash('prec', 'g=', 'assoc', 'list');
@@ -156,14 +155,16 @@ BEGIN {
 # U+227D SUCCEEDS OR EQUAL TO
     trait_mod:<is>(&infix:<≽>,      :prec($chaining));
 
-    trait_mod:<is>(&infix:<..>,   :prec($structural));
-    trait_mod:<is>(&infix:<^..>,  :prec($structural));
-    trait_mod:<is>(&infix:<..^>,  :prec($structural));
-    trait_mod:<is>(&infix:<^..^>, :prec($structural));
-    trait_mod:<is>(&infix:<leg>,  :prec($structural));
-    trait_mod:<is>(&infix:<cmp>,  :prec($structural));
-    trait_mod:<is>(&infix:<but>,  :prec($structural));
-    trait_mod:<is>(&infix:<does>, :prec($structural));
+    trait_mod:<is>(&infix:<..>,     :prec($structural));
+    trait_mod:<is>(&infix:<^..>,    :prec($structural));
+    trait_mod:<is>(&infix:<..^>,    :prec($structural));
+    trait_mod:<is>(&infix:<^..^>,   :prec($structural));
+    trait_mod:<is>(&infix:<leg>,    :prec($structural));
+    trait_mod:<is>(&infix:<cmp>,    :prec($structural));
+    trait_mod:<is>(&infix:<unicmp>, :prec($structural));
+    trait_mod:<is>(&infix:<coll>,   :prec($structural));
+    trait_mod:<is>(&infix:<but>,    :prec($structural));
+    trait_mod:<is>(&infix:<does>,   :prec($structural));
 
     trait_mod:<is>(&infix:<&&>, :prec($tight_and));
 

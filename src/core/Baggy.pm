@@ -4,585 +4,736 @@ my role Baggy does QuantHash {
 # The keys of the hash, are the .WHICH strings of the original object key.
 # The values are Pairs containing the original object key and value.
 
-    has %!elems; # key.WHICH => (key,value)
+    has Rakudo::Internals::IterationSet $!elems; # key.WHICH => (key,value)
 
 # The Baggy role takes care of all mutable and immutable aspects that are
 # shared between Bag,BagHash,Mix,MixHash.  Any specific behaviour for
 # mutable and immutable aspects of Mix/MixHash need to live in Mixy.
 # Immutables aspects of Bag/Mix, need to live to Bag/Mix respectively.
 
-#--- private methods
-    method !WHICH() {
-        self.^name
-          ~ '|'
-          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } );
-    }
-    method !PAIR(\key,\value) { Pair.new(key, my Int $ = value ) }
-    method !TOTAL() {
-        my $total = 0;
-        my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-        $total += nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
-          while $iter;
-        $total;
-    }
-    method !SANITY(%hash --> Nil) {
-        my @toolow;
-        my $elems := nqp::getattr(%hash,Map,'$!storage');
-        my $iter  := nqp::iterator($elems);
-        while $iter {
-            my \tmp   := nqp::shift($iter);
-            my \pair  := nqp::iterval(tmp);
-            my $value := pair.value;
-            @toolow.push( pair.key )                   if $value <  0;
-            nqp::deletekey($elems,nqp::iterkey_s(tmp)) if $value <= 0;
-        }
-        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
-    }
-    method !LISTIFY(&formatter) {
-        my $elems := nqp::getattr(%!elems,Map,'$!storage');
-        my $list  := nqp::list();
-        nqp::setelems($list,nqp::elems($elems));  # presize
-        nqp::setelems($list,0);
-
-        my $iter := nqp::iterator($elems);
-        while $iter {
-            my \pair = nqp::iterval(nqp::shift($iter));
-            nqp::push($list,formatter(pair.key,pair.value));
-        }
-        $list
-    }
-
 #--- interface methods
-    method !SET-SELF(Baggy:D: Mu \elems) {
-        %!elems := elems;
+    method SET-SELF(Baggy:D: \elems) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(elems),
+            nqp::bindattr(self,::?CLASS,'$!elems',elems)
+          ),
+          self
+        )
+    }
+    multi method ACCEPTS(Baggy:U: \other --> Bool:D) {
+        other.^does(self)
+    }
+    multi method ACCEPTS(Baggy:D: Baggy:D \other --> Bool:D) {
+        nqp::p6bool(
+          nqp::unless(
+            nqp::eqaddr(self,other),
+            nqp::if(                         # not same object
+              (my $araw := $!elems),
+              nqp::if(                       # something on left
+                (my $braw := other.RAW-HASH),
+                nqp::if(                     # something on both sides
+                  nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
+                  nqp::stmts(                # same size
+                    (my $iter := nqp::iterator($araw)),
+                    nqp::while(
+                      $iter,
+                      nqp::unless(
+                        nqp::getattr(
+                          nqp::ifnull(
+                            nqp::atkey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                            BEGIN nqp::p6bindattrinvres(  # virtual Pair with 0
+                              nqp::create(Pair),Pair,'$!value',0)
+                          ),Pair,'$!value')
+                          == nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                        return False         # missing/different: we're done
+                      )
+                    ),
+                    True                     # all keys identical/same value
+                  )
+                )
+              ),
+              # true -> both empty
+              nqp::isfalse(
+                ($braw := other.RAW-HASH) && nqp::elems($braw)
+              )
+            )
+          )
+        )
+    }
+    multi method ACCEPTS(Baggy:D: Mu \other --> Bool:D) {
+        self.ACCEPTS(other.Bag)
+    }
 
-        if self.^name.chars == 3 { # shoddy heuristic for Bag/Mix
-            my $iter := nqp::iterator(nqp::getattr(%!elems,Map,'$!storage'));
-            while $iter {
-                my \pair = nqp::iterval(nqp::shift($iter));
-                nqp::bindattr(pair,Pair,'$!value',
-                  nqp::decont(nqp::getattr(pair,Pair,'$!value'))
-                );
-            }
-        }
-        self
-    }
-    method ACCEPTS(Baggy:_: $other) {
-        self.defined
-          ?? $other (<+) self && self (<+) $other
-          !! $other.^does(self);
-    }
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
-        my str $which = nqp::unbox_s(k.WHICH);
-        nqp::existskey($elems,$which)
-          ?? nqp::getattr(nqp::decont(nqp::atkey($elems,$which)),Pair,'$!value')
-          !! 0
+        nqp::if(
+          $!elems,
+          nqp::getattr(
+            nqp::ifnull(
+              nqp::atkey($!elems,k.WHICH),
+              BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+            ),
+            Pair,
+            '$!value'
+          ),
+          0
+        )
     }
     multi method DELETE-KEY(Baggy:D: \k) {
-        my $elems    := nqp::getattr(%!elems,Map,'$!storage');
-        my str $which = nqp::unbox_s(k.WHICH);
-        if nqp::existskey($elems,$which) {
-            my \v = nqp::getattr(
-              nqp::decont(nqp::atkey($elems,$which)),
-              Pair,'$!value');
-            nqp::deletekey($elems,$which);
-            v
-        }
-        else {
-            0
-        }
+        nqp::if(
+          $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+          nqp::stmts(
+            (my $value :=
+              nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value')),
+            nqp::deletekey($!elems,$which),
+            $value
+          ),
+          0
+        )
     }
     multi method EXISTS-KEY(Baggy:D: \k) {
         nqp::p6bool(
-          nqp::existskey(
-            nqp::getattr(%!elems,Map,'$!storage'),nqp::unbox_s(k.WHICH)));
+          $!elems && nqp::existskey($!elems,k.WHICH)
+        )
     }
 
 #--- object creation methods
-    multi method new(Baggy:_: +@args) {
-        my $elems := nqp::hash();
-        my str $which;
-        for @args {
-            $which = nqp::unbox_s(.WHICH);
-            if nqp::existskey($elems,$which) {
-                my $value :=
-                  nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                $value = $value + 1;
-            }
-            else {
-                nqp::bindkey($elems,$which,self!PAIR($_,1));
-            }
-        }
-        nqp::create(self)!SET-SELF($elems)
+
+    # helper sub to create Bag from iterator, check for laziness
+    sub create-from-iterator(\type, \iterator --> Baggy:D) {
+        nqp::if(
+          iterator.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
+          nqp::create(type).SET-SELF(
+            Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet), iterator
+            )
+          )
+        )
     }
-    method new-from-pairs(*@pairs) {
-        my $elems := nqp::hash();
-        my str $which;
-        my int $seen-pair;
-        for @pairs {
-            when Pair {
-                $seen-pair = 1;
-                $which = nqp::unbox_s(.key.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + .value;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR(.key,.value));
-                }
-            }
-            default {
-                $which = nqp::unbox_s(.WHICH);
-                if nqp::existskey($elems,$which) {
-                    my $value :=
-                      nqp::getattr(nqp::atkey($elems,$which),Pair,'$!value');
-                    $value = $value + 1;
-                }
-                else {
-                    nqp::bindkey($elems,$which,self!PAIR($_,1));
-                }
-            }
-        }
-        self!SANITY($elems) if $seen-pair;
-        nqp::create(self)!SET-SELF($elems)
+
+    multi method new(Baggy:_: --> Baggy:D) { nqp::create(self) }
+    multi method new(Baggy:_: \value --> Baggy:D) {
+        nqp::if(
+          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
+          create-from-iterator(self, value.iterator),
+          nqp::stmts(
+            nqp::bindkey(
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              value.WHICH,
+              Pair.new(value,1)
+            ),
+            nqp::create(self).SET-SELF($elems)
+          )
+        )
+    }
+    multi method new(Baggy:_: **@args) {
+        create-from-iterator(self, @args.iterator)
+    }
+
+    method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
+          nqp::create(self).SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )
+          )
+        )
     }
 
 #--- iterator methods
-    multi method pairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
-            method pull-one() {
-                $!iter
-                  ?? nqp::iterval(nqp::shift($!iter))
-                  !! IterationEnd
-            }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink :=
-                      $target.push(nqp::iterval(nqp::shift($!iter)));
-                    $done = $done + 1;
-                }
-                $done
-            }
-            method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push(nqp::iterval(nqp::shift($!iter)))
-                  while $!iter;
-                IterationEnd
-            }
-        }.new(%!elems))
+    multi method iterator(Baggy:D:) {
+        Rakudo::Iterator.Mappy-values($!elems)
     }
     multi method keys(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
                 $!iter
-                  ?? nqp::iterval(nqp::shift($!iter)).key
+                  ?? nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
                   !! IterationEnd
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink :=
-                      $target.push(nqp::iterval(nqp::shift($!iter)).key);
-                    $done = $done + 1;
-                }
-                $done
+            method push-all($target --> IterationEnd) {
+                nqp::while(  # doesn't sink
+                  $!iter,
+                  $target.push(
+                    nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+                  )
+                )
             }
-            method push-all($target) {
-                my $no-sink;
-                $no-sink :=
-                  $target.push(nqp::iterval(nqp::shift($!iter)).key)
-                    while $!iter;
-                IterationEnd
-            }
-        }.new(%!elems))
+        }.new($!elems))
     }
     multi method kv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
-            has Mu $!value;
-
-            method pull-one() is raw {
-                if $!value.DEFINITE {
-                    my \tmp  = $!value;
-                    $!value := Mu;
-                    tmp
-                }
-                elsif $!iter {
-                    my \tmp = nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $!value := nqp::getattr(tmp,Pair,'$!value');
-                    nqp::getattr(tmp,Pair,'$!key')
-                }
-                else {
-                    IterationEnd
-                }
-            }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                if $!value.DEFINITE {
-                    $no-sink := $target.push($!value);
-                    $!value := Mu;
-                    $done = $done + 1;
-                }
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    my \tmp =
-                      nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!key'));
-                    if ($done = $done + 1) < $n {
-                        $no-sink :=
-                          $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                        $done = $done + 1;
-                    }
-                    else {
-                        $!value := nqp::getattr(tmp,Pair,'$!value');
-                    }
-                }
-                $done
-            }
-            method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp =
-                      nqp::decont(nqp::iterval(nqp::shift($!iter)));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!key'));
-                    $no-sink := $target.push(nqp::getattr(tmp,Pair,'$!value'));
-                }
-                IterationEnd
-            }
-        }.new(%!elems))
+        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs($!elems))
     }
     multi method values(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() is raw {
-                $!iter
-                    ?? nqp::getattr(nqp::decont(
-                         nqp::iterval(nqp::shift($!iter))),Pair,'$!value')
-                    !! IterationEnd
+                nqp::if(
+                  $!iter,
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!value'),
+                  IterationEnd
+                )
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    $no-sink := $target.push(nqp::getattr(nqp::decont(
-                      nqp::iterval(nqp::shift($!iter))),Pair,'$!value'));
-                    $done = $done + 1;
-                }
-                $done
+            method push-all($target --> IterationEnd) {
+                nqp::while(  # doesn't sink
+                  $!iter,
+                  $target.push(
+                    nqp::getattr(
+                      nqp::iterval(nqp::shift($!iter)),
+                      Pair,
+                      '$!value'
+                    )
+                  )
+                )
             }
-            method push-all($target) {
-                my $no-sink;
-                $no-sink := $target.push(nqp::getattr(nqp::decont(
-                  nqp::iterval(nqp::shift($!iter))),Pair,'$!value'
-                )) while $!iter;
-                IterationEnd
-            }
-        }.new(%!elems))
+        }.new($!elems))
     }
     multi method antipairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
-                if $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    Pair.new(tmp.value, tmp.key)
-                }
-                else {
-                    IterationEnd
-                }
+                nqp::if(
+                  $!iter,
+                  nqp::iterval(nqp::shift($!iter)).antipair,
+                  IterationEnd
+                )
             }
-            method push-exactly($target, int $n) {
-                my int $done;
-                my $no-sink;
-                while $done < $n {
-                    return IterationEnd unless $!iter;
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $no-sink := $target.push(Pair.new(tmp.value, tmp.key));
-                    $done = $done + 1;
-                }
-                IterationEnd
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
+                )
             }
-            method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $no-sink := $target.push(Pair.new(tmp.value, tmp.key));
-                }
-                IterationEnd
-            }
-        }.new(%!elems))
+        }.new($!elems))
     }
     proto method kxxv(|) { * }
     multi method kxxv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Internals::MappyIterator {
+        Seq.new(class :: does Rakudo::Iterator::Mappy {
             has Mu $!key;
             has int $!times;
 
             method pull-one() is raw {
-                if $!times {
-                    $!times = $!times - 1;
+                nqp::if(
+                  $!times,
+                  nqp::stmts(
+                    ($!times = nqp::sub_i($!times,1)),
                     $!key
-                }
-                elsif $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $!key  := tmp.key;
-                    $!times = tmp.value - 1;
-                    $!key
-                }
-                else {
+                  ),
+                  nqp::if(
+                    $!iter,
+                    nqp::stmts(
+                      ($!key := nqp::getattr(
+                        (my $pair := nqp::iterval(nqp::shift($!iter))),
+                        Pair,
+                        '$!key'
+                      )),
+                      ($!times =
+                        nqp::sub_i(nqp::getattr($pair,Pair,'$!value'),1)),
+                      $!key
+                    ),
                     IterationEnd
-                }
+                  )
+                )
             }
-            method push-all($target) {
-                my $no-sink;
-                while $!iter {
-                    my \tmp = nqp::iterval(nqp::shift($!iter));
-                    $!key  := tmp.key;
-                    $!times = tmp.value + 1;
-                    $no-sink := $target.push($!key) while $!times = $!times - 1;
-                }
-                IterationEnd
+            method skip-one() { # the default skip-one, too difficult to handle
+                nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
             }
-        }.new(%!elems))
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(
+                    ($!key := nqp::getattr(
+                      (my $pair := nqp::iterval(nqp::shift($!iter))),
+                      Pair,
+                      '$!key'
+                    )),
+                    ($!times =
+                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)),
+                    nqp::while(  # doesn't sink
+                      ($!times = nqp::sub_i($!times,1)),
+                      $target.push($!key)
+                    )
+                  )
+                )
+            }
+        }.new($!elems))
     }
     multi method invert(Baggy:D:) {
-        %!elems.values.map: { (.value »=>» .key).cache.Slip }
+        Seq.new(Rakudo::Iterator.Invert(Rakudo::Iterator.Mappy-values($!elems)))
     }
 
 #--- introspection methods
-    multi method WHICH(Baggy:D:)   { self!WHICH }
-    method total(Baggy:D:)         { self!TOTAL }
-    method elems(Baggy:D: --> Int) { %!elems.elems }
-    method Bool(Baggy:D: --> Bool) {
-        nqp::p6bool(nqp::elems(nqp::getattr(%!elems,Map,'$!storage')))
+    multi method elems(Baggy:D: --> Int:D) {
+        nqp::istrue($!elems) && nqp::elems($!elems)
     }
-    method hash(Baggy:D: --> Hash) { %!elems.values.hash }
-    method default(Baggy:D:)       { 0 }
+    multi method Bool(Baggy:D: --> Bool:D) {
+        nqp::p6bool($!elems && nqp::elems($!elems))
+    }
 
-    multi method Str(Baggy:D: --> Str) {
-        join(' ', self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
+    method HASHIFY(\type) {
+        nqp::stmts(
+          (my $hash := Hash.^parameterize(type,Any).new),
+          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          nqp::if(
+            $!elems && nqp::elems($!elems),
+            nqp::stmts(
+              (my $storage := nqp::clone($!elems)),
+              (my $iter := nqp::iterator($storage)),
+              nqp::while(
+                $iter,
+                nqp::bindkey(
+                  $storage,
+                  nqp::iterkey_s(nqp::shift($iter)),
+                  nqp::p6bindattrinvres(
+                    nqp::clone(nqp::iterval($iter)),
+                    Pair,
+                    '$!value',
+                    (nqp::p6scalarfromdesc($descriptor) =
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                  )
+                )
+              ),
+              nqp::bindattr($hash,Map,'$!storage',$storage)
+            )
+          ),
+          $hash
+        )
     }
-    multi method gist(Baggy:D: --> Str) {
-        my str $name = nqp::unbox_s(self.^name);
-        ( nqp::chars($name) == 3 ?? nqp::lc($name) !! "$name.new" )
-        ~ '('
-        ~ join(', ',self!LISTIFY(-> \k,\v {v==1 ?? k.gist !! "{k.gist}({v})"}))
-        ~ ')'
+    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
+    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+
+    method default(Baggy:D: --> 0) { }
+
+    multi method Str(Baggy:D: --> Str:D) {
+        nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+            nqp::if(
+              (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+              nqp::getattr($_,Pair,'$!key').gist,
+              "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+            )
+        }))
     }
-    multi method perl(Baggy:D: --> Str) {
-        '('
-        ~ join(',', self!LISTIFY( -> \k,\v {"{k.perl}=>{v}"} ))
-        ~ ").{self.^name}"
+    multi method gist(Baggy:D: --> Str:D) {
+        nqp::concat(
+          nqp::concat(
+            nqp::concat(self.^name,'('),
+            nqp::join(', ',
+              Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                    nqp::if(
+                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+                      nqp::getattr($_,Pair,'$!key').gist,
+                      "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+                    )
+                })
+              )
+            )
+          ),
+          ')',
+        )
+    }
+    multi method perl(Baggy:D: --> Str:D) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::concat(
+            nqp::concat(
+              '(',
+              nqp::join(',',
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                    nqp::if(
+                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+                      nqp::getattr($_,Pair,'$!key').perl,
+                      "{nqp::getattr($_,Pair,'$!key').perl}=>$value"
+                    )
+                })
+              )
+            ),
+            nqp::concat(').',self.^name)
+          ),
+          nqp::if(
+            nqp::istype(self,Bag),
+            'bag()',
+            nqp::if(
+              nqp::istype(self,Mix),
+              'mix()',
+              nqp::concat('().',self.^name)
+            )
+          )
+        )
     }
 
 #--- selection methods
     proto method grabpairs (|) { * }
     multi method grabpairs(Baggy:D:) {
-        %!elems.DELETE-KEY(%!elems.keys.pick);
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my $iter := Rakudo::QuantHash.ROLL($!elems)),
+            (my $pair := nqp::iterval($iter)),
+            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
+            $pair
+          ),
+          Nil
+        )
+    }
+    multi method grabpairs(Baggy:D: Callable:D $calculate) {
+        self.grabpairs( $calculate(self.elems) )
+    }
+    multi method grabpairs(Baggy:D: Whatever $) {
+        self.grabpairs(Inf)
     }
     multi method grabpairs(Baggy:D: $count) {
-        if nqp::istype($count,Whatever) || $count == Inf {
-            my @grabbed = %!elems{%!elems.keys.pick(%!elems.elems)};
-            %!elems = ();
-            @grabbed;
-        }
-        else {
-            %!elems{ %!elems.keys.pick($count) }:delete;
-        }
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::stmts(
+                    (my $pair := nqp::atkey(
+                      $!elems,
+                      (my $key := nqp::pop_s($!picked))
+                    )),
+                    nqp::deletekey($!elems,$key),
+                    $pair
+                  ),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
     }
 
     proto method pickpairs(|) { * }
     multi method pickpairs(Baggy:D:) {
-        %!elems.AT-KEY(%!elems.keys.pick);
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::iterval(Rakudo::QuantHash.ROLL($!elems)),
+          Nil
+        )
+    }
+    multi method pickpairs(Baggy:D: Callable:D $calculate) {
+        self.pickpairs( $calculate(self.total) )
+    }
+    multi method pickpairs(Baggy:D: Whatever $) {
+        self.pickpairs(Inf)
     }
     multi method pickpairs(Baggy:D: $count) {
-        %!elems{ %!elems.keys.pick(
-          nqp::istype($count,Whatever) || $count == Inf
-            ?? %!elems.elems
-            !! $count
-        ) };
+        Seq.new(class :: does Rakudo::QuantHash::Pairs {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::elems($!picked),
+                  nqp::atkey($!elems,nqp::pop_s($!picked)),
+                  IterationEnd
+                )
+            }
+        }.new($!elems, $count))
     }
 
     proto method grab(|) { * }
-    multi method grab(Baggy:D:) {
-        my \grabbed := ROLLPICKGRAB1(self,%!elems.values);
-        %!elems.DELETE-KEY(grabbed.WHICH)
-          if %!elems.AT-KEY(grabbed.WHICH).value-- == 1;
-        grabbed;
-    }
-    multi method grab(Baggy:D: $count) {
-        if nqp::istype($count,Whatever) || $count == Inf {
-            my @grabbed = ROLLPICKGRABN(self,self.total,%!elems.values);
-            %!elems = ();
-            @grabbed;
-        }
-        else {
-            my @grabbed = ROLLPICKGRABN(self,$count,%!elems.values);
-            for @grabbed {
-                if %!elems.AT-KEY(.WHICH) -> $pair {
-                    %!elems.DELETE-KEY(.WHICH) unless $pair.value;
-                }
-            }
-            @grabbed;
-        }
+    multi method grab(Baggy:D: |c) {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
     proto method pick(|) { * }
-    multi method pick(Baggy:D:) {
-        ROLLPICKGRAB1(self,%!elems.values);
+    multi method pick(Baggy:D:) { self.roll }
+    multi method pick(Baggy:D: Callable:D $calculate) {
+        self.pick( $calculate(self.total) )
     }
+    multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
     multi method pick(Baggy:D: $count) {
-        ROLLPICKGRABN(self,
-          nqp::istype($count,Whatever) || $count == Inf ?? self.total !! $count,
-          %!elems.values.map: { (.key => my $ = .value) }
-        );
+        Seq.new(nqp::if(
+          (my $todo = nqp::if(
+            $count == Inf,
+            (my $total := self.total),
+            $count.Int                          # also handles NaN
+          )) < 1,
+          Rakudo::Iterator.Empty,               # nothing to do
+          class :: does Iterator {
+              has $!raw;      # the IterationSet of the Baggy
+              has $!weights;  # clone of raw, but with just the weights
+              has $!todo;     # number of draws to do
+              has $!total;    # total number of draws possible
+
+              # Return the .WHICH key of a randomly picked object.  Updates
+              # the weight of the picked object and the total number of draws
+              # still possible.
+              method BAG-PICK() {
+                  nqp::stmts(
+                    (my Int $rand := $!total.rand.Int),
+                    (my Int $seen := 0),
+                    (my $iter := nqp::iterator($!weights)),
+                    nqp::while(
+                      $iter && nqp::isle_I(
+                        ($seen := nqp::add_I(
+                          $seen,
+                          nqp::iterval(nqp::shift($iter)),
+                          Int
+                        )),
+                        $rand
+                      ),
+                      nqp::null
+                    ),
+                    nqp::bindkey(                # $iter now contains picked one
+                      $!weights,
+                      nqp::iterkey_s($iter),
+                      nqp::sub_I(nqp::iterval($iter),1,Int)
+                    ),
+                    ($!total := nqp::sub_I($!total,1,Int)),
+                    nqp::iterkey_s($iter)
+                  )
+              }
+
+              method SET-SELF(\raw, \todo, \total) {
+                  nqp::stmts(
+                    ($!weights := nqp::clone($!raw := raw)),
+                    (my $iter := nqp::iterator($!weights)),
+                    nqp::while(
+                      $iter,
+                      nqp::bindkey(
+                        $!weights,
+                        nqp::iterkey_s(nqp::shift($iter)),
+                        nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                      )
+                    ),
+                    ($!todo := nqp::if(todo > total,total,todo)),
+                    ($!total := total),
+                    self
+                  )
+              }
+              method new(\raw, \todo, \total) {
+                  nqp::create(self).SET-SELF(raw, todo, total)
+              }
+
+              method pull-one() is raw {
+                  nqp::if(
+                    $!todo,
+                    nqp::stmts(
+                      ($!todo := nqp::sub_I($!todo,1,Int)),
+                      nqp::getattr(nqp::atkey($!raw,self.BAG-PICK),Pair,'$!key')
+                    ),
+                    IterationEnd
+                  )
+              }
+              method skip-one() {
+                  nqp::if(
+                    $!todo,
+                    nqp::stmts(
+                      ($!todo := nqp::sub_I($!todo,1,Int)),
+                      self.BAG-PICK
+                    )
+                  )
+              }
+              method push-all($target --> IterationEnd) {
+                  nqp::stmts(
+                    (my $todo = $!todo),
+                    nqp::while(
+                      $todo,
+                      nqp::stmts(
+                        --$todo,
+                        $target.push(nqp::getattr(
+                          nqp::atkey($!raw,self.BAG-PICK),
+                          Pair,
+                          '$!key'
+                        ))
+                      )
+                    ),
+                    ($!todo := nqp::decont($todo))
+                  )
+              }
+              method count-only() { $!todo - 1 }
+              method bool-only(--> True) { }
+              method sink-all() { $!todo := 0 }
+
+          }.new($!elems, $todo, nqp::ifnull($total,self.total))
+        ))
     }
 
     proto method roll(|) { * }
     multi method roll(Baggy:D:) {
-        ROLLPICKGRAB1(self,%!elems.values);
+        nqp::if(
+          $!elems && (my $total := self.total),
+          nqp::getattr(
+            nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,$total)),
+            Pair,
+            '$!key'
+          ),
+          Nil
+        )
+    }
+    multi method roll(Baggy:D: Whatever) {
+        Seq.new(nqp::if(
+          $!elems && (my $total := self.total),
+          Rakudo::Iterator.Callable( {
+              nqp::getattr(
+                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
+                Pair,
+                '$!key'
+              )
+          }, True ),
+          Rakudo::Iterator.Empty
+        ))
+    }
+    multi method roll(Baggy:D: Callable:D $calculate) {
+      nqp::if(
+        (my $total := self.total),
+        self.roll($calculate($total)),
+        Seq.new(Rakudo::Iterator.Empty)
+      )
     }
     multi method roll(Baggy:D: $count) {
-        nqp::istype($count,Whatever) || $count == Inf
-          ?? ROLLPICKGRABW(self,%!elems.values)
-          !! ROLLPICKGRABN(self,$count, %!elems.values, :keep);
-    }
-
-    sub ROLLPICKGRAB1($self,@pairs) { # one time
-        my Int $rand = $self.total.rand.Int;
-        my Int $seen = 0;
-        return .key if ( $seen += .value ) > $rand for @pairs;
-        Nil;
-    }
-
-    sub ROLLPICKGRABN($self, \count, @pairs, :$keep) { # N times
-        Seq.new(class :: does Iterator {
-            has Int $!total;
-            has @!pairs;
-            has int $!todo;
-            has int $!keep;
-
-            method !SET-SELF($!total, @!pairs, \keep, \todo) {
-                $!todo = todo;
-                $!keep = +?keep;
-                self
-            }
-            method new(\total,\pairs,\keep,\count) {
-                nqp::create(self)!SET-SELF(
-                  total, pairs, keep, keep ?? count !! (total min count))
-            }
-
-            method pull-one() {
-                if $!todo {
-                    my Int $rand = $!total.rand.Int;
-                    my Int $seen = 0;
-                    $!todo = $!todo - 1;
-                    for @!pairs {
-                        if ( $seen += .value ) > $rand {
-                            .value--, $!total-- unless $!keep;
-                            return .key;
-                        }
-                    }
-                }
-                IterationEnd
-            }
-        }.new($self.total,@pairs,$keep,count))
-    }
-
-    sub ROLLPICKGRABW($self,@pairs) { # keep going
-        Seq.new(class :: does Iterator {
-            has Int $!total;
-            has @!pairs;
-
-            method !SET-SELF($!total, @!pairs) { self }
-            method new(\total,\pairs) {
-                nqp::create(self)!SET-SELF(total,pairs)
-            }
-            method is-lazy() { True }
-
-            method pull-one() {
-                my Int $rand = $!total.rand.Int;
-                my Int $seen = 0;
-                return .key if ( $seen += .value ) > $rand for @!pairs;
-                IterationEnd
-            }
-        }.new($self.total,@pairs))
+        nqp::if(
+          $count == Inf,
+          self.roll(*),                         # let Whatever handle it
+          Seq.new(nqp::if(                      # something else as count
+            (my $todo = $count.Int) < 1, # also handles NaN
+            Rakudo::Iterator.Empty,             # nothing to do
+            nqp::if(
+              $!elems && (my $total := self.total) && ++$todo,
+              Rakudo::Iterator.Callable( {      # need to do a number of times
+                  nqp::if(
+                    --$todo,
+                    nqp::getattr(
+                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
+                      Pair,
+                      '$!key'
+                    ),
+                    IterationEnd
+                  )
+              }),
+              Rakudo::Iterator.Empty            # nothing to roll for
+            )
+          ))
+        )
     }
 
 #--- classification method
     proto method classify-list(|) { * }
-    multi method classify-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if @list.is-lazy;
-        if @list {
+    multi method classify-list( &test, \list) {
+        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
-            # multi-level classify
-            if nqp::istype(test(@list[0]),Iterable) {
-                for @list -> $l {
-                    my @keys  = test($l);
-                    my $last := @keys.pop;
-                    my $bag   = self;
-                    $bag = $bag{$_} //= self.new for @keys;
-                    $bag{$last}++;
-                }
+        while (my $value := iter.pull-one) !=:= IterationEnd {
+            my $tested := test($value);
+            if nqp::istype($tested, Iterable) { # multi-level classify
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<classify-list>,
+                    :value<an Iterable item>,
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level classification'),
+                ).throw;
             }
-
-            # just a simple classify
             else {
-                self{test $_}++ for @list;
+                self{$tested}++;
             }
         }
         self;
     }
-    multi method classify-list( %test, *@list ) {
-        self.classify-list( { %test{$^a} }, @list );
+    multi method classify-list( %test, |c ) {
+        self.classify-list( { %test{$^a} }, |c );
     }
-    multi method classify-list( @test, *@list ) {
-        self.classify-list( { @test[$^a] }, @list );
+    multi method classify-list( @test, |c ) {
+        self.classify-list( { @test[$^a] }, |c );
+    }
+    multi method classify-list(&test, **@list, |c) {
+        self.classify-list(&test, @list, |c);
     }
 
     proto method categorize-list(|) { * }
-    multi method categorize-list( &test, *@list ) {
-        fail X::Cannot::Lazy.new(:action<categorize>) if @list.is-lazy;
-        if @list {
+    multi method categorize-list( &test, \list ) {
+        fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
+        my $value := iter.pull-one;
+        unless $value =:= IterationEnd {
+            my $tested := test($value);
 
             # multi-level categorize
-            if nqp::istype(test(@list[0])[0],List) {
-                for @list -> $l {
-                    for test($l) -> $k {
-                        my @keys  = @($k);
-                        my $last := @keys.pop;
-                        my $bag   = self;
-                        $bag = $bag{$_} //= self.new for @keys;
-                        $bag{$last}++;
-                    }
-                }
+            if nqp::istype($tested[0],Iterable) {
+                X::Invalid::ComputedValue.new(
+                    :name<mapper>,
+                    :method<categorize-list>,
+                    :value<a nested Iterable item>,
+                    :reason(self.^name ~ ' cannot be nested and so does not '
+                        ~ 'support multi-level categorization'),
+                ).throw;
             }
-
-            # just a simple categorize
+            # simple categorize
             else {
-                for @list -> $l {
-                    self{$_}++ for test($l);
-                }
+                loop {
+                    self{$_}++ for @$tested;
+                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    nqp::istype(($tested := test($value))[0], Iterable)
+                        and X::Invalid::ComputedValue.new(
+                            :name<mapper>,
+                            :method<categorize-list>,
+                            :value('an item with different number of elements '
+                                ~ 'in it than previous items'),
+                            :reason('all values need to have the same number '
+                                ~ 'of elements. Mixed-level classification is '
+                                ~ 'not supported.'),
+                        ).throw;
+                };
             }
-        }
-        self;
+       }
+       self;
     }
-    multi method categorize-list( %test, *@list ) {
-        self.categorize-list( { %test{$^a} }, @list );
+    multi method categorize-list( %test, |c ) {
+        self.categorize-list( { %test{$^a} }, |c );
     }
-    multi method categorize-list( @test, *@list ) {
-        self.categorize-list( { @test[$^a] }, @list );
+    multi method categorize-list( @test, |c ) {
+        self.categorize-list( { @test[$^a] }, |c );
+    }
+    multi method categorize-list( &test, **@list, |c ) {
+        self.categorize-list( &test, @list, |c );
     }
 
 #--- coercion methods
-    method Set()     {     Set.new(self.keys) }
-    method SetHash() { SetHash.new(self.keys) }
+   sub SETIFY(\raw, \type) {
+        nqp::if(
+          raw && nqp::elems(raw),
+          nqp::stmts(
+            (my $elems := nqp::clone(raw)),
+            (my $iter := nqp::iterator($elems)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::getattr(nqp::iterval($iter),Pair,'$!key'),
+              )
+            ),
+            nqp::create(type).SET-SELF($elems)
+          ),
+          nqp::if(
+            nqp::eqaddr(type,Set),
+            set(),
+            nqp::create(type)
+          )
+        )
+    }
+    multi method Set(Baggy:D:)     { SETIFY($!elems,Set)     }
+    multi method SetHash(Baggy:D:) { SETIFY($!elems,SetHash) }
+
+    sub MIXIFY(\raw, \type) {
+        nqp::if(
+          raw && nqp::elems(raw),
+          nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE(raw)),
+          nqp::if(
+            nqp::istype(type,Mix),
+            mix(),
+            nqp::create(MixHash)
+          )
+        )
+    }
+
+    multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
+    multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
+
+    method RAW-HASH() is raw { $!elems }
 }
 
+multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+    )
+}
 # vim: ft=perl6 expandtab sw=4

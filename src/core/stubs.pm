@@ -25,23 +25,33 @@ my role Mixy { ... }
 my class Mix { ... }
 my class MixHash { ... }
 
+my class Lock is repr('ReentrantMutex') { ... }
+
 sub DYNAMIC(\name) is raw {
-    my Mu \x := nqp::getlexdyn(nqp::unbox_s(name));
-    if nqp::isnull(x) {
-        my str $name = nqp::unbox_s(name);
-        my \prom := nqp::getlexdyn('$*PROMISE');
-        x := nqp::getlexreldyn(
-          nqp::getattr(prom, Promise, '$!dynamic_context'), $name)
-          unless nqp::isnull(prom);
-        if nqp::isnull(x) {
-            my str $pkgname = nqp::replace($name, 1, 1, '');
-            x := nqp::ifnull(nqp::atkey(GLOBAL.WHO,$pkgname),
-                   nqp::ifnull(nqp::atkey(PROCESS.WHO,$pkgname),
-                     Rakudo::Internals.INITIALIZE-DYNAMIC($name)));
-            fail x if nqp::istype(x, Exception);
-        }
-    }
-    x
+    nqp::ifnull(
+      nqp::getlexdyn(name),
+      nqp::stmts(
+        nqp::unless(
+          nqp::isnull(my $prom := nqp::getlexdyn('$*PROMISE')),
+          (my Mu $x := nqp::getlexreldyn(
+            nqp::getattr($prom,Promise,'$!dynamic_context'),name)
+          )
+        ),
+        nqp::ifnull(
+          $x,
+          nqp::stmts(
+            (my str $pkgname = nqp::replace(name,1,1,'')),
+            nqp::ifnull(
+              nqp::atkey(GLOBAL.WHO,$pkgname),
+              nqp::ifnull(
+                nqp::atkey(PROCESS.WHO,$pkgname),
+                Rakudo::Internals.INITIALIZE-DYNAMIC(name)
+              )
+            )
+          )
+        )
+      )
+    )
 }
 
 # Set up ClassHOW's auto-gen proto (nested scope so it won't

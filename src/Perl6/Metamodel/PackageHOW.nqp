@@ -23,8 +23,8 @@ class Perl6::Metamodel::PackageHOW
         $metaclass.set_name($obj, $name);
         self.add_stash($obj);
     }
-    
-    method compose($obj) {
+
+    method compose($obj, :$compiler_services) {
         $!composed := 1;
     }
     

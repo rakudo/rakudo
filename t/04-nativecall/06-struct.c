@@ -62,6 +62,11 @@ DLLEXPORT int TakeAStruct(MyStruct *obj)
     return 11;
 }
 
+DLLEXPORT int TakeAStructWithNullCArray(MyStruct *obj)
+{
+    return obj->arr == NULL;
+}
+
 DLLEXPORT StructStruct *ReturnAStructStruct() {
     StructStruct *ss = (StructStruct *) malloc(sizeof(StructStruct));
     ss->a = (IntStruct *) malloc(sizeof(IntStruct));

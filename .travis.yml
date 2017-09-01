@@ -1,4 +1,4 @@
-language: "perl"
+language: perl
 
 os:
     - linux
@@ -9,8 +9,22 @@ sudo: false
 fast_finish: true
 
 install: "echo"
+dist: trusty
 
-script: "perl Configure.pl $RAKUDO_OPTIONS; make test"
+addons:
+  apt:
+    sources:
+    # add PPAs with more up-to-date toolchains
+    - ubuntu-toolchain-r-test
+    packages:
+    # install toolchains
+    - gcc-6
+    - openjdk-7-jdk
+
+script:
+    - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)
+    - "make test"
+    - "make install"
 
 branches:
    only:
@@ -20,7 +34,7 @@ branches:
 notifications:
   irc:
     channels:
-      - "irc.freenode.net#perl6"
+      - "irc.freenode.net#perl6-dev"
     on_success: change
     on_failure: always
     template:
@@ -33,6 +47,7 @@ env:
     - RAKUDO_OPTIONS="--backends=moar --gen-nqp=master --gen-moar=master"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"
     - RAKUDO_OPTIONS="--backends=jvm  --gen-nqp=master"
+
 matrix:
   allow_failures:
     - env: RAKUDO_OPTIONS="--backends=jvm  --gen-nqp"

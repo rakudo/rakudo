@@ -1,5 +1,5 @@
 my class Block { # declared in BOOTSTRAP
-    # class Block is Code {
+    # class Block is Code
     #     has Mu $!phasers;
     #     has Mu $!why;
 
@@ -7,11 +7,11 @@ my class Block { # declared in BOOTSTRAP
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {
-        nqp::bindattr(self,Block,'$!phasers',nqp::hash)
+        $!phasers := nqp::hash
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;
-        nqp::bindkey($!phasers,$name,nqp::list)
+        nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
           unless nqp::existskey($!phasers,$name);
 
         if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
@@ -26,11 +26,22 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_phasers(str $name --> Nil) {
-        if nqp::attrinited(self,Block,'$!phasers') && nqp::existskey($!phasers, $name) {
-            my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
-            nqp::while($iter, nqp::shift($iter).(), :nohandler);
-        }
+    method fire_if_phasers(Str $name --> Nil) {
+        nqp::if(
+          nqp::attrinited(self,Block,'$!phasers')
+            && nqp::existskey($!phasers,$name),
+          nqp::stmts(
+            (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
+            nqp::while($iter,nqp::shift($iter)(),:nohandler)
+          )
+        )
+    }
+
+    method fire_phasers(Str $name --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
+          nqp::while($iter,nqp::shift($iter)(),:nohandler)
+        )
     }
 
     method has-phasers() { nqp::attrinited(self,Block,'$!phasers') }
@@ -82,38 +93,32 @@ my class Block { # declared in BOOTSTRAP
 
             $perl = '' if $elide_agg_cont;
             unless $type eq "Any" {
-                my $i = 0; # broken FIRST workaround
+                my int $FIRST = 1; # broken FIRST workaround
                 while ($type ~~ / (.*?) \[ (.*) \] $$/) {
-                    my $slash0 = ~$0;
-                    my $slash1 = ~$1;
-#                   FIRST {  # seems broken
-                    unless ($i++) { # broken FIRST workaaround
-                        $perl = ~$/;
-                        if $elide_agg_cont {
-                           $perl = ~$slash1;
-                        }
+#                   FIRST {  # seems broken in setting
+                    if $FIRST { # broken FIRST workaround
+                        $perl = $elide_agg_cont
+                          ?? ~$1
+                          !! ~$/;
+                        $FIRST = 0;
                     }
-                    $type = ~$slash1;
-                    unless soft_indirect_name_lookup($slash0) {
-                        $perl = "";
+                    $type = ~$1;
+                    unless soft_indirect_name_lookup(~$0) {
+                        $perl = '';
                         last
                     };
                 }
-                unless soft_indirect_name_lookup($type) {
-                    $perl = "";
-                };
+                $perl = '' unless soft_indirect_name_lookup($type);
             }
-#Introspection fail.  There is no introspection to access these flags.
-#Skipped for now.
-#            if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-#                $perl ~= ':D' if $perl ne '';
-#            } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-#                $perl ~= ':U' if $perl ne '';
-#            }
+            $perl ~= $parm.modifier if $perl ne '';
+
             my $name = $parm.name;
-            if not $name.defined or !$name.starts-with($sigil) {
-                $name = $sigil ~ $parm.twigil ~ ($name // "");
+            if !$name and $parm.raw {
+                $name = '$';
+            } elsif !$name or !$name.starts-with($sigil) {
+                $name = $sigil ~ $parm.twigil ~ ($name // '');
             }
+
             if $parm.slurpy {
                 $name = '*' ~ $name;
             } elsif $parm.named {
@@ -124,23 +129,14 @@ my class Block { # declared in BOOTSTRAP
             } elsif $parm.optional or $parm.default {
                 $name ~= '?';
             }
+
             if $parm.rw {
                 $rest ~= ' is rw';
             } elsif $parm.copy {
                 $rest ~= ' is copy';
             }
-            if  $parm.raw {
-                if     not $.name {
-                    if $name eq '$' and not $rest {
-                        $name = '\\';
-                    }
-                    elsif $name.starts-with('\\') and ($rest or $name ne '\\') {
-                        $name = '$' ~ $name.substr(1);
-                    }
-                }
-                if !$name.starts-with('\\') {
-                    $rest ~= ' is raw';
-                }
+            if $parm.raw {
+                $rest ~= ' is raw' unless $name.starts-with('\\');
             }
             if $name or $rest {
                 $perl ~= ($perl ?? ' ' !! '') ~ $name;
@@ -191,8 +187,8 @@ my class Block { # declared in BOOTSTRAP
         # but really Signature should be able to tell us that.
         #
         # Until then, we will add slurpy behaviors, assuming we
-        # do not aready have them, if we see a capture.
-        my $need_cap = $sig.count == Inf and not ($slurp_p and $slurp_n);
+        # do not already have them, if we see a capture.
+        my $need_cap = ($sig.count == Inf and not ($slurp_p and $slurp_n));
         if $need_cap {
             $need_cap = False;
             for $sig.params.grep(*.capture) {
@@ -292,7 +288,7 @@ my class Block { # declared in BOOTSTRAP
             }
             $p;
         }
-        if ($slurp_n and $slurp_n.capture and $slurp_n !=== $slurp_p) {
+        if ($slurp_n and $slurp_n.capture and !($slurp_n === $slurp_p)) {
             @phash.push(strip_parm($slurp_n));
         }
         my $error = False;
@@ -304,6 +300,7 @@ my class Block { # declared in BOOTSTRAP
         my $f;
         my $primed_sig = (flat @plist.map(&strip_parm), @phash,
                           ($slurp_p ?? strip_parm($slurp_p) !! ())).join(", ");
+        $primed_sig ~= ' --> ' ~ $sig.returns.^name;
 
         $f = EVAL sprintf(
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
@@ -326,15 +323,27 @@ my class Block { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            Nil
+            nextsame
         } else {
             $!why.set_docee(self);
             $!why
         }
     }
 
-    method set_why($why) {
+    method set_why($why --> Nil) {
         $!why := $why;
+    }
+
+    # helper method for array slicing
+    method pos(Block:D $self: \list) {
+      nqp::if(
+        (nqp::istype(
+          (my $n := nqp::getattr(
+            nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
+          ),Num) && nqp::isnanorinf($n)) || nqp::iseq_i(nqp::unbox_i($n),1),
+        $self(nqp::if(nqp::isconcrete(list),list.elems,0)),
+        $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx $n))
+      )
     }
 }
 

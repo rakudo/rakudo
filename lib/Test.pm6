@@ -1,35 +1,39 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2015 The Perl Foundation.
+# Copyright (C) 2007 - 2017 The Perl Foundation.
 
 # settable from outside
-my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
+my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
+my int $die_on_fail      = ?%*ENV<PERL6_TEST_DIE_ON_FAIL>;
 
 # global state
 my @vars;
 my $indents = "";
 
 # variables to keep track of our tests
-my $num_of_tests_run;
-my $num_of_tests_failed;
-my $todo_upto_test_num;
+my $subtest_callable_type;
+my int $num_of_tests_run;
+my int $num_of_tests_failed;
+my int $todo_upto_test_num;
 my $todo_reason;
 my $num_of_tests_planned;
-my $no_plan;
-my $die_on_fail;
+my int $no_plan;
 my num $time_before;
 my num $time_after;
+my int $subtest_level;
+my $subtest_todo_reason;
+my int $pseudo_fails; # number of untodoed failed tests inside a todoed subtest
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
 my $output;
 my $failure_output;
 my $todo_output;
 
-## If done_testing hasn't been run when we hit our END block, we need to know
+## If done-testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
-## plans and don't call done_testing.
-my $done_testing_has_been_run = 0;
+## plans and don't call done-testing.
+my int $done_testing_has_been_run = 0;
 
 # make sure we have initializations
 _init_vars();
@@ -56,15 +60,33 @@ our sub todo_output is rw {
     $todo_output
 }
 
-# you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
-sub die_on_fail($fail=1) {
-    $die_on_fail = $fail;
+multi sub plan (Cool:D :skip-all($reason)!) {
+    _init_io() unless $output;
+    $output.say: $indents ~ "1..0 # Skipped: $reason";
+
+    exit unless $subtest_level; # just exit if we're not in a subtest
+
+    # but if we are, adjust the vars, so the output matches up with zero
+    # planned tests, all passsing. Also, check the subtest's Callable is
+    # something we can actually return from.
+
+    $subtest_callable_type === Sub|Method
+        or die "Must give `subtest` a (Sub) or a (Method) to be able to use "
+            ~ "`skip-all` plan inside, but you gave a "
+            ~ $subtest_callable_type.gist;
+
+    $done_testing_has_been_run = 1;
+    $num_of_tests_failed = $num_of_tests_planned = $num_of_tests_run = 0;
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, True);
 }
 
 # "plan 'no_plan';" is now "plan *;"
 # It is also the default if nobody calls plan at all
 multi sub plan($number_of_tests) is export {
     _init_io() unless $output;
+
+    my str $str-message;
+
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -72,7 +94,7 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        $output.say: $indents ~ '1..' ~ $number_of_tests;
+        $str-message ~= $indents ~ '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -81,10 +103,11 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::time_n.
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
-    $output.say: $indents
-      ~ '# between two timestamps '
-      ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
-        if $perl6_test_times;
+    $str-message ~= "\n$indents# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+        if nqp::iseq_i($perl6_test_times,1);
+
+    $output.say: $str-message;
+
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::time_n;
 }
@@ -97,16 +120,16 @@ multi sub pass($desc = '') is export {
 
 multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim(?$cond, $desc);
+    my $ok = proclaim($cond, $desc);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub nok(Mu $cond, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(!$cond, $desc);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
@@ -114,46 +137,59 @@ multi sub is(Mu $got, Mu:U $expected, $desc = '') is export {
     my $ok;
     if $got.defined { # also hack to deal with Failures
         $ok = proclaim(False, $desc);
-        diag "expected: ($expected.^name())";
-        diag "     got: '$got'";
+        _diag "expected: ($expected.^name())\n"
+            ~ "     got: '$got'";
     }
     else {
-        my $test = $got === $expected;
-        $ok = proclaim(?$test, $desc);
+        # infix:<===> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got === $expected;
+
+        $ok = proclaim($test, $desc);
         if !$test {
-            diag "expected: ($expected.^name())";
-            diag "     got: ($got.^name())";
+            _diag "expected: ($expected.^name())\n"
+                ~ "     got: ($got.^name())";
         }
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     my $ok;
     if $got.defined { # also hack to deal with Failures
-        my $test = $got eq $expected;
-        $ok = proclaim(?$test, $desc);
+        # infix:<eq> can't handle Mu's
+        my $test = nqp::eqaddr($expected.WHAT, Mu)
+            ?? nqp::eqaddr($got.WHAT, Mu)
+                !! nqp::eqaddr($got.WHAT, Mu)
+                    ?? False
+                    !! $got eq $expected;
+        $ok = proclaim($test, $desc);
         if !$test {
-            if try [eq] ($got, $expected)>>.Str>>.subst(/\s/, '', :g) {
+            if try    $got     .Str.subst(/\s/, '', :g)
+                   eq $expected.Str.subst(/\s/, '', :g)
+            {
                 # only white space differs, so better show it to the user
-                diag "expected: {$expected.perl}";
-                diag "     got: {$got.perl}";
+                _diag "expected: $expected.perl()\n"
+                    ~ "     got: $got.perl()";
             }
             else {
-                diag "expected: '$expected'";
-                diag "     got: '$got'";
+                _diag "expected: '$expected'\n"
+                    ~ "     got: '$got'";
             }
         }
     }
     else {
         $ok = proclaim(False, $desc);
-        diag "expected: '$expected'";
-        diag "     got: ($got.^name())";
+        _diag "expected: '$expected'\n"
+            ~ "     got: ($got.^name())";
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
@@ -164,13 +200,14 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
     }
     else {
         my $test = $got !=== $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
-            diag "twice: ($got.^name())";
+            _diag "expected: anything except '$expected.perl()'\n"
+                ~ "     got: '$got.perl()'";
         }
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
@@ -178,206 +215,321 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     my $ok;
     if $got.defined { # also hack to deal with Failures
         my $test = $got ne $expected;
-        $ok = proclaim(?$test, $desc);
+        $ok = proclaim($test, $desc);
         if !$test {
-            diag "twice: '$got'";
+            _diag "expected: anything except '$expected.perl()'\n"
+                ~ "     got: '$got.perl()'";
         }
     }
     else {
         $ok = proclaim(True, $desc);
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
-    if $op ~~ Callable ?? $op !! try EVAL "&infix:<$op>" -> $matcher {
-        $ok = proclaim(?$matcher($got,$expected), $desc);
+
+    # the three labeled &CALLERS below are as follows:
+    #  #1 handles ops that don't have '<' or '>'
+    #  #2 handles ops that don't have '«' or '»'
+    #  #3 handles all the rest by escaping '<' and '>' with backslashes.
+    #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
+    my $matcher = $op ~~ Callable ?? $op
+        !! &CALLERS::("infix:<$op>") #1
+            // &CALLERS::("infix:«$op»") #2
+            // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
+
+    if $matcher {
+        $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            diag "expected: '{$expected // $expected.^name}'";
-            diag " matcher: '$matcher'";
-            diag "     got: '$got'";
+            _diag "expected: '" ~ ($expected // $expected.^name)     ~ "'\n"
+                ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
+                ~ "     got: '$got'";
         }
     }
     else {
         $ok = proclaim(False, $desc);
-        diag "Could not use '$op' as a comparator";
+        _diag "Could not use '$op.perl()' as a comparator.";
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
+}
+
+sub bail-out ($desc?) is export {
+    _init_io() unless $output;
+    $output.put: join ' ', 'Bail out!', ($desc if $desc);
+    $done_testing_has_been_run = 1;
+    exit 255;
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
+    DEPRECATED('is-approx'); # Remove for 6.d release
+
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
-    my $ok = proclaim(?$test, $desc);
+    my $ok = proclaim($test, $desc);
     unless $test {
-        diag("expected: $expected");
-        diag("got:      $got");
+        _diag "expected: $expected\n"
+            ~ "got:      $got";
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+# We're picking and choosing which tolerance to use here, to make it easier
+# to test numbers close to zero, yet maintain relative tolerance elsewhere.
+# For example, relative tolerance works equally well with regular and huge,
+# but once we go down to zero, things break down: is-approx sin(τ), 0; would
+# fail, because the computed relative tolerance is 1. For such cases, absolute
+# tolerance is better suited, so we DWIM in the no-tol version of the sub.
 multi sub is-approx(Numeric $got, Numeric $expected, $desc = '') is export {
-    is-approx($got, $expected, 1e-6, $desc);
+    $expected.abs < 1e-6
+        ?? is-approx-calculate($got, $expected, 1e-5, Nil, $desc) # abs-tol
+        !! is-approx-calculate($got, $expected, Nil, 1e-6, $desc) # rel-tol
 }
 
-multi sub is-approx(Numeric $got, Numeric $expected, Numeric $tol, $desc = '') is export {
-    $time_after = nqp::time_n;
-    die "Tolerance must be a positive number greater than zero" unless $tol > 0;
-    my $abs-diff = ($got - $expected).abs;
-    my $abs-max = max($got.abs, $expected.abs);
-    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
-    my $test = $rel-diff <= $tol;
-    my $ok = proclaim(?$test, $desc);
-    unless $test {
-        diag("expected: $expected");
-        diag("got:      $got");
-    }
-    $time_before = nqp::time_n;
-    $ok;
+multi sub is-approx(
+    Numeric $got, Numeric $expected, Numeric $abs-tol, $desc = ''
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, Nil, $desc);
 }
 
-multi sub is-approx(Numeric $got, Numeric $expected,
-                    Numeric :$rel_tol = 1e-6, Numeric :$abs_tol = 0,
-		    :$desc = '') is export {
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '', Numeric :$rel-tol is required
+) is export {
+    is-approx-calculate($got, $expected, Nil, $rel-tol, $desc);
+}
+
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '', Numeric :$abs-tol is required
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, Nil, $desc);
+}
+
+multi sub is-approx(
+    Numeric $got, Numeric $expected, $desc = '',
+    Numeric :$rel-tol is required, Numeric :$abs-tol is required
+) is export {
+    is-approx-calculate($got, $expected, $abs-tol, $rel-tol, $desc);
+}
+
+sub is-approx-calculate (
+    $got,
+    $expected,
+    $abs-tol where { !.defined or $_ >= 0 },
+    $rel-tol where { !.defined or $_ >= 0 },
+    $desc,
+) {
     $time_after = nqp::time_n;
-    die "Relative tolerance must be a positive number greater than zero" unless $rel_tol > 0;
-    die "Absolute tolerance must be a positive number greater than zero" unless $abs_tol > 0;
-    my $abs-diff = ($got - $expected).abs;
-    my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
-	       ($abs-diff <= ($rel_tol * $got).abs) ||
-	       ($abs-diff <= $abs_tol));
-    my $ok = proclaim(?$test, $desc);
-    unless $test {
-        diag("expected: $expected");
-        diag("got:      $got");
+
+    my Bool    ($abs-tol-ok, $rel-tol-ok) = True, True;
+    my Numeric ($abs-tol-got, $rel-tol-got);
+    if $abs-tol.defined {
+        $abs-tol-got = abs($got - $expected);
+        $abs-tol-ok = $abs-tol-got <= $abs-tol;
     }
+    if $rel-tol.defined {
+        if max($got.abs, $expected.abs) -> $max {
+            $rel-tol-got = abs($got - $expected) / $max;
+            $rel-tol-ok = $rel-tol-got <= $rel-tol;
+        }
+        else {
+            # if $max is zero, then both $got and $expected are zero
+            # and so our relative difference is also zero
+            $rel-tol-got = 0;
+        }
+    }
+
+    my $ok = proclaim($abs-tol-ok && $rel-tol-ok, $desc);
+    unless $ok {
+            _diag "    expected approximately: $expected\n"
+                ~ "                       got: $got";
+
+        unless $abs-tol-ok {
+            _diag "maximum absolute tolerance: $abs-tol\n"
+                ~ "actual absolute difference: $abs-tol-got";
+        }
+        unless $rel-tol-ok {
+            _diag "maximum relative tolerance: $rel-tol\n"
+                ~ "actual relative difference: $rel-tol-got";
+        }
+    }
+
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = '# TODO ' ~ $reason.subst(:g, '#', '\\#');
+    # Adding a space to not backslash the # TODO
+    $todo_reason = " # TODO $reason";
     $time_before = nqp::time_n;
 }
 
 multi sub skip() {
     $time_after = nqp::time_n;
-    proclaim(1, "# SKIP");
+    proclaim(1, '', "# SKIP");
     $time_before = nqp::time_n;
 }
 multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::time_n;
-    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
+    die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
-    while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
+    while $i <= $count { proclaim(1, $reason, "# SKIP "); $i = $i + 1; }
     $time_before = nqp::time_n;
 }
 
 sub skip-rest($reason = '<unknown>') is export {
     $time_after = nqp::time_n;
-    die "A plan is required in order to use skip-rest" if $no_plan;
+    die "A plan is required in order to use skip-rest"
+      if nqp::iseq_i($no_plan,1);
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
     $time_before = nqp::time_n;
 }
 
-sub subtest(&subtests, $desc = '') is export {
+multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
+multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
+multi sub subtest(&subtests, $desc = '') is export {
+    my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
     _init_vars();
+    $subtest_todo_reason   = $parent_todo;
+    $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
+    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
+    $subtest_level += 1;
     subtests();
-    done-testing() if !$done_testing_has_been_run;
-    my $status =
-      $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
+    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<--> does not die here
+    $subtest_level -= 1;
+    done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
+    my $status = $num_of_tests_failed == 0
+        && $num_of_tests_planned == $num_of_tests_run
+        && $pseudo_fails == 0;
     _pop_vars;
     $indents .= chop(4);
-    proclaim($status,$desc);
+    proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
 sub diag(Mu $message) is export {
+    # Always send user-triggered diagnostics to STDERR. This prevents
+    # cases of confusion of where diag() has to send its ouput when
+    # we are in the middle of TODO tests
+    _diag $message, :force-stderr;
+}
+
+sub _diag(Mu $message, :$force-stderr) {
     _init_io() unless $output;
-    my $is_todo = $num_of_tests_run <= $todo_upto_test_num;
+    my $is_todo = !$force-stderr
+        && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
-    my $str-message = $message.Str.subst(rx/^^/, '# ', :g);
-    $str-message .= subst(rx/^^'#' \s+ $$/, '', :g);
-    $out.say: $indents ~ $str-message;
+    my $str-message = nqp::join(
+        "\n$indents# ", nqp::split("\n", "$indents# $message")
+    );
+    $out.say: $str-message;
     $time_before = nqp::time_n;
 }
 
+# In earlier Perls, this is spelled "sub fail"
 multi sub flunk($reason) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(0, $reason);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub isa-ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
+multi sub isa-ok(
+    Mu $var, Mu $type, $desc = "The object is-a '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.isa($type), $msg)
-        or diag('Actual type: ' ~ $var.^name);
+    my $ok = proclaim($var.isa($type), $desc)
+        or _diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub does-ok(Mu $var, Mu $type, $msg = ("The object does role '" ~ $type.perl ~ "'")) is export {
+multi sub does-ok(
+    Mu $var, Mu $type, $desc = "The object does role '$type.perl()'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.does($type), $msg)
-        or diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
+    my $ok = proclaim($var.does($type), $desc)
+        or _diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub can-ok(Mu $var, Str $meth, $msg = ( ($var.defined ?? "An object of type '" !! "The type '" ) ~ $var.WHAT.perl ~ "' can do the method '$meth'") ) is export {
+multi sub can-ok(
+    Mu $var, Str $meth,
+    $desc = ($var.defined ?? "An object of type '" !! "The type '")
+        ~ "$var.WHAT.perl()' can do the method '$meth'"
+) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.^can($meth), $msg);
+    my $ok = proclaim($var.^can($meth), $desc);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub like(Str $got, Regex $expected, $desc = '') is export {
-    $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
-    my $test = $got ~~ $expected;
-    my $ok = proclaim(?$test, $desc);
-    if !$test {
-        diag sprintf "     expected: '%s'", $expected.perl;
-        diag "     got: '$got'";
-    }
-    $time_before = nqp::time_n;
-    $ok;
-}
-
-multi sub unlike(Str $got, Regex $expected, $desc = '') is export {
+multi sub like(
+    $got, Regex $expected,
+    $desc = "text matches '$expected.perl()'"
+) is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
-    my $test = !($got ~~ $expected);
-    my $ok = proclaim(?$test, $desc);
-    if !$test {
-        diag sprintf "     expected: '%s'", $expected.perl;
-        diag "     got: '$got'";
+    my $ok;
+    if $got ~~ Str:D {
+        my $test = $got ~~ $expected;
+        $ok = proclaim($test, $desc);
+        if !$test {
+            _diag "     expected: '$expected.perl()'\n"
+                ~ "     got: '$got'";
+        }
+    } else {
+        $ok = proclaim(False, $desc);
+        _diag "    expected a Str that matches '$expected.perl()'\n"
+            ~ "    got: '$got.perl()'";
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub use-ok(Str $code, $msg = ("The module can be use-d ok")) is export {
+multi sub unlike(
+    $got, Regex $expected,
+    $desc = "text does not match '$expected.perl()'"
+) is export {
+    $time_after = nqp::time_n;
+    $got.defined; # Hack to deal with Failures
+    my $ok;
+    if $got ~~ Str:D {
+        my $test = !($got ~~ $expected);
+        $ok = proclaim($test, $desc);
+        if !$test {
+            _diag "     expected: '$expected.perl()'\n"
+                ~ "     got: '$got'";
+        }
+    } else {
+        $ok = proclaim(False, $desc);
+        _diag "     expected: a Str that matches '$expected.perl()'\n"
+            ~ "     got: '$got.perl()'";
+    }
+    $time_before = nqp::time_n;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
+}
+
+multi sub use-ok(Str $code, $desc = "$code module can be use-d ok") is export {
     $time_after = nqp::time_n;
     try {
-	EVAL ( "use $code" );
+        EVAL ( "use $code" );
     }
-    my $ok = proclaim((not defined $!), $msg) or diag($!);
+    my $ok = proclaim((not defined $!), $desc) or _diag($!);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub dies-ok(Callable $code, $reason = '') is export {
@@ -389,7 +541,7 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
     }
     my $ok = proclaim( $death, $reason );
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub lives-ok(Callable $code, $reason = '') is export {
@@ -397,9 +549,9 @@ multi sub lives-ok(Callable $code, $reason = '') is export {
     try {
         $code();
     }
-    my $ok = proclaim((not defined $!), $reason) or diag($!);
+    my $ok = proclaim((not defined $!), $reason) or _diag($!);
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub eval-dies-ok(Str $code, $reason = '') is export {
@@ -407,18 +559,36 @@ multi sub eval-dies-ok(Str $code, $reason = '') is export {
     my $ee = eval_exception($code);
     my $ok = proclaim( $ee.defined, $reason );
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub eval-lives-ok(Str $code, $reason = '') is export {
     $time_after = nqp::time_n;
     my $ee = eval_exception($code);
     my $ok = proclaim((not defined $ee), $reason)
-        or diag("Error: $ee");
+        or _diag("Error: $ee");
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+######################################################################
+# The fact that is-deeply converts Seq args to Lists is actually a bug
+# that ended up being too-much-pain-for-little-gain to fix. Using Seqs
+# breaks ~65 tests in 6.c-errata and likely breaks a lot of module
+# tests as well. So... for the foreseeable future we decided to leave it
+# as is. If a user really wants to ensure Seq comparison, there's always
+# `cmp-ok` with `eqv` op.
+# https://irclog.perlgeek.de/perl6-dev/2017-05-04#i_14532363
+######################################################################
+multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected.cache, $reason;
+}
+multi sub is-deeply(Seq:D $got, Mu $expected, $reason = '') is export {
+    is-deeply $got.cache, $expected, $reason;
+}
+multi sub is-deeply(Mu $got, Seq:D $expected, $reason = '') is export {
+    is-deeply $got, $expected.cache, $reason;
+}
 multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     $time_after = nqp::time_n;
     my $test = _is_deeply( $got, $expected );
@@ -427,12 +597,12 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
         my $got_perl      = try { $got.perl };
         my $expected_perl = try { $expected.perl };
         if $got_perl.defined && $expected_perl.defined {
-            diag "expected: $expected_perl";
-            diag "     got: $got_perl";
+            _diag "expected: $expected_perl\n"
+                ~ "     got: $got_perl";
         }
     }
     $time_before = nqp::time_n;
-    $ok;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
@@ -452,26 +622,26 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             default {
                 pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
-                ok $type_ok , "right exception type ({$ex_type.^name})";
+                ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
                         my $got is default(Nil) = $_."$k"();
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
-                            diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl);
-                            diag "Got:      $got";
+                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl)
+                              ~ "\nGot:      $got";
                         }
                     }
                 } else {
-                    diag "Expected: {$ex_type.^name}";
-                    diag "Got:      {$_.^name}";
-                    diag "Exception message: $_.message()";
+                    _diag "Expected: $ex_type.^name()\n"
+                        ~ "Got:      $_.^name()\n"
+                        ~ "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }
         }
-    }, $reason // "did we throws-like {$ex_type.^name}?";
+    }, $reason // "did we throws-like $ex_type.^name()?";
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {
@@ -481,6 +651,19 @@ sub _is_deeply(Mu $got, Mu $expected) {
 
 ## 'private' subs
 
+sub die-on-fail {
+    if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
+        _diag 'Test failed. Stopping test suite, because'
+                ~ ' PERL6_TEST_DIE_ON_FAIL environmental variable is set'
+                ~ ' to a true value.';
+        exit 255;
+    }
+
+    $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
+
+    False;
+}
+
 sub eval_exception($code) {
     try {
         EVAL ($code);
@@ -488,7 +671,8 @@ sub eval_exception($code) {
     $!;
 }
 
-sub proclaim($cond, $desc) {
+# Take $cond as Mu so we don't thread with Junctions:
+sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -496,123 +680,141 @@ sub proclaim($cond, $desc) {
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
-        unless  $num_of_tests_run <= $todo_upto_test_num {
-            $num_of_tests_failed = $num_of_tests_failed + 1
-        }
+
+        $num_of_tests_failed = $num_of_tests_failed + 1
+            unless $num_of_tests_run <= $todo_upto_test_num;
+
+        $pseudo_fails = $pseudo_fails + 1 if $subtest_todo_reason;
     }
-    if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
-        $tap ~= "ok $num_of_tests_run - " ~ $desc.subst('#', '', :g) ~ $todo_reason;
-    }
-    else {
-        $tap ~= "ok $num_of_tests_run - $desc";
-    }
+
+    # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
+    # So, adding a ' \' before it.
+    $desc = $desc
+    ??  nqp::join("\n$indents# ", # prefix newlines with `#`
+            nqp::split("\n",
+                nqp::join(' \\#', # escape `#`
+                    nqp::split('#', $desc.Str))))
+    !! '';
+
+    $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
+        ?? "ok $num_of_tests_run - $unescaped-prefix$desc$todo_reason"
+        !! (! $cond && $subtest_todo_reason)
+            ?? "ok $num_of_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $unescaped-prefix$desc";
+
+    $tap ~= ("\n$indents# t=" ~ ceiling(($time_after - $time_before)*1_000_000))
+        if nqp::iseq_i($perl6_test_times,1);
+
     $output.say: $tap;
-    $output.say: $indents
-      ~ "# t="
-      ~ ceiling(($time_after-$time_before)*1_000_000)
-        if $perl6_test_times;
 
     unless $cond {
         my $caller;
-        my $level = 2; # sub proclaim is not called directly, so 2 is minimum level
+        # sub proclaim is not called directly, so 2 is minimum level
+        my int $level = 2;
+
         repeat until !$?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
-        if $desc ne '' {
-            diag "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}";
-        } else {
-            diag "\nFailed test at {$caller.file} line {$caller.line}";
-        }
+
+        _diag $desc
+          ?? "Failed test '$desc'\nat $caller.file() line $caller.line()"
+          !! "Failed test at $caller.file() line $caller.line()";
     }
 
-    if !$cond && $die_on_fail && !$todo_reason {
-        die "Test failed.  Stopping test";
-    }
     # must clear this between tests
-    if $todo_upto_test_num == $num_of_tests_run { $todo_reason = '' }
-    $cond;
+    $todo_reason = ''
+        if $todo_upto_test_num == $num_of_tests_run
+            and nqp::iseq_i($die_on_fail,0);
+
+    $cond
 }
 
 sub done-testing() is export {
     _init_io() unless $output;
     $done_testing_has_been_run = 1;
 
-    if $no_plan {
+    if nqp::iseq_i($no_plan,1) {
         $num_of_tests_planned = $num_of_tests_run;
         $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
-    if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
-        diag("Looks like you planned $num_of_tests_planned test{ $num_of_tests_planned == 1 ?? '' !! 's'}, but ran $num_of_tests_run");
-    }
-    if ($num_of_tests_failed) {
-        diag("Looks like you failed $num_of_tests_failed test{ $num_of_tests_failed == 1 ?? '' !! 's'} of $num_of_tests_run");
-    }
+    # Wrong quantity of tests
+    _diag("Looks like you planned $num_of_tests_planned test"
+        ~ ($num_of_tests_planned == 1 ?? '' !! 's')
+        ~ ", but ran $num_of_tests_run"
+    ) if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run);
+
+    _diag("Looks like you failed $num_of_tests_failed test"
+        ~ ($num_of_tests_failed == 1 ?? '' !! 's')
+        ~ " of $num_of_tests_run"
+    ) if $num_of_tests_failed && ! $subtest_todo_reason;
 }
 
 sub _init_vars {
+    $subtest_callable_type = Mu;
     $num_of_tests_run     = 0;
     $num_of_tests_failed  = 0;
     $todo_upto_test_num   = 0;
     $todo_reason          = '';
     $num_of_tests_planned = Any;
     $no_plan              = 1;
-    $die_on_fail          = Any;
     $time_before          = NaN;
     $time_after           = NaN;
     $done_testing_has_been_run = 0;
+    $pseudo_fails         = 0;
+    $subtest_todo_reason  = '';
 }
 
 sub _push_vars {
     @vars.push: item [
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,
       $todo_reason,
       $num_of_tests_planned,
       $no_plan,
-      $die_on_fail,
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ];
 }
 
 sub _pop_vars {
     (
+      $subtest_callable_type,
       $num_of_tests_run,
       $num_of_tests_failed,
       $todo_upto_test_num,
       $todo_reason,
       $num_of_tests_planned,
       $no_plan,
-      $die_on_fail,
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ) = @(@vars.pop);
 }
 
 END {
-    ## In planned mode, people don't necessarily expect to have to call done
+    ## In planned mode, people don't necessarily expect to have to call done-testing
     ## So call it for them if they didn't
-    if !$done_testing_has_been_run && !$no_plan {
-        done-testing;
-    }
+    done-testing
+      if nqp::iseq_i($done_testing_has_been_run,0)
+      && nqp::iseq_i($no_plan,0);
 
-    for $output, $failure_output, $todo_output -> $handle {
-        next if $handle === ($*ERR|$*OUT);
+    .?close unless $_ === $*OUT || $_ === $*ERR
+      for $output, $failure_output, $todo_output;
 
-        $handle.?close;
-    }
+    exit($num_of_tests_failed min 254) if $num_of_tests_failed > 0;
 
-    if $num_of_tests_failed and $num_of_tests_failed > 0 {
-        exit($num_of_tests_failed min 254);
-    }
-    elsif !$no_plan && ($num_of_tests_planned or $num_of_tests_run) && $num_of_tests_planned != $num_of_tests_run {
-        exit(255);
-    }
+    exit(255)
+      if nqp::iseq_i($no_plan,0)
+      && ($num_of_tests_planned or $num_of_tests_run)
+      &&  $num_of_tests_planned != $num_of_tests_run;
 }
 
 =begin pod
@@ -627,21 +829,12 @@ Test - Rakudo Testing Library
 
 =head1 DESCRIPTION
 
-=head1 FUNCTIONS
+Please check the section Language/testing of the doc repository.
+If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
-=head2 throws-like($code, Mu $expected_type, *%matchers)
+You can also check the documentation about testing in Perl 6 online on:
 
-If C<$code> is C<Callable>, calls it, otherwise C<EVAL>s it,
-and expects it thrown an exception.
-
-If an exception is thrown, it is compared to C<$expected_type>.
-
-Then for each key in C<%matchers>, a method of that name is called
-on the resulting exception, and its return value smart-matched against
-the value.
-
-Each step is counted as a separate test; if one of the first two fails,
-the rest of the tests are skipped.
+  https://doc.perl6.org/language/testing
 
 =end pod
 

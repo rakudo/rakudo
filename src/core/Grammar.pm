@@ -1,19 +1,68 @@
-my class Grammar is Cursor {
-    method parse($target, :$rule = 'TOP',  Capture() :$args = \(), Mu :$actions = Mu, *%opt) {
-        my $*ACTIONS = $actions;
-        my Mu $result :=
-            self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
-        $result := Nil unless $result.to == $target.chars;
-        nqp::getlexcaller('$/') = $result;
+my class Grammar is Match {
+
+    method parse(\target, :$rule, :$args, Mu :$actions, :$filename) is raw {
+        my $*LINEPOSCACHE;
+        nqp::stmts(
+          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
+          nqp::decont(nqp::getlexcaller('$/') =
+            nqp::if(
+              (my $cursor := nqp::if(
+                $rule,
+                nqp::if(
+                  $args,
+                  $grammar."$rule"(|$args.Capture),
+                  $grammar."$rule"()
+                ),
+                nqp::if(
+                  $args,
+                  $grammar.TOP(|$args.Capture),
+                  $grammar.TOP()
+                ),
+              )),
+              nqp::stmts(
+                (my $match := $cursor.MATCH),
+                nqp::while(
+                  $match && nqp::isne_i(
+                    nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
+                    target.chars
+                  ),
+                  $match := ($cursor := $cursor.'!cursor_next'()).MATCH
+                ),
+                $match || Nil
+              ),
+              Nil
+            )
+          )
+        )
     }
-    method subparse($target, :$rule = 'TOP', Capture() :$args = \(),  Mu :$actions = Mu, *%opt) {
-        my $*ACTIONS = $actions;
-        nqp::getlexcaller('$/') =
-            self."!cursor_init"($target, |%opt)."$rule"(|$args).MATCH;
-    }
-    method parsefile(Str(Cool) $filename, :$enc, *%opts) {
-        my Mu $match := self.parse($filename.IO.slurp(:$enc), |%opts);
-        nqp::getlexcaller('$/') = $match;
+
+    method subparse(\target, :$rule, :$args, :$actions) is raw {
+        nqp::stmts(
+          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
+          nqp::decont(nqp::getlexcaller('$/') =
+            nqp::if(
+              $rule,
+              nqp::if(
+                $args,
+                $grammar."$rule"(|$args.Capture).MATCH,
+                $grammar."$rule"().MATCH,
+              ),
+              nqp::if(
+                $args,
+                $grammar.TOP(|$args.Capture).MATCH,
+                $grammar.TOP().MATCH
+              ),
+            )
+          )
+        )
+      }
+
+    method parsefile(Str(Cool) $filename, :$enc) is raw {
+        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
+          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
+          self.parse($filename.IO.slurp(:$enc), :$filename, |%_),
+          self.parse($filename.IO.slurp(:$enc), :$filename)
+        ))
     }
 }
 

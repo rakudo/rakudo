@@ -1,4 +1,4 @@
-sub gethostname( --> Str){
+sub gethostname( --> Str:D){
     nqp::p6box_s(nqp::gethostname());
 }
 

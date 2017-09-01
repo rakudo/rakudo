@@ -9,7 +9,7 @@ spectest_update :
 	-cd t/spec && git pull --ff-only
 
 t/localtest.data:
-	$(PERL) -MExtUtils::Command -e test_f $@
+	$(TEST_F) $@
 
 realclean: clean
 	$(RM_F) Makefile config.status MANIFEST

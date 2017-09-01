@@ -1,8 +1,10 @@
 my class Scalar { # declared in BOOTSTRAP
-    # class Scalar is Any {
+    # class Scalar is Any
     #     has Mu $!descriptor;
     #     has Mu $!value;
     #     has Mu $!whence;
+
+    method new(|) { X::Cannot::New.new(class => self.WHAT).throw }
 
     multi method WHICH(Scalar:D:) {
         'Scalar|' ~ nqp::objectid($!descriptor);
@@ -21,7 +23,7 @@ my class Scalar { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Nil !! so $d.dynamic;
+        nqp::isnull($d) ?? False !! nqp::p6bool($d.dynamic);
     }
 }
 

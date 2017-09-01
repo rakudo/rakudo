@@ -1,6 +1,7 @@
-use lib 't/04-nativecall';
+use v6;
+
+use lib <lib t/04-nativecall>;
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 
@@ -47,11 +48,11 @@ is $ll, 15324, 'Perl\'s rw variable was set by C (long long)';
 is PassLongLong($ll), 15324, 'Perl\'s rw variable was passed and returned by C (longlong)';
 
 my num32 $f; SetFloat($f);
-is_approx $f, 6.66, 'Perl\'s rw variable was set by C (float)';
-is_approx PassFloat($f), 6.66, 'Perl\'s rw variable was passed and returned by C (float)';
+is-approx $f, 6.66, 'Perl\'s rw variable was set by C (float)';
+is-approx PassFloat($f), 6.66, 'Perl\'s rw variable was passed and returned by C (float)';
 
 my num64 $d; SetDouble($d);
-is_approx $d, 12.12, 'Perl\'s rw variable was set by C (double)';
+is-approx $d, 12.12, 'Perl\'s rw variable was set by C (double)';
 is PassDouble($d), 12.12, 'Perl\'s rw variable was passed and returned by C (double)';
 
 my uint8 $uc; SetUChar($uc);

@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 
 # note: Due to a limitation in Getopt::Long options that should be passed
 # through to fudgeall have to come after all other options
@@ -22,26 +22,23 @@ GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
-    'jobs:1'            => \my $jobs,
-    'long:1'            => \my $do_long,
+    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 1),
+    'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'jvm'               => \my $jvm,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
+    'no-merge'             => \my $no_merge,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
-$do_long = 1 unless defined $do_long;
-$do_stress = 0 unless defined $do_stress;
-$jobs = $jobs || $ENV{TEST_JOBS} || 1;
- 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = join ',', qw/ lib . /;
+$ENV{'PERL6LIB'} = "lib";
 
 my @slow;
 if ($list_file) {
@@ -59,7 +56,7 @@ if ($list_file) {
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
             next if ($fudgespec =~ m/perl5/)  && !$perl5;
-            next if ($fudgespec =~ m/long/)   && !$do_long;
+            next if ($fudgespec =~ m/long/)   && $do_quick;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
             next if ($fudgespec =~ m/jvm/)    && !$jvm;
             next if ($fudgespec =~ m/moar/)   && !$moar;
@@ -123,12 +120,13 @@ if (eval "require $tap_harness_class;") {
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
-        merge       => 1,
-        $TAP::Harness::VERSION > 3.21 ? (trap => 1) : (),
+        merge       => ($no_merge ? 0 : 1),
+        $TAP::Harness::VERSION gt 3.21 ? (trap => 1) : (),
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );
-    $tap_harness_class->new( \%harness_options )->runtests(@tfiles);
+    my $results = $tap_harness_class->new( \%harness_options )->runtests(@tfiles);
+    exit 1 if $results->has_errors;
 }
 elsif ($archive) {
     die "Can't load $tap_harness_class, which is needed for smolder submissions: $@";
@@ -179,7 +177,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.moar');
+    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -198,11 +196,18 @@ Options:
     --help / -h - display the help message.
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - fudge (?)
-    --verbosity=[level] - set the verbosity level.
-    --jobs - number of jobs.
-    --long - do long.
-    --stress - perform the stress tests/
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --quick - do not run tests marked as long-running
+    --stress - run tests marked as stress tests
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
-    --slow - spread tests marked "slow" equally over the run (on non-Win)
+    --slow - spread tests marked "slow" equally over the run (default on non-Win)
+    --moar/--jvm - mutually exclusive. Use MoarVM/JVM backend
+    --no-merge - pass STDERR from the tests through to the terminal's STDERR
 
+    --verbosity=[level] - set the verbosity level.
+       1   verbose        Print individual test results to STDOUT.
+       0   normal
+      -1   quiet  Suppress some test output. Mostly failures when tests running.
+      -2   really quiet   Suppress everything but the tests summary.
+      -3   silent         Suppress everything.

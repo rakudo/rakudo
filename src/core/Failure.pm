@@ -31,8 +31,12 @@ my class Failure is Nil {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
-    # "Shouldn't happen."  We use note here because the dynamic scope in GC is likely meaningless.
-    submethod DESTROY () { if not $!handled { note "WARNING: unhandled Failure detected in DESTROY:\n" ~ self.mess } }
+    submethod DESTROY () {
+        note "WARNING: unhandled Failure detected in DESTROY. If you meant "
+            ~ "to ignore it, you can mark it as handled by calling .Bool, "
+            ~ ".so, .not, or .defined methods. The Failure was:\n" ~ self.mess
+        unless $!handled;
+    }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {
@@ -67,15 +71,17 @@ my class Failure is Nil {
        )
     }
 
-#?if moar
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }
-#?endif
-#?if jvm
-    method Int(Failure:D:)        { $!handled ?? 0   !! self!throw(); }
-#?endif
-
     method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
+
+    method Set(Failure:D:)     { $!handled ?? Set.new(self)     !! self!throw }
+    method SetHash(Failure:D:) { $!handled ?? SetHash.new(self) !! self!throw }
+    method Bag(Failure:D:)     { $!handled ?? Bag.new(self)     !! self!throw }
+    method BagHash(Failure:D:) { $!handled ?? BagHash.new(self) !! self!throw }
+    method Mix(Failure:D:)     { $!handled ?? Mix.new(self)     !! self!throw }
+    method MixHash(Failure:D:) { $!handled ?? MixHash.new(self) !! self!throw }
+
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:D:) { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:U:) { '(' ~ self.^name ~ ')' }
@@ -87,6 +93,10 @@ my class Failure is Nil {
 
     method sink(Failure:D:) {
         self!throw() unless $!handled
+    }
+    method self(Failure:D:) {
+        self!throw() unless $!handled;
+        self
     }
     method CALL-ME(Failure:D: |) {
         self!throw()
@@ -100,61 +110,53 @@ my class Failure is Nil {
 }
 
 proto sub fail(|) {*};
-multi sub fail() {
+multi sub fail(--> Nil) {
     my $stash := CALLER::;
     my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
 
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));
 
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
-multi sub fail(Exception:U $e) {
+multi sub fail(Exception:U $e --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
     );
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
-multi sub fail($payload) {
+multi sub fail($payload --> Nil) {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload
       !! X::AdHoc.new(:$payload)
     );
-
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
-multi sub fail(|cap (*@msg)) {
+multi sub fail(|cap (*@msg) --> Nil) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
-multi sub fail(Failure:U $f) {
+multi sub fail(Failure:U $f --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
     );
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
-multi sub fail(Failure:D $fail) {
-    my Mu $return := nqp::getlexrel(nqp::ctxcallerskipthunks(nqp::ctx()), 'RETURN');
-    $return($fail) unless nqp::isnull($return);
-    $fail.exception.throw
+multi sub fail(Failure:D $fail --> Nil) {
+    $fail.handled = 0;
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
+    CATCH { $fail.exception.throw }
 }
 
-multi sub die(Failure:D $f) {
+multi sub die(Failure:D $f --> Nil) {
     $f.exception.throw
 }
-multi sub die(Failure:U $f) {
+multi sub die(Failure:U $f --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 

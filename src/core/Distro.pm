@@ -24,7 +24,7 @@ class Distro does Systemic {
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
-    # This is a temporary migration method needed for e.g. panda.
+    # This is a temporary migration method needed for installation
     method cur-sep() { "," }
 }
 
@@ -63,7 +63,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
         $auth := 'Apple Computer, Inc.'; # presumably
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
-        $_ := '/etc/os-release'.IO.slurp.subst(:g, /'"'/,'');
+        $_ := '/etc/os-release'.IO.slurp.subst(:g, '"','');
         $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
         $name    := ~$0 if m/^^ ID         \= (\N*) /;
         $version := ~$0 if m/^^ VERSION    \= (\N*) /;

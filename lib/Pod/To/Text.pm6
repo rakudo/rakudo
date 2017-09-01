@@ -4,15 +4,11 @@ method render($pod) {
     pod2text($pod)
 }
 
-my &colored;
+my &colored = sub ($text, $) {$text }
 if %*ENV<POD_TO_TEXT_ANSI> {
-    &colored = try {
-        use MONKEY-SEE-NO-EVAL;  # safe, not using EVAL for interpolation
-	EVAL q{ use Terminal::ANSIColor; &colored }
-    } // sub ($text, $color) { $text }
-} else {
-    &colored = sub ($text, $color) { $text }
-}
+    (try require Terminal::ANSIColor <&colored>) !=== Nil
+        and &OUTER::colored = &colored
+};
 
 sub pod2text($pod) is export {
     given $pod {
@@ -24,7 +20,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
+        when Positional        { .flat».&pod2text.grep(?*).join: "\n\n" }
         when Pod::Block::Comment { '' }
         when Pod::Config       { '' }
         default                { $pod.Str                       }
@@ -67,8 +63,9 @@ sub table2text($pod) {
     my @rows = $pod.contents;
     @rows.unshift($pod.headers.item) if $pod.headers;
     my @maxes;
-    for 0..(@rows[1].elems - 1) -> $i {
-        @maxes.push([max] @rows.map({ $_[$i].chars }));
+    my $cols = [max] @rows.map({ .elems });
+    for 0..^$cols -> $i {
+        @maxes.push([max] @rows.map({ $i < $_ ?? $_[$i].chars !! 0 }));
     }
     my $ret;
     if $pod.config<caption> {
@@ -88,7 +85,7 @@ sub declarator2text($pod) {
     my $what = do given $pod.WHEREFORE {
         when Method {
             my @params=$_.signature.params[1..*];
-              @params.pop if @params[*-1].name eq '%_';
+              @params.pop if @params.tail.name eq '%_';
             'method ' ~ $_.name ~ signature2text(@params)
         }
         when Sub {
@@ -112,8 +109,11 @@ sub declarator2text($pod) {
 
 sub signature2text($params) {
       $params.elems ??
-      "(\n\t" ~ $params.map({ $_.perl }).join(", \n\t") ~ "\n)" 
+      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)"
       !! "()";
+}
+sub param2text($p) {
+    $p.perl ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
 }
 
 my %formats =
@@ -130,14 +130,8 @@ sub formatting2text($pod) {
       !! $text
 }
 
-sub twine2text($twine) {
-    return '' unless $twine.elems;
-    my $r = $twine[0];
-    for $twine[1..*] -> $f, $s {
-        $r ~= twine2text($f.contents);
-        $r ~= $s;
-    }
-    $r;
+sub twine2text($_) {
+    .map({ when Pod::Block { twine2text .contents }; .&pod2text }).join
 }
 
 sub twrap($text is copy, :$wrap=75 ) {

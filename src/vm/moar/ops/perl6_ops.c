@@ -14,6 +14,10 @@
 #define MVM_spesh_get_and_use_facts MVM_spesh_get_facts
 #endif
 
+#ifndef MVM_gc_root_add_permanent_desc
+#define MVM_gc_root_add_permanent_desc(tc, obj_ref, description) MVM_gc_root_add_permanent(tc, obj_ref)
+#endif
+
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
@@ -101,7 +105,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
 #define get_type(tc, hash, name, varname) do { \
     MVMString *key = MVM_string_utf8_decode((tc), (tc)->instance->VMString, (name), strlen((name))); \
     (varname) = MVM_repr_at_key_o((tc), (hash), key); \
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&varname); \
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&varname, name); \
 } while (0)
 static MVMuint8 s_p6settypes[] = {
     MVM_operand_obj | MVM_operand_read_reg
@@ -125,7 +129,7 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     {
         MVMString *element;
         default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
-        MVM_gc_root_add_permanent(tc, (MVMCollectable **)&default_cont_desc);
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&default_cont_desc, "DefaultContainerDescriptor");
         element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
         MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
@@ -138,21 +142,21 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
 
     /* Strings. */
     str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_return);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_return, "RETURN");
     str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_dispatcher);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
     str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_vivify_for);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
     str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_perl6);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
     str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_p6ex);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
     str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
     str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xatcf);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xatcf, "X::TypeCheck::Assignment");
     str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
-    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_cfr);
+    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_cfr, "X::ControlFlow::Return");
 }
 
 /* Boxing to Perl 6 types. */
@@ -259,7 +263,7 @@ static MVMuint8 s_p6recont_ro[] = {
 };
 static void p6recont_ro(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *check = GET_REG(tc, 2).o;
-    if (STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
+    if (IS_CONCRETE(check) && STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
         MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
         if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
             /* We have an rw container; re-containerize it. */
@@ -362,32 +366,11 @@ static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
 static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
     /* If it's already deconted, can just become a set. */
     MVMSpeshFacts *obj_facts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[1]);
-    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ))
+    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ)) {
+        MVMSpeshFacts *res_facts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
         ins->info = MVM_op_get_op(MVM_OP_set);
-}
-
-static MVMuint8 s_p6routinereturn[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6routinereturn(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMRegister *reg = MVM_frame_find_lexical_by_name_rel(tc, str_return,
-        tc->cur_frame->caller);
-    MVMObject   *ret = (reg ? reg->o : NULL);
-    if (!MVM_is_null(tc, ret) && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
-        tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
-        STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
-    }
-    else {
-        MVMObject *thrower = get_thrower(tc, str_cfr);
-        if (!MVM_is_null(tc, thrower)) {
-            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
-            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-            STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
-        } else {
-            MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
-        }
+        res_facts->flags = obj_facts->flags;
+        res_facts->type = obj_facts->type;
     }
 }
 
@@ -420,7 +403,10 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
-        MVMFrame *find = tc->cur_frame;
+        MVMFrame *find;
+        MVMROOT(tc, vm_code_obj, {
+            find = MVM_frame_force_to_heap(tc, tc->cur_frame);
+        });
         while (find) {
             if (((MVMCode *)vm_code_obj)->body.sf->body.outer == find->static_info) {
                 MVMFrame *orig = tc->cur_frame;
@@ -435,7 +421,7 @@ static void p6capturelexwhere(MVMThreadContext *tc, MVMuint8 *cur_op) {
     else {
         MVM_exception_throw_adhoc(tc, "p6capturelexwhere got non-code object");
     }
-    GET_REG(tc, 0).o = p6_code_obj;
+    GET_REG(tc, 0).o = GET_REG(tc, 2).o;
 }
 
 static MVMuint8 s_p6getouterctx[] = {
@@ -446,11 +432,10 @@ static void p6getouterctx(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
-    MVMObject *ctx         = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-    if (!outer)
+    if (outer)
+        GET_REG(tc, 0).o = MVM_frame_context_wrapper(tc, outer);
+    else
         MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
-    ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
-    GET_REG(tc, 0).o = ctx;
 }
 
 static MVMuint8 s_p6captureouters[] = {
@@ -473,9 +458,7 @@ static void p6captureouters(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
-            if (outer->outer)
-                MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, new_outer);
+            MVM_ASSIGN_REF(tc, &(outer->header), outer->outer, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
@@ -561,10 +544,14 @@ void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
     free(srd);
 }
 static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMFrame  *ctx = tc->cur_frame;
+    MVMFrame *ctx = MVM_frame_force_to_heap(tc, tc->cur_frame);
+    ctx = tc->cur_frame->caller; /* Skip over routine using this op. */
     while (ctx) {
         /* Do we have a dispatcher here? */
-        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        MVMRegister *disp_lex;
+        MVMROOT(tc, ctx, {
+            disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        });
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
             if (!MVM_is_null(tc, maybe_dispatcher)) {
@@ -575,15 +562,24 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                     MVMObject *meth, *p6sub, *ctx_ref, *capture;
                     MVMRegister *res_reg = &GET_REG(tc, 0);
                     MVMROOT(tc, dispatcher, {
+                    MVMROOT(tc, ctx, {
                         ctx_ref = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
-                        ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
+                        MVM_ASSIGN_REF(tc, &(ctx_ref->header),
+                                ((MVMContext *)ctx_ref)->body.context, ctx);
+                        MVMROOT(tc, ctx_ref, {
+                            capture = MVM_args_use_capture(tc, ctx);
+                            MVMROOT(tc, capture, {
+                                p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
+                                MVMROOT(tc, p6sub, {
+                                    meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
+                                });
+                            });
+                        });
                     });
-                    capture = MVM_args_use_capture(tc, ctx);
-                    p6sub = MVM_frame_get_code_object(tc, (MVMCode *)ctx->code_ref);
+                    });
 
                     /* Lookup method, invoke it, and set up callback to ensure it
                      * is also stored in the lexical. */
-                    meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
                     meth = MVM_frame_find_invokee(tc, meth, NULL);
                     *(tc->interp_cur_op) += 4; /* Get right return address. */
                     MVM_args_setup_thunk(tc, res_reg, MVM_RETURN_OBJ, &disp_callsite);
@@ -591,8 +587,8 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                         MVMRegister **srd = malloc(2 * sizeof(MVMObject *));
                         srd[0] = disp_lex;
                         srd[1] = res_reg;
-                        tc->cur_frame->special_return      = store_dispatcher;
-                        tc->cur_frame->special_return_data = srd;
+                        MVM_frame_special_return(tc, tc->cur_frame, store_dispatcher,
+                            NULL, srd, NULL);
                     }
                     tc->cur_frame->args[0].o = dispatcher;
                     tc->cur_frame->args[1].o = p6sub;
@@ -638,7 +634,10 @@ static void p6argsfordispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMFrame  *ctx = tc->cur_frame;
     while (ctx) {
         /* Do we have the dispatcher we're looking for? */
-        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        MVMRegister *disp_lex;
+        MVMROOT(tc, ctx, {
+            disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        });
         if (disp_lex) {
             MVMObject *maybe_dispatcher = disp_lex->o;
             MVMObject *disp             = GET_REG(tc, 2).o;
@@ -729,7 +728,7 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
      * called by the first. We set up a special return handler to properly
      * remove it. */
     MVM_args_setup_thunk(tc, res, MVM_RETURN_OBJ, &no_arg_callsite);
-    tc->cur_frame->special_return = return_from_fake;
+    MVM_frame_special_return(tc, tc->cur_frame, return_from_fake, NULL, NULL, NULL);
     STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
 }
 
@@ -747,7 +746,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn, NULL, NULL, MVM_EXTOP_INVOKISH);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

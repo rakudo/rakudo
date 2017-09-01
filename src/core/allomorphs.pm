@@ -1,17 +1,24 @@
 # the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
     method new(Int $i, Str $s) {
-        my \SELF = nqp::add_I($i, 0, IntStr);
+        my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(IntStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+            self.Int.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Int.ACCEPTS(a)))
+    }
     multi method Numeric(IntStr:D:) { self.Int }
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(IntStr:D:) { self.Str }
-    multi method perl(IntStr:D:) { 'IntStr.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class NumStr is Num is Str {
@@ -21,13 +28,20 @@ my class NumStr is Num is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(NumStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Num.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Num.ACCEPTS(a)))
+    }
     multi method Numeric(NumStr:D:) { self.Num }
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(NumStr:D:) { self.Str }
-    multi method perl(NumStr:D:) { 'NumStr.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class RatStr is Rat is Str {
@@ -38,13 +52,20 @@ my class RatStr is Rat is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(RatStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Rat.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
+    }
     multi method Numeric(RatStr:D:) { self.Rat }
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(RatStr:D:) { self.Str }
-    multi method perl(RatStr:D:) { 'RatStr.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 my class ComplexStr is Complex is Str {
@@ -55,35 +76,76 @@ my class ComplexStr is Complex is Str {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
     }
-
+    multi method ACCEPTS(ComplexStr:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.Complex.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.Complex.ACCEPTS(a)))
+    }
     multi method Numeric(ComplexStr:D:) { self.Complex }
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method gist(ComplexStr:D:) { self.Str }
-    multi method perl(ComplexStr:D:) { 'ComplexStr.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method perl(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
 # we define cmp ops for these allomorphic types as numeric first, then Str. If
 # you want just one half of the cmp, you'll need to coerce the args
-multi sub infix:<cmp>(IntStr $a, IntStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Int cmp $b.Int
-}
+multi sub infix:<cmp>(IntStr:D     $a, IntStr:D     $b) { $a.Int     cmp $b.Int     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(IntStr:D     $a, RatStr:D     $b) { $a.Int     cmp $b.Rat     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(IntStr:D     $a, NumStr:D     $b) { $a.Int     cmp $b.Num     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(IntStr:D     $a, ComplexStr:D $b) { $a.Int     cmp $b.Complex || $a.Str cmp $b.Str }
 
-multi sub infix:<cmp>(RatStr $a, RatStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Rat cmp $b.Rat
-}
+multi sub infix:<cmp>(RatStr:D     $a, IntStr:D     $b) { $a.Rat     cmp $b.Int     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(RatStr:D     $a, RatStr:D     $b) { $a.Rat     cmp $b.Rat     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(RatStr:D     $a, NumStr:D     $b) { $a.Rat     cmp $b.Num     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(RatStr:D     $a, ComplexStr:D $b) { $a.Rat     cmp $b.Complex || $a.Str cmp $b.Str }
 
-multi sub infix:<cmp>(NumStr $a, NumStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Num cmp $b.Num
-}
+multi sub infix:<cmp>(NumStr:D     $a, IntStr:D     $b) { $a.Num     cmp $b.Int     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(NumStr:D     $a, RatStr:D     $b) { $a.Num     cmp $b.Rat     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(NumStr:D     $a, NumStr:D     $b) { $a.Num     cmp $b.Num     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(NumStr:D     $a, ComplexStr:D $b) { $a.Num     cmp $b.Complex || $a.Str cmp $b.Str }
 
-multi sub infix:<cmp>(ComplexStr $a, ComplexStr $b) {
-    $_ === Order::Same ?? $a.Str cmp $b.Str !! $_
-      given $a.Complex cmp $b.Complex
+multi sub infix:<cmp>(ComplexStr:D $a, IntStr:D     $b) { $a.Complex cmp $b.Int     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(ComplexStr:D $a, RatStr:D     $b) { $a.Complex cmp $b.Rat     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(ComplexStr:D $a, NumStr:D     $b) { $a.Complex cmp $b.Num     || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex cmp $b.Complex || $a.Str cmp $b.Str }
+
+
+multi sub infix:<eqv>(IntStr:D     $a, IntStr:D     $b) { $a.Int     eqv $b.Int     && $a.Str eqv $b.Str }
+multi sub infix:<eqv>(IntStr:D     $a, RatStr:D     $b --> False) {}
+multi sub infix:<eqv>(IntStr:D     $a, NumStr:D     $b --> False) {}
+multi sub infix:<eqv>(IntStr:D     $a, ComplexStr:D $b --> False) {}
+
+multi sub infix:<eqv>(RatStr:D     $a, IntStr:D     $b --> False) {}
+multi sub infix:<eqv>(RatStr:D     $a, RatStr:D     $b) { $a.Rat     eqv $b.Rat     && $a.Str eqv $b.Str }
+multi sub infix:<eqv>(RatStr:D     $a, NumStr:D     $b --> False) {}
+multi sub infix:<eqv>(RatStr:D     $a, ComplexStr:D $b --> False) {}
+
+multi sub infix:<eqv>(NumStr:D     $a, IntStr:D     $b --> False) {}
+multi sub infix:<eqv>(NumStr:D     $a, RatStr:D     $b --> False) {}
+multi sub infix:<eqv>(NumStr:D     $a, NumStr:D     $b) { $a.Num     eqv $b.Num     && $a.Str eqv $b.Str }
+multi sub infix:<eqv>(NumStr:D     $a, ComplexStr:D $b --> False) {}
+
+multi sub infix:<eqv>(ComplexStr:D $a, IntStr:D     $b --> False) {}
+multi sub infix:<eqv>(ComplexStr:D $a, RatStr:D     $b --> False) {}
+multi sub infix:<eqv>(ComplexStr:D $a, NumStr:D     $b --> False) {}
+multi sub infix:<eqv>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex eqv $b.Complex && $a.Str eqv $b.Str }
+
+multi sub infix:<===>(IntStr:D $a, IntStr:D $b) {
+    $a.Int === $b.Int && $a.Str === $b.Str
+}
+multi sub infix:<===>(RatStr:D $a, RatStr:D $b) {
+    $a.Rat === $b.Rat && $a.Str === $b.Str
+}
+multi sub infix:<===>(NumStr:D $a, NumStr:D $b) {
+    $a.Num === $b.Num && $a.Str === $b.Str
+}
+multi sub infix:<===>(ComplexStr:D $a, ComplexStr:D $b) {
+    $a.Complex === $b.Complex && $a.Str === $b.Str
 }
 
 multi sub val(*@maybevals) {
@@ -133,12 +195,6 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         while nqp::isge_i($end, $pos)
            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end);
 
-    # Str.Numeric should handle blank string before val()
-    parse_fail "Empty string not properly caught before val()" if nqp::islt_i($end, $pos);
-
-    # Reset end-of-string after trimming
-    $eos = nqp::add_i($end, 1);
-
     # Fail all the way out when parse failures occur. Return the original
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
@@ -147,33 +203,39 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
           !! return $MAYBEVAL
     }
 
+    # Str.Numeric should handle blank string before val()
+    parse_fail "Empty string not properly caught before val()" if nqp::islt_i($end, $pos);
+
+    # Reset end-of-string after trimming
+    $eos = nqp::add_i($end, 1);
+
     # return an appropriate type when we've found a number. Allomorphic unless
     # Str.Numeric is calling
     my &parse_win := -> \newval {
         $val-or-fail
           ?? return newval
-          !! newval.isa(Num)
+          !! nqp::istype(newval, Num)
             ?? return NumStr.new(newval, $MAYBEVAL)
-            !! newval.isa(Rat)
+            !! nqp::istype(newval, Rat)
               ?? return RatStr.new(newval, $MAYBEVAL)
-              !! newval.isa(Complex)
+              !! nqp::istype(newval, Complex)
                 ?? return ComplexStr.new(newval, $MAYBEVAL)
-                !! newval.isa(Int)
+                !! nqp::istype(newval, Int)
                   ?? return IntStr.new(newval, $MAYBEVAL)
                   !! die "Unknown type {newval.^name} found in val() processing"
     }
 
     my sub parse-simple-number() {
         # Handle NaN here, to make later parsing simpler
-        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
+        if nqp::eqat($str,'NaN',$pos) {
             $pos = nqp::add_i($pos, 3);
             return nqp::p6box_n(nqp::nan());
         }
 
-        # Handle any leading +/- sign
+        # Handle any leading +/-/− sign
         my int $ch  = nqp::ord($str, $pos);
-        my int $neg = nqp::iseq_i($ch, 45);                # '-'
-        if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43) {  # '-', '+'
+        my int $neg = nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722); # '-', '−'
+        if $neg || nqp::iseq_i($ch, 43) {  # '-', '−', '+'
             $pos = nqp::add_i($pos, 1);
             $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         }
@@ -189,7 +251,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
             my Int $int := 0;
             if nqp::isne_i($ch, 46) {  # '.'
                 parse_fail "Cannot convert radix of $radix (max 36)"
-                    if $radix > 36;
+                    if nqp::isgt_i($radix, 36);
                 $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
                 $p      = nqp::atpos($parse, 2);
                 parse_fail "base-$radix number must begin with valid digits or '.'"
@@ -197,12 +259,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 $pos    = $p;
 
                 $int   := nqp::atpos($parse, 0);
-                if nqp::isge_i($pos, $eos) {
-                    return $int;
-                }
-                else {
-                    $ch = nqp::ord($str, $pos);
-                }
+                nqp::isge_i($pos, $eos)
+                  ??  return $int
+                  !!  ($ch = nqp::ord($str, $pos));
             }
 
             # Fraction, if any
@@ -227,16 +286,32 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
                     unless nqp::iseq_i($radix, 10);
 
-                $pos    = nqp::add_i($pos, 1);
-                $parse := nqp::radix_I(10, $str, $pos, 2, Int);
+                $pos = nqp::add_i($pos, 1);
+                # handle the sign
+                # XXX TODO: teach radix_I to handle '−' (U+2212) minus?
+                my int $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                my int $neg-e = nqp::if(
+                    nqp::iseq_i($ch, 43), # '+'
+                    nqp::stmts(($pos = nqp::add_i($pos, 1)), 0),
+                    nqp::if( # '-', '−'
+                        nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722),
+                        nqp::stmts(($pos = nqp::add_i($pos, 1)), 1),
+                        0,
+                    )
+                );
+
+                $parse := nqp::radix_I(10, $str, $pos, $neg-e, Int);
                 $p      = nqp::atpos($parse, 2);
                 parse_fail "'E' or 'e' must be followed by decimal (base-10) integer"
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
-                my num $exp  = nqp::atpos($parse, 0).Num;
-                my num $coef = $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num;
-                return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10e0, $exp)));
+                return nqp::p6box_n(nqp::mul_n(
+                    $frac ?? nqp::add_n( $int.Num, nqp::div_n($frac.Num, $base.Num) )
+                          !! $int.Num,
+                    nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)
+                )) # if we have a zero, handle the sign correctly
+                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
             }
 
             # Multiplier with exponent, if single '*' is present
@@ -248,27 +323,23 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 my $mult_base := parse-simple-number();
 
                 parse_fail "'*' multiplier base must be an integer"
-                    unless $mult_base.WHAT === Int;
+                    unless nqp::istype($mult_base, Int);
                 parse_fail "'*' multiplier base must be followed by '**' and exponent"
-                    unless nqp::iseq_s(nqp::substr($str, $pos, 2), '**');
+                    unless nqp::eqat($str,'**',$pos);
 
                 $pos           = nqp::add_i($pos, 2);
                 my $mult_exp  := parse-simple-number();
 
                 parse_fail "'**' multiplier exponent must be an integer"
-                    unless $mult_exp.WHAT === Int;
+                    unless nqp::istype($mult_exp, Int);
 
                 my $mult := $mult_base ** $mult_exp;
                 $int     := $int  * $mult;
                 $frac    := $frac * $mult;
             }
 
-            # Return an Int if there was no radix point
-            return $int unless $base;
-
-            # Otherwise, return a Rat
-            my Int $numerator := $int * $base + $frac;
-            Rat.new($numerator, $base);
+            # Return an Int if there was no radix point, otherwise, return a Rat
+            nqp::unless($base, $int, Rat.new($int * $base + $frac, $base));
         }
 
         # Look for radix specifiers
@@ -283,7 +354,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
             $radix  = nqp::atpos($parse, 0);
             $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-            if    nqp::iseq_i($ch, 60) {  # '<'
+            if nqp::iseq_i($ch, 60) {  # '<'
                 $pos = nqp::add_i($pos, 1);
 
                 my $result := parse-int-frac-exp();
@@ -321,7 +392,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
                     $digit := nqp::atpos($parse, 0);
                     parse_fail "digit is larger than {$radix - 1} in ':$radix[]' style radix number"
-                        if $digit >= $radix;
+                        if nqp::isge_i($digit, $radix);
 
                     $result := $result * $radix + $digit;
                     $pos     = nqp::add_i($pos, 1)
@@ -354,7 +425,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
             parse-int-frac-exp();
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+        elsif nqp::eqat($str,'Inf',$pos) {
             # 'Inf'
             $pos = nqp::add_i($pos, 3);
             $neg ?? -Inf !! Inf;
@@ -396,18 +467,19 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     # the magnitude of a pure imaginary number
     if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
         parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
-            if $result == Inf || $result == NaN;
+            if nqp::isnanorinf($result.Num);
         $pos = nqp::add_i($pos, 1);
         $result := Complex.new(0, $result);
     }
-    elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+    elsif nqp::eqat($str,'\\i',$pos) {
         $pos = nqp::add_i($pos, 2);
         $result := Complex.new(0, $result);
     }
     # Check for '+' or '-' indicating first parsed number was
     # the real part of a complex number
-    elsif nqp::iseq_i(nqp::ord($str, $pos), 45)    # '-'
-       || nqp::iseq_i(nqp::ord($str, $pos), 43) {  # '+'
+    elsif nqp::iseq_i(nqp::ord($str, $pos), 45)     # '-'
+       || nqp::iseq_i(nqp::ord($str, $pos), 43)     # '+'
+       || nqp::iseq_i(nqp::ord($str, $pos), 8722) { # '−'
         # Don't move $pos -- we want parse-real() to see the sign
         my $im := parse-real();
         parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"
@@ -415,10 +487,10 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
         if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
             parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
-                if $im == Inf || $im == NaN;
+                if nqp::isnanorinf($im.Num);
             $pos = nqp::add_i($pos, 1);
         }
-        elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+        elsif nqp::eqat($str,'\\i',$pos) {
             $pos = nqp::add_i($pos, 2);
         }
         else {

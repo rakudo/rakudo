@@ -1,7 +1,6 @@
-# check basic regex capabilities
-
 use v6;
 
+# check basic regex capabilities
 say '1..11';
 
 'abc' ~~ /abc/ and say 'ok 1';

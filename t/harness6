@@ -1,0 +1,166 @@
+#!/usr/bin/env perl6
+
+# note: Due to a limitation in argument parsing options that should be passed
+# through to fudgeall have to come after all other options
+
+# We keep TAP module in a non-core repo, so here we either clone
+# it or just pull in any changes into the directory with the module
+# that we then load:
+
+use lib <t/packages/tap-harness6/lib>;
+constant $tap-dir  = 't/packages/tap-harness6'.IO;
+constant $tap-repo = 'https://github.com/perl6/tap-harness6';
+if $tap-dir.d {
+    say 'Updating TAP::Harness checkout...';
+    run :cwd($tap-dir), <git pull>;
+}
+else {
+    say 'TAP::Harness checkout not found; going to clone...';
+    run <git clone>, $tap-repo, $tap-dir.absolute;
+}
+require ::('TAP');
+
+my $vm = $*VM.name;
+
+multi sub MAIN(
+    Str  :$tests-from-file = Str,
+    Bool :$fudge = False,
+    Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
+    Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
+    Bool :$quick = False,
+    Bool :$stress = False,
+    Bool :$randomize = False,
+    Bool :$no-mix-slow = $*DISTRO.is-win || $jobs == 1,
+    Str  :$perlpath = ~$*EXECUTABLE,
+    Str  :$perl5path = 'perl',
+    *@files,
+) {
+    my @slow;
+    with ($tests-from-file) {
+        my $inline-perl5-is-installed = run(
+            $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
+        ).exitcode == 0;
+        say "Inline::Perl5 not installed: not running Perl 5 integration tests" unless $inline-perl5-is-installed;
+
+        my %traits = :perl5($inline-perl5-is-installed),
+                    :long(!$quick), :$stress, :slow,
+                    :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
+                    :conc(?($vm eq any("jvm","moar")));
+        my $recode-path = $*SPEC !~~ IO::Spec::Unix;
+        for $tests-from-file.IO.lines {
+            next if / ^ \s* '#' / or not m/ \S /;
+            my ($fn, $fudgespec) = .trim.split(/ \s+ '#' \s* /);
+            my @specs = $fudgespec ?? $fudgespec.words !! ();
+            next if not all(%traits{@specs});
+
+            $fn ~~ s{ ^ <!before "t/spec/"> } = "t/spec/";
+            $fn = $*SPEC.catdir($fn.split('/')) if $recode-path;
+            if $fn.IO ~~ :r {
+                if not $no-mix-slow and any(@specs) eq 'slow' {
+                    push @slow, $fn;
+                }
+                else {
+                    push @files, $fn;
+                }
+            } else {
+                warn "Missing test file: $fn\n";
+            }
+        }
+    }
+
+    my @tfiles = $randomize ?? @files.flatmap(&all-in).pick(*) !! @files.flatmap(&all-in).sort;
+
+    if (@slow) {
+        @slow.=flatmap(&all-in);
+        @tfiles = (roundrobin @slow, batch(@tfiles / @slow, @tfiles)).flat;
+    }
+
+    if $fudge {
+        @tfiles = batch(200, @tfiles).flatmap(&fudge);
+    }
+
+    my $harness = ::('TAP::Harness').new(
+            :handlers[get-handler($vm, :$perlpath)],
+            :ignore-exit,
+#            :trap,
+            :$jobs,
+            :$verbosity,
+            :err('ignore'),
+    );
+    await $harness.run(@tfiles).waiter;
+
+    sub batch(Int(Real) $size, @files) {
+        gather {
+            while @files {
+                my @batch = @files.splice: 0, $size;
+                take @batch;
+            }
+        }
+    }
+
+    multi all-in(Str $start) {
+        all-in($start.IO);
+    }
+    multi all-in(IO::Path $start) {
+        return ~$start unless $start.d;
+
+        return gather {
+            listdir($start);
+        }
+
+        sub listdir(IO::Path $start) {
+            state $test = none($*SPEC.updir, $*SPEC.curdir, '.git');
+            for $start.dir(:$test) -> $file {
+                if $file.d {
+                    listdir($file);
+                }
+                elsif $file ~~ / \. t $ / {
+                    take ~$file;
+                }
+            }
+        }
+    }
+
+    sub fudge(@files) {
+        my $cmd = run($perl5path, 't/spec/fudgeall', '--keep-exit-code', "rakudo.$vm", |@files, :out);
+        $cmd.out.slurp-rest.split(' ').map(*.chomp);
+    }
+
+#    multi sub get-handler('jvm') {
+#        unlink 'TESTTOKEN';
+#        state $server = run ".".IO.child("perl6-eval-server"), <-bind-stdin -cookie TESTTOKEN -app perl6.jar>, :in;
+#        sleep 1;
+#        ::('TAP::Harness::SourceHandler::Exec').new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
+#    }
+    multi sub get-handler(Any, :$perlpath) {
+       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($perlpath));
+    }
+}
+
+sub USAGE { say "\n" ~ (require ::('Pod::To::Text')).render($=pod[0]) ~ "\n" }
+
+=begin pod
+
+=head1 NAME
+
+t/harness - run the harness tests for Rakudo.
+
+=head1 SYNOPSIS
+
+t/harness [options] [files]
+
+Options:
+
+    --help - display the help message.
+    --tests-from-file=[filename] - get the tests from the filename.
+    --fudge - apply backend specific fixups to various files
+    --verbosity=[level] - set the verbosity level.
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --quick - do not run tests marked as long-running
+    --stress - run tests marked as stress tests
+    --randomize randomize the order in which test-files are processed.
+    --no-mixslow - don't spread tests marked "slow" equally over the run (on non-Win)
+    --perlpath - path to perl6 (defaults to $*EXECUTABLE)
+    --perl5path - path to perl5 for various helper utilities (defaults to 'perl')
+
+=end pod

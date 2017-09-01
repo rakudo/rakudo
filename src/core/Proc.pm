@@ -1,88 +1,140 @@
+# Proc is a wrapper around Proc::Async, providing a synchronous API atop of
+# the asynchronous API.
+my class Proc::Async { ... }
 my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
     has IO::Pipe $.err;
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
-    has $.pid;
     has $.signal;
+    has @.command;
 
-    has $!in_fh;
-    has $!out_fh;
-    has $!err_fh;
-    has int $!flags;
+    has Proc::Async $!proc;
+    has Bool $!w;
+    has @!pre-spawn;
+    has @!post-spawn;
+    has $!active-handles = 0;
+    has &!start-stdout;
+    has &!start-stderr;
+    has $!finished;
 
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
-                    Bool :$bin, Bool :$chomp = True, Bool :$merge,
-                    Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$signal --> Nil) {
+                    Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
+                    Str :$enc, Str:D :$nl = "\n", :$signal --> Nil) {
+        @!command = |$command if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
-            $!in_fh := nqp::getattr(nqp::decont($in), IO::Handle, '$!PIO');
-            $!flags += nqp::const::PIPE_INHERIT_IN;
+            @!pre-spawn.push({ $!proc.bind-stdin($in) });
         }
         elsif $in === True {
-            $!in     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-out => $nl);
-            $!in_fh := nqp::syncpipe();
-            $!flags += nqp::const::PIPE_CAPTURE_IN;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!in_fh, $nl);
-            nqp::setencoding($!in_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!in), IO::Handle, '$!PIO', $!in_fh);
+            my $cur-promise = Promise.new;
+            $cur-promise.keep(True);
+            $!in = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-out => $nl,
+                :on-write(-> $blob {
+                    $cur-promise .= then({ await $!proc.write($blob) });
+                }),
+                :on-close({
+                    $cur-promise .= then({ $!proc.close-stdin; });
+                    self!await-if-last-handle
+                }));
+            $!active-handles++;
+            $!w := True;
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
-            $!in_fh := nqp::null();
-            $!flags += nqp::const::PIPE_INHERIT_IN;
+            # Inherit; nothing to do
         }
         else {
-            $!in_fh := nqp::null();
-            $!flags += nqp::const::PIPE_IGNORE_IN;
-        }
-
-        if $out === True || $merge {
-            $!out     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in => $nl);
-            $!out_fh := nqp::syncpipe();
-            $!flags  += nqp::const::PIPE_CAPTURE_OUT;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!out_fh, $nl);
-            nqp::setencoding($!out_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!out), IO::Handle, '$!PIO', $!out_fh);
-        }
-        elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
-            $!out_fh := nqp::getattr(nqp::decont($out), IO::Handle, '$!PIO');
-            $!flags  += nqp::const::PIPE_INHERIT_OUT;
-        }
-        elsif nqp::istype($out, Str) && $out eq '-' {
-            $!out_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_INHERIT_OUT;
-        }
-        else {
-            $!out_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_IGNORE_OUT;
+            $!w := True;
+            @!post-spawn.push({ $!proc.close-stdin });
         }
 
         if $merge {
-            $!err    := $!out;
-            $!err_fh := $!out_fh;
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {
-            $!err_fh := nqp::getattr(nqp::decont($err), IO::Handle, '$!PIO');
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif nqp::istype($err, Str) && $err eq '-' {
-            $!err_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_INHERIT_ERR;
-        }
-        elsif $err === True {
-            $!err     = IO::Pipe.new(:proc(self), :path(''), :$chomp, nl-in =>  $nl);
-            $!err_fh := nqp::syncpipe();
-            $!flags  += nqp::const::PIPE_CAPTURE_ERR;
-            Rakudo::Internals.SET_LINE_ENDING_ON_HANDLE($!err_fh, $nl);
-            nqp::setencoding($!err_fh,Rakudo::Internals.NORMALIZE_ENCODING($enc))
-              unless $bin;
-            nqp::bindattr(nqp::decont($!err), IO::Handle, '$!PIO', $!err_fh);
+            my $chan = Channel.new;
+            $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                :on-read({ (try $chan.receive) // buf8 }),
+                :on-close({ self!await-if-last-handle }));
+            $!active-handles++;
+            @!pre-spawn.push({
+                $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
+                    done => { $chan.close },
+                    quit => { $chan.fail($_) }
+            });
         }
         else {
-            $!err_fh := nqp::null();
-            $!flags  += nqp::const::PIPE_IGNORE_ERR;
+            if $out === True {
+                my $chan;
+                my $stdout-supply;
+                &!start-stdout = {
+                    $chan = $stdout-supply.Channel;
+                    &!start-stdout = Nil;
+                }
+                $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({
+                        &!start-stdout() if &!start-stdout;
+                        (try $chan.receive) // buf8
+                    }),
+                    :on-close({
+                        $chan //= $stdout-supply.Channel; # If we never read
+                        self!await-if-last-handle
+                    }),
+                    :on-native-descriptor({
+                        $!active-handles--;
+                        &!start-stdout = Nil;
+                        await $stdout-supply.native-descriptor
+                    }));
+                $!active-handles++;
+                @!pre-spawn.push({
+                    $stdout-supply = $!proc.stdout(:bin)
+                });
+            }
+            elsif nqp::istype($out, IO::Handle) && $out.DEFINITE {
+                @!pre-spawn.push({ $!proc.bind-stdout($out) });
+            }
+            elsif nqp::istype($out, Str) && $out eq '-' {
+                # Inherit; nothing to do
+            }
+            else {
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).tap: -> $ { }, quit => -> $ { }
+                });
+            }
+
+            if $err === True {
+                my $chan;
+                my $stderr-supply;
+                &!start-stderr = {
+                    $chan = $stderr-supply.Channel;
+                    &!start-stderr = Nil;
+                }
+                $!err = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({
+                        &!start-stderr() if &!start-stderr;
+                        (try $chan.receive) // buf8
+                    }),
+                    :on-close({
+                        $chan //= $stderr-supply.Channel; # If we never read
+                        self!await-if-last-handle
+                    }),
+                    :on-native-descriptor({
+                        &!start-stderr = Nil;
+                        $!active-handles--;
+                        await $stderr-supply.native-descriptor
+                    }));
+                $!active-handles++;
+                @!pre-spawn.push({
+                    $stderr-supply = $!proc.stderr(:bin);
+                });
+            }
+            elsif nqp::istype($err, IO::Handle) && $err.DEFINITE {
+                @!pre-spawn.push({ $!proc.bind-stderr($err) });
+            }
+            elsif nqp::istype($err, Str) && $err eq '-' {
+                # Inherit; nothing to do
+            }
+            else {
+                @!pre-spawn.push({
+                    $!proc.stderr(:bin).tap: -> $ { }, quit => -> $ { }
+                });
+            }
         }
 
         if nqp::istype($exitcode, Int) && $exitcode.DEFINITE {
@@ -93,28 +145,49 @@ my class Proc {
         }
     }
 
-    method spawn(*@args ($, *@), :$cwd = $*CWD, :$env) {
-        my %env := $env ?? $env.hash !! %*ENV;
-        self.status(nqp::p6box_i(nqp::spawn(
-            CLONE-LIST-DECONTAINERIZED(@args),
-            nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%env),
-            $!in_fh, $!out_fh, $!err_fh,
-            $!flags
-        )));
-        self.Bool
+    method !await-if-last-handle() {
+        if --$!active-handles {
+            Nil
+        }
+        else {
+            self!wait-for-finish;
+            self
+        }
     }
 
-    method shell($cmd, :$cwd = $*CWD, :$env) {
-        my %env := $env ?? $env.hash !! %*ENV;
-        self.status(nqp::p6box_i(nqp::shell(
-            nqp::unbox_s($cmd),
-            nqp::unbox_s($cwd.Str),
-            CLONE-HASH-DECONTAINERIZED(%env),
-            $!in_fh, $!out_fh, $!err_fh,
-            $!flags
-        )));
-        self.Bool
+    method !wait-for-finish {
+        CATCH { default { self.status(0x100) } }
+        &!start-stdout() if &!start-stdout;
+        &!start-stderr() if &!start-stderr;
+        self.status(await($!finished).status) if $!exitcode == -1;
+    }
+
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
+        @!command = @args;
+        self!spawn-internal(@args, $cwd, $env)
+    }
+
+    method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
+        @!command = $cmd;
+        my @args := Rakudo::Internals.IS-WIN
+            ?? (%*ENV<ComSpec>, '/c', $cmd)
+            !! ('/bin/sh', '-c', $cmd);
+        self!spawn-internal(@args, $cwd, $env)
+    }
+
+    method !spawn-internal(@args, $cwd, $env --> Bool:D) {
+        my %ENV := $env ?? $env.hash !! %*ENV;
+        $!proc := Proc::Async.new(|@args, :$!w);
+        .() for @!pre-spawn;
+        $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
+        my $is-spawned := do {
+            CATCH { default { self.status(0x100) } }
+            await $!proc.ready;
+            True
+        } // False;
+        .() for @!post-spawn;
+        self!wait-for-finish unless $!out || $!err || $!in;
+        $is-spawned
     }
 
     proto method status(|) { * }
@@ -122,18 +195,32 @@ my class Proc {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  { ($!exitcode +< 8) +| $!signal }
-    multi method Numeric(Proc:D:) { $!exitcode }
-    multi method Bool(Proc:D:)    { $!exitcode == 0 }
+    multi method status(Proc:D:)  {
+        self!wait-for-finish;
+        ($!exitcode +< 8) +| $!signal
+    }
+    multi method Numeric(Proc:D:) {
+        self!wait-for-finish;
+        $!exitcode
+    }
+    multi method Bool(Proc:D:) {
+        self!wait-for-finish;
+        $!exitcode == 0
+    }
+    method exitcode {
+        self!wait-for-finish;
+        $!exitcode
+    }
 
     method sink(--> Nil) {
-        X::Proc::Unsuccessful.new(:proc(self)).throw unless self;
+        self!wait-for-finish;
+        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0;
     }
 }
 
-sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
+sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.spawn(@args, :$cwd, :$env);
     $proc
@@ -141,29 +228,16 @@ sub run(*@args ($, *@), :$in = '-', :$out = '-', :$err = '-',
 
 sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str:D :$enc = 'utf8', Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc
 }
 
 sub QX($cmd, :$cwd = $*CWD, :$env) {
-    my %env := $env ?? $env.hash !! %*ENV;
-    my Mu $pio := nqp::syncpipe();
-    my $status := nqp::shell(
-        nqp::unbox_s($cmd),
-        nqp::unbox_s($cwd.Str),
-        CLONE-HASH-DECONTAINERIZED(%env),
-        nqp::null(), $pio, nqp::null(),
-        nqp::const::PIPE_INHERIT_IN + nqp::const::PIPE_CAPTURE_OUT + nqp::const::PIPE_INHERIT_ERR
-    );
-    my $result;
-    try {
-        $result = nqp::p6box_s(nqp::readallfh($pio));
-        $status := nqp::closefh_i($pio);
-    }
-    fail "Unable to read from '$cmd'" unless $result.DEFINITE;
-    $result;
+    my $proc = Proc.new(:out);
+    $proc.shell($cmd, :$cwd, :$env);
+    $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }
 
 # vim: ft=perl6 expandtab sw=4

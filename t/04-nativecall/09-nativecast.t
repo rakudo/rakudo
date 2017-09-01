@@ -1,6 +1,7 @@
-use lib 't/04-nativecall';
+use v6;
+
+use lib <lib t/04-nativecall>;
 use CompileTestLib;
-use lib 'lib';
 use NativeCall;
 use Test;
 
@@ -28,10 +29,10 @@ sub ReturnByte() returns Pointer is native('./09-nativecast') { * }
 is nativecast(int8, ReturnByte()), -103, 'casting to int8 works';
 
 sub ReturnDouble() returns Pointer is native('./09-nativecast') { * }
-is_approx nativecast(num64, ReturnDouble()), 99.9e0, 'casting to num64 works';
+is-approx nativecast(num64, ReturnDouble()), 99.9e0, 'casting to num64 works';
 
 sub ReturnFloat() returns Pointer is native('./09-nativecast') { * }
-is_approx nativecast(num32, ReturnFloat()), -4.5e0, 'casting to num32 works';
+is-approx nativecast(num32, ReturnFloat()), -4.5e0, 'casting to num32 works';
 
 sub ReturnString() returns Pointer is native('./09-nativecast') { * }
 is nativecast(str, ReturnString()), "epic cuteness", 'casting to str works';

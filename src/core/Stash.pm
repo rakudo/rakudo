@@ -1,23 +1,48 @@
 my class Stash { # declared in BOOTSTRAP
-    # class Stash is Hash {
+    # class Stash is Hash
     #     has str $!longname;
 
-    multi method AT-KEY(Stash:D: Str() $key, :$global_fallback) is raw {
-        my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
-            nqp::getattr(self, Map, '$!storage') !!
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-        if nqp::existskey($storage, nqp::unbox_s($key)) {
-            nqp::atkey($storage, nqp::unbox_s($key))
-        }
-        elsif $global_fallback {
-            nqp::existskey(GLOBAL.WHO, $key)
-                ?? GLOBAL.WHO.AT-KEY($key)
-                !! fail("Could not find symbol '$key'")
-        }
-        else {
-            nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
-                 -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
-        }
+    multi method AT-KEY(Stash:D: Str:D $key) is raw {
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage')
+            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::p6bindattrinvres(
+            my $v,Scalar,'$!whence',
+            -> { nqp::bindkey(
+                   nqp::getattr(self,Map,'$!storage')
+                     || nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                   $key,
+                   $v
+                 )
+               }
+          )
+        )
+    }
+    multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
+        nqp::if(
+          nqp::getattr(self,Map,'$!storage')
+            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::if(
+            $global_fallback,
+            nqp::if(
+              nqp::existskey(GLOBAL.WHO,$key),
+              nqp::atkey(GLOBAL.WHO,$key),
+              Failure.new("Could not find symbol '$key'")
+            ),
+            nqp::p6bindattrinvres(
+              my $v,Scalar,'$!whence',
+              -> { nqp::bindkey(
+                     nqp::getattr(self,Map,'$!storage')
+                       || nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                     $key,
+                     $v
+                 )
+                 }
+            )
+          )
+        )
     }
 
     method package_at_key(Stash:D: str $key) {
@@ -43,9 +68,8 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        if $globalish !=== Stash {
-            nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(self, $globalish);
-        }
+        nqp::gethllsym('perl6','ModuleLoader').merge_globals(self,$globalish)
+          unless $globalish === Stash;
     }
 }
 

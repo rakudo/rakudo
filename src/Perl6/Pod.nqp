@@ -1,5 +1,39 @@
 # various helper methods for Pod parsing and processing
 class Perl6::Pod {
+
+
+    # TODO: put these class vars inside sub table when able
+
+    # some rules for processing table rows
+    my $is_table_row_sep := /
+                          ^
+                          [
+			    | <[-+_|=\h]>*
+			    | \h*
+			  ]
+			  $
+			/;
+    my $csep0 := /\h '|' \h/; # the pipe
+    my $csep1 := /\h '+' \h/;
+    my $csep2 := /\h '=' \h/;
+    my $csep3 := /\h '_' \h/;
+    my $csep4 := /\h \h/;
+    
+    my $has_table_col_sep := /
+                          [
+                            | $csep0
+			    | $csep1
+			    | $csep2
+			    | $csep3
+			    | $csep4
+		          ]
+			/;
+
+    # some vars for telling caller about bad tables in exceptions (npq::die)
+    my %table_pod_line_info     := []; # save debug info on each incoming line
+    my $max_num_table_row_cells := 0;  # all table rows must have the same number of cells
+    my $error_msg               := '';
+    
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -104,12 +138,14 @@ class Perl6::Pod {
                 } else {
                     $val := ~$val<semilist>;
                 }
+
+                $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             } else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
                 my $truth := !nqp::eqat($colonpair, '!', 1);
 
-                $val := $*W.add_constant('Int', 'int', $truth).compile_time_value;
+                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
             if $key eq "allow" {
@@ -130,7 +166,6 @@ class Perl6::Pod {
             }
 
             $key := $*W.add_constant('Str', 'str', $key).compile_time_value;
-            $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)
@@ -140,21 +175,27 @@ class Perl6::Pod {
         return serialize_object('Hash', |@pairs).compile_time_value;
     }
 
-    our sub formatted_text($a) {
+    our sub normalize_text($a) {
+	# given a string of text, possibly including newlines, reduces
+	# contiguous whitespace to a single space and trim leading and
+	# trailing whitespace from all logical lines
         my $r := subst($a, /\s+/, ' ', :global);
         $r    := subst($r, /^^\s*/, '');
         $r    := subst($r, /\s*$$/, '');
         return $r;
     }
+
     our sub table($/) {
         my $config := $<pod_configuration>
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
 
+	# form the rows from the pod table parse match
         my @rows := [];
         for $<table_row> {
             @rows.push($_.ast);
         }
+
         @rows := process_rows(@rows);
         # we need to know 3 things about the separators:
         #   is there more than one
@@ -251,26 +292,39 @@ class Perl6::Pod {
     our sub process_rows(@rows) {
         # remove trailing blank lines
         @rows.pop while @rows && @rows[+@rows - 1] ~~ /^ \s* $/;
-        # find the longest leading whitespace and strip it
+
+        #===================================================
+        # may not need this handling here (leading whitespace trim)
+        #===================================================
+        # find the shortest leading whitespace and strip it
         # from every row, also remove trailing \n
-        my $w := -1; # the longest leading whitespace
-        for @rows -> $row {
-            next if $row ~~ /^\s*$/;
-            my $match := $row ~~ /^\s+/;
-            next unless $match;
-            my $n := $match.to;
-            if $n < $w || $w == -1 {
-                $w := $n;
-            }
-        }
-        my $i := 0;
-        while $i < +@rows {
-            unless @rows[$i] ~~ /^\s*$/ {
-                if $w != -1 {
-                    @rows[$i] := nqp::substr(@rows[$i], $w);
+        my $w := 999999; # the shortest leading whitespace
+        if 1 {
+            for @rows -> $row {
+                next if $row ~~ /^\s*$/;
+                my $match := $row ~~ /^\s+/;
+                my $n := 0;
+                $n := $match.to if $match;
+                if $n < $w {
+                    $w := $n;
                 }
             }
-            # chomp
+        }
+
+        my $i := 0;
+        while $i < +@rows {
+            #===================================================
+            # may not need this handling here (leading whitespace trim)
+            #===================================================
+	    if 1 {
+                unless @rows[$i] ~~ /^\s*$/ {
+                    if $w != -1 {
+                        @rows[$i] := nqp::substr(@rows[$i], $w);
+                    }
+                }
+	    }
+	    
+            # chomp (this is needed for later processing, but may be moved later)
             @rows[$i] := subst(@rows[$i], /\n$/, '');
             $i := $i + 1;
         }
@@ -288,14 +342,14 @@ class Perl6::Pod {
                     % [ [\h+ || ^^] '|' [\h || $$] ]
                 /;
                 @res[$i] := [];
-                for $m[0] { @res[$i].push(formatted_text($_)) }
+                for $m[0] { @res[$i].push(normalize_text($_)) }
             } elsif $v ~~ /\h'+'\h/ {
                 my $m := $v ~~ /
                     :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
                     % [ [\h+ || ^^] '+' [\h+ || $$] ]
                 /;
                 @res[$i] := [];
-                for $m[0] { @res[$i].push(formatted_text($_)) }
+                for $m[0] { @res[$i].push(normalize_text($_)) }
             } else {
                 # now way to easily split rows
                 return splitrows(@rows);
@@ -312,7 +366,7 @@ class Perl6::Pod {
             my $j := 0;
             while $j < +@rows[$i] {
                 if @rows[$i][$j] {
-                    @result[$j] := formatted_text(
+                    @result[$j] := normalize_text(
                         ~@result[$j] ~ ' ' ~ ~@rows[$i][$j]
                     );
                 }
@@ -404,9 +458,10 @@ class Perl6::Pod {
     # returns array of arrays of strings (cells)
     our sub splitrows(@rows) {
         my @suspects := []; #positions that might be cell delimiters
-                            # values: 1     - impossibru!
+                            # values: 1     - impossible!
                             #         unset - mebbe
 
+        # collect cell delimiters per row
         my $i := 0;
         while $i < +@rows {
             unless @rows[$i] ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$ / {
@@ -424,7 +479,7 @@ class Perl6::Pod {
             $i := $i + 1;
         }
 
-        # now let's skip the single spaces
+        # now let's skip the single spaces by marking them impossible
         $i := 0;
         while $i < +@suspects {
             unless @suspects[$i] {
@@ -437,7 +492,7 @@ class Perl6::Pod {
 
         # now we're doing some magic which will
         # turn those positions into cell ranges
-        # so for values: 13 14 15   30 31 32 33
+        # so, e.g., for 1 values in positions: 13 14 15   30 31 32 33
         # we get [0, 13, 16, 30, 34, 0] (last 0 as a guard)
 
         my $wasone := 1;
@@ -468,11 +523,11 @@ class Perl6::Pod {
                 next if $a > nqp::chars($row);
                 if $b {
                     @tmp.push(
-                        formatted_text(nqp::substr($row, $a, $b - $a))
+                        normalize_text(nqp::substr($row, $a, $b - $a))
                     );
                 } else {
                     @tmp.push(
-                        formatted_text(nqp::substr($row, $a))
+                        normalize_text(nqp::substr($row, $a))
                     );
                 }
             }

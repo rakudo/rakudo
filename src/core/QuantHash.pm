@@ -1,57 +1,27 @@
 my role QuantHash does Associative {
-    method Int     ( --> Int)     { self.total.Int }
-    method Num     ( --> Num)     { self.total.Num }
-    method Numeric ( --> Numeric) { self.total.Numeric }
-    method Real    ( --> Real)    { self.total.Real }
+    method Int     ( --> Int:D)     { self.total.Int }
+    method Num     ( --> Num:D)     { self.total.Num }
+    method Numeric ( --> Numeric:D) { self.total.Numeric }
+    method Real    ( --> Real:D)    { self.total.Real }
 
-    method list() { self.pairs.cache }
+    method Capture() { self.Hash.Capture }
 
-    method minpairs {
-        my @found;
-        my $min = Inf;
-        for self.pairs {
-            my $value := .value;
-            if $value > $min {
-                next;
-            }
-            elsif $value < $min {
-                @found = $_;
-                $min = $value;
-            }
-            else {
-                @found.push: $_;
-            }
-        }
-        @found;
-    }
-
-    method maxpairs {
-        my @found;
-        my $max = -Inf;
-        for self.pairs {
-            my $value := .value;
-            if $value < $max {
-                next;
-            }
-            elsif $value > $max {
-                @found = $_;
-                $max = $value;
-            }
-            else {
-                @found.push: $_;
-            }
-        }
-        @found;
-    }
+    multi method list(QuantHash:U:) { self.Any::list }
+    multi method list(QuantHash:D:) { self.pairs.cache }
 
     method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
-        if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
-            self.keys.fmt($format, $sep);
-        }
-        else {
-            self.pairs.fmt($format, $sep);
-        }
+        nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
+          ?? self.keys.fmt($format, $sep)
+          !! self.pairs.fmt($format, $sep)
     }
+
+    multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
+        nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
+          ?? die "Cannot auto-vivify an immutable {SELF.^name}"
+          !! (SELF = self.new).AT-KEY($key)
+    }
+
+    multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
 }
 
 # vim: ft=perl6 expandtab sw=4

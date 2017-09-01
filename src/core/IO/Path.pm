@@ -1,44 +1,54 @@
 my class Instant { ... }
 
-my class IO::Path is Cool {
+my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;
     has Str      $.CWD;
     has Str      $.path;
     has Bool $!is-absolute;
-    has Str  $!abspath;  # should be native for faster file tests, but segfaults
-    has Bool $!e;
+    has Str  $!abspath;
     has %!parts;
 
-    multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        nqp::p6bool(nqp::iseq_s($.abspath, nqp::unbox_s(other.abspath)));
+    multi method ACCEPTS(IO::Path:D: Cool:D \other) {
+        nqp::p6bool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
-    multi method ACCEPTS(IO::Path:D: Mu \that) {
-        nqp::p6bool(nqp::iseq_s($.abspath,nqp::unbox_s(IO::Path.new(|that).abspath)));
+    submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
+        nqp::unless(nqp::chars($!path), # could be an IntStr, so check chars
+            die "Must specify something as a path: did you mean '.' for the current directory?"
+        );
+        nqp::if(
+               nqp::isne_i(nqp::index($!path, "\0"), -1)
+            || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
+            X::IO::Null.new.throw
+        );
     }
 
-    submethod BUILD(Str() :$!path!, :$!SPEC!, Str() :$!CWD! --> Nil) { }
-
-    method new-from-absolute-path($path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        method !fap() {
-            $!is-absolute = True;
-            $!abspath := $path;
-            self;
-        }
-
-        self.bless(:$path, :$SPEC, :$CWD)!fap;
+    method !new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
+        self.bless(:$path, :$SPEC, :$CWD)!set-absolute($path);
     }
 
-    multi method new(IO::Path: Str(Cool) $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        die "Must specify something as a path: did you mean '.' for the current directory?" unless $path.chars;
+    method !set-absolute($path) {
+        $!is-absolute = True;
+        $!abspath := $path;
+        self;
+    }
+
+    proto method new(|) {*}
+    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, Str:D :$CWD) {
         self.bless(:$path, :$SPEC, :$CWD);
+    }
+    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        self.bless(:$path, :$SPEC, :CWD($CWD.Str));
+    }
+    multi method new(IO::Path: Cool $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
+        self.bless(:path($path.Str), :$SPEC, :CWD($CWD.Str));
     }
     multi method new(IO::Path:
       :$basename!,
-      :$dirname = '',
-      :$volume  = '',
-      :$SPEC    = $*SPEC,
-      :$CWD     = $*CWD,
+      :$dirname  = '',
+      :$volume   = '',
+      :$SPEC     = $*SPEC,
+      Str() :$CWD = $*CWD,
     ) {
         self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
     }
@@ -46,39 +56,140 @@ my class IO::Path is Cool {
         die "Must specify something as a path: did you mean '.' for the current directory?";
     }
 
-    method abspath() {
-        $!abspath //= $!path.starts-with('-')
-          ?? ''
-          !! $!SPEC.rel2abs($!path,$!CWD);
-    }
     method is-absolute() {
-        $!is-absolute //= $!SPEC.is-absolute($!path);
+        nqp::if(
+          nqp::isconcrete($!is-absolute),
+          $!is-absolute,
+          $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))
     }
     method is-relative() {
-        !( $!is-absolute //= $!SPEC.is-absolute($!path) );
+        nqp::p6bool(
+          nqp::not_i(
+            nqp::if(
+              nqp::isconcrete($!is-absolute),
+              $!is-absolute,
+              $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
     }
 
-    method parts                  {
-        %!parts ||= $!SPEC.split($!path);
+    method parts {
+        %!parts || (%!parts := nqp::create(Map).STORE: $!SPEC.split: $!path)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
     method basename(IO::Path:D:) { %.parts<basename> }
-    method extension(IO::Path:D:) { Rakudo::Internals.MAKE-EXT(self.basename) }
 
-    # core can't do 'basename handles <Numeric Bridge Int>'
+
+    my sub EXTENSION-MK-EXTENSION (
+        str $name, $no-ext, int $part-min, int $part-max = $part-min
+    ) is pure {
+      my int $offset = nqp::chars($name);
+      my int $next-offset;
+      my int $parts;
+      nqp::while(
+        nqp::if(
+          nqp::isne_i( -1,
+            ($next-offset = nqp::rindex($name, '.', nqp::sub_i($offset, 1)))),
+          nqp::if($offset, nqp::islt_i($parts, $part-max))
+        ),
+        nqp::stmts(
+          ($offset = $next-offset),
+          ($parts = nqp::add_i($parts, 1))
+        ),
+      );
+      nqp::if(
+        nqp::if(nqp::isle_i($part-min, $parts), nqp::isle_i($parts, $part-max)),
+        nqp::substr($name, nqp::add_i($offset, 1)),
+        $no-ext,
+      )
+    }
+    my sub EXTENSION-SUBST ($ext, $base, $subst, $joiner) is pure {
+      nqp::if(
+        nqp::defined($ext),
+        nqp::unless(
+          nqp::concat(
+            nqp::if(
+              nqp::unless( # if extension is empty, check $base to find out if...
+                nqp::chars($ext), #... it's a missing ext. or empty string ext.
+                nqp::eqat($base, '.', nqp::sub_i(nqp::chars($base), 1))
+              ),
+              nqp::substr($base, 0,
+                nqp::sub_i(nqp::chars($base), nqp::add_i(nqp::chars($ext), 1))
+              ),
+              $base,
+            ),
+            nqp::concat($joiner, $subst)
+          ), '.' # use `.` as basename if we ended up with it being empty
+        ),
+        $base,
+      )
+    }
+    proto method extension(|) {*}
+    multi method extension(IO::Path:D:) {
+      nqp::if(
+        nqp::iseq_i(-1, (my int $offset = nqp::rindex(
+          (my str $basename = nqp::unbox_s(self.basename)),'.'))),
+        '', nqp::substr($basename, nqp::add_i($offset, 1))
+      )
+    }
+    multi method extension(IO::Path:D: Int :$parts!) {
+      EXTENSION-MK-EXTENSION self.basename, '',
+        nqp::if(
+          nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+          nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+            nqp::unbox_i($parts),
+          ),
+        )
+    }
+    multi method extension(IO::Path:D: Range :$parts!) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      EXTENSION-MK-EXTENSION self.basename, '', $min, $max
+    }
+    multi method extension(IO::Path:D:
+      Str $subst,
+      Int :$parts = 1, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+    ) {
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+            EXTENSION-MK-EXTENSION(
+              (my str $base = nqp::unbox_s(self.basename)),
+              Any, nqp::if(
+                nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+                nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+                  nqp::unbox_i($parts),
+                ),
+              )
+            ), $base, $subst, $joiner;
+    }
+    multi method extension(
+      Str $subst,
+      Range :$parts, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+    ) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+        EXTENSION-MK-EXTENSION(
+            (my str $base = nqp::unbox_s(self.basename)), Any, $min, $max
+        ), $base, $subst, $joiner
+    }
+
     method Numeric(IO::Path:D:) { self.basename.Numeric }
-    method Bridge (IO::Path:D:) { self.basename.Bridge  }
-    method Int    (IO::Path:D:) { self.basename.Int     }
 
     multi method Str (IO::Path:D:) { $!path }
     multi method gist(IO::Path:D:) {
-        qq|"$.abspath".IO|;
+        $!is-absolute
+          ?? qq|"$.absolute".IO|
+          !! qq|"$.path".IO|
     }
     multi method perl(IO::Path:D:) {
-        $!is-absolute  # attribute now set
-          ?? "{$.abspath.perl}.IO({:$!SPEC.perl})"
-          !! "{$.path.perl}.IO({:$!SPEC.perl},{:$!CWD.perl})"
+        self.^name ~ ".new({$.path.perl}, {:$!SPEC.perl}, {:$!CWD.perl})"
+    }
+
+    method sibling(IO::Path:D: Str() \sibling) {
+        $_ := self.parts;
+        self.bless: :path($!SPEC.join: .<volume>, .<dirname>, sibling),
+            :$!SPEC, :$!CWD;
     }
 
     method succ(IO::Path:D:) {
@@ -96,42 +207,33 @@ my class IO::Path is Cool {
         );
     }
 
-    method IO(IO::Path:D: |c) { self }
-
-    method open(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path(self));
-        $handle // $handle.throw;
-        $handle.open(|c);
-    }
-
-    method pipe(IO::Path:D: |c) {
-        my $handle = IO::Handle.new(:path(self));
-        $handle // $handle.throw;
-        $handle.pipe(|c);
-    }
+    multi method IO { self }
+    method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
 
 #?if moar
     method watch(IO::Path:D:) {
-        IO::Notification.watch-path($.abspath);
+        IO::Notification.watch-path($.absolute);
     }
 #?endif
 
     proto method absolute(|) { * }
-    multi method absolute (IO::Path:D:) { $.abspath }
+    multi method absolute (IO::Path:D:) {
+        $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
+    }
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute
-          ?? $.abspath
+          ?? self.absolute
           !! $!SPEC.rel2abs($!path, $CWD);
     }
 
     method relative (IO::Path:D: $CWD = $*CWD) {
-        $!SPEC.abs2rel($.abspath, $CWD);
+        $!SPEC.abs2rel($.absolute, $CWD);
     }
 
     method cleanup (IO::Path:D:) {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
-    method resolve (IO::Path:D:) {
+    method resolve (IO::Path:D: :$completely) {
         # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
@@ -140,8 +242,32 @@ my class IO::Path is Cool {
         my str $empty     = '';
         my str $resolved  = $empty;
         my Mu  $res-list := nqp::list_s();
+#?if jvm
+        # Apparently JVM doesn't know how to decode to utf8-c8 yet
+        # so it's still afflicted by the bug that, say, "/\[x308]" in the path
+        # doesn't get recognized as a path separator
+        my $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+#?endif
+#?if !jvm
+        # In this bit, we work with bytes, converting $sep (and assuming it's
+        # 1-char long) in the path to nul bytes and then splitting the path
+        # on nul bytes. This way, even if we get some weird paths like
+        # "/\x[308]", we still split on the /, leaving the lone combiner as
+        # part of the path part.
+        nqp::stmts(
+          (my $p := nqp::encode(
+            nqp::unbox_s(self.absolute), 'utf8-c8', buf8.new)),
+          (my int $ord-sep = nqp::ord($sep)),
+          (my int $els = nqp::elems($p)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::isne_i($els, $i = nqp::add_i($i, 1)),
+            nqp::if(
+              nqp::iseq_i(nqp::atpos_i($p, $i), $ord-sep),
+              nqp::atposref_i($p, $i) = 0)),
+          my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
+#?endif
 
-        my Mu $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
         while $parts {
             fail "Resolved path too deep!"
                 if $max-depth < nqp::elems($res-list) + nqp::elems($parts);
@@ -161,8 +287,16 @@ my class IO::Path is Cool {
             # Normal part, set as next path to test
             my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
 
-            # Path part doesn't exist; handle rest in non-resolving mode
+            # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+                # fail() if we were asked for complete resolution and we still
+                # have further parts to resolve. If it's the last part,
+                # don't fail; it can be a yet-to-be-created file or dir
+                $completely
+                  && nqp::elems($parts)
+                  && X::IO::Resolve.new(:path(self)).fail;
+
+                # ...or handle rest in non-resolving mode if not
                 $resolved = $next;
                 while $parts {
                     $part = nqp::shift($parts);
@@ -192,7 +326,7 @@ my class IO::Path is Cool {
             }
         }
         $resolved = $sep unless nqp::chars($resolved);
-        IO::Path.new-from-absolute-path($resolved,:$!SPEC,:CWD(self));
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
 
     method parent(IO::Path:D:) {    # XXX needs work
@@ -230,17 +364,55 @@ my class IO::Path is Cool {
         }
     }
 
-    method child (IO::Path:D: $child) {
-        self.bless(:path($!SPEC.catfile($!path,$child)), :$!SPEC, :$!CWD);
+    method child (IO::Path:D: Str() \child) {
+        self.bless: :path($!SPEC.join: '', $!path, child), :$!SPEC, :$!CWD
+    }
+
+    # XXX TODO: swap .child to .child-secure sometime close to 6.d
+    # Discussion: https://irclog.perlgeek.de/perl6-dev/2017-04-17#i_14439386
+    #
+    # method child-secure (IO::Path:D: \child) {
+    #     # The goal of this method is to guarantee the resultant child path is
+    #     # inside the invocant. We resolve the path completely, so for that to
+    #     # happen, the kid cannot be inside some currently non-existent dirs, so
+    #     # this method will fail with X::IO::Resolve in those cases. To find out
+    #     # if the kid is in fact a kid, we fully-resolve the kid and the
+    #     # invocant. Then, we append a dir separator to invocant's .absolute and
+    #     # check if the kid's .absolute starts with that string.
+    #     nqp::if(
+    #       nqp::istype((my $kid := self.child(child).resolve: :completely),
+    #         Failure),
+    #       $kid, # we failed to resolve the kid, return the Failure
+    #       nqp::if(
+    #         nqp::istype((my $res-self := self.resolve: :completely), Failure),
+    #         $res-self, # failed to resolve invocant, return the Failure
+    #         nqp::if(
+    #           nqp::iseq_s(
+    #             ($_ := nqp::concat($res-self.absolute, $!SPEC.dir-sep)),
+    #             nqp::substr($kid.absolute, 0, nqp::chars($_))),
+    #           $kid, # kid appears to be kid-proper; return it. Otherwise fail
+    #           fail X::IO::NotAChild.new:
+    #             :path($res-self.absolute), :child($kid.absolute))))
+    # }
+
+    method add (IO::Path:D: Str() \what) {
+        self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
     proto method chdir(|) { * }
-    multi method chdir(IO::Path:U: $path, :$test = 'r') {
-        $*CWD.chdir($path,:$test);
+    multi method chdir(IO::Path:D: Str() $path, :$test!) {
+        DEPRECATED(
+            :what<:$test argument>,
+            'individual named parameters (e.g. :r, :w, :x)',
+            "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
+        );
+        self.chdir: $path, |$test.words.map(* => True).Hash;
     }
-    multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r') {
-        if !$!SPEC.is-absolute($path) {
-            my ($volume,$dirs) = $!SPEC.splitpath(self.abspath, :nofile);
+    multi method chdir(
+        IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
+    ) {
+        unless $!SPEC.is-absolute($path) {
+            my ($volume,$dirs) = $!SPEC.splitpath(self.absolute, :nofile);
             my @dirs = $!SPEC.splitdir($dirs);
             @dirs.shift; # the first is always empty for absolute dirs
             for $!SPEC.splitdir($path) -> $dir {
@@ -254,381 +426,341 @@ my class IO::Path is Cool {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path.new-from-absolute-path($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path!new-from-absolute-path($path,:$!SPEC,:CWD(self));
 
-        # basic sanity
-        unless $dir.d {
-            fail X::IO::Chdir.new(
-              :$path,
-              :os-error( $dir.e
-                ?? "is not a directory"
-                !! "does not exist"),
-            );
-        }
-
-        if $test eq 'r' {
-            return $dir if $dir.r;
-        }
-        elsif $test eq 'r w' {
-            return $dir if $dir.r and $dir.w;
-        }
-        elsif $test eq 'r w x' {
-            return $dir if $dir.r and $dir.w and $dir.x;
-        }
-
-        fail X::IO::Chdir.new(
-          :$path,
-          :os-error("did not pass 'd $test' test"),
-        );
+        nqp::stmts(
+            nqp::unless(
+                nqp::unless(nqp::isfalse($d), $dir.d),
+                fail X::IO::Chdir.new: :$path, :os-error(
+                    nqp::if($dir.e, 'is not a directory', 'does not exist')
+                )
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($r), $dir.r),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($w), $dir.w),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($x), $dir.x),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
+            ),
+            $dir
+        )
     }
 
-    proto method rename(|) { * }
-    multi method rename(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Rename.new(
-              :from($.abspath),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
-        nqp::rename($.abspath, nqp::unbox_s($to.abspath));
+    method rename(IO::Path:D: IO() $to, :$createonly --> True) {
+        $createonly and $to.e and fail X::IO::Rename.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
+        nqp::rename($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
-            fail X::IO::Rename.new(
-              :from($!abspath), :to($to.abspath), :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method rename(IO::Path:D: $to, :$CWD = $*CWD, |c) {
-        self.rename($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Rename.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str);
+        }}
     }
 
-    proto method copy(|) { * }
-    multi method copy(IO::Path:D: IO::Path:D $to, :$createonly) {
-        if $createonly and $to.e {
-            fail X::IO::Copy.new(
-              :from($.abspath),
-              :$to,
-              :os-error(':createonly specified and destination exists'),
-            );
-        }
-        nqp::copy($.abspath, nqp::unbox_s($to.abspath));
+    method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+        $createonly and $to.e and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
+        # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::if(
+            nqp::iseq_s(
+                (my $from-abs :=   $.absolute),
+                (my $to-abs   := $to.absolute)),
+            X::IO::Copy.new(:from($from-abs), :to($to-abs),
+                :os-error('source and target are the same')).fail,
+            nqp::copy($from-abs, $to-abs));
+
         CATCH { default {
-            fail X::IO::Copy.new(
-              :from($!abspath), :$to, :os-error(.Str) );
-        } }
-        True;
-    }
-    multi method copy(IO::Path:D: $to, :$CWD  = $*CWD, |c) {
-        self.copy($to.IO(:$!SPEC,:$CWD),|c);
+            fail X::IO::Copy.new:
+                :from($!abspath), :to($to.absolute), :os-error(.Str)
+        }}
     }
 
-    method move(IO::Path:D: |c) {
-        my $result = self.copy(|c);
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
-        $result = self.unlink();
-
-        fail X::IO::Move.new(
-            :from($result.exception.from),
-            :to($result.exception.to),
-            :os-error($result.exception.os-error),
-        ) unless $result.defined;
-
-        True
+    method move(IO::Path:D: |c --> True) {
+        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
     }
 
-    method chmod(IO::Path:D: Int() $mode) {
-        nqp::chmod($.abspath, nqp::unbox_i($mode));
+    method chmod(IO::Path:D: Int() $mode --> True) {
+        nqp::chmod($.absolute, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
               :path($!abspath), :$mode, :os-error(.Str) );
-        } }
-        True;
+        }}
     }
-    method unlink(IO::Path:D:) {
-        nqp::unlink($.abspath);
+    method unlink(IO::Path:D: --> True) {
+        nqp::unlink($.absolute);
         CATCH { default {
             fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
-        } }
-        True;
+        }}
     }
 
-    method symlink(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::symlink(nqp::unbox_s($name), $.abspath);
+    method symlink(IO::Path:D: IO() $name --> True) {
+        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
         CATCH { default {
-            fail X::IO::Symlink.new(:target($!abspath), :$name, os-error => .Str);
-        } }
-        True;
+            fail X::IO::Symlink.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
+        }}
     }
 
-    method link(IO::Path:D: $name is copy, :$CWD  = $*CWD) {
-        $name = $name.IO(:$!SPEC,:$CWD).path;
-        nqp::link(nqp::unbox_s($name), $.abspath);
+    method link(IO::Path:D: IO() $name --> True) {
+        nqp::link($.absolute, $name.absolute);
         CATCH { default {
-            fail X::IO::Link.new(:target($!abspath), :$name, os-error => .Str);
-        } }
-        True;
+            fail X::IO::Link.new:
+                :target($!abspath), :name($name.absolute), :os-error(.Str);
+        }}
     }
 
-    method mkdir(IO::Path:D: $mode = 0o777) {
-        nqp::mkdir($.abspath, $mode);
+    method mkdir(IO::Path:D: Int() $mode = 0o777) {
+        nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
-        } }
-        $!e = True;
+        }}
+        self
     }
 
-    method rmdir(IO::Path:D:) {
-        nqp::rmdir($.abspath);
+    method rmdir(IO::Path:D: --> True) {
+        nqp::rmdir($.absolute);
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
-        } }
-        $!e = False;
-        True;
+        }}
     }
 
-    method dir(IO::Path:D:
+    proto method dir(|) {*} # make it possible to augment with multies from modulespace
+    multi method dir(IO::Path:D:
         Mu :$test = $*SPEC.curupdir,
-        :$absolute,
-        :$Str,
         :$CWD = $*CWD,
     ) {
 
         CATCH { default {
             fail X::IO::Dir.new(
-              :path(nqp::box_s($.abspath,Str)), :os-error(.Str) );
+              :path($.absolute), :os-error(.Str) );
         } }
-        my $cwd_chars = $CWD.chars;
 
-#?if moar
-        my str $cwd = nqp::cwd();
-        nqp::chdir(nqp::unbox_s($.abspath));
-#?endif
-        my $abspath-sep := $.abspath eq $!SPEC.dir-sep
-          ?? $!SPEC.dir-sep
-          !! $.abspath ~ $!SPEC.dir-sep;
+        my str $dir-sep  = $!SPEC.dir-sep;
+        my int $absolute = $.is-absolute;
 
-        my Mu $dirh := nqp::opendir(nqp::unbox_s($.abspath));
+        my str $abspath;
+        $absolute && nqp::unless( # calculate $abspath only when we'll need it
+            nqp::eqat(($abspath = $.absolute), $dir-sep,
+                nqp::sub_i(nqp::chars($abspath), 1)),
+            ($abspath = nqp::concat($abspath, $dir-sep)));
+
+        my str $path = nqp::iseq_s($!path, '.') || nqp::iseq_s($!path, $dir-sep)
+          ?? ''
+          !! nqp::eqat($!path, $dir-sep, nqp::sub_i(nqp::chars($!path), 1))
+            ?? $!path
+            !! nqp::concat($!path, $dir-sep);
+
+        my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
         gather {
+           # set $*CWD inside gather for $test.ACCEPTS to use correct
+           # $*CWD the user gave us, instead of whatever $*CWD is
+           # when the gather is actually evaluated. We use a temp var
+           # so that .IO coercer doesn't use the nulled `$*CWD` for
+           # $!CWD attribute and we don't use `temp` for this, because
+           # it's about 2x slower than using a temp var.
+           my $cwd = $CWD.IO;
+          { my $*CWD = $cwd;
 #?if jvm
             for <. ..> -> $elem {
-                if $test.ACCEPTS($elem) {
-                    $Str
-                      ?? $absolute
-                        ?? take $abspath-sep ~ $elem
-                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1)
-                      !! $absolute
-                        ?? take IO::Path.new-from-absolute-path($abspath-sep ~ $elem,:$!SPEC,:$CWD)
-                        !! take substr($abspath-sep ~ $elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD);
-                }
+                $test.ACCEPTS($elem) && (
+                  $absolute
+                    ?? take IO::Path!new-from-absolute-path(
+                        $abspath ~ $elem,:$!SPEC,:$CWD)
+                    !! take IO::Path.new($path ~ $elem,:$!SPEC,:$CWD)
+                );
             }
 #?endif
-            loop {
-                my str $str_elem = nqp::nextfiledir($dirh);
-                if nqp::isnull_s($str_elem) || nqp::chars($str_elem) == 0 {
-                    nqp::closedir($dirh);
-                    last;
-                }
-                my Str $elem = nqp::box_s($str_elem,Str);
-#?if jvm
-                if $test.ACCEPTS($!SPEC.basename($elem)) {
-#?endif
-#?if !jvm
-                if $test.ACCEPTS($elem) {
-                    $elem = $abspath-sep ~ $elem; # make absolute
-#?endif
-                    $Str
-                      ?? !$absolute && !$.is-absolute
-                        ?? take substr($elem,$cwd_chars + 1)
-                        !! take $elem
-                      !! !$absolute && !$.is-absolute
-                        ?? take substr($elem,$cwd_chars + 1).IO(:$!SPEC,:$CWD)
-                        !! take IO::Path.new-from-absolute-path($elem,:$!SPEC,:$CWD);
-                }
-#?if moar
-                nqp::chdir($cwd);
-#?endif
-            }
+            nqp::until(
+              nqp::isnull_s(my str $str-elem = nqp::nextfiledir($dirh))
+                || nqp::iseq_i(nqp::chars($str-elem),0),
+              nqp::if(
+                $test.ACCEPTS($str-elem),
+                nqp::if(
+                  $absolute,
+                  (take IO::Path!new-from-absolute-path(
+                    nqp::concat($abspath,$str-elem),:$!SPEC,:$CWD)),
+                  (take IO::Path.new(
+                    nqp::concat($path,$str-elem),:$!SPEC,:$CWD)),)));
+            nqp::closedir($dirh);
+          }
         }
     }
 
     proto method slurp() { * }
-    multi method slurp(IO::Path:D: :$bin, :$enc) {
-        my $handle = self.open;
-        $handle // $handle.throw;
-
-        my Mu $PIO := nqp::getattr(nqp::decont($handle),IO::Handle,'$!PIO');
-        if $bin {
-            my $Buf := buf8.new();
-            loop {
-                my $buf := buf8.new();
-                nqp::readfh($PIO,$buf,65536);
-                last if $buf.bytes == 0;
-                $Buf := $Buf ~ $buf;
-            }
-            $handle.close;
-            $Buf;
-        }
-        else {
-            $handle.encoding($enc) if $enc.defined;
-            my $slurped := nqp::p6box_s(nqp::readallfh($PIO));
-            $handle.close;
-            $slurped;
-        }
+    multi method slurp(IO::Path:D: :$enc, :$bin) {
+        # We use an IO::Handle in binary mode, and then decode the string
+        # all in one go, which avoids the overhead of setting up streaming
+        # decoding.
+        nqp::if(
+            nqp::istype((my $handle := IO::Handle.new(:path(self)).open(:bin)), Failure),
+            $handle,
+            nqp::stmts(
+                (my $blob := $handle.slurp(:close)),
+                nqp::if($bin, $blob, nqp::join("\n",
+                  nqp::split("\r\n", $blob.decode: $enc || 'utf-8')))
+            ))
     }
 
-    method !spurt($contents, :$enc, :$append, :$createonly, :$bin, |c) {
-        my $mode = $createonly ?? :x !! $append ?? :a !! :w;
-        my $handle = self.open(:enc($enc // 'utf8'), :$bin, |$mode, |c);
-        $handle // $handle.throw;
-
-        my $spurt := $bin
-          ?? $handle.write($contents)
-          !! $handle.print($contents);
-        $handle.close;  # can't use LEAVE in settings :-(
-        $!e = True;
-        $spurt;
+    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {
+        my $fh := self.open:
+            :$enc,     :bin(nqp::istype($data, Blob)),
+            :mode<wo>, :create, :exclusive($createonly),
+            :$append,  :truncate(
+                nqp::if(nqp::isfalse($append), nqp::isfalse($createonly))
+            );
+        nqp::if( nqp::istype($fh, Failure), $fh, $fh.spurt($data, :close) )
     }
 
-    proto method spurt(|) { * }
-    multi method spurt(IO::Path:D: Blob $contents, :$bin, |c) {
-        self!spurt($contents, :bin, |c );
+    # XXX TODO: when we get definedness-based defaults in core, use them in
+    # IO::Handle.open and get rid of duplication of default values here
+    method lines(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).lines: |c, :close
     }
-    multi method spurt(IO::Path:D: Cool $contents, :$bin, |c) {
-        self!spurt($contents, :!bin, |c );
+    method comb(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).comb:  |c, :close
     }
-
-    proto method lines(|) { * }
-    multi method lines(IO::Path:D: |c) {
-        self.open(|c).lines(:close);
+    method split(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).split: |c, :close
     }
-
-    proto method comb(|) { * }
-    multi method comb(IO::Path:D: Cool:D $comber = "", |c) {
-        self.open(|c).comb($comber, :close);
-    }
-    multi method comb(IO::Path:D: Int:D $size, |c) {
-        self.open(|c).comb($size, :close);
-    }
-    multi method comb(IO::Path:D: Regex:D $comber, |c) {
-        self.open(|c).comb($comber, :close);
-    }
-
-    multi method split(IO::Path:D: Str:D $splitter = "", |c) {
-        self.open(|c).split($splitter, :close);
-    }
-    multi method split(IO::Path:D: Regex:D $splitter, |c) {
-        self.open(|c).split($splitter, :close);
+    method words(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
     }
 
-    proto method words(|) { * }
-    multi method words(IO::Path:D: |c) {
-        self.open(|c).words(:close);
+    method e(IO::Path:D: --> Bool:D) {
+        ?Rakudo::Internals.FILETEST-E($.absolute) # must be $.absolute
     }
-
-    method e(--> Bool) {
-        $!e //= ?Rakudo::Internals.FILETEST-E($.abspath) # must be $.abspath
-    }
-    method d(--> Bool) {
+    method d(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-D($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<d>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<d>))
     }
 
-    method f(--> Bool) {
+    method f(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-F($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<f>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<f>))
     }
 
-    method s(--> Int) {
+    method s(IO::Path:D: --> Int:D) {
         $.e
-          ?? $.f
-            ?? Rakudo::Internals.FILETEST-S($!abspath)
-            !! fail X::IO::NotAFile.new(:path(~self),:trying<s>)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<s>)
+          ?? Rakudo::Internals.FILETEST-S($!abspath)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<s>))
     }
 
-    method l(--> Bool) {
-        $.e
+    method l(IO::Path:D: --> Bool:D) {
+        ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<l>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<l>))
     }
 
-    method r(--> Bool) {
+    method r(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-R($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<r>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<r>))
     }
 
-    method w(--> Bool) {
+    method w(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-W($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<w>))
     }
 
-    method rw(--> Bool) {
+    method rw(IO::Path:D: --> Bool:D) {
         $.e
-          ?? Rakudo::Internals.FILETEST-RW($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          ?? ?Rakudo::Internals.FILETEST-RW($!abspath)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rw>))
     }
 
-    method x(--> Bool) {
+    method x(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-X($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<x>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<x>))
     }
 
-    method rwx(--> Bool) {
+    method rwx(IO::Path:D: --> Bool:D) {
         $.e
           ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<w>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rwx>))
     }
 
-    method z(--> Bool) {
+    method z(IO::Path:D: --> Bool:D) {
         $.e
-          ?? $.f
-            ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
-            !! fail X::IO::NotAFile.new(:path(~self),:trying<z>)
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<z>)
+          ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<z>))
     }
 
-    method modified(--> Instant) {
+    method modified(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<modified>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<modified>))
     }
 
-    method accessed(--> Instant) {
+    method accessed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<accessed>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<accessed>))
     }
 
-    method changed(--> Instant) {
+    method changed(IO::Path:D: --> Instant:D) {
         $.e
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
-          !! fail X::IO::DoesNotExist.new(:path(~self),:trying<changed>)
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<changed>))
+    }
+
+    method mode(IO::Path:D: --> IntStr:D) {
+        $.e
+          ?? nqp::stmts(
+              (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+              IntStr.new($mode, sprintf('%04o', $mode))
+            )
+          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<mode>))
     }
 }
 
 my class IO::Path::Cygwin is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::QNX is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::QNX) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Unix is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Unix) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 my class IO::Path::Win32 is IO::Path {
-    method new(|c) { IO::Path.new(|c, :SPEC(IO::Spec::Win32) ) }
+    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
+    multi method perl(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

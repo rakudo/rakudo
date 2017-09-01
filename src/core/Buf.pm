@@ -1,35 +1,78 @@
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
+my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    multi method new() {
-        nqp::create(self)
-    }
-    multi method new(@values) {
-        my $buf := nqp::create(self);
-        # the fast route
-        if nqp::istype(@values,Iterable) {
-            my $iter := @values.iterator;
-            my $pulled;
-            nqp::push_i($buf,$pulled)
-              until ($pulled := $iter.pull-one) =:= IterationEnd;
-        }
+    X::NYI.new(
+      feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}"
+    ).throw unless nqp::istype(T,Int);
 
-        # the slow route
-        else {
-            my int $n = @values.elems;
-            my int $i = -1;
-            nqp::setelems($buf, $n);
-            nqp::bindpos_i($buf, $i, @values.AT-POS($i))
-              while nqp::islt_i($i = nqp::add_i($i,1),$n);
-        }
-        $buf
+    # other then *8 not supported yet
+    my int $bpe = try {
+#?if jvm
+        # https://irclog.perlgeek.de/perl6-dev/2017-01-20#i_13961377
+        CATCH { default { Nil } }
+#?endif
+        (T.^nativesize / 8).Int
+    } // 1;
+
+    multi method WHICH(Blob:D:) {
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Blob),
+              'Blob|',
+            nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            nqp::sha1(self.decode("latin-1"))
+          ),
+          ObjAt
+        )
     }
-    multi method new(*@values) {
-        self.new(@values)
+
+    multi method new(Blob:) { nqp::create(self) }
+    multi method new(Blob: Blob:D $blob) {
+        nqp::splice(nqp::create(self),$blob,0,0)
+    }
+    multi method new(Blob: int @values) {
+        nqp::splice(nqp::create(self),@values,0,0)
+    }
+    multi method new(Blob: @values) {
+        @values.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
+          !! self!push-list("initializ",nqp::create(self),@values)
+    }
+    multi method new(Blob: *@values) { self.new(@values) }
+
+    proto method allocate(|) { * }
+    multi method allocate(Blob:U: Int $elements) {
+        nqp::setelems(nqp::create(self),$elements)
+    }
+    multi method allocate(Blob:U: Int $elements, int $value) {
+        my int $elems = $elements;
+        my $blob     := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
+        $blob;
+    }
+    multi method allocate(Blob:U: Int $elements, Int \value) {
+        my int $value = value;
+        self.allocate($elements,$value)
+    }
+    multi method allocate(Blob:U: Int $elements, Mu $got) {
+        self!fail-typecheck('allocate',$got)
+    }
+    multi method allocate(Blob:U: Int $elements, int @values) {
+        self!spread(nqp::setelems(nqp::create(self),$elements),@values)
+    }
+    multi method allocate(Blob:U: Int $elements, Blob:D $blob) {
+        self!spread(nqp::setelems(nqp::create(self),$elements),$blob)
+    }
+    multi method allocate(Blob:U: Int $elements, @values) {
+        self!spread(nqp::setelems(nqp::create(self),$elements),Blob.new(@values))
     }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
@@ -38,64 +81,65 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         );
     }
     multi method EXISTS-POS(Blob:D: Int:D \pos) {
-        pos < nqp::elems(self) && pos >= 0;
+        nqp::p6bool(
+          nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
+        );
     }
 
     multi method AT-POS(Blob:D: int \pos) {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0);
-        nqp::atpos_i(self, pos);
+        nqp::if(
+          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
+          self!fail-range(pos),
+          nqp::atpos_i(self,pos)
+        )
     }
     multi method AT-POS(Blob:D: Int:D \pos) {
-        my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),
-          :got(pos),
-          :range("0..{nqp::elems(self)-1}")
-        ) if nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0);
-        nqp::atpos_i(self,$pos);
+        nqp::if(
+          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
+          self!fail-range(pos),
+          nqp::atpos_i(self,pos)
+        )
     }
 
-    multi method Bool(Blob:D:) {
-        nqp::p6bool(nqp::elems(self));
-    }
+    multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
 
-    method elems(Blob:D:) {
-        nqp::p6box_i(nqp::elems(self));
-    }
-    method bytes(Blob:D:) {
-        ceiling(self.elems * ::T.^nativesize / 8);
-    }
+    multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
+    multi method elems(Blob:U: --> 1)   { }
+    method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
+    method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
+
+    method bytes(Blob:D:) { nqp::mul_i(nqp::elems(self),$bpe) }
+
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
-    method Numeric(Blob:D:) { self.elems }
-    method Int(Blob:D:)     { self.elems }
-
-    method decode(Blob:D: $encoding = 'utf-8') {
+    proto method decode(|) { * }
+    multi method decode(Blob:D:) {
+        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    }
+    multi method decode(Blob:D: $encoding) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
 
-    method list(Blob:D:) {
-        my int $n = nqp::elems(self);
-        my $list := nqp::list;
-        nqp::setelems($list,$n);
-        my int $i = -1;
-        nqp::bindpos($list,$i,nqp::atpos_i(self, $i))
-          while nqp::islt_i($i = nqp::add_i($i,1),$n);
-        $list
+    multi method list(Blob:D:) {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atpos_i($!blob,$!i),
+                  IterationEnd
+                )
+            }
+        }.new(self))
     }
 
     multi method gist(Blob:D:) {
         self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
     multi method perl(Blob:D:) {
-        self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
+        self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
     method subbuf(Blob:D: $from, $length?) {
@@ -110,7 +154,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $pos;
         my int $todo;
         if nqp::istype($from,Range) {
-            ($pos,my int $max) = $from.int-bounds;
+            $from.int-bounds($pos, my int $max);
             $todo = $max - $pos + 1;
         }
         else {
@@ -124,7 +168,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           what    => 'From argument to subbuf',
           got     => $from.gist,
           range   => "0..$elems",
-          comment => "use *{$pos} if you want to index relative to the end",
+          comment => "use *-{abs $pos} if you want to index relative to the end",
         ).fail if $pos < 0;
         X::OutOfRange.new(
           what => 'From argument to subbuf',
@@ -136,11 +180,64 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         if $todo {
             nqp::setelems($subbuf, $todo);
             my int $i = -1;
-            $pos = $pos - 1;
-            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,($pos = $pos + 1)))
-              while ($i = $i + 1) < $todo;
+            --$pos;
+            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,++$pos))
+              while nqp::islt_i(++$i,$todo);
         }
         $subbuf
+    }
+
+    method reverse(Blob:D:) {
+        my int $elems = nqp::elems(self);
+        my int $last  = nqp::sub_i($elems,1);
+        my $reversed := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
+            nqp::atpos_i(self,$i))
+        );
+        $reversed
+    }
+
+    method COMPARE(Blob:D: Blob:D \other) {
+        my $other := nqp::decont(other);
+        my int $elems = nqp::elems(self);
+        if nqp::cmp_i($elems,nqp::elems($other)) -> $diff {
+            $diff
+        }
+        else {
+            my int $i = -1;
+            return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+              if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+              while nqp::islt_i(++$i,$elems);
+            0
+        }
+    }
+
+    method SAME(Blob:D: Blob:D \other) {
+        my $other := nqp::decont(other);
+        my int $elems = nqp::elems(self);
+        return False unless nqp::iseq_i($elems,nqp::elems($other));
+
+        my int $i = -1;
+        return False
+          unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+          while nqp::islt_i(++$i,$elems);
+
+        True
+    }
+
+    method join(Blob:D: $delim = '') {
+        my int $elems = nqp::elems(self);
+        my $list     := nqp::setelems(nqp::list_s,$elems);
+        my int $i     = -1;
+
+        nqp::bindpos_s($list,$i,
+          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
+          while nqp::islt_i(++$i,$elems);
+
+        nqp::join($delim.Str,$list)
     }
 
     proto method unpack(|) { * }
@@ -227,6 +324,85 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method contents(Blob:D:) { self.list }
 
     method encoding() { Any }
+
+    method !push-list(\action,\to,\from) {
+        if nqp::istype(from,List) {
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            if nqp::defined($from) {
+                my int $elems = nqp::elems($from);
+                my int $j     = nqp::elems(to);
+                nqp::setelems(to, $j + $elems);  # presize for efficiency
+                my int $i = -1;
+                my $got;
+                nqp::istype(($got := nqp::atpos($from,$i)),Int)
+                  ?? nqp::bindpos_i(to,$j++,$got)
+                  !! self!fail-typecheck-element(action,$i,$got).throw
+                  while nqp::islt_i(++$i,$elems);
+            }
+        }
+        else {
+            my $iter := from.iterator;
+            my int $i = 0;
+            my $got;
+            until ($got := $iter.pull-one) =:= IterationEnd {
+                nqp::istype($got,Int)
+                  ?? nqp::push_i(to,$got)
+                  !! self!fail-typecheck-element(action,$i,$got).throw;
+                ++$i;
+            }
+        }
+        to
+    }
+    method !unshift-list(\action,\to,\from) {
+        if nqp::istype(from,List) {
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            if nqp::defined($from) {
+                my int $i = nqp::elems($from);
+                nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+                  ?? nqp::unshift_i(to,$got)
+                  !! self!fail-typecheck-element(action,$i,$got).throw
+                  while nqp::isge_i(--$i,0);
+            }
+            to
+        }
+        else {
+            nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
+        }
+    }
+    method !spread(\to,\from) {
+        if nqp::elems(from) -> int $values { # something to init with
+            my int $elems = nqp::elems(to) - $values;
+            my int $i     = -$values;
+            nqp::splice(to,from,$i,$values)
+              while nqp::isle_i($i = $i + $values,$elems);
+
+            if nqp::isgt_i($i,$elems) {  # something left to init
+                --$i;                    # went one too far
+                $elems = $elems + $values;
+                my int $j = -1;
+                nqp::bindpos_i(to,$i,nqp::atpos_i(from,$j = ($j + 1) % $values))
+                  while nqp::islt_i(++$i,$elems);
+            }
+        }
+        to
+    }
+    method !fail-range($got) {
+        Failure.new(X::OutOfRange.new(
+          :what($*INDEX // 'Index'),
+          :$got,
+          :range("0..{nqp::elems(self)-1}")
+        ))
+    }
+    method !fail-typecheck-element(\action,\i,\got) {
+        self!fail-typecheck(action ~ "ing element #" ~ i,got);
+    }
+    method !fail-typecheck($action,$got) {
+        Failure.new(X::TypeCheck.new(
+          operation => $action ~ " to " ~ self.^name,
+          got       => $got,
+          expected  => T,
+        ))
+    }
 }
 
 constant blob8 = Blob[uint8];
@@ -235,7 +411,7 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    method decode(utf8:D: $encoding = 'utf-8') {
+    multi method decode(utf8:D: $encoding) {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-8 buffer as if it were $encoding"
             unless $enc eq 'utf8';
@@ -247,7 +423,7 @@ my class utf8 does Blob[uint8] is repr('VMArray') {
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    method decode(utf16:D: $encoding = 'utf-16') {
+    multi method decode(utf16:D: $encoding = 'utf-16') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
             unless $enc eq 'utf16';
@@ -259,7 +435,7 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    method decode(utf32:D: $encoding = 'utf-32') {
+    multi method decode(utf32:D: $encoding = 'utf-32') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-32 buffer as if it were $encoding"
             unless $enc eq 'utf32';
@@ -271,64 +447,162 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
+
+    multi method WHICH(Buf:D:) { self.Mu::WHICH }
+
     multi method AT-POS(Buf:D: int \pos) is raw {
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i(pos,0);
-        nqp::atposref_i(self, pos);
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::atposref_i(self, pos)
     }
     multi method AT-POS(Buf:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::atposref_i(self,$pos);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::atposref_i(self,$pos)
     }
 
     multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
-        X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>).throw
-            if nqp::islt_i(pos,0);
-        nqp::bindpos_i(self,\pos,assignee)
+        nqp::islt_i(pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::bindpos_i(self,\pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);
-        fail X::OutOfRange.new(
-          :what($*INDEX // 'Index'),:got(pos),:range<0..Inf>)
-            if nqp::islt_i($pos,0);
-        nqp::bindpos_i(self,$pos,assignee)
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::bindpos_i(self,$pos,assignee)
     }
 
-    multi method push(Buf:D: Mu $value) {
-        nqp::push_i(self,$value);
-        self
-    }
-    multi method push(Buf:D: *@values) {
-        self!append(@values,'push')
-    }
-
-    multi method append(Buf:D: Mu $value) {
-        nqp::push_i(self,$value);
-        self
-    }
-    multi method append(Buf:D: @values) {
-        self!append(@values,'append')
-    }
-    multi method append(Buf:D: *@values) {
-        self!append(@values,'append')
+    multi method list(Buf:D:) {
+        Seq.new(class :: does Rakudo::Iterator::Blobby {
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+                  nqp::atposref_i($!blob,$!i),
+                  IterationEnd
+                )
+            }
+        }.new(self))
     }
 
-    method !append(Buf:D: @values, $action) {
-        fail X::Cannot::Lazy.new(:$action,:what(self.^name))
-          if @values.is-lazy;
-
-        my     $list := nqp::getattr(@values,List,'$!reified');
-        my int $elems = nqp::elems($list);
-        my int $i     = -1;
-        nqp::push_i(self,nqp::atpos($list,$i))
-          while nqp::islt_i($i = $i + 1,$elems);
-        self
+    multi method pop(Buf:D:) {
+        nqp::elems(self)
+          ?? nqp::pop_i(self)
+          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
+    multi method shift(Buf:D:) {
+        nqp::elems(self)
+          ?? nqp::shift_i(self)
+          !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+    }
+
+    method reallocate(Buf:D: Int $elements) { nqp::setelems(self,$elements) }
+
+    my $empty := nqp::list_i;
+    multi method splice(Buf:D \SELF:) { my $buf = SELF; SELF = Buf.new; $buf }
+    multi method splice(Buf:D: Int $offset, $size = Whatever) {
+        my int $remove = self!remove($offset,$size);
+        my $result := $remove
+          ?? self.subbuf($offset,$remove)  # until something smarter
+          !! nqp::create(self);
+        nqp::splice(self,$empty,$offset,$remove);
+        $result
+    }
+    multi method splice(Buf:D: Int $offset, $size, int $got) {
+        self!splice-native($offset,$size,$got)
+    }
+    multi method splice(Buf:D: Int $offset, $size, Int $got) {
+        self!splice-native($offset,$size,$got)
+    }
+    multi method splice(Buf:D: Int $offset, $size, Mu $got) {
+        self!fail-typecheck('splice',$got)
+    }
+    multi method splice(Buf:D: Int $offset, $size, Buf:D $buf) {
+        self!splice-native($offset,$size,$buf)
+    }
+    multi method splice(Buf:D: Int $offset, $size, int @values) {
+        self!splice-native($offset,$size,@values)
+    }
+    multi method splice(Buf:D: Int $offset, $size, @values) {
+        self!splice-native($offset,$size,
+          self!push-list("splic",nqp::create(self),@values))
+    }
+
+    method !remove(\offset,\size) {
+        nqp::istype(size,Whatever)
+          ?? nqp::elems(self) - offset
+          !! nqp::istype(size,Int)
+            ?? size
+            !! size.Int
+    }
+
+    method !splice-native(Buf:D: Int $offset, $size, \x) {
+        my int $remove = self!remove($offset,$size);
+        my $result := $remove
+          ?? self.subbuf($offset,$remove)  # until something smarter
+          !! nqp::create(self);
+        nqp::splice(
+          self,nqp::islist(x) ?? x !! nqp::list_i(x),$offset,$remove);
+        $result
+    }
+
+    multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
+    multi method push(Buf:D: Int $got) { nqp::push_i(self,$got); self }
+    multi method push(Buf:D: Mu $got) { self!fail-typecheck('push',$got) }
+    multi method push(Buf:D: Blob:D $buf) {
+        nqp::splice(self,$buf,nqp::elems(self),0)
+    }
+    multi method push(Buf:D: **@values) { self!pend(@values,'push') }
+
+    multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
+    multi method append(Buf:D: Int $got) { nqp::push_i(self,$got); self }
+    multi method append(Buf:D: Mu $got) { self!fail-typecheck('append',$got) }
+    multi method append(Buf:D: Blob:D $buf) {
+        nqp::splice(self,$buf,nqp::elems(self),0)
+    }
+    multi method append(Buf:D: int @values) {
+        nqp::splice(self,@values,nqp::elems(self),0)
+    }
+    multi method append(Buf:D:  @values) { self!pend(@values,'append') }
+    multi method append(Buf:D: *@values) { self!pend(@values,'append') }
+
+    multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
+    multi method unshift(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
+    multi method unshift(Buf:D: Mu $got) { self!fail-typecheck('unshift',$got) }
+    multi method unshift(Buf:D: Blob:D $buf) { nqp::splice(self,$buf,0,0) }
+    multi method unshift(Buf:D: **@values) { self!pend(@values,'unshift') }
+
+    multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
+    multi method prepend(Buf:D: Int $got) { nqp::unshift_i(self,$got); self }
+    multi method prepend(Buf:D: Mu $got) { self!fail-typecheck('prepend',$got) }
+    multi method prepend(Buf:D: Blob:D $buf)  { nqp::splice(self,$buf,0,0)    }
+    multi method prepend(Buf:D: int @values) { nqp::splice(self,@values,0,0) }
+    multi method prepend(Buf:D:  @values) { self!pend(@values,'prepend') }
+    multi method prepend(Buf:D: *@values) { self!pend(@values,'prepend') }
+
+    method !pend(Buf:D: @values, $action) {
+        @values.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:$action,:what(self.^name)))
+          !! $action eq 'push' || $action eq 'append'
+            ?? self!push-list($action,self,@values)
+            !! self!unshift-list($action,self,@values)
+    }
+
+    method subbuf-rw($from = 0, $elems = self.elems - $from) is rw {
+        my Blob $subbuf = self.subbuf($from, $elems);
+        Proxy.new(
+            FETCH   => sub ($) { $subbuf },
+            STORE   => sub ($, Blob:D $new) {
+                nqp::splice(nqp::decont(self),nqp::decont($new),$from,$elems)
+            }
+        );
+    }
+
 }
 
 constant buf8 = Buf[uint8];
@@ -374,7 +648,7 @@ multi sub pack(@template, *@items) {
                 my $data = shift @items // Buf.new;
                 $data.=encode if nqp::istype($data,Str);
                 if $amount eq '*' {
-                    $amount = $data.cache.elems;
+                    $amount = $data.elems;
                 }
                 if $amount eq '' {
                     $amount = 1;
@@ -428,6 +702,7 @@ multi sub pack(@template, *@items) {
     return Buf.new(@bytes);
 }
 
+multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
     my $adc := nqp::decont($a);
@@ -435,97 +710,110 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my int $alen = nqp::elems($adc);
     my int $blen = nqp::elems($bdc);
 
+    nqp::setelems($res, $alen + $blen);
     nqp::splice($res, $adc, 0, $alen);
     nqp::splice($res, $bdc, $alen, $blen);
-
-    $res
 }
 
-multi sub prefix:<~^>(Blob:D $a) {
-    $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
-    $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
-                         $a.new($a.list.map: 0xFF - *);
+multi sub prefix:<~^>(Blob:D \a) {
+    my $a        := nqp::decont(a);
+    my int $elems = nqp::elems($a);
+
+    my $r := nqp::create($a);
+    nqp::setelems($a,$elems);
+
+    my int    $i    = -1;
+    my uint64 $mask = 0xFFFFFFFFFFFFFFFF;
+    nqp::bindpos_i($r,$i,nqp::bitxor_i(nqp::atpos_i($a,$i),$mask))
+      while nqp::islt_i(++$i,$elems);
+
+    $r
 }
 
-multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
-    my $minlen := $a.elems min $b.elems;
-    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
-    @anded-contents.append: 0 xx ($a.elems - @anded-contents.elems);
-    @anded-contents.append: 0 xx ($b.elems - @anded-contents.elems);
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@anded-contents);
+multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitand_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_i($r,$i,0) while nqp::islt_i(++$i,$max);
+
+    $r
 }
 
-multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
-    @ored-contents.append: $a.list[@ored-contents.elems ..^ $a.elems];
-    @ored-contents.append: $b.list[@ored-contents.elems ..^ $b.elems];
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@ored-contents);
+multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    $i = $i - 1;    # went one too far
+    nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
+      while nqp::islt_i(++$i,$max);
+
+    $r
 }
 
-multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
-    @xored-contents.append: $a.list[@xored-contents.elems ..^ $a.elems];
-    @xored-contents.append: $b.list[@xored-contents.elems ..^ $b.elems];
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
+multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitxor_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
+      while nqp::islt_i(++$i,$max);
+
+    $r
 }
 
-multi sub infix:<eqv>(Blob:D $a, Blob:D $b) {
-    if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
-        my int $n  = $a.elems;
-        my int $i  = 0;
-        my Mu $da := nqp::decont($a);
-        my Mu $db := nqp::decont($b);
-        while $i < $n {
-            return False unless nqp::iseq_i(nqp::atpos_i($da, $i), nqp::atpos_i($db, $i));
-            $i = $i + 1;
-        }
-        True
-    }
-    else {
-        False
-    }
+multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b)))
 }
 
-multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {
-    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
-}
+multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
+multi sub infix:<eq> (Blob:D \a, Blob:D \b) {   a =:= b || a.SAME(b)  }
+multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !(a =:= b || a.SAME(b)) }
+multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1      }
+multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
+multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
+multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
 
-multi sub infix:<eq>(Blob:D $a, Blob:D $b) {
-    $a.elems == $b.elems && $a.list eq $b.list
-}
-
-multi sub infix:<ne>(Blob:D $a, Blob:D $b) {
-    not $a eq $b;
-}
-
-multi sub infix:<lt>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) == -1
-}
-
-multi sub infix:<gt>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) ==  1
-}
-
-multi sub infix:<le>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) !=  1
-}
-
-multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
-    ($a cmp $b) != -1
-}
-
-sub subbuf-rw($b is rw, $from = 0, $elems = $b.elems - $from) is rw {
-    my Blob $subbuf = $b.subbuf($from, $elems);
-    Proxy.new(
-        FETCH   => sub ($) { $subbuf },
-        STORE   => sub ($, Blob $new) {
-            $b = $b.subbuf(0, $from)
-               ~ $new
-               ~ $b.subbuf($from + $elems);
-        }
-    );
+sub subbuf-rw(Buf:D \b, $from = 0, $elems = b.elems - $from) is rw {
+    b.subbuf-rw($from, $elems);
 }
 
 # vim: ft=perl6 expandtab sw=4

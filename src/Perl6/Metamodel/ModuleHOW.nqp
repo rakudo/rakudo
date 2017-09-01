@@ -27,10 +27,10 @@ class Perl6::Metamodel::ModuleHOW
         self.add_stash($obj);
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         $!composed := 1;
     }
-    
+
     method is_composed($obj) {
         $!composed
     }

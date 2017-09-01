@@ -31,7 +31,7 @@ class Perl6::Metamodel::NativeRefHOW
         self.add_stash($obj);
     }
 
-    method compose($obj) {
+    method compose($obj, :$compiler_services) {
         self.compose_repr($obj);
         self.compute_mro($obj);
         self.publish_method_cache($obj);
@@ -46,7 +46,7 @@ class Perl6::Metamodel::NativeRefHOW
             $info<nativeref> := nqp::hash();
             $info<nativeref><type> := nqp::decont($!type);
             $info<nativeref><refkind> := $!refkind // 'unknown';
-            nqp::composetype($obj, $info);
+            nqp::composetype(nqp::decont($obj), $info);
             $!repr_composed := 1;
         }
     }

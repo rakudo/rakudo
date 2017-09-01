@@ -29,7 +29,7 @@ class Perl6::Metamodel::EnumHOW
     has @!enum_value_list;
     
     # Roles that we do.
-    has @!does_list;
+    has @!role_typecheck_list;
     
     # Role'd version of the enum.
     has $!role;
@@ -78,6 +78,10 @@ class Perl6::Metamodel::EnumHOW
         %!values
     }
     
+    method elems($obj) {
+        nqp::elems(%!values)
+    }
+    
     method enum_from_value($obj, $value) {
         unless %!value_to_enum {
             for @!enum_value_list {
@@ -92,8 +96,8 @@ class Perl6::Metamodel::EnumHOW
     method enum_value_list($obj) {
         @!enum_value_list
     }
-    
-    method compose($obj) {
+
+    method compose($obj, :$compiler_services) {
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
@@ -102,9 +106,19 @@ class Perl6::Metamodel::EnumHOW
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
+                @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
-            @!does_list := RoleToClassApplier.apply($obj, @ins_roles)
+            RoleToClassApplier.apply($obj, @ins_roles);
+
+            # Add them to the typecheck list, and pull in their
+            # own type check lists also.
+            for @ins_roles {
+                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                for $_.HOW.role_typecheck_list($_) {
+                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                }
+            }
         }
         
         # Incorporate any new multi candidates (needs MRO built).
@@ -160,7 +174,7 @@ class Perl6::Metamodel::EnumHOW
         $!composed
     }
 
-    method does_list($obj) {
-        @!does_list
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
     }
 }

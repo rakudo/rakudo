@@ -2,8 +2,8 @@
 BEGIN {
     Bool.^add_method('Bool',    my proto method Bool(|)    { * });
     Bool.^add_method('gist',    my proto method gist(|)    { * });
-    Bool.^add_method('Str',     my proto method Str(|)     { * });
     Bool.^add_method('Numeric', my proto method Numeric(|) { * });
+    Bool.^add_method('Int',     my proto method Int(|)     { * });
     Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) { * });
     Bool.^add_method('pick',    my proto method pick(|) { * });
     Bool.^add_method('roll',    my proto method roll(|) { * });
@@ -14,6 +14,8 @@ BEGIN {
     Bool.^add_multi_method('gist',    my multi method gist(Bool:D:)    { self ?? 'True' !! 'False' });
     Bool.^add_multi_method('Str',     my multi method Str(Bool:D:)     { self ?? 'True' !! 'False' });
     Bool.^add_multi_method('Numeric', my multi method Numeric(Bool:D:) { self ?? 1 !! 0 });
+    Bool.^add_multi_method('Int',     my multi method Int(Bool:D:)     { self ?? 1 !! 0 });
+    Bool.^add_multi_method('Real',    my multi method Real(Bool:D:)    { self ?? 1 !! 0 });
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
     Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 
@@ -22,7 +24,7 @@ BEGIN {
 }
 BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
-    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: Mu \topic ) { nqp::istype(topic, Bool) });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::istype(topic, Bool) });
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
     Bool.^add_multi_method('perl', my multi method perl(Bool:U:) { 'Bool' });
 
@@ -32,12 +34,14 @@ BEGIN {
     Bool.^add_method('pred',  my method pred() { Bool::False });
     Bool.^add_method('succ',  my method succ() { Bool::True });
 
+    Bool.^add_method('enums', my method enums() { self.^enum_values });
+
     Bool.^compose;
 }
 
 multi sub prefix:<++>(Bool $a is rw)  { $a = True; }
 multi sub prefix:<-->(Bool $a is rw)  { $a = False; }
-multi sub postfix:<++>(Bool:U $a is rw) { $a = True; False; }
+multi sub postfix:<++>(Bool:U $a is rw --> False) { $a = True }
 multi sub postfix:<-->(Bool:U $a is rw) { $a = False; }
 
 multi sub postfix:<++>(Bool:D $a is rw) {
@@ -106,7 +110,7 @@ multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 
 proto sub infix:<^^>(|)                   { * }
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
-multi sub infix:<^^>(Mu \a, Mu &b)        { a ^^ b() }
+multi sub infix:<^^>(Mu \a, &b)           { a ^^ b() }
 multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
 multi sub infix:<^^>(+@a) {
     my Mu $a = shift @a;

@@ -16,9 +16,9 @@ role Perl6::Metamodel::AttributeContainer {
         @!attributes[+@!attributes] := $meta_attr;
         %!attribute_lookup{$name}   := $meta_attr;
     }
-    
+
     # Composes all attributes.
-    method compose_attributes($obj) {
+    method compose_attributes($obj, :$compiler_services) {
         my %seen_with_accessor;
         my %meths := self.method_table($obj);
         my %orig_meths;
@@ -33,7 +33,12 @@ role Perl6::Metamodel::AttributeContainer {
                     if %seen_with_accessor{$acc_name} && !nqp::existskey(%orig_meths, $acc_name);
                 %seen_with_accessor{$acc_name} := 1;
             }
-            $_.compose($obj);
+
+            # Heuristic to pass along compiler_services only to Perl 6 MOP,
+            # not to NQP one.
+            nqp::isconcrete($compiler_services) && nqp::can($_, 'gist')
+                ?? $_.compose($obj, :$compiler_services)
+                !! $_.compose($obj)
         }
     }
     

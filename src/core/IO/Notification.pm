@@ -1,3 +1,6 @@
+# stub what we need now
+my class Supplier { ... }
+
 my enum FileChangeEvent (:FileChanged(1), :FileRenamed(2));
 
 my class IO::Notification {

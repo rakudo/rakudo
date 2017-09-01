@@ -21,9 +21,7 @@ class CompUnit {
     # (if known).
     has Distribution $.distribution;
 
-    my Lock $global = Lock.new;
     my $default-from = 'Perl6';
-    my %instances;
 
     method new(CompUnit:U:
       Str                  :$short-name is copy,
@@ -36,7 +34,7 @@ class CompUnit {
       Bool                 :$precompiled = False,
       Distribution         :$distribution,
     ) {
-        $global.protect( { %instances{$short-name} //= self.bless(
+        self.bless(
           :$short-name,
           :$version,
           :$auth,
@@ -46,12 +44,12 @@ class CompUnit {
           :$repo-id,
           :$precompiled,
           :$distribution,
-        ) } );
+        );
     }
 
     multi method WHICH(CompUnit:D:) { $!WHICH //= self.^name }
-    multi method Str(CompUnit:D: --> Str)  { $!short-name }
-    multi method gist(CompUnit:D: --> Str) { self.short-name }
+    multi method Str(CompUnit:D: --> Str:D)  { $!short-name }
+    multi method gist(CompUnit:D: --> Str:D) { self.short-name }
 
     method unit() {
         $.handle.unit

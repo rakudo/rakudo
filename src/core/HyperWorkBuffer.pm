@@ -15,21 +15,19 @@ my class HyperWorkBuffer {
     }
 
     # Clears both buffers.
-    method clear() {
+    method clear(--> Nil) {
         nqp::setelems($!input, 0);
         nqp::setelems($!output, 0);
-        Nil
     }
 
     # Swaps around the input/output buffers, and clears the output buffer.
     # (This is used between pipelined stages, where the next stage will
     # use the items in the first.)
-    method swap() {
+    method swap(--> Nil) {
         my $new-input := $!output;
         $!output := $!input;
         $!input := $new-input;
         nqp::setelems($!output, 0);
-        Nil
     }
 
     # Gets an iterator of the input.
@@ -39,9 +37,9 @@ my class HyperWorkBuffer {
             has int $!i;
 
             method new(\buffer) {
-                my \iter = nqp::create(self);
-                nqp::bindattr(iter, self, '$!buffer', buffer);
-                iter
+                nqp::p6bindattrinvres(
+                  nqp::create(self),self,'$!buffer',buffer
+                )
             }
 
             method pull-one() {

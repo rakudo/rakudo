@@ -1,12 +1,10 @@
 Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := ?%*ENV<RAKUDO_MODULE_DEBUG>
       ?? -> *@str --> Nil {
-            state Num $last = Rakudo::Internals.INITTIME;
-            my num $now = nqp::time_n;
-            my $str = @str>>.indent(16).join("\n").substr(16);
-            note sprintf "%4d %5d RMD: $str",
-              1000 * ($now - $last), nqp::getpid();
-            $last = $now;
+            state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
+            my $indent = (($level - 1) * 4) + 1;
+            my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
+            note sprintf "%2d%sRMD: $str", $level, " " x $indent;
          }
       !! False
 }
@@ -16,17 +14,17 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PID', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
-    PROCESS::<$EXECUTABLE> := IO::Path.new-from-absolute-path(
+    PROCESS::<$EXECUTABLE> := (
 #?if jvm
       $*VM.properties<perl6.execname>
       // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
 #?endif
 #?if moar
       nqp::execname()
-      // ($*VM.config<prefix> ~ '/bin/'
+      || ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
-    );
+    ).IO;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
@@ -42,7 +40,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TMPDIR', {
-    PROCESS::<$TMPDIR> := $*SPEC.tmpdir;
+    PROCESS::<$TMPDIR> = $*SPEC.tmpdir;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
@@ -50,74 +48,55 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
-    PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
+    my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
+    my $world := $*W;
+    $world.suspend_recording_precompilation_dependencies if $world;
+    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo.repo-chain);
+    $world.resume_recording_precompilation_dependencies if $world;
+    PROCESS::<$REPO>
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
-    my $HOME;
+    my $HOME is default(Nil);
 
     if %*ENV<HOME> -> $home {
         $HOME = $home;
     }
     elsif Rakudo::Internals.IS-WIN {
-        $HOME = %*ENV<HOMEDRIVE> ~ %*ENV<HOMEPATH>;
+        my $env := %*ENV;
+        $env<HOMEDRIVE> && $env<HOMEPATH> && ($HOME
+          = nqp::concat($env<HOMEDRIVE>, $env<HOMEPATH>));
     }
-    PROCESS::<$HOME> = $HOME ?? IO::Path.new($HOME) !! Nil;
+
+    $HOME = IO::Path.new($HOME) if $HOME;
+    PROCESS::<$HOME> := $HOME # bind container so Nil default is kept
 }
 
 {
-    class IdName {
-        has Int $!id;
-        has Str $!name;
+    sub fetch($what) {
+        once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
+            if $id ~~ m/^
+              [ uid "=" $<uid>=(\d+) ]
+              [ "(" $<user>=(<-[ ) ]>+) ")" ]
+              \s+
+              [ gid "=" $<gid>=(\d+) ]
+              [ "(" $<group>=(<-[ ) ]>+) ")" ]
+            / {
+                PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
+                PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
+            }
 
-        submethod BUILD(:$!id, :$!name --> Nil) { }
-
-        method Numeric { $!id }
-        method Str     { $!name }
-        method gist    { "$!name ($!id)" }
-    }
-
-    class IdFetch {
-        has Str $!name;
-
-        submethod BUILD(:$!name --> Nil) { PROCESS::{$!name} := self }
-
-        sub fetch {
-            once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
-                if $id ~~ m/^
-                  [ uid "=" $<uid>=(\d+) ]
-                  [ "(" $<user>=(<-[ ) ]>+) ")" ]
-                  \s+
-                  [ gid "=" $<gid>=(\d+) ]
-                  [ "(" $<group>=(<-[ ) ]>+) ")" ]
-                / {
-                    PROCESS::<$USER> :=
-                      IdName.new( :id(+$<uid>), :name(~$<user>) );
-                    PROCESS::<$GROUP> :=
-                      IdName.new( :id(+$<gid>), :name(~$<group>) );
-                }
-
-                # alas, no support yet
-                else {
-                    PROCESS::<$USER>  := Nil;
-                    PROCESS::<$GROUP> := Nil;
-                }
+            # alas, no support yet
+            else {
+                PROCESS::<$USER>  := Nil;
+                PROCESS::<$GROUP> := Nil;
             }
         }
-
-        multi method Numeric(IdFetch:D:) {
-            fetch() ?? +PROCESS::{$!name} !! Nil;
-        }
-        multi method Str(IdFetch:D:) {
-            fetch() ?? ~PROCESS::{$!name} !! Nil;
-        }
-        multi method gist(IdFetch:D:) {
-            fetch() ?? "{PROCESS::{$!name}} ({+PROCESS::{$!name}})" !! Nil;
-        }
+        PROCESS::{$what}
     }
 
-    IdFetch.new( :name<$USER> );
-    IdFetch.new( :name<$GROUP> );
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*USER',  { fetch('$USER') };
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', { fetch('$GROUP') };
 }
 
 # vim: ft=perl6 expandtab sw=4

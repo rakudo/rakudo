@@ -67,7 +67,7 @@ my class DateTime does Dateish {
       :&formatter,
     ) {
         (1..12).in-range($month,'Month');
-        (1 .. self!DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         (0..23).in-range($hour,'Hour');
         (0..59).in-range($minute,'Minute');
         (^61).in-range($second,'Second');
@@ -149,11 +149,15 @@ my class DateTime does Dateish {
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
         my $dt = self === DateTime
-          ?? nqp::create(self)!SET-SELF(
-               $year,$month,$day,$hour,$minute,$second,0,&formatter)
-          !! self.bless(
+          ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                    ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                    ~ "trying to use the named parameter form of .new() but "
+                    ~ "accidentally passed one named parameter as a positional?"
+                  !! nqp::create(self)!SET-SELF(
+                    $year,$month,$day,$hour,$minute,$second,0,&formatter)
+          ) !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),&formatter,|%_);
+               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_);
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:
@@ -163,7 +167,7 @@ my class DateTime does Dateish {
           invalid-str => $datetime,
           target      => 'DateTime',
           format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-        ).throw unless $datetime ~~ /^
+        ).throw unless $datetime.chars == $datetime.codes and $datetime ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month
@@ -198,7 +202,7 @@ my class DateTime does Dateish {
           $0,$1,$2,$3,$4,+(~$5.subst(",",".")),%_,:$timezone,:&formatter)
     }
 
-    method now(:$timezone=$*TZ, :&formatter) returns DateTime:D {
+    method now(:$timezone=$*TZ, :&formatter --> DateTime:D) {
         self.new(nqp::time_n(), :$timezone, :&formatter)
     }
 
@@ -257,6 +261,8 @@ my class DateTime does Dateish {
     method offset()            { $!timezone }
     method offset-in-minutes() { $!timezone / 60 }
     method offset-in-hours()   { $!timezone / 3600 }
+
+    method hh-mm-ss()          { sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second }
 
     method later(:$earlier, *%unit) {
         my @pairs = %unit.pairs;
@@ -360,7 +366,10 @@ my class DateTime does Dateish {
     method utc()   { self.in-timezone(0) }
     method local() { self.in-timezone($*TZ) }
 
-    method Date() { Date.new($!year,$!month,$!day) }
+    proto method Date() { * }
+    multi method Date(DateTime:D:) { Date.new($!year,$!month,$!day) }
+    multi method Date(DateTime:U:) { Date }
+    method DateTime() { self }
 
     multi method perl(DateTime:D:) {
         self.^name
@@ -368,6 +377,10 @@ my class DateTime does Dateish {
           ~ (',' ~ :$!timezone.perl if $!timezone)
           ~ ')'
     }
+}
+
+Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
+    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset
 }
 
 multi sub infix:«<»(DateTime:D \a, DateTime:D \b) {
@@ -393,6 +406,18 @@ multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
 }
 multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
     a.Instant cmp b.Instant
+}
+multi sub infix:<->(DateTime:D \a, DateTime:D \b) {
+    a.Instant - b.Instant
+}
+multi sub infix:<->(DateTime:D \a, Duration:D \b) {
+    a.new(a.Instant - b).in-timezone(a.timezone)
+}
+multi sub infix:<+>(DateTime:D \a, Duration:D \b) {
+    a.new(a.Instant + b).in-timezone(a.timezone)
+}
+multi sub infix:<+>(Duration:D \a, DateTime:D \b) {
+    b.new(b.Instant + a).in-timezone(b.timezone)
 }
 
 # vim: ft=perl6 expandtab sw=4

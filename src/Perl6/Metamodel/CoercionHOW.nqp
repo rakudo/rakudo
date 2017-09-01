@@ -13,8 +13,9 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method new_type($target, $constraint) {
-        nqp::parameterizetype((Perl6::Metamodel::CoercionHOW.WHO)<root>,
+        my $root := nqp::parameterizetype((Perl6::Metamodel::CoercionHOW.WHO)<root>,
             [$target, $constraint]);
+        nqp::setdebugtypename($root, self.name($root));
     }
 
     method name($coercion_type) {
@@ -25,6 +26,17 @@ class Perl6::Metamodel::CoercionHOW
             my $target := nqp::typeparameterat($coercion_type, 0);
             my $constraint := nqp::typeparameterat($coercion_type, 1);
             $target.HOW.name($target) ~ '(' ~ $constraint.HOW.name($constraint) ~ ')'
+        }
+    }
+
+    method shortname($coercion_type) {
+        if nqp::isnull(nqp::typeparameterized($coercion_type)) {
+            '?(?)'
+        }
+        else {
+            my $target := nqp::typeparameterat($coercion_type, 0);
+            my $constraint := nqp::typeparameterat($coercion_type, 1);
+            $target.HOW.shortname($target) ~ '(' ~ $constraint.HOW.shortname($constraint) ~ ')'
         }
     }
 

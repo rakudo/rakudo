@@ -3,6 +3,8 @@
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 typedef signed __int64 int64_t;
 #else
 #define DLLEXPORT extern
@@ -100,5 +102,12 @@ DLLEXPORT int TakeSizeT(size_t x)
 {
     if (x == 42)
         return 13;
+    return 0;
+}
+
+DLLEXPORT int TakeSSizeT(ssize_t x)
+{
+    if (x == -42)
+        return 14;
     return 0;
 }

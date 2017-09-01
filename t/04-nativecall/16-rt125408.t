@@ -1,10 +1,12 @@
+use v6;
+
+use lib <lib>;
+use NativeCall;
 use Test;
 
 plan 1;
 
-use NativeCall;
-
-class Foo is repr("CStruct") {
+class Foo {
    method foo(Mu:U $type, Int $a ) {
       my @buff := CArray[$type].new;
       my $ctype = $type ~~ Num ?? Num !! Int;

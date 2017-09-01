@@ -83,3 +83,7 @@ DLLEXPORT float *ReturnsAFloatArray() {
 DLLEXPORT float SumAFloatArray(float *floats) {
     return floats[0] + floats[1];
 }
+
+DLLEXPORT int TakeAStructArrayWithANull(Struct **structs) {
+    return structs[1] == NULL;
+}

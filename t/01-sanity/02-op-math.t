@@ -1,7 +1,6 @@
-# check basic math ops
-
 use v6;
 
+# check basic math ops
 say '1..14';
 
 print 'ok ';

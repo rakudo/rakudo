@@ -3,7 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
 
-    method enums() { self.^enum_values }
+    method enums() { self.^enum_values.Map }
 
     multi method kv(::?CLASS:D:) { ($!key, $!value) }
     method pair(::?CLASS:D:) { $!key => $!value }
@@ -20,6 +20,11 @@ my role Enumeration {
 
     multi method Numeric(::?CLASS:D:) { $!value.Numeric }
     multi method Int(::?CLASS:D:)     { $!value.Int }
+    multi method Real(::?CLASS:D:)    { $!value.Real }
+
+    # Make sure we always accept any element of the enumeration
+    multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
+    multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
     method CALL-ME(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
@@ -53,10 +58,9 @@ sub ENUM_VALUES(*@args) {
             %res{$_} = $prev.=succ;
         }
     }
-    my $r := nqp::create(Map);
-    nqp::bindattr($r, Map, '$!storage',
-        nqp::getattr(%res, Map, '$!storage'));
-    $r;
+    nqp::p6bindattrinvres(
+      nqp::create(Map),Map,'$!storage',nqp::getattr(%res,Map,'$!storage')
+    )
 }
 
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {

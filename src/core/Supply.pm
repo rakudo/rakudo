@@ -10,8 +10,11 @@ my class Tap {
     }
 
     method close() {
-        &!on-close() if &!on-close;
-        True;
+        if &!on-close {
+            my \close-result = &!on-close();
+            await close-result if nqp::istype(close-result, Promise);
+        }
+        True
     }
 }
 
@@ -26,7 +29,7 @@ my role Tappable {
     method tap() { ... }
     method live() { ... }    # Taps into a live data source
     method serial() { ... }  # Promises no concurrent emits
-    method sane() { ... }    # Matches emit* [done|quit] grammar
+    method sane() { ... }    # Matches emit* [done|quit]? grammar
 }
 
 # A few Supply-related exception types.
@@ -53,7 +56,7 @@ my class X::Supply::New is Exception {
 # a Supply go in here.
 my class Supplier { ... }
 my class Supplier::Preserving { ... }
-my class Supply {
+my class Supply does Awaitable {
     has Tappable $!tappable;
 
     proto method new(|) { * }
@@ -67,6 +70,7 @@ my class Supply {
 
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
+    method Tappable(--> Tappable) { $!tappable }
 
     my \DISCARD = -> $ {};
     my \NOP = -> {};
@@ -92,16 +96,30 @@ my class Supply {
             submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
             method tap(&emit, &done, &quit) {
+                my int $closed = 0;
+                my $t = Tap.new({
+                    if &!closing {
+                        &!closing() unless $closed++;
+                    }
+                });
                 my $p = Supplier.new;
-                $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
+                $p.Supply.tap(&emit,
+                    done => {
+                        done();
+                        $t.close();
+                    },
+                    quit => -> \ex {
+                        quit(ex);
+                        $t.close();
+                    });
                 $!scheduler.cue({ &!producer($p) },
                     catch => -> \ex { $p.quit(ex) });
-                Tap.new(&!closing)
+                $t
             }
-            
-            method live() { False }
-            method sane() { True }
-            method serial() { True }
+
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> True) { }
         }.new(:&producer, :&closing, :$scheduler))
     }
 
@@ -121,10 +139,11 @@ my class Supply {
             submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
 
             method tap(&emit, |) {
+                my $i = 0;
+                my $lock = Lock.new;
                 my $cancellation = $!scheduler.cue(
                     {
-                        state $i = 0;
-                        emit($i++);
+                        emit($lock.protect: { $i++ });
                         CATCH { $cancellation.cancel if $cancellation }
                     },
                     :every($!interval), :in($!delay)
@@ -132,9 +151,9 @@ my class Supply {
                 Tap.new({ $cancellation.cancel })
             }
 
-            method live { False }
-            method sane { True }
-            method serial { False }
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> False) { }
         }.new(:$interval, :$delay, :$scheduler));
     }
 
@@ -147,8 +166,8 @@ my class Supply {
     my role SimpleOpTappable does Tappable {
         has $!source;
         method live() { $!source.live }
-        method sane() { True }
-        method serial() { True }
+        method sane(--> True) { }
+        method serial(--> True) { }
         method !cleanup(int $cleaned-up is rw, $source-tap) {
             if $source-tap && !$cleaned-up  {
                 $cleaned-up = 1;
@@ -184,7 +203,7 @@ my class Supply {
                 Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
         }.new(source => self))
-    }    
+    }
 
     method sanitize() {
         $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
@@ -199,18 +218,14 @@ my class Supply {
                         emit(value) unless $!finished;
                     },
                     done => -> {
-                        unless $!finished {
-                            $!finished = 1;
-                            done();
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
+                        $!finished = 1;
+                        done();
+                        self!cleanup($cleaned-up, $source-tap);
                     },
                     quit => -> $ex {
-                        unless $!finished {
-                            $!finished = 1;
-                            quit($ex);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
+                        $!finished = 1;
+                        quit($ex);
+                        self!cleanup($cleaned-up, $source-tap);
                     });
                 Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
@@ -454,7 +469,7 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'merge'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0].sanitize  if +@s == 1; # nothing to be done
 
@@ -569,21 +584,21 @@ my class Supply {
     ## Coercions
     ##
 
-    method Supply(Supply:) { self }
+    multi method Supply(Supply:D:) { self }
 
     method Channel(Supply:D:) {
         my $c = Channel.new();
         self.sanitize.tap:
             -> \val { $c.send(val) },
             done => { $c.close },
-            quit => -> $ex { $c.quit($ex) };
+            quit => -> $ex { $c.fail($ex) };
         $c
     }
 
     my class ConcQueue is repr('ConcBlockingQueue') { }
-    method list(Supply:D:) {
+    multi method list(Supply:D:) {
         gather {
-            my Mu \queue = ConcQueue.CREATE;
+            my Mu \queue = nqp::create(ConcQueue);
             my $exception;
             self.tap(
                 -> \val { nqp::push(queue, val) },
@@ -616,10 +631,35 @@ my class Supply {
 
     method wait(Supply:D:) { await self.Promise }
 
+    my class SupplyAwaitableHandle does Awaitable::Handle {
+        has $!supply;
+
+        method not-ready(Supply:D \supply) {
+            nqp::create(self)!not-ready(supply)
+        }
+        method !not-ready(\supply) {
+            $!already = False;
+            $!supply := supply;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            my $final := Nil;
+            $!supply.tap:
+                -> \val { $final := val },
+                done => { subscriber(True, $final) },
+                quit => -> \ex { subscriber(False, ex) };
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        SupplyAwaitableHandle.not-ready(self)
+    }
+
     method unique(Supply:D $self: :&as, :&with, :$expires) {
         supply {
             if $expires {
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {
@@ -686,7 +726,7 @@ my class Supply {
                 }
             }
             else { # !$!expires
-                if &with and &with !=== &[===] {
+                if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
                     if &as {
@@ -743,26 +783,28 @@ my class Supply {
             if &as {
                 whenever self -> \val {
                     $target = &as(val);
-                    if $first || !&with($target,$last) {
+                    if $first || !&with($last,$target) {
                         $first = 0;
-                        $last  = $target;
                         emit(val);
                     }
+                    $last  = $target;
                 }
             }
             else {
                 whenever self -> \val {
-                    if $first || !&with(val,$last) {
+                    if $first || !&with($last, val) {
                         $first = 0;
-                        $last = val;
                         emit(val);
                     }
+                    $last = val;
                 }
             }
         }
     }
 
-    proto method rotor(|) {*}
+    multi method rotor(Supply:D $self: Int:D $batch, :$partial) {
+        self.rotor(($batch,), :$partial)
+    }
     multi method rotor(Supply:D $self: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
         supply {
@@ -807,33 +849,33 @@ my class Supply {
         }
     }
 
-    method batch(Supply:D $self: :$elems, :$seconds ) {
-        return self if (!$elems or $elems == 1) and !$seconds;  # nothing to do
+    method batch(Supply:D $self: Int(Cool) :$elems = 0, :$seconds) {
         supply {
-            my @batched;
+            my int $max = $elems >= 0 ?? $elems !! 0;
+            my $batched := nqp::list;
             my $last_time;
             sub flush(--> Nil) {
-                emit([@batched]);
-                @batched = ();
+                emit($batched);
+                $batched := nqp::list;
             }
             sub final-flush(--> Nil) {
-                flush if @batched;
+                flush if nqp::elems($batched);
             }
 
             if $seconds {
                 $last_time = time div $seconds;
 
-                if $elems { # and $seconds
+                if $elems > 0 { # and $seconds
                     whenever self -> \val {
-                      my $this_time = time div $seconds;
-                      if $this_time != $last_time {
-                          flush if @batched;
-                          $last_time = $this_time;
-                          @batched.push: val;
+                        my $this_time = time div $seconds;
+                        if $this_time != $last_time {
+                            flush if nqp::elems($batched);
+                            $last_time = $this_time;
+                            nqp::push($batched,val);
                         }
                         else {
-                            @batched.push: val;
-                            flush if @batched.elems == $elems;
+                            nqp::push($batched,val);
+                            flush if nqp::iseq_i(nqp::elems($batched),$max);
                         }
                         LAST { final-flush; }
                     }
@@ -842,18 +884,18 @@ my class Supply {
                     whenever self -> \val {
                         my $this_time = time div $seconds;
                         if $this_time != $last_time {
-                            flush if @batched;
+                            flush if nqp::elems($batched);
                             $last_time = $this_time;
                         }
-                        @batched.push: val;
+                        nqp::push($batched,val);
                         LAST { final-flush; }
                     }
                 }
             }
             else { # just $elems
                 whenever self -> \val {
-                    @batched.push: val;
-                    flush if @batched.elems == $elems;
+                    nqp::push($batched,val);
+                    flush if nqp::isge_i(nqp::elems($batched),$max);
                     LAST { final-flush; }
                 }
             }
@@ -868,22 +910,22 @@ my class Supply {
             my int $pos;
             my int $nextpos;
             my int $found;
-            
+
             whenever self -> \val {
                 $str   = $str ~ nqp::unbox_s(val);
                 $chars = nqp::chars($str);
                 $pos   = 0;
-            
+
                 while ($left = $chars - $pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_NEWLINE, $str, $pos, $left
                     );
-            
+
                     last
                       if $nextpos >= $chars     # no line delimiter
                       or $nextpos == $chars - 1 # broken CRLF ?
                         && nqp::eqat($str, "\r", $nextpos); # yes!
-            
+
                     if $chomp {
                         emit( ($found = $nextpos - $pos)
                           ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
@@ -932,18 +974,18 @@ my class Supply {
                 $chars = nqp::chars($str);
                 $pos   = nqp::findnotcclass(
                   nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
- 
+
                 while ($left = $chars - $pos) > 0 {
                     $nextpos = nqp::findcclass(
                       nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
                     );
- 
+
                     last unless $left = $chars - $nextpos; # broken word
- 
+
                     emit( nqp::box_s(
                       nqp::substr( $str, $pos, $nextpos - $pos ), Str)
                     );
- 
+
                     $pos = nqp::findnotcclass(
                       nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
                 }
@@ -1031,6 +1073,16 @@ my class Supply {
         }
     }
 
+    method skip(Supply:D: Int(Cool) $number = 1) {
+        supply {
+            my int $size = $number + 1;
+            my int $skipping = $size > 1;
+            whenever self {
+                .emit unless $skipping && ($skipping = --$size)
+            }
+        }
+    }
+
     method min(Supply:D $self: &by = &infix:<cmp>) {
         my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
         supply {
@@ -1061,7 +1113,10 @@ my class Supply {
             my $min;
             my $max;
             whenever self -> \val {
-                if val.defined {
+                if nqp::istype(val,Failure) {
+                    val.throw;  # XXX or just ignore ???
+                }
+                elsif val.defined {
                     if !$min.defined {
                         emit( Range.new($min = val, $max = val) );
                     }
@@ -1088,8 +1143,9 @@ my class Supply {
         }
     }
 
-    method reverse(Supply:D:)                 { self.grab( {.reverse} ) }
-    method sort(Supply:D: &by = &infix:<cmp>) { self.grab( {.sort(&by)} ) }
+    method reverse(Supply:D:)        { self.grab( {.reverse} ) }
+    multi method sort(Supply:D:)     { self.grab( {.sort} ) }
+    multi method sort(Supply:D: &by) { self.grab( {.sort(&by)} ) }
 
     method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
@@ -1097,7 +1153,7 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0]  if +@s == 1;          # nothing to be done
 
@@ -1126,16 +1182,16 @@ my class Supply {
 
         X::Supply::Combinator.new(
            combinator => 'zip-latest'
-        ).throw if Rakudo::Internals.NOT_ALL_DEFINED_TYPE(@s,Supply);
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
 
         return @s[0] if +@s == 1;           # nothing to do.
 
         supply {
             my @values;
-    
+
             my $uninitialised = +@s; # how many supplies have yet to emit until we
                                      # can start emitting, too?
-    
+
             if $initial {
                 @values = @$initial;
                 $uninitialised = 0 max $uninitialised - @$initial;
@@ -1216,8 +1272,6 @@ my class Supply {
                     @buffer.push(val);
                 }
                 LAST {
-                    $control.done if $control;
-                    $status.done  if $status;
                     if $status {
                         emit-status("done");
                         $status.done;
@@ -1320,7 +1374,7 @@ my class Supply {
                     my str $type;
                     my str $value;
                     Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
- 
+
                     if $type eq 'limit' {
                         $allowed = $allowed + $value - $limit;
                         $limit   = $value;
@@ -1405,7 +1459,7 @@ my class Supplier {
             })
         }
 
-        method emit(\value) {
+        method emit(\value --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1415,7 +1469,7 @@ my class Supplier {
             }
         }
 
-        method done() {
+        method done(--> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1425,7 +1479,7 @@ my class Supplier {
             }
         }
 
-        method quit($ex) {
+        method quit($ex --> Nil) {
             my $snapshot := $!tappers;
             if nqp::isconcrete($snapshot) {
                 my int $n = nqp::elems($snapshot);
@@ -1435,9 +1489,9 @@ my class Supplier {
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False)  { }
     }
 
     has $!taplist;
@@ -1491,8 +1545,10 @@ my class Supplier::Preserving is Supplier {
         # need lock on modification).
         has Mu $!tappers;
 
-        # Events to reply, and a lock to protect it.
+        # Events to reply, whether the replay was done, and a lock to protect
+        # updates to these.
         has @!replay;
+        has int $!replay-done;
         has $!replay-lock = Lock.new;
 
         method tap(&emit, &done, &quit) {
@@ -1503,79 +1559,91 @@ my class Supplier::Preserving is Supplier {
                     ?? nqp::clone($!tappers)
                     !! nqp::list();
                 nqp::push($update, $tle);
-                $!tappers := $update;
                 $replay = 1 if nqp::elems($update) == 1;
+                self!replay($tle) if $replay;
+                $!tappers := $update;
             });
-            self!replay($tle) if $replay;
             Tap.new({
                 $!lock.protect({
                     my Mu $update := nqp::list();
                     for nqp::hllize($!tappers) -> \entry {
                         nqp::push($update, entry) unless entry =:= $tle;
                     }
+                    $!replay-done = 0 if nqp::elems($update) == 0;
                     $!tappers := $update;
                 });
             })
         }
 
-        method emit(\value) {
-            my int $sent = 0;
-            my $snapshot := $!tappers;
-            if nqp::isconcrete($snapshot) {
-                my int $n = nqp::elems($snapshot);
-                loop (my int $i = 0; $i < $n; $i = $i + 1) {
-                    nqp::atpos($snapshot, $i).emit()(value);
-                    $sent = 1;
+        method emit(\value --> Nil) {
+            loop {
+                my int $sent = 0;
+                my $snapshot := $!tappers;
+                if nqp::isconcrete($snapshot) {
+                    $sent = nqp::elems($snapshot);
+                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                        nqp::atpos($snapshot, $i).emit()(value);
+                    }
                 }
-            }
-            unless $sent {
-                self!add-replay({ $_.emit()(value) })
+                return if $sent;
+                return if self!add-replay({ $_.emit()(value) });
             }
         }
 
-        method done() {
-            my int $sent = 0;
-            my $snapshot := $!tappers;
-            if nqp::isconcrete($snapshot) {
-                my int $n = nqp::elems($snapshot);
-                loop (my int $i = 0; $i < $n; $i = $i + 1) {
-                    nqp::atpos($snapshot, $i).done()();
-                    $sent = 1;
+        method done(--> Nil) {
+            loop {
+                my int $sent = 0;
+                my $snapshot := $!tappers;
+                if nqp::isconcrete($snapshot) {
+                    $sent = nqp::elems($snapshot);
+                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                        nqp::atpos($snapshot, $i).done()();
+                    }
                 }
-            }
-            unless $sent {
-                self!add-replay({ $_.done()() })
+                return if $sent;
+                return if self!add-replay({ $_.done()() });
             }
         }
 
-        method quit($ex) {
-            my int $sent = 0;
-            my $snapshot := $!tappers;
-            if nqp::isconcrete($snapshot) {
-                my int $n = nqp::elems($snapshot);
-                loop (my int $i = 0; $i < $n; $i = $i + 1) {
-                    nqp::atpos($snapshot, $i).quit()($ex);
-                    $sent = 1;
+        method quit($ex --> Nil) {
+            loop {
+                my int $sent = 0;
+                my $snapshot := $!tappers;
+                if nqp::isconcrete($snapshot) {
+                    $sent = nqp::elems($snapshot);
+                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                        nqp::atpos($snapshot, $i).quit()($ex);
+                    }
                 }
-            }
-            unless $sent {
-                self!add-replay({ $_.quit()($ex) })
+                return if $sent;
+                return if self!add-replay({ $_.quit()($ex) });
             }
         }
 
-        method !add-replay(&replay) {
-            $!replay-lock.protect: { @!replay.push(&replay) }
+        method !add-replay(&replay --> Bool) {
+            $!replay-lock.protect: {
+                if $!replay-done {
+                    False
+                }
+                else {
+                    @!replay.push(&replay);
+                    True
+                }
+            }
         }
 
         method !replay($tle) {
-            while $!replay-lock.protect({ @!replay.shift }) -> $rep {
-                $rep($tle)
+            $!replay-lock.protect: {
+                while @!replay.shift -> $rep {
+                    $rep($tle);
+                }
+                $!replay-done = 1;
             }
         }
 
-        method live     { True  }
-        method serial() { False }
-        method sane()   { False }
+        method live(--> True) { }
+        method serial(--> False) { }
+        method sane(--> False) { }
     }
 
     method new() {
@@ -1583,92 +1651,160 @@ my class Supplier::Preserving is Supplier {
     }
 }
 
-sub SUPPLY(&block) {
-    my class SupplyBlockState {
+augment class Rakudo::Internals {
+    class SupplyBlockState {
         has &.emit;
         has &.done;
         has &.quit;
-        has $.lock;
-        has $.active is rw;
-        has %.active-taps;
         has @.close-phasers;
+        has $!active = 1;
+        has $!lock = Lock.new;
+        has %!active-taps;
+        has @!queued-operations;
+
+        method increment-active() {
+            $!lock.protect: { ++$!active }
+        }
+
+        method decrement-active() {
+            $!lock.protect: { --$!active }
+        }
+
+        method get-and-zero-active() {
+            $!lock.protect: {
+                my $result = $!active;
+                $!active = 0;
+                $result
+            }
+        }
+
+        method add-active-tap($tap --> Nil) {
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)} = $tap;
+            }
+        }
+
+        method delete-active-tap($tap --> Nil) {
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)}:delete;
+            }
+        }
+
+        method consume-active-taps() {
+            my @active;
+            $!lock.protect: {
+                @active = %!active-taps.values;
+                %!active-taps = ();
+            }
+            @active
+        }
+
+        method run-operation(&op --> Nil) {
+            if $!active {
+                my $run-now;
+                $!lock.protect({
+                    $run-now = not @!queued-operations;
+                    @!queued-operations.push(&op);
+                });
+                self!run-loop(&op) if $run-now;
+            }
+        }
+
+        method !run-loop(&initial --> Nil) {
+            my &current = &initial;
+            while &current {
+                current();
+                $!lock.protect({
+                    @!queued-operations.shift;
+                    &current = $!active && @!queued-operations
+                        ?? @!queued-operations[0]
+                        !! Nil;
+                });
+            }
+        }
     }
 
-    Supply.new(class :: does Tappable {
+    class SupplyBlockTappable does Tappable {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
-            my $state = SupplyBlockState.new(
-                :&emit, :&done, :&quit,
-                lock => Lock.new,
-                active => 1);
+            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
             self!run-supply-code(&!block, $state);
-            $state.close-phasers.push(.clone) for &!block.phasers('CLOSE');
+            if nqp::istype(&!block,Block) {
+                $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
+            }
             self!deactivate-one($state);
             Tap.new(-> { self!teardown($state) })
         }
 
         method !run-supply-code(&code, $state) {
-            my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
-                $state.active++;
-                my $tap = $supply.tap(
-                    -> \value {
-                        self!run-supply-code({ whenever-block(value) }, $state)
-                    },
-                    done => {
-                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
-                        my @phasers := &whenever-block.phasers('LAST');
-                        if @phasers {
-                            self!run-supply-code({ .() for @phasers }, $state)
-                        }
-                        self!deactivate-one($state);
-                    },
-                    quit => -> \ex {
-                        $state.active-taps{nqp::objectid($tap)}:delete if $tap.DEFINITE;
-                        my $handled;
-                        my $phaser := &whenever-block.phasers('QUIT')[0];
-                        if $phaser.DEFINITE {
-                            self!run-supply-code({ $handled = $phaser(ex) === Nil }, $state)
-                        }
-                        if $handled {
+            $state.run-operation({
+                my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
+                    $state.increment-active();
+                    my $tap = $supply.tap(
+                        -> \value {
+                            self!run-supply-code({ whenever-block(value) }, $state)
+                        },
+                        done => {
+                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            my @phasers := &whenever-block.phasers('LAST');
+                            if @phasers {
+                                self!run-supply-code({ .() for @phasers }, $state)
+                            }
+                            $tap.?close;
                             self!deactivate-one($state);
-                        }
-                        elsif $state.active {
-                            $state.quit().(ex) if $state.quit;
-                            $state.active = 0;
-                            self!teardown($state);
-                        }
-                    });
-                $state.active-taps{nqp::objectid($tap)} = $tap;
-            }
+                        },
+                        quit => -> \ex {
+                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            self!run-supply-code({
+                                my $handled;
+                                my $phaser := &whenever-block.phasers('QUIT')[0];
+                                if $phaser.DEFINITE {
+                                    $handled = $phaser(ex) === Nil;
+                                }
+                                if $handled {
+                                    $tap.?close;
+                                    self!deactivate-one($state);
+                                }
+                                elsif $state.get-and-zero-active() {
+                                    $state.quit().(ex) if $state.quit;
+                                    self!teardown($state);
+                                }
+                            }, $state);
+                        });
+                    $state.add-active-tap($tap);
+                    $tap
+                }
 
-            my $emitter = {
-                my \ex := nqp::exception();
-                $state.emit().(nqp::getpayload(ex)) if $state.emit;
-                nqp::resume(ex)
-            }
-            my $done = {
-                $state.done().() if $state.done;
-                $state.active = 0;
-                self!teardown($state);
-            }
-            my $catch = {
-                my \ex = EXCEPTION(nqp::exception());
-                $state.quit().(ex) if $state.quit;
-                $state.active = 0;
-                self!teardown($state);
-            }
-            nqp::handle($state.lock.protect(&code),
-                'EMIT', $emitter(),
-                'DONE', $done(),
-                'CATCH', $catch());
+                my $emitter = {
+                    my \ex := nqp::exception();
+                    $state.emit().(nqp::getpayload(ex)) if $state.emit;
+                    nqp::resume(ex)
+                }
+                my $done = {
+                    $state.done().() if $state.done;
+                    $state.get-and-zero-active();
+                    self!teardown($state);
+                }
+                my $catch = {
+                    my \ex = EXCEPTION(nqp::exception());
+                    $state.quit().(ex) if $state.quit;
+                    $state.get-and-zero-active();
+                    self!teardown($state);
+                }
+                nqp::handle(code(),
+                    'EMIT', $emitter(),
+                    'DONE', $done(),
+                    'CATCH', $catch(),
+                    'NEXT', 0);
+            });
         }
 
         method !deactivate-one($state) {
-            $state.lock.protect({
-                if --$state.active == 0 {
+            $state.run-operation({
+                if $state.decrement-active() == 0 {
                     $state.done().() if $state.done;
                     self!teardown($state);
                 }
@@ -1676,17 +1812,21 @@ sub SUPPLY(&block) {
         }
 
         method !teardown($state) {
-            .close for $state.active-taps.values;
-            $state.active-taps = ();
-            while $state.close-phasers.pop() -> $close {
-                $close();
+            .close for $state.consume-active-taps;
+            my @close-phasers := $state.close-phasers;
+            while @close-phasers {
+                @close-phasers.pop()();
             }
         }
 
-        method live { False }
-        method sane { True }
-        method serial { True }
-    }.new(:&block))
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+}
+
+sub SUPPLY(&block) {
+    Supply.new(Rakudo::Internals::SupplyBlockTappable.new(:&block))
 }
 
 sub WHENEVER(Supply() $supply, &block) {

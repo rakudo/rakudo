@@ -8,6 +8,9 @@ gen-version.pl -- script to generate version information for HLL compilers
 
 use POSIX 'strftime';
 
+my $prefix = shift;
+my $libdir = shift;
+
 open(my $fh, '<', 'VERSION') or die $!;
 my $VERSION = <$fh>;
 close($fh);
@@ -31,6 +34,8 @@ sub hll-config(\$config) {
     \$config<codename>         := '$codename';
     \$config<build-date>       := '$builddate';
     \$config<language_version> := '6.c';
+    \$config<prefix>           := '$prefix';
+    \$config<libdir>           := '$libdir';
 }
 END_VERSION
 

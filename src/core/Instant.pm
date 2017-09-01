@@ -12,7 +12,13 @@ my class Instant is Cool does Real {
 
     method new(*@) { X::Cannot::New.new(class => self).throw }
 
-    method from-posix($posix, Bool $prefer-leap-second = False) {
+    proto method from-posix(|) { * }
+    multi method from-posix($posix) {
+        nqp::create(Instant).SET-SELF(
+          Rakudo::Internals.tai-from-posix($posix,0).Rat
+        )
+    }
+    multi method from-posix($posix, Bool $prefer-leap-second) {
     # $posix is in general not expected to be an integer.
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
@@ -36,11 +42,13 @@ my class Instant is Cool does Real {
     }
     method Bridge(Instant:D:) { $!tai.Bridge }
     method Num   (Instant:D:) { $!tai.Num    }
+    method Rat   (Instant:D:) { $!tai        }
     method Int   (Instant:D:) { $!tai.Int    }
     method narrow(Instant:D:) { $!tai.narrow }
 
-    method Date(Instant:D:)        { Date.new(self)         }
-    method DateTime(Instant:D: |c) { DateTime.new(self, |c) }
+    method Date(Instant:D:)     { Date.new(self)     }
+    method DateTime(Instant:D:) { DateTime.new(self) }
+    method Instant() { self }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {
@@ -104,11 +112,15 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 sub term:<now>() {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
-    Instant.from-posix: nqp::time_n
+    nqp::create(Instant).SET-SELF(
+      Rakudo::Internals.tai-from-posix(nqp::time_n,0).Rat
+    )
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INITTIME', {
-    PROCESS::<$INITTIME> := Instant.from-posix: Rakudo::Internals.INITTIME;
+    PROCESS::<$INITTIME> := nqp::create(Instant).SET-SELF(
+      Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

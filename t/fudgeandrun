@@ -2,43 +2,22 @@
 use strict;
 use warnings;
 
-use Getopt::Long;
+use FindBin qw($Bin);
 
-GetOptions(
-    'backend=s' => \my $backend,
-);
+######################################################################
+# This is where fudgeandrun was when it was a rakudo utility.
+# It has since been recoded for implementation independence and
+# moved to roast.  This stub is here to limit disruption from
+# the move.
+######################################################################
 
-if ($backend) {
-    if ($backend =~ /^(jvm|moar)/i) {
-        $backend = lc $1;
-    }
-    else {
-        die "Unsupported backed '$backend'. Known backends: jvm, moar\n";
-    }
-}
-else {
-    my $version = `./perl6 --version`;
-    $backend = ($version =~ /jvm/i) ? "jvm" : 'moar';
-}
+my $roast_far = "$Bin/spec/fudgeandrun";
+-e $roast_far or
+    die "fudgeandrun has moved to roast but does not seem to be there. ",
+        "Perhaps updating roast (t/spec) will help.\n";
 
-my $impl = "rakudo.$backend";
+exec $^X, $roast_far, @ARGV or die "Could not exec $roast_far: $!"
+    unless $^O eq 'MSWin32';
+system($^X, $roast_far, @ARGV) == 0 or
+    die "Could not run $roast_far: $?";
 
-my @OPTS = ('--keep-exit-code', $impl);
-
-if (@ARGV) {
-    my $file = $ARGV[0];
-    if (! -e $file) {
-        my $spec = "t/spec/$file";
-        if (-e $spec) {
-            $ARGV[0] = $spec;
-        }
-    }
-}
-
-my $nt = `t/spec/fudge @OPTS @ARGV`;
-# uninstalled rakudo doesn't know how to find Test.pm
-# ... or any other modules
-my $pwd = `pwd`; chomp $pwd;
-$ENV{PERL6LIB}="$pwd/lib:.";
-my $first = substr($backend, 0, 1);
-system("./perl6-$first", split ' ', $nt);

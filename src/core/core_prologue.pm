@@ -3,9 +3,11 @@ my class Pair { ... }
 my class Whatever { ... }
 my class HyperWhatever { ... }
 my class WhateverCode { ... }
-my class Cursor { ... }
+my class Match { ... }
 my class Failure { ... }
 my class Rakudo::Internals { ... }
+my class Rakudo::Internals::JSON { ... }
+my class Rakudo::Iterator { ... }
 my class X::Numeric::Overflow { ... }
 my class X::Numeric::Underflow { ... }
 
@@ -22,6 +24,13 @@ my role PositionalBindFailover { ... }
 my class IterationBuffer is repr('VMArray') { ... }
 my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
     List, '$!reified', nqp::create(IterationBuffer));
+
+# We use a sentinel value to mark the end of an iteration.
+my constant IterationEnd = nqp::create(Mu);
+
+# To allow passing of nqp::hash without being HLLized, we create a HLL class
+# with the same low level REPR as nqp::hash.
+my class Rakudo::Internals::IterationSet is repr('VMHash') { }
 
 # The value for \n.
 my constant $?NL = "\x0A";

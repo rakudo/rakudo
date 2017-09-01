@@ -1,10 +1,8 @@
-
-# L<S01/"Random Thoughts"/specifically tell it you're running Perl 6>
 use v6;
 
+# L<S01/"Random Thoughts"/specifically tell it you're running Perl 6>
 
 # Checking that testing is sane: TAP output
-
 say '1..10';
 
 say 'ok 1';

@@ -1,87 +1,130 @@
+my role Rational does Rational[Int] { }
+my role Rational[::T] does Rational[T,T] { }
 my role Rational[::NuT, ::DeT] does Real {
     has NuT $.numerator   = 0;
     has DeT $.denominator = 1;
 
     multi method WHICH(Rational:D:) {
         nqp::box_s(
-            nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
-                nqp::concat(
-                    nqp::tostr_I($!numerator),
-                    nqp::concat('/', nqp::tostr_I($!denominator))
-                )
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Rational),
+              'Rational|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ObjAt
-        );
+            nqp::concat(
+              nqp::tostr_I($!numerator),
+              nqp::concat('/', nqp::tostr_I($!denominator))
+            )
+          ),
+          ObjAt
+        )
     }
 
     method new(NuT \nu = 0, DeT \de = 1) {
-        my $new     := nqp::create(self);
-        my $gcd     := de == 0 ?? 1 !! nu gcd de;
-        my $numerator   = nu div $gcd;
-        my $denominator = de div $gcd;
-        if $denominator < 0 {
-            $numerator   = -$numerator;
-            $denominator = -$denominator;
+        my $new := nqp::create(self);
+
+        # 0 denominator take it verbatim to support Inf/-Inf/NaN
+        if de == 0 {
+            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont(nu));
+            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont(de));
         }
-        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::decont($numerator));
-        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::decont($denominator));
-        $new;
+
+        # normalize
+        else {
+            my $gcd        := nu gcd de;
+            my $numerator   = nu div $gcd;
+            my $denominator = de div $gcd;
+            if $denominator < 0 {
+                $numerator   = -$numerator;
+                $denominator = -$denominator;
+            }
+            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont($numerator));
+            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont($denominator));
+        }
+
+        $new
     }
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
-        $!denominator == 0
-          ?? ($!numerator < 0 ?? -Inf !! Inf)
-          !! nqp::p6box_n(nqp::div_In(
-                nqp::decont($!numerator),
-                nqp::decont($!denominator)
-             ));
+        nqp::istype($!numerator,Int)
+          ?? nqp::p6box_n(nqp::div_In(
+               nqp::decont($!numerator),
+               nqp::decont($!denominator)
+             ))
+          !! $!numerator
     }
 
     method floor(Rational:D:) {
-        # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
-        # correct formula
+        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
     }
 
-    method Int() { self.truncate }
-
+    method Int() {
+        $!denominator
+            ?? self.truncate
+            !! fail X::Numeric::DivideByZero.new:
+                   :details('when coercing Rational to Int')
+    }
     method Bridge() { self.Num }
+    method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
+    method isNaN {
+        nqp::p6bool(
+            nqp::isfalse(self.numerator) && nqp::isfalse(self.denominator)
+        )
+    }
 
     multi method Str(::?CLASS:D:) {
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
-        $r -= $i;
-        $s ~= $i;
-        if $r {
-            $s ~= '.';
-            my $want = $!denominator < 100_000
-                       ?? 6
-                       !! $!denominator.Str.chars + 1;
-            my $f = '';
-            while $r and $f.chars < $want {
-                $r *= 10;
-                $i = $r.floor;
-                $f ~= $i;
-                $r -= $i;
+        if nqp::istype($!numerator,Int) {
+            my $whole  = self.abs.floor;
+            my $fract  = self.abs - $whole;
+
+            # fight floating point noise issues RT#126016
+            if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+            my $result = nqp::if(
+                nqp::islt_I($!numerator, 0), '-', ''
+            ) ~ $whole;
+
+            if $fract {
+                my $precision = $!denominator < 100_000
+                    ?? 6 !! $!denominator.Str.chars + 1;
+
+                my $fract-result = '';
+                while $fract and $fract-result.chars < $precision {
+                    $fract *= 10;
+                    given $fract.floor {
+                        $fract-result ~= $_;
+                        $fract        -= $_;
+                    }
+                }
+                $fract-result++ if 2*$fract >= 1; # round off fractional result
+
+                $result ~= '.' ~ $fract-result;
             }
-            $f++ if  2 * $r >= 1;
-            $s ~= $f;
+            $result
         }
-        $s;
+        else {
+            $!numerator.Str
+        }
     }
 
     method base($base, Any $digits? is copy) {
+        # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
+        # instead of throwing (which happens in the .log() call before we reach Int.base
+        2 <= $base <= 36 or Failure.new(X::OutOfRange.new(
+            what => "base argument to base", :got($base), :range<2..36>)
+        );
+
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;
@@ -97,7 +140,8 @@ my role Rational[::NuT, ::DeT] does Real {
             }
             else {
                 fail X::OutOfRange.new(
-                    what => 'digits argument to base', got => $digits, range => "0..*"
+                    :what('digits argument to base'), :got($digits),
+                    :range<0..^Inf>,
                 )
             }
         }
@@ -105,40 +149,39 @@ my role Rational[::NuT, ::DeT] does Real {
             $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
         }
 
-        my $s = $!numerator < 0 ?? '-' !! '';
-        my $r = self.abs;
-        my $i = $r.floor;
+        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
+        my $whole = self.abs.floor;
+        my $fract = self.abs - $whole;
+
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
+        my $result = $sign ~ $whole.base($base);
         my @conversion := <0 1 2 3 4 5 6 7 8 9
                            A B C D E F G H I J
                            K L M N O P Q R S T
                            U V W X Y Z>;
-        $r -= $i;
-        if $digits // $r {
-            my @f;
-            my $p = $i.base($base);
-            while @f < $prec and ($digits // $r) {
-                $r *= $base;
-                my $d = $r.floor;
-                push @f, $d;
-                $r -= $d;
-            }
-            if 2 * $r >= 1 {
-                for @f-1 ... 0 -> $x {
-                    last if ++@f[$x] < $base;
-                    @f[$x] = 0;
-                    $p = ($i+1).base($base) if $x == 0;
-                }
-            }
-            $s ~= $p;
-            if @f {
-                $s ~= '.';
-                $s ~= @conversion[@f].join;
+
+        my @fract-digits;
+        while @fract-digits < $prec and ($digits // $fract) {
+            $fract *= $base;
+            my $digit = $fract.floor;
+            push @fract-digits, $digit;
+            $fract -= $digit;
+        }
+
+        # Round the final number, based on the remaining fractional part
+        if 2*$fract >= 1 {
+            for @fract-digits-1 ... 0 -> $n {
+                last if ++@fract-digits[$n] < $base;
+                @fract-digits[$n] = 0;
+                $result = $sign ~ ($whole+1).base($base) if $n == 0;
             }
         }
-        else {
-            $s ~= $i.base($base);
-        }
-        $s;
+
+        @fract-digits
+            ?? $result ~ '.' ~ @conversion[@fract-digits].join
+            !! $result;
     }
 
     method base-repeating($base = 10) {
@@ -169,7 +212,7 @@ my role Rational[::NuT, ::DeT] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self }
+    method norm() { self.REDUCE-ME; self }
 
     method narrow(::?CLASS:D:) {
         self.REDUCE-ME;
@@ -178,7 +221,7 @@ my role Rational[::NuT, ::DeT] does Real {
             !! self;
     }
 
-    method REDUCE-ME() {
+    method REDUCE-ME(--> Nil) {
         if $!denominator > 1 {
             my $gcd = $!denominator gcd $!numerator;
             if $gcd > 1 {

@@ -37,11 +37,14 @@ class Deprecation {
         for %.callsites.kv -> $file, $lines {
             $message ~=
               "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
-            $message ~=
-              "Deprecated since v$.from, will be removed {$.removed
-                ?? 'with release v' ~ $.removed ~ '!'
-                !! 'sometime in the future'
-              }\n" if $.from;
+            if $.from or $.removed {
+                $message ~= $.from
+                  ?? "Deprecated since v$.from, will be removed"
+                  !! "Will be removed";
+                $message ~= $.removed
+                  ?? " with release v$.removed!\n"
+                  !! " sometime in the future\n";
+            }
         }
         $message ~= "Please use $.alternative instead.\n";
         $message;
@@ -56,14 +59,22 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
     my Version $vremoved;
     if $from {
         $vfrom = Version.new($from);
-        return if ($version cmp $vfrom) ~~ Less | Same; # can be better?
+        return unless $version cmp $vfrom === More;
     }
     $vremoved = Version.new($removed) if $removed;
 
     my $bt = Backtrace.new;
     my $deprecated =
       $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
-    $index = $bt.next-interesting-index($index, :noproto, :setting) for ^$up;
+
+    if $up ~~ Whatever {
+        $index = $_ with $bt.next-interesting-index($index, :noproto);
+    }
+    else {
+        $index = $_
+          with $bt.next-interesting-index($index, :noproto, :setting)
+          for ^$up;
+    }
     my $callsite = $bt[$index];
 
     # get object, existing or new

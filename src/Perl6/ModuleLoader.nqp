@@ -1,9 +1,11 @@
-my $DEBUG := +nqp::ifnull(nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG'), 0);
+my $rakudo-module-debug := nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
+my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0)),($debug-radix[2] != -1))
+?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);
 sub DEBUG(*@strs) {
-    my $err := nqp::getstderr();
-    nqp::printfh($err, "     " ~ nqp::getpid() ~ " RMD: ");
-    for @strs { nqp::printfh($err, $_) };
-    nqp::printfh($err, "\n");
+    my $err := stderr();
+    $err.print(" " ~ $rakudo-module-debug ~ nqp::x(" ", ($rakudo-module-debug - 1) * 4) ~ " RMD: ");
+    for @strs { $err.print($_) };
+    $err.print("\n");
     1;
 }
 
@@ -36,14 +38,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     method search_path() {
-        DEBUG('Setting up default paths: . blib') if $DEBUG;
-        my @search_paths;
-        @search_paths.push('.');
-        @search_paths.push('blib');
-        for self.vm_search_paths() {
-            @search_paths.push($_);
-        }
-        @search_paths
+        self.vm_search_paths()
     }
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
@@ -54,9 +49,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            $file := nqp::stat("blib/$file", 0)
-                ?? "blib/$file"
-                !! nqp::backendconfig<prefix> ~ '/share/nqp/lib/' ~ $file;
+            my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
+            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<libdir> ~ '/nqp/lib/') ~ $file;
+
+            if nqp::existskey(%modules_loaded, $file) {
+                return nqp::ctxlexpad(%modules_loaded{$file});
+            }
+
             nqp::loadbytecode($file);
             %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
             nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
@@ -97,6 +96,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     # moment. We'll see how far this takes us.
     my $stub_how := 'Perl6::Metamodel::PackageHOW';
     my $nqp_stub_how := 'KnowHOW';
+    sub is_stub($how) {
+        $how.HOW.name($how) eq $stub_how || $how.HOW.name($how) eq $nqp_stub_how
+    }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
@@ -113,12 +115,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $source_mo := $_.value.HOW;
-                my $source_is_stub := $source_mo.HOW.name($source_mo) eq $stub_how
-                                   || $source_mo.HOW.name($source_mo) eq $nqp_stub_how;
-                my $target_mo := ($target){$sym}.HOW;
-                my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how
-                                   || $target_mo.HOW.name($target_mo) eq $nqp_stub_how;
+                my $source_is_stub := is_stub($_.value.HOW);
+                my $target_is_stub := is_stub(($target){$sym}.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
@@ -139,6 +137,67 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 elsif nqp::eqat($_.key, '&', 0) {
                     # "Latest wins" semantics for functions
                     ($target){$sym} := $_.value;
+                }
+                else {
+                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                }
+            }
+        }
+    }
+    method merge_globals_lexically($world, $target, $source) {
+        # Start off merging top-level symbols. Easy when there's no
+        # overlap. Otherwise, we need to recurse.
+        my %known_symbols;
+        for $target.symtable {
+            %known_symbols{$_.key} := $_.value<value>;
+        }
+        for stash_hash($source) {
+            my $sym := $_.key;
+            my $outer := 0;
+            if !nqp::existskey(%known_symbols, $sym) {
+                try {
+                    %known_symbols{$sym} := $world.find_symbol([$sym]);
+                    $outer := 1;
+                }
+            }
+            if !nqp::existskey(%known_symbols, $sym) {
+                $target.symbol($sym, :scope('lexical'), :value($_.value));
+                $target[0].push(QAST::Var.new(
+                    :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
+                ));
+                $world.add_object_if_no_sc($_.value);
+            }
+            elsif nqp::decont(%known_symbols{$_.key}) =:= nqp::decont($_.value) { # Stash entries are containerized
+                # No problemo; a symbol can't conflict with itself.
+            }
+            else {
+                my $existing := %known_symbols{$_.key};
+                my $source_is_stub := is_stub($_.value.HOW);
+                my $target_is_stub := is_stub($existing.HOW);
+                if $source_is_stub && $target_is_stub {
+                    # Both stubs. We can safely merge the symbols from
+                    # the source into the target that's importing them.
+                    self.merge_globals($existing.WHO, $_.value.WHO);
+                }
+                elsif $source_is_stub {
+                    # The target has a real package, but the source is a
+                    # stub. Also fine to merge source symbols into target.
+                    self.merge_globals($existing.WHO, $_.value.WHO);
+                }
+                elsif $target_is_stub {
+                    # The tricky case: here the interesting package is the
+                    # one in the module. So we merge the other way around
+                    # and install that as the result.
+                    self.merge_globals($_.value.WHO, $existing.WHO);
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                }
+                elsif nqp::eqat($_.key, '&', 0) {
+                    # "Latest wins" semantics for functions
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                }
+                elsif $outer {
+                    # It's ok to overwrite non-stub symbols of outer lexical scopes
+                    $target.symbol($sym, :scope('lexical'), :value($_.value));
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");

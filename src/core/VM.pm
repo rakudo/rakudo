@@ -12,7 +12,6 @@ class VM does Systemic {
     has $.prefix;
     has $.precomp-ext;
     has $.precomp-target;
-    has $.precomp-dir;
 
     submethod BUILD(
       :$!config,
@@ -37,26 +36,21 @@ class VM does Systemic {
         $!prefix         = $!properties<perl6.prefix>;
         $!precomp-ext    = "jar";
         $!precomp-target = "jar";
+        $!config<os.name> = $!properties<os.name> // "unknown";
 #?endif
-        $!precomp-dir    = $!prefix ~ '/' ~ '.precomp' ~ '/' ~ $?COMPILATION-ID;
 # add new backends here please
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
-        my $is-win = Rakudo::Internals.IS-WIN;
-#?if !jvm
-        my $is-darwin = $*VM.config<osname> eq 'darwin';
-#?endif
-#?if jvm
-        my $is-darwin = $*VM.config<os.name> eq 'darwin';
-#?endif
+        my int $is-win = Rakudo::Internals.IS-WIN;
+        my int $is-darwin = self.osname eq 'darwin';
 
         my $basename  = $library.basename;
-        my $full-path = $library ne $basename;
+        my int $full-path = $library ne $basename;
         my $dirname   = $library.dirname;
 
         # OS X needs version before extension
-        $basename ~= ".$version" if $version.defined and $is-darwin;
+        $basename ~= ".$version" if $is-darwin && $version.defined;
 
 #?if moar
         my $dll = self.config<dll>;
@@ -64,13 +58,33 @@ class VM does Systemic {
 #?endif
 #?if jvm
         my $prefix = $is-win ?? '' !! 'lib';
-        my $platform-name = "$prefix$basename.{self.config<nativecall.so>}";
+        my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
 #?endif
 
-        $platform-name ~= '.' ~ $version.Str
-            if $version.defined and not $is-darwin and not $is-win;
+        $platform-name ~= '.' ~ $version
+            if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
-        $full-path ?? $dirname.IO.child($platform-name).abspath !! $platform-name.IO;
+        $full-path
+          ?? $dirname.IO.add($platform-name).absolute
+          !! $platform-name.IO
+    }
+
+    proto method osname(|) { * }
+    multi method osname(VM:U:) {
+#?if jvm
+        nqp::lc(nqp::atkey(nqp::jvmgetproperties,'os.name'))
+#?endif
+#?if !jvm
+        nqp::lc(nqp::atkey(nqp::backendconfig,'osname'))
+#?endif
+    }
+    multi method osname(VM:D:) {
+#?if jvm
+        nqp::lc($!properties<os.name>)
+#?endif
+#?if !jvm
+        nqp::lc($!config<osname>)
+#?endif
     }
 }
 
@@ -84,12 +98,10 @@ sub INITIALIZE-A-VM-NOW() {
         my %CONFIG;
         my $jenv := nqp::backendconfig();
         my Mu $enviter := nqp::iterator($jenv);
-        my $envelem;
         my $key;
         while $enviter {
-            $envelem := nqp::shift($enviter);
-            $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($enviter));
         }
         %CONFIG;
     }
@@ -97,12 +109,10 @@ sub INITIALIZE-A-VM-NOW() {
         my %PROPS;
         my $jenv := nqp::jvmgetproperties();
         my Mu $enviter := nqp::iterator($jenv);
-        my $envelem;
         my $key;
         while $enviter {
-            $envelem := nqp::shift($enviter);
-            $key = nqp::p6box_s(nqp::iterkey_s($envelem));
-            %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %PROPS{$key} = nqp::p6box_s(nqp::iterval($enviter));
         }
         %PROPS;
     }

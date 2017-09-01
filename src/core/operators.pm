@@ -44,6 +44,13 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
 
+# we need this candidate tighter than infix:<cmp>(Real:D, Real:D)
+# but can't yet use `is default` at the place where that candidate
+# is defined because it uses `infix:<does>`
+multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
+    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
+}
+
 proto sub infix:<but>(|) is pure { * }
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -103,18 +110,16 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 }
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
-    my \righti := nqp::iscont(right)
-        ?? right.iterator
-        !! [right].iterator;
-    my $endpoint := righti.pull-one;
-    X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
-      if $endpoint =:= IterationEnd;
-    $endpoint.sink if $endpoint ~~ Failure;
+    my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
+    my $endpoint := righti.pull-one.self; # .self explodes Failures
+    $endpoint =:= IterationEnd and X::Cannot::Empty.new(
+        :action('get sequence endpoint'),
+        :what('list (use * or :!elems instead?)'),
+    ).throw;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
-    $endpoint := Bool::False if $infinite;
-    my @tail;
+    $endpoint := False if $infinite;
+
     my $end_code_arity = 0;
-    my @end_tail;
     if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
@@ -127,7 +132,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             $cmp < 0 && $a ~~ Stringy
                 ?? -> $x {
                     my $new = $x.succ;
-                    last if $new after $endpoint or $new.chars > $endpoint.chars;
+                    last if $new       after $endpoint
+                         or $new.chars >     $endpoint.chars;
                     $new;
                 }
                 !! $cmp < 0
@@ -145,20 +151,16 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         !! { $_ }
         }
         else {
-            $cmp < 0
-                ?? { $^x.succ }
-                !! $cmp > 0
-                    ?? { $^x.pred }
-                    !! { $^x }
+               $cmp < 0 ?? { $^x.succ }
+            !! $cmp > 0 ?? { $^x.pred }
+            !!             { $^x      }
         }
     }
     my sub unisuccpred($a,$b) {
         my $cmp = $a.ord cmp $b.ord;
-        $cmp < 0
-            ?? { $^x.ord.succ.chr }
-            !! $cmp > 0
-                ?? { $^x.ord.pred.chr }
-                !! { $^x }
+           $cmp < 0 ?? { $^x.ord.succ.chr }
+        !! $cmp > 0 ?? { $^x.ord.pred.chr }
+        !!             { $^x              }
     }
 
     my \gathered = GATHER({
@@ -167,13 +169,17 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         my $code;
         my $stop;
         my $looped;
+        my @tail;
+        my @end_tail;
         while !((my \value := lefti.pull-one) =:= IterationEnd) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
-                    @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                    @end_tail.shift xx (@end_tail.elems - $end_code_arity)
+                        unless $end_code_arity ~~ -Inf;
+
                     if $endpoint(|@end_tail) {
                         $stop = 1;
                         @tail.push(value) unless $exclude_end;
@@ -188,8 +194,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             }
             @tail.push(value);
         }
-        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
-          unless $looped;
+        X::Cannot::Empty.new(
+            :action('get sequence start value'), :what('list')
+        ).throw unless $looped;
+
         if $stop {
             take $_ for @tail;
         }
@@ -207,14 +215,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             if $code.defined { }
             elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
-                    if @tail[*-1].WHAT === $endpoint.WHAT {
-                        $code = succpred(@tail[*-1], $endpoint);
-                    }
-                    else {
-                        $code = succpred(@tail[*-2], @tail[*-1]);
-                    }
+                    $code = @tail.tail.WHAT === $endpoint.WHAT
+                        ?? succpred(@tail.tail, $endpoint)
+                        !! succpred(@tail[*-2], @tail.tail);
                 }
-                elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
+                elsif nqp::istype($endpoint, Stringy)
+                  and nqp::istype($a, Stringy)
+                  and nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {
                         $code = unisuccpred($a, $endpoint);
                     }
@@ -232,7 +239,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         $stop = 1 if $a gt $endpoint;
                         $code = -> $x {
                             my $new = $x.succ;
-                            last if $new gt $endpoint or $new.chars > $endpoint.chars;
+                            last if $new       gt $endpoint
+                                 or $new.chars >  $endpoint.chars;
                             $new;
                         }
                     }
@@ -255,8 +263,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
-                    if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
-                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                    if $ab != 0
+                    || nqp::istype($a,Real)
+                    && nqp::istype($b,Real)
+                    && nqp::istype($c,Real) {
+                        if      nqp::istype($endpoint, Real)
+                        and not nqp::istype($endpoint, Bool)
+                        and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
                                 $code = -> $x {
@@ -285,8 +298,17 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 elsif $a != 0 && $b != 0 && $c != 0 {
                     $ab = $b / $a;
                     if $ab == $c / $b {
-                        $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
-                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                        # XXX TODO: this code likely has a 2 bugs:
+                        # 1) It should check Rational, not just Rat
+                        # 2) Currently Rats aren't guaranteed to be always
+                        #    normalized, so denominator might not be 1, even if
+                        #    it could be, if normalized
+                        $ab = $ab.Int
+                            if nqp::istype($ab, Rat) && $ab.denominator == 1;
+
+                        if      nqp::istype($endpoint, Real)
+                        and not nqp::istype($endpoint, Bool)
+                        and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
@@ -309,7 +331,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                                 $code = -> $x {
                                     my $new = $x * $ab;
                                     my $absend = $endpoint.abs;
-                                    last if sign($x.abs - $absend) == -sign($new.abs - $absend);
+                                    last if sign(  $x.abs - $absend)
+                                        == -sign($new.abs - $absend);
                                     $new;
                                 }
                             }
@@ -330,7 +353,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 2 {
                 my $ab = $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                    if      nqp::istype($endpoint, Real)
+                    and not nqp::istype($endpoint, Bool)
+                    and     nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
                             $code = -> $x {
@@ -358,10 +383,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 @tail.pop;
             }
             elsif @tail.elems == 1 {
-                if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
+                if     nqp::istype($endpoint,Code)
+                or not nqp::isconcrete($endpoint) {
                     $code = { $^x.succ }
                 }
-                elsif nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::istype($a, Real) {
+                elsif   nqp::istype($endpoint, Real)
+                and not nqp::istype($endpoint, Bool)
+                and     nqp::istype($a, Real) {
                     if $a < $endpoint {
                         $code = -> $x {
                             my $new = $x.succ;
@@ -393,10 +421,15 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 until $stop {
                     @tail.shift while @tail.elems > $count;
                     my \value = $code(|@tail);
+
                     if $end_code_arity != 0 {
                         @end_tail.push(value);
+
                         if @end_tail.elems >= $end_code_arity {
-                            @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
+                            @end_tail.shift xx (
+                                @end_tail.elems - $end_code_arity
+                            ) unless $end_code_arity == -Inf;
+
                             if $endpoint(|@end_tail) {
                                 value.take unless $exclude_end;
                                 $stop = 1;
@@ -419,7 +452,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 die X::Sequence::Deduction.new(:from($badseq));
             }
             else {
-                die X::Sequence::Deduction.new();
+                die X::Sequence::Deduction.new;
             }
         }
     });
@@ -536,92 +569,212 @@ sub prefix:<let>(\cont) is raw {
     cont
 }
 
-# not sure where this should go
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
-    # note that each part of @chunks itself can
-    # contain double colons. That's why joining and
-    # re-splitting is necessary
-    my Str $name = @chunks.join('::');
-    my @parts    = $name.split('::');
-    my $first    = @parts.shift;
-    if @parts && '$@%&'.index(substr($first,0, 1)).defined {
-        # move sigil from first to last chunk, because
-        # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
-        my $last_idx      = @parts.end;
-        @parts[$last_idx] = substr($first,0, 1) ~ @parts[$last_idx];
-        $first            = substr($first,1);
-        if $first eq '' {
-            $first = @parts.shift;
-            $name = @chunks.join('::');
-        }
-    }
-    my Mu $thing := $root.EXISTS-KEY($first) ?? $root{$first} !!
-                    GLOBAL::.EXISTS-KEY($first) ?? GLOBAL::{$first} !!
-                    X::NoSuchSymbol.new(symbol => $name).fail;
-    for @parts {
-        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.EXISTS-KEY($_);
-        $thing := $thing.WHO{$_};
-    }
-    $thing;
+    nqp::if(
+      # Note that each part of @chunks itself can contain double colons.
+      # That's why joining and re-splitting is necessary
+      nqp::elems(my $parts :=
+        nqp::split('::',my str $name = @chunks.join('::'))),
+      nqp::stmts(
+        (my str $first = nqp::shift($parts)),
+        nqp::if( # move the sigil to the last part of the name if available
+          nqp::elems($parts),
+          nqp::stmts(
+            (my str $sigil = nqp::substr($first,0,1)),
+            nqp::if(
+              nqp::iseq_s($sigil,'$')
+                || nqp::iseq_s($sigil,'@')
+                || nqp::iseq_s($sigil,'%')
+                || nqp::iseq_s($sigil,'&'),
+              nqp::stmts(
+                nqp::push($parts,
+                  nqp::concat($sigil,nqp::unbox_s(nqp::pop($parts)))),
+                ($first = nqp::substr($first,1))
+              )
+            ),
+            nqp::unless(
+              $first,
+              nqp::stmts(
+                ($first = nqp::shift($parts)),
+                ($name  = nqp::join("::",$parts)),
+              )
+            )
+          )
+        ),
+        (my Mu $thing := nqp::if(
+          $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
+            && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+            && ($REQUIRE_SYMBOLS{$first}:exists),
+          $REQUIRE_SYMBOLS{$first},
+          nqp::if(
+            $root.EXISTS-KEY($first),
+            $root.AT-KEY($first),
+            nqp::if(
+              GLOBAL::.EXISTS-KEY($first),
+              GLOBAL::.AT-KEY($first),
+              nqp::if(
+		nqp::iseq_s($first, 'GLOBAL'),
+		GLOBAL,
+                X::NoSuchSymbol.new(symbol => $name).fail
+              )
+            )
+          ))),
+        nqp::while(
+          nqp::elems($parts),
+          nqp::if(
+            $thing.WHO.EXISTS-KEY(my $part := nqp::shift($parts)),
+            ($thing := $thing.WHO.AT-KEY($part)),
+            X::NoSuchSymbol.new(symbol => $name).fail
+          )
+        ),
+        $thing
+      ),
+      X::NoSuchSymbol.new(symbol => $name).fail
+    )
 }
 
-sub REQUIRE_IMPORT($compunit, *@syms) {
+sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
-    my $GLOBALish := $handle.globalish-package.WHO;
+    my $GLOBALish := $handle.globalish-package;
     my @missing;
+    my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
+        ?? CALLER::MY::
+        !! CALLER::OUTER::;
+
+    my $targetWHO;
+    my $sourceWHO;
+    if $existing-path {
+        my @existing-path = @$existing-path;
+        my $topname := @existing-path.shift;
+        $targetWHO := $top-existing-pkg.WHO;
+        $sourceWHO := $GLOBALish.AT-KEY($topname).WHO;
+        # Yes! the target CAN be the source if it's something like Cool::Utils
+        # because Cool is common to both compunits..so no need to do anything
+        unless $targetWHO === $sourceWHO {
+            # We want to skip over the parts of the Package::That::Already::Existed
+            for @existing-path {
+                $targetWHO := $targetWHO.AT-KEY($_).WHO;
+                $sourceWHO := $sourceWHO.AT-KEY($_).WHO;
+            }
+            # Now we are just above our target stub. If it exists
+            # delete it so it can be replaced by the real one we're importing.
+            if $stubname {
+                $targetWHO.DELETE-KEY($stubname);
+            }
+            $targetWHO.merge-symbols($sourceWHO);
+        }
+    } elsif $stubname {
+        $targetWHO := $block.AT-KEY($stubname).WHO;
+        $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
+        $targetWHO.merge-symbols($sourceWHO);
+    }
     # Set the runtime values for compile time stub symbols
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
             @missing.push: $_;
             next;
         }
-        OUTER::CALLER::{$_} := $DEFAULT{$_};
+        $block{$_} := $DEFAULT{$_};
     }
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
     # Merge GLOBAL from compunit.
-    GLOBAL::.merge-symbols($GLOBALish);
-    Nil;
+    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+        $block<%REQUIRE_SYMBOLS>,
+        $GLOBALish,
+    );
 }
 
 sub infix:<andthen>(+a) {
-    my $ai := a.iterator;
-    my Mu $current := $ai.pull-one;
-    return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty unless $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
-    $current;
+    # We need to be able to process `Empty` in our args, which we can get
+    # when we're chained with, say, `andthen`. Since Empty disappears in normal
+    # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
+    # emulate the `+@foo` slurpy by inspecting the list the op gave us.
+    nqp::if(
+      (my int $els = nqp::elems(my $args := nqp::p6argvmarray)),
+      nqp::stmts(
+        (my $current := nqp::atpos($args, 0)),
+        nqp::if( # emulate the +@foo slurpy
+          nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
+          nqp::stmts(
+            ($args := $current.List),
+            ($current := $args[0]),
+            $els = $args.elems)),
+        (my int $i),
+        nqp::until(
+          nqp::iseq_i($els, $i = nqp::add_i($i, 1))
+          || ( # if $current not defined, set it to Empty and bail from the loop
+            nqp::isfalse($current.defined)
+            && nqp::stmts(($current := Empty), 1)
+          ),
+          ($current := nqp::if(
+            nqp::istype(($_ := $args[$i]), Callable),
+            nqp::if(.count, $_($current), $_()),
+            $_)),
+          :nohandler), # do not handle control stuff in thunks
+        $current), # either the last arg or Empty if any but last were undefined
+      True) # We were given no args, return True
 }
+
 sub infix:<notandthen>(+a) {
-    my $ai := a.iterator;
-    my Mu $current := $ai.pull-one;
-    return Bool::True if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return Empty if $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
-    $current;
+    # We need to be able to process `Empty` in our args, which we can get
+    # when we're chained with, say, `andthen`. Since Empty disappears in normal
+    # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
+    # emulate the `+@foo` slurpy by inspecting the list the op gave us.
+    nqp::if(
+      (my int $els = nqp::elems(my $args := nqp::p6argvmarray)),
+      nqp::stmts(
+        (my $current := nqp::atpos($args, 0)),
+        nqp::if( # emulate the +@foo slurpy
+          nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
+          nqp::stmts(
+            ($args := $current.List),
+            ($current := $args[0]),
+            $els = $args.elems)),
+        (my int $i),
+        nqp::until(
+          nqp::iseq_i($els, $i = nqp::add_i($i, 1))
+          || ( # if $current is defined, set it to Empty and bail from the loop
+            $current.defined
+            && nqp::stmts(($current := Empty), 1)
+          ),
+          ($current := nqp::if(
+            nqp::istype(($_ := $args[$i]), Callable),
+            nqp::if(.count, $_($current), $_()),
+            $_)),
+          :nohandler), # do not handle control stuff in thunks
+        $current), # either the last arg or Empty if any but last were undefined
+      True) # We were given no args, return True
 }
-sub infix:<orelse>(+a) {
-    my $ai := a.iterator;
-    my Mu $current := $ai.pull-one;
-    return Nil if $current =:= IterationEnd;
-    until ($_ := $ai.pull-one) =:= IterationEnd {
-        return $current if $current.defined;
-        $current := $_ ~~ Callable
-            ?? (.count ?? $_($current) !! $_())
-            !! $_;
-    }
-    $current;
+
+sub infix:<orelse>(+$) {
+    # We need to be able to process `Empty` in our args, which we can get
+    # when we're chained with, say, `andthen`. Since Empty disappears in normal
+    # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
+    # emulate the `+@foo` slurpy by inspecting the list the op gave us.
+    nqp::if(
+      (my int $els = nqp::elems(my $args := nqp::p6argvmarray)),
+      nqp::stmts(
+        (my $current := nqp::atpos($args, 0)),
+        nqp::if( # emulate the +@foo slurpy
+          nqp::iseq_i($els, 1) && nqp::istype($current, Iterable),
+          nqp::stmts(
+            ($args := $current.List),
+            ($current := $args[0]),
+            $els = $args.elems)),
+        (my int $i),
+        nqp::until(
+          nqp::iseq_i($els, $i = nqp::add_i($i, 1)) || $current.defined,
+          ($current := nqp::if(
+            nqp::istype(($_ := $args[$i]), Callable),
+            nqp::if(.count, $_($current), $_()),
+            $_)),
+          :nohandler), # do not handle control stuff in thunks
+        $current),
+      Nil) # We were given no args, return Nil
 }
 
 # next three sub would belong to traits.pm if PseudoStash were available
@@ -631,7 +784,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($equiv) ~ '>';
         trait_mod:<is>($r, equiv => ::(nm));
         return;
-    } 
+    }
     die "Routine given to equiv does not appear to be an operator";;
 }
 
@@ -640,7 +793,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($tighter) ~ '>';
         trait_mod:<is>($r, tighter => ::(nm));
         return;
-    } 
+    }
     die "Routine given to tighter does not appear to be an operator";;
 }
 
@@ -649,14 +802,26 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
         my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($looser) ~ '>';
         trait_mod:<is>($r, looser => ::(nm));
         return;
-    } 
+    }
     die "Routine given to looser does not appear to be an operator";;
 }
 
 proto sub infix:<∘> (&?, &?) {*}
 multi sub infix:<∘> () { *.self }
 multi sub infix:<∘> (&f) { &f }
-multi sub infix:<∘> (&f, &g --> Block) { (&f).count > 1 ?? -> |args { f |g |args } !! -> |args { f g |args } }
+multi sub infix:<∘> (&f, &g --> Block:D) {
+    my \ret = &f.count > 1
+        ?? -> |args { f |g |args }
+        !! -> |args { f  g |args }
+
+    my role FakeSignature[$arity, $count, $of] {
+        method arity { $arity }
+        method count { $count }
+        method of    { $of    }
+    }
+    ret.^mixin(FakeSignature[&g.arity, &g.count, &f.of]);
+    ret
+}
 my &infix:<o> := &infix:<∘>;
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,3 +1,5 @@
+my class VM { ... }
+
 my class IO::Spec {
 
     my %module =                # only list the non-Unix ones in lowercase
@@ -14,17 +16,8 @@ my class IO::Spec {
         # 'VMS'     => 'VMS'
     ;
 
-    method select(IO::Spec:U: $token? is copy) {
-
-        # really just a way of getting $*DISTRO.name before we have %*ENV
-        $token //=
-#?if jvm
-          nqp::p6box_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name'));
-#?endif
-#?if moar
-          nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'osname'));
-#?endif
-        IO::Spec::{%module{ lc $token } // 'Unix'};
+    method select(IO::Spec:U: $token?) {
+        IO::Spec::{%module{ lc($token // VM.osname) } // 'Unix'};
     }
 }
 

@@ -18,15 +18,18 @@ compiled code.
   -h, --help           display this help text
   -n                   run program once for each line of input
   -p                   same as -n, but also print $_ at the end of lines
+  -I path              adds the path to the module search path
+  -M module            loads the module prior to running the program
   --target=[stage]     specify compilation stage to emit
+  --optimize=[level]   use the given level of optimization (0..3)
   --encoding=[mode]    specify string encoding mode
-  --output=[name]      specify name of output file
+  -o, --output=[name]  specify name of output file
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
   --profile            write profile information as HTML file (MoarVM)
-  --profile-filename=[name]
-                       specify an alternate profile output file
+  --profile-filename   provide a different filename (also allows .json)
+  --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 Note that only boolean single-letter options may be bundled.
 
@@ -144,5 +147,3 @@ Written by the Rakudo contributors, see the CREDITS file.
 
 This manual page was written by Reini Urban, Moritz Lenz and the Rakudo
 contributors.
-
-=cut

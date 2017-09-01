@@ -1,12 +1,13 @@
 class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does CompUnit::Repository {
     has %!loaded;
     has $!precomp;
+    has $!id;
+    has %!meta;
+    has $!precomp-stores;
+    has $!precomp-store;
 
-    my %extensions =
-      Perl6 => <pm6 pm>,
-      Perl5 => <pm5 pm>,
-      NQP   => <nqp>,
-      JVM   => ();
+    my @extensions = <pm6 pm>;
+    my $extensions := nqp::hash('pm6',1,'pm',1);
 
     # global cache of files seen
     my %seen;
@@ -16,20 +17,15 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $name = $spec.short-name;
             return %!loaded{$name} if %!loaded{$name}:exists;
 
-            my $base := $!prefix.child($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
+            my $base := $!prefix.add($name.subst(:g, "::", $*SPEC.dir-sep) ~ '.').Str;
             return $base if %seen{$base}:exists;
             my $found;
 
             # find source file
             # pick a META6.json if it is there
-            if (my $meta = $!prefix.child('META6.json')) && $meta.f {
+            if not %!meta and (my $meta = $!prefix.add('META6.json')) and $meta.f {
                 try {
-                    my $json = from-json $meta.slurp;
-                    if $json<provides>{$name} -> $file {
-                        my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.child($file);
-                        $found = $path if $path.f;
-                    }
-
+                    %!meta = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     CATCH {
                         when JSONException {
                             fail "Invalid JSON found in META6.json";
@@ -37,11 +33,19 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     }
                 }
             }
-            # deduce path to compilation unit from package name
-            elsif %extensions<Perl6> -> @extensions {
+            if %!meta {
+                if %!meta<provides>{$name} -> $file {
+                    my $path = $file.IO.is-absolute ?? $file.IO !! $!prefix.add($file);
+                    $found = $path if $path.f;
+                }
+            }
+
+            unless ?$found {
+                # deduce path to compilation unit from package name
                 for @extensions -> $extension {
-                    my $path = $base ~ $extension;
-                    $found = $path.IO if IO::Path.new-from-absolute-path($path).f;
+                    my $path = ($base ~ $extension).IO;
+                    $found = $path if $path.f;
+                    last if $found;
                 }
             }
 
@@ -50,22 +54,68 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         False
     }
 
-    method resolve(CompUnit::DependencySpecification $spec) returns CompUnit {
+    method !comp-unit-id($name) {
+        CompUnit::PrecompilationId.new(nqp::sha1($name));
+    }
+
+    method id() {
+        my $parts := nqp::list_s;
+        my $prefix = self.prefix;
+        my $dir  := { .match(/ ^ <.ident> [ <[ ' - ]> <.ident> ]* $ /) }; # ' hl
+        my $file := -> str $file {
+            nqp::eqat($file,'.pm',nqp::sub_i(nqp::chars($file),3))
+            || nqp::eqat($file,'.pm6',nqp::sub_i(nqp::chars($file),4))
+        };
+        nqp::if(
+          $!id,
+          $!id,
+          ($!id = nqp::if(
+            $prefix.e,
+            nqp::stmts(
+              (my $iter := Rakudo::Internals.DIR-RECURSE(
+                $prefix.absolute,:$dir,:$file).iterator),
+              nqp::until(
+                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::filereadable($pulled),
+                  nqp::push_s($parts,nqp::sha1(slurp($pulled, :enc<iso-8859-1>))),
+                )
+              ),
+              nqp::if(
+                (my $next := self.next-repo),
+                nqp::push_s($parts,$next.id),
+              ),
+              nqp::sha1(nqp::join('',$parts))
+            ),
+            nqp::sha1('')
+          ))
+        )
+    }
+
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D) {
         my ($base, $file) = self!matching-file($spec);
+
         return CompUnit.new(
             :short-name($spec.short-name),
-            :repo-id($file.Str),
+            :repo-id(self!comp-unit-id($spec.short-name).Str),
             :repo(self)
         ) if $base;
         return self.next-repo.resolve($spec) if self.next-repo;
         Nil
     }
 
+    method !precomp-stores() {
+        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
+            self.repo-chain.map(*.precomp-store).grep(*.defined)
+        )
+    }
+
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
+
+        --> CompUnit:D)
     {
         my ($base, $file) = self!matching-file($spec);
         if $base {
@@ -73,9 +123,16 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             return %!loaded{$name} if %!loaded{$name}:exists;
             return %seen{$base}    if %seen{$base}:exists;
 
-            my $id = nqp::sha1($name ~ $*REPO.id);
+            my $id = self!comp-unit-id($name);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = $precomp.try-load($id, $file);
+            my $handle = $precomp.try-load(
+                CompUnit::PrecompilationDependency::File.new(
+                    :$id,
+                    :src($file.Str),
+                    :$spec,
+                ),
+                :@precomp-stores,
+            );
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($file); # precomp failed
 
@@ -83,25 +140,25 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 :short-name($name),
                 :$handle,
                 :repo(self),
-                :repo-id($id),
+                :repo-id($id.Str),
                 :$precompiled,
             );
         }
 
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
-    method load(IO::Path:D $file) returns CompUnit:D {
+    method load(IO::Path:D $file --> CompUnit:D) {
         unless $file.is-absolute {
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
             my $precompiled =
               $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
-            my $path = $!prefix.child($file);
+            my $path = $!prefix.add($file);
 
             if $path.f {
-                return %!loaded{$file} = %seen{$path} = CompUnit.new(
+                return %!loaded{$file.Str} //= %seen{$path.Str} = CompUnit.new(
                     :handle(
                         $precompiled
                             ?? CompUnit::Loader.load-precompilation-file($path)
@@ -121,7 +178,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method short-id() { 'file' }
 
-    method loaded() returns Iterable {
+    method loaded(--> Iterable:D) {
         return %!loaded.values;
     }
 
@@ -133,16 +190,29 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method resource($dist-id, $key) {
-        $.prefix.parent.child('resources').child($key);
+        # We now save the 'resources/' part of a resource's path in files, i.e:
+        # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
+        # but we also want to root any path request to the CUR's resources directory
+
+        # When $.prefix points at a directory containing a meta file (eg. -I.)
+        return $.prefix.add( %!meta<files>{$key} )
+            if %!meta<files> && %!meta<files>{$key};
+        return $.prefix.add( $key )
+            if %!meta<resources> && %!meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
+
+        # When $.prefix is presumably the 'lib' folder (eg. -Ilib)
+        return $.prefix.parent.add($key);
     }
 
-    method precomp-repository() returns CompUnit::PrecompilationRepository {
+    method precomp-store(--> CompUnit::PrecompilationStore:D) {
+        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
+            :prefix(self.prefix.add('.precomp')),
+        )
+    }
+
+    method precomp-repository(--> CompUnit::PrecompilationRepository:D) {
         $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(
-                CompUnit::PrecompilationStore::File.new(
-                    :prefix(self.prefix.child('.precomp')),
-                )
-            ),
+            :store(self.precomp-store),
         ) unless $!precomp;
         $!precomp
     }

@@ -37,7 +37,7 @@ MAIN: {
                'backends=s', 'no-clean!',
                'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
-               'git-protocol=s',
+               'git-protocol=s', 'ignore-errors',
                'make-install!', 'makefile-timing!',
                'git-depth=s', 'git-reference=s',
     ) or do {
@@ -50,7 +50,9 @@ MAIN: {
         print_help();
         exit(0);
     }
-
+    if ($options{'ignore-errors'}) {
+        print "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
+    }
     unless (defined $options{prefix}) {
         my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
         print "ATTENTION: no --prefix supplied, building and installing to $default\n";
@@ -324,7 +326,7 @@ MAIN: {
         "Or, use '--prefix=' to explicitly specify the path where the NQP$want_executables",
         "executable$s2 can be found that are use to build $lang.";
     }
-    sorry(@errors) if @errors;
+    sorry($options{'ignore-errors'}, @errors) if @errors;
 
     my $l = uc substr($default_backend, 0, 1);
     print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS5_WITH_FUDGE) --verbosity=1 \$\@\n];
@@ -405,6 +407,7 @@ General Options:
                        Folders 'nqp' and 'MoarVM' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
     --no-clean         Skip cleanup before installation
+    --ignore-errors    Ignore errors (such as the version of NQP)
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

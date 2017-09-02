@@ -23,8 +23,11 @@ our @required_nqp_files = qw(
 );
 
 sub sorry {
-    my @msg = @_;
-    die join("\n", '', '===SORRY!===', @msg, "\n");
+    my ($ignore_errors, @msg) = @_;
+    my $message = join("\n", '', '===SORRY!===', @msg, "\n");
+    die $message
+        unless $ignore_errors;
+    print $message;
 }
 
 sub slurp {

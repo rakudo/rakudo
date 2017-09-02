@@ -22,7 +22,7 @@ GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
-    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 1),
+    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 6),
     'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,

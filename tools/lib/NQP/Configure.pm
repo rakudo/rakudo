@@ -257,8 +257,8 @@ sub gen_nqp {
             my %c = read_config($bin);
             my $nqp_have = $c{'nqp::version'} || '';
             $impls{$b}{config} = \%c if %c;
-            my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
-            if ($nqp_ok) {
+            my $nqp_ok   = $nqp_have && 0 <= cmp_rev($nqp_have, $nqp_want);
+            if ($nqp_ok or $options{'ignore-errors'}) {
                 $impls{$b}{ok} = 1;
             }
             else {

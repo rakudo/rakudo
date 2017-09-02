@@ -192,12 +192,15 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
     # If it can't match against pattern var (or any element of var if it is an array)
-    # it will increment $pos and try again. Therefor it is important to only match
+    # it will increment $pos and try again. Therefore it is important to only match
     # against the current position.
     # $i is case insensitive flag
     # $m is ignore accent marks flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
+
+    # INTERPOLATE's parameters are non-optional since the ops for optional params
+    # aren't currently JITted on MoarVM
     method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a, $context) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.

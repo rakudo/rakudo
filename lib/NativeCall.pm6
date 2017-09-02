@@ -346,7 +346,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     }
 
     method !create-jit-compiled-function-body(Routine $r) {
-        my $block := QAST::Block.new(:arity($!arity));
+        my $block := QAST::Block.new(:name($r.name), :arity($!arity));
         my $locals = 0;
         my @deconts;
         my @params;
@@ -409,7 +409,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     }
 
     method !create-function-body(Routine $r) {
-        my $block := QAST::Block.new(:arity($!arity));
+        my $block := QAST::Block.new(:name($r.name), :arity($!arity));
         my $arglist := QAST::Op.new(:op<list>);
         my $locals = 0;
         for $r.signature.params {

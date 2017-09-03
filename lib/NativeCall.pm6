@@ -478,10 +478,12 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
 
     method !create-optimized-call() {
         $setup-lock.protect: {
-            my $sc := nqp::createsc('NativeCallSub' ~ nqp::objectid(self));
-            nqp::setobjsc(self, $sc);
-            my int $idx = nqp::scobjcount($sc);
-            nqp::scsetobj($sc, $idx, self);
+            unless nqp::defined(nqp::getobjsc(self)) {
+                my $sc := nqp::createsc('NativeCallSub' ~ nqp::objectid(self));
+                nqp::setobjsc(self, $sc);
+                my int $idx = nqp::scobjcount($sc);
+                nqp::scsetobj($sc, $idx, self);
+            }
 
             my $block := $!setup == 2
                 ?? self!create-jit-compiled-function-body($r)

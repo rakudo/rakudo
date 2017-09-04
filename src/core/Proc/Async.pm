@@ -417,12 +417,8 @@ my class Proc::Async {
         nqp::killprocasync($!process_handle, signal)
     }
 
-    # $*KERNEL.signal with Str:D signal isn't thread-safe, as it initializes
-    # a hash attribute, so we stick this operation into a lock
-    my $kill-lock = Lock.new;
     multi method kill(Proc::Async:D: Str:D \signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle,
-          $kill-lock.protect: { $*KERNEL.signal: signal })
+        nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
     }
 }

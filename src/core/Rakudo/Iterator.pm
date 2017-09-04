@@ -1516,12 +1516,12 @@ class Rakudo::Iterator {
         # private methods **in roles** are slow, so we duplicated stuff here
         nqp::if(
           nqp::isge_i(n, 0),
-          class :: does Iterator {
+          class :: does Iterator {               # only want N pull's
               has $!source;
               has int $!n;
               has int $!i = -1;
               has &!callable;
-              method pull-one {
+              method pull-one() is raw {
                   nqp::if(
                     nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
                       && self!FINISH-UP(1)
@@ -1531,7 +1531,7 @@ class Rakudo::Iterator {
                     $got
                   )
               }
-              method sink-all { self!FINISH-UP; Nil }
+              method sink-all(--> IterationEnd) { self!FINISH-UP }
               method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
               method !SET-SELF($!source,$!n,&!callable) { self }
               method !FINISH-UP(\do-sink) {
@@ -1540,13 +1540,12 @@ class Rakudo::Iterator {
                   1
               }
           }.new(source,n,&callable),
-          nqp::if(
+          nqp::if(                               # want it all
             &callable,
-            class :: does Iterator {
+            class :: does Iterator {             # want it all with callable
                 has $!source;
-                has int $!i = -1;
                 has &!callable;
-                method pull-one {
+                method pull-one() is raw {
                     nqp::if(
                       nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
                         && (&!callable()||1),
@@ -1554,11 +1553,16 @@ class Rakudo::Iterator {
                       $got
                     )
                 }
-                method sink-all { $!source.sink-all; &!callable(); Nil }
+                method sink-all(--> IterationEnd) {
+                    $!source.sink-all;
+                    &!callable();
+                }
                 method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
                 method !SET-SELF($!source,&!callable) { self }
             }.new(source,&callable),
-            source))
+            source                               # want it all without callable
+          )
+        )
     }
 
     # Return an iterator that will cache a source iterator for the index
@@ -3198,7 +3202,7 @@ class Rakudo::Iterator {
                   ($!seen := nqp::list),
                   self
                 )
-            } 
+            }
             method new( \iterator, \as, \with, \union) {
                 nqp::create(self)!SET-SELF(iterator, as, with, union)
             }
@@ -3259,7 +3263,7 @@ class Rakudo::Iterator {
                   ($!seen := nqp::list),
                   self
                 )
-            } 
+            }
             method new( \iterator, \with, \union) {
                 nqp::create(self)!SET-SELF(iterator, with, union)
             }

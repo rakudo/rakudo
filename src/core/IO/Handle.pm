@@ -531,6 +531,7 @@ my class IO::Handle {
     }
 
     method tell(IO::Handle:D: --> Int:D) {
+        nqp::flushfh($!PIO);
         nqp::tellfh($!PIO) - ($!decoder ?? $!decoder.bytes-available !! 0)
     }
 

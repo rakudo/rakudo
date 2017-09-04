@@ -628,6 +628,9 @@ my class Rakudo::Internals {
     my num $init-time-num = nqp::time_n;
     method INITTIME() { $init-time-num }
 
+    my $init-thread := nqp::currentthread();
+    method INITTHREAD() { $init-thread }
+
     my $escapes := nqp::hash(
      "\0",   '\0',
      '$',    '\$',

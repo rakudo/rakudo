@@ -68,11 +68,23 @@ my class Thread {
     method yield(Thread:U: --> Nil) {
         nqp::threadyield();
     }
+
+    method is-initial-thread(--> Bool) {
+        nqp::p6bool(
+          nqp::iseq_i(
+            nqp::threadid(
+              nqp::if(nqp::isconcrete(self),$!vm_thread,nqp::currentthread)
+            ),
+            nqp::threadid(Rakudo::Internals.INITTHREAD)
+          )
+        )
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*THREAD', {
     my $init_thread := nqp::create(Thread);
-    nqp::bindattr($init_thread, Thread, '$!vm_thread', nqp::currentthread());
+    nqp::bindattr($init_thread, Thread, '$!vm_thread',
+      Rakudo::Internals.INITTHREAD);
     nqp::bindattr($init_thread, Thread, '$!app_lifetime', False);
     nqp::bindattr($init_thread, Thread, '$!name', 'Initial thread');
     PROCESS::<$THREAD> := $init_thread;

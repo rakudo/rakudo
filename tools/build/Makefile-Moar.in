@@ -181,7 +181,7 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR
 
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib "$(M_LIBPATH)" "$(NQP_LIBPATH)" . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib . blib "$(M_LIBPATH)" "$(NQP_LIBPATH)"
 	-$(CHMOD) 755 $(M_RUNNER)
 
 m-runner-default: $(M_RUNNER)

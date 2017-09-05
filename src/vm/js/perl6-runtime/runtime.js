@@ -221,10 +221,12 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return cont;
   };
 
+  const p6HLL = nqp.getHLL('perl6');
+
   op.p6argvmarray = function(ctx, args) {
     var array = [];
     for (var i=2; i < args.length; i++) {
-      array[i-2] = nqp.op.hllizefor(ctx, args[i], 'perl6');
+      array[i-2] = nqp.op.hllizefor(ctx, nqp.arg(p6HLL, args[i]), 'perl6');
     }
     return nqp.createArray(array);
   };

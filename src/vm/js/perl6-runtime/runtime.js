@@ -19,6 +19,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     Nil = types.content.get('Nil');
     Routine = types.content.get('Routine');
     ContainerDescriptor = types.content.get('ContainerDescriptor');
+    Signature = types.content.get('Signature');
 
     defaultContainerDescriptor = ContainerDescriptor._STable.REPR.allocate(ContainerDescriptor._STable);
 
@@ -39,8 +40,21 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return (obj === Null || obj.typeObject_) ? False : True;
   };
 
-  op.p6typecheckrv = function(rv, routine, bypassType) {
-    // STUB
+  op.p6typecheckrv = function(ctx, rv, routine, bypassType) {
+    const sig = routine.$$getattr(Code, '$!signature');
+    const rtype = sig.$$getattr(Signature, '$!returns');
+    if (rtype !== Null && nqp.op.objprimspec(rtype) === 0) {
+      const decontValue = rv.$$decont(ctx);
+      if (decontValue.$$istype(ctx, rtype) === 0 && decontValue.$$istype(ctx, bypassType) === 0) {
+        const thrower = getThrower("X::TypeCheck::Return");
+        if (thrower === Null) {
+            ctx.die("Type check failed for return value");
+        } else {
+            thrower.$$call(ctx, null, decontValue, rtype);
+        }
+      }
+    }
+
     return rv;
   };
 

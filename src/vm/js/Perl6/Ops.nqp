@@ -70,7 +70,7 @@ $ops.add_simple_op('p6box_s', $ops.OBJ, [$ops.STR], :side_effects);
 $ops.add_simple_op('p6box_i', $ops.OBJ, [$ops.INT], :side_effects);
 $ops.add_simple_op('p6box_n', $ops.OBJ, [$ops.NUM], :side_effects);
 
-$ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ]);
+$ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :ctx);
 
 $ops.add_simple_op('p6decontrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ]);
 

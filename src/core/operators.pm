@@ -538,6 +538,9 @@ sub prefix:<temp>(\cont) is raw {
         nqp::push($temp_restore, cont);
         nqp::push($temp_restore, my %h = cont);
     }
+    elsif nqp::istype(cont, Failure) {
+        cont.exception.throw
+    }
     else {
         X::Localizer::NoContainer.new(localizer => 'temp').throw;
     }
@@ -562,6 +565,9 @@ sub prefix:<let>(\cont) is raw {
     elsif nqp::istype(cont, Hash) {
         nqp::push($let_restore, cont);
         nqp::push($let_restore, my %h = cont);
+    }
+    elsif nqp::istype(cont, Failure) {
+        cont.exception.throw
     }
     else {
         X::Localizer::NoContainer.new(localizer => 'let').throw;

@@ -19,6 +19,21 @@ my class IO::Handle {
           $!encoding = $encoding || 'utf8')
     }
 
+    # Make sure we close any open files on exit
+    my $opened := nqp::list;
+    my $opened-sizer = Lock.new;
+    END {
+        my int $i = 2;
+        my int $elems = nqp::elems($opened);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::unless(
+            nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
+            nqp::closefh($PIO)
+          )
+        )
+    }
+
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
       :$rw, :$rx, :$ra,
@@ -165,6 +180,19 @@ my class IO::Handle {
                     )
                 ),
             );
+            nqp::if(
+              nqp::isge_i(
+                (my int $fileno = nqp::filenofh($!PIO)),
+                nqp::elems($opened)
+              ),
+              $opened-sizer.protect( {
+                  nqp::if(
+                    nqp::isge_i($fileno,(my int $elems = nqp::elems($opened))),
+                    nqp::setelems($opened,nqp::add_i($elems,1024))
+                  )
+              })
+            );
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         }
 
         $!chomp = $chomp;
@@ -205,8 +233,9 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+            (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
-            $!PIO := nqp::null
+            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
           )
         )
     }
@@ -557,8 +586,10 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
+        nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null);
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
             fail X::IO::Lock.new: :os-error(.Str),
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
@@ -566,6 +597,7 @@ my class IO::Handle {
     }
 
     method unlock(IO::Handle:D: --> True) {
+        nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         nqp::unlockfh($!PIO);
     }
 
@@ -746,10 +778,11 @@ my class IO::Handle {
         # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
         # implicitly via DESTROY, since you can't get them back again.
         nqp::if(
-          nqp::defined($!PIO) && nqp::isgt_i(nqp::filenofh($!PIO), 2),
+          nqp::defined($!PIO)
+            && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
-            $!PIO := nqp::null
+            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
           )
         )
     }

@@ -2234,10 +2234,10 @@ BEGIN {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
                 if nqp::isconcrete($cur_candidate) {
-                    # Check if it's admissable by arity.
+                    # Check if it's admissible by arity.
                     unless $num_args < nqp::atkey($cur_candidate, 'min_arity')
                     || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
-                        # Arity OK; now check if it's admissable by type.
+                        # Arity OK; now check if it's admissible by type.
                         $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
                             ?? $num_args
                             !! nqp::atkey($cur_candidate, 'num_types');
@@ -2318,7 +2318,7 @@ BEGIN {
                         }
 
                         unless $type_mismatch || $rwness_mismatch {
-                            # It's an admissable candidate; add to list.
+                            # It's an admissible candidate; add to list.
                             nqp::push(@possibles, $cur_candidate);
                         }
                     }
@@ -2619,7 +2619,7 @@ BEGIN {
                     }
                 }
 
-                # Check if it's admissable by arity.
+                # Check if it's admissible by arity.
                 if $num_args < nqp::atkey($cur_candidate, 'min_arity')
                 || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
                     $cur_idx++;
@@ -2629,7 +2629,7 @@ BEGIN {
                 # If we got this far, something at least matched on arity.
                 $arity_possible := 1;
 
-                # Check if it's admissable by type.
+                # Check if it's admissible by type.
                 $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
                     ?? $num_args
                     !! nqp::atkey($cur_candidate, 'num_types');

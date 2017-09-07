@@ -136,7 +136,7 @@ my class Binder {
     my $Positional;
     my $PositionalBindFailover;
 
-#?if moar
+#?if !jvm
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -735,7 +735,12 @@ my class Binder {
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
-                nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
+
+                # JS WORKAROUND - BUILDALL doesn't like a Mu in $!storage
+                nqp::bindattr($hash, Map, '$!storage', $named_args || nqp::hash());
+
+                ### nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
+
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
@@ -2478,6 +2483,9 @@ BEGIN {
 #?if jvm
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
+#?if js
+                return 0 if nqp::capturehasnameds($capture);
+#?endif
                 nqp::scwbdisable();
                 nqp::bindattr($dcself, Routine, '$!dispatch_cache',
                     nqp::multicacheadd(
@@ -2569,7 +2577,6 @@ BEGIN {
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
-            my int $ARG_IS_LITERAL    := 32;
 
             # Count arguments.
             my int $num_args := nqp::elems(@args);
@@ -2640,7 +2647,6 @@ BEGIN {
                     my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim := nqp::atpos(@flags, $i) +& 0xF;
-                    my int $literal  := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
@@ -2650,8 +2656,7 @@ BEGIN {
                         }
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
-                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
-                        || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
+                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
                             # Mismatch.
                             $type_mismatch := 1;
                             $type_match_possible := 0;
@@ -3239,7 +3244,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                         $phaser();
 #?endif
-#?if moar
+#?if !jvm
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
                         CATCH { nqp::push(@exceptions, $_) }
@@ -3256,7 +3261,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif
@@ -3276,7 +3281,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
     },
-#?if moar
+#?if !jvm
     'bind_error', -> $capture {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());

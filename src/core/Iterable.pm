@@ -192,7 +192,7 @@ my role Iterable {
     multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
 }
 
-#?if !moar
+#?if jvm
 nqp::p6setitertype(Iterable);
 #?endif
 

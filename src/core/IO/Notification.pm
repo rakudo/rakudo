@@ -16,6 +16,7 @@ my class IO::Notification {
     }
 
     method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {
+        my $is-dir = $path.IO.d;
         my $s = Supplier.new;
         nqp::watchfile(
             $scheduler.queue,
@@ -25,7 +26,8 @@ my class IO::Notification {
                 }
                 else {
                     my $event = rename ?? FileRenamed !! FileChanged;
-                    $s.emit(Change.new(:path($*SPEC.catdir($path, path)), :$event));
+                    my $full-path = $is-dir ?? $*SPEC.catdir($path, path) !! $path;
+                    $s.emit(Change.new(:path($full-path), :$event));
                 }
             },
             $path, FileWatchCancellation);

@@ -148,6 +148,7 @@ class Kernel does Systemic {
     has $!signals-by-Str-setup = False;
 
     proto method signal (|) { * }
+#?if moar
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         unless $!signals-by-Str-setup {
             $!signals-setup-lock.protect: {
@@ -165,6 +166,7 @@ class Kernel does Systemic {
         }
         %!signals-by-Str{$signal} // %!signals-by-Str{"SIG$signal"} // Int;
     }
+#?endif
 
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }

@@ -1,5 +1,6 @@
 my class Pair                   { ... }
 my class Range                  { ... }
+my class Seq                    { ... }
 my class X::Adverb              { ... }
 my class X::Bind                { ... }
 my class X::Bind::Slice         { ... }
@@ -66,7 +67,7 @@ my class Any { # declared in BOOTSTRAP
     proto method Array(|) is nodal { * }
     multi method Array() { self.list.Array }
     proto method Seq(|) is nodal { * }
-    multi method Seq() { self.list.Seq }
+    multi method Seq() { Seq.new(self.iterator) }
 
     proto method hash(|) is nodal { * }
     multi method hash(Any:U:) { my % = () }
@@ -403,10 +404,14 @@ my class Any { # declared in BOOTSTRAP
           my $scalar,
           Scalar,
           '$!whence',
+          # NOTE: even though the signature indicates a non-concrete SELF,
+          # by the time the below code is executed, it *may* have become
+          # concrete: and then we don't want the execution to reset it to
+          # an empty Hash.
           -> { nqp::if(
                  nqp::isconcrete(SELF),
                  SELF,
-                 (SELF = Hash.new)
+                 (SELF = nqp::create(Hash))
                ).BIND-KEY(key, $scalar)
              }
         )
@@ -604,7 +609,9 @@ sub dd(|) {
         }
     }
     else { # tell where we are
-        note .name ?? "{lc .^name} {.name}" !! "({lc .^name})"
+        note .name
+          ?? "{lc .^name} {.name}{.signature.gist}"
+          !! "{lc .^name} {.signature.gist}"
           with callframe(1).code;
     }
     return

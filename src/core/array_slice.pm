@@ -81,7 +81,8 @@ multi sub POSITIONS(
 proto sub postcircumfix:<[ ]>(|) is nodal { * }
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
-    die "Indexing requires an instance, tried to do: {try SELF.VAR.name}[ {$type.gist} ]";
+    die "Unable to call postcircumfix {try SELF.VAR.name}[ $type.gist() ] with a type object\n"
+      ~ "Indexing requires a defined object";
 }
 
 # @a[int 1]

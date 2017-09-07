@@ -32,12 +32,12 @@ MAIN: {
     my $exe = $NQP::Configure::exe;
 
     my %options;
-    GetOptions(\%options, 'help!', 'prefix=s',
+    GetOptions(\%options, 'help!', 'prefix=s', 'libdir=s',
                'sysroot=s', 'sdkroot=s',
                'backends=s', 'no-clean!',
                'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
-               'git-protocol=s',
+               'git-protocol=s', 'ignore-errors',
                'make-install!', 'makefile-timing!',
                'git-depth=s', 'git-reference=s',
     ) or do {
@@ -50,13 +50,19 @@ MAIN: {
         print_help();
         exit(0);
     }
-
+    if ($options{'ignore-errors'}) {
+        print "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
+    }
     unless (defined $options{prefix}) {
         my $default = defined($options{sysroot}) ? '/usr' : File::Spec->catdir(getcwd, 'install');
         print "ATTENTION: no --prefix supplied, building and installing to $default\n";
         $options{prefix} = $default;
     }
     $options{prefix} = File::Spec->rel2abs($options{prefix});
+    unless (defined $options{libdir}) {
+        my $default = File::Spec->catdir($options{prefix}, 'share');
+        $options{libdir} = $default;
+    }
     my $prefix         = $options{'prefix'};
     my @known_backends = qw/moar jvm js/;
 
@@ -136,6 +142,7 @@ MAIN: {
     }
 
     $config{prefix} = $prefix;
+    $config{libdir} = $options{libdir};
     $config{sdkroot} = $options{sdkroot} || '';
     $config{sysroot} = $options{sysroot} || '';
     $config{slash}  = $slash;
@@ -288,9 +295,10 @@ MAIN: {
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
         unless ($win) {
-            $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-            $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_VALGRIND_RUNNER)';
+            $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
+            $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
             $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "$(PERL6_LANG_DIR)/runtime" "lldb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
         }
 
@@ -347,7 +355,7 @@ MAIN: {
         "Or, use '--prefix=' to explicitly specify the path where the NQP$want_executables",
         "executable$s2 can be found that are use to build $lang.";
     }
-    sorry(@errors) if @errors;
+    sorry($options{'ignore-errors'}, @errors) if @errors;
 
     my $l = uc $backend_prefix{$default_backend};
     print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS_WITH_FUDGE) --verbosity=1 \$\@\n];
@@ -402,6 +410,7 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
+    --libdir=dir       Install architecture-specific files in dir; Perl6 modules included
     --sdkroot=dir      When given, use for searching build tools here, e.g.
                        nqp, java etc.
     --sysroot=dir      When given, use for searching runtime components here
@@ -426,6 +435,7 @@ General Options:
                        Folders 'nqp' and 'MoarVM' with corresponding git repos should be in for_perl6 folder
     --makefile-timing  Enable timing of individual makefile commands
     --no-clean         Skip cleanup before installation
+    --ignore-errors    Ignore errors (such as the version of NQP)
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

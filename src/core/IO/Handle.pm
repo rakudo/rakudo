@@ -12,11 +12,26 @@ my class IO::Handle {
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
 
-    submethod TWEAK (:$encoding, :$bin) {
+    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         nqp::if(
           $bin,
           nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
           $!encoding = $encoding || 'utf8')
+    }
+
+    # Make sure we close any open files on exit
+    my $opened := nqp::list;
+    my $opened-sizer = Lock.new;
+    END {
+        my int $i = 2;
+        my int $elems = nqp::elems($opened);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::unless(
+            nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
+            nqp::closefh($PIO)
+          )
+        )
     }
 
     method open(IO::Handle:D:
@@ -32,7 +47,7 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
-      :$buffer = False
+      :$buffer
     ) {
         nqp::if(
           $bin,
@@ -42,10 +57,6 @@ my class IO::Handle {
           nqp::unless(
             nqp::isconcrete($enc),
             $enc = $!encoding));
-
-        my int $buffer-size = nqp::istype($buffer, Bool)
-            ?? ($buffer ?? 8192 !! 0)
-            !! $buffer.Int;
 
         $mode = nqp::if(
           $mode,
@@ -136,7 +147,7 @@ my class IO::Handle {
                 $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
-            nqp::setbuffersizefh($!PIO, $buffer-size);
+            self!set-buffer-size($buffer);
             return self;
         }
 
@@ -169,6 +180,19 @@ my class IO::Handle {
                     )
                 ),
             );
+            nqp::if(
+              nqp::isge_i(
+                (my int $fileno = nqp::filenofh($!PIO)),
+                nqp::elems($opened)
+              ),
+              $opened-sizer.protect( {
+                  nqp::if(
+                    nqp::isge_i($fileno,(my int $elems = nqp::elems($opened))),
+                    nqp::setelems($opened,nqp::add_i($elems,1024))
+                  )
+              })
+            );
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         }
 
         $!chomp = $chomp;
@@ -180,8 +204,16 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
         }
-        nqp::setbuffersizefh($!PIO, $buffer-size);
+        self!set-buffer-size($buffer);
         self;
+    }
+
+    method !set-buffer-size($buffer is copy) {
+        $buffer //= !nqp::isttyfh($!PIO);
+        my int $buffer-size = nqp::istype($buffer, Bool)
+            ?? ($buffer ?? 8192 !! 0)
+            !! $buffer.Int;
+        nqp::setbuffersizefh($!PIO, $buffer-size);
     }
 
     method nl-in is rw {
@@ -201,8 +233,9 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+            (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
-            $!PIO := nqp::null
+            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
           )
         )
     }
@@ -246,12 +279,7 @@ my class IO::Handle {
 
     method getc(IO::Handle:D:) {
         $!decoder or die X::IO::BinaryMode.new(:trying<getc>);
-        $!decoder.consume-exactly-chars(1) || self!getc-slow-path()
-    }
-
-    method !getc-slow-path() {
-        $!decoder.add-bytes(self.read-internal(0x100000));
-        $!decoder.consume-exactly-chars(1) // $!decoder.consume-all-chars() || Nil
+        $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
@@ -481,7 +509,7 @@ my class IO::Handle {
                     last if nqp::isconcrete($result);
                 }
                 else {
-                    $result := $!decoder.consume-all-chars();
+                    $result := $!decoder.consume-exactly-chars($chars, :eof);
                     last;
                 }
             }
@@ -558,8 +586,10 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
+        nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null);
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
             fail X::IO::Lock.new: :os-error(.Str),
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
@@ -567,6 +597,7 @@ my class IO::Handle {
     }
 
     method unlock(IO::Handle:D: --> True) {
+        nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         nqp::unlockfh($!PIO);
     }
 
@@ -593,7 +624,7 @@ my class IO::Handle {
         self.put(@list.join);
     }
 
-    multi method say(IO::Handle:D: Str $x --> True) {
+    multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
         self.write-internal($!encoder.encode-chars(
             nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))));
@@ -743,11 +774,15 @@ my class IO::Handle {
     }
 
     submethod DESTROY(IO::Handle:D:) {
+        # Close handles with any file descriptor larger than 2. Those below
+        # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
+        # implicitly via DESTROY, since you can't get them back again.
         nqp::if(
-          nqp::defined($!PIO),
+          nqp::defined($!PIO)
+            && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
-            $!PIO := nqp::null
+            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
           )
         )
     }

@@ -14,7 +14,7 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     @signals.unshift: $signal;
     @signals .= unique;
 
-    state %sigmap =
+    my constant %sigmap = (
 #?if moar
         SIGHUP,   nqp::const::SIG_HUP,
 #?endif
@@ -56,9 +56,9 @@ sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
         SIGPWR,   nqp::const::SIG_PWR,
         SIGBREAK, nqp::const::SIG_BREAK
 #?endif
-;
+    ).hash;
 
-    state @known_signals := $*KERNEL.signals;
+    my @known_signals := $*KERNEL.signals;
 
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @signals.map(-> $sig {

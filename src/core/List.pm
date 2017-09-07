@@ -1,4 +1,4 @@
-# A List is a (potentially infite) immutable list. The immutability is not
+# A List is a (potentially infinite) immutable list. The immutability is not
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
 # Positional, and so may be indexed.
@@ -691,8 +691,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method list(List:D:) { self }
 
-    multi method Seq(List:D:) { Seq.new(self.iterator) }
-
     method sink(--> Nil) { }
 
     multi method values(List:D:) {
@@ -1005,8 +1003,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.roll from')).throw,
           Seq.new(nqp::if(
-            self.elems,
-            Rakudo::Iterator.Roller(self),
+            (my $elems := self.elems),
+            Rakudo::Iterator.Callable( {
+                nqp::atpos($!reified, $elems.rand.floor)
+            }, True ),
             Rakudo::Iterator.Empty
           ))
         )
@@ -1150,42 +1150,137 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::stmts(
           nqp::if(
             $!todo.DEFINITE,
-            nqp::stmts(
+            nqp::stmts(                          # need to reify first
               $!todo.reify-until-lazy,
               nqp::if(
                 $!todo.fully-reified,
-                ($!todo := nqp::null),
-                (my int $infinite = 1)
+                ($!todo := nqp::null),           # all reified
+                (my int $infinite = 1)           # still stuff left to do
               )
             )
           ),
           nqp::if(
             $!reified.DEFINITE
               && (my int $elems = nqp::elems($!reified)),
-            nqp::stmts(                       # something to join
-              (my $strings :=
-                nqp::setelems(nqp::list_s,nqp::add_i($elems,$infinite))),
+            nqp::stmts(                          # something to join
+              (my $strings := nqp::list_s),
               (my int $i = -1),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_s($strings,$i,nqp::if(
-                  nqp::isnull(my $tmp := nqp::atpos($!reified,$i)),
-                  '',
+                nqp::stmts(                      # something left to check
+                  (my $tmp := nqp::ifnull(
+                    nqp::atpos($!reified,$i),
+                    nqp::if(
+                      nqp::isconcrete(my $default),
+                      $default,                  # seen before
+                      ($default := nqp::if(      # first time we see null
+                        nqp::can(self,'default'),
+                        self.default.Str,
+                        ''
+                      ))
+                    )
+                  )),
                   nqp::if(
-                    nqp::isconcrete($tmp) && nqp::istype($tmp,Str),
+                    nqp::isconcrete($tmp),
+                    nqp::if(                     # not a type object
+                      nqp::istype($tmp,Junction),
+                      (return self!junctionize(  # follow Junction path
+                        $separator, $strings, $i, $elems, $tmp
+                      )),
+                      nqp::push_s(               # no special action needed
+                        $strings,
+                        nqp::if(
+                          nqp::istype($tmp,Str),
+                          $tmp,
+                          nqp::if(
+                            nqp::can($tmp,'Str'),
+                            $tmp.Str,
+                            nqp::box_s($tmp,Str)
+                          )
+                        )
+                      )
+                    ),
+                    nqp::push_s($strings,$tmp.Str)   # type object
+                  )
+                )
+              ),
+              nqp::if($infinite,nqp::push_s($strings,'...')),
+              nqp::p6box_s(nqp::join($separator,$strings))  # done
+            ),
+            nqp::if($infinite,'...','')          # nothing to join
+          )
+        )
+    }
+
+    # When we find a Junction in the list, start handling the rest
+    # of the list as junctions, and stringify the parts between Junctions
+    # normally, for performance.
+    method !junctionize(\sep, Mu \strings, \i, \elems, Mu \initial) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(strings),
+            nqp::stmts(                          # some strings on left
+              (my $junction := infix:<~>(
+                nqp::concat(nqp::join(sep,strings),sep),
+                initial
+              )),
+              nqp::setelems(strings,0)
+            ),
+            ($junction := initial)               # just start with this one
+          ),
+          nqp::while(
+            nqp::islt_i((i = nqp::add_i(i,1)),elems),
+            nqp::stmts(                          # something left in list
+              (my $tmp := nqp::ifnull(
+                nqp::atpos($!reified,i),
+                nqp::if(
+                  nqp::isconcrete(my $default),
+                  $default,                      # seen before
+                  ($default := nqp::if(          # first time we have a null
+                    nqp::can(self,'default'),
+                    self.default.Str,
+                    ''
+                  ))
+                )
+              )),
+              nqp::if(
+                nqp::isconcrete($tmp),
+                nqp::if(                         # not a type object
+                  nqp::istype($tmp,Junction),
+                  nqp::stmts(                    # found another Junction
+                    nqp::if(
+                      nqp::elems(strings),
+                      nqp::stmts(                # process string on left
+                        ($junction := infix:<~>(
+                          $junction,
+                          nqp::concat(sep,nqp::join(sep,strings))
+                        )),
+                        nqp::setelems(strings,0)
+                      )
+                    ),
+                    ($junction := infix:<~>($junction, $tmp))
+                  ),
+                  nqp::push_s(strings,nqp::if(   # not a Junction
+                    nqp::istype($tmp,Str),
                     $tmp,
                     nqp::if(
                       nqp::can($tmp,'Str'),
                       $tmp.Str,
                       nqp::box_s($tmp,Str)
                     )
-                  )
-                ))
-              ),
-              nqp::if($infinite,nqp::bindpos_s($strings,$i,'...')),
-              nqp::p6box_s(nqp::join($separator,$strings))
+                  ))
+                ),
+                nqp::push_s(strings,$tmp.Str)    # type object
+              )
+            )
+          ),
+          nqp::if(
+            nqp::elems(strings),
+            infix:<~>(                           # need to concat right
+              $junction,
+              nqp::concat(sep,nqp::join(sep,strings))
             ),
-            nqp::if($infinite,'...','')
+            $junction                            # nothing left to concat
           )
         )
     }

@@ -36,7 +36,9 @@ my $perl6jars = join( $cpsep,
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
     File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar'));
 
+my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
+$NQP_LIB
 : \${NQP_DIR:=\"$nqpdir\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"$perl6dir\"}

@@ -1291,8 +1291,11 @@ class Perl6::Optimizer {
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
-        # a p6bool if there's already an integer result behind it.
-        elsif $optype eq 'if' || $optype eq 'unless' || $optype eq 'while' || $optype eq 'until' {
+        # a p6bool if there's already an integer result behind it. For if/unless,
+        # we can only do that when we have the `else` branch, since otherwise we
+        # might return the no-longer-Bool value from the conditional.
+        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
             while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {
@@ -1878,10 +1881,16 @@ class Perl6::Optimizer {
     
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
+    my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
+    my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
     my @prim_names := ['', 'int', 'num', 'str'];
+    my int $ARG_IS_LITERAL := 32;
     method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
+        my @allomorphs;
+        my int $num_prim := 0;
+        my int $num_allo := 0;
         
         # Initial analysis.
         for @($op) {
@@ -1915,12 +1924,35 @@ class Perl6::Optimizer {
             }
             if $ok_type {
                 my $prim := nqp::objprimspec($type);
+                my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
+                    ?? $_[1] !! '';
                 @types.push($type);
                 @flags.push($prim);
+                @allomorphs.push($allo);
+                $num_prim := $num_prim + 1 if $prim;
+                $num_allo := $num_allo + 1 if $allo;
             }
             else {
                 return [];
             }
+        }
+        
+        # See if we have an allomorphic constant that may allow us to do
+        # a native dispatch with it; takes at least one declaratively
+        # native argument to make this happen.
+        if @types == 2 && $num_prim == 1 && $num_allo == 1 {
+            my int $prim_flag := @flags[0] || @flags[1];
+            my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
+            if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
+                @flags[$allo_idx] := $prim_flag +| $ARG_IS_LITERAL;
+            }
+        }
+        
+        # Alternatively, a single arg that is allomorphic will prefer
+        # the literal too.
+        if @types == 1 && $num_allo == 1 {
+            my $rev := %allo_rev{@allomorphs[0]};
+            @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
         }
         
         [@types, @flags]
@@ -2012,13 +2044,6 @@ class Perl6::Optimizer {
                         }
                         else {
                             $visit.returns($visit[$resultchild].returns);
-                            if nqp::istype($visit[0], QAST::Op) && $visit[0].op eq 'lexotic' {
-                                if @!block_var_stack[nqp::elems(@!block_var_stack) - 1].get_calls() == 0 {
-                                    # Lexotic in something making no calls, which
-                                    # means there's no way to use it.
-                                    $node[$i] := $visit[0][0];
-                                }
-                            }
                         }
                     }
                 }

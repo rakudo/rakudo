@@ -7,14 +7,18 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := self!WHICH
+          $!WHICH := ObjAt.new('Bag!' ~ nqp::sha1(
+            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+              Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+            ))
+          ))
         )
     }
     method total(Bag:D: --> Int:D) {
         nqp::if(
           nqp::attrinited(self,Bag,'$!total'),
           $!total,
-          $!total := Rakudo::QuantHash.BAG-TOTAL(self.raw_hash)
+          $!total := Rakudo::QuantHash.BAG-TOTAL($!elems)
         )
     }
 
@@ -31,8 +35,8 @@ my class Bag does Baggy {
     method SET-SELF(Bag:D: \elems) {
         nqp::if(
           nqp::elems(elems),
-          nqp::stmts(                 # need to have allocated %!elems
-            nqp::bindattr(%!elems,Map,'$!storage',elems),
+          nqp::stmts(
+            nqp::bindattr(self,::?CLASS,'$!elems',elems),
             self
           ),
           bag()
@@ -50,12 +54,36 @@ my class Bag does Baggy {
 
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
+    multi method BagHash(Bag:D) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
+          nqp::create(BagHash)
+        )
+    }
     multi method Mix(Bag:D:) {
-        nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems)
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(Mix).SET-SELF($!elems),
+          mix()
+        )
+    }
+    multi method MixHash(Bag:D) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
+          nqp::create(MixHash)
+        )
+    }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::clone(self),
+          bag()
+        )
     }
 
-    method clone() { nqp::clone(self) }
-
+#--- illegal methods
     proto method classify-list(|) {
         X::Immutable.new(:method<classify-list>, :typename(self.^name)).throw;
     }

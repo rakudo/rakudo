@@ -250,6 +250,14 @@ my class Cool { # declared in BOOTSTRAP
             $numeric.FatRat
         )
     }
+
+    method Complex()  {
+        nqp::if(
+            nqp::istype((my $numeric := self.Numeric), Failure),
+            $numeric,
+            $numeric.Complex
+        )
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

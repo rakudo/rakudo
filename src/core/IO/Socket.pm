@@ -10,7 +10,7 @@ my role IO::Socket {
         unless $!decoder.DEFINITE {
             my $encoding = Encoding::Registry.find($!encoding);
             $!decoder := $encoding.decoder();
-            $!decoder.set-line-separators($!nl-in);
+            $!decoder.set-line-separators($!nl-in.list);
             $!encoder := $encoding.encoder();
         }
     }

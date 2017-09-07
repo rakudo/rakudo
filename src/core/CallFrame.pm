@@ -12,7 +12,10 @@ my class CallFrame {
           (my $ctx := ctx),
           nqp::while(
             nqp::isgt_i(($i = nqp::sub_i($i,1)),0),
-            $ctx := nqp::ctxcaller($ctx)
+            nqp::ifnull(
+                ($ctx := nqp::ctxcaller($ctx)),
+                fail "No callframe at level {level}"
+            )
           ),
           ($!my :=
             nqp::p6bindattrinvres(nqp::create(Stash),Map,'$!storage',$ctx)),
@@ -31,7 +34,8 @@ my class CallFrame {
     method line() { nqp::atkey($!annotations,'line') }
     method file() { nqp::atkey($!annotations,'file') }
     method code() {
-        nqp::getcodeobj(nqp::ctxcode(nqp::getattr($!my,Map,'$!storage')))
+        my \vm-code = nqp::ctxcode(nqp::getattr($!my,Map,'$!storage'));
+        nqp::isnull(vm-code) ?? Nil !! nqp::getcodeobj(vm-code)
     }
     method callframe(Int $?) {
         X::NYI.new(feature => 'Callframe.callframe').throw;

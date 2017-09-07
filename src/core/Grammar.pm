@@ -1,6 +1,7 @@
 my class Grammar is Match {
 
-    method parse(\target, :$rule, :$args, Mu :$actions) is raw {
+    method parse(\target, :$rule, :$args, Mu :$actions, :$filename) is raw {
+        my $*LINEPOSCACHE;
         nqp::stmts(
           (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
           nqp::decont(nqp::getlexcaller('$/') =
@@ -35,7 +36,7 @@ my class Grammar is Match {
         )
     }
 
-    method subparse(\target, :$rule, :$args, Mu :$actions) is raw {
+    method subparse(\target, :$rule, :$args, :$actions) is raw {
         nqp::stmts(
           (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
           nqp::decont(nqp::getlexcaller('$/') =
@@ -59,8 +60,8 @@ my class Grammar is Match {
     method parsefile(Str(Cool) $filename, :$enc) is raw {
         nqp::decont(nqp::getlexcaller('$/') = nqp::if(
           nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self.parse($filename.IO.slurp(:$enc), |%_),
-          self.parse($filename.IO.slurp(:$enc))
+          self.parse($filename.IO.slurp(:$enc), :$filename, |%_),
+          self.parse($filename.IO.slurp(:$enc), :$filename)
         ))
     }
 }

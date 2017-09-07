@@ -21,7 +21,9 @@ my $num_of_tests_planned;
 my int $no_plan;
 my num $time_before;
 my num $time_after;
-my int $subtest_level = 0;
+my int $subtest_level;
+my $subtest_todo_reason;
+my int $pseudo_fails; # number of untodoed failed tests inside a todoed subtest
 
 # Output should always go to real stdout/stderr, not to any dynamic overrides.
 my $output;
@@ -82,6 +84,9 @@ multi sub plan (Cool:D :skip-all($reason)!) {
 # It is also the default if nobody calls plan at all
 multi sub plan($number_of_tests) is export {
     _init_io() unless $output;
+
+    my str $str-message;
+
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -89,7 +94,7 @@ multi sub plan($number_of_tests) is export {
         $num_of_tests_planned = $number_of_tests;
         $no_plan = 0;
 
-        $output.say: $indents ~ '1..' ~ $number_of_tests;
+        $str-message ~= $indents ~ '1..' ~ $number_of_tests;
     }
     # Get two successive timestamps to say how long it takes to read the
     # clock, and to let the first test timing work just like the rest.
@@ -98,10 +103,11 @@ multi sub plan($number_of_tests) is export {
     # lot slower than the non portable nqp::time_n.
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
-    $output.say: $indents
-      ~ '# between two timestamps '
-      ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+    $str-message ~= "\n$indents# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
         if nqp::iseq_i($perl6_test_times,1);
+
+    $output.say: $str-message;
+
     # Take one more reading to serve as the begin time of the first test
     $time_before = nqp::time_n;
 }
@@ -168,8 +174,8 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                    eq $expected.Str.subst(/\s/, '', :g)
             {
                 # only white space differs, so better show it to the user
-                _diag "expected: {$expected.perl}\n"
-                    ~ "     got: {$got.perl}";
+                _diag "expected: $expected.perl()\n"
+                    ~ "     got: $got.perl()";
             }
             else {
                 _diag "expected: '$expected'\n"
@@ -240,8 +246,8 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            _diag "expected: '{$expected // $expected.^name}'\n"
-                ~ " matcher: '{$matcher.?name || $matcher.^name}'\n"
+            _diag "expected: '" ~ ($expected // $expected.^name)     ~ "'\n"
+                ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
                 ~ "     got: '$got'";
         }
     }
@@ -368,14 +374,14 @@ multi sub todo($reason, $count = 1) is export {
 
 multi sub skip() {
     $time_after = nqp::time_n;
-    proclaim(1, "# SKIP");
+    proclaim(1, '', "# SKIP");
     $time_before = nqp::time_n;
 }
 multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::time_n;
     die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
-    while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
+    while $i <= $count { proclaim(1, $reason, "# SKIP "); $i = $i + 1; }
     $time_before = nqp::time_n;
 }
 
@@ -390,8 +396,10 @@ sub skip-rest($reason = '<unknown>') is export {
 multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
 multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
 multi sub subtest(&subtests, $desc = '') is export {
+    my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
     _init_vars();
+    $subtest_todo_reason   = $parent_todo;
     $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
@@ -400,8 +408,9 @@ multi sub subtest(&subtests, $desc = '') is export {
     ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<--> does not die here
     $subtest_level -= 1;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
-    my $status =
-      $num_of_tests_failed == 0 && $num_of_tests_planned == $num_of_tests_run;
+    my $status = $num_of_tests_failed == 0
+        && $num_of_tests_planned == $num_of_tests_run
+        && $pseudo_fails == 0;
     _pop_vars;
     $indents .= chop(4);
     proclaim($status,$desc) or ($die_on_fail and die-on-fail);
@@ -416,14 +425,14 @@ sub diag(Mu $message) is export {
 
 sub _diag(Mu $message, :$force-stderr) {
     _init_io() unless $output;
-    my $is_todo = !$force-stderr && $num_of_tests_run <= $todo_upto_test_num;
+    my $is_todo = !$force-stderr
+        && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
     my $out     = $is_todo ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time_n;
     my $str-message = nqp::join(
         "\n$indents# ", nqp::split("\n", "$indents# $message")
     );
-    $str-message .= subst(rx/^^ "$indents#" \s+ $$/, '', :g);
     $out.say: $str-message;
     $time_before = nqp::time_n;
 }
@@ -613,7 +622,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             default {
                 pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
-                ok $type_ok , "right exception type ({$ex_type.^name})";
+                ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
                         my $got is default(Nil) = $_."$k"();
@@ -625,14 +634,14 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         }
                     }
                 } else {
-                    _diag "Expected: {$ex_type.^name}\n"
-                        ~ "Got:      {$_.^name}\n"
+                    _diag "Expected: $ex_type.^name()\n"
+                        ~ "Got:      $_.^name()\n"
                         ~ "Exception message: $_.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }
         }
-    }, $reason // "did we throws-like {$ex_type.^name}?";
+    }, $reason // "did we throws-like $ex_type.^name()?";
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {
@@ -663,7 +672,7 @@ sub eval_exception($code) {
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
-sub proclaim(Bool(Mu) $cond, $desc is copy ) {
+sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;
@@ -671,29 +680,32 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
     my $tap = $indents;
     unless $cond {
         $tap ~= "not ";
+
         $num_of_tests_failed = $num_of_tests_failed + 1
-          unless  $num_of_tests_run <= $todo_upto_test_num;
+            unless $num_of_tests_run <= $todo_upto_test_num;
+
+        $pseudo_fails = $pseudo_fails + 1 if $subtest_todo_reason;
     }
 
     # TAP parsers do not like '#' in the description, they'd miss the '# TODO'
     # So, adding a ' \' before it.
     $desc = $desc
-    ??  nqp::join(' \\#',
-            nqp::split('#',
-                $desc.Str
-            )
-        )
+    ??  nqp::join("\n$indents# ", # prefix newlines with `#`
+            nqp::split("\n",
+                nqp::join(' \\#', # escape `#`
+                    nqp::split('#', $desc.Str))))
     !! '';
 
     $tap ~= $todo_reason && $num_of_tests_run <= $todo_upto_test_num
-        ?? "ok $num_of_tests_run - $desc$todo_reason"
-        !! "ok $num_of_tests_run - $desc";
+        ?? "ok $num_of_tests_run - $unescaped-prefix$desc$todo_reason"
+        !! (! $cond && $subtest_todo_reason)
+            ?? "ok $num_of_tests_run - $unescaped-prefix$desc$subtest_todo_reason"
+            !! "ok $num_of_tests_run - $unescaped-prefix$desc";
+
+    $tap ~= ("\n$indents# t=" ~ ceiling(($time_after - $time_before)*1_000_000))
+        if nqp::iseq_i($perl6_test_times,1);
 
     $output.say: $tap;
-    $output.say: $indents
-      ~ "# t="
-      ~ ceiling(($time_after-$time_before)*1_000_000)
-        if nqp::iseq_i($perl6_test_times,1);
 
     unless $cond {
         my $caller;
@@ -705,8 +717,8 @@ sub proclaim(Bool(Mu) $cond, $desc is copy ) {
         }
 
         _diag $desc
-          ?? "\nFailed test '$desc'\nat {$caller.file} line {$caller.line}"
-          !! "\nFailed test at {$caller.file} line {$caller.line}";
+          ?? "Failed test '$desc'\nat $caller.file() line $caller.line()"
+          !! "Failed test at $caller.file() line $caller.line()";
     }
 
     # must clear this between tests
@@ -727,15 +739,15 @@ sub done-testing() is export {
     }
 
     # Wrong quantity of tests
-    _diag("Looks like you planned $num_of_tests_planned test{
-        $num_of_tests_planned == 1 ?? '' !! 's'
-    }, but ran $num_of_tests_run")
-      if ($num_of_tests_planned or $num_of_tests_run)
-      && ($num_of_tests_planned != $num_of_tests_run);
+    _diag("Looks like you planned $num_of_tests_planned test"
+        ~ ($num_of_tests_planned == 1 ?? '' !! 's')
+        ~ ", but ran $num_of_tests_run"
+    ) if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run);
 
-    _diag("Looks like you failed $num_of_tests_failed test{
-        $num_of_tests_failed == 1 ?? '' !! 's'
-    } of $num_of_tests_run") if $num_of_tests_failed;
+    _diag("Looks like you failed $num_of_tests_failed test"
+        ~ ($num_of_tests_failed == 1 ?? '' !! 's')
+        ~ " of $num_of_tests_run"
+    ) if $num_of_tests_failed && ! $subtest_todo_reason;
 }
 
 sub _init_vars {
@@ -749,6 +761,8 @@ sub _init_vars {
     $time_before          = NaN;
     $time_after           = NaN;
     $done_testing_has_been_run = 0;
+    $pseudo_fails         = 0;
+    $subtest_todo_reason  = '';
 }
 
 sub _push_vars {
@@ -763,6 +777,8 @@ sub _push_vars {
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ];
 }
 
@@ -778,6 +794,8 @@ sub _pop_vars {
       $time_before,
       $time_after,
       $done_testing_has_been_run,
+      $pseudo_fails,
+      $subtest_todo_reason,
     ) = @(@vars.pop);
 }
 

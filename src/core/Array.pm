@@ -142,7 +142,10 @@ my class Array { # declared in BOOTSTRAP
 
         # everything we need is already there
         elsif nqp::getattr(self,List,'$!reified').DEFINITE {
-            Rakudo::Iterator.ReifiedArray(self)
+            Rakudo::Iterator.ReifiedArray(
+              self,
+              nqp::getattr(self,Array,'$!descriptor')
+            )
         }
 
         # nothing now or in the future to iterate over
@@ -260,6 +263,93 @@ my class Array { # declared in BOOTSTRAP
         ArrayReificationTarget.new(
             nqp::getattr(self, List, '$!reified'),
             nqp::decont($!descriptor))
+    }
+
+    multi method Slip(Array:D:) {
+
+       # A Slip-With-Default is a special kind of Slip that also has a
+       # descriptor to be able to generate containers for null elements that
+       # have type and default information.
+        my class Slip-With-Descriptor is Slip {
+            has $!descriptor;
+
+            method iterator() {
+                Rakudo::Iterator.ReifiedArray(self,$!descriptor)
+            }
+            multi method AT-POS(Int:D $pos) {
+                nqp::ifnull(
+                  nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
+                  nqp::p6bindattrinvres(
+                    (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
+                    Scalar,
+                    '$!whence',
+                    -> { nqp::bindpos(
+                           nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
+                  )
+                )
+            }
+            method default() { $!descriptor.default }
+        }
+        BEGIN Slip-With-Descriptor.^set_name("Slip");
+
+        nqp::if(
+          nqp::getattr(self,List,'$!todo').DEFINITE,
+          # We're not fully reified, and so have internal mutability still.
+          # The safe thing to do is to take an iterator of ourself and build
+          # the Slip out of that.
+          Slip.from-iterator(self.iterator),
+          # We're fully reified.  Make a Slip that shares our reified buffer
+          # but that will fill in default values for nulls.
+          nqp::if(
+            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(
+                nqp::create(Slip-With-Descriptor),
+                Slip-With-Descriptor,
+                '$!descriptor',
+                $!descriptor
+              ),
+              List,
+              '$!reified',
+              nqp::getattr(self,List,'$!reified')
+            ),
+            nqp::create(Slip)
+          )
+        )
+    }
+
+    method FLATTENABLE_LIST() {
+        nqp::if(
+          nqp::getattr(self,List,'$!todo').DEFINITE,
+          nqp::stmts(
+            nqp::getattr(self,List,'$!todo').reify-all,
+            nqp::getattr(self,List,'$!reified')
+          ),
+          nqp::if(
+            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::stmts(
+              nqp::if(
+                (my int $elems = nqp::elems($reified)),
+                nqp::stmts(
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::if(
+                      nqp::isnull(nqp::atpos($reified,$i)),
+                      nqp::bindpos(
+                        $reified,
+                        $i,
+                        nqp::p6scalarfromdesc($!descriptor)
+                      )
+                    )
+                  )
+                )
+              ),
+              nqp::getattr(self,List,'$!reified')
+            ),
+            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+          )
+        )
     }
 
     multi method flat(Array:U:) { self }
@@ -1049,7 +1139,10 @@ my class Array { # declared in BOOTSTRAP
               (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
                 && nqp::elems($reified),
               nqp::stmts(
-                (my $iterator := Rakudo::Iterator.ReifiedArray(self)),
+                (my $iterator := Rakudo::Iterator.ReifiedArray(
+                  self,
+                  nqp::getattr(self,Array,'$!descriptor')
+                )),
                 nqp::if(
                   nqp::istype($n,Callable)
                     && nqp::isgt_i((my $skip := -($n(0).Int)),0),

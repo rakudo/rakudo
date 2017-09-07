@@ -22,7 +22,7 @@ GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
-    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 1),
+    'jobs:1'            => \(my $jobs = $ENV{TEST_JOBS} || 6),
     'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
@@ -31,15 +31,21 @@ GetOptions(
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
+    'no-merge'             => \my $no_merge,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
+<<<<<<< HEAD
 
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = "lib"; 
+=======
+$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
+$ENV{'PERL6LIB'} = "lib";
+>>>>>>> origin/nom
 
 my @slow;
 if ($list_file) {
@@ -121,7 +127,7 @@ if (eval "require $tap_harness_class;") {
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
-        merge       => 1,
+        merge       => ($no_merge ? 0 : 1),
         $TAP::Harness::VERSION gt 3.21 ? (trap => 1) : (),
         $archive ? ( archive => $archive ) : (),
         $extra_properties ? ( extra_properties => $extra_properties ) : (),
@@ -197,11 +203,18 @@ Options:
     --help / -h - display the help message.
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - fudge (?)
-    --verbosity=[level] - set the verbosity level.
     --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
     --quick - do not run tests marked as long-running
     --stress - run tests marked as stress tests
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
-    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend
+    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM backend
+    --no-merge - pass STDERR from the tests through to the terminal's STDERR
+
+    --verbosity=[level] - set the verbosity level.
+       1   verbose        Print individual test results to STDOUT.
+       0   normal
+      -1   quiet  Suppress some test output. Mostly failures when tests running.
+      -2   really quiet   Suppress everything but the tests summary.
+      -3   silent         Suppress everything.

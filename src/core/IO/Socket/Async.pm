@@ -5,6 +5,14 @@ my class IO::Socket::Async {
     has int $!udp;
     has $.enc;
     has $!encoder;
+    has $!close-promise;
+    has $!close-vow;
+
+    has Str $.peer-host;
+    has Int $.peer-port;
+
+    has Str $.socket-host;
+    has Int $.socket-port;
 
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
@@ -48,11 +56,12 @@ my class IO::Socket::Async {
             Supply.on-demand:
                 -> $supply {
                     $cancellation := nqp::asyncreadbytes($!VMIO, $scheduler.queue,
-                        capture($supply), nqp::decont($buf), SocketCancellation)
-                    },
-                    closing => {
-                        $cancellation && nqp::cancel($cancellation)
-                    }
+                        capture($supply), nqp::decont($buf), SocketCancellation);
+                    $!close-promise.then({ $supply.done });
+                },
+                closing => {
+                    $cancellation && nqp::cancel($cancellation)
+                }
         }
         else {
             my $bin-supply = self.Supply(:bin);
@@ -71,6 +80,7 @@ my class IO::Socket::Async {
 
     method close(IO::Socket::Async:D: --> True) {
         nqp::closefh($!VMIO);
+        $!close-vow.keep(True);
     }
 
     method connect(IO::Socket::Async:U: Str() $host, Int() $port,
@@ -80,7 +90,7 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncconnect(
             $scheduler.queue,
-            -> Mu \socket, Mu \err {
+            -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                 if err {
                     $v.break(err);
                 }
@@ -90,6 +100,12 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                         $encoding.encoder());
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-host', peer-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+
+                    setup-close($client_socket);
                     $v.keep($client_socket);
                 }
             },
@@ -104,7 +120,7 @@ my class IO::Socket::Async {
         Supply.on-demand(-> $s {
             $cancellation := nqp::asynclisten(
                 $scheduler.queue,
-                -> Mu \socket, Mu \err {
+                -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                     if err {
                         $s.quit(err);
                     }
@@ -115,6 +131,12 @@ my class IO::Socket::Async {
                             $encoding.name);
                         nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                             $encoding.encoder());
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-host', peer-host);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
+                        nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+
+                        setup-close($client_socket);
                         $s.emit($client_socket);
                     }
                 },
@@ -128,6 +150,12 @@ my class IO::Socket::Async {
                 $p
             }
         });
+    }
+
+    sub setup-close(\socket --> Nil) {
+        my $p := Promise.new;
+        nqp::bindattr(socket, IO::Socket::Async, '$!close-promise', $p);
+        nqp::bindattr(socket, IO::Socket::Async, '$!close-vow', $p.vow);
     }
 
 #?if moar
@@ -147,6 +175,7 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                         $encoding.encoder());
+                    setup-close($client_socket);
                     $p.keep($client_socket);
                 }
             },
@@ -172,6 +201,7 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                         $encoding.encoder());
+                    setup-close($client_socket);
                     $p.keep($client_socket);
                 }
             },

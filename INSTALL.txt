@@ -10,7 +10,7 @@
     (Perl is installed by default already). To enable parallel testing you
     also need the CPAN module Test::Harness in version 3.16 or newer; you
     can control the number of parallel jobs with the "TEST_JOBS" environment
-    variable.
+    variable. If TEST_JOBS is not specified, 6 jobs will be used.
 
   Building and invoking Rakudo
     If you're wanting the bleeding-edge version of the Rakudo Perl 6

@@ -218,8 +218,6 @@ S03-operators/comparison-simple.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
-S03-operators/difference.t
-S03-operators/elem.t
 S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/flip-flop.t
@@ -229,7 +227,6 @@ S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/infixed-function.t
 S03-operators/inplace.t
-S03-operators/intersection.t
 S03-operators/is-divisible-by.t
 S03-operators/lcm.t
 S03-operators/list-quote-junction.t
@@ -243,7 +240,6 @@ S03-operators/notandthen.t
 S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
-S03-operators/proper-subset.t
 S03-operators/range-basic.t
 S03-operators/range-int.t
 S03-operators/range.t
@@ -252,16 +248,24 @@ S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/set.t
+S03-operators/set_addition.t
+S03-operators/set_difference.t
+S03-operators/set_elem.t
+S03-operators/set_intersection.t
+S03-operators/set_multiply.t
+S03-operators/set_precedes.t
+S03-operators/set_proper_subset.t
+S03-operators/set_subset.t
+S03-operators/set_symmetric_difference.t
+S03-operators/set_union.t
 S03-operators/short-circuit.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-adverbs.t
 S03-operators/subscript-vs-lt.t
-S03-operators/subset.t
 S03-operators/ternary.t
 S03-operators/u2212-minus.t
-S03-operators/union.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
@@ -314,6 +318,7 @@ S04-phasers/check.t
 S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
+S04-phasers/eval-in-begin.t
 S04-phasers/first.t
 S04-phasers/init.t
 S04-phasers/in-eval.t
@@ -580,6 +585,7 @@ S11-modules/module.t
 S11-modules/module-file.t
 S11-modules/need.t
 S11-modules/nested.t
+S11-modules/perl6lib.t
 S11-modules/require.t
 S11-modules/runtime.t
 S11-repository/curli-install.t
@@ -717,6 +723,7 @@ S15-nfg/mass-roundtrip-nfd.t    # moar
 S15-nfg/mass-roundtrip-nfkc.t   # moar
 S15-nfg/mass-roundtrip-nfkd.t   # moar
 S15-nfg/regex.t                 # moar
+S15-nfg/concat-stable.t         # moar
 S15-normalization/nfc-0.t       # moar stress
 S15-normalization/nfc-1.t       # moar stress
 S15-normalization/nfc-2.t       # moar stress
@@ -727,6 +734,7 @@ S15-normalization/nfc-6.t       # moar stress
 S15-normalization/nfc-7.t       # moar stress
 S15-normalization/nfc-8.t       # moar stress
 S15-normalization/nfc-9.t       # moar stress
+S15-normalization/nfc-concat.t  # moar
 S15-normalization/nfc-sanity.t  # moar
 S15-normalization/nfd-0.t       # moar stress
 S15-normalization/nfd-1.t       # moar stress
@@ -797,6 +805,7 @@ S16-io/print.t
 S16-io/prompt.t
 S16-io/put.t
 S16-io/quoting-syntax.t
+S16-io/readchars.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/split.t
@@ -806,6 +815,12 @@ S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/stress.t     # stress slow
+S17-lowlevel/atomic.t    # moar
+S17-lowlevel/atomic-ops.t # moar
+S17-lowlevel/cas.t       # moar
+S17-lowlevel/cas-int.t   # moar
+S17-lowlevel/cas-loop.t  # moar
+S17-lowlevel/cas-loop-int.t # moar
 S17-lowlevel/lock.t      # slow
 S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
@@ -898,6 +913,7 @@ S24-testing/9-is_deeply.t
 S24-testing/10-is-approx.t
 S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
+S24-testing/12-subtest-todo.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t

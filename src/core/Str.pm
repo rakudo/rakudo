@@ -2712,12 +2712,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method codes(|) { * }
     multi method codes(Str:D: --> Int:D) {
-#?if !jvm
-        self.NFC.codes
-#?endif
-#?if jvm
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
-#?endif
+        nqp::codes(self)
     }
     multi method codes(Str:U: --> Int:D) {
         self.Str;  # generate undefined warning
@@ -2798,7 +2793,13 @@ multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<~>(str $a, str $b --> str) { nqp::concat($a, $b) }
-multi sub infix:<~>(*@args --> Str:D) { @args.join }
+multi sub infix:<~>(Any:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Stringy), nqp::unbox_s(b)))
+}
+multi sub infix:<~>(Str:D \a, Any:D \b) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)))
+}
+multi sub infix:<~>(*@args) { @args.join }
 
 multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {
     nqp::if(nqp::islt_i($repetition, 0),

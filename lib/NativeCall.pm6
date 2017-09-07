@@ -1,4 +1,5 @@
 use nqp;
+use QAST:from<NQP>;
 
 module NativeCall {
 
@@ -236,7 +237,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
       return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
       return True if T.^name eq 'Str' | 'str' | 'Bool';
       return False if T.REPR eq 'P6opaque';
-      return False if T.HOW.^can("nativesize") && T.^nativesize == 0; #to disting int and int32 for example
+      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
       return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
       return True;
     }
@@ -296,6 +297,8 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     has Mu $!rettype;
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
+    has int $!arity;
+    has $!is-clone;
 
     method !setup() {
         $setup-lock.protect: {
@@ -320,15 +323,101 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
                 $arg_info,
                 return_hash_for($r.signature, $r, :$!entry-point));
             $!rettype := nqp::decont(map_return_type($r.returns));
+            $!arity = $r.signature.arity;
             $!setup = 1;
         }
     }
 
+    my $perl6comp := nqp::getcomp("perl6");
+    my @stages = $perl6comp.stages;
+    Nil until @stages.shift eq 'optimize';
+
+    method !create-optimized-call() {
+        $setup-lock.protect: {
+            my $sc := nqp::createsc('NativeCallSub' ~ nqp::objectid(self));
+            nqp::setobjsc(self, $sc);
+            my int $idx = nqp::scobjcount($sc);
+            nqp::scsetobj($sc, $idx, self);
+            my $block := QAST::Block.new(:arity($!arity));
+            my $arglist := QAST::Op.new(:op<list>);
+            my $locals = 0;
+            for $r.signature.params {
+                my $name = $_.name || '__anonymous_param__' ~ $++;
+                if $_.rw and nqp::objprimspec($_.type) > 0 {
+                    $block.push: QAST::Var.new(
+                        :name($name),
+                        :scope<lexicalref>,
+                        :decl<var>,
+                        :returns($_.type),
+                    );
+                    my $lowered_name = '__lowered_param__' ~ $locals++;
+                    $block.push: QAST::Var.new(
+                        :name($lowered_name),
+                        :scope<local>,
+                        :decl<param>,
+                        QAST::Op.new(
+                            :op<bind>,
+                            QAST::Var.new(:scope<lexicalref>, :name($name)),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                        ),
+                    );
+                    $arglist.push: QAST::Var.new(:scope<lexicalref>, :name($name));
+                }
+                else {
+                    $block.push: QAST::Var.new(
+                        :name($name),
+                        :scope<lexical>,
+                        :decl<param>,
+                        :slurpy($_.slurpy ?? 1 !! 0),
+                    );
+                    $arglist.push: nqp::objprimspec($_.type) == 0
+                        ?? QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new(:scope<lexical>, :name($name)),
+                            )
+                        !! QAST::Var.new(:scope<lexical> :name($name));
+                }
+            }
+            my $stmts := QAST::Stmts.new(
+                QAST::Op.new(
+                    :op<nativecallinvoke>,
+                    QAST::WVal.new(:value($!rettype)),
+                    QAST::WVal.new(:value(self)),
+                    $arglist,
+                ),
+            );
+            $block.push: $stmts;
+
+            my $result := $block;
+            $result := $perl6comp.^can($_)
+                ?? $perl6comp."$_"($result)
+                !! $perl6comp.backend."$_"($result)
+                for @stages;
+            my $body := nqp::compunitmainline($result);
+
+            nqp::setcodename($body, $r.name);
+            nqp::bindattr(self, Code, '$!do', $body);
+            nqp::setinvokespec(self,
+                Code.HOW.invocation_attr_class(Code),
+                Code.HOW.invocation_attr_name(Code),
+                nqp::null());
+        }
+    }
+
+    method clone() {
+        my $clone := callsame;
+        nqp::bindattr($clone, $?CLASS, '$!is-clone', 1);
+        $clone
+    }
+
     method CALL-ME(|args) {
-        self!setup unless $!setup;
+        self!setup();
+        self!create-optimized-call() unless
+            $!is-clone # Clones and original would share the invokespec but not the $!do attribute
+            or $*W;    # Avoid issues with compiling specialized version during BEGIN time
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-        if nqp::elems($args) != $r.signature.arity {
+        if nqp::elems($args) != $!arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),
                 :arguments(args.list.map(*.^name))

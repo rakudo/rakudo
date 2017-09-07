@@ -3,6 +3,11 @@ my class Match is Capture is Cool does NQPMatchRole {
     my Mu $NO_CAPS    := nqp::hash();
     my Mu $DID_MATCH  := nqp::create(NQPdidMATCH);
 
+    # When nothing's `made`, we get an NQPMu that we'd like to replace
+    # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
+    method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
+    method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
+
     method STR() {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
@@ -189,12 +194,16 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
     # If it can't match against pattern var (or any element of var if it is an array)
-    # it will increment $pos and try again. Therefor it is important to only match
+    # it will increment $pos and try again. Therefore it is important to only match
     # against the current position.
     # $i is case insensitive flag
+    # $m is ignore accent marks flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
-    method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a = 0, $context = PseudoStash) {
+
+    # INTERPOLATE's parameters are non-optional since the ops for optional params
+    # aren't currently JITted on MoarVM
+    method INTERPOLATE(\var, int $i, int $m, int $monkey, int $s, int $a, $context) {
         if nqp::isconcrete(var) {
             # Call it if it is a routine. This will capture if requested.
             return (var)(self) if nqp::istype(var,Callable);
@@ -322,42 +331,22 @@ my class Match is Capture is Cool does NQPMatchRole {
 
                 # no modifier, match literally
                 elsif $nomod {
-                    $match = nqp::eqat($tgt, $topic_str, $pos)
+                    $match = nqp::eqat($tgt, $topic_str, $pos);
                 }
 
-                # ignoremark(+ignorecase?)
+                # ignoremark+ignorecase
+                elsif $m && $i {
+                    $match = nqp::eqaticim($tgt, $topic_str, $pos);
+                }
+
+                # ignoremark
                 elsif $m {
-                    my int $k = -1;
-
-                    # ignorecase+ignoremark
-                    if $i {
-                        my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
-                        my str $topic_fc = nqp::fc($topic_str);
-                        Nil while nqp::islt_i(++$k,$len)
-                          && nqp::iseq_i(
-                            nqp::ordbaseat($tgt_fc, nqp::add_i($pos,$k)),
-                            nqp::ordbaseat($topic_fc, $k)
-                          );
-                    }
-
-                    # ignoremark
-                    else {
-                        Nil while nqp::islt_i(++$k, $len)
-                          && nqp::iseq_i(
-                            nqp::ordbaseat($tgt, nqp::add_i($pos,$k)),
-                            nqp::ordbaseat($topic_str, $k)
-                          );
-                    }
-
-                    $match = nqp::iseq_i($k,$len); # match if completed
+                    $match = nqp::eqatim($tgt, $topic_str, $pos);
                 }
 
                 # ignorecase
-                else {
-                    $match = nqp::iseq_s(
-                      nqp::fc(nqp::substr($tgt, $pos, $len)),
-                      nqp::fc($topic_str)
-                    )
+                elsif $i {
+                    $match = nqp::eqatic($tgt, $topic_str, $pos);
                 }
 
                 if $match

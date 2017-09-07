@@ -99,6 +99,7 @@ role STD {
                     last;
                 }
             }
+            $lang.set_pragma("STOPPER",$stop);
             nqp::istype($stop,VMArray) ||
             $start ne $stop ?? $lang.balanced($start, $stop)
                             !! $lang.unbalanced($stop);
@@ -238,10 +239,23 @@ role STD {
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
     method FAILGOAL($goal, $dba?) {
+        my $stopper;
         unless $dba {
             $dba := nqp::getcodename(nqp::callercode());
+            # Handle special case to conceal variable name leaked by core grammar
+            if ~$goal eq '$stopper ' {
+                my $ch := $dba ~~ /[post]?circumfix\:sym[\<|\«]\S+\s+(\S+)[\>|\»]/;
+                $ch := ~$ch[0];
+                if nqp::chars($ch) {
+                    $stopper := "'" ~ $ch ~ "'";
+                }
+            }
         }
-        self.typed_panic('X::Comp::FailGoal', :$dba, :$goal);
+        # core grammar also has a penchant for sending us trailing .ws contents
+        $stopper := $stopper // $goal;
+        $stopper := $stopper ~~ /(.*<!before \s>.)\s*/;
+        $stopper := ~$stopper[0];
+        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper));
     }
 
     method panic(*@args) {
@@ -1590,13 +1604,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version> [
-                    ||  <?{ $<version><vnum>[0] == 5 }> {
+        | <version> {} # <-- update $/ so we can grab $<version>
+                    # we parse out the numeral, since we could have "6c"
+                    :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
+                    [
+                    ||  <?{ $version == 5 }> {
                             my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
                             $*W.do_import($/, $module, 'Perl5');
                             $*W.import_EXPORTHOW($/, $module);
                         }
-                    ||  <?{ $<version><vnum>[0] == 6 }> {
+                    ||  <?{ $version == 6 }> {
                             my $version_parts := $<version><vnum>;
                             my $vwant := $<version>.ast.compile_time_value;
                             my $comp := nqp::getcomp('perl6');
@@ -3391,7 +3408,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
                 <?[(]> <?{ $is_type }>
                 '(' <.ws> [
-                    || <accept=.typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || <accept=.maybe_typename> <!{ nqp::isconcrete($<accept>.ast) }>
                     || $<accept_any>=<?>
                 ] <.ws> ')'
             ]?
@@ -3634,6 +3651,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    method maybe_typename() {
+        return self.typename();
+        CATCH { return self.'!cursor_start_cur'() }
+    }
 
     token quotepair($*purpose = 'quoteadverb') {
         :my $*key;
@@ -3674,8 +3695,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token quote_mod   {*}
     token quote_mod:sym<w>  { <sym> }
     token quote_mod:sym<ww> { <sym> }
-    # XXX uncomment this when it's implemented
-    #token quote_mod:sym<p>  { <sym> }
     token quote_mod:sym<x>  { <sym> }
     token quote_mod:sym<to> { <sym> }
     token quote_mod:sym<s>  { <sym> }
@@ -4103,7 +4122,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token postfix_prefix_meta_operator:sym<»> {
-        [ <sym> | '>>' ]
+        [ <sym> | $<sym> = '>>' ]
         [ <!{ $*QSIGIL }> || <![(]> ]
     }
 
@@ -4163,7 +4182,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token methodop {
         [
-        | <longname>
+        | <longname> { if $<longname> eq '::' { self.malformed("class-qualified postfix call") } }
         | <?[$@&]> <variable> { self.check_variable($<variable>) }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
@@ -4244,8 +4263,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
     token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<--⚛> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<++> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<ⁿ> { <sign=[⁻⁺¯]>? <dig=[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ <O(|%autoincrement)> }
 
     # TODO: report the correct bracket in error message
@@ -4276,6 +4299,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym>  <O(|%symbolic_unary)>
         <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
+    token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
 
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
@@ -4540,6 +4564,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         { $*LEFTSIGIL := '' }
     }
+
+    token infix:sym<⚛=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1), :pasttype<if>)> }
     token infix:sym<andthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }

@@ -286,28 +286,34 @@ multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
 }
 sub infix:<=~=>(|c) { infix:<≅>(|c) }
 
-proto sub infix:<!=>(Mu $?, Mu $?) is pure  { * }
-multi sub infix:<!=>($?)        { Bool::True }
-multi sub infix:<!=>(Mu \a, Mu \b)   { not a == b }
-sub infix:<≠>(|c) is pure { infix:<!=>(|c) }
+proto sub infix:<!=>(Mu $?, Mu $?) is pure { * }
+multi sub infix:<!=>($? --> True)  { }
+multi sub infix:<!=>(Mu \a, Mu \b) { not a == b }
+proto sub infix:<≠>(Mu $?, Mu $?) is pure  { * }  # should be alias, RT 131626
+multi sub infix:<≠>($? --> True)  { }
+multi sub infix:<≠>(Mu \a, Mu \b) { not a == b }
 
-proto sub infix:«<»(Mu $?, Mu $?) is pure   { * }
-multi sub infix:«<»($?)         { Bool::True }
-multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
+proto sub infix:«<»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«<»($? --> True)  { }
+multi sub infix:«<»(\a, \b) { a.Real < b.Real }
 
-proto sub infix:«<=»(Mu $?, Mu $?) is pure  { * }
-multi sub infix:«<=»($?)        { Bool::True }
-multi sub infix:«<=»(\a, \b)   { a.Real <= b.Real }
-sub infix:«≤»(|c) is pure { infix:«<=»(|c) }
+proto sub infix:«<=»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«<=»($? --> True)  { }
+multi sub infix:«<=»(\a, \b) { a.Real <= b.Real }
+proto sub infix:«≤»(Mu $?, Mu $?) is pure { * }  # should be alias, RT 131626
+multi sub infix:«≤»($? --> True)   { }
+multi sub infix:«≤»(\a, \b) { a.Real <= b.Real }
 
-proto sub infix:«>»(Mu $?, Mu $?) is pure   { * }
-multi sub infix:«>»($?)         { Bool::True }
-multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
+proto sub infix:«>»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«>»($? --> True)  { }
+multi sub infix:«>»(\a, \b) { a.Real > b.Real }
 
-proto sub infix:«>=»(Mu $?, Mu $?) is pure  { * }
-multi sub infix:«>=»($?)        { Bool::True }
-multi sub infix:«>=»(\a, \b)   { a.Real >= b.Real }
-sub infix:«≥»(|c) is pure { infix:«>=»(|c) }
+proto sub infix:«>=»(Mu $?, Mu $?) is pure { * }
+multi sub infix:«>=»($? --> True)  { }
+multi sub infix:«>=»(\a, \b) { a.Real >= b.Real }
+proto sub infix:«≥»(Mu $?, Mu $?) is pure { * }  # should be alias, RT 131626
+multi sub infix:«≥»($? --> True)  { }
+multi sub infix:«≥»(\a, \b) { a.Real >= b.Real }
 
 ## bitwise operators
 

@@ -13,7 +13,7 @@ my class IO::Path is Cool does IO {
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
-        nqp::unless($!path,
+        nqp::unless(nqp::chars($!path), # could be an IntStr, so check chars
             die "Must specify something as a path: did you mean '.' for the current directory?"
         );
         nqp::if(
@@ -24,13 +24,13 @@ my class IO::Path is Cool does IO {
     }
 
     method !new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
-        method !set-absolute() {
-            $!is-absolute = True;
-            $!abspath := $path;
-            self;
-        }
+        self.bless(:$path, :$SPEC, :$CWD)!set-absolute($path);
+    }
 
-        self.bless(:$path, :$SPEC, :$CWD)!set-absolute;
+    method !set-absolute($path) {
+        $!is-absolute = True;
+        $!abspath := $path;
+        self;
     }
 
     proto method new(|) {*}

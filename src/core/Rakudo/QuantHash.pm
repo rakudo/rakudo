@@ -5,6 +5,47 @@ my class Rakudo::QuantHash {
     # a Pair with the value 0
     my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
 
+    # Specialized role for .kv methods on QuantHashes: copied methods
+    # from Quanty because of visibility issues wrt to $!elems and $!iter :-(
+    our role Quanty-kv does Iterator {
+        has $!elems;
+        has $!iter;
+        has $!on;
+
+        method SET-SELF(\elems) {
+            nqp::stmts(
+              ($!elems := elems),
+              ($!iter  := nqp::iterator(elems)),
+              self
+            )
+        }
+        method new(\quanthash) {
+            nqp::if(
+              (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
+              nqp::create(self).SET-SELF($elems),
+              Rakudo::Iterator.Empty   # nothing to iterate
+            )
+        }
+        method skip-one() {
+            nqp::if(
+              $!on,
+              nqp::not_i($!on = 0),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  nqp::shift($!iter),
+                  ($!on = 1)
+                )
+              )
+            )
+        }
+        method count-only() {
+            nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
+        }
+        method bool-only(--> True) { }
+        method sink-all(--> IterationEnd) { $!iter := nqp::null }
+    }
+
     our role Pairs does Iterator {
         has $!elems;
         has $!picked;
@@ -87,11 +128,87 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Return an nqp::list_s of all keys of a QuantHash
+    method RAW-KEYS(\quanthash) is raw {
+        nqp::if(
+          (my $elems := quanthash.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
+          nqp::stmts(
+            (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s(
+                $keys,
+                ($i = nqp::add_i($i,1)),
+                nqp::iterkey_s(nqp::shift($iter))
+              )
+            ),
+            $keys
+          ),
+          nqp::list_s
+        )
+    }
+
+    # Return an nqp::list_s of all values of a QuantHash, mapped to a str
+    method RAW-VALUES-MAP(\quanthash, &mapper) is raw {
+        nqp::if(
+          (my $elems := quanthash.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
+          nqp::stmts(
+            (my $values := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            nqp::while(
+              $iter,
+              nqp::bindpos_s(
+                $values,
+                ($i = nqp::add_i($i,1)),
+                mapper(nqp::iterval(nqp::shift($iter)))
+              )
+            ),
+            $values
+          ),
+          nqp::list_s
+        )
+    }
+
+    # Return an nqp::list_s of all keys in a Baggy with the weight
+    # joined with a null-byte inbetween.
+    method BAGGY-RAW-KEY-VALUES(\baggy) is raw {
+        nqp::if(
+          (my $elems := baggy.RAW-HASH)
+            && (my $iter := nqp::iterator($elems)),
+          nqp::stmts(
+            (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
+            (my int $i = -1),
+            nqp::while(
+              $iter,
+              nqp::stmts(
+                nqp::shift($iter),
+                nqp::bindpos_s(
+                  $list,
+                  ($i = nqp::add_i($i,1)),
+                  nqp::concat(
+                    nqp::iterkey_s($iter),
+                    nqp::concat(
+                      '\0',
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value').Str
+                    )
+                  )
+                )
+              )
+            ),
+            $list
+          ),
+          nqp::list_s
+        )
+    }
+
     # Create intersection of 2 Baggies, default to given empty type
     method INTERSECT-BAGGIES(\a,\b,\empty) {
         nqp::if(
-          (my $araw := a.raw_hash) && nqp::elems($araw)
-            && (my $braw := b.raw_hash) && nqp::elems($braw),
+          (my $araw := a.RAW-HASH) && nqp::elems($araw)
+            && (my $braw := b.RAW-HASH) && nqp::elems($braw),
           nqp::stmts(                          # both have elems
             nqp::if(
               nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -134,34 +251,49 @@ my class Rakudo::QuantHash {
         )
     }
 
-#--- Set/SetHash related methods
-    method SET-IS-SUBSET($a,$b --> Bool:D) {
+    # create a deep clone of the given IterSet with baggy
+    method BAGGY-CLONE(\raw) {
         nqp::stmts(
-          nqp::unless(
-            nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-            nqp::if(
-              (my $araw := $a.raw_hash)
-                && nqp::elems($araw),
-              nqp::if(                # number of elems in B *always* >= A
-                (my $braw := $b.raw_hash)
-                  && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-                  && (my $iter := nqp::iterator($araw)),
-                nqp::while(           # number of elems in B >= A
-                  $iter,
-                  nqp::unless(
-                    nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
-                    return False      # elem in A doesn't exist in B
-                  )
-                ),
-                return False          # number of elems in B smaller than A
+          (my $elems := nqp::clone(raw)),
+          (my $iter  := nqp::iterator($elems)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::p6bindattrinvres(
+                nqp::clone(nqp::iterval($iter)),
+                Pair,
+                '$!value',
+                nqp::getattr(nqp::iterval($iter),Pair,'$!value')
               )
             )
           ),
-          True
+          $elems
         )
     }
 
-    # add to given IterationSet the values of given iterator
+#--- Set/SetHash related methods
+
+    # Create an IterationSet with baggy semantics from IterationSet with
+    # Setty semantics.
+    method SET-BAGGIFY(\raw) {
+        nqp::stmts(
+          (my $elems := nqp::clone(raw)),
+          (my $iter  := nqp::iterator($elems)),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              Pair.new(nqp::decont(nqp::iterval($iter)),1)
+            )
+          ),
+          $elems
+        )
+    }
+
+    # add to given IterationSet with setty semantics the values of iterator
     method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -175,7 +307,8 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to IterationSet with setty semantics the values of the given
+    # iterator while checking for Pairs (only include if value is trueish)
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -197,18 +330,36 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the keys of given Map
+    # Add to given IterationSet with setty semantics the keys of given Map
     method ADD-MAP-TO-SET(\elems, \map) {
         nqp::stmts(
           nqp::if(
             (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
               && (my $iter := nqp::iterator($raw)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::iterval(nqp::shift($iter)),
-                nqp::bindkey(
-                  elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+            nqp::if(
+              nqp::eqaddr(map.keyof,Str(Any)),
+              nqp::while(                        # normal Map
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::bindkey(
+                    elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
+                )
+              ),
+              nqp::while(                        # object hash
+                $iter,
+                nqp::if(
+                  nqp::getattr(
+                    nqp::decont(nqp::iterval(nqp::shift($iter))),
+                    Pair,
+                    '$!value'
+                  ),
+                  nqp::bindkey(
+                    elems,
+                    nqp::iterkey_s($iter),
+                    nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+                  )
+                )
               )
             )
           ),
@@ -216,29 +367,79 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the objects of given object Hash
-    method ADD-OBJECTHASH-TO-SET(\elems, \objecthash) {
+    # coerce a Map to an IterationSet with setty semantics
+    method COERCE-MAP-TO-SET(\map) {
+        # Once object hashes have IterationSets, we could optimize the
+        # object hash case by cloning the object hash, rather than creating
+        # an empty IterationSet.  Until then, this is just a wrapper.
+        Rakudo::QuantHash.ADD-MAP-TO-SET(
+          nqp::create(Rakudo::Internals::IterationSet),
+          map
+        )
+    }
+
+    # remove set elements from set, stop when the result is the empty Set
+    method SUB-SET-FROM-SET(\aelems, \belems) {
+        nqp::stmts(                            # both have elems
+          (my $elems := nqp::clone(aelems)),
+          (my $iter  := nqp::iterator(belems)),
+          nqp::while(
+            $iter && nqp::elems($elems),
+            nqp::deletekey($elems,nqp::iterkey_s(nqp::shift($iter)))
+          ),
+          $elems
+        )
+    }
+
+    # remove hash elements from set, stop if the result is the empty Set
+    method SUB-MAP-FROM-SET(\aelems, \map) {
         nqp::stmts(
+          (my $elems := nqp::clone(aelems)),
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(objecthash),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::getattr(
-                  nqp::decont(nqp::iterval(nqp::shift($iter))),
-                  Pair,
-                  '$!value'
-                ),
-                nqp::bindkey(
-                  elems,
-                  nqp::iterkey_s($iter),
-                  nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+            (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+             && (my $iter  := nqp::iterator($storage)),
+            nqp::if(
+              nqp::eqaddr(map.keyof,Str(Any)),
+              nqp::while(                     # normal Map
+                $iter && nqp::elems($elems),
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::deletekey($elems,nqp::iterkey_s($iter).WHICH)
+                )
+              ),
+              nqp::while(                     # object hash
+                $iter && nqp::elems($elems),
+                nqp::if(
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                  nqp::deletekey($elems,nqp::iterkey_s($iter))
                 )
               )
             )
           ),
-          elems
+          $elems
+        )
+    }
+
+    # remove iterator elements from set using Pair semantics, stops pulling
+    # from the iterator as soon as the result is the empty set.
+    method SUB-PAIRS-FROM-SET(\elems, \iterator) {
+        nqp::stmts(
+          (my $elems := nqp::clone(elems)),
+          nqp::until(           
+            nqp::eqaddr(                            # end of iterator?
+              (my $pulled := iterator.pull-one),
+              IterationEnd
+            ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove?
+            nqp::if(
+              nqp::istype($pulled,Pair),
+              nqp::if(                              # must check for thruthiness
+                nqp::getattr($pulled,Pair,'$!value'),
+                nqp::deletekey($elems,nqp::getattr($pulled,Pair,'$!key').WHICH)
+              ),
+              nqp::deletekey($elems,$pulled.WHICH)  # attempt to remove
+            )
+          ),
+          $elems
         )
     }
 
@@ -392,7 +593,159 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to given IterationSet with baggy semantics the keys of given Map
+    method ADD-MAP-TO-BAG(\elems, \map) {
+        nqp::stmts(
+          nqp::if(
+            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+              && (my $iter := nqp::iterator($raw)),
+            nqp::if(
+              nqp::eqaddr(map.keyof,Str(Any)),
+              nqp::while(              # ordinary Map
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Int),
+                    Int
+                  ),
+                  nqp::if(             # a valid Int
+                    $value > 0,
+                    nqp::if(           # and a positive one at that
+                      nqp::existskey(
+                        elems,
+                        (my $which := nqp::iterkey_s($iter).WHICH)
+                      ),
+                      nqp::stmts(      # seen before, add value
+                        (my $pair := nqp::atkey(elems,$which)),
+                        nqp::bindattr(
+                          $pair,
+                          Pair,
+                          '$!value',
+                          nqp::getattr($pair,Pair,'$!value') + $value
+                        )
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        $which,
+                        Pair.new(nqp::iterkey_s($iter),$value)
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
+              ),
+              nqp::while(              # object hash
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Int),
+                    Int
+                  ),
+                  nqp::if(             # a valid Int
+                    $value > 0,
+                    nqp::if(           # and a positive one at that
+                      nqp::existskey(elems,nqp::iterkey_s($iter)),
+                      nqp::stmts(      # seen before, add value
+                        ($pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                        nqp::bindattr(
+                          $pair,
+                          Pair,
+                          '$!value',
+                          nqp::getattr($pair,Pair,'$!value') + $value
+                        )
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        nqp::iterkey_s($iter),
+                        nqp::p6bindattrinvres(
+                          nqp::clone(nqp::iterval($iter)),
+                          Pair,
+                          '$!value',
+                          $value
+                        )
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
+              )
+            )
+          ),
+          elems
+        )
+    }
+
+    # Coerce the given Map to an IterationSet with baggy semantics.
+    method COERCE-MAP-TO-BAG(\map) {
+        nqp::if(
+          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($storage)),
+          nqp::if(                   # something to coerce
+            nqp::eqaddr(map.keyof,Str(Any)),
+            nqp::stmts(              # ordinary Map
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Int),
+                    Int
+                  ),
+                  nqp::if(           # a valid Int
+                    $value > 0,
+                    nqp::bindkey(    # and a positive one at that
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            ),
+            nqp::stmts(              # object hash
+              # once object hashes have IterationSets inside them, we can
+              # make this an nqp::clone for more performance, which would
+              # pre-populate the IterationSet with the right keys off the
+              # bat.
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Int),
+                    Int
+                  ),
+                  nqp::if(           # a valid Int
+                    $value > 0,
+                    nqp::bindkey(    # and a positive one at that
+                      $elems,
+                      nqp::iterkey_s($iter),
+                      nqp::p6bindattrinvres(
+                        nqp::clone(nqp::iterval($iter)),
+                        Pair,
+                        '$!value',
+                        $value
+                      )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            )
+          ),
+          nqp::create(Rakudo::Internals::IterationSet)  # nothing to coerce
+        )
+    }
+
+    # Add to given IterationSet with baggy semantics the values of the given
+    # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-BAG(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
@@ -405,8 +758,9 @@ my class Rakudo::QuantHash {
               nqp::if(               # we have a Pair
                 nqp::istype(
                   (my $value :=
-                    nqp::decont(nqp::getattr($pulled,Pair,'$!value'))),Int
-                ) || nqp::istype(($value := $value.Int),Int),
+                    nqp::decont(nqp::getattr($pulled,Pair,'$!value')).Int),
+                  Int
+                ),
                 nqp::if(             # is a (coerced) Int
                   $value > 0,
                   nqp::if(           # and a positive one at that
@@ -460,6 +814,8 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Take the given IterationSet with baggy semantics, and add the other
+    # IterationSet with setty semantics to it.  Return the given IterationSet.
     method ADD-SET-TO-BAG(\elems,Mu \set) {
         nqp::stmts(
           nqp::if(
@@ -473,11 +829,11 @@ my class Rakudo::QuantHash {
                   nqp::stmts(
                     (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
                     nqp::bindattr($pair,Pair,'$!value',
-                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                      nqp::getattr($pair,Pair,'$!value') + 1
                     )
                   ),
                   nqp::bindkey(elems,nqp::iterkey_s($iter),
-                    Pair.new(nqp::iterval($iter),1)
+                    Pair.new(nqp::iterval($iter), 1)
                   )
                 )
               )
@@ -542,6 +898,83 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # set difference Baggy IterSet from Bag IterSet, both assumed to have elems
+    method SUB-BAGGY-FROM-BAG(\aelems, \belems) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iter  := nqp::iterator(aelems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              (my $value :=
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                 - nqp::getattr(
+                     nqp::ifnull(nqp::atkey(belems,nqp::iterkey_s($iter)),$p0),
+                     Pair,
+                     '$!value'
+                   )
+              ) > 0,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),Pair,'$!value',$value
+                )
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference Setty IterSet from Bag IterSet, both assumed to have elems
+    method SUB-SETTY-FROM-BAG(\aelems, \belems) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iter  := nqp::iterator(aelems)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              (my $value :=
+                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                 - nqp::existskey(belems,nqp::iterkey_s($iter))
+              ) > 0,
+              nqp::bindkey(
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),Pair,'$!value',$value
+                )
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference of a Baggy and a QuantHash
+    method DIFFERENCE-BAGGY-QUANTHASH(\a, \b) {
+        nqp::if(
+          (my $araw := a.RAW-HASH) && nqp::elems($araw),
+          nqp::if(
+            (my $braw := b.RAW-HASH) && nqp::elems($braw),
+            nqp::create(Bag).SET-SELF(
+              nqp::if(
+                nqp::istype(b,Setty),
+                self.SUB-SETTY-FROM-BAG($araw, $braw),
+                self.SUB-BAGGY-FROM-BAG($araw, $braw)
+              )
+            ),
+            a.Bag
+          ),
+          nqp::if(
+            nqp::istype(b,Failure),
+            b.throw,
+            bag()
+          )
+        )
+    }
+
 #--- Mix/MixHash related methods
 
     # Calculate total of values of a Mix(Hash).  Takes a (possibly
@@ -590,8 +1023,8 @@ my class Rakudo::QuantHash {
     # and the total value of values in the Mix.
     method MIX-ROLL(\elems, \total) {
         nqp::stmts(
-          (my     $rand := total.rand),
-          (my Int $seen := 0),
+          (my      $rand := total.rand),
+          (my Real $seen := 0),
           (my $iter := nqp::iterator(elems)),
           nqp::while(
             $iter && (
@@ -605,32 +1038,131 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
-        nqp::if(
-          mix && nqp::elems(mix),
-          nqp::stmts(
-            (my $iter := nqp::iterator(mix)),
-            nqp::while(
-              $iter,
-              nqp::if(
-                nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::stmts(
-                  (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                  nqp::bindattr($pair,Pair,'$!value',
-                    nqp::getattr($pair,Pair,'$!value')
-                    + nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+    # Given an IterationSet in baggy/mixy format considered to contain the
+    # final result, add the other IterationSet using Mix semantics and return
+    # the first IterationSet.
+    method ADD-MIX-TO-MIX(\elems, Mu \mix) {
+        nqp::stmts(
+          nqp::if(
+            mix && nqp::elems(mix),
+            nqp::stmts(
+              (my $iter := nqp::iterator(mix)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::isnull((my $pair :=
+                    nqp::atkey(elems,nqp::iterkey_s(nqp::shift($iter)))
+                  )),
+                  nqp::bindkey(                 # doesn't exist on left, create
+                    elems,
+                    nqp::iterkey_s($iter),
+                    nqp::p6bindattrinvres(
+                      nqp::clone(nqp::iterval($iter)),
+                      Pair,
+                      '$!value',
+                      nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                    )
+                  ),
+                  nqp::if(                      # exists on left, update
+                    (my $value := nqp::getattr($pair,Pair,'$!value')
+                      + nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
+                    nqp::bindattr($pair,Pair,'$!value',$value), # valid for Mix
+                    nqp::deletekey(elems,nqp::iterkey_s($iter)) # bye bye
                   )
-                ),
-                nqp::bindkey(elems,nqp::iterkey_s($iter),
-                  nqp::clone(nqp::iterval($iter))
                 )
               )
             )
-          )
+          ),
+          elems
         )
     }
 
-    # add to given IterationSet the values of given iterator with Pair check
+    # Add to given IterationSet with mixy semantics the keys of given Map
+    method ADD-MAP-TO-MIX(\elems, \map) {
+        nqp::stmts(
+          nqp::if(
+            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+              && (my $iter := nqp::iterator($raw)),
+            nqp::if(
+              nqp::eqaddr(map.keyof,Str(Any)),
+              nqp::while(              # normal Map
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Real),
+                    Real
+                  ),
+                  nqp::if(             # a valid Real
+                    $value,
+                    nqp::if(           # and not 0
+                      nqp::existskey(
+                        elems,
+                        (my $which := nqp::iterkey_s($iter).WHICH)
+                      ),
+                      nqp::if(         # seen before: add value, remove if sum 0
+                        ($value := nqp::getattr(
+                          (my $pair := nqp::atkey(elems,$which)),
+                          Pair,
+                          '$!value'
+                        ) + $value),
+                        nqp::bindattr($pair,Pair,'$!value',$value), # okidoki
+                        nqp::deletekey(elems,$which)                # alas, bye
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        $which,
+                        Pair.new(nqp::iterkey_s($iter),$value)
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
+              ),
+              nqp::while(              # object hash
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Real),
+                    Real
+                  ),
+                  nqp::if(             # a valid Real
+                    $value,
+                    nqp::if(           # and not 0
+                      nqp::existskey(elems,nqp::iterkey_s($iter)),
+                      nqp::if(         # seen before: add value, remove if sum 0
+                        ($value := nqp::getattr(
+                          ($pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                          Pair,
+                          '$!value'
+                        ) + $value),
+                        nqp::bindattr($pair,Pair,'$!value',$value), # okidoki
+                        nqp::deletekey(elems,nqp::iterkey_s($iter)) # alas, bye
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        nqp::iterkey_s($iter),
+                        nqp::p6bindattrinvres(
+                          nqp::clone(nqp::iterval($iter)),
+                          Pair,
+                          '$!value',
+                          nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                        )
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
+              )
+            )
+          ),
+          elems
+        )
+    }
+
+    # Add to given IterationSet with mixy semantics the values of the given
+    # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-MIX(\elems,Mu \iterator) is raw {
         nqp::stmts(
           nqp::until(
@@ -652,8 +1184,7 @@ my class Rakudo::QuantHash {
                   ).throw,
                   nqp::stmts(        # apparently valid
                     nqp::unless(
-                      nqp::istype($value,Real)
-                        || nqp::istype(($value := $value.Real),Real),
+                      nqp::istype(($value := $value.Real),Real),
                       $value.throw   # not a Real value, so throw Failure
                     ),
                     nqp::if(         # valid Real value
@@ -707,6 +1238,105 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Take the given IterationSet with mixy semantics, and add the other
+    # IterationSet with setty semantics to it.  Return the given IterationSet.
+    method ADD-SET-TO-MIX(\elems,Mu \set) {
+        nqp::stmts(
+          nqp::if(
+            set && nqp::elems(set),
+            nqp::stmts(
+              (my $iter := nqp::iterator(set)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::if(
+                    (my $value := nqp::getattr(
+                      (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                      Pair,
+                      '$!value'
+                    ) + 1),
+                    nqp::bindattr($pair,Pair,'$!value',$value),   # still valid
+                    nqp::deletekey(elems,nqp::iterkey_s($iter))   # not, byebye
+                  ),
+                  nqp::bindkey(elems,nqp::iterkey_s($iter),       # new key
+                    Pair.new(nqp::iterval($iter), 1)
+                  )
+                )
+              )
+            )
+          ),
+          elems
+        )
+    }
+
+    # Coerce the given Map to an IterationSet with mixy semantics.
+    method COERCE-MAP-TO-MIX(\map) {
+        nqp::if(
+          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
+            && (my $iter := nqp::iterator($storage)),
+          nqp::if(                   # something to coerce
+            nqp::eqaddr(map.keyof,Str(Any)),
+            nqp::stmts(              # ordinary Map
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    (my $value := nqp::iterval(nqp::shift($iter)).Real),
+                    Real
+                  ),
+                  nqp::if(           # a valid Real
+                    $value,
+                    nqp::bindkey(    # and not 0
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            ),
+            nqp::stmts(              # object hash
+              # once object hashes have IterationSets inside them, we can
+              # make this an nqp::clone for more performance, which would
+              # pre-populate the IterationSet with the right keys off the
+              # bat.
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),Pair,'$!value'
+                    ).Real),
+                    Real
+                  ),
+                  nqp::if(           # a valid Real
+                    $value,
+                    nqp::bindkey(    # and not 0
+                      $elems,
+                      nqp::iterkey_s($iter),
+                      nqp::p6bindattrinvres(
+                        nqp::clone(nqp::iterval($iter)),
+                        Pair,
+                        '$!value',
+                        $value
+                      )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            )
+          ),
+          nqp::create(Rakudo::Internals::IterationSet) # nothing to coerce
+        )
+    }
+
     method MULTIPLY-MIX-TO-MIX(\elems,Mu \mix --> Nil) {
         nqp::stmts(
           (my $iter := nqp::iterator(elems)),
@@ -735,6 +1365,28 @@ my class Rakudo::QuantHash {
               nqp::deletekey(elems,nqp::iterkey_s(nqp::shift($iter)))
             )
           )
+        )
+    }
+    method MIX-CLONE-ALL-POSITIVE(\elems) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(my $clone := nqp::clone(elems))),
+          nqp::while(
+            $iter,
+            nqp::stmts(
+              nqp::shift($iter),
+              nqp::bindkey(
+                $clone,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  abs(nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                )
+              )
+            )
+          ),
+          $clone
         )
     }
     method MIX-ALL-POSITIVE(\elems) {
@@ -769,18 +1421,17 @@ my class Rakudo::QuantHash {
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
           True,                     # X is always a subset of itself
           nqp::if(
-            (my $araw := $a.raw_hash) && nqp::elems($araw),
+            (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
             nqp::if(                # elems in A
-              (my $braw := $b.raw_hash) && nqp::elems($braw),
+              (my $braw := $b.RAW-HASH) && nqp::elems($braw),
               nqp::stmts(           # elems in A and B
-                (my $iter := nqp::iterator($araw)),
                 nqp::while(         # check all values in A with B
                   $iter,
                   nqp::unless(
                     nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
                       <=            # value in A should be less or equal than B
                     nqp::getattr(
-                      nqp::ifnull(nqp::atkey($araw,nqp::iterkey_s($iter)),$p0),
+                      nqp::ifnull(nqp::atkey($braw,nqp::iterkey_s($iter)),$p0),
                       Pair,
                       '$!value'
                     ),
@@ -808,10 +1459,179 @@ my class Rakudo::QuantHash {
               Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
             ),
             nqp::if(
-              ($braw := $b.raw_hash) && nqp::elems($braw),
+              ($braw := $b.RAW-HASH) && nqp::elems($braw),
               # nothing in A, all elems in B should be >= 0
               Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
+              True                  # nothing in A nor B
+            )
+          )
+        )
+    }
+
+    # Return whether first Baggy is a proper subset of the second Baggy,
+    # using Mixy semantics
+    method MIX-IS-PROPER-SUBSET($a,$b) {
+        nqp::if(
+          nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+          False,                    # X is never a true subset of itself
+          nqp::if(
+            (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
+            nqp::if(                # elems in A
+              (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+              nqp::stmts(           # elems in A and B
+                (my int $less),
+                nqp::while(         # check all values in A with B
+                  $iter,
+                  nqp::if(
+                    (my $left := nqp::getattr(
+                      nqp::iterval(nqp::shift($iter)),
+                      Pair,
+                      '$!value'
+                    ))
+                      >             # value in A should be <= than B
+                    (my $right := nqp::getattr(
+                      nqp::ifnull(nqp::atkey($braw,nqp::iterkey_s($iter)),$p0),
+                      Pair,
+                      '$!value'
+                    )),
+                    (return False), # too many on left, we're done
+                    nqp::unless($less,$less = $left < $right)
+                  )
+                ),
+
+                ($iter := nqp::iterator($braw)),
+                nqp::while(         # check all values in B with A
+                  $iter,
+                  nqp::if(
+                    ($left := nqp::getattr(
+                      nqp::ifnull(
+                        nqp::atkey($araw,nqp::iterkey_s(nqp::shift($iter))),
+                        $p0
+                      ),
+                      Pair,
+                      '$!value'
+                    ))
+                      >             # value in A should be <= than B 
+                    ($right := nqp::getattr(
+                      nqp::iterval($iter),Pair,'$!value'
+                    )),
+                    (return False),
+                    nqp::unless($less,$less = $left < $right)
+                  )
+                ),
+                nqp::p6bool($less)  # all checks worked out so far
+              ),
+              # nothing in B, all elems in A should be < 0
+              Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)
+            ),
+            nqp::if(                # nothing in A
+              ($braw := $b.RAW-HASH) && nqp::elems($braw),
+              # something in B, all elems in B should be > 0
+              Rakudo::QuantHash.MIX-ALL-POSITIVE($braw),
               False                 # nothing in A nor B
+            )
+          )
+        )
+    }
+
+    # set difference QuantHash IterSet from Mix IterSet, both assumed to have
+    # elems.  3rd parameter is 1 for Setty, 0 for Baggy semantics
+    method SUB-QUANTHASH-FROM-MIX(\aelems, \belems, \issetty) {
+        nqp::stmts(
+          (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+          (my $iter  := nqp::iterator(belems)),
+          nqp::while(                   # subtract all righthand keys
+            $iter,
+            nqp::bindkey(
+              $elems,
+              nqp::iterkey_s(nqp::shift($iter)),
+              nqp::if(
+                issetty,
+                Pair.new(
+                  nqp::iterval($iter),
+                  nqp::getattr(
+                    nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
+                    Pair,
+                    '$!value'
+                  ) - 1
+                ),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  nqp::getattr(
+                    nqp::ifnull(nqp::atkey(aelems,nqp::iterkey_s($iter)),$p0),
+                    Pair,
+                    '$!value'
+                  ) - nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                )
+              )
+            )
+          ),
+          ($iter := nqp::iterator(aelems)),
+          nqp::while(                   # vivify all untouched lefthand keys
+            $iter,
+            nqp::if(
+              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+              nqp::unless(              # was touched
+                nqp::getattr(
+                  nqp::atkey($elems,nqp::iterkey_s($iter)),
+                  Pair,
+                  '$!value'
+                ),
+                nqp::deletekey($elems,nqp::iterkey_s($iter)) # but no value
+              ),
+              nqp::bindkey(             # not touched, add it
+                $elems,
+                nqp::iterkey_s($iter),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval($iter)),
+                  Pair,
+                  '$!value',
+                  nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                )
+              )
+            )
+          ),
+          $elems
+        )
+    }
+
+    # set difference of a Mixy and a QuantHash
+    method DIFFERENCE-MIXY-QUANTHASH(\a, \b) {
+        nqp::if(
+          (my $araw := a.RAW-HASH) && nqp::elems($araw),
+          nqp::if(
+            (my $braw := b.RAW-HASH) && nqp::elems($braw),
+            nqp::create(Mix).SET-SELF(
+              self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
+            ),
+            a.Mix
+          ),
+          nqp::if(
+            nqp::istype(b,Failure),
+            b.throw,
+            nqp::if(
+              ($braw := b.RAW-HASH) && nqp::elems($braw),
+              nqp::stmts(
+                (my $elems := nqp::clone($braw)),
+                (my $iter  := nqp::iterator($braw)),
+                nqp::while(
+                  $iter,
+                  nqp::bindkey(    # clone with negated value
+                    $elems,
+                    nqp::iterkey_s(nqp::shift($iter)),
+                    nqp::p6bindattrinvres(
+                      nqp::clone(nqp::iterval($iter)),
+                      Pair,
+                      '$!value',
+                      - nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                    )
+                  )
+                ),
+                nqp::create(Mix).SET-SELF($elems)
+              ),
+              mix()
             )
           )
         )

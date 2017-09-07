@@ -10,7 +10,7 @@ class Kernel does Systemic {
     has Int $!bits;
 
     sub uname($opt) {
-        state $has_uname = "/bin/uname".IO.s || "/usr/bin/uname".IO.s;
+        state $has_uname = "/bin/uname".IO.x || "/usr/bin/uname".IO.x;
         $has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
     }
 
@@ -108,52 +108,62 @@ class Kernel does Systemic {
     }
 #?endif
 #?if moar
+    has $!signals-setup-lock = Lock.new;
+    has $!signals-setup = False;
     method signals (Kernel:D:) {
-        once {
-            my @names;
-            if self.name eq 'win32' {
-                # These are the ones libuv emulates on Windows.
-                @names = flat "", <INT BREAK HUP WINCH>;
-            } else {
-                if self.name eq 'openbsd' {
-                    # otherwise it uses a shell buildin
-                    @names = flat "", qx!/bin/kill -l!.words;
-                }
-                else {
-                    @names = flat "", qx/kill -l/.words;
-                }
-                @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
-                @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
-            }
+        unless $!signals-setup {
+            $!signals-setup-lock.protect: {
+                unless $!signals-setup {
+                    my @names;
+                    if self.name eq 'win32' {
+                        # These are the ones libuv emulates on Windows.
+                        @names = flat "", <INT BREAK HUP WINCH>;
+                    } else {
+                        if self.name eq 'openbsd' {
+                            # otherwise it uses a shell buildin
+                            @names = flat "", qx!/bin/kill -l!.words;
+                        }
+                        else {
+                            @names = flat "", qx/kill -l/.words;
+                        }
+                        @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
+                        @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
+                    }
 
-            for Signal.^enum_value_list -> $signal {
-                my $name = substr($signal.key,3);
-                if @names.first( * eq $name, :k ) -> $index {
-                    @!signals[$index] = $signal;
+                    for Signal.^enum_value_list -> $signal {
+                        my $name = substr($signal.key,3);
+                        if @names.first( * eq $name, :k ) -> $index {
+                            @!signals[$index] = $signal;
+                        }
+                    }
                 }
             }
+            $!signals-setup = True;
         }
         @!signals
     }
 #?endif
 
-    has %!signals_by_Str;
+    has %!signals-by-Str;
+    has $!signals-by-Str-setup = False;
+
     proto method signal (|) { * }
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
-
-    # NOTE: if you make this method thread-safe, remove the locking
-    # done by Proc::Async.kill
-
-        once {
-            nqp::stmts(
-              (my int $els = @.signals.elems),
-              (my int $i = -1),
-              nqp::while(
-                nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
-                ($_ := @!signals.AT-POS($i)).defined
-                  && %!signals_by_Str.ASSIGN-KEY(.Str, nqp::decont($i))))
+        unless $!signals-by-Str-setup {
+            $!signals-setup-lock.protect: {
+                unless $!signals-by-Str-setup {
+                    nqp::stmts(
+                      (my int $els = @.signals.elems),
+                      (my int $i = -1),
+                      nqp::while(
+                        nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+                        ($_ := @!signals.AT-POS($i)).defined
+                          && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))))
+                }
+            }
+            $!signals-by-Str-setup = True;
         }
-        %!signals_by_Str{$signal} // %!signals_by_Str{"SIG$signal"} // Int;
+        %!signals-by-Str{$signal} // %!signals-by-Str{"SIG$signal"} // Int;
     }
 
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }

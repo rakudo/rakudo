@@ -1961,7 +1961,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<import>($/) {
         # NB: Grammar already passed arglist directly to World, but this seems soon enough to want it.
-        if $<arglist> {
+        if $<arglist> && $<arglist><EXPR> {
             WANTED($<arglist><EXPR>.ast, 'import');
         }
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
@@ -6599,7 +6599,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
-                $return_map := 1;
+                unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
+                    $return_map := 1
+                }
             }
         }
         elsif $past.ann('thunky') {
@@ -7399,6 +7401,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.name('&METAOP_HYPER_POSTFIX_ARGS');
                 }
             }
+
+            # Check if we are inside «...» quoters and complain if the hyper creates
+            # ambiguity with the quoters, since user may not wanted to have a hyper
+            if ($/.pragma("STOPPER") // '')
+                eq (my $sym := $<postfix_prefix_meta_operator>[0]<sym>)
+            {
+                $/.worry(
+                    "Ambiguous use of $sym; use "
+                    ~ ($sym eq '>>' ?? '»' !! '>>')
+                    ~ " instead to mean hyper, or insert whitespace before"
+                    ~ " $sym to mean a quote terminator (or use different delimiters?)"
+                )
+            }
+
             make $past;
         }
     }
@@ -7578,22 +7594,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $parti := nqp::mul_I($parti, $partf[1], $Int);
             $parti := nqp::add_I($parti, $partf[0], $Int);
 
-            $partf := nqp::tonum_I($partf[1]);
+            $partf := $partf[1];
         } else {
-            $partf := 1.0;
+            $partf := nqp::box_i(1, $Int);
         }
 
         if $<escale> { # wants a Num
-            $parti := nqp::tonum_I($parti);
-
-            $parti := nqp::div_n($parti, $partf);
+            $parti := nqp::div_In($parti, $partf);
             if $parti != 0.0 {
                 $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
             }
 
             make $*W.add_numeric_constant($/, 'Num', $parti);
         } else { # wants a Rat
-            my $ast := $*W.add_constant('Rat', 'type_new', $parti, nqp::fromnum_I($partf, $Int), :nocache(1));
+            my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);
             make $ast;
         }
@@ -9678,10 +9692,9 @@ class Perl6::QActions is HLL::Actions does STDActions {
         $blast.annotate('past_block', WANTALL($blast.ann('past_block'),'escape{}'));
         make QAST::Op.new(
             :op('callmethod'), :name('Stringy'),
-            WANTED(QAST::Op.new(
-                :op('call'),
-                QAST::Op.new( :op('p6capturelex'), $blast ),
-                :node($/)), 'escape{}'));
+            WANTED(
+                QAST::Op.new( :op('call'), block_closure($blast), :node($/) ),
+                'escape{}'));
     }
 
     # The next three are currently only used for tr///.
@@ -10037,26 +10050,31 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(0) ),
-                    QAST::IVal.new( :value(1) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
-                    QAST::IVal.new( :value(1) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*INTERPOLATION) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),
-                ),
+                 ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method p5metachar:sym<var>($/) {
-        make QAST::Regex.new( QAST::NodeList.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    wanted($<var>.ast, 'p5var'),
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(0) ),
-                                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*INTERPOLATION) ) ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new(
+                 QAST::NodeList.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    wanted($<var>.ast, 'p5var'),
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(0) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::Op.new( :op<callmethod>, :name<new>,
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                    ),
+                 ),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

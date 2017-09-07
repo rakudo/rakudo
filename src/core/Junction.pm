@@ -24,6 +24,29 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
+    # Swap 2 Junctions in place if they need to be for an infix operation
+    # on the two Junctions.  Returns a truthy (0|1)value if the Junctions
+    # were of the same type and can be merged.
+    method INFIX-TWO(Junction:U: Junction:D \a, Junction:D \b) {
+        nqp::if(
+          nqp::iseq_s(
+            (my $atype := nqp::getattr(nqp::decont(a),Junction,'$!type')),
+            (my $btype := nqp::getattr(nqp::decont(b),Junction,'$!type'))
+          ),
+          nqp::isne_s($atype,"one"),             # same
+          nqp::if(                               # not same
+            (nqp::iseq_s($btype,"all") || nqp::iseq_s($btype,"none"))
+              && (nqp::iseq_s($atype,"any") || nqp::iseq_s($atype,"one")),
+            nqp::stmts(                          # need to be swapped
+              (my $tmp := nqp::decont(a)),
+              (a = b),
+              (b = $tmp),
+              0                                  # not same, now swapped
+            )
+          )
+        )
+    }
+
     proto method new(|) { * }
     multi method new(Junction: \values, Str :$type!) {
         nqp::create(Junction)!SET-SELF($type,values)
@@ -33,51 +56,53 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method defined(Junction:D:) {
-        nqp::stmts(
-          (my int $elems = nqp::elems($!storage)),
-          (my int $i = 0),
-          nqp::if(
-            nqp::iseq_s($!type,'any'),
-            nqp::stmts(
-              nqp::while(
-                (nqp::islt_i($i,$elems)
-                  && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
-                ($i = nqp::add_i($i,1))
-              ),
-              nqp::p6bool(nqp::islt_i($i,$elems))
-            ),
+        nqp::p6bool(
+          nqp::stmts(
+            (my int $elems = nqp::elems($!storage)),
+            (my int $i),
             nqp::if(
-              nqp::iseq_s($!type,'all'),
+              nqp::iseq_s($!type,'any'),
               nqp::stmts(
                 nqp::while(
-                  (nqp::islt_i($i,$elems)
-                    && nqp::atpos($!storage,$i).defined),
+                  nqp::islt_i($i,$elems)
+                    && nqp::isfalse(nqp::atpos($!storage,$i).defined),
                   ($i = nqp::add_i($i,1))
                 ),
-                nqp::p6bool(nqp::iseq_i($i,$elems))
+                nqp::islt_i($i,$elems)
               ),
               nqp::if(
-                nqp::iseq_s($!type,'none'),
+                nqp::iseq_s($!type,'all'),
                 nqp::stmts(
                   nqp::while(
-                    (nqp::islt_i($i,$elems)
-                      && nqp::if(nqp::atpos($!storage,$i).defined,0,1)),
+                    nqp::islt_i($i,$elems)
+                      && nqp::atpos($!storage,$i).defined,
                     ($i = nqp::add_i($i,1))
                   ),
-                  nqp::p6bool(nqp::iseq_i($i,$elems))
+                  nqp::iseq_i($i,$elems)
                 ),
-                nqp::stmts(    # $!type eq 'one'
-                  (my int $seen = 0),
-                  ($i = nqp::sub_i($i,1)),  # increment in condition
-                  nqp::while(
-                    (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                      && nqp::isle_i($seen,1)),
-                    nqp::if(
-                      nqp::atpos($!storage,$i).defined,
-                      ($seen = nqp::add_i($seen,1))
-                    )
+                nqp::if(
+                  nqp::iseq_s($!type,'none'),
+                  nqp::stmts(
+                    nqp::while(
+                      nqp::islt_i($i,$elems)
+                        && nqp::isfalse(nqp::atpos($!storage,$i).defined),
+                      ($i = nqp::add_i($i,1))
+                    ),
+                    nqp::iseq_i($i,$elems)
                   ),
-                  nqp::p6bool(nqp::iseq_i($seen,1))
+                  nqp::stmts(    # $!type eq 'one'
+                    (my int $seen = 0),
+                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::isle_i($seen,1),
+                      nqp::if(
+                        nqp::atpos($!storage,$i).defined,
+                        ($seen = nqp::add_i($seen,1))
+                      )
+                    ),
+                    nqp::iseq_i($seen,1)
+                  )
                 )
               )
             )
@@ -86,51 +111,53 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Bool(Junction:D:) {
-        nqp::stmts(
-          (my int $elems = nqp::elems($!storage)),
-          (my int $i = 0),
-          nqp::if(
-            nqp::iseq_s($!type,'any'),
-            nqp::stmts(
-              nqp::while(
-                (nqp::islt_i($i,$elems)
-                  && nqp::if(nqp::atpos($!storage,$i),0,1)),
-                ($i = nqp::add_i($i,1))
-              ),
-              nqp::p6bool(nqp::islt_i($i,$elems))
-            ),
+        nqp::p6bool(
+          nqp::stmts(
+            (my int $elems = nqp::elems($!storage)),
+            (my int $i),
             nqp::if(
-              nqp::iseq_s($!type,'all'),
+              nqp::iseq_s($!type,'any'),
               nqp::stmts(
                 nqp::while(
-                  (nqp::islt_i($i,$elems)
-                    && nqp::atpos($!storage,$i)),
+                  nqp::islt_i($i,$elems)
+                    && nqp::isfalse(nqp::atpos($!storage,$i)),
                   ($i = nqp::add_i($i,1))
                 ),
-                nqp::p6bool(nqp::iseq_i($i,$elems))
+                nqp::islt_i($i,$elems)
               ),
               nqp::if(
-                nqp::iseq_s($!type,'none'),
+                nqp::iseq_s($!type,'all'),
                 nqp::stmts(
                   nqp::while(
-                    (nqp::islt_i($i,$elems)
-                      && nqp::if(nqp::atpos($!storage,$i),0,1)),
+                    nqp::islt_i($i,$elems)
+                      && nqp::atpos($!storage,$i),
                     ($i = nqp::add_i($i,1))
                   ),
-                  nqp::p6bool(nqp::iseq_i($i,$elems))
+                  nqp::iseq_i($i,$elems)
                 ),
-                nqp::stmts(    # $!type eq 'one'
-                  (my int $seen = 0),
-                  ($i = nqp::sub_i($i,1)),  # increment in condition
-                  nqp::while(
-                    (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                      && nqp::isle_i($seen,1)),
-                    nqp::if(
-                      nqp::atpos($!storage,$i),
-                      ($seen = nqp::add_i($seen,1))
-                    )
+                nqp::if(
+                  nqp::iseq_s($!type,'none'),
+                  nqp::stmts(
+                    nqp::while(
+                      nqp::islt_i($i,$elems)
+                        && nqp::isfalse(nqp::atpos($!storage,$i)),
+                      ($i = nqp::add_i($i,1))
+                    ),
+                    nqp::iseq_i($i,$elems)
                   ),
-                  nqp::p6bool(nqp::iseq_i($seen,1))
+                  nqp::stmts(    # $!type eq 'one'
+                    (my int $seen = 0),
+                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::isle_i($seen,1),
+                      nqp::if(
+                        nqp::atpos($!storage,$i),
+                        ($seen = nqp::add_i($seen,1))
+                      )
+                    ),
+                    nqp::iseq_i($seen,1)
+                  )
                 )
               )
             )
@@ -145,51 +172,55 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        nqp::stmts(
-          (my int $elems = nqp::elems($!storage)),
-          (my int $i = 0),
-          nqp::if(
-            nqp::iseq_s($!type,'any'),
-            nqp::stmts(
-              nqp::while(
-                (nqp::islt_i($i,$elems)
-                  && nqp::if(nqp::atpos($!storage,$i).ACCEPTS(topic),0,1)),
-                ($i = nqp::add_i($i,1))
-              ),
-              nqp::p6bool(nqp::islt_i($i,$elems))
-            ),
+        nqp::p6bool(
+          nqp::stmts(
+            (my int $elems = nqp::elems($!storage)),
+            (my int $i),
             nqp::if(
-              nqp::iseq_s($!type,'all'),
+              nqp::iseq_s($!type,'any'),
               nqp::stmts(
                 nqp::while(
-                  (nqp::islt_i($i,$elems)
-                    && nqp::atpos($!storage,$i).ACCEPTS(topic)),
+                  nqp::islt_i($i,$elems)
+                    && nqp::isfalse(nqp::atpos($!storage,$i).ACCEPTS(topic)),
                   ($i = nqp::add_i($i,1))
                 ),
-                nqp::p6bool(nqp::iseq_i($i,$elems))
+                nqp::islt_i($i,$elems)
               ),
               nqp::if(
-                nqp::iseq_s($!type,'none'),
+                nqp::iseq_s($!type,'all'),
                 nqp::stmts(
                   nqp::while(
-                    (nqp::islt_i($i,$elems)
-                      && nqp::if(nqp::atpos($!storage,$i).ACCEPTS(topic),0,1)),
+                    nqp::islt_i($i,$elems)
+                      && nqp::atpos($!storage,$i).ACCEPTS(topic),
                     ($i = nqp::add_i($i,1))
                   ),
-                  nqp::p6bool(nqp::iseq_i($i,$elems))
+                  nqp::iseq_i($i,$elems)
                 ),
-                nqp::stmts(    # $!type eq 'one'
-                  (my int $seen = 0),
-                  ($i = nqp::sub_i($i,1)),  # increment in condition
-                  nqp::while(
-                    (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                      && nqp::isle_i($seen,1)),
-                    nqp::if(
-                      nqp::atpos($!storage,$i).ACCEPTS(topic),
-                      ($seen = nqp::add_i($seen,1))
-                    )
+                nqp::if(
+                  nqp::iseq_s($!type,'none'),
+                  nqp::stmts(
+                    nqp::while(
+                      nqp::islt_i($i,$elems)
+                        && nqp::isfalse(
+                             nqp::atpos($!storage,$i).ACCEPTS(topic)
+                           ),
+                      ($i = nqp::add_i($i,1))
+                    ),
+                    nqp::iseq_i($i,$elems)
                   ),
-                  nqp::p6bool(nqp::iseq_i($seen,1))
+                  nqp::stmts(    # $!type eq 'one'
+                    (my int $seen),
+                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::isle_i($seen,1),
+                      nqp::if(
+                        nqp::atpos($!storage,$i).ACCEPTS(topic),
+                        ($seen = nqp::add_i($seen,1))
+                      )
+                    ),
+                    nqp::iseq_i($seen,1)
+                  )
                 )
               )
             )
@@ -198,7 +229,24 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Str(Junction:D:) {
-        self.perl
+        nqp::stmts(
+          (my $storage := nqp::bindattr(
+            (my $junction := nqp::clone(self)),
+            Junction,
+            '$!storage',
+            nqp::clone(nqp::getattr(self,Junction,'$!storage'))
+          )),
+          (my int $elems = nqp::elems($storage)),
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::unless(
+              nqp::istype(nqp::atpos($storage,$i),Str),
+              nqp::bindpos($storage,$i,nqp::atpos($storage,$i).Str)
+            )
+          ),
+          $junction
+        )
     }
 
     multi method gist(Junction:D:) {
@@ -303,26 +351,170 @@ my class Junction { # declared in BOOTSTRAP
     }
 }
 
-sub any (+values) is pure { values.any }
-sub all (+values) is pure { values.all }
-sub one (+values) is pure { values.one }
-sub none(+values) is pure { values.none }
+proto sub any(|) is pure { * }
+#multi sub any(@values) { @values.any }  # this breaks S02-literals/radix.t
+multi sub any(+values) {  values.any }
+
+proto sub all(|) is pure { * }
+multi sub all(@values) { @values.all }
+multi sub all(+values) {  values.all }
+
+proto sub one(|) is pure { * }
+multi sub one(@values) { @values.one }
+multi sub one(+values) {  values.one }
+
+proto sub none(|) is pure { * }
+multi sub none(@values) { @values.none }
+multi sub none(+values) {  values.none }
 
 sub infix:<|>(+values) is pure { values.any }
 sub infix:<&>(+values) is pure { values.all }
 sub infix:<^>(+values) is pure { values.one }
 
-sub AUTOTHREAD(|c) {
-    Junction.AUTOTHREAD(|c)
+multi sub infix:<~>(Str:D $a, Junction:D $b) {
+    nqp::if(
+      $a,
+      nqp::stmts(                                # something to concat with
+        (my $storage := nqp::bindattr(
+          (my $junction := nqp::clone($b)),
+          Junction,
+          '$!storage',
+          nqp::clone(nqp::getattr($b,Junction,'$!storage'))
+        )),
+        (my int $elems = nqp::elems($storage)),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos($storage,$i,
+            nqp::if(
+              nqp::istype((my $val := nqp::atpos($storage,$i)),Junction),
+              infix:<~>($a,$val),
+              nqp::concat($a,nqp::if(nqp::istype($val,Str),$val,$val.Str))
+            )
+          )
+        ),
+        $junction
+      ),
+      $b.Str                                     # nothing to concat with
+    )
 }
 
-sub AUTOTHREAD_METHOD($name, |c) {
+multi sub infix:<~>(Junction:D $a, Str:D $b) {
+    nqp::if(
+      $b,
+      nqp::stmts(                                # something to concat with
+        (my $storage := nqp::bindattr(
+          (my $junction := nqp::clone($a)),
+          Junction,
+          '$!storage',
+          nqp::clone(nqp::getattr($a,Junction,'$!storage'))
+        )),
+        (my int $elems = nqp::elems($storage)),
+        (my int $i = -1),
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos($storage,$i,
+            nqp::if(
+              nqp::istype((my $val := nqp::atpos($storage,$i)),Junction),
+              infix:<~>($val,$b),
+              nqp::concat(nqp::if(nqp::istype($val,Str),$val,$val.Str),$b)
+            )
+          )
+        ),
+        $junction
+      ),
+      $a.Str                                     # nothing to concat with
+    )
+}
+
+multi sub infix:<~>(Junction:D \a, Junction:D \b) {
+    nqp::stmts(                                  # basic setup
+      (my int $mergable = Junction.INFIX-TWO(my $a = a, my $b = b)),
+      (my $astor := nqp::getattr(nqp::decont($a),Junction,'$!storage')),
+      (my $bstor := nqp::getattr(nqp::decont($b),Junction,'$!storage')),
+      (my int $aelems = nqp::elems($astor)),
+      (my int $belems = nqp::elems($bstor)),
+      (my int $i = -1),
+      (my $seen := nqp::hash),
+      (my $outer := nqp::bindattr(               # outer eigenstates
+        (my $junction := nqp::clone(nqp::decont($a))),
+        Junction,
+        '$!storage',
+        nqp::if(
+          $mergable,
+          nqp::list,
+          nqp::setelems(nqp::list,$aelems)
+        )
+      )),
+      nqp::while(                                # outer loop
+        nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
+        nqp::stmts(
+          (my $aval := nqp::if(
+            nqp::istype(nqp::atpos($astor,$i),Str),
+            nqp::atpos($astor,$i),
+            nqp::atpos($astor,$i).Str
+          )),
+          (my int $j = -1),
+          nqp::if(
+            $mergable,
+            nqp::while(                          # merge eigenstates
+              nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+              nqp::unless(
+                nqp::existskey(
+                  $seen,
+                  (my $concat := nqp::concat(
+                    $aval,
+                    nqp::if(
+                      nqp::istype(nqp::atpos($bstor,$j),Str),
+                      nqp::atpos($bstor,$j),
+                      nqp::atpos($bstor,$j).Str,
+                    )
+                  ))
+                ),
+                nqp::bindkey(                    # new one, remember
+                  $seen,
+                  nqp::push($outer,$concat),
+                  1
+                )
+              )
+            ),
+            nqp::stmts(                          # cannot merge eigenstates
+              (my $inner := nqp::bindattr(
+                nqp::bindpos($outer,$i,nqp::clone(nqp::decont($b))),
+                Junction,
+                '$!storage',
+                nqp::setelems(nqp::list,$belems)
+              )),
+              nqp::while(
+                nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+                nqp::bindpos(
+                  $inner,
+                  $j,
+                  nqp::concat(
+                    $aval,
+                    nqp::if(
+                      nqp::istype(nqp::atpos($bstor,$j),Str),
+                      nqp::atpos($bstor,$j),
+                      nqp::atpos($bstor,$j).Str,
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      $junction
+    )
+}
+
+nqp::p6setautothreader( -> |c {
+    Junction.AUTOTHREAD(|c)
+} );
+Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
     Junction.AUTOTHREAD(
         -> \obj, |c { obj."$name"(|c) },
         |c);
-}
-
-nqp::p6setautothreader(&AUTOTHREAD);
-Mu.HOW.setup_junction_fallback(Junction, &AUTOTHREAD_METHOD);
+} );
 
 # vim: ft=perl6 expandtab sw=4

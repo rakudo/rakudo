@@ -80,7 +80,7 @@ my class SetHash does Setty {
 
 #--- iterator methods
 
-    sub proxy(Mu \iter,Mu \storage) is raw {
+    sub proxy(Mu \iter,Mu \elems) is raw {
         # We are only sure that the key exists when the Proxy
         # is made, but we cannot be sure of its existence when
         # either the FETCH or STORE block is executed.  So we
@@ -95,14 +95,14 @@ my class SetHash does Setty {
 
           Proxy.new(
             FETCH => {
-                nqp::p6bool(nqp::existskey(storage,nqp::iterkey_s(iter)))
+                nqp::p6bool(nqp::existskey(elems,nqp::iterkey_s(iter)))
             },
             STORE => -> $, $value {
                 nqp::stmts(
                   nqp::if(
                     $value,
-                    nqp::bindkey(storage,nqp::iterkey_s(iter),$object),
-                    nqp::deletekey(storage,nqp::iterkey_s(iter))
+                    nqp::bindkey(elems,nqp::iterkey_s(iter),$object),
+                    nqp::deletekey(elems,nqp::iterkey_s(iter))
                   ),
                   $value.Bool
                 )
@@ -118,22 +118,22 @@ my class SetHash does Setty {
                 $!iter,
                 Pair.new(
                   nqp::iterval(nqp::shift($!iter)),
-                  proxy($!iter,$!storage)
+                  proxy($!iter,$!hash)
                 ),
                 IterationEnd
               )
             }
-        }.new(self.hll_hash)
+        }.new($!elems)
     }
 
     multi method kv(SetHash:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy-kv-from-pairs {
+        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
             method pull-one() is raw {
                 nqp::if(
                   $!on,
                   nqp::stmts(
                     ($!on = 0),
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!elems)
                   ),
                   nqp::if(
                     $!iter,
@@ -154,45 +154,38 @@ my class SetHash does Setty {
                   )
                 )
             }
-        }.new(self.hll_hash))
+        }.new(self))
     }
     multi method values(SetHash:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             method pull-one() {
               nqp::if(
                 $!iter,
-                proxy(nqp::shift($!iter),$!storage),
+                proxy(nqp::shift($!iter),$!hash),
                 IterationEnd
               )
             }
-        }.new(self.hll_hash))
+        }.new($!elems))
     }
 
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::p6bindattrinvres(                  # something to clone
-            nqp::create(self),
-            ::?CLASS,
-            '$!elems',
-            nqp::clone($!elems)
-          ),
-          nqp::create(self)                       # nothing to clone
-        )
-    }
-
+#--- coercion methods
     multi method Set(SetHash:D: :$view) {
         nqp::if(
-          $!elems,
-          nqp::p6bindattrinvres(
-            nqp::create(Set),Set,'$!elems',
-            nqp::if($view,$!elems,$!elems.clone)
-          ),
+          $!elems && nqp::elems($!elems),
+          nqp::create(Set).SET-SELF(nqp::if($view,$!elems,nqp::clone($!elems))),
           nqp::create(Set)
         )
     }
     multi method SetHash(SetHash:D:) { self }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(self).SET-SELF(nqp::clone($!elems)),
+          nqp::create(self)
+        )
+    }
 
+#--- interface methods
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {

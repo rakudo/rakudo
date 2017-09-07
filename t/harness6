@@ -26,7 +26,7 @@ multi sub MAIN(
     Str  :$tests-from-file = Str,
     Bool :$fudge = False,
     Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
-    Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
+    Int  :$jobs = (%*ENV<TEST_JOBS> // 6).Int,
     Bool :$quick = False,
     Bool :$stress = False,
     Bool :$randomize = False,

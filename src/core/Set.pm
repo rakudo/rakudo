@@ -28,7 +28,9 @@ my class Set does Setty {
             'Set|',
             nqp::concat(self.^name,'|')
           ) ~ nqp::sha1(
-               nqp::join('\0',Rakudo::Sorting.MERGESORT-str(self.raw_keys))
+                nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
+                  Rakudo::QuantHash.RAW-KEYS(self)
+                ))
             )
         )
     }
@@ -42,48 +44,38 @@ my class Set does Setty {
                 IterationEnd
               )
             }
-        }.new(self.hll_hash)
+        }.new($!elems)
     }
 
     multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has int $!on-value;
+        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
             method pull-one() is raw {
                 nqp::if(
-                  $!on-value,
+                  $!on,
                   nqp::stmts(
-                    ($!on-value = 0),
+                    ($!on = 0),
                     True,
                   ),
                   nqp::if(
                     $!iter,
                     nqp::stmts(
-                      ($!on-value = 1),
+                      ($!on = 1),
                       nqp::iterval(nqp::shift($!iter))
                     ),
                     IterationEnd
                   )
                 )
             }
-            method skip-one() {
-                nqp::if(
-                  $!on-value,
-                  nqp::not_i($!on-value = 0),   # skipped a value
-                  nqp::if(
-                    $!iter,                     # if false, we didn't skip
-                    nqp::stmts(                 # skipped a key
-                      nqp::shift($!iter),
-                      ($!on-value = 1)
-                    )
+            method push-all($target --> IterationEnd) {
+                nqp::while(
+                  $!iter,
+                  nqp::stmts(  # doesn't sink
+                    $target.push(nqp::iterval(nqp::shift($!iter))),
+                    $target.push(True)
                   )
                 )
             }
-            method count-only() {
-                nqp::p6box_i(
-                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
-                )
-            }
-        }.new(self.hll_hash))
+        }.new(self))
     }
     multi method values(Set:D:) { True xx self.total }
 
@@ -94,19 +86,26 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
+#--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {
         nqp::if(
-          $!elems,
+          $!elems && nqp::elems($!elems),
           nqp::p6bindattrinvres(
-            nqp::create(SetHash),SetHash,'$!elems',$!elems.clone
+            nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
           ),
           nqp::create(SetHash)
         )
     }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::clone(self),
+          set()
+        )
+    }
 
-    method clone() { nqp::clone(self) }
-
+#--- interface methods
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }

@@ -587,8 +587,8 @@ static void p6finddispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
                         MVMRegister **srd = malloc(2 * sizeof(MVMObject *));
                         srd[0] = disp_lex;
                         srd[1] = res_reg;
-                        tc->cur_frame->special_return      = store_dispatcher;
-                        tc->cur_frame->special_return_data = srd;
+                        MVM_frame_special_return(tc, tc->cur_frame, store_dispatcher,
+                            NULL, srd, NULL);
                     }
                     tc->cur_frame->args[0].o = dispatcher;
                     tc->cur_frame->args[1].o = p6sub;
@@ -728,7 +728,7 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
      * called by the first. We set up a special return handler to properly
      * remove it. */
     MVM_args_setup_thunk(tc, res, MVM_RETURN_OBJ, &no_arg_callsite);
-    tc->cur_frame->special_return = return_from_fake;
+    MVM_frame_special_return(tc, tc->cur_frame, return_from_fake, NULL, NULL, NULL);
     STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
 }
 

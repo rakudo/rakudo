@@ -99,6 +99,7 @@ multi sub trait_mod:<is>(Attribute $attr, :$required!) {
 }
 multi sub trait_mod:<is>(Attribute $attr, :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
+    $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
@@ -251,13 +252,12 @@ my $!;
 my $/;
 my $_;
 
-multi sub trait_mod:<is>(Routine:D \r, :$export!) {
+multi sub trait_mod:<is>(Routine:D \r, :$export!, :$SYMBOL = '&' ~ r.name) {
     my $to_export := r.multi ?? r.dispatcher !! r;
-    my $exp_name  := '&' ~ r.name;
     my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
                             nqp::istype($export,Positional) ?? @($export)>>.key !!
                             'DEFAULT');
-    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, $to_export);
+    Rakudo::Internals.EXPORT_SYMBOL(nqp::decont($SYMBOL), @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^shortname;

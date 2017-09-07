@@ -1,12 +1,10 @@
 Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := ?%*ENV<RAKUDO_MODULE_DEBUG>
       ?? -> *@str --> Nil {
-            state Num $last = Rakudo::Internals.INITTIME;
-            my num $now = nqp::time_n;
-            my $str = @str>>.indent(16).join("\n").substr(16);
-            note sprintf "%4d %5d RMD: $str",
-              1000 * ($now - $last), nqp::getpid();
-            $last = $now;
+            state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
+            my $indent = (($level - 1) * 4) + 1;
+            my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
+            note sprintf "%2d%sRMD: $str", $level, " " x $indent;
          }
       !! False
 }
@@ -23,7 +21,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
 #?endif
 #?if moar
       nqp::execname()
-      // ($*VM.config<prefix> ~ '/bin/'
+      || ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
 #?if js

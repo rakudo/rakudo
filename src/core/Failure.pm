@@ -74,6 +74,14 @@ my class Failure is Nil {
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }
     method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }
+
+    method Set(Failure:D:)     { $!handled ?? Set.new(self)     !! self!throw }
+    method SetHash(Failure:D:) { $!handled ?? SetHash.new(self) !! self!throw }
+    method Bag(Failure:D:)     { $!handled ?? Bag.new(self)     !! self!throw }
+    method BagHash(Failure:D:) { $!handled ?? BagHash.new(self) !! self!throw }
+    method Mix(Failure:D:)     { $!handled ?? Mix.new(self)     !! self!throw }
+    method MixHash(Failure:D:) { $!handled ?? MixHash.new(self) !! self!throw }
+
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:D:) { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:U:) { '(' ~ self.^name ~ ')' }

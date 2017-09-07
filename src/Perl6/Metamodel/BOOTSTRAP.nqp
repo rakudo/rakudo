@@ -135,9 +135,8 @@ my class Binder {
     my $autothreader;
     my $Positional;
     my $PositionalBindFailover;
-    my $Iterable;
 
-#?if !jvm
+#?if moar
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -185,10 +184,6 @@ my class Binder {
     method set_pos_bind_failover($pos, $pos_bind_failover) {
         $Positional := $pos;
         $PositionalBindFailover := $pos_bind_failover;
-    }
-
-    method set_iterable($iterable) {
-        $Iterable := $iterable;
     }
 
     # Binds a single parameter.
@@ -402,7 +397,7 @@ my class Binder {
         # If it's not got attributive binding, we'll go about binding it into the
         # lex pad.
         my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
-        unless $is_attributive || !$has_varname {
+        unless $is_attributive {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
@@ -419,7 +414,7 @@ my class Binder {
             # Otherwise it's some objecty case.
             elsif $is_rw {
                 if nqp::isrwcont($oval) {
-                    nqp::bindkey($lexpad, $varname, $oval);
+                    nqp::bindkey($lexpad, $varname, $oval) if $has_varname;
                 }
                 else {
                     if nqp::defined($error) {
@@ -434,56 +429,48 @@ my class Binder {
                     return $BIND_RESULT_FAIL;
                 }
             }
-            elsif $flags +& $SIG_ELEM_IS_RAW {
-                # Just bind the thing as is into the lexpad.
-                nqp::bindkey($lexpad, $varname, $oval);
-            }
-            else {
-                # If it's an array, copy means make a new one and store,
-                # and a normal bind is a straightforward binding.
-                if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
-                        # XXX GLR
-                        nqp::die('replace this Array is copy logic');
-                        # my $bindee := nqp::create(Array);
-                        # $bindee.STORE(nqp::decont($oval));
-                        # nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
+            elsif $has_varname {
+                if $flags +& $SIG_ELEM_IS_RAW {
+                    # Just bind the thing as is into the lexpad.
+                    nqp::bindkey($lexpad, $varname, $oval);
                 }
-
-                # If it's a hash, similar approach to array.
-                elsif $flags +& $SIG_ELEM_HASH_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Hash);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
-                }
-
-                # If it's a scalar, we always need to wrap it into a new
-                # container and store it, for copy or ro case (the rw bit
-                # in the container descriptor takes care of the rest).
                 else {
-                    # If $Iterable is not set we wrap more then strictly neccessary
-                    my $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
-                    my int $wrap := nqp::istype($nom_type, $Iterable)
-                        || nqp::istype($Iterable, $nom_type)
-                        || $varname eq '$_';
-                    if $wrap {
+                    # If it's an array, copy means make a new one and store,
+                    # and a normal bind is a straightforward binding.
+                    if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                        if $flags +& $SIG_ELEM_IS_COPY {
+                            # XXX GLR
+                            nqp::die('replace this Array is copy logic');
+                            # my $bindee := nqp::create(Array);
+                            # $bindee.STORE(nqp::decont($oval));
+                            # nqp::bindkey($lexpad, $varname, $bindee);
+                        }
+                        else {
+                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                        }
+                    }
+
+                    # If it's a hash, similar approach to array.
+                    elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                        if $flags +& $SIG_ELEM_IS_COPY {
+                            my $bindee := nqp::create(Hash);
+                            $bindee.STORE(nqp::decont($oval));
+                            nqp::bindkey($lexpad, $varname, $bindee);
+                        }
+                        else {
+                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                        }
+                    }
+
+                    # If it's a scalar, we always need to wrap it into a new
+                    # container and store it, for copy or ro case (the rw bit
+                    # in the container descriptor takes care of the rest).
+                    else {
                         my $new_cont := nqp::create(Scalar);
                         nqp::bindattr($new_cont, Scalar, '$!descriptor',
                             nqp::getattr($param, Parameter, '$!container_descriptor'));
                         nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
                         nqp::bindkey($lexpad, $varname, $new_cont);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
                 }
             }
@@ -748,12 +735,7 @@ my class Binder {
                 # that. Otherwise, putting Mu in there is fine; Hash is smart
                 # enough to know what to do.
                 my $hash := nqp::create(Hash);
-
-                # JS WORKAROUND - BUILDALL doesn't like a Mu in $!storage
-                nqp::bindattr($hash, Map, '$!storage', $named_args || nqp::hash());
-
-                ### nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
-
+                nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
@@ -2496,9 +2478,6 @@ BEGIN {
 #?if jvm
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
-#?if js
-                return 0 if nqp::capturehasnameds($capture);
-#?endif
                 nqp::scwbdisable();
                 nqp::bindattr($dcself, Routine, '$!dispatch_cache',
                     nqp::multicacheadd(
@@ -2590,6 +2569,7 @@ BEGIN {
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
+            my int $ARG_IS_LITERAL    := 32;
 
             # Count arguments.
             my int $num_args := nqp::elems(@args);
@@ -2660,6 +2640,7 @@ BEGIN {
                     my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim := nqp::atpos(@flags, $i) +& 0xF;
+                    my int $literal  := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
@@ -2669,7 +2650,8 @@ BEGIN {
                         }
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
-                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
+                        || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
                             # Mismatch.
                             $type_mismatch := 1;
                             $type_match_possible := 0;
@@ -3257,7 +3239,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                         $phaser();
 #?endif
-#?if !jvm
+#?if moar
                         nqp::p6capturelexwhere($phaser.clone())();
 #?endif
                         CATCH { nqp::push(@exceptions, $_) }
@@ -3274,7 +3256,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
-#?if !jvm
+#?if moar
                     nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
                         nqp::ifnull($resultish, Mu));
 #?endif
@@ -3294,7 +3276,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
     },
-#?if !jvm
+#?if moar
     'bind_error', -> $capture {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());

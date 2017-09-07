@@ -70,6 +70,7 @@ my class Supply does Awaitable {
 
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
+    method Tappable(--> Tappable) { $!tappable }
 
     my \DISCARD = -> $ {};
     my \NOP = -> {};
@@ -95,11 +96,25 @@ my class Supply does Awaitable {
             submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
             method tap(&emit, &done, &quit) {
+                my int $closed = 0;
+                my $t = Tap.new({
+                    if &!closing {
+                        &!closing() unless $closed++;
+                    }
+                });
                 my $p = Supplier.new;
-                $p.Supply.tap(&emit, :&done, :&quit); # sanitizes
+                $p.Supply.tap(&emit,
+                    done => {
+                        done();
+                        $t.close();
+                    },
+                    quit => -> \ex {
+                        quit(ex);
+                        $t.close();
+                    });
                 $!scheduler.cue({ &!producer($p) },
                     catch => -> \ex { $p.quit(ex) });
-                Tap.new(&!closing)
+                $t
             }
 
             method live(--> False) { }
@@ -203,18 +218,14 @@ my class Supply does Awaitable {
                         emit(value) unless $!finished;
                     },
                     done => -> {
-                        unless $!finished {
-                            $!finished = 1;
-                            done();
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
+                        $!finished = 1;
+                        done();
+                        self!cleanup($cleaned-up, $source-tap);
                     },
                     quit => -> $ex {
-                        unless $!finished {
-                            $!finished = 1;
-                            quit($ex);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
+                        $!finished = 1;
+                        quit($ex);
+                        self!cleanup($cleaned-up, $source-tap);
                     });
                 Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }
@@ -838,33 +849,33 @@ my class Supply does Awaitable {
         }
     }
 
-    method batch(Supply:D $self: :$elems, :$seconds ) {
-        return self if (!$elems or $elems == 1) and !$seconds;  # nothing to do
+    method batch(Supply:D $self: Int(Cool) :$elems = 0, :$seconds) {
         supply {
-            my @batched;
+            my int $max = $elems >= 0 ?? $elems !! 0;
+            my $batched := nqp::list;
             my $last_time;
             sub flush(--> Nil) {
-                emit([@batched]);
-                @batched = ();
+                emit($batched);
+                $batched := nqp::list;
             }
             sub final-flush(--> Nil) {
-                flush if @batched;
+                flush if nqp::elems($batched);
             }
 
             if $seconds {
                 $last_time = time div $seconds;
 
-                if $elems { # and $seconds
+                if $elems > 0 { # and $seconds
                     whenever self -> \val {
-                      my $this_time = time div $seconds;
-                      if $this_time != $last_time {
-                          flush if @batched;
-                          $last_time = $this_time;
-                          @batched.push: val;
+                        my $this_time = time div $seconds;
+                        if $this_time != $last_time {
+                            flush if nqp::elems($batched);
+                            $last_time = $this_time;
+                            nqp::push($batched,val);
                         }
                         else {
-                            @batched.push: val;
-                            flush if @batched.elems == $elems;
+                            nqp::push($batched,val);
+                            flush if nqp::iseq_i(nqp::elems($batched),$max);
                         }
                         LAST { final-flush; }
                     }
@@ -873,18 +884,18 @@ my class Supply does Awaitable {
                     whenever self -> \val {
                         my $this_time = time div $seconds;
                         if $this_time != $last_time {
-                            flush if @batched;
+                            flush if nqp::elems($batched);
                             $last_time = $this_time;
                         }
-                        @batched.push: val;
+                        nqp::push($batched,val);
                         LAST { final-flush; }
                     }
                 }
             }
             else { # just $elems
                 whenever self -> \val {
-                    @batched.push: val;
-                    flush if @batched.elems == $elems;
+                    nqp::push($batched,val);
+                    flush if nqp::isge_i(nqp::elems($batched),$max);
                     LAST { final-flush; }
                 }
             }
@@ -1640,8 +1651,8 @@ my class Supplier::Preserving is Supplier {
     }
 }
 
-sub SUPPLY(&block) {
-    my class SupplyBlockState {
+augment class Rakudo::Internals {
+    class SupplyBlockState {
         has &.emit;
         has &.done;
         has &.quit;
@@ -1668,11 +1679,15 @@ sub SUPPLY(&block) {
         }
 
         method add-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)} = $tap }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)} = $tap;
+            }
         }
 
         method delete-active-tap($tap --> Nil) {
-            $!lock.protect: { %!active-taps{nqp::objectid($tap)}:delete }
+            $!lock.protect: {
+                %!active-taps{nqp::objectid($tap)}:delete;
+            }
         }
 
         method consume-active-taps() {
@@ -1686,43 +1701,36 @@ sub SUPPLY(&block) {
 
         method run-operation(&op --> Nil) {
             if $!active {
-                my $run-now = False;
+                my $run-now;
                 $!lock.protect({
-                    if @!queued-operations {
-                        @!queued-operations.push({
-                            op();
-                            self!maybe-another();
-                        });
-                    }
-                    else {
-                        @!queued-operations.push(&op);
-                        $run-now = True;
-                    }
+                    $run-now = not @!queued-operations;
+                    @!queued-operations.push(&op);
                 });
-                if $run-now {
-                    op();
-                    self!maybe-another();
-                }
+                self!run-loop(&op) if $run-now;
             }
         }
 
-        method !maybe-another(--> Nil) {
-            my &another;
-            $!lock.protect({
-                @!queued-operations.shift;
-                &another = @!queued-operations[0] if $!active && @!queued-operations;
-            });
-            &another && another();
+        method !run-loop(&initial --> Nil) {
+            my &current = &initial;
+            while &current {
+                current();
+                $!lock.protect({
+                    @!queued-operations.shift;
+                    &current = $!active && @!queued-operations
+                        ?? @!queued-operations[0]
+                        !! Nil;
+                });
+            }
         }
     }
 
-    Supply.new(class :: does Tappable {
+    class SupplyBlockTappable does Tappable {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
-            my $state = SupplyBlockState.new(:&emit, :&done, :&quit);
+            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
             self!run-supply-code(&!block, $state);
             if nqp::istype(&!block,Block) {
                 $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
@@ -1745,6 +1753,7 @@ sub SUPPLY(&block) {
                             if @phasers {
                                 self!run-supply-code({ .() for @phasers }, $state)
                             }
+                            $tap.?close;
                             self!deactivate-one($state);
                         },
                         quit => -> \ex {
@@ -1756,6 +1765,7 @@ sub SUPPLY(&block) {
                                     $handled = $phaser(ex) === Nil;
                                 }
                                 if $handled {
+                                    $tap.?close;
                                     self!deactivate-one($state);
                                 }
                                 elsif $state.get-and-zero-active() {
@@ -1803,15 +1813,20 @@ sub SUPPLY(&block) {
 
         method !teardown($state) {
             .close for $state.consume-active-taps;
-            while $state.close-phasers.pop() -> $close {
-                $close();
+            my @close-phasers := $state.close-phasers;
+            while @close-phasers {
+                @close-phasers.pop()();
             }
         }
 
         method live(--> False) { }
         method sane(--> True) { }
         method serial(--> True) { }
-    }.new(:&block))
+    }
+}
+
+sub SUPPLY(&block) {
+    Supply.new(Rakudo::Internals::SupplyBlockTappable.new(:&block))
 }
 
 sub WHENEVER(Supply() $supply, &block) {

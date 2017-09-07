@@ -54,11 +54,49 @@ my class X::Proc::Async::OpenForWriting does X::Proc::Async {
 }
 
 my class Proc::Async {
+    # An asynchornous process output pipe is a Supply that also can provide
+    # the native descriptor of the underlying pipe.
+    class Pipe is Supply {
+        my class PermitOnTap does Tappable {
+            has Tappable $.delegate;
+            has &.on-tap;
+            method tap(|c) {
+                &!on-tap();
+                $!delegate.tap(|c)
+            }
+            method live() { self.delegate.live }
+            method serial() { self.delegate.serial }
+            method sane() { self.delegate.sane }
+        }
+
+        has Promise $.native-descriptor;
+        has &!on-nd-used;
+
+        submethod BUILD(:$!native-descriptor!, :&!on-nd-used) {}
+
+        method native-descriptor() {
+            &!on-nd-used();
+            $!native-descriptor
+        }
+
+        method new($delegate, $native-descriptor, &on-tap, &on-nd-used) {
+            self.bless(
+                tappable => PermitOnTap.bless(:$delegate, :&on-tap),
+                :$native-descriptor, :&on-nd-used
+            )
+        }
+    }
+
     my class ProcessCancellation is repr('AsyncTask') { }
     my enum  CharsOrBytes ( :Bytes(0), :Chars(1) );
 
     has $!ready_promise = Promise.new;
     has $!ready_vow = $!ready_promise.vow;
+    has $!handle_available_promise = Promise.new;
+    has $!stdout_descriptor_vow;
+    has $!stderr_descriptor_vow;
+    has $!stdout_descriptor_used = Promise.new;
+    has $!stderr_descriptor_used = Promise.new;
     has $.path;
     has @.args;
     has $.w;
@@ -71,16 +109,20 @@ my class Proc::Async {
     has CharsOrBytes $!stderr_type;
     has $!merge_supply;
     has CharsOrBytes $!merge_type;
-    has Int $!stdin-fd;
-    has Int $!stdout-fd;
-    has Int $!stderr-fd;
+    has $!stdout_fd_promise;
+    has $!stderr_fd_promise;
+    has $!stdin-fd;
+    has $!stdout-fd;
+    has $!stderr-fd;
     has $!process_handle;
     has $!exit_promise;
     has @!promises;
     has $!encoder;
+    has @!close-after-exit;
 
     proto method new(|) { * }
-    multi method new(*@ ($path, *@args), *%_) {
+    multi method new(*@args where .so) {
+        my $path = @args.shift;
         self.bless(:$path, :@args, |%_)
     }
 
@@ -88,7 +130,12 @@ my class Proc::Async {
         $!encoder := Encoding::Registry.find($!enc).encoder(:$!translate-nl);
     }
 
-    method !supply(\what,\the-supply,\type,\value) {
+    method !pipe-cbs(\channel) {
+        -> { $!handle_available_promise.then({ nqp::permit($!process_handle, channel, -1) }) },
+        -> { (channel == 1 ?? $!stdout_descriptor_used !! $!stderr_descriptor_used).keep(True) }
+    }
+
+    method !pipe(\what, \the-supply, \type, \value, \fd-vow, \permit-channel) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
         X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
@@ -96,6 +143,28 @@ my class Proc::Async {
 
         type         = value;
         the-supply //= Supplier::Preserving.new;
+
+        if nqp::iscont(fd-vow) {
+            my $native-descriptor = Promise.new;
+            fd-vow = $native-descriptor.vow;
+            Pipe.new(the-supply.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
+        }
+        else {
+            the-supply.Supply
+        }
+    }
+
+    method !wrap-decoder(Supply:D $bin-supply, $enc, \fd-vow, \permit-channel, :$translate-nl) {
+        my \sup = Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
+            :translate-nl($translate-nl // $!translate-nl));
+        if nqp::iscont(fd-vow) {
+            my $native-descriptor = Promise.new;
+            fd-vow = $native-descriptor.vow;
+            Pipe.new(sup.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
+        }
+        else {
+            sup
+        }
     }
 
     proto method stdout(|) { * }
@@ -104,7 +173,7 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
             if $!stdout-fd;
         $bin
-            ?? self!supply('stdout', $!stdout_supply, $!stdout_type, Bytes).Supply
+            ?? self!pipe('stdout', $!stdout_supply, $!stdout_type, Bytes, $!stdout_descriptor_vow, 1)
             !! self.stdout(|%_)
     }
     multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
@@ -112,8 +181,8 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
             if $!stdout-fd;
         self!wrap-decoder:
-            self!supply('stdout', $!stdout_supply, $!stdout_type, Chars).Supply,
-            $enc, :$translate-nl
+            self!pipe('stdout', $!stdout_supply, $!stdout_type, Chars, Nil, 1),
+            $enc, $!stdout_descriptor_vow, 1, :$translate-nl
     }
 
     proto method stderr(|) { * }
@@ -122,7 +191,7 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
             if $!stderr-fd;
         $bin
-            ?? self!supply('stderr', $!stderr_supply, $!stderr_type, Bytes).Supply
+            ?? self!pipe('stderr', $!stderr_supply, $!stderr_type, Bytes, $!stderr_descriptor_vow, 2)
             !! self.stderr(|%_)
     }
     multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
@@ -130,8 +199,8 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
             if $!stderr-fd;
         self!wrap-decoder:
-            self!supply('stderr', $!stderr_supply, $!stderr_type, Chars).Supply,
-            $enc, :$translate-nl
+            self!pipe('stderr', $!stderr_supply, $!stderr_type, Chars, Nil, 2),
+            $enc, $!stderr_descriptor_vow, 2, :$translate-nl
     }
 
     proto method Supply(|) { * }
@@ -142,7 +211,7 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
             if $!stderr-fd;
         $bin
-            ?? self!supply('merge', $!merge_supply, $!merge_type, Bytes).Supply
+            ?? self!pipe('merge', $!merge_supply, $!merge_type, Bytes, Nil, 0)
             !! self.Supply(|%_)
     }
     multi method Supply(Proc::Async:D: :$enc, :$translate-nl) {
@@ -152,26 +221,19 @@ my class Proc::Async {
         die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
             if $!stderr-fd;
         self!wrap-decoder:
-            self!supply('merge', $!merge_supply, $!merge_type, Chars).Supply,
-            $enc, :$translate-nl
+            self!pipe('merge', $!merge_supply, $!merge_type, Chars, Nil, 0),
+            $enc, Nil, 0, :$translate-nl
     }
 
     proto method bind-stdin($) {*}
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
         die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
         $!stdin-fd := $handle.native-descriptor;
+        @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
     }
-    multi method bind-stdin(IO::Pipe:D $handle --> Nil) {
+    multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
         die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
-        my $sup := nqp::getattr(nqp::decont($handle), IO::Pipe, '$!bin-supply');
-        die "Can only bind an output IO::Pipe to stdin of a process"
-            unless $sup.DEFINITE;
-        $!w = True;
-        $!ready_promise.then({
-            $sup().tap: { await self.write($_) },
-                done => { self.close-stdin },
-                quit => { self.close-stdin };
-        });
+        $!stdin-fd := $pipe.native-descriptor;
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
@@ -194,11 +256,6 @@ my class Proc::Async {
         $!ready_promise;
     }
 
-    method !wrap-decoder(Supply:D $bin-supply, $enc, :$translate-nl) {
-        Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
-            :translate-nl($translate-nl // $!translate-nl))
-    }
-
     method !capture(\callbacks,\std,\the-supply) {
         my $promise = Promise.new;
         my $vow = $promise.vow;
@@ -216,6 +273,16 @@ my class Proc::Async {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
         $!started = True;
 
+        my @blockers;
+        if $!stdin-fd ~~ Promise {
+            @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
+        }
+        @blockers
+            ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
+            !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+    }
+
+    method !start-internal(:$scheduler, :$ENV, :$cwd) {
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
 
         $!exit_promise = Promise.new;
@@ -228,7 +295,21 @@ my class Proc::Async {
            ))
         });
 
-        nqp::bindkey($callbacks, 'ready', {
+        nqp::bindkey($callbacks, 'ready', -> Mu \handles = Nil {
+            if nqp::isconcrete(handles) {
+                with $!stdout_descriptor_vow {
+                    my $fd = nqp::atpos_i(handles, 0);
+                    $fd < 0
+                        ?? .break("Descriptor not available")
+                        !! .keep($fd)
+                }
+                with $!stderr_descriptor_vow {
+                    my $fd = nqp::atpos_i(handles, 1);
+                    $fd < 0
+                        ?? .break("Descriptor not available")
+                        !! .keep($fd)
+                }
+            }
             $!ready_vow.keep(Nil);
         });
 
@@ -238,12 +319,14 @@ my class Proc::Async {
             $!ready_vow.break($error);
         });
 
-        @!promises.push(
-          self!capture($callbacks,'stdout',$!stdout_supply)
-        ) if $!stdout_supply;
-        @!promises.push(
-          self!capture($callbacks,'stderr',$!stderr_supply)
-        ) if $!stderr_supply;
+        @!promises.push(Promise.anyof(
+          self!capture($callbacks,'stdout',$!stdout_supply),
+          $!stdout_descriptor_used
+        )) if $!stdout_supply;
+        @!promises.push(Promise.anyof(
+          self!capture($callbacks,'stderr',$!stderr_supply),
+          $!stderr_descriptor_used
+        )) if $!stderr_supply;
         @!promises.push(
           self!capture($callbacks,'merge',$!merge_supply)
         ) if $!merge_supply;
@@ -260,7 +343,10 @@ my class Proc::Async {
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
         );
+        $!handle_available_promise.keep(True);
+        nqp::permit($!process_handle, 0, -1) if $!merge_supply;
         Promise.allof( $!exit_promise, @!promises ).then({
+            .close for @!close-after-exit;
             $!exit_promise.status == Broken
                 ?? $!exit_promise.cause.throw
                 !! $!exit_promise.result
@@ -331,12 +417,8 @@ my class Proc::Async {
         nqp::killprocasync($!process_handle, signal)
     }
 
-    # $*KERNEL.signal with Str:D signal isn't thread-safe, as it initializes
-    # a hash attribute, so we stick this operation into a lock
-    my $kill-lock = Lock.new;
     multi method kill(Proc::Async:D: Str:D \signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle,
-          $kill-lock.protect: { $*KERNEL.signal: signal })
+        nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
     }
 }

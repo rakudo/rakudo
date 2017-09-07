@@ -13,7 +13,13 @@ my role Scheduler {
         else {
             # No default handler, so terminate the application.
             note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
-            note $exception.gist;
+            if Rakudo::Internals.LL-EXCEPTION {
+                note $exception.message;
+                note $exception.backtrace.full;
+            }
+            else {
+                note $exception.gist;
+            }
             exit(1);
         }
     }

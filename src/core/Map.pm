@@ -105,6 +105,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         so self.keys.any.match($topic);
     }
 
+    multi method ACCEPTS(Map:D: Map:D \m --> Bool) {
+    	self eqv m;
+    }
+
     multi method EXISTS-KEY(Map:D: Str:D \key) {
         nqp::p6bool(
           nqp::defined($!storage) && nqp::existskey($!storage,key)
@@ -196,9 +200,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 )
             }
             method count-only() {
-                nqp::p6box_i(
-                  nqp::add_i(nqp::elems($!storage),nqp::elems($!storage))
-                )
+                nqp::mul_i(nqp::elems($!hash),2)
             }
         }.new(self))
     }
@@ -299,10 +301,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     proto method STORE_AT_KEY(|) { * }
     multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key), value)
+        nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
     }
     multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
+        nqp::bindkey($!storage, nqp::unbox_s(key.Str), nqp::decont(value))
     }
 
     method Capture(Map:D:) {
@@ -402,40 +404,56 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method pick(Map:D:) { self.roll }
 
-    sub SETIFY(\map, \type) {
-        nqp::create(type).SET-SELF(
-          Rakudo::QuantHash.ADD-MAP-TO-SET(
-            nqp::create(Rakudo::Internals::IterationSet), map
-          )
-        )
+    multi method Set(Map:D:)     {
+        nqp::create(Set).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method Set(Map:D:)     { SETIFY(self,Set)     }
-    multi method SetHash(Map:D:) { SETIFY(self,SetHash) }
+    multi method SetHash(Map:D:)     {
+        nqp::create(SetHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
+    }
+    multi method Bag(Map:D:)     {
+        nqp::create(Bag).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+    }
+    multi method BagHash(Map:D:)     {
+        nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+    }
+    multi method Mix(Map:D:)     {
+        nqp::create(Mix).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+    }
+    multi method MixHash(Map:D:)     {
+        nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+    }
 }
 
 multi sub infix:<eqv>(Map:D \a, Map:D \b) {
+
+    class NotEQV { }
+
     nqp::p6bool(
       nqp::unless(
         nqp::eqaddr(a,b),
-        nqp::if(
+        nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(
-            nqp::iseq_i((my int $elems = a.elems),b.elems),
-            nqp::unless(
-              nqp::iseq_i($elems,0),
-              nqp::stmts(
-                (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage')),
-                (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+          nqp::if(                               # same types
+            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
+              && (my int $elems = nqp::elems($amap)),
+            nqp::if(                             # elems on left
+              (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::iseq_i($elems,nqp::elems($bmap)),
+              nqp::stmts(                        # same elems on right
                 (my $iter := nqp::iterator($amap)),
                 nqp::while(
-                  $iter
-                  && nqp::existskey($bmap,
-                    my str $key = nqp::iterkey_s(nqp::shift($iter)))
-                  && nqp::atkey($amap,$key) eqv nqp::atkey($bmap,$key),
+                  $iter && infix:<eqv>(
+                    nqp::iterval(nqp::shift($iter)),
+                    nqp::ifnull(nqp::atkey($bmap,nqp::iterkey_s($iter)),NotEQV)
+                  ),
                   ($elems = nqp::sub_i($elems,1))
                 ),
-                nqp::iseq_i($elems,0)    # checked all, so ok
+                nqp::not_i($elems)               # ok if none left
               )
+            ),
+            nqp::isfalse(                        # nothing on left
+              ($bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::elems($bmap)             # something on right: fail
             )
           )
         )

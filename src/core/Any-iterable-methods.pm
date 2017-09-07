@@ -424,31 +424,23 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $result;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
                     ($redo = 0),
                     nqp::handle(
                       nqp::if(
-                        nqp::istype(($result := &!block($value)),Slip),
+                        nqp::istype((my $result := &!block($value)),Slip),
                         self.slip-all($result,$target),
                         $target.push($result)
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd),
+                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
@@ -456,21 +448,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
 
         method sink-all(--> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one()),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -480,14 +464,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       'LABELED', $!label,
                       'NEXT', nqp::null,  # need NEXT for next LABEL support
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd)
+                      'LAST', return
                     ),
                   :nohandler
                   )
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
     }
 
@@ -571,19 +554,10 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $value2;
-            my $result;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -591,17 +565,17 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::handle(
                       nqp::if(
                         nqp::eqaddr(
-                          ($value2 := $!source.pull-one),
+                          (my $value2 := $!source.pull-one),
                           IterationEnd
                         ),
                         nqp::stmts(
-                          ($result := &!block($value)),
+                          (my $result := &!block($value)),
                           nqp::if(
                             nqp::istype($result,Slip),
                             self.slip-all($result,$target),
                             $target.push($result)
                           ),
-                          (return IterationEnd)
+                          return
                         ),
                         nqp::if(
                           nqp::istype(
@@ -614,7 +588,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd),
+                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
                     )
                   ),
@@ -622,22 +596,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
 
         method sink-all(--> IterationEnd) {
-
-# This extra scope serves no other purpose than to make this method JIT
-# and OSR faster.
-{
-            my int $redo;
-            my $value;
-            my $value2;
-
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one()),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
               nqp::stmts(
-                ($redo = 1),
+                (my int $redo = 1),
                 nqp::while(
                   $redo,
                   nqp::stmts(
@@ -645,26 +610,25 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::handle(  # doesn't sink
                       nqp::if(
                         nqp::eqaddr(
-                          ($value2 := $!source.pull-one),
+                          (my $value2 := $!source.pull-one),
                           IterationEnd
                         ),
                         nqp::stmts(
                           (&!block($value)),
-                          (return IterationEnd)
+                          return
                         ),
                         (&!block($value,$value2))
                       ),
                       'LABELED', $!label,
                       'NEXT', nqp::null,  # need NEXT for next LABEL support
                       'REDO', ($redo = 1),
-                      'LAST', (return IterationEnd)
+                      'LAST', return
                     )
                   ),
                 :nohandler
                 )
               )
             )
-} # needed for faster JITting and OSRing
         }
     }
 
@@ -810,12 +774,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! nqp::p6box_i($!index = $!index + 1)
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
                     $target.push(nqp::p6box_i($!index)) if $!test($_);
                 }
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -851,7 +814,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     }
                 }
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
                   nqp::stmts(
@@ -865,7 +828,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     )
                   )
                 );
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -888,12 +850,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ?? IterationEnd
                   !! Pair.new($!index = $!index + 1,$_)
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 until ($_ := $!iter.pull-one) =:= IterationEnd {
                     $!index = $!index + 1;
                     $target.push(Pair.new($!index,$_)) if $!test($_);
                 }
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -950,7 +911,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 );
                 $_
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
                   nqp::if(  # doesn't sink
@@ -958,7 +919,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     $target.push($_)
                   )
                 );
-                IterationEnd
             }
         }.new(self, $test))
     }
@@ -1509,7 +1469,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 )
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
                     nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
@@ -1539,15 +1499,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self))
     }
     multi method unique( :&as!, :&with! ) {
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target = &as($_);
-            if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
-                take $_;
-            }
-        };
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.unique(:&as),
+          Seq.new(
+            Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,1)
+          )
+        )
     }
     multi method unique( :&as! ) {
         Seq.new(class :: does Iterator {
@@ -1560,50 +1518,41 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
-                    nqp::stmts(
-                      nqp::bindkey($!seen, $needle, 1),
-                      return $value
+            method pull-one() is raw {
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
+                    nqp::unless(
+                      nqp::existskey($!seen,my $needle := &!as($value).WHICH),
+                      nqp::stmts(
+                        nqp::bindkey($!seen,$needle,1),
+                        return-rw $value
+                      )
                     )
-                  )
-                );
-                IterationEnd
+                  ),
+                  IterationEnd
+                )
             }
-            method push-all($target) {
-                my Mu $value;
-                my str $needle;
+            method push-all($target --> IterationEnd) {
                 nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+                  nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
                   nqp::unless(
-                    nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH)),
+                    nqp::existskey($!seen,my $needle := &!as($value).WHICH),
                     nqp::stmts(  # doesn't sink
-                      nqp::bindkey($!seen, $needle, 1),
+                      nqp::bindkey($!seen,$needle,1),
                       $target.push($value)
                     )
                   )
-                );
-                IterationEnd
+                )
             }
         }.new(self, &as))
     }
     multi method unique( :&with! ) {
-        nextwith() if &with === &[===]; # use optimized version
-
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target := $_;
-            if first( { with($target,$_) }, @seen ) =:= Nil {
-                @seen.push($target);
-                take $_;
-            }
-        }
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.unique,
+          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,1))
+        )
     }
 
     proto method repeated(|) is nodal {*}
@@ -1617,18 +1566,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
                 nqp::until(
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
-                    ?? return $value
+                    ?? return-rw $value
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
                 IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value;
                 my str $needle;
                 nqp::until( # doesn't sink
@@ -1637,20 +1586,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ?? $target.push($value)
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self))
     }
     multi method repeated( :&as!, :&with! ) {
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target = &as($_);
-            first( { with($target,$_) }, @seen ) =:= Nil
-              ?? @seen.push($target)
-              !! take $_;
-        };
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.repeated(:&as),
+          Seq.new(
+            Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,0)
+          )
+        )
     }
     multi method repeated( :&as! ) {
         Seq.new(class :: does Iterator {
@@ -1663,18 +1610,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
                 nqp::until(
                   nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
                   nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
-                    ?? return $value
+                    ?? return-rw $value
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
                 IterationEnd
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value;
                 my str $needle;
                 nqp::until(  # doesn't sink
@@ -1683,22 +1630,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     ?? $target.push($value)
                     !! nqp::bindkey($!seen, $needle, 1)
                 );
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &as))
     }
     multi method repeated( :&with! ) {
-        nextwith() if &with === &[===]; # use optimized version
-
-        my @seen;  # should be Mu, but doesn't work in settings :-(
-        my Mu $target;
-        gather self.map: {
-            $target := $_;
-            first( { with($target,$_) }, @seen ) =:= Nil
-              ?? @seen.push($target)
-              !! take $_;
-        }
+        nqp::if(
+          nqp::eqaddr(&with,&[===]), # use optimized version
+          self.repeated,
+          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,0))
+        )
     }
 
     proto method squish(|) is nodal {*}
@@ -1717,7 +1658,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             method new(\list, &as, &with) {
                 nqp::create(self)!SET-SELF(list, &as, &with)
             }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $which := &!as($value);
@@ -1734,7 +1675,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 $value;
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $which;
@@ -1760,7 +1701,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       )
                     );
                 }
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &as, &with))
@@ -1777,7 +1717,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 self
             }
             method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
-            method pull-one() {
+            method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     if $!first {
@@ -1795,7 +1735,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
                 $value;
             }
-            method push-all($target) {
+            method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {
                     my $last_val = $!last;
@@ -1819,7 +1759,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       )
                     );
                 }
-                IterationEnd
             }
             method is-lazy() { $!iter.is-lazy }
         }.new(self, &with))
@@ -1828,27 +1767,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     proto method pairup(|) is nodal { * }
     multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
-        my \iter = nqp::istype(self, Iterable)
-            ?? self.iterator
-            !! self.list.iterator;
-        gather loop {
-            my $it := iter.pull-one;
-            if nqp::istype($it, Pair) {
-                take $it.key => $it.value
-            }
-            elsif nqp::istype($it, Map) and !nqp::iscont($it) {
-                take Slip.new(|$it.pairs)
-            }
-            elsif $it =:= IterationEnd {
-                last
-            }
-            else {
-                my $it-value := iter.pull-one;
-                if $it-value =:= IterationEnd {
-                    X::Pairup::OddNumber.new.throw;
-                }
-                take $it => $it-value;
-            }
+        my \iter := self.iterator;
+        gather {
+            nqp::until(
+              nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype($pulled,Pair),
+                (take nqp::p6bindattrinvres(
+                  nqp::clone($pulled),
+                  Pair,
+                  '$!value',
+                  nqp::clone(nqp::decont(nqp::getattr($pulled,Pair,'$!value')))
+                )),
+                nqp::if(
+                  nqp::istype($pulled,Map) && nqp::not_i(nqp::iscont($pulled)),
+                  (take Slip.from-iterator($pulled.iterator)),
+                  nqp::if(
+                    nqp::eqaddr((my $value := iter.pull-one),IterationEnd),
+                    X::Pairup::OddNumber.new.throw,
+                    take Pair.new($pulled,$value)
+                  )
+                )
+              )
+            )
         }
     }
 

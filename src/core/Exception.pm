@@ -37,7 +37,7 @@ my class Exception {
         if nqp::isconcrete($!ex) {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message)
-                ?? "Died with {self.^name}"
+                ?? (try self.?message) // "Died with {self.^name}"
                 !! nqp::p6box_s($message);
             $str ~= "\n";
             try $str ~= self.backtrace
@@ -54,12 +54,6 @@ my class Exception {
         $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
         $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
-        my $msg := try self.?message;
-        if defined($msg) {
-            $msg := try ~$msg;
-        }
-        $msg := $msg // "{self.^name} exception produced no message";
-        nqp::setmessage($!ex, nqp::unbox_s($msg));
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
@@ -660,7 +654,7 @@ my role X::Comp is Exception {
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
-                for @.highexpect {
+                for flat @.highexpect».list {
                     $r ~= "\n        $_";
                 }
             }
@@ -2345,7 +2339,7 @@ my class X::DateTime::TimezoneClash does X::Temporal {
 my class X::DateTime::InvalidDeltaUnit does X::Temporal {
     has $.unit;
     method message() {
-        "Cannnot use unit $.unit with Date.delta";
+        "Cannot use unit $.unit with Date.delta";
     }
 }
 
@@ -2387,7 +2381,7 @@ my class X::Numeric::Real is Exception {
     has $.source;
 
     method message() {
-        "Can not convert $.source to {$.target.^name}: $.reason";
+        "Cannot convert $.source to {$.target.^name}: $.reason";
     }
 }
 
@@ -2398,7 +2392,7 @@ my class X::Numeric::DivideByZero is Exception {
     method message() {
         "Attempt to divide{$.numerator ?? " $.numerator" !! ''} by zero"
           ~ ( $.using ?? " using $.using" !! '' )
-          ~ ( $_ with $.details );
+          ~ ( " $_" with $.details );
     }
 }
 

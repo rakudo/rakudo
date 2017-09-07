@@ -1,7 +1,6 @@
 my class DateTime { ... }
 my role  IO { ... }
 my class IO::Path { ... }
-my class Seq { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
 my class X::IllegalOnFixedDimensionArray { ... };
@@ -628,6 +627,9 @@ my class Rakudo::Internals {
 
     my num $init-time-num = nqp::time_n;
     method INITTIME() { $init-time-num }
+
+    my $init-thread := nqp::currentthread();
+    method INITTHREAD() { $init-thread }
 
     my $escapes := nqp::hash(
      "\0",   '\0',
@@ -1546,6 +1548,6 @@ Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     }
 }
 
-sub exit($status = 0) { &*EXIT($status) }
+sub exit(Int(Any) $status = 0) { &*EXIT($status) }
 
 # vim: ft=perl6 expandtab sw=4

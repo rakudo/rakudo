@@ -15,6 +15,7 @@ BEGIN {
     Bool.^add_multi_method('Str',     my multi method Str(Bool:D:)     { self ?? 'True' !! 'False' });
     Bool.^add_multi_method('Numeric', my multi method Numeric(Bool:D:) { self ?? 1 !! 0 });
     Bool.^add_multi_method('Int',     my multi method Int(Bool:D:)     { self ?? 1 !! 0 });
+    Bool.^add_multi_method('Real',    my multi method Real(Bool:D:)    { self ?? 1 !! 0 });
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
     Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 
@@ -33,7 +34,7 @@ BEGIN {
     Bool.^add_method('pred',  my method pred() { Bool::False });
     Bool.^add_method('succ',  my method succ() { Bool::True });
 
-    Bool.^add_method('enums', my method enums() { self.^enum_values });
+    Bool.^add_method('enums', my method enums() { self.^enum_values.Map });
 
     Bool.^compose;
 }

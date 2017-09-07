@@ -20,6 +20,7 @@ my role Enumeration {
 
     multi method Numeric(::?CLASS:D:) { $!value.Numeric }
     multi method Int(::?CLASS:D:)     { $!value.Int }
+    multi method Real(::?CLASS:D:)    { $!value.Real }
 
     # Make sure we always accept any element of the enumeration
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }

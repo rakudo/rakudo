@@ -110,18 +110,16 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 }
 
 sub SEQUENCE(\left, Mu \right, :$exclude_end) {
-    my \righti := nqp::iscont(right)
-        ?? right.iterator
-        !! [right].iterator;
-    my $endpoint := righti.pull-one;
-    X::Cannot::Empty.new(:action('get sequence endpoint'), :what('list (use * or :!elems instead?)')).throw
-      if $endpoint =:= IterationEnd;
-    $endpoint.sink if $endpoint ~~ Failure;
+    my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
+    my $endpoint := righti.pull-one.self; # .self explodes Failures
+    $endpoint =:= IterationEnd and X::Cannot::Empty.new(
+        :action('get sequence endpoint'),
+        :what('list (use * or :!elems instead?)'),
+    ).throw;
     my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
-    $endpoint := Bool::False if $infinite;
-    my @tail;
+    $endpoint := False if $infinite;
+
     my $end_code_arity = 0;
-    my @end_tail;
     if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
         $end_code_arity = $endpoint.arity;
         $end_code_arity = $endpoint.count if $end_code_arity == 0;
@@ -134,7 +132,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             $cmp < 0 && $a ~~ Stringy
                 ?? -> $x {
                     my $new = $x.succ;
-                    last if $new after $endpoint or $new.chars > $endpoint.chars;
+                    last if $new       after $endpoint
+                         or $new.chars >     $endpoint.chars;
                     $new;
                 }
                 !! $cmp < 0
@@ -152,20 +151,16 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         !! { $_ }
         }
         else {
-            $cmp < 0
-                ?? { $^x.succ }
-                !! $cmp > 0
-                    ?? { $^x.pred }
-                    !! { $^x }
+               $cmp < 0 ?? { $^x.succ }
+            !! $cmp > 0 ?? { $^x.pred }
+            !!             { $^x      }
         }
     }
     my sub unisuccpred($a,$b) {
         my $cmp = $a.ord cmp $b.ord;
-        $cmp < 0
-            ?? { $^x.ord.succ.chr }
-            !! $cmp > 0
-                ?? { $^x.ord.pred.chr }
-                !! { $^x }
+           $cmp < 0 ?? { $^x.ord.succ.chr }
+        !! $cmp > 0 ?? { $^x.ord.pred.chr }
+        !!             { $^x              }
     }
 
     my \gathered = GATHER({
@@ -174,13 +169,17 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         my $code;
         my $stop;
         my $looped;
+        my @tail;
+        my @end_tail;
         while !((my \value := lefti.pull-one) =:= IterationEnd) {
             $looped = True;
             if nqp::istype(value,Code) { $code = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
-                    @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                    @end_tail.shift xx (@end_tail.elems - $end_code_arity)
+                        unless $end_code_arity ~~ -Inf;
+
                     if $endpoint(|@end_tail) {
                         $stop = 1;
                         @tail.push(value) unless $exclude_end;
@@ -195,8 +194,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             }
             @tail.push(value);
         }
-        X::Cannot::Empty.new(:action('get sequence start value'), :what('list')).throw
-          unless $looped;
+        X::Cannot::Empty.new(
+            :action('get sequence start value'), :what('list')
+        ).throw unless $looped;
+
         if $stop {
             take $_ for @tail;
         }
@@ -214,14 +215,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             if $code.defined { }
             elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
-                    if @tail.tail.WHAT === $endpoint.WHAT {
-                        $code = succpred(@tail.tail, $endpoint);
-                    }
-                    else {
-                        $code = succpred(@tail[*-2], @tail.tail);
-                    }
+                    $code = @tail.tail.WHAT === $endpoint.WHAT
+                        ?? succpred(@tail.tail, $endpoint)
+                        !! succpred(@tail[*-2], @tail.tail);
                 }
-                elsif nqp::istype($endpoint, Stringy) and nqp::istype($a, Stringy) and nqp::isconcrete($endpoint) {
+                elsif nqp::istype($endpoint, Stringy)
+                  and nqp::istype($a, Stringy)
+                  and nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {
                         $code = unisuccpred($a, $endpoint);
                     }
@@ -239,7 +239,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         $stop = 1 if $a gt $endpoint;
                         $code = -> $x {
                             my $new = $x.succ;
-                            last if $new gt $endpoint or $new.chars > $endpoint.chars;
+                            last if $new       gt $endpoint
+                                 or $new.chars >  $endpoint.chars;
                             $new;
                         }
                     }
@@ -262,8 +263,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {
-                    if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) && nqp::istype($c,Real) {
-                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                    if $ab != 0
+                    || nqp::istype($a,Real)
+                    && nqp::istype($b,Real)
+                    && nqp::istype($c,Real) {
+                        if      nqp::istype($endpoint, Real)
+                        and not nqp::istype($endpoint, Bool)
+                        and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
                                 $code = -> $x {
@@ -292,8 +298,17 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 elsif $a != 0 && $b != 0 && $c != 0 {
                     $ab = $b / $a;
                     if $ab == $c / $b {
-                        $ab = $ab.Int if nqp::istype($ab,Rat) && $ab.denominator == 1;
-                        if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                        # XXX TODO: this code likely has a 2 bugs:
+                        # 1) It should check Rational, not just Rat
+                        # 2) Currently Rats aren't guaranteed to be always
+                        #    normalized, so denominator might not be 1, even if
+                        #    it could be, if normalized
+                        $ab = $ab.Int
+                            if nqp::istype($ab, Rat) && $ab.denominator == 1;
+
+                        if      nqp::istype($endpoint, Real)
+                        and not nqp::istype($endpoint, Bool)
+                        and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
@@ -316,7 +331,8 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                                 $code = -> $x {
                                     my $new = $x * $ab;
                                     my $absend = $endpoint.abs;
-                                    last if sign($x.abs - $absend) == -sign($new.abs - $absend);
+                                    last if sign(  $x.abs - $absend)
+                                        == -sign($new.abs - $absend);
                                     $new;
                                 }
                             }
@@ -337,7 +353,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             elsif @tail.elems == 2 {
                 my $ab = $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::isconcrete($endpoint) {
+                    if      nqp::istype($endpoint, Real)
+                    and not nqp::istype($endpoint, Bool)
+                    and     nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
                             $code = -> $x {
@@ -365,10 +383,13 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 @tail.pop;
             }
             elsif @tail.elems == 1 {
-                if nqp::istype($endpoint,Code) or not nqp::isconcrete($endpoint) {
+                if     nqp::istype($endpoint,Code)
+                or not nqp::isconcrete($endpoint) {
                     $code = { $^x.succ }
                 }
-                elsif nqp::istype($endpoint, Real) and not nqp::istype($endpoint, Bool) and nqp::istype($a, Real) {
+                elsif   nqp::istype($endpoint, Real)
+                and not nqp::istype($endpoint, Bool)
+                and     nqp::istype($a, Real) {
                     if $a < $endpoint {
                         $code = -> $x {
                             my $new = $x.succ;
@@ -400,10 +421,15 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 until $stop {
                     @tail.shift while @tail.elems > $count;
                     my \value = $code(|@tail);
+
                     if $end_code_arity != 0 {
                         @end_tail.push(value);
+
                         if @end_tail.elems >= $end_code_arity {
-                            @end_tail.shift xx (@end_tail.elems - $end_code_arity) unless $end_code_arity == -Inf;
+                            @end_tail.shift xx (
+                                @end_tail.elems - $end_code_arity
+                            ) unless $end_code_arity == -Inf;
+
                             if $endpoint(|@end_tail) {
                                 value.take unless $exclude_end;
                                 $stop = 1;
@@ -426,7 +452,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 die X::Sequence::Deduction.new(:from($badseq));
             }
             else {
-                die X::Sequence::Deduction.new();
+                die X::Sequence::Deduction.new;
             }
         }
     });
@@ -512,6 +538,9 @@ sub prefix:<temp>(\cont) is raw {
         nqp::push($temp_restore, cont);
         nqp::push($temp_restore, my %h = cont);
     }
+    elsif nqp::istype(cont, Failure) {
+        cont.exception.throw
+    }
     else {
         X::Localizer::NoContainer.new(localizer => 'temp').throw;
     }
@@ -536,6 +565,9 @@ sub prefix:<let>(\cont) is raw {
     elsif nqp::istype(cont, Hash) {
         nqp::push($let_restore, cont);
         nqp::push($let_restore, my %h = cont);
+    }
+    elsif nqp::istype(cont, Failure) {
+        cont.exception.throw
     }
     else {
         X::Localizer::NoContainer.new(localizer => 'let').throw;
@@ -587,7 +619,11 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
             nqp::if(
               GLOBAL::.EXISTS-KEY($first),
               GLOBAL::.AT-KEY($first),
-              X::NoSuchSymbol.new(symbol => $name).fail
+              nqp::if(
+		nqp::iseq_s($first, 'GLOBAL'),
+		GLOBAL,
+                X::NoSuchSymbol.new(symbol => $name).fail
+              )
             )
           ))),
         nqp::while(

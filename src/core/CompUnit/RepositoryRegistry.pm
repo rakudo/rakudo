@@ -67,8 +67,8 @@ class CompUnit::RepositoryRegistry {
         my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
           !! nqp::concat(
-               nqp::atkey(nqp::getcomp('perl6').config,'prefix'),
-               '/share/perl6'
+               nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
+               '/perl6'
              );
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
@@ -345,6 +345,7 @@ class CompUnit::RepositoryRegistry {
 
         # something we understand
         if $spec ~~ /^
+          <before .>
           [
             $<type>=[ <.ident>+ % '::' ]
             [ '#' $<n>=\w+

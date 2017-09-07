@@ -1,14 +1,12 @@
 my class BagHash does Baggy {
 
 #--- interface methods
-    multi method WHICH(BagHash:D:) { self.Mu::WHICH }
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {
               nqp::if(
-                (my $raw := self.raw_hash)
-                  && nqp::existskey($raw,(my $which := k.WHICH)),
-                nqp::getattr(nqp::atkey($raw,$which),Pair,'$!value'),
+                $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+                nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
                 0
               )
           },
@@ -17,31 +15,35 @@ my class BagHash does Baggy {
                 nqp::istype($value,Failure),    # RT 128927
                 $value.throw,
                 nqp::if(
-                  (my $raw := self.raw_hash),
+                  $!elems,
                   nqp::if(                      # allocated hash
-                    nqp::existskey($raw,(my $which := k.WHICH)),
+                    nqp::existskey($!elems,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
                       nqp::bindattr(
-                        nqp::atkey($raw,$which),
+                        nqp::atkey($!elems,$which),
                         Pair,
                         '$!value',
                         nqp::decont($value)
                       ),
                       nqp::stmts(
-                        nqp::deletekey($raw,$which),
+                        nqp::deletekey($!elems,$which),
                         0
                       )
                     ),
                     nqp::if(
                       nqp::isgt_i($value,0),    # new
-                      nqp::bindkey($raw,$which,Pair.new(k,nqp::decont($value)))
+                      nqp::bindkey(
+                        $!elems,
+                        $which,
+                        Pair.new(k,nqp::decont($value))
+                      )
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
                     nqp::isgt_i($value,0),
                     nqp::bindkey(
-                      nqp::bindattr(%!elems,Map,'$!storage',
+                      nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet)),
                       k.WHICH,
                       Pair.new(k,nqp::decont($value))
@@ -57,24 +59,42 @@ my class BagHash does Baggy {
     multi method new(BagHash:_:) { nqp::create(self) }
 
 #--- introspection methods
-    method total() { Rakudo::QuantHash.BAG-TOTAL(self.raw_hash) }
+    method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 
+#--- coercion methods
     multi method Bag(BagHash:D: :$view) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::p6bindattrinvres(
-            nqp::create(Bag),Bag,'%!elems',
-            nqp::if($view,%!elems,%!elems.clone)
+          $!elems && nqp::elems($!elems),
+          nqp::create(Bag).SET-SELF(                  # not empty
+            nqp::if(
+              $view,
+              $!elems,                                # BagHash won't change
+              Rakudo::QuantHash.BAGGY-CLONE($!elems)  # need deep copy
+            )
           ),
-          bag()
+          bag()                                       # empty, bag() will do
         )
     }
     multi method BagHash(BagHash:D:) { self }
     multi method Mix(BagHash:D:) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          nqp::p6bindattrinvres(nqp::create(Mix),Mix,'%!elems',%!elems.clone),
+          $!elems && nqp::elems($!elems),
+          nqp::create(Mix).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
           mix()
+        )
+    }
+    multi method MixHash(BagHash:D:) {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
+          nqp::create(MixHash)
+        )
+    }
+    method clone() {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
+          nqp::create(BagHash)
         )
     }
 
@@ -145,7 +165,7 @@ my class BagHash does Baggy {
                     nqp::clone(nqp::iterval(nqp::shift($!iter))),
                     Pair,
                     '$!value',
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!hash)
                   ),
                   IterationEnd
                 )
@@ -156,7 +176,7 @@ my class BagHash does Baggy {
                   $target.push(nqp::iterval(nqp::shift($!iter)))
                 )
             }
-        }.new(%!elems)
+        }.new($!elems)
     }
 
     multi method values(BagHash:D:) {
@@ -164,7 +184,7 @@ my class BagHash does Baggy {
             method pull-one() is raw {
                 nqp::if(
                   $!iter,
-                  proxy(nqp::shift($!iter),$!storage),
+                  proxy(nqp::shift($!iter),$!hash),
                   IterationEnd
                 )
             }
@@ -177,7 +197,7 @@ my class BagHash does Baggy {
                     nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
 
     multi method kv(BagHash:D:) {
@@ -187,7 +207,7 @@ my class BagHash does Baggy {
                   $!on,
                   nqp::stmts(
                     ($!on = 0),
-                    proxy($!iter,$!storage)
+                    proxy($!iter,$!hash)
                   ),
                   nqp::if(
                     $!iter,
@@ -200,14 +220,14 @@ my class BagHash does Baggy {
                   )
                 )
             }
-        }.new(%!elems))
+        }.new($!elems))
     }
 
 #---- selection methods
     multi method grab(BagHash:D:) {
         nqp::if(
-          (my $raw := self.raw_hash) && nqp::elems($raw),
-          Rakudo::QuantHash.BAG-GRAB($raw,self.total),
+          $!elems && nqp::elems($!elems),
+          Rakudo::QuantHash.BAG-GRAB($!elems,self.total),
           Nil
         )
     }
@@ -218,8 +238,8 @@ my class BagHash does Baggy {
     multi method grab(BagHash:D: $count) {
         Seq.new(nqp::if(
           (my $todo = Rakudo::QuantHash.TODO($count))
-            && (my $raw := self.raw_hash)
-            && nqp::elems($raw),
+            && $!elems
+            && nqp::elems($!elems),
           nqp::stmts(
             (my Int $total = self.total),
             nqp::if($todo > $total,$todo = $total),
@@ -228,7 +248,7 @@ my class BagHash does Baggy {
                   $todo,
                   nqp::stmts(
                     --$todo,
-                    Rakudo::QuantHash.BAG-GRAB($raw,$total--)
+                    Rakudo::QuantHash.BAG-GRAB($!elems,$total--)
                   ),
                   IterationEnd
                 )

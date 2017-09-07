@@ -13,7 +13,9 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
-    my $no-named-after = !$*MAIN-ALLOW-NAMED-ANYWHERE;
+    my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
+    my $no-named-after =
+      !(%SUB-MAIN-OPTS<named-anywhere> // $*MAIN-ALLOW-NAMED-ANYWHERE);
 
     sub thevalue(\a) {
         ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
@@ -210,16 +212,12 @@ my sub MAIN_HELPER($retval = 0) {
     # Let's display the default USAGE message
     if $n<help> {
         $*OUT.say($?USAGE);
-        exit 1;
+        exit 0;
     }
     else {
         $*ERR.say($?USAGE);
         exit 2;
     }
-}
-
-Rakudo::Internals.REGISTER-DYNAMIC: '$*MAIN-ALLOW-NAMED-ANYWHERE', {
-    PROCESS::<$MAIN-ALLOW-NAMED-ANYWHERE> := 0;
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -16,12 +16,12 @@ Note that different backends implement slightly different sets of
 features. For a high-level overview of implemented and missing features,
 please visit [the features page on perl6.org](http://perl6.org/compilers/features).
 
-Recent changes and feature additions are documented in the `doc/ChangeLog`
+Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/moritz/rakudo/branch/nom)
+[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/nom)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.

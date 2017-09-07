@@ -33,6 +33,7 @@ class Perl6::Metamodel::DefiniteHOW
     method new_type(:$base_type!, :$definite!) {
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
             [$base_type, $definite]);
+        nqp::setdebugtypename($root, self.name($root));
     }
 
     method name($definite_type) {

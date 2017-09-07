@@ -1,11 +1,9 @@
-# $DEBUG is set to 1 for Truey numeric values of ENV 'RAKUDO_MODULE_DEBUG'
-# or for non-numeric strings. All other cases $DEBUG is set to 0
 my $rakudo-module-debug := nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
 my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0)),($debug-radix[2] != -1))
 ?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);
 sub DEBUG(*@strs) {
     my $err := stderr();
-    $err.print("     " ~ nqp::getpid() ~ " RMD: ");
+    $err.print(" " ~ $rakudo-module-debug ~ nqp::x(" ", ($rakudo-module-debug - 1) * 4) ~ " RMD: ");
     for @strs { $err.print($_) };
     $err.print("\n");
     1;
@@ -52,7 +50,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
             my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
-            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<prefix> ~ '/share/nqp/lib/') ~ $file;
+            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<libdir> ~ '/nqp/lib/') ~ $file;
 
             if nqp::existskey(%modules_loaded, $file) {
                 return nqp::ctxlexpad(%modules_loaded{$file});

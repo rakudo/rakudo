@@ -6,7 +6,7 @@ use Test;
 
 
 class A is repr('CStruct') {
-    has	int32 $a;
+    has int32 $a;
 }
 
 class B {};
@@ -70,27 +70,31 @@ sub goodretCArray() returns CArray  { * };
 sub goodstrencoded(Str is encoded('utf8'))  { * };
 sub goodretstrencoded() returns Str is encoded('utf8')  { * };
 
+class X::FailOnWarn is Exception {
+        method message() {
+        }
+};
 
 sub testr($r) {
     # upgrade NativeCall warnings to exceptions for easier testing
-    CONTROL { when CX::Warn { .die } }
+    CONTROL { when CX::Warn { die X::FailOnWarn.new() } }
     check_routine_sanity($r);
 }
 
 lives-ok {testr(&goodPointer)}, "Taking a pointer is fine";
 lives-ok {testr(&goodPointer2)}, "Taking a Pointer[int32] is fine";
-dies-ok {testr(&badPointer)}, "Taking a Pointer[Int] is NOT fine";
+throws-like {testr(&badPointer)}, X::FailOnWarn, "Taking a Pointer[Int] is NOT fine";
 lives-ok {testr(&goodCStruct)}, "Taking a CStruct is fine";
 lives-ok {testr(&goodCArray)}, "Taking a CArray is fine";
 lives-ok {testr(&goodBuf)}, "Taking a Buf is fine";
-dies-ok {testr(&badCArray)}, "Taking a CArray[int] is not fine";
-dies-ok {testr(&badclass)}, "Taking a Perl6 class is NOT fine";
+throws-like {testr(&badCArray)}, X::FailOnWarn, "Taking a CArray[int] is not fine";
+throws-like {testr(&badclass)}, X::FailOnWarn, "Taking a Perl6 class is NOT fine";
 lives-ok {testr(&goodint)}, "Taking a int32 is fine";
-dies-ok {testr(&badint)}, "Taking a Int is NOT fine";
-dies-ok {testr(&badint2)}, "Taking a int is NOT fine";
+throws-like {testr(&badint)}, X::FailOnWarn, "Taking a Int is NOT fine";
+throws-like {testr(&badint2)}, X::FailOnWarn, "Taking a int is NOT fine";
 lives-ok {testr(&goodnum)}, "Taking a num32 is fine";
-dies-ok {testr(&badnum)}, "Taking a Num is NOT fine";
-dies-ok {testr(&badnum2)}, "Taking a num is NOT fine";
+throws-like {testr(&badnum)}, X::FailOnWarn, "Taking a Num is NOT fine";
+throws-like {testr(&badnum2)}, X::FailOnWarn, "Taking a num is NOT fine";
 lives-ok {testr(&goodstr)}, "Taking a Str is fine";
 lives-ok {testr(&badstr)}, "FIXME: Taking a str is buggy but should be fine?";
 
@@ -99,11 +103,11 @@ lives-ok {testr(&goodretPointer)}, "Returning a pointer is fine";
 lives-ok {testr(&goodretCStruct)}, "Returning a CStruct is fine";
 lives-ok {testr(&goodretCArray)}, "Returning a CArray is fine";
 lives-ok {testr(&goodretint)}, "Returning a int32 is fine";
-dies-ok {testr(&badretint)}, "Returning a Int is NOT fine";
-dies-ok {testr(&badretint2)}, "Returning a int is NOT fine";
+throws-like {testr(&badretint)}, X::FailOnWarn, "Returning a Int is NOT fine";
+throws-like {testr(&badretint2)}, X::FailOnWarn, "Returning a int is NOT fine";
 lives-ok {testr(&goodretnum)}, "Returning a num32 is fine";
-dies-ok {testr(&badretnum)}, "Returning a Num is NOT fine";
-dies-ok {testr(&badretnum2)}, "Returning a num is NOT fine";
+throws-like {testr(&badretnum)}, X::FailOnWarn, "Returning a Num is NOT fine";
+throws-like {testr(&badretnum2)}, X::FailOnWarn, "Returning a num is NOT fine";
 lives-ok {testr(&goodretbool)}, "Returning a bool is fine";
 lives-ok {testr(&badretbool)}, "FIXME: Returning a Bool maybe be bugged";
 

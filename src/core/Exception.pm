@@ -388,7 +388,7 @@ do {
                 $err.say("===SORRY!===");
                 $err.say($e.Str);
             }
-            Rakudo::Internals.THE_END();
+            nqp::getcurhllsym('&THE_END')();
             CONTROL { when CX::Warn { .resume } }
         }
         if $! {

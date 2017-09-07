@@ -43,12 +43,8 @@ sub MAIN(@ARGS) {
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
 
-    # Run any END blocks before exiting.
-    my @END := nqp::gethllsym('perl6', '@END_PHASERS');
-    while +@END {
-        my $result := (@END.shift)();
-        nqp::can($result, 'sink') && $result.sink();
-        CATCH { $comp.handle-exception($_); }
-        CONTROL { $comp.handle-control($_); }
+    # do all the necessary actions at the end, if any
+    if nqp::gethllsym('perl6', '&THE_END') -> $THE_END {
+        $THE_END()
     }
 }

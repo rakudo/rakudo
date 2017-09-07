@@ -128,12 +128,6 @@ my class Rakudo::Internals {
         0;
     }
 
-    method THE_END {
-        my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-            nqp::getcurhllsym("@END_PHASERS"));
-        for @END -> $end { $end() };
-    }
-
     method createENV(int $bind) {
         nqp::stmts(
           (my $hash := nqp::hash),
@@ -1530,17 +1524,37 @@ my class Rakudo::Internals {
 # expose the number of bits a native int has
 my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
+{   # setting up END phaser handling
+    my int $the-end-is-done;
+    my $the-end-locker = Lock.new;
+    # END handling, returns trueish if END handling already done/in progress
+    nqp::bindcurhllsym('&THE_END', {
+        unless $the-end-is-done {
+            $the-end-locker.protect: {
+                unless $the-end-is-done {
+                    my $comp := nqp::getcomp('perl6');
+                    my $end  := nqp::getcurhllsym('@END_PHASERS');
+                    while nqp::elems($end) {
+                        my $result := nqp::shift($end)();
+                        $result.sink if nqp::can($result,'sink');
+                        CATCH { $comp.handle-exception($_) }
+                        CONTROL { $comp.handle-control($_) }
+                    }
+                    nqp::not_i(($the-end-is-done = 1));
+                }
+            }
+        }
+    } );
+}
+
 # we need this to run *after* the mainline of Rakudo::Internals has run
 Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     PROCESS::<&EXIT> := sub exit($status) {
-        state $exit;
-        $exit = $status;
+        state $exit = $status;  # first call to exit sets value
 
-        once {
-            Rakudo::Internals.THE_END();
-            nqp::exit(nqp::unbox_i($exit.Int));
-        }
-        $exit;
+        nqp::getcurhllsym('&THE_END')()
+          ?? $exit
+          !! nqp::exit(nqp::unbox_i($exit.Int))
     }
 }
 

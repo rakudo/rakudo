@@ -21,8 +21,28 @@ my class IO::Handle {
 
     # Make sure we close any open files on exit
     my $opened := nqp::list;
-    my $opened-sizer = Lock.new;
-    END {
+    my $opened-locker = Lock.new;
+    method !remember-to-close(--> Nil) {
+        $opened-locker.protect: {
+            nqp::stmts(
+              nqp::if(
+                nqp::isge_i(
+                  (my int $fileno = nqp::filenofh($!PIO)),
+                  (my int $elems = nqp::elems($opened))
+                ),
+                nqp::setelems($opened,nqp::add_i($elems,1024))
+              ),
+              nqp::bindpos($opened,$fileno,$!PIO)
+            )
+        }
+    }
+    method !forget-about-closing(int $fileno --> Nil) {
+        $opened-locker.protect: {
+            nqp::bindpos($opened,$fileno,nqp::null)
+        }
+    }
+
+    END {  # assuming this is the very last END block to be run
         my int $i = 2;
         my int $elems = nqp::elems($opened);
         nqp::while(
@@ -180,19 +200,7 @@ my class IO::Handle {
                     )
                 ),
             );
-            nqp::if(
-              nqp::isge_i(
-                (my int $fileno = nqp::filenofh($!PIO)),
-                nqp::elems($opened)
-              ),
-              $opened-sizer.protect( {
-                  nqp::if(
-                    nqp::isge_i($fileno,(my int $elems = nqp::elems($opened))),
-                    nqp::setelems($opened,nqp::add_i($elems,1024))
-                  )
-              })
-            );
-            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+            self!remember-to-close;
         }
 
         $!chomp = $chomp;
@@ -235,7 +243,8 @@ my class IO::Handle {
           nqp::stmts(
             (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
-            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
+            $!PIO := nqp::null;
+            self!forget-about-closing($fileno)
           )
         )
     }
@@ -586,10 +595,10 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
-        nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null);
+        self!forget-about-closing(nqp::filenofh($!PIO));
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
-            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+            self!remember-to-close;
             fail X::IO::Lock.new: :os-error(.Str),
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
@@ -597,7 +606,7 @@ my class IO::Handle {
     }
 
     method unlock(IO::Handle:D: --> True) {
-        nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+        self!remember-to-close;
         nqp::unlockfh($!PIO);
     }
 
@@ -782,7 +791,8 @@ my class IO::Handle {
             && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
-            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
+            $!PIO := nqp::null;
+            self!forget-about-closing($fileno)
           )
         )
     }

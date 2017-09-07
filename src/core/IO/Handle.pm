@@ -41,8 +41,7 @@ my class IO::Handle {
             nqp::bindpos($opened,$fileno,nqp::null)
         }
     }
-
-    END {  # assuming this is the very last END block to be run
+    method !close-all-open-handles() {
         my int $i = 2;
         my int $elems = nqp::elems($opened);
         nqp::while(

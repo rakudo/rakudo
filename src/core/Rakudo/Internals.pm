@@ -1,5 +1,6 @@
 my class DateTime { ... }
 my role  IO { ... }
+my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
@@ -1534,13 +1535,19 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                 unless $the-end-is-done {
                     my $comp := nqp::getcomp('perl6');
                     my $end  := nqp::getcurhllsym('@END_PHASERS');
-                    while nqp::elems($end) {
+                    while nqp::elems($end) {           # run all END blocks
                         my $result := nqp::shift($end)();
                         $result.sink if nqp::can($result,'sink');
                         CATCH { $comp.handle-exception($_) }
                         CONTROL { $comp.handle-control($_) }
                     }
-                    nqp::not_i(($the-end-is-done = 1));
+
+                    # close all open files
+                    IO::Handle.^find_private_method(
+                      'close-all-open-handles'
+                    )(IO::Handle);
+
+                    nqp::not_i(($the-end-is-done = 1)); # we're really done now
                 }
             }
         }

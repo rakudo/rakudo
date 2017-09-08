@@ -253,7 +253,7 @@ role STD {
         }
         # core grammar also has a penchant for sending us trailing .ws contents
         $stopper := $stopper // $goal;
-        $stopper := $stopper ~~ /(.*<!before \s>.)\s*/;
+        $stopper := $stopper ~~ /(.*\S)\s*/;
         $stopper := ~$stopper[0];
         self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper));
     }

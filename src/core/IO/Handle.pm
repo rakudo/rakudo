@@ -19,6 +19,7 @@ my class IO::Handle {
           $!encoding = $encoding || 'utf8')
     }
 
+#?if moar
     # Make sure we close any open files on exit
     my $opened := nqp::list;
     my $opened-locker = Lock.new;
@@ -52,6 +53,7 @@ my class IO::Handle {
           )
         )
     }
+#?endif
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -199,7 +201,9 @@ my class IO::Handle {
                     )
                 ),
             );
+#?if moar
             self!remember-to-close;
+#?endif
         }
 
         $!chomp = $chomp;
@@ -240,10 +244,14 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+#?if moar
             (my int $fileno = nqp::filenofh($!PIO)),
+#?endif
             nqp::closefh($!PIO), # TODO: catch errors
             $!PIO := nqp::null;
+#?if moar
             self!forget-about-closing($fileno)
+#?endif
           )
         )
     }
@@ -594,10 +602,14 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
+#?if moar
         self!forget-about-closing(nqp::filenofh($!PIO));
+#?endif
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
+#?if moar
             self!remember-to-close;
+#?endif
             fail X::IO::Lock.new: :os-error(.Str),
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
@@ -605,7 +617,9 @@ my class IO::Handle {
     }
 
     method unlock(IO::Handle:D: --> True) {
+#?if moar
         self!remember-to-close;
+#?endif
         nqp::unlockfh($!PIO);
     }
 
@@ -791,7 +805,9 @@ my class IO::Handle {
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
             $!PIO := nqp::null;
+#?if moar
             self!forget-about-closing($fileno)
+#?endif
           )
         )
     }

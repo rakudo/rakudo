@@ -1541,12 +1541,12 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                         CATCH { $comp.handle-exception($_) }
                         CONTROL { $comp.handle-control($_) }
                     }
-
+#?if moar
                     # close all open files
                     IO::Handle.^find_private_method(
                       'close-all-open-handles'
                     )(IO::Handle);
-
+#?endif
                     nqp::not_i(($the-end-is-done = 1)); # we're really done now
                 }
             }

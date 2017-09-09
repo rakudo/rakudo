@@ -251,7 +251,7 @@ my class IO::Handle {
 #?if moar
             (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
-            $!PIO := nqp::null;
+            ($!PIO := nqp::null),
             self!forget-about-closing($fileno)
 #?endif
           )
@@ -810,7 +810,7 @@ my class IO::Handle {
             $!PIO := nqp::null
 #?endif
 #?if moar
-            $!PIO := nqp::null;
+            ($!PIO := nqp::null),
             self!forget-about-closing($fileno)
 #?endif
           )

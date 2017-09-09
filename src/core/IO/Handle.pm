@@ -244,12 +244,14 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+#?if !moar
+            nqp::closefh($!PIO), # TODO: catch errors
+            $!PIO := nqp::null
+#?endif
 #?if moar
             (my int $fileno = nqp::filenofh($!PIO)),
-#?endif
             nqp::closefh($!PIO), # TODO: catch errors
             $!PIO := nqp::null;
-#?if moar
             self!forget-about-closing($fileno)
 #?endif
           )
@@ -804,8 +806,11 @@ my class IO::Handle {
             && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
-            $!PIO := nqp::null;
+#?if !moar
+            $!PIO := nqp::null
+#?endif
 #?if moar
+            $!PIO := nqp::null;
             self!forget-about-closing($fileno)
 #?endif
           )

@@ -725,12 +725,24 @@ my class JunctionOptimizer {
             $found := 1;
         }
         if $found == 1 {
+            my @candidates;
+            if $obj.is_dispatcher {
+                my $Routine := $!symbols.find_in_setting("Routine");
+                @candidates := nqp::getattr($obj, $Routine, '@!dispatchees');
+            }
+            else {
+                @candidates := nqp::list($obj);
+            }
             my $signature := $!symbols.find_in_setting("Signature");
-            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '@!params'));
-            while $iter {
-                my $p := nqp::shift($iter);
-                unless nqp::istype($p.type, $!symbols.Any) {
-                    return 0;
+            my $canditer := nqp::iterator(@candidates);
+            while $canditer {
+                my $cand := nqp::shift($canditer);
+                my $iter := nqp::iterator(nqp::getattr($cand.signature, $signature, '@!params'));
+                while $iter {
+                    my $p := nqp::shift($iter);
+                    unless nqp::istype($p.type, $!symbols.Any) {
+                        return 0;
+                    }
                 }
             }
             return 1;

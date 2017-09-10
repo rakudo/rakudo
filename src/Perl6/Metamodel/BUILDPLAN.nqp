@@ -119,7 +119,9 @@ role Perl6::Metamodel::BUILDPLAN {
                 nqp::push(@all_plan, $_);
             }
         }
-        @!BUILDALLPLAN := @all_plan;
+
+        # if same number of elems, identical, so just keep 1 copy
+        @!BUILDALLPLAN := +@all_plan == +@plan ?? @plan !! @all_plan;
     }
     
     method BUILDPLAN($obj) {

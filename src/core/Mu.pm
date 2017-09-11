@@ -278,22 +278,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
-
-                          nqp::if(
-                            nqp::iseq_i($code,13),      # no-op in BUILDALL
-                            nqp::stmts(                 # 13's flock together
-                              nqp::while(
-                                nqp::islt_i(
-                                  ($i = nqp::add_i($i,1)),$count
-                                ) && nqp::iseq_i(
-                                  nqp::atpos(nqp::atpos($bp,$i),0),13
-                                ),
-                                nqp::null
-                              ),
-                              ($i = nqp::sub_i($i,1))
-                            ),
-                            die("Invalid BUILDALL plan")
-            ))))))))),
+                          die("Invalid BUILDALL plan")
+            )))))))),
 
             nqp::if(                                    # 0 Custom BUILD call.
               nqp::istype(

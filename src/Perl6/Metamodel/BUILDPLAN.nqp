@@ -112,16 +112,22 @@ role Perl6::Metamodel::BUILDPLAN {
         my @all_plan;
         my @mro := self.mro($obj);
         my $i := +@mro;
+        my $noops := 0;
         while $i > 0 {
             $i := $i - 1;
             my $class := @mro[$i];
             for $class.HOW.BUILDPLAN($class) {
-                nqp::push(@all_plan, $_);
+                if $_[0] == 13 {   # 13 is a noop in BUILDALLPLAN
+                    $noops := 1;
+                }
+                else {
+                    nqp::push(@all_plan, $_);
+                }
             }
         }
 
-        # if same number of elems, identical, so just keep 1 copy
-        @!BUILDALLPLAN := +@all_plan == +@plan ?? @plan !! @all_plan;
+        # if same number of elems and no noops, identical, so just keep 1 copy
+        @!BUILDALLPLAN := $noops || +@all_plan != +@plan ?? @all_plan !! @plan;
     }
     
     method BUILDPLAN($obj) {

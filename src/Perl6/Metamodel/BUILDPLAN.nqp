@@ -34,7 +34,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'container_initializer') {
                 my $ci := $_.container_initializer;
                 if nqp::isconcrete($ci) {
-                    @plan[+@plan] := [12, $obj, $_.name, $ci];
+                    nqp::push(@plan,[12, $obj, $_.name, $ci]);
                     next;
                 }
             }
@@ -47,7 +47,7 @@ role Perl6::Metamodel::BUILDPLAN {
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
-            @plan[+@plan] := [0, $build];
+            nqp::push(@plan,[0, $build]);
         }
         else {
             # No custom BUILD. Rather than having an actual BUILD
@@ -59,10 +59,10 @@ role Perl6::Metamodel::BUILDPLAN {
                     my $name      := nqp::substr($attr_name, 2);
                     my $typespec  := nqp::objprimspec($_.type);
                     if $typespec {
-                        @plan[+@plan] := [nqp::add_i(4, $typespec),
-                                              $obj, $name, $attr_name];
+                        nqp::push(@plan,[nqp::add_i(4, $typespec),
+                                              $obj, $name, $attr_name]);
                     } else {
-                        @plan[+@plan] := [1, $obj, $name, $attr_name];
+                        nqp::push(@plan,[1, $obj, $name, $attr_name]);
                     }
                 }
             }
@@ -71,7 +71,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # Ensure that any required attributes are set
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
-                @plan[+@plan] := [11, $obj, $_.name, $_.required];
+                nqp::push(@plan,[11, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
@@ -83,10 +83,10 @@ role Perl6::Metamodel::BUILDPLAN {
                 if !nqp::isnull($default) && $default {
                     my $typespec := nqp::objprimspec($_.type);
                     if $typespec {
-                        @plan[+@plan] := [nqp::add_i(7, $typespec), $obj, $_.name, $default];
+                        nqp::push(@plan,[nqp::add_i(7, $typespec), $obj, $_.name, $default]);
                     }
                     else {
-                        @plan[+@plan] := [4, $obj, $_.name, $default];
+                        nqp::push(@plan,[4, $obj, $_.name, $default]);
                     }
                     nqp::deletekey(%attrs_untouched, $_.name);
                 }
@@ -95,13 +95,13 @@ role Perl6::Metamodel::BUILDPLAN {
 
         # Add vivify instructions.
         for %attrs_untouched {
-            @plan[+@plan] := [13, $obj, $_.key];
+            nqp::push(@plan,[13, $obj, $_.key]);
         }
 
         # Does it have a TWEAK?
         my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
         if !nqp::isnull($TWEAK) && $TWEAK {
-            @plan[+@plan] := [0, $TWEAK];
+            nqp::push(@plan,[0, $TWEAK]);
         }
 
         # Install plan for this class.

@@ -1898,10 +1898,12 @@ my class X::Package::UseLib does X::Comp {
 }
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
-    # TODO: suppress display of line number
     method message() {
         "The following packages were stubbed but not defined:\n    "
         ~ @.packages.join("\n    ");
+    }
+    multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
+        $.message;
     }
 }
 

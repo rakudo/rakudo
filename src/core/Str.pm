@@ -2970,10 +2970,6 @@ proto sub infix:<unicmp>(|) is pure { * }
 proto sub infix:<coll>(|) { * }
 #?if moar
 multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
-        feature => "the 'unicmp' operator",
-        use     => "collation"
-    ).throw;
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
@@ -2982,19 +2978,11 @@ multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
     (a.key unicmp b.key) || (a.value unicmp b.value)
 }
 multi sub infix:<coll>(Str:D \a, Str:D \b --> Order:D) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
-        feature => "the 'coll' operator",
-        use     => "collation"
-    ).throw;
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), $*COLLATION.collation-level,0,0))
 }
 multi sub infix:<coll>(Cool:D \a, Cool:D \b --> Order:D) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
-        feature => "the 'coll' operator",
-        use     => "collation"
-    ).throw;
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), $*COLLATION.collation-level,0,0))

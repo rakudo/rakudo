@@ -12,6 +12,10 @@ class Collation {
         Int :$tertiary   = 1,
         Int :$quaternary = 1)
     {
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
+            feature => 'the $*COLLATION dynamic variable',
+            use     => 'collation'
+        ).throw;
         my int $i = 0;
         $i += 1   if $primary.sign    ==  1;
         $i += 2   if $primary.sign    == -1;
@@ -28,8 +32,8 @@ class Collation {
         self;
     }
     method check ($more, $less) {
-        # Hopefully the user didn't set it this way, but return the correct
-        # result just in case
+        # Hopefully the user didn't set collation-level manually to have a level
+        # both enabled *and* disabled. But check if this is the case anyway.
         return  0 if $!collation-level +& all($more,$less);
         return  1 if $!collation-level +& $more;
         return -1 if $!collation-level +& $less;

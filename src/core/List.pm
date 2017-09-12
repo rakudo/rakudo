@@ -1358,9 +1358,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
-    method collate {
-        self.sort(&[coll]);
-    }
     multi method tail(List:D:) is raw {
         nqp::if(
           $!todo.DEFINITE,

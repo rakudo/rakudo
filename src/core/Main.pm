@@ -92,14 +92,10 @@ my sub MAIN_HELPER($retval = 0) {
             # Not in PATH
             $name;
         }
-        my sub basename($name) { $*SPEC.splitpath($name)[2] }
 
         my $prog-name = %*ENV<PERL6_PROGRAM_NAME>:exists
           ?? %*ENV<PERL6_PROGRAM_NAME>
           !! $*PROGRAM-NAME;
-        my $prog-basename = $prog-name eq '-e'
-          ?? "-e '...'"
-          !! basename($prog-name);
         $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
@@ -158,7 +154,7 @@ my sub MAIN_HELPER($retval = 0) {
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
-            my $msg = join(' ', $prog-basename, @required-named, @optional-named, @positional, $docs // '');
+            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);
         }
 
@@ -168,7 +164,7 @@ my sub MAIN_HELPER($retval = 0) {
             @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
-        my $usage = "Usage for {$prog-name}:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
+        my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
         $usage;
     }
 

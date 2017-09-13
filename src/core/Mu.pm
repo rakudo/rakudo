@@ -449,7 +449,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                             ($task := nqp::atpos($bp,$i)),
                                             0
                                           ),
-                                          13
+                                          10
                                         ),
                                         nqp::getattr(self,
                                           nqp::atpos($task,1),

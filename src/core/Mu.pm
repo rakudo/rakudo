@@ -108,8 +108,15 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     proto method new(|) { * }
-    multi method new(*%) {
-        nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
+    multi method new(*%attrinit) {
+        nqp::if(
+          nqp::eqaddr(
+            (my $bless := nqp::findmethod(self,'bless')),
+            nqp::findmethod(Mu,'bless')
+          ),
+          nqp::create(self).BUILDALL(%attrinit),
+          nqp::invokewithcapture($bless,nqp::usecapture)
+        )
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();

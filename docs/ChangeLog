@@ -2,7 +2,6 @@ New in 2017.09:
  + Fixes:
     + Fixed NativeCall signature check for unsupported native types [4077842c]
     + Fixed .made called on a Match on which .make was never called [5db5b1db]
-    + Fixed newlines after a failed test [b62b40f1]
     + Fixed flattening of a typed hash [6cec6b72]
     + Fixed iterator on pairs with Mu's [a5014fd0]
     + Fixed Supply.batch with non-int elems and elems == 1 [98f9fffe][7d1ece80]
@@ -14,10 +13,10 @@ New in 2017.09:
     + Fixed thread safety issues with signal introspection [1f411693]
     + Fixed thread safety issues in the `signal` sub [13b6a33c]
     + Fixed thread safety of "foo{$x}bar" [59454b03]
-    + Fixed inability of `make`ing type objects [d0d105b8]
     + Made Bool.enums consistent with Enumeration.enums [e7a58806]
     + Fixed doubled path issue in IO::Notification.watch-path [2362dfd6]
-    + Disabled interactive REPL for non-TTY input [TODO] see nqp@5bec212
+    + Disabled interactive REPL for non-TTY input [b6a60236]
+    + Fixed various issues with Unicode Prepend characters [7f526c1e]
  + Additions:
     + Added support for Str operations with Junctions [753c9a5e][7cd153f4]
         [95a70ca3][0b19baf0][d2f31bb7][e18291e2][8b5d283c]
@@ -27,18 +26,20 @@ New in 2017.09:
     + Made temp and let on a Failure throw it [80a3255b]
     + Made sure that open files are properly closed on exit [3c9cfdba]
         [97853564][347da8e5][dd8d0d89]
-    + Added experimental Unicode Collation Algorithm [9b42484a]
+    + Added Unicode Collation Algorithm [9b42484a][5f335065][ec18efa0]
  + Build system:
     + Made t/harness* use 6 TEST_JOBS by default [8019c15b]
     + Added --ignore-errors option to Configure.pl [0bc1c877][1da075f9]
     + Fixed `make test` without `make install` first [fb0b3eb5]
+    + Made Configure.pl refuse to work without ExtUtils::Command [3f4a9ffa]
  + Efficiency:
     + Bump NQP/Moar to get Knuth-Morris-Pratt string search [593fa5f8]
     + Made `Any ~ Str` and `Str ~ Any` about 25% faster [815faa35]
     + Made index and eqat operations 2x faster [5ebbc5ba]
-    + Make all(@a), none(@a), one(@a) about 9x faster [51c3d86c]
-    + Various improvements to BUILDPLAN and BUILDALLPLAN [7da0c215]
-        [0ca5ffa4][760530a5]
+    + Made all(@a), none(@a), one(@a) about 9x faster [51c3d86c]
+    + Various improvements to BUILDPLAN and BUILDALLPLAN [7da0c215][0ca5ffa4]
+        [760530a5][80e069a4][2574f883][b706b843][963b28d1][532f7092]
+    + Made object creation 25% faster in some cases [62fd5093]
  + Internal:
     + Simplified setting up auto-threading [8a0f6ac1]
     + Streamlined Junction .defined, .Bool, .ACCEPTS [e8137b45]

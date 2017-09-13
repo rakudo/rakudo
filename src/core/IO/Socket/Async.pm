@@ -55,7 +55,8 @@ my class IO::Socket::Async {
             my $cancellation;
             Supply.on-demand:
                 -> $supply {
-                    $cancellation := nqp::asyncreadbytes($!VMIO, $scheduler.queue,
+                    $cancellation := nqp::asyncreadbytes($!VMIO,
+                        $scheduler.queue(:hint-affinity),
                         capture($supply), nqp::decont($buf), SocketCancellation);
                     $!close-promise.then({ $supply.done });
                 },
@@ -119,7 +120,7 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         Supply.on-demand(-> $s {
             $cancellation := nqp::asynclisten(
-                $scheduler.queue,
+                $scheduler.queue(:hint-affinity),
                 -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                     if err {
                         $s.quit(err);
@@ -189,7 +190,7 @@ my class IO::Socket::Async {
         my $p = Promise.new;
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
-            $scheduler.queue,
+            $scheduler.queue(:hint-affinity),
             -> Mu \socket, Mu \err {
                 if err {
                     $p.break(err);

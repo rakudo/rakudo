@@ -9,18 +9,16 @@ role Perl6::Metamodel::BUILDPLAN {
     # nested array is an "op" representing the task to perform:
     #   0 code = call specified BUILD or TWEAK method
     #   1 class name attr_name = try to find initialization value
-    #   2 class name attr_name = try to find initialization value, or set nqp::list()
-    #   3 class name attr_name = try to find initialization value, or set nqp::hash()
-    #   4 class attr_name code = call default value closure if needed
-    #   5 class name attr_name = set a native int attribute
-    #   6 class name attr_name = set a native num attribute
-    #   7 class name attr_name = set a native str attribute
-    #   8 class attr_name code = call default value closure if needed, int attr
-    #   9 class attr_name code = call default value closure if needed, num attr
-    #   10 class attr_name code = call default value closure if needed, str attr
-    #   11 die if a required attribute is not present
-    #   12 class attr_name code = run attribute container initializer
-    #   13 class attr_name = touch/vivify attribute if part of mixin
+    #   2 class attr_name code = call default value closure if needed
+    #   3 class name attr_name = set a native int attribute
+    #   4 class name attr_name = set a native num attribute
+    #   5 class name attr_name = set a native str attribute
+    #   6 class attr_name code = call default value closure if needed, int attr
+    #   7 class attr_name code = call default value closure if needed, num attr
+    #   8 class attr_name code = call default value closure if needed, str attr
+    #   9 die if a required attribute is not present
+    #   10 class attr_name code = run attribute container initializer
+    #   11 class attr_name = touch/vivify attribute if part of mixin
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -34,7 +32,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'container_initializer') {
                 my $ci := $_.container_initializer;
                 if nqp::isconcrete($ci) {
-                    nqp::push(@plan,[12, $obj, $_.name, $ci]);
+                    nqp::push(@plan,[10, $obj, $_.name, $ci]);
                     next;
                 }
             }
@@ -59,7 +57,7 @@ role Perl6::Metamodel::BUILDPLAN {
                     my $name      := nqp::substr($attr_name, 2);
                     my $typespec  := nqp::objprimspec($_.type);
                     if $typespec {
-                        nqp::push(@plan,[nqp::add_i(4, $typespec),
+                        nqp::push(@plan,[nqp::add_i(2, $typespec),
                                               $obj, $name, $attr_name]);
                     } else {
                         nqp::push(@plan,[1, $obj, $name, $attr_name]);
@@ -71,7 +69,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # Ensure that any required attributes are set
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
-                nqp::push(@plan,[11, $obj, $_.name, $_.required]);
+                nqp::push(@plan,[9, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
@@ -83,10 +81,10 @@ role Perl6::Metamodel::BUILDPLAN {
                 if !nqp::isnull($default) && $default {
                     my $typespec := nqp::objprimspec($_.type);
                     if $typespec {
-                        nqp::push(@plan,[nqp::add_i(7, $typespec), $obj, $_.name, $default]);
+                        nqp::push(@plan,[nqp::add_i(5, $typespec), $obj, $_.name, $default]);
                     }
                     else {
-                        nqp::push(@plan,[4, $obj, $_.name, $default]);
+                        nqp::push(@plan,[2, $obj, $_.name, $default]);
                     }
                     nqp::deletekey(%attrs_untouched, $_.name);
                 }
@@ -95,7 +93,7 @@ role Perl6::Metamodel::BUILDPLAN {
 
         # Add vivify instructions.
         for %attrs_untouched {
-            nqp::push(@plan,[13, $obj, $_.key]);
+            nqp::push(@plan,[11, $obj, $_.key]);
         }
 
         # Does it have a TWEAK?
@@ -117,7 +115,7 @@ role Perl6::Metamodel::BUILDPLAN {
             $i := $i - 1;
             my $class := @mro[$i];
             for $class.HOW.BUILDPLAN($class) {
-                if $_[0] == 13 {   # 13 is a noop in BUILDALLPLAN
+                if $_[0] == 11 {   # 11 is a noop in BUILDALLPLAN
                     $noops := 1;
                 }
                 else {

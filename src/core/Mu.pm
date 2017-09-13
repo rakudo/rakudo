@@ -168,53 +168,48 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             ),
 
             nqp::if(                             # not just calling
-              nqp::iseq_i((my int $code = nqp::atpos($task,0)),0),
-              nqp::if(                           # 0
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
-              ),
+              (my int $code = nqp::atpos($task,0)),
 
-              nqp::if(
-                nqp::iseq_i($code,1),
-                nqp::unless(                     # 1
-                  nqp::attrinited(self,
-                    nqp::atpos($task,1),
-                    nqp::atpos($task,2)
-                  ),
-                  nqp::stmts(
-                    (my \attr := nqp::getattr(self,
+              nqp::if(                           # >0
+                nqp::isle_i($code,3),
+                nqp::if(                         # 1|2|3
+                  nqp::existskey($init,nqp::atpos($task,2)),
+                  nqp::if(                       # can initialize
+                    nqp::iseq_i($code,1),
+                    nqp::bindattr_i(self,        # 1
                       nqp::atpos($task,1),
-                      nqp::atpos($task,2)
-                    )),
-                    (attr = nqp::atpos($task,3)(self,attr))
-                  )
-                ),
-
-                nqp::if(
-                  nqp::isle_i($code,4),
-                  nqp::if(                       # 2|3|4
-                    nqp::existskey($init,nqp::atpos($task,2)),
-                    nqp::if(                            # can initialize
+                      nqp::atpos($task,3),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                    ),
+                    nqp::if(
                       nqp::iseq_i($code,2),
-                      nqp::bindattr_i(self,      # 2
+                      nqp::bindattr_n(self,      # 2
                         nqp::atpos($task,1),
                         nqp::atpos($task,3),
                         nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                       ),
-                      nqp::if(
-                        nqp::iseq_i($code,3),
-                        nqp::bindattr_n(self,    # 3
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        ),
-                        nqp::bindattr_s(self,    # 4
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        )
+                      nqp::bindattr_s(self,      # 3
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,3),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                       )
+                    )
+                  )
+                ),
+
+                nqp::if(
+                  nqp::iseq_i($code,4),
+                  nqp::unless(                   # 4
+                    nqp::attrinited(self,
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2)
+                    ),
+                    nqp::stmts(
+                      (my \attr := nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )),
+                      (attr = nqp::atpos($task,3)(self,attr))
                     )
                   ),
 
@@ -280,8 +275,16 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
-                          die("Invalid BUILDALL plan")
-          ))))))))),
+                          die("Invalid BUILDALL plan"),
+              ))))))),
+
+              nqp::if(                           # 0
+                nqp::existskey($init,nqp::atpos($task,2)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
+              )
+            )
+          )
         );
         self
     }
@@ -311,53 +314,48 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             ),
 
             nqp::if(                             # not just calling
-              nqp::iseq_i((my int $code = nqp::atpos($task,0)),0),
-              nqp::if(                           # 0
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
-              ),
+              (my int $code = nqp::atpos($task,0)),
 
-              nqp::if(
-                nqp::iseq_i($code,1),
-                nqp::unless(                     # 1
-                  nqp::attrinited(self,
-                    nqp::atpos($task,1),
-                    nqp::atpos($task,2)
-                  ),
-                  nqp::stmts(
-                    (my \attr := nqp::getattr(self,
+              nqp::if(                           # >0
+                nqp::isle_i($code,3),
+                nqp::if(                         # 1|2|3
+                  nqp::existskey($init,nqp::atpos($task,2)),
+                  nqp::if(                       # can initialize
+                    nqp::iseq_i($code,1),
+                    nqp::bindattr_i(self,        # 1
                       nqp::atpos($task,1),
-                      nqp::atpos($task,2)
-                    )),
-                    (attr = nqp::atpos($task,3)(self,attr))
-                  )
-                ),
-
-                nqp::if(
-                  nqp::isle_i($code,4),
-                  nqp::if(                       # 2|3|4
-                    nqp::existskey($init,nqp::atpos($task,2)),
-                    nqp::if(                     # can initialize
+                      nqp::atpos($task,3),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                    ),
+                    nqp::if(
                       nqp::iseq_i($code,2),
-                      nqp::bindattr_i(self,      # 2
+                      nqp::bindattr_n(self,      # 2
                         nqp::atpos($task,1),
                         nqp::atpos($task,3),
                         nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                       ),
-                      nqp::if(
-                        nqp::iseq_i($code,3),
-                        nqp::bindattr_n(self,    # 3
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        ),
-                        nqp::bindattr_s(self,    # 4
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        )
+                      nqp::bindattr_s(self,      # 3
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,3),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
                       )
+                    )
+                  )
+                ),
+
+                nqp::if(
+                  nqp::iseq_i($code,4),
+                  nqp::unless(                   # 4
+                    nqp::attrinited(self,
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2)
+                    ),
+                    nqp::stmts(
+                      (my \attr := nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )),
+                      (attr = nqp::atpos($task,3)(self,attr))
                     )
                   ),
 
@@ -423,7 +421,6 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
-
                           nqp::if(
                             nqp::iseq_i($code,10),
                             # Force vivification, for the sake of meta-object
@@ -450,8 +447,16 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                               ($i = nqp::sub_i($i,1))
                             ),
                             die("Invalid BUILD_LEAST_DERIVED plan")
-                          )
-        ))))))))));
+              )))))))),
+
+              nqp::if(                           # 0
+                nqp::existskey($init,nqp::atpos($task,2)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
+                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
+              )
+            )
+          )
+        );
         self
     }
 

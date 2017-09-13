@@ -10,16 +10,16 @@ role Perl6::Metamodel::BUILDPLAN {
     # further parameters.  If it is an array, then the first element
     # of each array is an "op" # representing the task to perform:
     #   code = call as method (for BUILD or TWEAK)
-    #   0 class name attr_name = try to find initialization value
-    #   1 class attr_name code = call default value closure if needed
-    #   2 class name attr_name = set a native int attribute
-    #   3 class name attr_name = set a native num attribute
-    #   4 class name attr_name = set a native str attribute
-    #   5 class attr_name code = call default value closure if needed, int attr
-    #   6 class attr_name code = call default value closure if needed, num attr
-    #   7 class attr_name code = call default value closure if needed, str attr
-    #   8 die if a required attribute is not present
-    #   9 class attr_name code = run attribute container initializer
+    #    0 class name attr_name = set attribute from init hash
+    #    1 class name attr_name = set a native int attribute from init hash
+    #    2 class name attr_name = set a native num attribute from init hash
+    #    3 class name attr_name = set a native str attribute from init hash
+    #    4 class attr_name code = call default value closure if needed
+    #    5 class attr_name code = call default value closure if needed, int attr
+    #    6 class attr_name code = call default value closure if needed, num attr
+    #    7 class attr_name code = call default value closure if needed, str attr
+    #    8 die if a required attribute is not present
+    #    9 class attr_name code = run attribute container initializer
     #   10 class attr_name = touch/vivify attribute if part of mixin
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
@@ -55,15 +55,12 @@ role Perl6::Metamodel::BUILDPLAN {
             # need initializing.
             for @attrs {
                 if $_.has_accessor {
-                    my $attr_name := $_.name;
-                    my $name      := nqp::substr($attr_name, 2);
-                    my $typespec  := nqp::objprimspec($_.type);
-                    if $typespec {
-                        nqp::push(@plan,[nqp::add_i(1, $typespec),
-                                              $obj, $name, $attr_name]);
-                    } else {
-                        nqp::push(@plan,[0, $obj, $name, $attr_name]);
-                    }
+                    nqp::push(@plan,[
+                      nqp::add_i(0,nqp::objprimspec($_.type)),
+                      $obj,
+                      nqp::substr((my $attr_name := $_.name), 2),
+                      $attr_name
+                    ]);
                 }
             }
         }
@@ -81,13 +78,12 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
                 if !nqp::isnull($default) && $default {
-                    my $typespec := nqp::objprimspec($_.type);
-                    if $typespec {
-                        nqp::push(@plan,[nqp::add_i(4, $typespec), $obj, $_.name, $default]);
-                    }
-                    else {
-                        nqp::push(@plan,[1, $obj, $_.name, $default]);
-                    }
+                    nqp::push(@plan,[
+                      nqp::add_i(4,nqp::objprimspec($_.type)),
+                      $obj,
+                      $_.name,
+                      $default
+                    ]);
                     nqp::deletekey(%attrs_untouched, $_.name);
                 }
             }

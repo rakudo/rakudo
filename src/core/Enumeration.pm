@@ -32,6 +32,21 @@ my role Enumeration {
             ?? $x
             !! self.^enum_from_value($x)
     }
+
+    method pred() {
+        my @values := self.^enum_value_list;
+        my $index   = @values.first( self, :k );
+        return $index <= 0
+            ?? Failure.new( X::OutOfRange.new( what => "Decrement", got => self, range => @values[0] ^.. @values[*-1] ) )
+            !! @values[ $index - 1 ];
+    }
+    method succ() {
+        my @values := self.^enum_value_list;
+        my $index   = @values.first( self, :k );
+        return $index >= @values.end
+            ?? Failure.new( X::OutOfRange.new( what => "Increment", got => self, range => @values[0] ..^ @values[*-1] ) )
+            !! @values[ $index + 1 ];
+    }
 }
 
 # Methods that we also have if the base type of an enumeration is

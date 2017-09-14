@@ -358,10 +358,10 @@ my class ThreadPoolScheduler does Scheduler {
     # The supervisor sits in a loop, mostly sleeping. Each time it wakes up,
     # it takes stock of the current situation and decides whether or not to
     # add threads.
+    my constant SUPERVISION_INTERVAL = 0.005;
     method !maybe-start-supervisor() {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, {
-                scheduler-debug "Supervisor started";
                 sub add-general-worker() {
                     $!state-lock.protect: {
                         $!general-workers := (|$!general-workers, GeneralWorker.new(
@@ -380,15 +380,47 @@ my class ThreadPoolScheduler does Scheduler {
                     }
                     scheduler-debug "Added a timer worker thread";
                 }
+
+                scheduler-debug "Supervisor started";
+                my num $last-rusage-time = nqp::time_n;
+                my int $last-usage = self!getrusage-total();
+                my num @last-utils;
+                my int $cpu-cores = nqp::cpucores();
+                scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
-                    sleep 0.005;
+                    # Wait until the next time we should check how things
+                    # are.
+                    sleep SUPERVISION_INTERVAL;
+
+                    # Work out the delta of CPU usage since last supervison
+                    # and the time period that measurement spans.
+                    my num $now = nqp::time_n;
+                    my num $rusage-period = $now - $last-rusage-time;
+                    $last-rusage-time = $now;
+                    my int $current-usage = self!getrusage-total();
+                    my int $usage-delta = $current-usage - $last-usage;
+                    $last-usage = $current-usage;
+
+                    # Scale this by the time between rusage calls and turn it
+                    # into a per-core utilization percentage.
+                    my num $normalized-delta = $usage-delta / $rusage-period;
+                    my num $per-core = $normalized-delta / $cpu-cores;
+                    my num $per-core-util = 100 * ($per-core / 1000000);
+
+                    # Since those values are noisy, average the last 5 to get
+                    # a smoothed value.
+                    @last-utils.shift if @last-utils == 5;
+                    push @last-utils, $per-core-util;
+                    my $smooth-per-core-util = [+](@last-utils) / @last-utils;
+                    scheduler-debug "Per-core utilization (approx): $smooth-per-core-util%";
+
                     if $!general-queue.DEFINITE {
                         self!tweak-workers: $!general-queue, $!general-workers,
-                            &add-general-worker;
+                            &add-general-worker, $cpu-cores, $smooth-per-core-util;
                     }
                     if $!timer-queue.DEFINITE {
                         self!tweak-workers: $!timer-queue, $!timer-workers,
-                            &add-timer-worker;
+                            &add-timer-worker, $cpu-cores, $smooth-per-core-util;
                     }
                     CATCH {
                         default {
@@ -400,7 +432,15 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    method !tweak-workers(\queue, \worker-list, &add-worker) {
+    method !getrusage-total() {
+        my \rusage = nqp::getrusage();
+        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000 +
+            nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC) +
+            nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000 +
+            nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+    }
+
+    method !tweak-workers(\queue, \worker-list, &add-worker, $cores, $per-core-util) {
         # If there's nothing in the queue, nothing could need an extra worker.
         return if queue.elems == 0;
 
@@ -413,12 +453,22 @@ my class ThreadPoolScheduler does Scheduler {
             $total-completed += .take-completed;
         }
 
-        # Minimal heuristic: if nothing was completed since the last time, add
-        # a worker.
-        # TODO Extra smarts here
+        # If we didn't complete anything, then consider adding more threads.
+        my int $total-workers = self!total-workers();
         if $total-completed == 0 {
-            if self!total-workers() < $!max_threads {
-                add-worker();
+            if $total-workers < $!max_threads {
+                # There's something in the queue and we haven't completed it.
+                # If we are still below the CPU core count, just add a woker.
+                if $total-workers < $cores {
+                    add-worker();
+                }
+
+                # Otherwise, consider utilization. If it's very little then a
+                # further thread may be needed for deadlock breaking.
+                elsif $per-core-util < 2 {
+                    scheduler-debug "Heuristic deadlock situation detected";
+                    add-worker();
+                }
             }
             else {
                 scheduler-debug "Will not add extra worker; hit $!max_threads thread limit";

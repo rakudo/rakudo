@@ -6,8 +6,14 @@ my class ThreadPoolScheduler does Scheduler {
 
     # Scheduler debug, controlled by an environment variable.
     my $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
+    my $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
     sub scheduler-debug($message) {
         if $scheduler-debug {
+            note "[SCHEDULER] $message";
+        }
+    }
+    sub scheduler-debug-status($message) {
+        if $scheduler-debug-status {
             note "[SCHEDULER] $message";
         }
     }
@@ -413,7 +419,7 @@ my class ThreadPoolScheduler does Scheduler {
                     @last-utils.shift if @last-utils == 5;
                     push @last-utils, $per-core-util;
                     my $smooth-per-core-util = [+](@last-utils) / @last-utils;
-                    scheduler-debug "Per-core utilization (approx): $smooth-per-core-util%";
+                    scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
 
                     if $!general-queue.DEFINITE {
                         self!tweak-workers: $!general-queue, $!general-workers,

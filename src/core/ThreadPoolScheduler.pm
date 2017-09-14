@@ -317,7 +317,7 @@ my class ThreadPoolScheduler does Scheduler {
         my $most-free-worker;
         $cur-affinity-workers.map: -> $cand {
             if $most-free-worker.DEFINITE {
-                my $queue = $cand.queue;
+                my $queue := $cand.queue;
                 return $queue if $queue.elems == 0;
                 if $cand.elems < $most-free-worker.queue.elems {
                     $most-free-worker := $cand;
@@ -330,7 +330,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         # Otherwise, check if the queue beats the threshold to add another
         # worker thread.
-        my $chosen-queue = $most-free-worker.queue;
+        my $chosen-queue := $most-free-worker.queue;
         my $queue-elems = $chosen-queue.elems;
         my $threshold = @affinity-add-thresholds[
             ($cur-affinity-workers.elems max @affinity-add-thresholds) - 1

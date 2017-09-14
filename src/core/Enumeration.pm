@@ -36,16 +36,12 @@ my role Enumeration {
     method pred() {
         my @values := self.^enum_value_list;
         my $index   = @values.first( self, :k );
-        return $index <= 0
-            ?? Failure.new( X::OutOfRange.new( what => "Decrement", got => self, range => @values[0] ^.. @values[*-1] ) )
-            !! @values[ $index - 1 ];
+        return $index <= 0 ?? self !! @values[ $index - 1 ];
     }
     method succ() {
         my @values := self.^enum_value_list;
         my $index   = @values.first( self, :k );
-        return $index >= @values.end
-            ?? Failure.new( X::OutOfRange.new( what => "Increment", got => self, range => @values[0] ..^ @values[*-1] ) )
-            !! @values[ $index + 1 ];
+        return $index >= @values.end ?? self !! @values[ $index + 1 ];
     }
 }
 

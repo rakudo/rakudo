@@ -393,7 +393,7 @@ my class ThreadPoolScheduler does Scheduler {
                     # are.
                     sleep SUPERVISION_INTERVAL;
 
-                    # Work out the delta of CPU usage since last supervison
+                    # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.
                     my num $now = nqp::time_n;
                     my num $rusage-period = $now - $last-rusage-time;
@@ -459,7 +459,7 @@ my class ThreadPoolScheduler does Scheduler {
         if $total-completed == 0 {
             if $total-workers < $!max_threads {
                 # There's something in the queue and we haven't completed it.
-                # If we are still below the CPU core count, just add a woker.
+                # If we are still below the CPU core count, just add a worker.
                 if $total-workers < $cores {
                     add-worker();
                 }

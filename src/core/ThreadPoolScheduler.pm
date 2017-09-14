@@ -163,15 +163,26 @@ my class ThreadPoolScheduler does Scheduler {
 
         # Completed is the number of tasks completed since the last time the
         # supervisor checked in.
+#?if moar
         has atomicint $.completed;
+#?endif
+#?if !moar
+        has int $.completed;
+#?endif
 
         # Working is 1 if the worker is currently busy, 0 if not.
         has int $.working;
 
         # Resets the completed to zero.
         method take-completed() {
+#?if moar
             my atomicint $taken;
             cas $!completed, -> atomicint $current { $taken = $current; 0 }
+#?endif
+#?if !moar
+            my int $taken = $!completed;
+            $!completed = 0;
+#?endif
             $taken
         }
 
@@ -198,7 +209,12 @@ my class ThreadPoolScheduler does Scheduler {
                 }
             });
             $!working = 0;
+#?if moar
             $!completed⚛++;
+#?endif
+#?if !moar
+            $!completed++;
+#?endif
         }
     }
     my class GeneralWorker does Worker {

@@ -160,63 +160,72 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
               nqp::if(                             # >0
                 nqp::iseq_i($code,1),
-                nqp::bindattr_i(self,                # 1
-                  nqp::atpos($task,1),
-                  nqp::atpos($task,2),
-                  nqp::if(
-                    nqp::existskey($init,nqp::atpos($task,3)),
-                    nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                    nqp::if(                           # no init
-                      nqp::iseq_i(nqp::elems($task),5),
-                      nqp::atpos($task,4)(self,          # but a default
+                nqp::if(                             # 1
+                  nqp::existskey($init,nqp::atpos($task,3)),
+                  nqp::bindattr_i(self,                # init value
+                    nqp::atpos($task,1),
+                    nqp::atpos($task,2),
+                    nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                  ),
+                  nqp::if(                             # no init
+                    nqp::iseq_i(nqp::elems($task),5),
+                    nqp::bindattr_i(self,                # but a default
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2),
+                      nqp::atpos($task,4)(self,
                         nqp::getattr_i(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         )
-                      ),
-                      0                                  # no default
+                       )
                     )
                   )
                 ),
 
                 nqp::if(                           # > 1
                   nqp::iseq_i($code,2),
-                  nqp::bindattr_n(self,              # 2
-                    nqp::atpos($task,1),
-                    nqp::atpos($task,2),
-                    nqp::if(
-                      nqp::existskey($init,nqp::atpos($task,3)),
-                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                      nqp::if(                         # no init
-                        nqp::iseq_i(nqp::elems($task),5),
-                        nqp::atpos($task,4)(self,        # but a default
+                  nqp::if(                           # 2
+                    nqp::existskey($init,nqp::atpos($task,3)),
+                    nqp::bindattr_n(self,              # init value
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                    ),
+                    nqp::if(                           # no init
+                      nqp::iseq_i(nqp::elems($task),5),
+                      nqp::bindattr_n(self,              # but a default
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::atpos($task,4)(self,
                           nqp::getattr_n(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           )
-                        ),
-                        0e0                              # no default
+                        )
                       )
                     )
                   ),
 
                   nqp::if(                         # > 2
                     nqp::iseq_i($code,3),
-                    nqp::bindattr_s(self,            # 3
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2),
-                      nqp::if(
-                        nqp::existskey($init,nqp::atpos($task,3)),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                        nqp::if(                       # no init
-                          nqp::iseq_i(nqp::elems($task),5),
-                          nqp::atpos($task,4)(self,      # but a default
+                    nqp::if(                         # 3
+                      nqp::existskey($init,nqp::atpos($task,3)),
+                      nqp::bindattr_s(self,            # init value
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      ),
+                      nqp::if(                         # no init
+                        nqp::iseq_i(nqp::elems($task),5),
+                        nqp::bindattr_s(self,            # but a default
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2),
+                          nqp::atpos($task,4)(self,
                             nqp::getattr_s(self,
                               nqp::atpos($task,1),
                               nqp::atpos($task,2)
                             )
-                          ),
-                          ""                             # no default
+                          )
                         )
                       )
                     ),
@@ -370,63 +379,72 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
               nqp::if(                             # >0
                 nqp::iseq_i($code,1),
-                nqp::bindattr_i(self,                # 1
-                  nqp::atpos($task,1),
-                  nqp::atpos($task,2),
-                  nqp::if(
-                    nqp::existskey($init,nqp::atpos($task,3)),
-                    nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                    nqp::if(                           # no init
-                      nqp::iseq_i(nqp::elems($task),5),
-                      nqp::atpos($task,4)(self,          # but a default
+                nqp::if(                             # 1
+                  nqp::existskey($init,nqp::atpos($task,3)),
+                  nqp::bindattr_i(self,                # init value
+                    nqp::atpos($task,1),
+                    nqp::atpos($task,2),
+                    nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                  ),
+                  nqp::if(                             # no init
+                    nqp::iseq_i(nqp::elems($task),5),
+                    nqp::bindattr_i(self,                # but a default
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2),
+                      nqp::atpos($task,4)(self,
                         nqp::getattr_i(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         )
-                      ),
-                      0                                  # no default
+                       )
                     )
                   )
                 ),
 
                 nqp::if(                           # > 1
                   nqp::iseq_i($code,2),
-                  nqp::bindattr_n(self,              # 2
-                    nqp::atpos($task,1),
-                    nqp::atpos($task,2),
-                    nqp::if(
-                      nqp::existskey($init,nqp::atpos($task,3)),
-                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                      nqp::if(                         # no init
-                        nqp::iseq_i(nqp::elems($task),5),
-                        nqp::atpos($task,4)(self,        # but a default
+                  nqp::if(                           # 2
+                    nqp::existskey($init,nqp::atpos($task,3)),
+                    nqp::bindattr_n(self,              # init value
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                    ),
+                    nqp::if(                           # no init
+                      nqp::iseq_i(nqp::elems($task),5),
+                      nqp::bindattr_n(self,              # but a default
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::atpos($task,4)(self,
                           nqp::getattr_n(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           )
-                        ),
-                        0e0                              # no default
+                        )
                       )
                     )
                   ),
 
                   nqp::if(                         # > 2
                     nqp::iseq_i($code,3),
-                    nqp::bindattr_s(self,            # 3
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2),
-                      nqp::if(
-                        nqp::existskey($init,nqp::atpos($task,3)),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3))),
-                        nqp::if(                       # no init
-                          nqp::iseq_i(nqp::elems($task),5),
-                          nqp::atpos($task,4)(self,      # but a default
+                    nqp::if(                         # 3
+                      nqp::existskey($init,nqp::atpos($task,3)),
+                      nqp::bindattr_s(self,            # init value
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      ),
+                      nqp::if(                         # no init
+                        nqp::iseq_i(nqp::elems($task),5),
+                        nqp::bindattr_s(self,            # but a default
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2),
+                          nqp::atpos($task,4)(self,
                             nqp::getattr_s(self,
                               nqp::atpos($task,1),
                               nqp::atpos($task,2)
                             )
-                          ),
-                          ""                             # no default
+                          )
                         )
                       )
                     ),

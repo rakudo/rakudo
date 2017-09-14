@@ -1902,7 +1902,11 @@ my class X::Package::Stubbed does X::Comp {
         "The following packages were stubbed but not defined:\n    "
         ~ @.packages.join("\n    ");
     }
-    multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
+
+    # The unnamed named param is here so this candidate, rather than
+    # the one from X::Comp is used. (is it a bug that this is needed?
+    # No idea: https://irclog.perlgeek.de/perl6-dev/2017-09-14#i_15164569 )
+    multi method gist(::?CLASS:D: :$) {
         $.message;
     }
 }

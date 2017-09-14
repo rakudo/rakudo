@@ -337,6 +337,10 @@ my class ThreadPoolScheduler does Scheduler {
         if $chosen-queue.elems > $threshold {
             # Add another one, unless another thread did too.
             $!state-lock.protect: {
+                if self!total-workers() >= $!max_threads {
+                    scheduler-debug "Will not add extra affinity worker; hit $!max_threads thread limit";
+                    return $chosen-queue;
+                }
                 if $cur-affinity-workers.elems != $!affinity-workers.elems {
                     return $chosen-queue;
                 }
@@ -410,8 +414,17 @@ my class ThreadPoolScheduler does Scheduler {
         # a worker.
         # TODO Extra smarts here
         if $total-completed == 0 {
-            add-worker();
+            if self!total-workers() < $!max_threads {
+                add-worker();
+            }
+            else {
+                scheduler-debug "Will not add extra worker; hit $!max_threads thread limit";
+            }
         }
+    }
+
+    method !total-workers() {
+        $!general-workers.elems + $!timer-workers.elems + $!affinity-workers.elems
     }
 
     submethod BUILD(

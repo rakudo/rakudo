@@ -372,7 +372,6 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug "Added a general worker thread";
                 }
                 sub add-timer-worker() {
-                    scheduler-debug "Adding a timer worker";
                     $!state-lock.protect: {
                         $!timer-workers := (|$!timer-workers, TimerWorker.new(
                             queue => $!timer-queue,
@@ -386,6 +385,10 @@ my class ThreadPoolScheduler does Scheduler {
                     if $!general-queue.DEFINITE {
                         self!tweak-workers: $!general-queue, $!general-workers,
                             &add-general-worker;
+                    }
+                    if $!timer-queue.DEFINITE {
+                        self!tweak-workers: $!timer-queue, $!timer-workers,
+                            &add-timer-worker;
                     }
                     CATCH {
                         default {

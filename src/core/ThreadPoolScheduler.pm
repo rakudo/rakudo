@@ -365,7 +365,7 @@ my class ThreadPoolScheduler does Scheduler {
     # The supervisor sits in a loop, mostly sleeping. Each time it wakes up,
     # it takes stock of the current situation and decides whether or not to
     # add threads.
-    my constant SUPERVISION_INTERVAL = 0.005;
+    my constant SUPERVISION_INTERVAL = 0.01;
     method !maybe-start-supervisor() {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, {

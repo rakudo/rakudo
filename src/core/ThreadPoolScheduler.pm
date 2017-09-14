@@ -345,8 +345,8 @@ my class ThreadPoolScheduler does Scheduler {
                 if $cur-affinity-workers.elems != $!affinity-workers.elems {
                     return $chosen-queue;
                 }
-                my $new-worker = AffinityWorker.new(scheduler => self);
-                $!affinity-workers = (|$!affinity-workers, $new-worker);
+                my $new-worker := AffinityWorker.new(scheduler => self);
+                $!affinity-workers := (|$!affinity-workers, $new-worker);
                 scheduler-debug "Added an affinity worker thread";
                 $new-worker.queue
             }

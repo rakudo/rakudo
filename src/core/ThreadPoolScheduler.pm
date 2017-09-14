@@ -139,11 +139,12 @@ my class ThreadPoolScheduler does Scheduler {
     #   work, they may steal from timer threads.
     # * Timer worker threads are intended to handle time-based events. They
     #   pull events from the time-sensitive queue, and they will not do any
-    #   work stealing so as to ready and available for timer events. The
+    #   work stealing so as to be ready and available for timer events. The
     #   time-sensitive queue will only be returned when a queue is requested
     #   with the :hint-time-sensitive named argument. Only one timer worker
-    #   will be created on the first request such a queue; the supervisor will
-    #   then monitor the time-sensitive queue length and add more if needed.
+    #   will be created on the first request for such a queue; the supervisor
+    #   will then monitor the time-sensitive queue length and add more if
+    #   needed.
     # * Affinity worker threads each have their own queue. They are used when
     #   a queue is requested and :hint-affinity is passed. These are useful
     #   for things like Proc::Async and IO::Socket::Async, where events will

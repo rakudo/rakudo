@@ -333,7 +333,7 @@ my class ThreadPoolScheduler does Scheduler {
         my $chosen-queue := $most-free-worker.queue;
         my $queue-elems = $chosen-queue.elems;
         my $threshold = @affinity-add-thresholds[
-            ($cur-affinity-workers.elems max @affinity-add-thresholds) - 1
+            ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
         ];
         if $chosen-queue.elems > $threshold {
             # Add another one, unless another thread did too.

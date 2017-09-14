@@ -32,6 +32,17 @@ my role Enumeration {
             ?? $x
             !! self.^enum_from_value($x)
     }
+
+    method pred() {
+        my @values := self.^enum_value_list;
+        my $index   = @values.first( self, :k );
+        return $index <= 0 ?? self !! @values[ $index - 1 ];
+    }
+    method succ() {
+        my @values := self.^enum_value_list;
+        my $index   = @values.first( self, :k );
+        return $index >= @values.end ?? self !! @values[ $index + 1 ];
+    }
 }
 
 # Methods that we also have if the base type of an enumeration is
